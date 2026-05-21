@@ -42,7 +42,7 @@ class AvatarProfile {
       mouthStyleIndex: 0,
       outfitStyleIndex: 0,
       outfitColorIndex: 0,
-      accessoryIndex: 0,
+      accessoryIndex: 1,
       backgroundColorIndex: 0,
       useCustomImage: false,
       customImagePath: null,
@@ -117,47 +117,13 @@ class AvatarProfile {
     );
   }
 
-  static const List<Color> skinTones = [
-    Color(0xFFF7D6BF),
-    Color(0xFFE9BC9A),
-    Color(0xFFD79B74),
-    Color(0xFF9C643D),
-    Color(0xFF6F472F),
-    Color(0xFFFFC6A7),
-  ];
+  static const List<Color> skinTones = [Color(0xFFF7D6BF)];
 
-  static const List<Color> hairColors = [
-    Color(0xFF1F2937),
-    Color(0xFF4B3621),
-    Color(0xFF7C5A3B),
-    Color(0xFFD4A017),
-    Color(0xFF94A3B8),
-    Color(0xFF1E3A5F),
-    Color(0xFF8B5CF6),
-    Color(0xFFF472B6),
-  ];
+  static const List<Color> hairColors = [Color(0xFF1F2937)];
 
-  static const List<Color> outfitColors = [
-    Color(0xFF7C6AE6),
-    Color(0xFF4F8CFF),
-    Color(0xFF10B981),
-    Color(0xFFF59E0B),
-    Color(0xFFEC4899),
-    Color(0xFF64748B),
-    Color(0xFFEF4444),
-    Color(0xFF111827),
-  ];
+  static const List<Color> outfitColors = [Color(0xFFC7A6F7)];
 
-  static const List<Color> backgroundColors = [
-    Color(0xFFEDE9FE),
-    Color(0xFFDBEAFE),
-    Color(0xFFD1FAE5),
-    Color(0xFFFFEDD5),
-    Color(0xFFFCE7F3),
-    Color(0xFFE5E7EB),
-    Color(0xFFFFF7ED),
-    Color(0xFFE0F2FE),
-  ];
+  static const List<Color> backgroundColors = [Color(0xFFE9D7FF)];
 
   Color get skinTone => skinTones[skinToneIndex.clamp(0, skinTones.length - 1)];
   Color get hairColor =>

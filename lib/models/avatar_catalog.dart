@@ -31,74 +31,19 @@ class AvatarPartCategory {
 }
 
 class AvatarCatalog {
-  static const List<String> faceShapeLabels = [
-    '圓臉',
-    '鵝蛋臉',
-    '方臉',
-    '小臉',
-    '柔和臉',
-    '俐落臉',
-  ];
+  static const List<String> faceShapeLabels = ['Nudge 圓臉'];
 
-  static const List<String> hairStyleLabels = [
-    '短髮',
-    '微捲',
-    '瀏海',
-    '中分',
-    '丸子頭',
-    '蓬鬆短髮',
-    '側分',
-    '波浪長髮',
-  ];
+  static const List<String> hairStyleLabels = ['夜色短髮'];
 
-  static const List<String> eyeStyleLabels = [
-    '圓眼',
-    '笑眼',
-    '細長眼',
-    '大眼',
-    '星星眼',
-    '溫柔眼',
-  ];
+  static const List<String> eyeStyleLabels = ['閃亮圓眼'];
 
-  static const List<String> eyebrowStyleLabels = [
-    '自然眉',
-    '粗眉',
-    '上揚眉',
-    '平眉',
-    '柔眉',
-    '俐落眉',
-  ];
+  static const List<String> eyebrowStyleLabels = ['自然眉'];
 
-  static const List<String> mouthStyleLabels = [
-    '微笑',
-    '開心',
-    '酷臉',
-    '小嘴',
-    '抿嘴笑',
-    '驚喜',
-  ];
+  static const List<String> mouthStyleLabels = ['溫柔微笑'];
 
-  static const List<String> outfitStyleLabels = [
-    'T-shirt',
-    '帽T',
-    '襯衫',
-    '外套',
-    '背心',
-    '制服',
-    '運動衫',
-    '針織衫',
-  ];
+  static const List<String> outfitStyleLabels = ['紫色日常套裝'];
 
-  static const List<String> accessoryLabels = [
-    '無配件',
-    '閃光',
-    '耳機',
-    '書本',
-    '星星',
-    '眼鏡',
-    '蝴蝶結',
-    '小背包',
-  ];
+  static const List<String> accessoryLabels = ['無配件', '星光特效'];
 
   static const List<AvatarPartCategory> editorCategories = [
     AvatarPartCategory(
@@ -113,7 +58,7 @@ class AvatarCatalog {
       title: '膚色',
       hint: '選擇角色的膚色，這一類不需要商城解鎖。',
       icon: Icons.palette_outlined,
-      labels: ['膚色 1', '膚色 2', '膚色 3', '膚色 4', '膚色 5', '膚色 6'],
+      labels: ['淺膚色'],
       colors: AvatarProfile.skinTones,
       requiresUnlock: false,
       appearsInShop: false,
@@ -130,7 +75,7 @@ class AvatarCatalog {
       title: '髮色',
       hint: '調整頭髮顏色，讓角色風格更明顯。',
       icon: Icons.color_lens_outlined,
-      labels: ['髮色 1', '髮色 2', '髮色 3', '髮色 4', '髮色 5', '髮色 6', '髮色 7', '髮色 8'],
+      labels: ['夜色黑'],
       colors: AvatarProfile.hairColors,
       requiresUnlock: false,
       appearsInShop: false,
@@ -168,7 +113,7 @@ class AvatarCatalog {
       title: '衣色',
       hint: '調整服裝主色，這一類不需要商城解鎖。',
       icon: Icons.format_color_fill_outlined,
-      labels: ['衣色 1', '衣色 2', '衣色 3', '衣色 4', '衣色 5', '衣色 6', '衣色 7', '衣色 8'],
+      labels: ['柔紫色'],
       colors: AvatarProfile.outfitColors,
       requiresUnlock: false,
       appearsInShop: false,
@@ -185,7 +130,7 @@ class AvatarCatalog {
       title: '背景',
       hint: '設定角色展示背景，會出現在好友頁與名片預覽中。',
       icon: Icons.wallpaper_outlined,
-      labels: ['背景 1', '背景 2', '背景 3', '背景 4', '背景 5', '背景 6', '背景 7', '背景 8'],
+      labels: ['紫色星光背景'],
       colors: AvatarProfile.backgroundColors,
     ),
   ];

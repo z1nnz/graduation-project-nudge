@@ -13,6 +13,7 @@ import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
 import '../models/task_model.dart';
 import '../services/local_storage_service.dart';
+import '../theme/app_ui.dart';
 
 class AppState extends ChangeNotifier {
   final List<Map<String, dynamic>> _defaultTasks = [
@@ -256,23 +257,7 @@ class AppState extends ChangeNotifier {
   AvatarProfile get avatarProfile => _avatarProfile;
 
   AvatarProfile avatarVariantForSeed(int seed) {
-    final safeSeed = seed.abs();
-    return AvatarProfile.initial().copyWith(
-      skinToneIndex: safeSeed % AvatarProfile.skinTones.length,
-      faceShapeIndex: safeSeed % AvatarCatalog.faceShapeLabels.length,
-      hairStyleIndex: (safeSeed ~/ 2) % AvatarCatalog.hairStyleLabels.length,
-      hairColorIndex: (safeSeed ~/ 3) % AvatarProfile.hairColors.length,
-      eyeStyleIndex: (safeSeed ~/ 5) % AvatarCatalog.eyeStyleLabels.length,
-      eyebrowStyleIndex:
-          (safeSeed ~/ 7) % AvatarCatalog.eyebrowStyleLabels.length,
-      mouthStyleIndex: (safeSeed ~/ 11) % AvatarCatalog.mouthStyleLabels.length,
-      outfitStyleIndex:
-          (safeSeed ~/ 13) % AvatarCatalog.outfitStyleLabels.length,
-      outfitColorIndex: (safeSeed ~/ 17) % AvatarProfile.outfitColors.length,
-      accessoryIndex: (safeSeed ~/ 19) % AvatarCatalog.accessoryLabels.length,
-      backgroundColorIndex:
-          (safeSeed ~/ 23) % AvatarProfile.backgroundColors.length,
-    );
+    return AvatarProfile.initial();
   }
 
   String avatarItemKey(String category, int index) {
@@ -1343,6 +1328,18 @@ class AppState extends ChangeNotifier {
     });
   }
 
+  void _unlockAllAvatarItemsForPreview() {
+    for (final category in AvatarCatalog.shopCategories) {
+      for (var i = 0; i < category.itemCount; i++) {
+        _unlockedAvatarItemKeys.add(avatarItemKey(category.key, i));
+      }
+    }
+
+    for (var i = 0; i < AppUI.backgroundThemeKeys.length; i++) {
+      _unlockedAvatarItemKeys.add(avatarItemKey('appBackground', i));
+    }
+  }
+
   Future<bool> purchaseAvatarItem(String category, int index) async {
     if (isAvatarItemUnlocked(category, index)) return true;
 
@@ -1426,6 +1423,7 @@ class AppState extends ChangeNotifier {
         await _saveRewardState();
       }
       _unlockCurrentAvatarProfile();
+      _unlockAllAvatarItemsForPreview();
       await _saveAvatarUnlockState();
       _syncTodaySummary();
       notifyListeners();
@@ -1455,6 +1453,7 @@ class AppState extends ChangeNotifier {
         await _saveRewardState();
       }
       _unlockCurrentAvatarProfile();
+      _unlockAllAvatarItemsForPreview();
       await _saveAvatarUnlockState();
       _syncTodaySummary();
       notifyListeners();
@@ -1483,6 +1482,61 @@ class AppState extends ChangeNotifier {
     } else {
       _avatarProfile = AvatarProfile.initial();
     }
+    _normalizeAvatarProfileForCatalog();
+  }
+
+  int _clampAvatarIndex(int value, int length) {
+    if (length <= 0) return 0;
+    return value.clamp(0, length - 1).toInt();
+  }
+
+  void _normalizeAvatarProfileForCatalog() {
+    _avatarProfile = _avatarProfile.copyWith(
+      skinToneIndex: _clampAvatarIndex(
+        _avatarProfile.skinToneIndex,
+        AvatarProfile.skinTones.length,
+      ),
+      faceShapeIndex: _clampAvatarIndex(
+        _avatarProfile.faceShapeIndex,
+        AvatarCatalog.faceShapeLabels.length,
+      ),
+      hairStyleIndex: _clampAvatarIndex(
+        _avatarProfile.hairStyleIndex,
+        AvatarCatalog.hairStyleLabels.length,
+      ),
+      hairColorIndex: _clampAvatarIndex(
+        _avatarProfile.hairColorIndex,
+        AvatarProfile.hairColors.length,
+      ),
+      eyeStyleIndex: _clampAvatarIndex(
+        _avatarProfile.eyeStyleIndex,
+        AvatarCatalog.eyeStyleLabels.length,
+      ),
+      eyebrowStyleIndex: _clampAvatarIndex(
+        _avatarProfile.eyebrowStyleIndex,
+        AvatarCatalog.eyebrowStyleLabels.length,
+      ),
+      mouthStyleIndex: _clampAvatarIndex(
+        _avatarProfile.mouthStyleIndex,
+        AvatarCatalog.mouthStyleLabels.length,
+      ),
+      outfitStyleIndex: _clampAvatarIndex(
+        _avatarProfile.outfitStyleIndex,
+        AvatarCatalog.outfitStyleLabels.length,
+      ),
+      outfitColorIndex: _clampAvatarIndex(
+        _avatarProfile.outfitColorIndex,
+        AvatarProfile.outfitColors.length,
+      ),
+      accessoryIndex: _clampAvatarIndex(
+        _avatarProfile.accessoryIndex,
+        AvatarCatalog.accessoryLabels.length,
+      ),
+      backgroundColorIndex: _clampAvatarIndex(
+        _avatarProfile.backgroundColorIndex,
+        AvatarProfile.backgroundColors.length,
+      ),
+    );
   }
 
   Future<void> _saveAppearanceSettings() async {
@@ -2261,6 +2315,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> updateAvatarProfile(AvatarProfile profile) async {
     _avatarProfile = profile;
+    _normalizeAvatarProfileForCatalog();
     _syncMyFocusSecondsAcrossRooms();
     notifyListeners();
     await _saveAppearanceSettings();
@@ -2755,6 +2810,7 @@ class AppState extends ChangeNotifier {
     _socialEncouragementRecords = [];
 
     _unlockCurrentAvatarProfile();
+    _unlockAllAvatarItemsForPreview();
     _syncTodaySummary();
 
     final prefs = await SharedPreferences.getInstance();
