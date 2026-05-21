@@ -1,0 +1,3647 @@
+import 'dart:convert';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/avatar_catalog.dart';
+import '../models/avatar_profile.dart';
+import '../models/badge_record.dart';
+import '../models/daily_summary.dart';
+import '../models/friend_request.dart';
+import '../models/social_encouragement_record.dart';
+import '../models/social_friend_profile.dart';
+import '../models/study_room_models.dart';
+import '../models/task_model.dart';
+import '../services/local_storage_service.dart';
+
+class AppState extends ChangeNotifier {
+  final List<Map<String, dynamic>> _defaultTasks = [
+    {
+      'title': '完成 2 小時讀書',
+      'done': false,
+      'category': '讀書',
+      'taskType': 'fixed',
+      'dueDate': null,
+      'priority': '高',
+    },
+    {
+      'title': '步行超過 6000 步',
+      'done': false,
+      'category': '運動',
+      'taskType': 'fixed',
+      'dueDate': null,
+      'priority': '中',
+    },
+    {
+      'title': '運動 30 分鐘',
+      'done': false,
+      'category': '運動',
+      'taskType': 'fixed',
+      'dueDate': null,
+      'priority': '中',
+    },
+    {
+      'title': '晚上 11:30 前睡覺',
+      'done': false,
+      'category': '睡眠',
+      'taskType': 'fixed',
+      'dueDate': null,
+      'priority': '高',
+    },
+    {
+      'title': '準備期中報告',
+      'done': false,
+      'category': '讀書',
+      'taskType': 'deadline',
+      'dueDate': null,
+      'priority': '高',
+    },
+  ];
+
+  static const String _themeModeKey = 'theme_mode_setting';
+  static const String _iconColorKey = 'icon_color_setting';
+  static const String _backgroundThemeKey = 'background_theme_setting';
+  static const String _focusSecondsKey = 'focus_seconds_setting';
+  static const String _studyRoomsKey = 'study_rooms_setting';
+  static const String _profileNicknameKey = 'profile_nickname_setting';
+  static const String _profileSignatureKey = 'profile_signature_setting';
+  static const String _profileTitleBadgeStorageKey =
+      'profile_title_badge_key_setting';
+  static const String _avatarProfileKey = 'avatar_profile_setting';
+  static const String _socialFriendsKey = 'social_friends_setting';
+  static const String _myNudgeIdKey = 'my_nudge_id_setting';
+  static const String _friendRequestsKey = 'friend_requests_setting';
+  static const String _seenUnlockedBadgesKey = 'seen_unlocked_badges_setting';
+  static const String _unlockedBadgesKey = 'unlocked_badges_setting';
+  static const String _socialEncouragementRecordsKey =
+      'social_encouragement_records_setting';
+  static const String _studyGoalTaskTitle = '完成今日自律房目標';
+  static const String _legacyStudyGoalTaskTitle = '完成今日共讀目標';
+  static const String _lastDailyResetDateKey = 'last_daily_reset_date';
+  static const String _disciplineCoinsKey = 'discipline_coins_setting';
+  static const String _rewardedTaskKeysKey = 'rewarded_task_keys_setting';
+  static const String _dailyCoinEarnedKey = 'daily_coin_earned_setting';
+  static const String _monthlyDeadlineCoinEarnedKey =
+      'monthly_deadline_coin_earned_setting';
+  static const String _unlockedAvatarItemsKey = 'unlocked_avatar_items_setting';
+  static const int coinDailyLimit = 15;
+  static const int coinWeeklyLimit = 100;
+  static const int coinMonthlyLimit = 400;
+  static const int deadlineTaskMinLeadDays = 2;
+  static const int deadlineTaskBonusCoins = 5;
+  static const int deadlineTaskMonthlyCoinLimit = 15;
+  static const int deadlineTaskMonthlyCreateLimit = 3;
+  static const Map<int, int> scoreCoinMilestones = {
+    20: 3,
+    40: 3,
+    60: 3,
+    80: 3,
+    100: 3,
+  };
+
+  List<Map<String, dynamic>> _tasks = [];
+  int _focusSeconds = 0;
+  double _sleepHours = 0.0;
+  int _steps = 0;
+  int _exerciseMinutes = 0;
+  bool _isHealthConnected = false;
+  List<DailySummary> _dailySummaries = [];
+  int _disciplineCoins = 0;
+  Set<String> _rewardedTaskKeys = <String>{};
+  Map<String, int> _dailyCoinEarned = <String, int>{};
+  Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
+  Set<String> _unlockedAvatarItemKeys = <String>{};
+
+  String _themeModeSetting = 'system';
+  String _iconColorSetting = 'purple';
+  String _backgroundThemeSetting = 'softGlow';
+
+  String _profileNickname = '老闆';
+  String _profileSignature = '今天也在穩定前進';
+  String _profileTitleBadgeKey = '';
+
+  AvatarProfile _avatarProfile = AvatarProfile.initial();
+
+  List<StudyRoomData> _studyRooms = [];
+  List<SocialFriendProfile> _socialFriends = [];
+  List<FriendRequest> _friendRequests = [];
+  String _myNudgeId = '';
+  Set<String> _seenUnlockedBadgeKeys = <String>{};
+  Map<String, String> _unlockedBadgeDates = <String, String>{};
+  List<SocialEncouragementRecord> _socialEncouragementRecords = [];
+
+  List<Map<String, dynamic>> get tasks => _tasks;
+  int get focusSeconds => _focusSeconds;
+  int get focusMinutes => _focusSeconds ~/ 60;
+  double get sleepHours => _sleepHours;
+  int get steps => _steps;
+  int get exerciseMinutes => _exerciseMinutes;
+  bool get isHealthConnected => _isHealthConnected;
+  List<DailySummary> get dailySummaries => _dailySummaries;
+  int get disciplineCoins => _disciplineCoins;
+  int get unlockedAvatarItemCount => _unlockedAvatarItemKeys.length;
+  int get todayCoinEarned => _dailyCoinEarned[_todayKey()] ?? 0;
+  int get todayCoinRemaining {
+    final remaining = coinDailyLimit - todayCoinEarned;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  int get currentWeekCoinEarned {
+    final start = _currentWeekStart();
+    return _coinEarnedBetween(start, start.add(const Duration(days: 7)));
+  }
+
+  int get currentWeekCoinRemaining {
+    final remaining = coinWeeklyLimit - currentWeekCoinEarned;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  int get currentMonthCoinEarned {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month);
+    final end = DateTime(now.year, now.month + 1);
+    return _coinEarnedBetween(start, end);
+  }
+
+  int get currentMonthCoinRemaining {
+    final remaining = coinMonthlyLimit - currentMonthCoinEarned;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  int get scoreCoinRemaining {
+    return math.min(
+      todayCoinRemaining,
+      math.min(currentWeekCoinRemaining, currentMonthCoinRemaining),
+    );
+  }
+
+  int get currentMonthDeadlineCoinEarned =>
+      _monthlyDeadlineCoinEarned[_monthKey()] ?? 0;
+  int get currentMonthDeadlineCoinRemaining {
+    final remaining =
+        deadlineTaskMonthlyCoinLimit - currentMonthDeadlineCoinEarned;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  int deadlineTaskCountForMonth(DateTime date, {int? excludingIndex}) {
+    final month = _monthKeyForDate(date);
+    var count = 0;
+    for (var i = 0; i < _tasks.length; i++) {
+      if (excludingIndex != null && i == excludingIndex) continue;
+      final task = _tasks[i];
+      if (task['taskType'] != 'deadline') continue;
+      final dueDate = DateTime.tryParse(task['dueDate'] as String? ?? '');
+      if (dueDate == null) continue;
+      if (_monthKeyForDate(dueDate) == month) count++;
+    }
+    return count;
+  }
+
+  bool canCreateDeadlineTaskForDate(DateTime date, {int? excludingIndex}) {
+    return deadlineTaskCountForMonth(date, excludingIndex: excludingIndex) <
+        deadlineTaskMonthlyCreateLimit;
+  }
+
+  int get todayWeightedDisciplineScore => _weightedTaskScore();
+  int? get nextScoreCoinMilestone {
+    if (scoreCoinRemaining <= 0) return null;
+    final score = todayWeightedDisciplineScore;
+    for (final threshold in scoreCoinMilestones.keys) {
+      final key = _scoreMilestoneRewardKey(threshold);
+      if (score < threshold || _rewardedTaskKeys.contains(key)) continue;
+      return threshold;
+    }
+    for (final threshold in scoreCoinMilestones.keys) {
+      if (score < threshold) return threshold;
+    }
+    return null;
+  }
+
+  List<StudyRoomData> get studyRooms => _studyRooms;
+  List<SocialFriendProfile> get socialFriends => _socialFriends;
+  List<FriendRequest> get friendRequests => _friendRequests;
+  String get myNudgeId => _myNudgeId;
+  List<FriendRequest> get incomingFriendRequests => _friendRequests
+      .where(
+        (request) =>
+            request.direction == FriendRequestDirection.incoming &&
+            request.status == FriendRequestStatus.pending,
+      )
+      .toList();
+  List<FriendRequest> get outgoingFriendRequests => _friendRequests
+      .where(
+        (request) =>
+            request.direction == FriendRequestDirection.outgoing &&
+            request.status == FriendRequestStatus.pending,
+      )
+      .toList();
+  List<SocialEncouragementRecord> get socialEncouragementRecords =>
+      _socialEncouragementRecords;
+
+  String get themeModeSetting => _themeModeSetting;
+  String get iconColorSetting => _iconColorSetting;
+  String get backgroundThemeSetting => _backgroundThemeSetting;
+  String get profileNickname => _profileNickname;
+  String get profileSignature => _profileSignature;
+  String get profileTitleBadgeKey => _profileTitleBadgeKey;
+  String get profileTitle {
+    if (_profileTitleBadgeKey.isEmpty) return '';
+
+    final matches = badgeRecords.where(
+      (badge) => badge.badgeKey == _profileTitleBadgeKey && badge.isUnlocked,
+    );
+    return matches.isEmpty ? '' : matches.first.badgeName;
+  }
+
+  AvatarProfile get avatarProfile => _avatarProfile;
+
+  AvatarProfile avatarVariantForSeed(int seed) {
+    final safeSeed = seed.abs();
+    return AvatarProfile.initial().copyWith(
+      skinToneIndex: safeSeed % AvatarProfile.skinTones.length,
+      faceShapeIndex: safeSeed % AvatarCatalog.faceShapeLabels.length,
+      hairStyleIndex: (safeSeed ~/ 2) % AvatarCatalog.hairStyleLabels.length,
+      hairColorIndex: (safeSeed ~/ 3) % AvatarProfile.hairColors.length,
+      eyeStyleIndex: (safeSeed ~/ 5) % AvatarCatalog.eyeStyleLabels.length,
+      eyebrowStyleIndex:
+          (safeSeed ~/ 7) % AvatarCatalog.eyebrowStyleLabels.length,
+      mouthStyleIndex: (safeSeed ~/ 11) % AvatarCatalog.mouthStyleLabels.length,
+      outfitStyleIndex:
+          (safeSeed ~/ 13) % AvatarCatalog.outfitStyleLabels.length,
+      outfitColorIndex: (safeSeed ~/ 17) % AvatarProfile.outfitColors.length,
+      accessoryIndex: (safeSeed ~/ 19) % AvatarCatalog.accessoryLabels.length,
+      backgroundColorIndex:
+          (safeSeed ~/ 23) % AvatarProfile.backgroundColors.length,
+    );
+  }
+
+  String avatarItemKey(String category, int index) {
+    return '$category:$index';
+  }
+
+  bool isAvatarItemUnlocked(String category, int index) {
+    if (index == 0) return true;
+    return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
+  }
+
+  int avatarItemPrice(String category, int index) {
+    if (index == 0) return 0;
+
+    switch (category) {
+      case 'faceShape':
+      case 'eyeStyle':
+      case 'eyebrowStyle':
+      case 'mouthStyle':
+        return 6 + (index * 2);
+      case 'hairStyle':
+        return 10 + (index * 3);
+      case 'outfitStyle':
+        return 14 + (index * 4);
+      case 'accessory':
+        return 8 + (index * 3);
+      case 'backgroundColor':
+        return 7 + (index * 2);
+      case 'appBackground':
+        return 18 + (index * 5);
+      default:
+        return 8 + (index * 3);
+    }
+  }
+
+  double taskRewardWeightForTask(TaskModel task) {
+    if (task.taskType == TaskType.deadline) return 0;
+
+    return _rewardWeightForValues(
+      isAutoTracked: task.isAutoTracked,
+      isSystemTask: task.isSystemTask,
+      taskType: TaskModel.taskTypeToStringValue(task.taskType),
+      priority: TaskModel.priorityToChinese(task.priority),
+      sourceType: task.sourceType,
+    );
+  }
+
+  int taskPotentialScoreForTask(TaskModel task) {
+    final taskWeight = taskRewardWeightForTask(task);
+    if (taskWeight <= 0) return 0;
+
+    final allModels = taskModels;
+    final totalWeight = allModels.fold<double>(
+      0,
+      (sum, item) => sum + taskRewardWeightForTask(item),
+    );
+    if (totalWeight <= 0) return 0;
+    return ((taskWeight / totalWeight) * 100).round().clamp(1, 100);
+  }
+
+  String taskRewardReasonForTask(TaskModel task) {
+    if (task.taskType == TaskType.deadline) {
+      return '截止日驗收，不列入每日分數';
+    }
+    if (task.sourceType == TaskSourceType.sleepHours ||
+        task.sourceType == TaskSourceType.steps ||
+        task.sourceType == TaskSourceType.exerciseMinutes) {
+      return '健康追蹤高權重';
+    }
+    if (task.sourceType == TaskSourceType.focusMinutes) {
+      return '專注核心功能';
+    }
+    if (task.sourceType == TaskSourceType.studyRoom || task.isSystemTask) {
+      return '自律房核心功能';
+    }
+    return '一般任務基礎權重';
+  }
+
+  bool isDeadlineTaskReady(TaskModel task) {
+    if (task.taskType != TaskType.deadline) return true;
+    if (task.dueDate == null) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(
+      task.dueDate!.year,
+      task.dueDate!.month,
+      task.dueDate!.day,
+    );
+    return !today.isBefore(due);
+  }
+
+  String deadlineTaskStatusForTask(TaskModel task) {
+    if (task.taskType != TaskType.deadline) return '';
+    if (task.dueDate == null) return '請先設定截止日';
+    if (isDeadlineTaskReady(task)) {
+      final monthlyRemaining = currentMonthDeadlineCoinRemaining;
+      if (monthlyRemaining <= 0) {
+        return '已到驗收日；本月截止日任務獎勵已達上限';
+      }
+      final availableReward = deadlineTaskBonusCoins > monthlyRemaining
+          ? monthlyRemaining
+          : deadlineTaskBonusCoins;
+      return '已到驗收日，完成可獲得 +$availableReward 自律幣（本月剩 $monthlyRemaining）';
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(
+      task.dueDate!.year,
+      task.dueDate!.month,
+      task.dueDate!.day,
+    );
+    final days = due.difference(today).inDays;
+    return '還有 $days 天到驗收日，暫不計入每日分數';
+  }
+
+  TaskModel _taskMapToTaskModel(
+    Map<String, dynamic> task, {
+    required int index,
+  }) {
+    final title = task['title'] as String? ?? '';
+    final category = task['category'] as String? ?? '自定義';
+    final taskTypeRaw = task['taskType'] as String? ?? 'fixed';
+    final priorityRaw = task['priority'] as String? ?? '中';
+    final dueDateRaw = task['dueDate'] as String?;
+    final doneValue = task['done'] as bool? ?? false;
+    final isSystemTaskValue = task['isSystemTask'] as bool? ?? false;
+    final isAutoTrackedValue = task['isAutoTracked'] as bool? ?? false;
+
+    final sourceTypeRaw = task['sourceType'] as String?;
+    TaskSourceType? sourceType;
+    if (sourceTypeRaw != null && sourceTypeRaw.isNotEmpty) {
+      sourceType = TaskSourceType.values.firstWhere(
+        (e) => e.name == sourceTypeRaw,
+        orElse: () => TaskSourceType.manual,
+      );
+    }
+
+    final targetValueRaw = task['targetValue'];
+    double? targetValue;
+    if (targetValueRaw is int) {
+      targetValue = targetValueRaw.toDouble();
+    } else if (targetValueRaw is double) {
+      targetValue = targetValueRaw;
+    } else if (targetValueRaw is String) {
+      targetValue = double.tryParse(targetValueRaw);
+    }
+
+    return TaskModel(
+      id: task['id'] as String? ?? 'task_${index}_$title',
+      userId: task['userId'] as String? ?? 'local_user',
+      title: title,
+      category: category,
+      taskType: taskTypeRaw == 'deadline' ? TaskType.deadline : TaskType.fixed,
+      priority: TaskModel.priorityFromChinese(priorityRaw),
+      dueDate: dueDateRaw == null || dueDateRaw.isEmpty
+          ? null
+          : DateTime.tryParse(dueDateRaw),
+      isDone: doneValue,
+      isSystemTask: isSystemTaskValue,
+      isAutoTracked: isAutoTrackedValue,
+      sourceType: sourceType,
+      targetValue: targetValue,
+      unitLabel: task['unitLabel'] as String?,
+      sourceId: task['sourceId'] as String?,
+      resetDaily: taskTypeRaw == 'fixed',
+      createdAt:
+          DateTime.tryParse(task['createdAt'] as String? ?? '') ??
+          DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(task['updatedAt'] as String? ?? '') ??
+          DateTime.now(),
+      completedAt: task['completedAt'] == null
+          ? null
+          : DateTime.tryParse(task['completedAt'] as String),
+    );
+  }
+
+  List<TaskModel> get taskModels {
+    return _tasks.asMap().entries.map((entry) {
+      return _taskMapToTaskModel(entry.value, index: entry.key);
+    }).toList();
+  }
+
+  bool isTaskActionableToday(TaskModel task) {
+    return taskRewardWeightForTask(task) > 0;
+  }
+
+  List<TaskModel> get todayActionableTaskModels {
+    return taskModels.where(isTaskActionableToday).toList();
+  }
+
+  int get todayActionableTaskTotal => todayActionableTaskModels.length;
+
+  int get todayActionableTaskCompleted {
+    return todayActionableTaskModels.where((task) => task.isDone).length;
+  }
+
+  int _consecutiveDaysWithFocus(List<DailySummary> summaries) {
+    final sorted = List<DailySummary>.from(summaries)
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    int count = 0;
+    for (final day in sorted) {
+      if (day.focusMinutes > 0) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  }
+
+  int _consecutiveDaysWithCompletedTasks(List<DailySummary> summaries) {
+    final sorted = List<DailySummary>.from(summaries)
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    int count = 0;
+    for (final day in sorted) {
+      if (day.completedTasks > 0) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  }
+
+  int _daysWithHighSteps(List<DailySummary> summaries, int targetSteps) {
+    return summaries.where((day) => day.steps >= targetSteps).length;
+  }
+
+  int _daysWithGoodSleep(List<DailySummary> summaries, double targetSleep) {
+    return summaries.where((day) => day.sleepHours >= targetSleep).length;
+  }
+
+  int _daysWithGoodScore(List<DailySummary> summaries, int targetScore) {
+    return summaries.where((day) => day.disciplineScore >= targetScore).length;
+  }
+
+  double _averageScore(List<DailySummary> summaries) {
+    if (summaries.isEmpty) return 0;
+    final total = summaries.fold<int>(
+      0,
+      (sum, day) => sum + day.disciplineScore,
+    );
+    return total / summaries.length;
+  }
+
+  int _totalStudyRoomFocusMinutes() {
+    final totalSeconds = _studyRooms.fold<int>(
+      0,
+      (sum, room) =>
+          sum +
+          room.members.fold<int>(
+            0,
+            (memberSum, member) =>
+                memberSum + (member.isApproved ? member.todayFocusSeconds : 0),
+          ),
+    );
+    return totalSeconds ~/ 60;
+  }
+
+  bool _isTopMemberInAnyRoom() {
+    for (final room in _studyRooms) {
+      final approvedMembers = room.members
+          .where((member) => member.isApproved)
+          .toList();
+      if (approvedMembers.isEmpty) continue;
+      final sorted = [...approvedMembers]
+        ..sort((a, b) => b.todayFocusSeconds.compareTo(a.todayFocusSeconds));
+      final top = sorted.first;
+      if (top.name == _profileNickname && top.todayFocusSeconds > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int _roomsWithAtLeastMembers(int targetMembers) {
+    return _studyRooms
+        .where(
+          (room) =>
+              room.members.where((member) => member.isApproved).length >=
+              targetMembers,
+        )
+        .length;
+  }
+
+  BadgeRecord _buildBadge({
+    required String key,
+    required String name,
+    required int progress,
+    required int target,
+  }) {
+    final safeProgress = progress < 0 ? 0 : progress;
+    final currentlyUnlocked = safeProgress >= target;
+    if (currentlyUnlocked && !_unlockedBadgeDates.containsKey(key)) {
+      _unlockedBadgeDates[key] = DateTime.now().toIso8601String();
+      _saveUnlockedBadges();
+    }
+
+    final unlocked = _unlockedBadgeDates.containsKey(key);
+    final unlockedAt = DateTime.tryParse(_unlockedBadgeDates[key] ?? '');
+    final displayProgress = unlocked && safeProgress < target
+        ? target
+        : safeProgress;
+
+    return BadgeRecord(
+      id: 'badge_$key',
+      userId: 'local_user',
+      badgeKey: key,
+      badgeName: name,
+      isUnlocked: unlocked,
+      unlockedAt: unlockedAt ?? (unlocked ? DateTime.now() : null),
+      progress: displayProgress > target ? target : displayProgress,
+      target: target,
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  List<BadgeRecord> get badgeRecords {
+    final summaries = List<DailySummary>.from(_dailySummaries)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    final recent7Days = summaries.length > 7
+        ? summaries.sublist(summaries.length - 7)
+        : summaries;
+
+    final completedTasks = _tasks.where((task) => task['done'] == true).length;
+    final focusStreak = _consecutiveDaysWithFocus(summaries);
+    final taskStreak = _consecutiveDaysWithCompletedTasks(summaries);
+    final highStepDays = _daysWithHighSteps(recent7Days, 8000);
+    final goodSleepDays = _daysWithGoodSleep(recent7Days, 7);
+    final goodScoreDays = _daysWithGoodScore(recent7Days, 70);
+    final avgScore = _averageScore(recent7Days).round();
+    final totalCoins = recent7Days.fold<int>(
+      0,
+      (sum, item) => sum + item.coinsEarned,
+    );
+    final autoTrackedCompleted = recent7Days.fold<int>(
+      0,
+      (sum, item) => sum + item.autoTrackedCompleted,
+    );
+    final healthTaskCompleted = recent7Days.fold<int>(
+      0,
+      (sum, item) => sum + item.healthCompleted,
+    );
+
+    final roomFocusMinutes = _totalStudyRoomFocusMinutes();
+    final isTopInRoom = _isTopMemberInAnyRoom();
+    final activeRoomCount = _roomsWithAtLeastMembers(3);
+    final joinedRoomCount = _studyRooms.isEmpty ? 0 : 1;
+
+    return [
+      _buildBadge(
+        key: 'task_starter',
+        name: '任務起步者',
+        progress: completedTasks > 0 ? 1 : 0,
+        target: 1,
+      ),
+      _buildBadge(
+        key: 'focus_beginner',
+        name: '專注新手',
+        progress: focusMinutes,
+        target: 25,
+      ),
+      _buildBadge(
+        key: 'focus_streak',
+        name: '專注連續者',
+        progress: focusStreak,
+        target: 3,
+      ),
+      _buildBadge(
+        key: 'task_streak',
+        name: '任務連續者',
+        progress: taskStreak,
+        target: 3,
+      ),
+      _buildBadge(
+        key: 'sleep_guard',
+        name: '睡眠守護者',
+        progress: goodSleepDays,
+        target: 3,
+      ),
+      _buildBadge(
+        key: 'step_master',
+        name: '步數達人',
+        progress: highStepDays,
+        target: 3,
+      ),
+      _buildBadge(
+        key: 'steady_progress',
+        name: '穩定前進',
+        progress: goodScoreDays,
+        target: 3,
+      ),
+      _buildBadge(
+        key: 'score_keeper',
+        name: '高分維持',
+        progress: avgScore,
+        target: 70,
+      ),
+      _buildBadge(
+        key: 'coin_earner',
+        name: '門檻達人',
+        progress: totalCoins,
+        target: 80,
+      ),
+      _buildBadge(
+        key: 'auto_tracker',
+        name: '自動追蹤者',
+        progress: autoTrackedCompleted,
+        target: 5,
+      ),
+      _buildBadge(
+        key: 'health_sync',
+        name: '健康同步者',
+        progress: _isHealthConnected ? 1 : 0,
+        target: 1,
+      ),
+      _buildBadge(
+        key: 'health_task',
+        name: '健康任務實踐者',
+        progress: healthTaskCompleted,
+        target: 5,
+      ),
+      _buildBadge(
+        key: 'room_joiner',
+        name: '自律房參與者',
+        progress: joinedRoomCount,
+        target: 1,
+      ),
+      _buildBadge(
+        key: 'room_focus',
+        name: '自律房推進者',
+        progress: roomFocusMinutes,
+        target: 120,
+      ),
+      _buildBadge(
+        key: 'room_leader',
+        name: '房內領先者',
+        progress: isTopInRoom ? 1 : 0,
+        target: 1,
+      ),
+      _buildBadge(
+        key: 'room_social',
+        name: '活躍自律房',
+        progress: activeRoomCount,
+        target: 1,
+      ),
+    ];
+  }
+
+  List<BadgeRecord> get newlyUnlockedBadges {
+    return badgeRecords
+        .where(
+          (badge) =>
+              badge.isUnlocked &&
+              !_seenUnlockedBadgeKeys.contains(badge.badgeKey),
+        )
+        .toList();
+  }
+
+  Future<void> _loadSeenUnlockedBadges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_seenUnlockedBadgesKey) ?? const <String>[];
+    _seenUnlockedBadgeKeys = raw.toSet();
+  }
+
+  Future<void> _loadUnlockedBadges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_unlockedBadgesKey);
+    if (raw == null || raw.isEmpty) {
+      _unlockedBadgeDates = <String, String>{};
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as Map;
+      _unlockedBadgeDates = decoded.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
+    } catch (_) {
+      _unlockedBadgeDates = <String, String>{};
+    }
+  }
+
+  Future<void> _saveSeenUnlockedBadges() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _seenUnlockedBadgesKey,
+      _seenUnlockedBadgeKeys.toList()..sort(),
+    );
+  }
+
+  Future<void> _saveUnlockedBadges() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_unlockedBadgesKey, jsonEncode(_unlockedBadgeDates));
+  }
+
+  Future<void> markBadgeAsSeen(String badgeKey) async {
+    if (_seenUnlockedBadgeKeys.contains(badgeKey)) return;
+    _seenUnlockedBadgeKeys.add(badgeKey);
+    notifyListeners();
+    await _saveSeenUnlockedBadges();
+  }
+
+  Future<void> markAllCurrentUnlockedBadgesAsSeen() async {
+    final unlocked = badgeRecords
+        .where((badge) => badge.isUnlocked)
+        .map((badge) => badge.badgeKey);
+    _seenUnlockedBadgeKeys = unlocked.toSet();
+    notifyListeners();
+    await _saveSeenUnlockedBadges();
+  }
+
+  bool isCurrentUserOwner(String roomId) {
+    final room = getStudyRoomById(roomId);
+    if (room == null) return false;
+    return room.ownerId == 'local_user' || room.ownerName == _profileNickname;
+  }
+
+  ThemeMode get currentThemeMode {
+    switch (_themeModeSetting) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  Color get currentIconColor {
+    switch (_iconColorSetting) {
+      case 'blue':
+        return const Color(0xFF4F8CFF);
+      case 'teal':
+        return const Color(0xFF14B8A6);
+      case 'green':
+        return const Color(0xFF10B981);
+      case 'orange':
+        return const Color(0xFFF59E0B);
+      case 'pink':
+        return const Color(0xFFEC4899);
+      case 'red':
+        return const Color(0xFFEF4444);
+      case 'indigo':
+        return const Color(0xFF6366F1);
+      case 'purple':
+      default:
+        return const Color(0xFF7C6AE6);
+    }
+  }
+
+  void _ensureStudyGoalTaskExists() {
+    final existingIndex = _tasks.indexWhere(
+      (task) =>
+          task['title'] == _studyGoalTaskTitle ||
+          task['title'] == _legacyStudyGoalTaskTitle,
+    );
+
+    if (existingIndex < 0) return;
+
+    _tasks[existingIndex] = {
+      ..._tasks[existingIndex],
+      'title': _studyGoalTaskTitle,
+      'category': '自律房',
+      'sourceType': TaskSourceType.studyRoom.name,
+      'isSystemTask': true,
+      'isAutoTracked': true,
+    };
+  }
+
+  void _syncStudyGoalTaskCompletion() {
+    _ensureStudyGoalTaskExists();
+
+    bool reached = false;
+
+    for (final room in _studyRooms) {
+      if (room.goalSourceType != TaskSourceType.studyRoom &&
+          room.goalSourceType != TaskSourceType.focusMinutes) {
+        continue;
+      }
+
+      final meIndex = room.members.indexWhere(
+        (m) => m.memberId == 'local_user',
+      );
+      if (meIndex == -1) continue;
+
+      final me = room.members[meIndex];
+      if (me.hasReachedPersonalGoal) {
+        reached = true;
+        break;
+      }
+    }
+
+    final taskIndex = _tasks.indexWhere(
+      (task) => task['title'] == _studyGoalTaskTitle,
+    );
+
+    if (taskIndex != -1) {
+      _tasks[taskIndex]['done'] = reached;
+      _tasks[taskIndex]['updatedAt'] = DateTime.now().toIso8601String();
+      _tasks[taskIndex]['completedAt'] = reached
+          ? DateTime.now().toIso8601String()
+          : null;
+    }
+  }
+
+  double _autoTrackedValueForSource(TaskSourceType? sourceType) {
+    switch (sourceType) {
+      case TaskSourceType.focusMinutes:
+        return focusMinutes.toDouble();
+      case TaskSourceType.sleepHours:
+        return _isHealthConnected ? _sleepHours : 0;
+      case TaskSourceType.steps:
+        return _isHealthConnected ? _steps.toDouble() : 0;
+      case TaskSourceType.exerciseMinutes:
+        return _isHealthConnected ? _exerciseMinutes.toDouble() : 0;
+      case TaskSourceType.studyRoom:
+        return _studyRoomPersonalFocusMinutes().toDouble();
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+      case null:
+        return 0;
+    }
+  }
+
+  double _autoTrackedValueForTask(Map<String, dynamic> task) {
+    final sourceType = _readTaskSourceType(task);
+    final sourceId = task['sourceId'] as String?;
+
+    if (sourceId != null && sourceId.isNotEmpty) {
+      final room = getStudyRoomById(sourceId);
+      if (room != null) {
+        final me = room.members.where((m) => m.memberId == 'local_user');
+        if (me.isNotEmpty) {
+          final member = me.first;
+          if (!member.isApproved) return 0;
+          return switch (sourceType) {
+            TaskSourceType.studyRoom ||
+            TaskSourceType.focusMinutes => member.todayFocusSeconds / 60,
+            TaskSourceType.sleepHours ||
+            TaskSourceType.steps ||
+            TaskSourceType.exerciseMinutes => member.todayMetricValue,
+            TaskSourceType.manual || TaskSourceType.system || null => 0,
+          };
+        }
+      }
+    }
+
+    return _autoTrackedValueForSource(sourceType);
+  }
+
+  String _studyRoomGoalTaskTitle(StudyRoomData room) {
+    return '完成「${room.name}」今日目標';
+  }
+
+  double _studyRoomGoalTaskTargetValue(StudyRoomData room) {
+    if (room.goalSourceType == TaskSourceType.studyRoom ||
+        room.goalSourceType == TaskSourceType.focusMinutes) {
+      return room.dailyGoalValue * 60;
+    }
+    return room.dailyGoalValue;
+  }
+
+  String _studyRoomGoalTaskUnitLabel(StudyRoomData room) {
+    if (room.goalSourceType == TaskSourceType.studyRoom ||
+        room.goalSourceType == TaskSourceType.focusMinutes) {
+      return '分鐘';
+    }
+    return room.goalUnitLabel;
+  }
+
+  void _upsertStudyRoomGoalTask(StudyRoomData room) {
+    if (!room.syncTaskEnabled) return;
+
+    final now = DateTime.now().toIso8601String();
+    final existingIndex = _tasks.indexWhere(
+      (task) => task['sourceId'] == room.id,
+    );
+    final sourceType = room.goalSourceType;
+    final task = {
+      'id': existingIndex >= 0
+          ? _tasks[existingIndex]['id']
+          : 'task_room_${room.id}',
+      'userId': 'local_user',
+      'title': _studyRoomGoalTaskTitle(room),
+      'done': false,
+      'category': '自律房',
+      'taskType': 'fixed',
+      'dueDate': null,
+      'priority': '中',
+      'isSystemTask': false,
+      'isAutoTracked': true,
+      'sourceType': sourceType.name,
+      'targetValue': _studyRoomGoalTaskTargetValue(room),
+      'unitLabel': _studyRoomGoalTaskUnitLabel(room),
+      'sourceId': room.id,
+      'createdAt': existingIndex >= 0
+          ? _tasks[existingIndex]['createdAt']
+          : now,
+      'updatedAt': now,
+      'completedAt': existingIndex >= 0
+          ? _tasks[existingIndex]['completedAt']
+          : null,
+    };
+
+    if (existingIndex >= 0) {
+      _tasks[existingIndex] = {
+        ...task,
+        'done': _tasks[existingIndex]['done'] ?? false,
+      };
+    } else {
+      _tasks.add(task);
+    }
+  }
+
+  void _syncStudyRoomGoalTasks() {
+    for (final room in _studyRooms) {
+      _upsertStudyRoomGoalTask(room);
+    }
+
+    final syncedRoomIds = _studyRooms
+        .where((room) => room.syncTaskEnabled)
+        .map((room) => room.id)
+        .toSet();
+    _tasks = _tasks.where((task) {
+      final sourceId = task['sourceId'] as String?;
+      if (sourceId == null || sourceId.isEmpty) return true;
+      return syncedRoomIds.contains(sourceId);
+    }).toList();
+  }
+
+  void _removeStudyRoomGoalTask(String roomId) {
+    _tasks = _tasks.where((task) => task['sourceId'] != roomId).toList();
+  }
+
+  void _disableStudyRoomGoalTaskLink(String roomId) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      return room.copyWith(syncTaskEnabled: false);
+    }).toList();
+    _removeStudyRoomGoalTask(roomId);
+  }
+
+  void disableStudyRoomGoalTaskSync(String roomId) {
+    _disableStudyRoomGoalTaskLink(roomId);
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    _syncTodaySummary();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  int _studyRoomPersonalFocusMinutes() {
+    int maxSeconds = _focusSeconds;
+
+    for (final room in _studyRooms) {
+      for (final member in room.members) {
+        if (member.memberId == 'local_user' &&
+            member.todayFocusSeconds > maxSeconds) {
+          maxSeconds = member.todayFocusSeconds;
+        }
+      }
+    }
+
+    return maxSeconds ~/ 60;
+  }
+
+  double _currentMetricValueForSource(TaskSourceType sourceType) {
+    switch (sourceType) {
+      case TaskSourceType.sleepHours:
+        return _isHealthConnected ? _sleepHours : 0;
+      case TaskSourceType.exerciseMinutes:
+        return _isHealthConnected ? _exerciseMinutes.toDouble() : 0;
+      case TaskSourceType.steps:
+        return _isHealthConnected ? _steps.toDouble() : 0;
+      case TaskSourceType.focusMinutes:
+      case TaskSourceType.studyRoom:
+        return _focusSeconds / 3600;
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+        return 0;
+    }
+  }
+
+  void _syncMyHealthMetricsAcrossRooms() {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.goalSourceType != TaskSourceType.sleepHours &&
+          room.goalSourceType != TaskSourceType.exerciseMinutes &&
+          room.goalSourceType != TaskSourceType.steps) {
+        return room;
+      }
+
+      final value = _currentMetricValueForSource(room.goalSourceType);
+      final members = List<StudyMemberData>.from(room.members);
+      final meIndex = members.indexWhere((m) => m.memberId == 'local_user');
+      final reached = value >= room.dailyGoalValue;
+
+      if (meIndex == -1) {
+        members.insert(
+          0,
+          StudyMemberData(
+            memberId: 'local_user',
+            name: _profileNickname,
+            roomNickname: _profileNickname,
+            status: reached
+                ? StudyMemberStatus.resting
+                : StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: _focusSeconds,
+            todayMetricValue: value,
+            avatarColor: const Color(0xFF7C6AE6),
+            avatarProfile: _avatarProfile,
+            role: isCurrentUserOwner(room.id) ? 'owner' : 'member',
+            personalGoalSeconds: room.dailyGoalHours * 60 * 60,
+            hasReachedPersonalGoal: reached,
+            isApproved: true,
+          ),
+        );
+      } else {
+        final current = members[meIndex];
+        members[meIndex] = current.copyWith(
+          name: _profileNickname,
+          roomNickname: current.roomNickname.isEmpty
+              ? _profileNickname
+              : current.roomNickname,
+          status: reached ? StudyMemberStatus.resting : current.status,
+          todayFocusSeconds: _focusSeconds,
+          todayMetricValue: value,
+          avatarProfile: _avatarProfile,
+          hasReachedPersonalGoal: reached,
+        );
+      }
+
+      return room.copyWith(members: members, challengeCompleted: reached);
+    }).toList();
+  }
+
+  double? _readTaskTargetValue(Map<String, dynamic> task) {
+    final rawValue = task['targetValue'];
+    if (rawValue is int) return rawValue.toDouble();
+    if (rawValue is double) return rawValue;
+    if (rawValue is String) return double.tryParse(rawValue);
+    return null;
+  }
+
+  TaskSourceType? _readTaskSourceType(Map<String, dynamic> task) {
+    final rawValue = task['sourceType'] as String?;
+    if (rawValue == null || rawValue.isEmpty) return null;
+
+    return TaskSourceType.values.firstWhere(
+      (sourceType) => sourceType.name == rawValue,
+      orElse: () => TaskSourceType.manual,
+    );
+  }
+
+  DateTime? _readTaskDueDate(Map<String, dynamic> task) {
+    final raw = task['dueDate'] as String?;
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  bool _isDeadlineTaskReady(Map<String, dynamic> task) {
+    final taskType = task['taskType'] as String? ?? 'fixed';
+    if (taskType != 'deadline') return true;
+
+    final dueDate = _readTaskDueDate(task);
+    if (dueDate == null) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    return !today.isBefore(due);
+  }
+
+  String _deadlineTaskRewardKey(Map<String, dynamic> task) {
+    final id = task['id'] as String? ?? task['title'] as String? ?? 'unknown';
+    return 'deadline:$id';
+  }
+
+  int _awardDeadlineTaskBonus(Map<String, dynamic> task) {
+    final rewardKey = _deadlineTaskRewardKey(task);
+    if (_rewardedTaskKeys.contains(rewardKey)) return 0;
+
+    final monthlyRemaining = currentMonthDeadlineCoinRemaining;
+    final rewardAmount = deadlineTaskBonusCoins > monthlyRemaining
+        ? monthlyRemaining
+        : deadlineTaskBonusCoins;
+    _rewardedTaskKeys.add(rewardKey);
+    if (rewardAmount <= 0) {
+      _saveRewardState();
+      return 0;
+    }
+
+    final month = _monthKey();
+    _disciplineCoins += rewardAmount;
+    _monthlyDeadlineCoinEarned[month] =
+        (_monthlyDeadlineCoinEarned[month] ?? 0) + rewardAmount;
+    _saveRewardState();
+    return rewardAmount;
+  }
+
+  void _syncAutoTrackedTasks() {
+    final now = DateTime.now().toIso8601String();
+
+    _tasks = _tasks.map((task) {
+      final isAutoTracked = task['isAutoTracked'] as bool? ?? false;
+      final isSystemTask = task['isSystemTask'] as bool? ?? false;
+      if (!isAutoTracked || isSystemTask) return task;
+
+      final sourceType = _readTaskSourceType(task);
+      final targetValue = _readTaskTargetValue(task);
+      if (sourceType == null || targetValue == null || targetValue <= 0) {
+        return task;
+      }
+
+      final reached = _autoTrackedValueForTask(task) >= targetValue;
+      final wasDone = task['done'] as bool? ?? false;
+
+      if (wasDone == reached) return task;
+
+      return {
+        ...task,
+        'done': reached,
+        'updatedAt': now,
+        'completedAt': reached ? now : null,
+      };
+    }).toList();
+  }
+
+  String _scoreMilestoneRewardKey(int threshold) {
+    return '${_todayKey()}|score:$threshold';
+  }
+
+  double _taskRewardWeight(Map<String, dynamic> task) {
+    final isAutoTracked = task['isAutoTracked'] as bool? ?? false;
+    final isSystemTask = task['isSystemTask'] as bool? ?? false;
+    final taskType = task['taskType'] as String? ?? 'fixed';
+    final priority = task['priority'] as String? ?? '中';
+    final sourceType = _readTaskSourceType(task);
+
+    return _rewardWeightForValues(
+      isAutoTracked: isAutoTracked,
+      isSystemTask: isSystemTask,
+      taskType: taskType,
+      priority: priority,
+      sourceType: sourceType,
+    );
+  }
+
+  bool _isTodayActionableTask(Map<String, dynamic> task) {
+    return _taskRewardWeight(task) > 0;
+  }
+
+  double _rewardWeightForValues({
+    required bool isAutoTracked,
+    required bool isSystemTask,
+    required String taskType,
+    required String priority,
+    required TaskSourceType? sourceType,
+  }) {
+    if (taskType == 'deadline') return 0;
+
+    final baseWeight = switch (sourceType) {
+      TaskSourceType.sleepHours ||
+      TaskSourceType.steps ||
+      TaskSourceType.exerciseMinutes => 4.0,
+      TaskSourceType.focusMinutes => 3.5,
+      TaskSourceType.studyRoom => 3.5,
+      TaskSourceType.system => 3.0,
+      TaskSourceType.manual || null => 1.0,
+    };
+
+    final systemBoost = isSystemTask ? 0.3 : 0.0;
+    final autoBoost =
+        isAutoTracked &&
+            sourceType != TaskSourceType.sleepHours &&
+            sourceType != TaskSourceType.steps &&
+            sourceType != TaskSourceType.exerciseMinutes &&
+            sourceType != TaskSourceType.focusMinutes &&
+            sourceType != TaskSourceType.studyRoom
+        ? 0.3
+        : 0.0;
+
+    final priorityModifier = switch (priority) {
+      '高' => 1.12,
+      '低' => 0.88,
+      _ => 1.0,
+    };
+
+    return (baseWeight + systemBoost + autoBoost) * priorityModifier;
+  }
+
+  int _weightedTaskScore() {
+    if (_tasks.isEmpty) return 0;
+
+    final scoreTasks = _tasks.where((task) => _taskRewardWeight(task) > 0);
+    final totalWeight = scoreTasks.fold<double>(
+      0,
+      (sum, task) => sum + _taskRewardWeight(task),
+    );
+    if (totalWeight <= 0) return 0;
+
+    final completedWeight = scoreTasks
+        .where((task) => task['done'] == true)
+        .fold<double>(0, (sum, task) => sum + _taskRewardWeight(task));
+
+    return ((completedWeight / totalWeight) * 100).round().clamp(0, 100);
+  }
+
+  void _markCompletedTasksAsRewardedForToday() {
+    final score = _weightedTaskScore();
+    for (final threshold in scoreCoinMilestones.keys) {
+      if (score >= threshold) {
+        _rewardedTaskKeys.add(_scoreMilestoneRewardKey(threshold));
+      }
+    }
+  }
+
+  void _syncTaskRewards() {
+    bool changed = false;
+    final score = _weightedTaskScore();
+
+    for (final entry in scoreCoinMilestones.entries) {
+      final threshold = entry.key;
+      final coinAmount = entry.value;
+      if (score < threshold) continue;
+
+      final rewardKey = _scoreMilestoneRewardKey(threshold);
+      if (_rewardedTaskKeys.contains(rewardKey)) continue;
+
+      final remaining = scoreCoinRemaining;
+      final rewardAmount = coinAmount > remaining ? remaining : coinAmount;
+      _rewardedTaskKeys.add(rewardKey);
+      if (rewardAmount <= 0) {
+        changed = true;
+        continue;
+      }
+
+      final today = _todayKey();
+      _disciplineCoins += rewardAmount;
+      _dailyCoinEarned[today] = (_dailyCoinEarned[today] ?? 0) + rewardAmount;
+      changed = true;
+    }
+
+    if (changed) {
+      _saveRewardState();
+    }
+  }
+
+  void _unlockCurrentAvatarProfile() {
+    _unlockedAvatarItemKeys.addAll({
+      avatarItemKey('appBackground', 0),
+      avatarItemKey('hairStyle', _avatarProfile.hairStyleIndex),
+      avatarItemKey('faceShape', _avatarProfile.faceShapeIndex),
+      avatarItemKey('eyeStyle', _avatarProfile.eyeStyleIndex),
+      avatarItemKey('eyebrowStyle', _avatarProfile.eyebrowStyleIndex),
+      avatarItemKey('mouthStyle', _avatarProfile.mouthStyleIndex),
+      avatarItemKey('outfitStyle', _avatarProfile.outfitStyleIndex),
+      avatarItemKey('accessory', _avatarProfile.accessoryIndex),
+      avatarItemKey('backgroundColor', _avatarProfile.backgroundColorIndex),
+    });
+  }
+
+  Future<bool> purchaseAvatarItem(String category, int index) async {
+    if (isAvatarItemUnlocked(category, index)) return true;
+
+    final price = avatarItemPrice(category, index);
+    if (_disciplineCoins < price) return false;
+
+    _disciplineCoins -= price;
+    _unlockedAvatarItemKeys.add(avatarItemKey(category, index));
+
+    notifyListeners();
+    await _saveRewardState();
+    await _saveAvatarUnlockState();
+    return true;
+  }
+
+  Future<void> loadAllLocalData() async {
+    try {
+      final data = await LocalStorageService.loadAppData(
+        defaultTasks: _defaultTasks,
+      );
+
+      _tasks = data.tasks
+          .map(
+            (task) => {
+              'title': task['title'],
+              'done': task['done'] ?? false,
+              'category': task['category'] ?? '自定義',
+              'taskType': task['taskType'] ?? 'fixed',
+              'dueDate': task['dueDate'],
+              'priority': task['priority'] ?? '中',
+              'isSystemTask': task['isSystemTask'] ?? false,
+              'isAutoTracked': task['isAutoTracked'] ?? false,
+              'sourceType': task['sourceType'],
+              'targetValue': task['targetValue'],
+              'unitLabel': task['unitLabel'],
+              'id': task['id'],
+              'userId': task['userId'],
+              'sourceId': task['sourceId'],
+              'createdAt': task['createdAt'],
+              'updatedAt': task['updatedAt'],
+              'completedAt': task['completedAt'],
+            },
+          )
+          .toList();
+
+      _ensureStudyGoalTaskExists();
+
+      _sleepHours = data.sleepHours;
+      _steps = data.steps;
+      _exerciseMinutes = data.exerciseMinutes;
+      _isHealthConnected = data.isHealthConnected;
+      _dailySummaries = data.dailySummaries;
+
+      await _loadAppearanceSettings();
+
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey(_focusSecondsKey)) {
+        _focusSeconds = prefs.getInt(_focusSecondsKey) ?? 0;
+      } else {
+        _focusSeconds = data.focusMinutes * 60;
+      }
+
+      await _loadStudyRooms();
+      await _loadSocialFriends();
+      await _loadFriendIdentityAndRequests();
+      await _loadSocialEncouragementRecords();
+      await _loadUnlockedBadges();
+      await _loadSeenUnlockedBadges();
+      final hasRewardState = await _loadRewardState();
+      await _loadAvatarUnlockState();
+
+      await _checkAndPerformDailyResetIfNeeded();
+      _syncMyHealthMetricsAcrossRooms();
+      _syncStudyRoomGoalTasks();
+      _syncStudyGoalTaskCompletion();
+      _syncAutoTrackedTasks();
+      if (hasRewardState) {
+        _syncTaskRewards();
+      } else {
+        _markCompletedTasksAsRewardedForToday();
+        await _saveRewardState();
+      }
+      _unlockCurrentAvatarProfile();
+      await _saveAvatarUnlockState();
+      _syncTodaySummary();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('load data error: $e');
+      _tasks = List<Map<String, dynamic>>.from(_defaultTasks);
+      _ensureStudyGoalTaskExists();
+      _focusSeconds = 0;
+      await _loadAppearanceSettings();
+      await _loadStudyRooms();
+      await _loadSocialFriends();
+      await _loadFriendIdentityAndRequests();
+      await _loadSocialEncouragementRecords();
+      await _loadUnlockedBadges();
+      await _loadSeenUnlockedBadges();
+      final hasRewardState = await _loadRewardState();
+      await _loadAvatarUnlockState();
+      await _checkAndPerformDailyResetIfNeeded();
+      _syncMyHealthMetricsAcrossRooms();
+      _syncStudyRoomGoalTasks();
+      _syncStudyGoalTaskCompletion();
+      _syncAutoTrackedTasks();
+      if (hasRewardState) {
+        _syncTaskRewards();
+      } else {
+        _markCompletedTasksAsRewardedForToday();
+        await _saveRewardState();
+      }
+      _unlockCurrentAvatarProfile();
+      await _saveAvatarUnlockState();
+      _syncTodaySummary();
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadAppearanceSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _themeModeSetting = prefs.getString(_themeModeKey) ?? 'system';
+    _iconColorSetting = prefs.getString(_iconColorKey) ?? 'purple';
+    _backgroundThemeSetting =
+        prefs.getString(_backgroundThemeKey) ?? 'softGlow';
+    _profileNickname = prefs.getString(_profileNicknameKey) ?? '老闆';
+    _profileSignature = prefs.getString(_profileSignatureKey) ?? '今天也在穩定前進';
+    _profileTitleBadgeKey = prefs.getString(_profileTitleBadgeStorageKey) ?? '';
+
+    final avatarRaw = prefs.getString(_avatarProfileKey);
+    if (avatarRaw != null && avatarRaw.isNotEmpty) {
+      try {
+        _avatarProfile = AvatarProfile.fromJson(
+          Map<String, dynamic>.from(jsonDecode(avatarRaw)),
+        );
+      } catch (_) {
+        _avatarProfile = AvatarProfile.initial();
+      }
+    } else {
+      _avatarProfile = AvatarProfile.initial();
+    }
+  }
+
+  Future<void> _saveAppearanceSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeModeKey, _themeModeSetting);
+    await prefs.setString(_iconColorKey, _iconColorSetting);
+    await prefs.setString(_backgroundThemeKey, _backgroundThemeSetting);
+    await prefs.setString(_profileNicknameKey, _profileNickname);
+    await prefs.setString(_profileSignatureKey, _profileSignature);
+    await prefs.setString(_profileTitleBadgeStorageKey, _profileTitleBadgeKey);
+    await prefs.setString(
+      _avatarProfileKey,
+      jsonEncode(_avatarProfile.toJson()),
+    );
+  }
+
+  Future<void> _saveTasks() async {
+    await LocalStorageService.saveTasks(_tasks);
+  }
+
+  Future<void> _saveFocusTime() async {
+    await LocalStorageService.saveFocusMinutes(focusMinutes);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_focusSecondsKey, _focusSeconds);
+  }
+
+  Future<void> _saveHealthData() async {
+    await LocalStorageService.saveHealthData(
+      sleepHours: _sleepHours,
+      steps: _steps,
+      exerciseMinutes: _exerciseMinutes,
+      isHealthConnected: _isHealthConnected,
+    );
+  }
+
+  Future<void> _saveDailySummaries() async {
+    await LocalStorageService.saveDailySummaries(_dailySummaries);
+  }
+
+  Future<bool> _loadRewardState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasRewardState =
+        prefs.containsKey(_disciplineCoinsKey) ||
+        prefs.containsKey(_rewardedTaskKeysKey) ||
+        prefs.containsKey(_dailyCoinEarnedKey) ||
+        prefs.containsKey(_monthlyDeadlineCoinEarnedKey);
+
+    _disciplineCoins = prefs.getInt(_disciplineCoinsKey) ?? 0;
+    _rewardedTaskKeys =
+        (prefs.getStringList(_rewardedTaskKeysKey) ?? const <String>[]).toSet();
+    final dailyEarnedRaw = prefs.getString(_dailyCoinEarnedKey);
+    if (dailyEarnedRaw == null || dailyEarnedRaw.isEmpty) {
+      _dailyCoinEarned = <String, int>{};
+    } else {
+      final decoded = jsonDecode(dailyEarnedRaw) as Map;
+      _dailyCoinEarned = decoded.map(
+        (key, value) => MapEntry(key.toString(), (value as num).round()),
+      );
+    }
+
+    final monthlyDeadlineRaw = prefs.getString(_monthlyDeadlineCoinEarnedKey);
+    if (monthlyDeadlineRaw == null || monthlyDeadlineRaw.isEmpty) {
+      _monthlyDeadlineCoinEarned = <String, int>{};
+    } else {
+      final decoded = jsonDecode(monthlyDeadlineRaw) as Map;
+      _monthlyDeadlineCoinEarned = decoded.map(
+        (key, value) => MapEntry(key.toString(), (value as num).round()),
+      );
+    }
+
+    return hasRewardState;
+  }
+
+  Future<void> _saveRewardState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_disciplineCoinsKey, _disciplineCoins);
+    await prefs.setStringList(_rewardedTaskKeysKey, _rewardedTaskKeys.toList());
+    await prefs.setString(_dailyCoinEarnedKey, jsonEncode(_dailyCoinEarned));
+    await prefs.setString(
+      _monthlyDeadlineCoinEarnedKey,
+      jsonEncode(_monthlyDeadlineCoinEarned),
+    );
+  }
+
+  Future<void> _loadAvatarUnlockState() async {
+    final prefs = await SharedPreferences.getInstance();
+    _unlockedAvatarItemKeys =
+        (prefs.getStringList(_unlockedAvatarItemsKey) ?? const <String>[])
+            .toSet();
+  }
+
+  Future<void> _saveAvatarUnlockState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _unlockedAvatarItemsKey,
+      _unlockedAvatarItemKeys.toList(),
+    );
+  }
+
+  Future<void> _saveStudyRooms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(
+      _studyRooms.map((room) => room.toJson()).toList(),
+    );
+    await prefs.setString(_studyRoomsKey, encoded);
+  }
+
+  Future<void> _saveSocialFriends() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(
+      _socialFriends.map((friend) => friend.toJson()).toList(),
+    );
+    await prefs.setString(_socialFriendsKey, encoded);
+  }
+
+  Future<void> _saveFriendIdentityAndRequests() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_myNudgeIdKey, _myNudgeId);
+    await prefs.setString(
+      _friendRequestsKey,
+      jsonEncode(_friendRequests.map((request) => request.toJson()).toList()),
+    );
+  }
+
+  Future<void> _saveSocialEncouragementRecords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(
+      _socialEncouragementRecords.map((record) => record.toJson()).toList(),
+    );
+    await prefs.setString(_socialEncouragementRecordsKey, encoded);
+  }
+
+  Future<void> _loadStudyRooms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_studyRoomsKey);
+
+    if (raw == null || raw.isEmpty) {
+      _initDefaultStudyRooms();
+      await _saveStudyRooms();
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as List;
+      _studyRooms = decoded
+          .map((e) => StudyRoomData.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      _syncMyFocusSecondsAcrossRooms();
+    } catch (_) {
+      _initDefaultStudyRooms();
+      await _saveStudyRooms();
+    }
+  }
+
+  Future<void> _loadSocialFriends() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_socialFriendsKey);
+
+    if (raw == null || raw.isEmpty) {
+      _socialFriends = [
+        SocialFriendProfile(
+          id: 'friend_a',
+          nudgeId: 'NDG-YU4832',
+          name: '小宇',
+          signature: '今天慢慢前進',
+          todayFocusSeconds: 48 * 60 + 35,
+          isStudying: false,
+          avatarColor: const Color(0xFF4F8CFF),
+          avatarProfile: avatarVariantForSeed(21),
+          isFollowing: true,
+          encouragementCount: 2,
+        ),
+        SocialFriendProfile(
+          id: 'friend_b',
+          nudgeId: 'NDG-AN6612',
+          name: '小安',
+          signature: '正在專注中',
+          todayFocusSeconds: 66 * 60 + 12,
+          isStudying: true,
+          avatarColor: const Color(0xFF10B981),
+          avatarProfile: avatarVariantForSeed(38),
+          isFollowing: false,
+          encouragementCount: 1,
+        ),
+      ];
+      await _saveSocialFriends();
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as List;
+      _socialFriends = decoded
+          .map(
+            (e) => SocialFriendProfile.fromJson(Map<String, dynamic>.from(e)),
+          )
+          .toList();
+    } catch (_) {
+      _socialFriends = [];
+      await _saveSocialFriends();
+    }
+  }
+
+  String _generateNudgeId() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final seed = DateTime.now().microsecondsSinceEpoch;
+    final buffer = StringBuffer('NDG-');
+    var value = seed;
+    for (int i = 0; i < 6; i++) {
+      buffer.write(chars[value % chars.length]);
+      value = value ~/ chars.length;
+    }
+    return buffer.toString();
+  }
+
+  List<FriendRequest> _defaultIncomingFriendRequests() {
+    return [
+      FriendRequest(
+        id: 'req_in_akari',
+        nudgeId: 'NDG-AKARI8',
+        name: '小璃',
+        signature: '想一起養成早睡習慣',
+        direction: FriendRequestDirection.incoming,
+        status: FriendRequestStatus.pending,
+        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+      ),
+    ];
+  }
+
+  Future<void> _loadFriendIdentityAndRequests() async {
+    final prefs = await SharedPreferences.getInstance();
+    _myNudgeId = prefs.getString(_myNudgeIdKey) ?? '';
+    if (_myNudgeId.isEmpty) {
+      _myNudgeId = _generateNudgeId();
+    }
+
+    final raw = prefs.getString(_friendRequestsKey);
+    if (raw == null || raw.isEmpty) {
+      _friendRequests = _defaultIncomingFriendRequests();
+      await _saveFriendIdentityAndRequests();
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as List;
+      _friendRequests = decoded
+          .map((e) => FriendRequest.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (_) {
+      _friendRequests = _defaultIncomingFriendRequests();
+      await _saveFriendIdentityAndRequests();
+    }
+  }
+
+  Future<void> _loadSocialEncouragementRecords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_socialEncouragementRecordsKey);
+
+    if (raw == null || raw.isEmpty) {
+      _socialEncouragementRecords = [];
+      await _saveSocialEncouragementRecords();
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as List;
+      _socialEncouragementRecords = decoded
+          .map(
+            (e) => SocialEncouragementRecord.fromJson(
+              Map<String, dynamic>.from(e),
+            ),
+          )
+          .toList();
+    } catch (_) {
+      _socialEncouragementRecords = [];
+      await _saveSocialEncouragementRecords();
+    }
+  }
+
+  void _initDefaultStudyRooms() {
+    _studyRooms = [
+      StudyRoomData(
+        id: 'room_midterm',
+        name: '期中衝刺房',
+        description: '一起把今天最重要的進度推完',
+        accentColor: const Color(0xFF7C6AE6),
+        ownerId: 'local_user',
+        ownerName: _profileNickname,
+        announcement: '今晚 11 點前一起完成最重要的一項進度。',
+        tags: const ['考試衝刺', '高效率'],
+        memberLimit: 8,
+        category: '研究所',
+        dailyGoalHours: 5,
+        joinMode: StudyRoomJoinMode.instant,
+        joinQuestionsEnabled: false,
+        joinQuestions: const [],
+        nicknameRuleEnabled: false,
+        nicknameRuleText: '',
+        roomRules: '專注時盡量保持安靜，進房後直接開始自己的進度。',
+        password: '',
+        challengeTitle: '今晚衝刺挑戰',
+        challengeDescription: '今天一起累積 5 小時專注',
+        challengeGoalSeconds: 5 * 60 * 60,
+        challengeDeadlineLabel: '今天 23:59',
+        challengeCompleted: false,
+        members: [
+          StudyMemberData(
+            memberId: 'local_user',
+            name: _profileNickname,
+            roomNickname: _profileNickname,
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: _focusSeconds,
+            avatarColor: const Color(0xFF7C6AE6),
+            avatarProfile: _avatarProfile,
+            role: 'owner',
+            personalGoalSeconds: 60 * 60,
+            hasReachedPersonalGoal: _focusSeconds >= 60 * 60,
+          ),
+          const StudyMemberData(
+            memberId: 'member_xm',
+            name: '小明',
+            roomNickname: '小明',
+            status: StudyMemberStatus.studying,
+            sessionSeconds: 31 * 60 + 12,
+            todayFocusSeconds: 102 * 60 + 25,
+            avatarColor: Color(0xFF4F8CFF),
+            role: 'member',
+            personalGoalSeconds: 90 * 60,
+            hasReachedPersonalGoal: true,
+          ),
+          const StudyMemberData(
+            memberId: 'member_xh',
+            name: '小華',
+            roomNickname: '小華',
+            status: StudyMemberStatus.resting,
+            sessionSeconds: 0,
+            todayFocusSeconds: 55 * 60 + 8,
+            avatarColor: Color(0xFF10B981),
+            role: 'member',
+            personalGoalSeconds: 60 * 60,
+            hasReachedPersonalGoal: false,
+          ),
+          const StudyMemberData(
+            memberId: 'member_aj',
+            name: '阿杰',
+            roomNickname: '阿杰',
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: 53 * 60 + 10,
+            avatarColor: Color(0xFFF59E0B),
+            role: 'member',
+            personalGoalSeconds: 45 * 60,
+            hasReachedPersonalGoal: true,
+          ),
+        ],
+      ),
+      StudyRoomData(
+        id: 'room_morning',
+        name: '早八自律房',
+        description: '早上先進入專注狀態的人都在這',
+        accentColor: const Color(0xFF4F8CFF),
+        ownerId: 'local_user',
+        ownerName: _profileNickname,
+        announcement: '今天早上先完成一輪 50 分鐘專注。',
+        tags: const ['早起房', '晨讀'],
+        memberLimit: 6,
+        category: '大學生',
+        dailyGoalHours: 3,
+        joinMode: StudyRoomJoinMode.instant,
+        joinQuestionsEnabled: false,
+        joinQuestions: const [],
+        nicknameRuleEnabled: false,
+        nicknameRuleText: '',
+        roomRules: '早晨自律房，進房後先設定今天的第一輪目標。',
+        password: '',
+        challengeTitle: '晨讀目標',
+        challengeDescription: '今天早上一起累積 3 小時',
+        challengeGoalSeconds: 3 * 60 * 60,
+        challengeDeadlineLabel: '今天 12:00',
+        challengeCompleted: false,
+        members: [
+          StudyMemberData(
+            memberId: 'local_user',
+            name: _profileNickname,
+            roomNickname: _profileNickname,
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: _focusSeconds,
+            avatarColor: const Color(0xFF7C6AE6),
+            avatarProfile: _avatarProfile,
+            role: 'owner',
+            personalGoalSeconds: 45 * 60,
+            hasReachedPersonalGoal: _focusSeconds >= 45 * 60,
+          ),
+          const StudyMemberData(
+            memberId: 'member_xa',
+            name: '小安',
+            roomNickname: '小安',
+            status: StudyMemberStatus.studying,
+            sessionSeconds: 42 * 60 + 8,
+            todayFocusSeconds: 88 * 60 + 41,
+            avatarColor: Color(0xFFEC4899),
+            role: 'member',
+            personalGoalSeconds: 60 * 60,
+            hasReachedPersonalGoal: true,
+          ),
+          const StudyMemberData(
+            memberId: 'member_az',
+            name: '阿哲',
+            roomNickname: '阿哲',
+            status: StudyMemberStatus.resting,
+            sessionSeconds: 0,
+            todayFocusSeconds: 61 * 60 + 12,
+            avatarColor: Color(0xFF14B8A6),
+            role: 'member',
+            personalGoalSeconds: 90 * 60,
+            hasReachedPersonalGoal: false,
+          ),
+        ],
+      ),
+      StudyRoomData(
+        id: 'room_night',
+        name: '夜讀靜音房',
+        description: '晚上安靜讀書，互相盯進度',
+        accentColor: const Color(0xFF10B981),
+        ownerId: 'local_user',
+        ownerName: _profileNickname,
+        announcement: '靜音自習，不聊天，專心把今天收尾。',
+        tags: const ['夜讀', '靜音房'],
+        memberLimit: 10,
+        category: '自訂',
+        dailyGoalHours: 6,
+        joinMode: StudyRoomJoinMode.approval,
+        joinQuestionsEnabled: true,
+        joinQuestions: const ['你今天想完成什麼？', '是否能遵守靜音規則？'],
+        nicknameRuleEnabled: true,
+        nicknameRuleText: '請使用固定暱稱，方便房內辨識。',
+        roomRules: '禁止閒聊，僅以專注與進度回報為主。',
+        password: '',
+        challengeTitle: '夜讀累積挑戰',
+        challengeDescription: '今晚一起累積 6 小時',
+        challengeGoalSeconds: 6 * 60 * 60,
+        challengeDeadlineLabel: '今天 23:59',
+        challengeCompleted: false,
+        members: [
+          StudyMemberData(
+            memberId: 'local_user',
+            name: _profileNickname,
+            roomNickname: _profileNickname,
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: _focusSeconds,
+            avatarColor: const Color(0xFF7C6AE6),
+            avatarProfile: _avatarProfile,
+            role: 'owner',
+            personalGoalSeconds: 90 * 60,
+            hasReachedPersonalGoal: _focusSeconds >= 90 * 60,
+          ),
+          const StudyMemberData(
+            memberId: 'member_xy',
+            name: '小宇',
+            roomNickname: '小宇',
+            status: StudyMemberStatus.studying,
+            sessionSeconds: 27 * 60 + 33,
+            todayFocusSeconds: 91 * 60 + 9,
+            avatarColor: Color(0xFF10B981),
+            role: 'member',
+            personalGoalSeconds: 60 * 60,
+            hasReachedPersonalGoal: true,
+          ),
+          const StudyMemberData(
+            memberId: 'member_xk',
+            name: '小可',
+            roomNickname: '小可',
+            status: StudyMemberStatus.studying,
+            sessionSeconds: 13 * 60 + 17,
+            todayFocusSeconds: 74 * 60 + 37,
+            avatarColor: Color(0xFF8B5CF6),
+            role: 'member',
+            personalGoalSeconds: 90 * 60,
+            hasReachedPersonalGoal: false,
+          ),
+          const StudyMemberData(
+            memberId: 'member_xj',
+            name: '小傑',
+            roomNickname: '小傑',
+            status: StudyMemberStatus.resting,
+            sessionSeconds: 0,
+            todayFocusSeconds: 108 * 60 + 2,
+            avatarColor: Color(0xFFF97316),
+            role: 'member',
+            personalGoalSeconds: 120 * 60,
+            hasReachedPersonalGoal: false,
+          ),
+        ],
+      ),
+    ];
+  }
+
+  String _formatDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  String _todayKey() {
+    return _formatDate(DateTime.now());
+  }
+
+  DateTime _currentWeekStart() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return today.subtract(Duration(days: today.weekday - DateTime.monday));
+  }
+
+  int _coinEarnedBetween(DateTime start, DateTime end) {
+    return _dailyCoinEarned.entries.fold<int>(0, (sum, entry) {
+      final date = DateTime.tryParse(entry.key);
+      if (date == null) return sum;
+      final day = DateTime(date.year, date.month, date.day);
+      if (day.isBefore(start) || !day.isBefore(end)) return sum;
+      return sum + entry.value;
+    });
+  }
+
+  String _monthKey() {
+    final now = DateTime.now();
+    return _monthKeyForDate(now);
+  }
+
+  String _monthKeyForDate(DateTime date) {
+    final now = date;
+    final y = now.year.toString().padLeft(4, '0');
+    final m = now.month.toString().padLeft(2, '0');
+    return '$y-$m';
+  }
+
+  Future<void> _checkAndPerformDailyResetIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _todayKey();
+    final lastResetDate = prefs.getString(_lastDailyResetDateKey);
+
+    if (lastResetDate == null) {
+      await prefs.setString(_lastDailyResetDateKey, today);
+      return;
+    }
+
+    if (lastResetDate == today) {
+      return;
+    }
+
+    _resetDailyTasks();
+    _resetDailyFocusAndStudyRooms();
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    _syncTodaySummary();
+
+    await _saveTasks();
+    await _saveFocusTime();
+    await _saveHealthData();
+    await _saveStudyRooms();
+    await _saveDailySummaries();
+    await prefs.setString(_lastDailyResetDateKey, today);
+  }
+
+  void _resetDailyTasks() {
+    _tasks = _tasks.map((task) {
+      final taskType = (task['taskType'] ?? 'fixed') as String;
+
+      if (taskType == 'fixed') {
+        return {
+          ...task,
+          'done': false,
+          'updatedAt': DateTime.now().toIso8601String(),
+          'completedAt': null,
+        };
+      }
+
+      return task;
+    }).toList();
+
+    _ensureStudyGoalTaskExists();
+  }
+
+  void _resetDailyFocusAndStudyRooms() {
+    _focusSeconds = 0;
+    _sleepHours = 0;
+    _steps = 0;
+    _exerciseMinutes = 0;
+
+    _studyRooms = _studyRooms.map((room) {
+      final updatedMembers = room.members.map((member) {
+        return member.copyWith(
+          status: StudyMemberStatus.offline,
+          sessionSeconds: 0,
+          todayFocusSeconds: 0,
+          todayMetricValue: 0,
+          hasReachedPersonalGoal: false,
+        );
+      }).toList();
+
+      return room.copyWith(members: updatedMembers, challengeCompleted: false);
+    }).toList();
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  int _calculateDisciplineScoreFromValues({
+    required int completedTasks,
+    required int totalTasks,
+    required int focusMinutes,
+    required double sleepHours,
+    required int steps,
+    required int exerciseMinutes,
+    required bool isHealthConnected,
+  }) {
+    int taskScore = 0;
+    if (totalTasks > 0) {
+      taskScore = ((completedTasks / totalTasks) * 30).round();
+    }
+
+    final focusScore = ((focusMinutes / 120).clamp(0, 1) * 30).round();
+
+    int sleepScore = 0;
+    int stepScore = 0;
+    int exerciseScore = 0;
+
+    if (isHealthConnected) {
+      sleepScore = ((sleepHours / 8).clamp(0, 1) * 15).round();
+      stepScore = ((steps / 8000).clamp(0, 1) * 15).round();
+      exerciseScore = ((exerciseMinutes / 30).clamp(0, 1) * 10).round();
+    }
+
+    return taskScore + focusScore + sleepScore + stepScore + exerciseScore;
+  }
+
+  bool _isTaskSource(Map<String, dynamic> task, Set<TaskSourceType> sources) {
+    final raw = task['sourceType'] as String?;
+    final sourceType = raw == null
+        ? null
+        : TaskSourceType.values.firstWhere(
+            (item) => item.name == raw,
+            orElse: () => TaskSourceType.manual,
+          );
+    return sourceType != null && sources.contains(sourceType);
+  }
+
+  int _countTasksBySource(Set<TaskSourceType> sources, {bool? completed}) {
+    return _tasks.where((task) {
+      if (!_isTodayActionableTask(task)) return false;
+      if (!_isTaskSource(task, sources)) return false;
+      if (completed == null) return true;
+      return (task['done'] as bool? ?? false) == completed;
+    }).length;
+  }
+
+  List<String> _autoTrackedSourceLabels() {
+    final labels = <String>{};
+
+    for (final task in _tasks) {
+      final isAutoTracked = task['isAutoTracked'] as bool? ?? false;
+      final isSystemTask = task['isSystemTask'] as bool? ?? false;
+      if (!isAutoTracked && !isSystemTask) continue;
+
+      final raw = task['sourceType'] as String?;
+      final sourceType = raw == null
+          ? null
+          : TaskSourceType.values.firstWhere(
+              (item) => item.name == raw,
+              orElse: () => TaskSourceType.manual,
+            );
+      labels.add(TaskModel.sourceTypeToChinese(sourceType));
+    }
+
+    return labels.toList()..sort();
+  }
+
+  void _syncTodaySummary() {
+    final today = _todayKey();
+    final todayTasks = _tasks.where(_isTodayActionableTask).toList();
+    final completedCount = todayTasks
+        .where((task) => task['done'] == true)
+        .length;
+    final autoTrackedTasks = todayTasks.where((task) {
+      final isAutoTracked = task['isAutoTracked'] as bool? ?? false;
+      final isSystemTask = task['isSystemTask'] as bool? ?? false;
+      return isAutoTracked || isSystemTask;
+    }).toList();
+    final healthSources = {
+      TaskSourceType.sleepHours,
+      TaskSourceType.steps,
+      TaskSourceType.exerciseMinutes,
+    };
+    final focusSources = {TaskSourceType.focusMinutes};
+    final roomSources = {TaskSourceType.studyRoom};
+
+    final summary = DailySummary(
+      date: today,
+      completedTasks: completedCount,
+      totalTasks: todayTasks.length,
+      focusMinutes: focusMinutes,
+      sleepHours: _sleepHours,
+      steps: _steps,
+      exerciseMinutes: _exerciseMinutes,
+      disciplineScore: _weightedTaskScore(),
+      coinsEarned: todayCoinEarned,
+      autoTrackedCompleted: autoTrackedTasks
+          .where((task) => task['done'] as bool? ?? false)
+          .length,
+      autoTrackedTotal: autoTrackedTasks.length,
+      healthCompleted: _countTasksBySource(healthSources, completed: true),
+      healthTotal: _countTasksBySource(healthSources),
+      roomCompleted: _countTasksBySource(roomSources, completed: true),
+      roomTotal: _countTasksBySource(roomSources),
+      focusCompleted: _countTasksBySource(focusSources, completed: true),
+      focusTotal: _countTasksBySource(focusSources),
+      autoTrackedSources: _autoTrackedSourceLabels(),
+    );
+
+    final index = _dailySummaries.indexWhere((item) => item.date == today);
+
+    if (index >= 0) {
+      _dailySummaries[index] = summary;
+    } else {
+      _dailySummaries.add(summary);
+    }
+
+    _saveDailySummaries();
+  }
+
+  Future<void> setThemeModeSetting(String value) async {
+    _themeModeSetting = value;
+    notifyListeners();
+    await _saveAppearanceSettings();
+  }
+
+  Future<void> setIconColorSetting(String value) async {
+    _iconColorSetting = value;
+    notifyListeners();
+    await _saveAppearanceSettings();
+  }
+
+  Future<void> setBackgroundThemeSetting(String value) async {
+    _backgroundThemeSetting = value;
+    notifyListeners();
+    await _saveAppearanceSettings();
+  }
+
+  Future<void> updateProfile({
+    required String nickname,
+    required String signature,
+    String? titleBadgeKey,
+  }) async {
+    _profileNickname = nickname.trim().isEmpty ? '老闆' : nickname.trim();
+    _profileSignature = signature.trim().isEmpty
+        ? '今天也在穩定前進'
+        : signature.trim();
+    if (titleBadgeKey != null) {
+      final canUseTitle =
+          titleBadgeKey.isEmpty ||
+          badgeRecords.any(
+            (badge) => badge.badgeKey == titleBadgeKey && badge.isUnlocked,
+          );
+      if (canUseTitle) {
+        _profileTitleBadgeKey = titleBadgeKey;
+      }
+    }
+
+    notifyListeners();
+    await _saveAppearanceSettings();
+  }
+
+  Future<void> updateAvatarProfile(AvatarProfile profile) async {
+    _avatarProfile = profile;
+    _syncMyFocusSecondsAcrossRooms();
+    notifyListeners();
+    await _saveAppearanceSettings();
+    await _saveStudyRooms();
+  }
+
+  SocialFriendProfile? getSocialFriendById(String id) {
+    try {
+      return _socialFriends.firstWhere((f) => f.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  SocialFriendProfile? findFriendCandidateByNudgeId(String rawId) {
+    final nudgeId = rawId.trim().toUpperCase();
+    if (nudgeId.isEmpty || nudgeId == _myNudgeId) return null;
+
+    final existing = _socialFriends.where(
+      (friend) => friend.nudgeId.toUpperCase() == nudgeId,
+    );
+    if (existing.isNotEmpty) return existing.first;
+
+    final mockCandidates = [
+      SocialFriendProfile(
+        id: 'candidate_mina',
+        nudgeId: 'NDG-MINA01',
+        name: '小米',
+        signature: '想找人一起讀書',
+        todayFocusSeconds: 0,
+        isStudying: false,
+        avatarColor: const Color(0xFF8B5CF6),
+        avatarProfile: avatarVariantForSeed(801),
+        isFollowing: false,
+        encouragementCount: 0,
+      ),
+      SocialFriendProfile(
+        id: 'candidate_ray',
+        nudgeId: 'NDG-RAY777',
+        name: '阿睿',
+        signature: '最近在挑戰每天運動',
+        todayFocusSeconds: 35 * 60,
+        isStudying: false,
+        avatarColor: const Color(0xFF10B981),
+        avatarProfile: avatarVariantForSeed(777),
+        isFollowing: false,
+        encouragementCount: 0,
+      ),
+    ];
+
+    final match = mockCandidates.where(
+      (candidate) => candidate.nudgeId.toUpperCase() == nudgeId,
+    );
+    return match.isEmpty ? null : match.first;
+  }
+
+  Future<void> addSocialFriend({
+    String? id,
+    String? nudgeId,
+    required String name,
+    required String signature,
+    required Color avatarColor,
+    AvatarProfile? avatarProfile,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) return;
+
+    final trimmedNudgeId = nudgeId?.trim().toUpperCase() ?? '';
+    final exists = _socialFriends.any(
+      (f) =>
+          f.name == trimmedName ||
+          (trimmedNudgeId.isNotEmpty &&
+              f.nudgeId.toUpperCase() == trimmedNudgeId),
+    );
+    if (exists) return;
+
+    _socialFriends = [
+      ..._socialFriends,
+      SocialFriendProfile(
+        id: id ?? 'friend_${DateTime.now().millisecondsSinceEpoch}',
+        nudgeId: trimmedNudgeId,
+        name: trimmedName,
+        signature: signature.trim().isEmpty ? '今天慢慢前進' : signature.trim(),
+        todayFocusSeconds: 0,
+        isStudying: false,
+        avatarColor: avatarColor,
+        avatarProfile:
+            avatarProfile ?? avatarVariantForSeed(trimmedName.hashCode),
+        isFollowing: false,
+        encouragementCount: 0,
+      ),
+    ];
+
+    notifyListeners();
+    await _saveSocialFriends();
+  }
+
+  Future<void> sendFriendRequest(SocialFriendProfile candidate) async {
+    final exists = _friendRequests.any(
+      (request) =>
+          request.nudgeId.toUpperCase() == candidate.nudgeId.toUpperCase() &&
+          request.status == FriendRequestStatus.pending,
+    );
+    if (exists) return;
+
+    _friendRequests = [
+      FriendRequest(
+        id: 'req_out_${DateTime.now().microsecondsSinceEpoch}',
+        nudgeId: candidate.nudgeId,
+        name: candidate.name,
+        signature: candidate.signature,
+        direction: FriendRequestDirection.outgoing,
+        status: FriendRequestStatus.pending,
+        createdAt: DateTime.now(),
+      ),
+      ..._friendRequests,
+    ];
+
+    notifyListeners();
+    await _saveFriendIdentityAndRequests();
+  }
+
+  Future<void> acceptFriendRequest(String requestId) async {
+    final request = _friendRequests.where((item) => item.id == requestId);
+    if (request.isEmpty) return;
+    final target = request.first;
+
+    await addSocialFriend(
+      id: 'friend_${target.nudgeId.toLowerCase().replaceAll('-', '_')}',
+      nudgeId: target.nudgeId,
+      name: target.name,
+      signature: target.signature,
+      avatarColor: const Color(0xFF4F8CFF),
+      avatarProfile: avatarVariantForSeed(target.nudgeId.hashCode),
+    );
+
+    _friendRequests = _friendRequests.map((item) {
+      if (item.id != requestId) return item;
+      return item.copyWith(status: FriendRequestStatus.accepted);
+    }).toList();
+
+    notifyListeners();
+    await _saveFriendIdentityAndRequests();
+  }
+
+  Future<void> declineFriendRequest(String requestId) async {
+    _friendRequests = _friendRequests.map((item) {
+      if (item.id != requestId) return item;
+      return item.copyWith(status: FriendRequestStatus.declined);
+    }).toList();
+
+    notifyListeners();
+    await _saveFriendIdentityAndRequests();
+  }
+
+  Future<void> removeSocialFriend(String id) async {
+    _socialFriends = _socialFriends.where((f) => f.id != id).toList();
+    _socialEncouragementRecords = _socialEncouragementRecords
+        .where((record) => record.toFriendId != id)
+        .toList();
+
+    notifyListeners();
+    await _saveSocialFriends();
+    await _saveSocialEncouragementRecords();
+  }
+
+  Future<void> toggleFollowFriend(String id) async {
+    _socialFriends = _socialFriends.map((friend) {
+      if (friend.id != id) return friend;
+      return friend.copyWith(isFollowing: !friend.isFollowing);
+    }).toList();
+
+    notifyListeners();
+    await _saveSocialFriends();
+  }
+
+  Future<void> setPublicProfileFollowing({
+    required String id,
+    required String name,
+    required String signature,
+    required int todayFocusSeconds,
+    required bool isStudying,
+    required Color avatarColor,
+    required AvatarProfile? avatarProfile,
+    required bool isFollowing,
+  }) async {
+    final index = _socialFriends.indexWhere((friend) => friend.id == id);
+
+    if (index >= 0) {
+      _socialFriends = _socialFriends.map((friend) {
+        if (friend.id != id) return friend;
+        return friend.copyWith(
+          name: name,
+          signature: signature,
+          todayFocusSeconds: todayFocusSeconds,
+          isStudying: isStudying,
+          avatarColor: avatarColor,
+          avatarProfile: avatarProfile,
+          isFollowing: isFollowing,
+        );
+      }).toList();
+    } else {
+      _socialFriends = [
+        ..._socialFriends,
+        SocialFriendProfile(
+          id: id,
+          name: name.trim().isEmpty ? '好友' : name.trim(),
+          signature: signature.trim().isEmpty ? '今天慢慢前進' : signature.trim(),
+          todayFocusSeconds: todayFocusSeconds,
+          isStudying: isStudying,
+          avatarColor: avatarColor,
+          avatarProfile: avatarProfile ?? avatarVariantForSeed(id.hashCode),
+          isFollowing: isFollowing,
+          encouragementCount: 0,
+        ),
+      ];
+    }
+
+    notifyListeners();
+    await _saveSocialFriends();
+  }
+
+  int getTodayReceivedEncouragementCount() {
+    final now = DateTime.now();
+    return _socialEncouragementRecords.where((record) {
+      final createdAt = DateTime.tryParse(record.createdAt);
+      if (createdAt == null) return false;
+      return record.toFriendId == 'me' && _isSameDay(createdAt, now);
+    }).length;
+  }
+
+  List<SocialEncouragementRecord> getRecentEncouragementsForMe({
+    int limit = 5,
+  }) {
+    final records = _socialEncouragementRecords.where((record) {
+      return record.toFriendId == 'me' || record.fromName == _profileNickname;
+    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return records.take(limit).toList();
+  }
+
+  Future<void> sendEncouragementToFriend(
+    String id, {
+    String type = '加油',
+  }) async {
+    final target = getSocialFriendById(id);
+    final targetName = target?.name ?? '好友';
+
+    _socialFriends = _socialFriends.map((friend) {
+      if (friend.id != id) return friend;
+      return friend.copyWith(encouragementCount: friend.encouragementCount + 1);
+    }).toList();
+
+    _socialEncouragementRecords = [
+      SocialEncouragementRecord(
+        id: 'enc_${DateTime.now().millisecondsSinceEpoch}',
+        fromName: _profileNickname,
+        toFriendId: id,
+        toFriendName: targetName,
+        type: type,
+        createdAt: DateTime.now().toIso8601String(),
+      ),
+      ..._socialEncouragementRecords,
+    ];
+
+    notifyListeners();
+    await _saveSocialFriends();
+    await _saveSocialEncouragementRecords();
+  }
+
+  void toggleTask(int index, bool value) {
+    if (index < 0 || index >= _tasks.length) return;
+    final task = _tasks[index];
+    final isDeadlineTask = task['taskType'] == 'deadline';
+    final wasDone = task['done'] as bool? ?? false;
+
+    if (value && isDeadlineTask && !_isDeadlineTaskReady(task)) {
+      return;
+    }
+
+    _tasks[index]['done'] = value;
+    _tasks[index]['updatedAt'] = DateTime.now().toIso8601String();
+    _tasks[index]['completedAt'] = value
+        ? DateTime.now().toIso8601String()
+        : null;
+    if (value && !wasDone && isDeadlineTask) {
+      _awardDeadlineTaskBonus(_tasks[index]);
+    }
+    _syncTaskRewards();
+    _syncTodaySummary();
+    notifyListeners();
+    _saveTasks();
+  }
+
+  void addTask(
+    String title,
+    String category, {
+    required String taskType,
+    String? dueDate,
+    String priority = '中',
+    bool isAutoTracked = false,
+    TaskSourceType? sourceType,
+    double? targetValue,
+    String? unitLabel,
+  }) {
+    if (taskType == 'deadline') {
+      final parsedDueDate = DateTime.tryParse(dueDate ?? '');
+      if (parsedDueDate != null &&
+          !canCreateDeadlineTaskForDate(parsedDueDate)) {
+        return;
+      }
+    }
+
+    _tasks.add({
+      'id': 'task_${DateTime.now().microsecondsSinceEpoch}',
+      'userId': 'local_user',
+      'title': title,
+      'done': false,
+      'category': category,
+      'taskType': taskType,
+      'dueDate': taskType == 'fixed' ? null : dueDate,
+      'priority': priority,
+      'isSystemTask': false,
+      'isAutoTracked': isAutoTracked,
+      'sourceType': sourceType?.name,
+      'targetValue': targetValue,
+      'unitLabel': unitLabel,
+      'sourceId': null,
+      'createdAt': DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+      'completedAt': null,
+    });
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    _syncTodaySummary();
+    notifyListeners();
+    _saveTasks();
+  }
+
+  void deleteTask(int index) {
+    if (index < 0 || index >= _tasks.length) return;
+
+    final sourceId = _tasks[index]['sourceId'] as String?;
+    if (sourceId != null && sourceId.isNotEmpty) {
+      _disableStudyRoomGoalTaskLink(sourceId);
+      _syncAutoTrackedTasks();
+      _syncTaskRewards();
+      _syncTodaySummary();
+      notifyListeners();
+      _saveStudyRooms();
+      _saveTasks();
+      return;
+    }
+
+    _tasks.removeAt(index);
+    _syncTodaySummary();
+    notifyListeners();
+    _saveTasks();
+  }
+
+  void updateTask({
+    required int index,
+    required String title,
+    required String category,
+    required String taskType,
+    String? dueDate,
+    String priority = '中',
+    bool? isAutoTracked,
+    TaskSourceType? sourceType,
+    double? targetValue,
+    String? unitLabel,
+  }) {
+    if (index < 0 || index >= _tasks.length) return;
+    if (taskType == 'deadline') {
+      final parsedDueDate = DateTime.tryParse(dueDate ?? '');
+      if (parsedDueDate != null &&
+          !canCreateDeadlineTaskForDate(parsedDueDate, excludingIndex: index)) {
+        return;
+      }
+    }
+
+    final oldDone = _tasks[index]['done'] as bool? ?? false;
+
+    _tasks[index] = {
+      ..._tasks[index],
+      'title': title,
+      'done': oldDone,
+      'category': category,
+      'taskType': taskType,
+      'dueDate': taskType == 'fixed' ? null : dueDate,
+      'priority': priority,
+      'isAutoTracked':
+          isAutoTracked ?? (_tasks[index]['isAutoTracked'] ?? false),
+      'sourceType': sourceType?.name ?? _tasks[index]['sourceType'],
+      'targetValue': targetValue ?? _tasks[index]['targetValue'],
+      'unitLabel': unitLabel ?? _tasks[index]['unitLabel'],
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    _syncTodaySummary();
+    notifyListeners();
+    _saveTasks();
+  }
+
+  void addFocusMinutes(int minutes) {
+    addFocusSeconds(minutes * 60);
+  }
+
+  void addFocusSeconds(int seconds) {
+    if (seconds <= 0) return;
+    _focusSeconds += seconds;
+    _syncMyFocusSecondsAcrossRooms();
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    _syncTodaySummary();
+    notifyListeners();
+    _saveFocusTime();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void updateHealthData({
+    required bool isConnected,
+    required double sleepHours,
+    required int steps,
+    required int exerciseMinutes,
+  }) {
+    _isHealthConnected = isConnected;
+    _sleepHours = sleepHours;
+    _steps = steps;
+    _exerciseMinutes = exerciseMinutes;
+    _syncMyHealthMetricsAcrossRooms();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    _syncTodaySummary();
+    notifyListeners();
+    _saveHealthData();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  Future<void> clearHealthData() async {
+    _isHealthConnected = false;
+    _sleepHours = 0;
+    _steps = 0;
+    _exerciseMinutes = 0;
+
+    _syncMyHealthMetricsAcrossRooms();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    _syncTodaySummary();
+
+    notifyListeners();
+    await _saveHealthData();
+    await _saveStudyRooms();
+    await _saveTasks();
+  }
+
+  Future<void> clearAllLocalData() async {
+    await LocalStorageService.clearAll();
+
+    _tasks = [];
+    _focusSeconds = 0;
+    _sleepHours = 0;
+    _steps = 0;
+    _exerciseMinutes = 0;
+    _isHealthConnected = false;
+    _dailySummaries = [];
+    _disciplineCoins = 0;
+    _rewardedTaskKeys = <String>{};
+    _dailyCoinEarned = <String, int>{};
+    _monthlyDeadlineCoinEarned = <String, int>{};
+    _unlockedAvatarItemKeys = <String>{};
+
+    _themeModeSetting = 'system';
+    _iconColorSetting = 'purple';
+    _backgroundThemeSetting = 'softGlow';
+    _profileNickname = '老闆';
+    _profileSignature = '今天也在穩定前進';
+    _profileTitleBadgeKey = '';
+    _avatarProfile = AvatarProfile.initial();
+
+    _studyRooms = [];
+    _socialFriends = [];
+    _friendRequests = [];
+    _myNudgeId = _generateNudgeId();
+    _seenUnlockedBadgeKeys = <String>{};
+    _unlockedBadgeDates = <String, String>{};
+    _socialEncouragementRecords = [];
+
+    _unlockCurrentAvatarProfile();
+    _syncTodaySummary();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastDailyResetDateKey, _todayKey());
+    await _saveTasks();
+    await _saveFocusTime();
+    await _saveHealthData();
+    await _saveDailySummaries();
+    await _saveRewardState();
+    await _saveAvatarUnlockState();
+    await _saveAppearanceSettings();
+    await _saveStudyRooms();
+    await _saveSocialFriends();
+    await _saveFriendIdentityAndRequests();
+    await _saveSocialEncouragementRecords();
+    await _saveUnlockedBadges();
+    await _saveSeenUnlockedBadges();
+
+    notifyListeners();
+  }
+
+  Future<void> generateMockDailySummaries() async {
+    final now = DateTime.now();
+    final mock = <DailySummary>[
+      for (int i = 6; i >= 0; i--)
+        () {
+          final date = now.subtract(Duration(days: i));
+          final completedTasks = (i % 5) + 1;
+          const totalTasks = 5;
+          final focusMinutes = 25 + (6 - i) * 20;
+          final sleepHours = 5.5 + ((6 - i) * 0.4);
+          final steps = 3000 + ((6 - i) * 900);
+          final exerciseMinutes = 5 + ((6 - i) * 5);
+          final score = _calculateDisciplineScoreFromValues(
+            completedTasks: completedTasks,
+            totalTasks: totalTasks,
+            focusMinutes: focusMinutes,
+            sleepHours: sleepHours,
+            steps: steps,
+            exerciseMinutes: exerciseMinutes,
+            isHealthConnected: true,
+          );
+          final coinsEarned = AppState.scoreCoinMilestones.entries
+              .where((entry) => score >= entry.key)
+              .fold<int>(0, (sum, entry) => sum + entry.value)
+              .clamp(0, AppState.coinDailyLimit)
+              .toInt();
+          final healthCompleted =
+              (sleepHours >= 7 ? 1 : 0) +
+              (steps >= 6000 ? 1 : 0) +
+              (exerciseMinutes >= 30 ? 1 : 0);
+          final focusCompleted = focusMinutes >= 30 ? 1 : 0;
+          final roomCompleted = focusMinutes >= 60 ? 1 : 0;
+
+          return DailySummary(
+            date: _formatDate(date),
+            completedTasks: completedTasks,
+            totalTasks: totalTasks,
+            focusMinutes: focusMinutes,
+            sleepHours: sleepHours,
+            steps: steps,
+            exerciseMinutes: exerciseMinutes,
+            disciplineScore: score,
+            coinsEarned: coinsEarned,
+            autoTrackedCompleted:
+                healthCompleted + focusCompleted + roomCompleted,
+            autoTrackedTotal: 5,
+            healthCompleted: healthCompleted,
+            healthTotal: 3,
+            focusCompleted: focusCompleted,
+            focusTotal: 1,
+            roomCompleted: roomCompleted,
+            roomTotal: 1,
+            autoTrackedSources: const ['專注', '睡眠', '步數', '運動', '自律房'],
+          );
+        }(),
+    ];
+
+    _dailySummaries = mock;
+    notifyListeners();
+    await _saveDailySummaries();
+  }
+
+  Future<void> clearDailySummaries() async {
+    _dailySummaries = [];
+    _syncTodaySummary();
+    notifyListeners();
+    await _saveDailySummaries();
+  }
+
+  void _syncMyFocusSecondsAcrossRooms() {
+    _studyRooms = _studyRooms.map((room) {
+      final members = List<StudyMemberData>.from(room.members);
+      final meIndex = members.indexWhere((m) => m.memberId == 'local_user');
+
+      if (meIndex == -1) {
+        members.insert(
+          0,
+          StudyMemberData(
+            memberId: 'local_user',
+            name: _profileNickname,
+            roomNickname: _profileNickname,
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: _focusSeconds,
+            todayMetricValue: _focusSeconds / 3600,
+            avatarColor: const Color(0xFF7C6AE6),
+            avatarProfile: _avatarProfile,
+            role: 'owner',
+            personalGoalSeconds: 60 * 60,
+            hasReachedPersonalGoal: _focusSeconds >= 60 * 60,
+          ),
+        );
+      } else {
+        final current = members[meIndex];
+        members[meIndex] = current.copyWith(
+          name: _profileNickname,
+          roomNickname: current.roomNickname.isEmpty
+              ? _profileNickname
+              : current.roomNickname,
+          todayFocusSeconds: _focusSeconds,
+          todayMetricValue: _focusSeconds / 3600,
+          avatarProfile: _avatarProfile,
+          hasReachedPersonalGoal: _focusSeconds >= current.personalGoalSeconds,
+        );
+      }
+
+      return room.copyWith(members: members);
+    }).toList();
+  }
+
+  StudyRoomData? getStudyRoomById(String roomId) {
+    try {
+      return _studyRooms.firstWhere((room) => room.id == roomId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  StudyRoomDailyRecord? getTodayPreviewRecord(String roomId) {
+    final room = getStudyRoomById(roomId);
+    final approvedMembers =
+        room?.members.where((member) => member.isApproved).toList() ?? const [];
+    if (room == null || approvedMembers.isEmpty) return null;
+
+    final total = approvedMembers.fold<int>(
+      0,
+      (sum, member) => sum + member.todayFocusSeconds,
+    );
+
+    final sorted = [...approvedMembers]
+      ..sort((a, b) => b.todayFocusSeconds.compareTo(a.todayFocusSeconds));
+    final top = sorted.first;
+
+    return StudyRoomDailyRecord(
+      date: _todayKey(),
+      totalFocusSeconds: total,
+      challengeCompleted: room.challengeCompleted,
+      topMemberName: top.name,
+      topMemberFocusSeconds: top.todayFocusSeconds,
+      memberSnapshots: approvedMembers,
+    );
+  }
+
+  void updateRoomAnnouncement({
+    required String roomId,
+    required String announcement,
+  }) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      return room.copyWith(announcement: announcement);
+    }).toList();
+
+    notifyListeners();
+    _saveStudyRooms();
+  }
+
+  void updateRoomTags({required String roomId, required List<String> tags}) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      return room.copyWith(tags: tags);
+    }).toList();
+
+    notifyListeners();
+    _saveStudyRooms();
+  }
+
+  void updateRoomMemberLimit({
+    required String roomId,
+    required int memberLimit,
+  }) {
+    final safeLimit = memberLimit <= 0 ? 1 : memberLimit;
+
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      final approvedCount = room.members
+          .where((member) => member.isApproved)
+          .length;
+      final adjustedLimit = safeLimit < approvedCount
+          ? approvedCount
+          : safeLimit;
+      return room.copyWith(memberLimit: adjustedLimit);
+    }).toList();
+
+    notifyListeners();
+    _saveStudyRooms();
+  }
+
+  void removeMemberFromRoom({
+    required String roomId,
+    required String memberName,
+  }) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      if (memberName == room.ownerName || memberName == _profileNickname) {
+        return room;
+      }
+
+      final updatedMembers = room.members
+          .where((m) => m.name != memberName)
+          .toList();
+
+      return room.copyWith(members: updatedMembers);
+    }).toList();
+
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void approveStudyRoomJoinRequest({
+    required String roomId,
+    required String memberId,
+  }) {
+    final now = DateTime.now();
+    StudyMemberData? approvedMember;
+
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId || room.ownerId != 'local_user') return room;
+      final approvedCount = room.members
+          .where((member) => member.isApproved)
+          .length;
+      if (approvedCount >= room.memberLimit) return room;
+
+      final members = room.members.map((member) {
+        if (member.memberId != memberId || member.isApproved) return member;
+        approvedMember = member.copyWith(isApproved: true);
+        return approvedMember!;
+      }).toList();
+
+      if (approvedMember == null) return room;
+
+      return room.copyWith(
+        members: members,
+        events: [
+          StudyRoomEvent(
+            id: 'event_${now.microsecondsSinceEpoch}',
+            actorId: 'local_user',
+            actorName: _profileNickname,
+            text:
+                '${approvedMember!.roomNickname.isEmpty ? approvedMember!.name : approvedMember!.roomNickname} 的加入申請已通過',
+            type: StudyRoomEventType.system,
+            createdAt: now,
+          ),
+          ...room.events,
+        ].take(80).toList(),
+      );
+    }).toList();
+
+    if (approvedMember == null) return;
+
+    _syncStudyRoomGoalTasks();
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void rejectStudyRoomJoinRequest({
+    required String roomId,
+    required String memberId,
+  }) {
+    final now = DateTime.now();
+    StudyMemberData? rejectedMember;
+
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId || room.ownerId != 'local_user') return room;
+
+      for (final member in room.members) {
+        if (member.memberId == memberId && !member.isApproved) {
+          rejectedMember = member;
+          break;
+        }
+      }
+
+      if (rejectedMember == null) return room;
+
+      final members = room.members
+          .where((member) => member.memberId != memberId)
+          .toList();
+
+      return room.copyWith(
+        members: members,
+        events: [
+          StudyRoomEvent(
+            id: 'event_${now.microsecondsSinceEpoch}',
+            actorId: 'local_user',
+            actorName: _profileNickname,
+            text:
+                '${rejectedMember!.roomNickname.isEmpty ? rejectedMember!.name : rejectedMember!.roomNickname} 的加入申請已拒絕',
+            type: StudyRoomEventType.system,
+            createdAt: now,
+          ),
+          ...room.events,
+        ].take(80).toList(),
+      );
+    }).toList();
+
+    if (rejectedMember == null) return;
+
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void addStudyRoomMessage({
+    required String roomId,
+    required String text,
+    StudyRoomMessageType type = StudyRoomMessageType.text,
+    String senderId = 'local_user',
+    String? senderName,
+  }) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    final now = DateTime.now();
+    final message = StudyRoomMessage(
+      id: 'message_${now.microsecondsSinceEpoch}',
+      senderId: senderId,
+      senderName: senderName ?? _profileNickname,
+      text: trimmed,
+      type: type,
+      createdAt: now,
+    );
+
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      return room.copyWith(
+        messages: [message, ...room.messages].take(60).toList(),
+      );
+    }).toList();
+
+    notifyListeners();
+    _saveStudyRooms();
+  }
+
+  void addStudyRoomEvent({
+    required String roomId,
+    required String text,
+    StudyRoomEventType type = StudyRoomEventType.system,
+    String actorId = 'local_user',
+    String? actorName,
+  }) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    final now = DateTime.now();
+    final event = StudyRoomEvent(
+      id: 'event_${now.microsecondsSinceEpoch}',
+      actorId: actorId,
+      actorName: actorName ?? _profileNickname,
+      text: trimmed,
+      type: type,
+      createdAt: now,
+    );
+
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      return room.copyWith(events: [event, ...room.events].take(80).toList());
+    }).toList();
+
+    notifyListeners();
+    _saveStudyRooms();
+  }
+
+  void leaveStudyRoom(String roomId) {
+    final room = getStudyRoomById(roomId);
+    if (room == null) return;
+
+    final remainingMembers = room.members
+        .where((member) => member.memberId != 'local_user' && member.isApproved)
+        .toList();
+
+    if (room.ownerId == 'local_user' && remainingMembers.isEmpty) {
+      _studyRooms = _studyRooms.where((item) => item.id != roomId).toList();
+    } else {
+      final nextOwner = room.ownerId == 'local_user'
+          ? remainingMembers.first
+          : null;
+
+      _studyRooms = _studyRooms.map((item) {
+        if (item.id != roomId) return item;
+
+        final updatedMembers = nextOwner == null
+            ? remainingMembers
+            : remainingMembers.map((member) {
+                if (member.memberId != nextOwner.memberId) return member;
+                return member.copyWith(role: 'owner');
+              }).toList();
+
+        final now = DateTime.now();
+        return item.copyWith(
+          ownerId: nextOwner?.memberId ?? item.ownerId,
+          ownerName: nextOwner == null
+              ? item.ownerName
+              : (nextOwner.roomNickname.isEmpty
+                    ? nextOwner.name
+                    : nextOwner.roomNickname),
+          members: updatedMembers,
+          events: [
+            StudyRoomEvent(
+              id: 'event_${now.microsecondsSinceEpoch}',
+              actorId: 'local_user',
+              actorName: _profileNickname,
+              text: '$_profileNickname 退出了房間',
+              type: StudyRoomEventType.leave,
+              createdAt: now,
+            ),
+            ...item.events,
+          ].take(80).toList(),
+        );
+      }).toList();
+    }
+
+    _removeStudyRoomGoalTask(roomId);
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void createStudyRoom({
+    required String name,
+    required String description,
+    required Color accentColor,
+    String? ownerId,
+    String? ownerName,
+    List<String>? tags,
+    int? memberLimit,
+    String category = '自訂',
+    int dailyGoalHours = 2,
+    StudyRoomType roomType = StudyRoomType.study,
+    TaskSourceType goalSourceType = TaskSourceType.studyRoom,
+    double? dailyGoalValue,
+    String? goalUnitLabel,
+    StudyRoomJoinMode joinMode = StudyRoomJoinMode.instant,
+    bool joinQuestionsEnabled = false,
+    List<String> joinQuestions = const [],
+    bool nicknameRuleEnabled = false,
+    String nicknameRuleText = '',
+    String roomRules = '',
+    String password = '',
+    String challengeTitle = '今日房間挑戰',
+    String challengeDescription = '一起累積自律進度',
+    String challengeDeadlineLabel = '今天 23:59',
+  }) {
+    final safeOwnerId = (ownerId == null || ownerId.trim().isEmpty)
+        ? 'local_user'
+        : ownerId.trim();
+    final safeOwnerName = (ownerName == null || ownerName.trim().isEmpty)
+        ? _profileNickname
+        : ownerName.trim();
+
+    final safeGoalHours = dailyGoalHours <= 0 ? 2 : dailyGoalHours;
+    final safeGoalValue = (dailyGoalValue == null || dailyGoalValue <= 0)
+        ? safeGoalHours.toDouble()
+        : dailyGoalValue;
+    final initialMetricValue = _currentMetricValueForSource(goalSourceType);
+    final now = DateTime.now();
+
+    final room = StudyRoomData(
+      id: 'room_${now.millisecondsSinceEpoch}',
+      name: name,
+      description: description.isEmpty ? '新的自律房' : description,
+      accentColor: accentColor,
+      ownerId: safeOwnerId,
+      ownerName: safeOwnerName,
+      announcement: '',
+      tags: tags ?? const [],
+      memberLimit: (memberLimit == null || memberLimit <= 0) ? 8 : memberLimit,
+      category: category,
+      dailyGoalHours: safeGoalHours,
+      roomType: roomType,
+      goalSourceType: goalSourceType,
+      dailyGoalValue: safeGoalValue,
+      goalUnitLabel: goalUnitLabel ?? '小時',
+      joinMode: joinMode,
+      joinQuestionsEnabled: joinQuestionsEnabled,
+      joinQuestions: joinQuestions,
+      nicknameRuleEnabled: nicknameRuleEnabled,
+      nicknameRuleText: nicknameRuleText,
+      roomRules: roomRules,
+      password: password,
+      challengeTitle: challengeTitle,
+      challengeDescription: challengeDescription,
+      challengeGoalSeconds: safeGoalHours * 60 * 60,
+      challengeDeadlineLabel: challengeDeadlineLabel,
+      challengeCompleted: initialMetricValue >= safeGoalValue,
+      syncTaskEnabled: true,
+      members: [
+        StudyMemberData(
+          memberId: 'local_user',
+          name: _profileNickname,
+          roomNickname: _profileNickname,
+          status: StudyMemberStatus.offline,
+          sessionSeconds: 0,
+          todayFocusSeconds: _focusSeconds,
+          todayMetricValue: initialMetricValue,
+          avatarColor: const Color(0xFF7C6AE6),
+          avatarProfile: _avatarProfile,
+          role: 'owner',
+          personalGoalSeconds: safeGoalHours * 60 * 60,
+          hasReachedPersonalGoal: initialMetricValue >= safeGoalValue,
+          isApproved: true,
+          joinAnswer: '',
+        ),
+      ],
+      events: [
+        StudyRoomEvent(
+          id: 'event_${now.microsecondsSinceEpoch}',
+          actorId: safeOwnerId,
+          actorName: safeOwnerName,
+          text: '$safeOwnerName 建立了這間自律房',
+          type: StudyRoomEventType.system,
+          createdAt: now,
+        ),
+      ],
+    );
+
+    _studyRooms = [room, ..._studyRooms];
+    _syncStudyRoomGoalTasks();
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void inviteMemberToRoom({
+    required String roomId,
+    required String memberName,
+    required Color avatarColor,
+    String memberId = '',
+    String roomNickname = '',
+    bool isApproved = true,
+    String joinAnswer = '',
+  }) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+
+      final exists = room.members.any((m) => m.name == memberName);
+      if (exists) return room;
+      final approvedCount = room.members
+          .where((member) => member.isApproved)
+          .length;
+      if (isApproved && approvedCount >= room.memberLimit) return room;
+
+      final updatedMembers = [
+        ...room.members,
+        StudyMemberData(
+          memberId: memberId.isEmpty ? 'member_$memberName' : memberId,
+          name: memberName,
+          roomNickname: roomNickname.isEmpty ? memberName : roomNickname,
+          status: StudyMemberStatus.offline,
+          sessionSeconds: 0,
+          todayFocusSeconds: 0,
+          todayMetricValue: 0,
+          avatarColor: avatarColor,
+          avatarProfile: avatarVariantForSeed(memberName.hashCode),
+          role: 'member',
+          personalGoalSeconds: room.dailyGoalHours * 60 * 60,
+          hasReachedPersonalGoal: false,
+          isApproved: isApproved,
+          joinAnswer: joinAnswer,
+        ),
+      ];
+
+      return room.copyWith(members: updatedMembers);
+    }).toList();
+
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void joinStudyRoomFromDiscovery({
+    required StudyRoomData room,
+    bool isApproved = true,
+    String joinAnswer = '',
+  }) {
+    final now = DateTime.now();
+    final localMember = StudyMemberData(
+      memberId: 'local_user',
+      name: _profileNickname,
+      roomNickname: _profileNickname,
+      status: StudyMemberStatus.offline,
+      sessionSeconds: 0,
+      todayFocusSeconds: _focusSeconds,
+      todayMetricValue: _focusSeconds / 3600,
+      avatarColor: const Color(0xFF7C6AE6),
+      avatarProfile: _avatarProfile,
+      role: 'member',
+      personalGoalSeconds: room.dailyGoalHours * 60 * 60,
+      hasReachedPersonalGoal: _focusSeconds >= room.dailyGoalHours * 60 * 60,
+      isApproved: isApproved,
+      joinAnswer: joinAnswer,
+    );
+
+    var changed = false;
+    _studyRooms = _studyRooms.map((existingRoom) {
+      if (existingRoom.id != room.id) return existingRoom;
+
+      if (existingRoom.members.any(
+        (member) => member.memberId == 'local_user',
+      )) {
+        return existingRoom;
+      }
+      final approvedCount = existingRoom.members
+          .where((member) => member.isApproved)
+          .length;
+      if (isApproved && approvedCount >= existingRoom.memberLimit) {
+        return existingRoom;
+      }
+
+      changed = true;
+      return existingRoom.copyWith(
+        members: [localMember, ...existingRoom.members],
+        events: [
+          StudyRoomEvent(
+            id: 'event_${now.microsecondsSinceEpoch}',
+            actorId: 'local_user',
+            actorName: _profileNickname,
+            text: isApproved
+                ? '$_profileNickname 加入了房間'
+                : '$_profileNickname 送出加入申請',
+            type: StudyRoomEventType.join,
+            createdAt: now,
+          ),
+          ...existingRoom.events,
+        ],
+      );
+    }).toList();
+
+    if (!changed &&
+        !_studyRooms.any((existingRoom) => existingRoom.id == room.id)) {
+      changed = true;
+      _studyRooms = [
+        room.copyWith(
+          members: [localMember, ...room.members],
+          events: [
+            StudyRoomEvent(
+              id: 'event_${now.microsecondsSinceEpoch}',
+              actorId: 'local_user',
+              actorName: _profileNickname,
+              text: isApproved
+                  ? '$_profileNickname 加入了房間'
+                  : '$_profileNickname 送出加入申請',
+              type: StudyRoomEventType.join,
+              createdAt: now,
+            ),
+            ...room.events,
+          ],
+          syncTaskEnabled: isApproved,
+        ),
+        ..._studyRooms,
+      ];
+    }
+
+    if (!changed) return;
+
+    _syncStudyRoomGoalTasks();
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void updateMyStudyRoomPresence({
+    required String roomId,
+    required StudyMemberStatus status,
+    required int sessionSeconds,
+  }) {
+    _studyRooms = _studyRooms.map((room) {
+      final members = List<StudyMemberData>.from(room.members);
+      final meIndex = members.indexWhere((m) => m.memberId == 'local_user');
+      if (room.id == roomId && meIndex != -1 && !members[meIndex].isApproved) {
+        return room;
+      }
+
+      if (meIndex == -1) {
+        members.insert(
+          0,
+          StudyMemberData(
+            memberId: 'local_user',
+            name: _profileNickname,
+            roomNickname: _profileNickname,
+            status: room.id == roomId ? status : StudyMemberStatus.offline,
+            sessionSeconds: room.id == roomId ? sessionSeconds : 0,
+            todayFocusSeconds: room.id == roomId
+                ? _focusSeconds + sessionSeconds
+                : _focusSeconds,
+            todayMetricValue:
+                (room.id == roomId
+                    ? _focusSeconds + sessionSeconds
+                    : _focusSeconds) /
+                3600,
+            avatarColor: const Color(0xFF7C6AE6),
+            avatarProfile: _avatarProfile,
+            role: 'owner',
+            personalGoalSeconds: room.dailyGoalHours * 60 * 60,
+            hasReachedPersonalGoal:
+                (room.id == roomId
+                    ? _focusSeconds + sessionSeconds
+                    : _focusSeconds) >=
+                room.dailyGoalHours * 60 * 60,
+          ),
+        );
+      } else {
+        if (room.id == roomId) {
+          final current = members[meIndex];
+          final nextToday = _focusSeconds + sessionSeconds;
+          members[meIndex] = current.copyWith(
+            name: _profileNickname,
+            status: status,
+            sessionSeconds: sessionSeconds,
+            todayFocusSeconds: nextToday,
+            todayMetricValue: nextToday / 3600,
+            avatarProfile: _avatarProfile,
+            hasReachedPersonalGoal: nextToday >= current.personalGoalSeconds,
+          );
+        } else {
+          final current = members[meIndex];
+          members[meIndex] = current.copyWith(
+            name: _profileNickname,
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: _focusSeconds,
+            todayMetricValue: _focusSeconds / 3600,
+            avatarProfile: _avatarProfile,
+            hasReachedPersonalGoal:
+                _focusSeconds >= current.personalGoalSeconds,
+          );
+        }
+      }
+
+      return room.copyWith(members: members);
+    }).toList();
+
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void clearMyStudyRoomPresence(String roomId) {
+    updateMyStudyRoomPresence(
+      roomId: roomId,
+      status: StudyMemberStatus.offline,
+      sessionSeconds: 0,
+    );
+  }
+
+  void setRoomChallenge({
+    required String roomId,
+    required String title,
+    required String description,
+    required int goalSeconds,
+    required String deadlineLabel,
+  }) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+
+      final total = room.members.fold<int>(
+        0,
+        (sum, member) =>
+            sum + (member.isApproved ? member.todayFocusSeconds : 0),
+      );
+
+      final safeGoal = goalSeconds <= 0 ? 60 * 60 : goalSeconds;
+
+      return room.copyWith(
+        challengeTitle: title.trim().isEmpty ? '今日房間挑戰' : title.trim(),
+        challengeDescription: description.trim().isEmpty
+            ? '一起累積專注時數'
+            : description.trim(),
+        challengeGoalSeconds: safeGoal,
+        challengeDeadlineLabel: deadlineLabel.trim().isEmpty
+            ? '今天 23:59'
+            : deadlineLabel.trim(),
+        challengeCompleted: total >= safeGoal,
+      );
+    }).toList();
+
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  void setMyRoomPersonalGoal({
+    required String roomId,
+    required int goalSeconds,
+  }) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+
+      final members = List<StudyMemberData>.from(room.members);
+      final meIndex = members.indexWhere((m) => m.memberId == 'local_user');
+
+      if (meIndex != -1) {
+        final current = members[meIndex];
+        final safeGoal = goalSeconds <= 0 ? 60 * 60 : goalSeconds;
+
+        members[meIndex] = current.copyWith(
+          personalGoalSeconds: safeGoal,
+          hasReachedPersonalGoal: current.todayFocusSeconds >= safeGoal,
+        );
+      }
+
+      return room.copyWith(members: members);
+    }).toList();
+
+    _syncStudyGoalTaskCompletion();
+    _syncAutoTrackedTasks();
+    _syncTaskRewards();
+    notifyListeners();
+    _saveStudyRooms();
+    _saveTasks();
+  }
+
+  double getMemberContributionRatio({
+    required String roomId,
+    required String memberName,
+  }) {
+    final room = getStudyRoomById(roomId);
+    if (room == null) return 0;
+
+    final total = room.members.fold<int>(
+      0,
+      (sum, member) => sum + (member.isApproved ? member.todayFocusSeconds : 0),
+    );
+
+    if (total <= 0) return 0;
+
+    final member = room.members.firstWhere(
+      (m) => m.name == memberName,
+      orElse: () => const StudyMemberData(
+        memberId: '',
+        name: '',
+        roomNickname: '',
+        status: StudyMemberStatus.offline,
+        sessionSeconds: 0,
+        todayFocusSeconds: 0,
+        avatarColor: Color(0xFF7C6AE6),
+      ),
+    );
+
+    return member.todayFocusSeconds / total;
+  }
+}

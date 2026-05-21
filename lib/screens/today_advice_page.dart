@@ -1,0 +1,624 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/task_model.dart';
+import '../state/app_state.dart';
+import '../theme/app_ui.dart';
+import 'focus_page.dart';
+import 'health_page.dart';
+import 'study_room_detail_page.dart';
+import 'study_room_list_page.dart';
+import 'tasks_page.dart';
+
+class TodayAdvicePage extends StatelessWidget {
+  final VoidCallback? onOpenTasks;
+  final ValueChanged<int>? onNavigate;
+
+  const TodayAdvicePage({super.key, this.onOpenTasks, this.onNavigate});
+
+  DateTime? _parseDate(String? value) {
+    if (value == null || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  int? _daysUntil(String? dueDate) {
+    final parsed = _parseDate(dueDate);
+    if (parsed == null) return null;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(parsed.year, parsed.month, parsed.day);
+    return target.difference(today).inDays;
+  }
+
+  String _displayDueDate(String? dueDate) {
+    final days = _daysUntil(dueDate);
+    if (days == null) return '未設定截止日';
+    if (days == 0) return '今天到期';
+    if (days == 1) return '明天到期';
+    if (days < 0) return '已逾期';
+    return '$days 天後到期';
+  }
+
+  List<Map<String, dynamic>> _unfinishedTasks(AppState appState) {
+    return appState.tasks.where((task) => task['done'] != true).toList();
+  }
+
+  List<Map<String, dynamic>> _unfinishedDeadlineTasks(AppState appState) {
+    return _unfinishedTasks(appState)
+        .where(
+          (task) =>
+              (task['taskType'] ?? 'fixed') == 'deadline' &&
+              ((_daysUntil(task['dueDate'] as String?) ?? 9999) <= 0),
+        )
+        .toList();
+  }
+
+  List<Map<String, dynamic>> _unfinishedFixedTasks(AppState appState) {
+    return _unfinishedTasks(
+      appState,
+    ).where((task) => (task['taskType'] ?? 'fixed') == 'fixed').toList();
+  }
+
+  int _priorityRank(String p) {
+    switch (p) {
+      case '高':
+        return 0;
+      case '中':
+        return 1;
+      case '低':
+        return 2;
+      default:
+        return 3;
+    }
+  }
+
+  Map<String, dynamic>? _highestPriorityUrgentDeadlineTask(AppState appState) {
+    final tasks = _unfinishedDeadlineTasks(appState);
+    if (tasks.isEmpty) return null;
+
+    tasks.sort((a, b) {
+      final aPriority = _priorityRank((a['priority'] ?? '中') as String);
+      final bPriority = _priorityRank((b['priority'] ?? '中') as String);
+
+      if (aPriority != bPriority) return aPriority.compareTo(bPriority);
+
+      final aDays = _daysUntil(a['dueDate'] as String?) ?? 9999;
+      final bDays = _daysUntil(b['dueDate'] as String?) ?? 9999;
+      return aDays.compareTo(bDays);
+    });
+
+    return tasks.first;
+  }
+
+  Map<String, dynamic>? _highestPriorityTask(AppState appState) {
+    final tasks = _unfinishedTasks(appState);
+    if (tasks.isEmpty) return null;
+
+    tasks.sort((a, b) {
+      final aPriority = _priorityRank((a['priority'] ?? '中') as String);
+      final bPriority = _priorityRank((b['priority'] ?? '中') as String);
+
+      if (aPriority != bPriority) return aPriority.compareTo(bPriority);
+
+      final aType = (a['taskType'] ?? 'fixed') as String;
+      final bType = (b['taskType'] ?? 'fixed') as String;
+
+      if (aType != bType) {
+        if (aType == 'deadline') return -1;
+        if (bType == 'deadline') return 1;
+      }
+
+      final aDays = _daysUntil(a['dueDate'] as String?) ?? 9999;
+      final bDays = _daysUntil(b['dueDate'] as String?) ?? 9999;
+      return aDays.compareTo(bDays);
+    });
+
+    return tasks.first;
+  }
+
+  List<String> _otherAdvices(AppState appState) {
+    final advices = <String>[];
+
+    final fixedTasks = _unfinishedFixedTasks(appState);
+    final deadlineTasks = _unfinishedDeadlineTasks(appState);
+
+    if (fixedTasks.isNotEmpty) {
+      advices.add('今天也別忘了固定任務，先完成一項日常活動讓節奏穩下來。');
+    }
+
+    if (appState.focusMinutes < 25) {
+      advices.add('今天再補一輪專注，讓任務推進更明顯。');
+    }
+
+    if (appState.steps < 4000) {
+      advices.add('今天步數偏少，可以安排一小段散步。');
+    }
+
+    if (appState.exerciseMinutes < 20) {
+      advices.add('今天可以補一段短時間運動，提升健康表現。');
+    }
+
+    if (appState.sleepHours > 0 && appState.sleepHours < 6.5) {
+      advices.add('昨晚睡眠稍微不足，今天安排任務時記得留一點緩衝。');
+    }
+
+    if (deadlineTasks.isEmpty && advices.isEmpty) {
+      advices.add('今天的整體節奏不錯，先從一件最容易完成的任務開始。');
+    }
+
+    return advices;
+  }
+
+  IconData _primaryActionIcon(TaskModel? task) {
+    switch (task?.sourceType) {
+      case TaskSourceType.focusMinutes:
+        return Icons.timer_outlined;
+      case TaskSourceType.sleepHours:
+      case TaskSourceType.steps:
+      case TaskSourceType.exerciseMinutes:
+        return Icons.health_and_safety_outlined;
+      case TaskSourceType.studyRoom:
+        return Icons.groups_2_outlined;
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+      case null:
+        return Icons.checklist_rounded;
+    }
+  }
+
+  String _primaryActionTitle(TaskModel? task) {
+    switch (task?.sourceType) {
+      case TaskSourceType.focusMinutes:
+        return '開始專注';
+      case TaskSourceType.sleepHours:
+      case TaskSourceType.steps:
+      case TaskSourceType.exerciseMinutes:
+        return '查看健康';
+      case TaskSourceType.studyRoom:
+        return '進入自律房';
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+      case null:
+        return '前往任務';
+    }
+  }
+
+  String _primaryActionSubtitle(TaskModel? task) {
+    switch (task?.sourceType) {
+      case TaskSourceType.focusMinutes:
+        return '開啟專注頁，直接補今天的專注時間';
+      case TaskSourceType.sleepHours:
+      case TaskSourceType.steps:
+      case TaskSourceType.exerciseMinutes:
+        return '查看同步狀態與哪些任務吃到健康資料';
+      case TaskSourceType.studyRoom:
+        return '進房開始，讓角色出現在即時自律空間';
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+      case null:
+        return '回任務頁處理今天最值得做的項目';
+    }
+  }
+
+  void _navigateToTab(BuildContext context, int index) {
+    if (onNavigate != null) {
+      Navigator.pop(context);
+      onNavigate!(index);
+      return;
+    }
+
+    final fallbackPage = switch (index) {
+      1 => const TasksPage(),
+      2 => const FocusPage(),
+      4 => const HealthPage(),
+      _ => const StudyRoomListPage(),
+    };
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => fallbackPage),
+    );
+  }
+
+  void _openTasks(BuildContext context) {
+    if (onOpenTasks != null) {
+      Navigator.pop(context);
+      onOpenTasks!();
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const TasksPage()),
+    );
+  }
+
+  void _runPrimaryAction(
+    BuildContext context,
+    AppState appState,
+    TaskModel? task,
+  ) {
+    switch (task?.sourceType) {
+      case TaskSourceType.focusMinutes:
+        _navigateToTab(context, 2);
+        return;
+      case TaskSourceType.sleepHours:
+      case TaskSourceType.steps:
+      case TaskSourceType.exerciseMinutes:
+        _navigateToTab(context, 4);
+        return;
+      case TaskSourceType.studyRoom:
+        final roomId = task?.sourceId;
+        final room = roomId == null ? null : appState.getStudyRoomById(roomId);
+        if (room != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StudyRoomDetailPage(roomId: room.id),
+            ),
+          );
+        } else {
+          _navigateToTab(context, 3);
+        }
+        return;
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+      case null:
+        _openTasks(context);
+        return;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final accentColor = appState.currentIconColor;
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    final urgentDeadlineTask = _highestPriorityUrgentDeadlineTask(appState);
+    final topTask = _highestPriorityTask(appState);
+    final otherAdvices = _otherAdvices(appState);
+    final weightedRecommendations =
+        appState.taskModels
+            .where(
+              (task) => !task.isDone && appState.isTaskActionableToday(task),
+            )
+            .toList()
+          ..sort(
+            (a, b) => appState
+                .taskPotentialScoreForTask(b)
+                .compareTo(appState.taskPotentialScoreForTask(a)),
+          );
+    final weightedTask = weightedRecommendations.isEmpty
+        ? null
+        : weightedRecommendations.first;
+
+    final mainAdviceTitle = urgentDeadlineTask != null
+        ? '今天最優先'
+        : (topTask != null ? '今日最優先' : '今天建議');
+    final mainAdviceContent = urgentDeadlineTask != null
+        ? '先完成「${urgentDeadlineTask['title']}」，因為它屬於高優先級，且${_displayDueDate(urgentDeadlineTask['dueDate'] as String?)}。'
+        : (topTask != null
+              ? '先完成「${topTask['title']}」，這是一個中優先級的固定任務。'
+              : '今天可以先新增一個明確任務，讓系統開始幫你建立節奏。');
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('今日建議')),
+      body: ListView(
+        padding: const EdgeInsets.all(AppUI.pagePadding),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: AppUI.heroGradient(accentColor),
+            child: Row(
+              children: [
+                Container(
+                  width: 62,
+                  height: 62,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.tips_and_updates_outlined,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '今日建議',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        '根據任務優先級、截止日、專注與健康狀態，整理今天最適合先做的事情。',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          height: 1.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppUI.sectionGap),
+          if (weightedTask != null) ...[
+            Card(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.insights_outlined, color: accentColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          '下一個最值得做',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: primaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      weightedTask.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${appState.taskRewardReasonForTask(weightedTask)}。完成後約 +${appState.taskPotentialScoreForTask(weightedTask)} 分，若跨過門檻可拿 +3 枚自律幣。',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+          ],
+          Card(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.star_border, color: accentColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        mainAdviceTitle,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    mainAdviceContent,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: primaryText,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '因為目前還有未完成的中優先級固定任務，先完成一件能讓今天有進度。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryText,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          Card(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.bolt, color: accentColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        '現在可以做',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _AdviceActionCard(
+                    icon: _primaryActionIcon(weightedTask),
+                    title: _primaryActionTitle(weightedTask),
+                    subtitle: _primaryActionSubtitle(weightedTask),
+                    color: accentColor,
+                    onTap: () {
+                      _runPrimaryAction(context, appState, weightedTask);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _AdviceActionCard(
+                    icon: Icons.checklist_rounded,
+                    title: '查看任務列表',
+                    subtitle: '想自己挑任務時，回任務頁整理今天的項目',
+                    color: accentColor,
+                    onTap: () {
+                      _openTasks(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          Card(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.view_list_outlined, color: accentColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        '其他建議',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  ...otherAdvices.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.circle, size: 10, color: accentColor),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: secondaryText,
+                                height: 1.55,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdviceActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _AdviceActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppUI.isDark(context)
+                ? color.withValues(alpha: 0.10)
+                : color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: secondaryText,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
