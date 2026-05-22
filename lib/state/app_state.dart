@@ -257,7 +257,12 @@ class AppState extends ChangeNotifier {
   AvatarProfile get avatarProfile => _avatarProfile;
 
   AvatarProfile avatarVariantForSeed(int seed) {
-    return AvatarProfile.initial();
+    final normalizedSeed = seed.abs();
+    return AvatarProfile.initial().copyWith(
+      faceShapeIndex: normalizedSeed % AvatarCatalog.faceShapeLabels.length,
+      outfitStyleIndex: normalizedSeed % AvatarCatalog.outfitStyleLabels.length,
+      accessoryIndex: normalizedSeed % AvatarCatalog.accessoryLabels.length,
+    );
   }
 
   String avatarItemKey(String category, int index) {
@@ -274,18 +279,11 @@ class AppState extends ChangeNotifier {
 
     switch (category) {
       case 'faceShape':
-      case 'eyeStyle':
-      case 'eyebrowStyle':
-      case 'mouthStyle':
-        return 6 + (index * 2);
-      case 'hairStyle':
-        return 10 + (index * 3);
+        return 0;
       case 'outfitStyle':
         return 14 + (index * 4);
       case 'accessory':
         return 8 + (index * 3);
-      case 'backgroundColor':
-        return 7 + (index * 2);
       case 'appBackground':
         return 18 + (index * 5);
       default:
@@ -1317,14 +1315,9 @@ class AppState extends ChangeNotifier {
   void _unlockCurrentAvatarProfile() {
     _unlockedAvatarItemKeys.addAll({
       avatarItemKey('appBackground', 0),
-      avatarItemKey('hairStyle', _avatarProfile.hairStyleIndex),
       avatarItemKey('faceShape', _avatarProfile.faceShapeIndex),
-      avatarItemKey('eyeStyle', _avatarProfile.eyeStyleIndex),
-      avatarItemKey('eyebrowStyle', _avatarProfile.eyebrowStyleIndex),
-      avatarItemKey('mouthStyle', _avatarProfile.mouthStyleIndex),
       avatarItemKey('outfitStyle', _avatarProfile.outfitStyleIndex),
       avatarItemKey('accessory', _avatarProfile.accessoryIndex),
-      avatarItemKey('backgroundColor', _avatarProfile.backgroundColorIndex),
     });
   }
 

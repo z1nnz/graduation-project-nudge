@@ -42,7 +42,7 @@ class AvatarProfile {
       mouthStyleIndex: 0,
       outfitStyleIndex: 0,
       outfitColorIndex: 0,
-      accessoryIndex: 1,
+      accessoryIndex: 0,
       backgroundColorIndex: 0,
       useCustomImage: false,
       customImagePath: null,

@@ -56,19 +56,40 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
 
   late final List<_ShopSet> shopSets = [
     const _ShopSet(
-      title: 'Nudge 初始套裝',
-      description: '目前正式導入的第一套分層角色素材。',
-      icon: Icons.auto_awesome_outlined,
-      items: [
-        MapEntry('faceShape', 0),
-        MapEntry('hairStyle', 0),
-        MapEntry('eyeStyle', 0),
-        MapEntry('eyebrowStyle', 0),
-        MapEntry('mouthStyle', 0),
-        MapEntry('outfitStyle', 0),
-        MapEntry('accessory', 1),
-        MapEntry('backgroundColor', 0),
-      ],
+      title: '粉紫日常套裝',
+      description: '柔和短袖與休閒長褲，適合日常自律展示。',
+      icon: Icons.checkroom_outlined,
+      items: [MapEntry('outfitStyle', 1)],
+    ),
+    const _ShopSet(
+      title: '夜讀連帽套裝',
+      description: '深藍連帽外套，適合專注房與夜讀情境。',
+      icon: Icons.nightlight_round,
+      items: [MapEntry('outfitStyle', 2)],
+    ),
+    const _ShopSet(
+      title: '薄荷晨讀套裝',
+      description: '清爽薄荷色系，適合早起、晨讀與輕量任務。',
+      icon: Icons.menu_book_outlined,
+      items: [MapEntry('outfitStyle', 3)],
+    ),
+    const _ShopSet(
+      title: '暖陽行動套裝',
+      description: '明亮暖色調，適合運動、步數與行動任務。',
+      icon: Icons.directions_walk_outlined,
+      items: [MapEntry('outfitStyle', 4)],
+    ),
+    const _ShopSet(
+      title: '粉莓專注套裝',
+      description: '活潑粉莓色，讓專注房裡的角色更醒目。',
+      icon: Icons.timer_outlined,
+      items: [MapEntry('outfitStyle', 5)],
+    ),
+    const _ShopSet(
+      title: '森林自律套裝',
+      description: '穩定綠色調，適合健康、睡眠與長期習慣。',
+      icon: Icons.eco_outlined,
+      items: [MapEntry('outfitStyle', 6)],
     ),
   ];
 
@@ -122,8 +143,6 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
         return draft.outfitStyleIndex;
       case 'accessory':
         return draft.accessoryIndex;
-      case 'backgroundColor':
-        return draft.backgroundColorIndex;
       case 'appBackground':
         return selectedThemeIndex;
       default:
@@ -147,8 +166,6 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
         return base.copyWith(outfitStyleIndex: index);
       case 'accessory':
         return base.copyWith(accessoryIndex: index);
-      case 'backgroundColor':
-        return base.copyWith(backgroundColorIndex: index);
       case 'appBackground':
         return base;
       default:
@@ -158,14 +175,8 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
 
   List<MapEntry<String, int>> _selectedItems() {
     return [
-      MapEntry('faceShape', draft.faceShapeIndex),
-      MapEntry('hairStyle', draft.hairStyleIndex),
-      MapEntry('eyeStyle', draft.eyeStyleIndex),
-      MapEntry('eyebrowStyle', draft.eyebrowStyleIndex),
-      MapEntry('mouthStyle', draft.mouthStyleIndex),
       MapEntry('outfitStyle', draft.outfitStyleIndex),
       MapEntry('accessory', draft.accessoryIndex),
-      MapEntry('backgroundColor', draft.backgroundColorIndex),
       MapEntry('appBackground', selectedThemeIndex),
     ];
   }

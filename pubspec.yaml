@@ -63,30 +63,9 @@ flutter:
   assets:
     - assets/branding/
     - assets/avatar/
-    - assets/avatar/base/
-    - assets/avatar/faces/
-    - assets/avatar/hair_back/
-    - assets/avatar/hair_front/
-    - assets/avatar/eyes/
-    - assets/avatar/eyebrows/
-    - assets/avatar/mouths/
-    - assets/avatar/outfits/
+    - assets/avatar/characters/
+    - assets/avatar/simple_outfits/
     - assets/avatar/accessories/
-    - assets/avatar/backgrounds/
-    - assets/avatar_parts/
-    - assets/avatar_parts/base/
-    - assets/avatar_parts/faces/
-    - assets/avatar_parts/hair_back/
-    - assets/avatar_parts/hair_front/
-    - assets/avatar_parts/eyes/
-    - assets/avatar_parts/eyebrows/
-    - assets/avatar_parts/mouths/
-    - assets/avatar_parts/outfits/
-    - assets/avatar_parts/accessories/
-    - assets/avatar_parts/backgrounds/
-    - assets/avatar_parts/source_svg/
-    - assets/avatar_parts/prompts/
-    - assets/avatar_parts/manifest/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

@@ -39,7 +39,7 @@ class AvatarLayeredPreview extends StatelessWidget {
         }
 
         final paths = AvatarLayerPaths(profile);
-        if (!manifest.listAssets().contains(paths.body)) {
+        if (!manifest.listAssets().contains(paths.character)) {
           return AvatarPreview(
             profile: profile,
             size: size,
@@ -47,13 +47,11 @@ class AvatarLayeredPreview extends StatelessWidget {
           );
         }
 
-        final layers = paths.ordered
+        final assets = manifest.listAssets();
+        final layers = paths
+            .orderedForAssets(assets)
             .where(manifest.listAssets().contains)
-            .map(
-              (path) => Positioned.fill(
-                child: Image.asset(path, fit: BoxFit.contain),
-              ),
-            )
+            .map((path) => Positioned.fill(child: _buildAssetLayer(path)))
             .toList();
 
         final character = Stack(clipBehavior: Clip.none, children: layers);
@@ -78,6 +76,19 @@ class AvatarLayeredPreview extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildAssetLayer(String path) {
+    return OverflowBox(
+      alignment: Alignment.center,
+      maxWidth: size,
+      maxHeight: size * 1.5,
+      child: SizedBox(
+        width: size,
+        height: size * 1.5,
+        child: Image.asset(path, fit: BoxFit.contain),
+      ),
+    );
+  }
 }
 
 class AvatarLayerPaths {
@@ -85,47 +96,26 @@ class AvatarLayerPaths {
 
   const AvatarLayerPaths(this.profile);
 
-  String get background =>
-      'assets/avatar/backgrounds/background_${profile.backgroundColorIndex}.png';
-
-  String get body =>
-      'assets/avatar/base/body_skin_${profile.skinToneIndex}.png';
-
-  String get face =>
-      'assets/avatar/faces/face_${profile.faceShapeIndex}_skin_${profile.skinToneIndex}.png';
-
-  String get hairBack =>
-      'assets/avatar/hair_back/hair_${profile.hairStyleIndex}_color_${profile.hairColorIndex}.png';
-
-  String get hairFront =>
-      'assets/avatar/hair_front/hair_${profile.hairStyleIndex}_color_${profile.hairColorIndex}.png';
-
-  String get eyes => 'assets/avatar/eyes/eyes_${profile.eyeStyleIndex}.png';
-
-  String get eyebrows =>
-      'assets/avatar/eyebrows/eyebrows_${profile.eyebrowStyleIndex}.png';
-
-  String get mouth =>
-      'assets/avatar/mouths/mouth_${profile.mouthStyleIndex}.png';
+  String get character =>
+      'assets/avatar/characters/character_${profile.faceShapeIndex}.png';
 
   String get outfit =>
-      'assets/avatar/outfits/outfit_${profile.outfitStyleIndex}_color_${profile.outfitColorIndex}.png';
+      'assets/avatar/simple_outfits/outfit_${profile.outfitStyleIndex}.png';
+
+  String get completeOutfit =>
+      'assets/avatar/characters/character_${profile.faceShapeIndex}_outfit_${profile.outfitStyleIndex}.png';
 
   String get accessory =>
       'assets/avatar/accessories/accessory_${profile.accessoryIndex}.png';
 
   List<String> get ordered {
-    return [
-      background,
-      hairBack,
-      body,
-      face,
-      outfit,
-      eyes,
-      eyebrows,
-      mouth,
-      hairFront,
-      accessory,
-    ];
+    return [character, outfit, accessory];
+  }
+
+  List<String> orderedForAssets(List<String> assets) {
+    if (profile.outfitStyleIndex > 0 && assets.contains(completeOutfit)) {
+      return [completeOutfit, accessory];
+    }
+    return ordered;
   }
 }
