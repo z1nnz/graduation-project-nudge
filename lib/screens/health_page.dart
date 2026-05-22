@@ -4,6 +4,7 @@ import '../models/task_model.dart';
 import '../services/health_service.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import 'privacy_data_page.dart';
 
 class HealthPage extends StatefulWidget {
   const HealthPage({super.key});
@@ -158,13 +159,47 @@ class _HealthPageState extends State<HealthPage> {
   }
 
   void showConnectInfoDialog() {
+    final platformStatus = HealthService.platformStatus;
+    final appState = context.read<AppState>();
+    if (!appState.hasAcceptedPrivacyPolicy) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('先同意隱私權政策'),
+            content: const Text(
+              '健康資料包含睡眠、步數與運動紀錄，連接前需要先閱讀並同意隱私權政策。完成同意後，再回來連接健康資料。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('稍後'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PrivacyDataPage()),
+                  );
+                },
+                child: const Text('前往同意'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('連接健康資料'),
-          content: const Text(
-            '此功能會依照你的手機系統讀取健康資料：iPhone 會使用 Apple 健康，Android 會使用 Health Connect。\n\n'
+          content: Text(
+            '目前裝置來源：${platformStatus.title}\n'
+            '${platformStatus.description}\n\n'
             '同步項目包含：\n\n'
             '• 睡眠時數\n'
             '• 步數\n'
@@ -177,10 +212,12 @@ class _HealthPageState extends State<HealthPage> {
               child: const Text('取消'),
             ),
             ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await connectHealthData();
-              },
+              onPressed: platformStatus.isSupported
+                  ? () async {
+                      Navigator.pop(context);
+                      await connectHealthData();
+                    }
+                  : null,
               child: const Text('同意並連接'),
             ),
           ],
@@ -291,6 +328,7 @@ class _HealthPageState extends State<HealthPage> {
     final accentColor = appState.currentIconColor;
 
     final isConnected = appState.isHealthConnected;
+    final platformStatus = HealthService.platformStatus;
     final sleepHours = appState.sleepHours;
     final steps = appState.steps;
     final exerciseMinutes = appState.exerciseMinutes;
@@ -366,7 +404,7 @@ class _HealthPageState extends State<HealthPage> {
                       Text(
                         isConnected
                             ? '健康資料會作為任務頁自動追蹤任務的判定來源。'
-                            : '系統會依手機自動連接 Apple 健康或 Health Connect。',
+                            : '目前會使用 ${platformStatus.title} 作為健康來源。',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -377,6 +415,32 @@ class _HealthPageState extends State<HealthPage> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          Card(
+            shape: AppUI.cardShape(),
+            child: ListTile(
+              leading: Container(
+                width: 42,
+                height: 42,
+                decoration: AppUI.softCardOf(context, accentColor),
+                child: Icon(
+                  platformStatus.provider == HealthDataProvider.appleHealth
+                      ? Icons.apple
+                      : platformStatus.provider ==
+                            HealthDataProvider.healthConnect
+                      ? Icons.health_and_safety_outlined
+                      : Icons.info_outline,
+                  color: accentColor,
+                ),
+              ),
+              title: Text(platformStatus.title),
+              subtitle: Text(platformStatus.description),
+              trailing: _StatusDot(
+                label: platformStatus.isSupported ? '可同步' : '不支援',
+                color: platformStatus.isSupported ? AppUI.green : AppUI.orange,
+              ),
             ),
           ),
           const SizedBox(height: AppUI.cardGap),

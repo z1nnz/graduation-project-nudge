@@ -1,5 +1,21 @@
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+
+enum HealthDataProvider { appleHealth, healthConnect, unsupported }
+
+class HealthPlatformStatus {
+  final HealthDataProvider provider;
+  final String title;
+  final String description;
+
+  const HealthPlatformStatus({
+    required this.provider,
+    required this.title,
+    required this.description,
+  });
+
+  bool get isSupported => provider != HealthDataProvider.unsupported;
+}
 
 class HealthServiceResult {
   final bool success;
@@ -30,7 +46,34 @@ class HealthServiceResult {
 class HealthService {
   static const MethodChannel _channel = MethodChannel('nudge/healthkit');
 
+  static HealthPlatformStatus get platformStatus {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return const HealthPlatformStatus(
+          provider: HealthDataProvider.appleHealth,
+          title: 'Apple 健康',
+          description: 'iPhone 會讀取 Apple 健康中的睡眠、步數與運動資料。',
+        );
+      case TargetPlatform.android:
+        return const HealthPlatformStatus(
+          provider: HealthDataProvider.healthConnect,
+          title: 'Health Connect',
+          description: 'Android 會讀取 Health Connect 中的睡眠、步數與運動資料。',
+        );
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+        return const HealthPlatformStatus(
+          provider: HealthDataProvider.unsupported,
+          title: '此平台不支援健康同步',
+          description: '健康資料同步目前只支援 iOS 與 Android 手機。',
+        );
+    }
+  }
+
   static Future<bool> requestHealthPermission() async {
+    if (!platformStatus.isSupported) return false;
     try {
       final bool? granted = await _channel
           .invokeMethod<bool>('requestHealthAuthorization')
@@ -43,6 +86,17 @@ class HealthService {
   }
 
   static Future<HealthServiceResult> syncHealthData() async {
+    final status = platformStatus;
+    if (!status.isSupported) {
+      return HealthServiceResult(
+        success: false,
+        message: status.description,
+        sleepHours: 0,
+        steps: 0,
+        exerciseMinutes: 0,
+      );
+    }
+
     try {
       final result = await _channel
           .invokeMapMethod<String, dynamic>('getHealthData')

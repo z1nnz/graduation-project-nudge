@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 團體 / 教育管理</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="groups">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>團體管理</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a class="active" href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+          <a href="presentation.html">專題發表流程</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Group & Education</span>
+            <h1>讓企業、讀書會、補習班可以建立自己的自律場域。</h1>
+            <p>Web 端處理大型管理工作：挑戰活動、排行榜、複習提醒、考試倒數模板與小組自律房。</p>
+          </div>
+          <div class="hero-card">
+            <span>活躍團體</span>
+            <strong data-count="12">0</strong>
+            <p>本週共有 4 個企業挑戰與 8 個讀書會房間。</p>
+          </div>
+        </header>
+
+        <section class="metric-grid page-section">
+          <article class="metric-card"><small>步數挑戰參與</small><strong data-count="128">0</strong></article>
+          <article class="metric-card"><small>讀書時段</small><strong data-count="34">0</strong></article>
+          <article class="metric-card"><small>複習提醒</small><strong data-count="86">0</strong></article>
+          <article class="metric-card"><small>小組房間</small><strong data-count="18">0</strong></article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel chart-card">
+            <span class="eyebrow">企業 / 團隊健康挑戰</span>
+            <h2>把健康任務變成團隊活動。</h2>
+            <canvas id="groupChart"></canvas>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">挑戰模板</span>
+            <div class="weather-grid">
+              <button class="button ghost" data-toast="已建立一週步數挑戰">一週步數挑戰</button>
+              <button class="button ghost" data-toast="已建立 30 分鐘專注挑戰">專注挑戰</button>
+              <button class="button ghost" data-toast="已建立早睡挑戰">早睡挑戰</button>
+              <button class="button ghost" data-toast="已建立運動累積挑戰">運動挑戰</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="two-col">
+          <article class="panel">
+            <span class="eyebrow">補習班 / 讀書會後台</span>
+            <h2>管理讀書時段與考試倒數。</h2>
+            <ul class="timeline">
+              <li><strong>期中考倒數 14 天</strong><span>自動建立每日 30 分鐘複習任務。</span></li>
+              <li><strong>週六共讀 19:00</strong><span>已排程提醒 42 位學生。</span></li>
+              <li><strong>國文單字複習模板</strong><span>可一鍵派發到班級。</span></li>
+            </ul>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">班級 / 小組排行</span>
+            <table class="table">
+              <thead><tr><th>名次</th><th>小組</th><th>本週分數</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>A 組</td><td>842</td></tr>
+                <tr><td>2</td><td>C 組</td><td>798</td></tr>
+                <tr><td>3</td><td>B 組</td><td>751</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <span class="eyebrow">小組自律房管理</span>
+              <h2>把房間變成班級與團隊的行動空間。</h2>
+            </div>
+            <button class="button primary" data-toast="已建立小組自律房 Demo">建立房間</button>
+          </div>
+          <div class="building-grid">
+            <div class="mini-card"><strong>期末衝刺房</strong><p>28 人，專注中 12 人。</p></div>
+            <div class="mini-card"><strong>早睡挑戰房</strong><p>16 人，今晚目標 23:30。</p></div>
+            <div class="mini-card"><strong>步數健走房</strong><p>團隊今日累積 82,400 步。</p></div>
+            <div class="mini-card"><strong>考前複習房</strong><p>倒數 5 天，任務模板已派發。</p></div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

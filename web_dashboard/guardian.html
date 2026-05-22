@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 家長陪伴中心</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="guardian">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>家長陪伴</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a class="active" href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+          <a href="presentation.html">專題發表流程</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Guardian Companion</span>
+            <h1>陪孩子走一段，不是盯著孩子每一步。</h1>
+            <p>家長只能看到孩子同意分享的趨勢資料，系統用關心語氣提醒，而不是責備。</p>
+          </div>
+          <div class="hero-card">
+            <span>本週陪伴狀態</span>
+            <strong data-count="76">0</strong>
+            <p>孩子完成率穩定，但睡眠略低。</p>
+          </div>
+        </header>
+
+        <section class="metric-grid page-section">
+          <article class="metric-card"><small>完成任務</small><strong data-count="31" data-suffix=" 個">0</strong></article>
+          <article class="metric-card"><small>專注時間</small><strong data-count="240" data-suffix=" 分">0</strong></article>
+          <article class="metric-card"><small>平均睡眠</small><strong>6.1 小時</strong></article>
+          <article class="metric-card"><small>平均步數</small><strong data-count="6820">0</strong></article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel chart-card">
+            <span class="eyebrow">週趨勢</span>
+            <h2>只看趨勢，不顯示過度細節。</h2>
+            <canvas id="sleepChart"></canvas>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">關懷提醒</span>
+            <ul class="timeline">
+              <li><strong>最近 3 天睡眠偏低</strong><span>建議今晚一起討論睡前習慣。</span></li>
+              <li><strong>截止日任務集中</strong><span>可以協助孩子拆成兩個小步驟。</span></li>
+              <li><strong>完成率下降不代表偷懶</strong><span>可能是任務量太多，適合重新調整。</span></li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="two-col">
+          <article class="panel">
+            <span class="eyebrow">鼓勵功能</span>
+            <h2>送一張加油卡。</h2>
+            <div class="weather-grid">
+              <button class="button ghost" data-toast="已送出：今天也辛苦了">今天也辛苦了</button>
+              <button class="button ghost" data-toast="已送出：我們一起調整">我們一起調整</button>
+              <button class="button ghost" data-toast="已送出：你已經進步很多">你已經進步很多</button>
+              <button class="button ghost" data-toast="已送出：休息也是自律">休息也是自律</button>
+            </div>
+            <p>家長不能直接幫孩子完成任務，也不能代領自律幣。</p>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">共同目標</span>
+            <h2>孩子同意後才加入。</h2>
+            <div class="mini-card"><strong>一週睡滿 49 小時</strong><div class="progress"><span style="--value: 62%"></span></div></div>
+            <div class="mini-card"><strong>每天專注 30 分鐘</strong><div class="progress"><span style="--value: 78%"></span></div></div>
+            <button class="button primary" data-toast="共同目標邀請已送出，等待孩子同意">新增共同目標</button>
+          </article>
+        </section>
+
+        <section class="panel">
+          <span class="eyebrow">權限分級</span>
+          <h2>孩子端同意機制</h2>
+          <div class="permission-grid">
+            <div class="mini-card"><strong>只看總覽</strong><p>分數、完成率、趨勢。</p></div>
+            <div class="mini-card"><strong>可看週報</strong><p>系統整理，不顯示原始資料。</p></div>
+            <div class="mini-card"><strong>可看任務類型</strong><p>只顯示學習、健康、生活類別。</p></div>
+            <div class="mini-card"><strong>可看健康趨勢</strong><p>不顯示原始睡眠或逐分鐘資料。</p></div>
+          </div>
+          <div class="button-row">
+            <button class="button secondary" data-toast="已產生家長週報 PDF Demo">下載週報</button>
+            <button class="button ghost" data-toast="已模擬解除陪伴連結">解除連結</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

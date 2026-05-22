@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import 'about_page.dart';
+import 'account_page.dart';
 import 'privacy_data_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -259,6 +260,28 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
+          _sectionCard(
+            context: context,
+            title: '帳號與同步',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.account_circle_outlined, color: accentColor),
+              title: Text(appState.isSignedIn ? '已登入帳號' : '登入與個人 ID'),
+              subtitle: Text(
+                appState.isSignedIn
+                    ? '${appState.accountProviderLabel}・${appState.myNudgeId}'
+                    : 'Email / Google / Apple、Nudge ID、名片同步',
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AccountPage()),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
           _sectionCard(
             context: context,
             title: '外觀模式',

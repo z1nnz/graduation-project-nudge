@@ -12,6 +12,7 @@ import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
 import '../models/task_model.dart';
+import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_ui.dart';
 
@@ -72,6 +73,9 @@ class AppState extends ChangeNotifier {
   static const String _socialFriendsKey = 'social_friends_setting';
   static const String _myNudgeIdKey = 'my_nudge_id_setting';
   static const String _friendRequestsKey = 'friend_requests_setting';
+  static const String _currentUserKey = 'current_user_setting';
+  static const String _privacyConsentKey = 'privacy_consent_setting';
+  static const String _privacyConsentAtKey = 'privacy_consent_at_setting';
   static const String _seenUnlockedBadgesKey = 'seen_unlocked_badges_setting';
   static const String _unlockedBadgesKey = 'unlocked_badges_setting';
   static const String _socialEncouragementRecordsKey =
@@ -127,6 +131,9 @@ class AppState extends ChangeNotifier {
   List<SocialFriendProfile> _socialFriends = [];
   List<FriendRequest> _friendRequests = [];
   String _myNudgeId = '';
+  UserModel? _currentUser;
+  bool _hasAcceptedPrivacyPolicy = false;
+  DateTime? _privacyAcceptedAt;
   Set<String> _seenUnlockedBadgeKeys = <String>{};
   Map<String, String> _unlockedBadgeDates = <String, String>{};
   List<SocialEncouragementRecord> _socialEncouragementRecords = [];
@@ -222,6 +229,23 @@ class AppState extends ChangeNotifier {
   List<SocialFriendProfile> get socialFriends => _socialFriends;
   List<FriendRequest> get friendRequests => _friendRequests;
   String get myNudgeId => _myNudgeId;
+  UserModel? get currentUser => _currentUser;
+  bool get isSignedIn => _currentUser != null;
+  bool get hasAcceptedPrivacyPolicy => _hasAcceptedPrivacyPolicy;
+  DateTime? get privacyAcceptedAt => _privacyAcceptedAt;
+  String get accountProviderLabel {
+    switch (_currentUser?.authProvider) {
+      case 'email':
+        return 'Email';
+      case 'google':
+        return 'Google';
+      case 'apple':
+        return 'Apple';
+      default:
+        return '尚未登入';
+    }
+  }
+
   List<FriendRequest> get incomingFriendRequests => _friendRequests
       .where(
         (request) =>
@@ -1398,6 +1422,8 @@ class AppState extends ChangeNotifier {
       await _loadStudyRooms();
       await _loadSocialFriends();
       await _loadFriendIdentityAndRequests();
+      await _loadCurrentUser();
+      await _loadPrivacyConsent();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
       await _loadSeenUnlockedBadges();
@@ -1429,6 +1455,8 @@ class AppState extends ChangeNotifier {
       await _loadStudyRooms();
       await _loadSocialFriends();
       await _loadFriendIdentityAndRequests();
+      await _loadCurrentUser();
+      await _loadPrivacyConsent();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
       await _loadSeenUnlockedBadges();
@@ -1654,6 +1682,51 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  Future<void> _saveCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final user = _currentUser;
+    if (user == null) {
+      await prefs.remove(_currentUserKey);
+      return;
+    }
+    await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
+  }
+
+  Future<void> _loadPrivacyConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hasAcceptedPrivacyPolicy = prefs.getBool(_privacyConsentKey) ?? false;
+    final acceptedAtRaw = prefs.getString(_privacyConsentAtKey);
+    _privacyAcceptedAt = acceptedAtRaw == null
+        ? null
+        : DateTime.tryParse(acceptedAtRaw);
+  }
+
+  Future<void> _savePrivacyConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_privacyConsentKey, _hasAcceptedPrivacyPolicy);
+    final acceptedAt = _privacyAcceptedAt;
+    if (acceptedAt == null) {
+      await prefs.remove(_privacyConsentAtKey);
+    } else {
+      await prefs.setString(_privacyConsentAtKey, acceptedAt.toIso8601String());
+    }
+  }
+
+  Future<void> acceptPrivacyPolicy() async {
+    _hasAcceptedPrivacyPolicy = true;
+    _privacyAcceptedAt = DateTime.now();
+    notifyListeners();
+    await _savePrivacyConsent();
+  }
+
+  Future<void> revokePrivacyPolicyConsent() async {
+    _hasAcceptedPrivacyPolicy = false;
+    _privacyAcceptedAt = null;
+    await clearHealthData();
+    notifyListeners();
+    await _savePrivacyConsent();
+  }
+
   Future<void> _saveSocialEncouragementRecords() async {
     final prefs = await SharedPreferences.getInstance();
     final encoded = jsonEncode(
@@ -1780,6 +1853,33 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       _friendRequests = _defaultIncomingFriendRequests();
       await _saveFriendIdentityAndRequests();
+    }
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_currentUserKey);
+    if (raw == null || raw.isEmpty) {
+      _currentUser = null;
+      return;
+    }
+
+    try {
+      final user = UserModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(raw)),
+      );
+      _currentUser = user.copyWith(
+        id: user.id.isEmpty ? _myNudgeId : user.id,
+        username: user.username.isEmpty ? _myNudgeId : user.username,
+        nickname: _profileNickname,
+        signature: _profileSignature,
+        avatarProfileId: 'local_avatar',
+        updatedAt: DateTime.now(),
+      );
+      await _saveCurrentUser();
+    } catch (_) {
+      _currentUser = null;
+      await _saveCurrentUser();
     }
   }
 
@@ -2302,8 +2402,76 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(
+        nickname: _profileNickname,
+        signature: _profileSignature,
+        avatarProfileId: 'local_avatar',
+        updatedAt: DateTime.now(),
+      );
+    }
+
     notifyListeners();
     await _saveAppearanceSettings();
+    await _saveCurrentUser();
+  }
+
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final normalizedEmail = email.trim();
+    if (normalizedEmail.isEmpty || !normalizedEmail.contains('@')) {
+      throw ArgumentError('請輸入有效的 Email');
+    }
+    if (password.trim().length < 6) {
+      throw ArgumentError('密碼至少需要 6 個字元');
+    }
+
+    await _signInWithProvider(authProvider: 'email', email: normalizedEmail);
+  }
+
+  Future<void> signInWithGoogle() async {
+    await _signInWithProvider(authProvider: 'google');
+  }
+
+  Future<void> signInWithApple() async {
+    await _signInWithProvider(authProvider: 'apple');
+  }
+
+  Future<void> _signInWithProvider({
+    required String authProvider,
+    String? email,
+  }) async {
+    final now = DateTime.now();
+    final existing = _currentUser;
+    _currentUser = UserModel(
+      id: existing?.id.isNotEmpty == true ? existing!.id : _myNudgeId,
+      email: email ?? existing?.email,
+      username: existing?.username.isNotEmpty == true
+          ? existing!.username
+          : _myNudgeId,
+      nickname: _profileNickname,
+      signature: _profileSignature,
+      authProvider: authProvider,
+      avatarProfileId: 'local_avatar',
+      themeMode: _themeModeSetting,
+      accentColor: _iconColorSetting,
+      timezone: DateTime.now().timeZoneName,
+      isActive: true,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      lastLoginAt: now,
+    );
+
+    notifyListeners();
+    await _saveCurrentUser();
+  }
+
+  Future<void> signOut() async {
+    _currentUser = null;
+    notifyListeners();
+    await _saveCurrentUser();
   }
 
   Future<void> updateAvatarProfile(AvatarProfile profile) async {
@@ -2798,6 +2966,9 @@ class AppState extends ChangeNotifier {
     _socialFriends = [];
     _friendRequests = [];
     _myNudgeId = _generateNudgeId();
+    _currentUser = null;
+    _hasAcceptedPrivacyPolicy = false;
+    _privacyAcceptedAt = null;
     _seenUnlockedBadgeKeys = <String>{};
     _unlockedBadgeDates = <String, String>{};
     _socialEncouragementRecords = [];
@@ -2818,6 +2989,8 @@ class AppState extends ChangeNotifier {
     await _saveStudyRooms();
     await _saveSocialFriends();
     await _saveFriendIdentityAndRequests();
+    await _saveCurrentUser();
+    await _savePrivacyConsent();
     await _saveSocialEncouragementRecords();
     await _saveUnlockedBadges();
     await _saveSeenUnlockedBadges();

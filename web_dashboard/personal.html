@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 個人進階分析</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>個人分析</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+          <a href="presentation.html">專題發表流程</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Personal Insight</span>
+            <h1>把每天的自律，整理成長期人生儀表板。</h1>
+            <p>App 看今天做什麼，Web 看這個月、這一年你如何變穩定，以及哪裡開始累積壓力。</p>
+          </div>
+          <div class="hero-card">
+            <span>年度穩定指數</span>
+            <strong data-count="91">0</strong>
+            <p>最近 12 週自律分數呈穩定上升。</p>
+          </div>
+        </header>
+
+        <section class="metric-grid page-section">
+          <article class="metric-card"><small>本月平均</small><strong data-count="82" data-suffix=" 分">0</strong></article>
+          <article class="metric-card"><small>最佳自律日</small><strong>週三</strong></article>
+          <article class="metric-card"><small>最穩任務</small><strong>睡眠</strong></article>
+          <article class="metric-card"><small>壓力指數</small><strong data-count="42" data-suffix="%">0</strong></article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel chart-card">
+            <span class="eyebrow">月度 / 年度自律趨勢</span>
+            <h2>你的自律不是爆衝，是慢慢變穩。</h2>
+            <canvas id="trendChart"></canvas>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">壓力雷達圖</span>
+            <h2>系統推測目前壓力來源</h2>
+            <div class="radar"><div class="radar-shape"><span>中</span></div></div>
+            <div class="pill-row">
+              <span class="pill warn">截止日集中</span>
+              <span class="pill">睡眠略低</span>
+              <span class="pill good">運動穩定</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="two-col">
+          <article class="panel">
+            <span class="eyebrow">自律天氣預報</span>
+            <h2>把未來一週狀態變成天氣。</h2>
+            <div class="weather-grid">
+              <div class="mini-card"><small>週一</small><strong>晴</strong><p>任務量穩定，適合累積分數。</p></div>
+              <div class="mini-card"><small>週三</small><strong>陰</strong><p>截止日靠近，建議拆成小任務。</p></div>
+              <div class="mini-card"><small>週五</small><strong>雷雨</strong><p>睡眠不足加上專注下降，適合早點休息。</p></div>
+              <div class="mini-card"><small>週日</small><strong>彩虹</strong><p>適合整理下週任務與時間膠囊。</p></div>
+            </div>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">自律時間膠囊</span>
+            <h2>寫給未來的自己。</h2>
+            <textarea class="input" rows="5">期末前，我希望自己每天至少專注 30 分鐘，不要把壓力留到最後一天。</textarea>
+            <div class="button-row">
+              <button class="button primary" data-toast="時間膠囊已設定，將於期末前解鎖">設定解鎖日</button>
+              <button class="button ghost" data-toast="已預覽未來回顧卡">預覽回顧</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="two-col">
+          <article class="panel">
+            <span class="eyebrow">未來的自己寄來的信</span>
+            <h2>一週後的你會這樣說。</h2>
+            <p>如果你今晚先完成 25 分鐘專注，一週後的你會很感謝現在這個決定。你不是要一次變完美，只是要把明天變得輕一點。</p>
+            <button class="button secondary" data-toast="已產生本週鼓勵信">重新產生</button>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">人生技能樹</span>
+            <h2>把任務變成能力成長。</h2>
+            <div class="skill-grid">
+              <div class="mini-card"><strong>學習力</strong><div class="progress"><span style="--value: 78%"></span></div></div>
+              <div class="mini-card"><strong>專注力</strong><div class="progress"><span style="--value: 62%"></span></div></div>
+              <div class="mini-card"><strong>健康力</strong><div class="progress"><span style="--value: 84%"></span></div></div>
+              <div class="mini-card"><strong>生活管理力</strong><div class="progress"><span style="--value: 56%"></span></div></div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

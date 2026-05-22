@@ -8,6 +8,15 @@ import '../theme/app_ui.dart';
 class PrivacyDataPage extends StatelessWidget {
   const PrivacyDataPage({super.key});
 
+  String _formatAcceptedAt(DateTime? value) {
+    if (value == null) return '尚未同意';
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '${value.year}/$month/$day $hour:$minute';
+  }
+
   Future<bool> _confirm({
     required BuildContext context,
     required String title,
@@ -169,6 +178,12 @@ class PrivacyDataPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppUI.sectionGap),
+            _PrivacyConsentCard(
+              accepted: appState.hasAcceptedPrivacyPolicy,
+              acceptedAtText: _formatAcceptedAt(appState.privacyAcceptedAt),
+              accentColor: accentColor,
+            ),
+            const SizedBox(height: AppUI.cardGap),
             _card(
               context: context,
               title: '健康資料權限用途',
@@ -375,6 +390,149 @@ class PrivacyDataPage extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivacyConsentCard extends StatefulWidget {
+  final bool accepted;
+  final String acceptedAtText;
+  final Color accentColor;
+
+  const _PrivacyConsentCard({
+    required this.accepted,
+    required this.acceptedAtText,
+    required this.accentColor,
+  });
+
+  @override
+  State<_PrivacyConsentCard> createState() => _PrivacyConsentCardState();
+}
+
+class _PrivacyConsentCardState extends State<_PrivacyConsentCard> {
+  bool isChecked = false;
+  bool isSaving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: AppUI.softCardOf(
+                    context,
+                    widget.accepted ? AppUI.green : widget.accentColor,
+                  ),
+                  child: Icon(
+                    widget.accepted
+                        ? Icons.verified_outlined
+                        : Icons.privacy_tip_outlined,
+                    color: widget.accepted ? AppUI.green : widget.accentColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.accepted ? '已同意隱私權政策' : '同意隱私權政策',
+                    style: AppUI.sectionTitleOf(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              widget.accepted
+                  ? '同意時間：${widget.acceptedAtText}。你仍然可以撤回同意，撤回後會清除 App 內保存的健康同步資料。'
+                  : '連接健康資料前，需要先確認你理解 Nudge 會讀取睡眠、步數與運動分鐘，並用於自動追蹤任務、自律分數與自律房目標判定。',
+              style: TextStyle(color: secondaryText, height: 1.5),
+            ),
+            const SizedBox(height: 14),
+            if (!widget.accepted) ...[
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => setState(() => isChecked = !isChecked),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Checkbox(
+                      value: isChecked,
+                      activeColor: widget.accentColor,
+                      onChanged: (value) {
+                        setState(() => isChecked = value ?? false);
+                      },
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          '我已閱讀並同意 Nudge 使用健康資料作為任務自動判定與統計分析用途。',
+                          style: TextStyle(
+                            color: primaryText,
+                            fontWeight: FontWeight.w700,
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: widget.accentColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: !isChecked || isSaving
+                      ? null
+                      : () async {
+                          setState(() => isSaving = true);
+                          await context.read<AppState>().acceptPrivacyPolicy();
+                          if (!context.mounted) return;
+                          setState(() => isSaving = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('已同意隱私權政策')),
+                          );
+                        },
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: Text(isSaving ? '儲存中...' : '同意並儲存'),
+                ),
+              ),
+            ] else ...[
+              OutlinedButton.icon(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        setState(() => isSaving = true);
+                        await context
+                            .read<AppState>()
+                            .revokePrivacyPolicyConsent();
+                        if (!context.mounted) return;
+                        setState(() => isSaving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('已撤回同意並清除健康資料')),
+                        );
+                      },
+                icon: const Icon(Icons.block_outlined),
+                label: Text(isSaving ? '處理中...' : '撤回同意'),
+              ),
+            ],
           ],
         ),
       ),

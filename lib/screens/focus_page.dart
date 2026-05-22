@@ -5,7 +5,9 @@ import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
 class FocusPage extends StatefulWidget {
-  const FocusPage({super.key});
+  final bool autoStart;
+
+  const FocusPage({super.key, this.autoStart = false});
 
   @override
   State<FocusPage> createState() => _FocusPageState();
@@ -20,6 +22,16 @@ class _FocusPageState extends State<FocusPage> {
   bool hasCountedThisRound = false;
 
   int get initialSeconds => selectedMinutes * 60;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) startTimer();
+      });
+    }
+  }
 
   int get elapsedSeconds {
     final value = initialSeconds - remainingSeconds;

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 營運後台</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="operations">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>營運後台</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a class="active" href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+          <a href="presentation.html">專題發表流程</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Operations</span>
+            <h1>讓自律房、商城與限時活動可以被營運。</h1>
+            <p>這是 App 裡不適合塞給一般使用者看的後台，負責房間審核、活動設計、服裝上架與價格控管。</p>
+          </div>
+          <div class="hero-card">
+            <span>本週活動轉換率</span>
+            <strong data-count="38" data-suffix="%">0</strong>
+            <p>早睡挑戰套裝帶動房間參與提升。</p>
+          </div>
+        </header>
+
+        <section class="two-col page-section">
+          <article class="panel">
+            <span class="eyebrow">自律房審核</span>
+            <h2>公開房與加入申請</h2>
+            <ul class="timeline">
+              <li><strong>期末衝刺 7 日房</strong><span>12 個加入申請等待審核。</span></li>
+              <li><strong>夜讀靜音房</strong><span>違規提醒 1 件，等待房主回覆。</span></li>
+              <li><strong>早睡挑戰房</strong><span>活動期間：05/22 - 05/29。</span></li>
+            </ul>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">活動房模板</span>
+            <div class="weather-grid">
+              <button class="button ghost" data-toast="已建立期末衝刺活動房">期末衝刺 7 日房</button>
+              <button class="button ghost" data-toast="已建立早睡挑戰活動房">早睡挑戰房</button>
+              <button class="button ghost" data-toast="已建立健走挑戰活動房">健走挑戰房</button>
+              <button class="button ghost" data-toast="已建立晨讀活動房">晨讀活動房</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <span class="eyebrow">商城 / 活動營運</span>
+              <h2>上架服裝、套裝、活動限定物。</h2>
+            </div>
+            <button class="button primary" data-toast="新品套裝已排程上架">排程上架</button>
+          </div>
+          <div class="shop-grid">
+            <div class="mini-card"><small>一般</small><strong>白 T 休閒套裝</strong><p>價格 35 枚，永久販售。</p></div>
+            <div class="mini-card"><small>稀有</small><strong>夜讀專注套裝</strong><p>價格 60 枚，專注活動限定。</p></div>
+            <div class="mini-card"><small>活動</small><strong>早睡挑戰睡衣</strong><p>完成 5 天早睡後解鎖。</p></div>
+            <div class="mini-card"><small>傳說</small><strong>星光收藏套裝</strong><p>價格 120 枚，月度活動限定。</p></div>
+          </div>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel">
+            <span class="eyebrow">定價工具</span>
+            <h2>配合新的自律幣經濟。</h2>
+            <p>每日最多 15 枚，週上限 100 枚，月上限 400 枚。商城價格要讓使用者需要持續努力，但不會覺得永遠買不起。</p>
+            <div class="pill-row">
+              <span class="pill good">一般 20-40</span>
+              <span class="pill">稀有 50-80</span>
+              <span class="pill warn">活動 70-120</span>
+            </div>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">發布檢查</span>
+            <ul class="timeline compact">
+              <li><strong>素材透明背景</strong><span>檢查是否可被 AvatarPreview 正確疊圖。</span></li>
+              <li><strong>價格區間</strong><span>避免新手一週內買空或完全買不起。</span></li>
+              <li><strong>活動條件</strong><span>不能讓使用者用重複設定刷幣。</span></li>
+            </ul>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

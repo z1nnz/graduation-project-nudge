@@ -4,6 +4,7 @@ class UserModel {
   final String username;
   final String nickname;
   final String signature;
+  final String authProvider;
   final String? avatarProfileId;
   final String themeMode;
   final String accentColor;
@@ -19,6 +20,7 @@ class UserModel {
     required this.username,
     required this.nickname,
     required this.signature,
+    this.authProvider = 'local',
     this.avatarProfileId,
     this.themeMode = 'system',
     this.accentColor = 'purple',
@@ -35,6 +37,7 @@ class UserModel {
     String? username,
     String? nickname,
     String? signature,
+    String? authProvider,
     String? avatarProfileId,
     String? themeMode,
     String? accentColor,
@@ -54,6 +57,7 @@ class UserModel {
       username: username ?? this.username,
       nickname: nickname ?? this.nickname,
       signature: signature ?? this.signature,
+      authProvider: authProvider ?? this.authProvider,
       avatarProfileId: clearAvatarProfileId
           ? null
           : (avatarProfileId ?? this.avatarProfileId),
@@ -63,8 +67,7 @@ class UserModel {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      lastLoginAt:
-          clearLastLoginAt ? null : (lastLoginAt ?? this.lastLoginAt),
+      lastLoginAt: clearLastLoginAt ? null : (lastLoginAt ?? this.lastLoginAt),
     );
   }
 
@@ -75,6 +78,7 @@ class UserModel {
       'username': username,
       'nickname': nickname,
       'signature': signature,
+      'authProvider': authProvider,
       'avatarProfileId': avatarProfileId,
       'themeMode': themeMode,
       'accentColor': accentColor,
@@ -93,14 +97,17 @@ class UserModel {
       username: json['username'] as String? ?? '',
       nickname: json['nickname'] as String? ?? '',
       signature: json['signature'] as String? ?? '',
+      authProvider: json['authProvider'] as String? ?? 'local',
       avatarProfileId: json['avatarProfileId'] as String?,
       themeMode: json['themeMode'] as String? ?? 'system',
       accentColor: json['accentColor'] as String? ?? 'purple',
       timezone: json['timezone'] as String?,
       isActive: json['isActive'] as bool? ?? true,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
+      updatedAt:
+          DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.now(),
       lastLoginAt: json['lastLoginAt'] == null
           ? null

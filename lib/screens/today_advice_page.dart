@@ -179,7 +179,7 @@ class TodayAdvicePage extends StatelessWidget {
       case TaskSourceType.manual:
       case TaskSourceType.system:
       case null:
-        return '前往任務';
+        return task == null ? '前往任務' : '打開任務詳情';
     }
   }
 
@@ -196,7 +196,7 @@ class TodayAdvicePage extends StatelessWidget {
       case TaskSourceType.manual:
       case TaskSourceType.system:
       case null:
-        return '回任務頁處理今天最值得做的項目';
+        return task == null ? '回任務頁處理今天的項目' : '查看分數、截止日與完成規則';
     }
   }
 
@@ -239,7 +239,10 @@ class TodayAdvicePage extends StatelessWidget {
   ) {
     switch (task?.sourceType) {
       case TaskSourceType.focusMinutes:
-        _navigateToTab(context, 2);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const FocusPage(autoStart: true)),
+        );
         return;
       case TaskSourceType.sleepHours:
       case TaskSourceType.steps:
@@ -263,9 +266,135 @@ class TodayAdvicePage extends StatelessWidget {
       case TaskSourceType.manual:
       case TaskSourceType.system:
       case null:
+        if (task != null) {
+          _showTaskDetailSheet(context, appState, task);
+          return;
+        }
         _openTasks(context);
         return;
     }
+  }
+
+  void _showTaskDetailSheet(
+    BuildContext context,
+    AppState appState,
+    TaskModel task,
+  ) {
+    final accentColor = appState.currentIconColor;
+    final sourceLabel = TaskModel.sourceTypeToChinese(task.sourceType);
+    final potentialScore = appState.taskPotentialScoreForTask(task);
+    final rewardReason = appState.taskRewardReasonForTask(task);
+    final isDeadline = task.taskType == TaskType.deadline;
+    final canCompleteToday = appState.isTaskActionableToday(task);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        final primaryText = AppUI.textPrimaryOf(context);
+        final secondaryText = AppUI.textSecondaryOf(context);
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppUI.pagePadding,
+            8,
+            AppUI.pagePadding,
+            MediaQuery.of(context).viewInsets.bottom + AppUI.pagePadding,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: AppUI.softCardOf(context, accentColor),
+                    child: Icon(Icons.assignment_outlined, color: accentColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task.title,
+                          style: TextStyle(
+                            color: primaryText,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          task.category,
+                          style: TextStyle(color: secondaryText),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _DetailPill(
+                    label: '今日分數',
+                    value: '+$potentialScore 分',
+                    color: accentColor,
+                  ),
+                  _DetailPill(
+                    label: '來源',
+                    value: sourceLabel,
+                    color: AppUI.blue,
+                  ),
+                  _DetailPill(
+                    label: '狀態',
+                    value: canCompleteToday ? '今日可執行' : '等待驗收',
+                    color: canCompleteToday ? AppUI.green : AppUI.orange,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                rewardReason,
+                style: TextStyle(
+                  color: secondaryText,
+                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (isDeadline) ...[
+                const SizedBox(height: 10),
+                Text(
+                  '截止日規則：截止日任務只在到期日或逾期後驗收，不列入每日任務分母；完成後會走額外自律幣管道。',
+                  style: TextStyle(color: secondaryText, height: 1.5),
+                ),
+              ],
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _openTasks(context);
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('前往任務頁'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -538,6 +667,52 @@ class TodayAdvicePage extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailPill extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _DetailPill({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: AppUI.isDark(context) ? 0.14 : 0.10),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: AppUI.textSecondaryOf(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

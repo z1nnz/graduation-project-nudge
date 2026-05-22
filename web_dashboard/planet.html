@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 自律城市 / 自律星球</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="planet">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a class="active" href="planet.html">自律城市 / 星球</a>
+          <a href="presentation.html">專題發表流程</a>
+        </nav>
+        <section class="side-panel">
+          <span class="eyebrow">目前展示</span>
+          <strong id="planetLabel">穩定成長星球</strong>
+          <p>切換不同資料可以看到城市如何變化。</p>
+        </section>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Discipline Planet</span>
+            <h1>讓自律分數變成一個會長大的世界。</h1>
+            <p>專注蓋圖書館，健康蓋公園，睡眠點亮住宅區，自律房讓朋友角色出現在城市裡。</p>
+            <div class="hero-actions">
+              <button class="button primary" data-planet-mode="穩定成長星球">穩定成長</button>
+              <button class="button ghost" data-planet-mode="考前衝刺城市">考前衝刺</button>
+              <button class="button ghost" data-planet-mode="健康復甦星球">健康復甦</button>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>星球繁榮度</span>
+            <strong data-count="73">0</strong>
+            <p>本週新增 5 棟建築，2 位好友到訪。</p>
+          </div>
+        </header>
+
+        <section class="planet-stage page-section">
+          <div class="planet"></div>
+          <div class="building b1">圖書館<br /><small>專注</small></div>
+          <div class="building b2">公園<br /><small>健康</small></div>
+          <div class="building b3">住宅<br /><small>睡眠</small></div>
+          <div class="building b4">廣場<br /><small>自律房</small></div>
+          <div class="building b5">鐘塔<br /><small>截止日</small></div>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel">
+            <span class="eyebrow">城市成長來源</span>
+            <h2>每棟建築都能回溯到真實行動。</h2>
+            <div class="building-grid">
+              <div class="mini-card"><strong>圖書館 Lv.4</strong><p>本週專注 240 分鐘。</p></div>
+              <div class="mini-card"><strong>公園 Lv.3</strong><p>步數與運動任務穩定完成。</p></div>
+              <div class="mini-card"><strong>住宅區 Lv.2</strong><p>平均睡眠 6.1 小時，仍可提升。</p></div>
+              <div class="mini-card"><strong>共讀廣場 Lv.5</strong><p>自律房活躍 4 天。</p></div>
+            </div>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">下一個可解鎖地標</span>
+            <h2>星光觀測台</h2>
+            <p>完成 3 天 80 分以上，並至少參與一次自律房，即可解鎖。</p>
+            <div class="progress"><span style="--value: 66%"></span></div>
+            <button class="button secondary" data-toast="已標記星光觀測台為下一個目標">設為目標</button>
+          </article>
+        </section>
+
+        <section class="two-col">
+          <article class="panel">
+            <span class="eyebrow">好友拜訪</span>
+            <h2>換裝系統的展示舞台。</h2>
+            <ul class="timeline">
+              <li><strong>小安拜訪了你的圖書館</strong><span>留下鼓勵：今天也很穩。</span></li>
+              <li><strong>老闆加入共讀廣場</strong><span>一起完成 25 分鐘專注。</span></li>
+              <li><strong>小華送出睡眠貼圖</strong><span>提醒今晚早點休息。</span></li>
+            </ul>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">未來版本</span>
+            <h2>可以變成共同星球。</h2>
+            <p>自律房可以共建一顆團隊星球，讀書會蓋學院，企業挑戰蓋健康園區，家長與孩子共同目標則點亮家園區。</p>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

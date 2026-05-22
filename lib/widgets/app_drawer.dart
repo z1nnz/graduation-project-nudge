@@ -10,6 +10,7 @@ import '../screens/weekly_report_page.dart';
 import '../screens/badges_page.dart';
 import '../screens/settings_page.dart';
 import '../screens/about_page.dart';
+import '../screens/account_page.dart';
 import '../screens/avatar_shop_page.dart';
 import '../screens/calendar_page.dart';
 import '../screens/coin_wallet_page.dart';
@@ -255,6 +256,13 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.checkroom_outlined,
                     title: '時裝商城',
                     onTap: () => _openPage(context, const AvatarShopPage()),
+                    accentColor: accentColor,
+                  ),
+                  _drawerItem(
+                    context: context,
+                    icon: Icons.account_circle_outlined,
+                    title: '帳號與同步',
+                    onTap: () => _openPage(context, const AccountPage()),
                     accentColor: accentColor,
                   ),
                   Padding(
