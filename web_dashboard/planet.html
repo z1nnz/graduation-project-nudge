@@ -27,10 +27,10 @@
         </section>
       </aside>
       <main class="main">
-        <header class="hero split">
+        <header class="hero split planet-hero cinematic">
           <div>
             <span class="eyebrow">Discipline Planet</span>
-            <h1>讓自律分數變成一個會長大的世界。</h1>
+            <h1>讓自律分數變成一個會長大的 3D 世界。</h1>
             <p>專注蓋圖書館，健康蓋公園，睡眠點亮住宅區，自律房讓朋友角色出現在城市裡。</p>
             <div class="hero-actions">
               <button class="button primary" data-planet-mode="穩定成長星球">穩定成長</button>
@@ -45,13 +45,28 @@
           </div>
         </header>
 
-        <section class="planet-stage page-section">
-          <div class="planet"></div>
+        <section class="planet-stage page-section immersive-stage" data-tilt>
+          <div class="starfield"></div>
+          <div class="planet-shadow"></div>
+          <div class="planet">
+            <span class="continent c1"></span>
+            <span class="continent c2"></span>
+            <span class="continent c3"></span>
+          </div>
+          <div class="orbit-line orbit-one"></div>
+          <div class="orbit-line orbit-two"></div>
           <div class="building b1">圖書館<br /><small>專注</small></div>
           <div class="building b2">公園<br /><small>健康</small></div>
           <div class="building b3">住宅<br /><small>睡眠</small></div>
           <div class="building b4">廣場<br /><small>自律房</small></div>
           <div class="building b5">鐘塔<br /><small>截止日</small></div>
+          <div class="avatar-visitor v1">小安</div>
+          <div class="avatar-visitor v2">老闆</div>
+          <div class="stage-hud">
+            <small>LIVE PLANET</small>
+            <strong id="planetHud">穩定成長星球</strong>
+            <span>任務完成會即時點亮城市區域</span>
+          </div>
         </section>
 
         <section class="dashboard-grid">

@@ -200,12 +200,28 @@ function bootCharts() {
 function bindPlanet() {
   const buttons = $$("[data-planet-mode]");
   const label = $("#planetLabel");
+  const hud = $("#planetHud");
   buttons.forEach((button) => {
     button.addEventListener("click", () => {
       buttons.forEach((b) => b.classList.remove("primary"));
       button.classList.add("primary");
       if (label) label.textContent = button.dataset.planetMode;
+      if (hud) hud.textContent = button.dataset.planetMode;
       toast(`已切換成「${button.dataset.planetMode}」展示資料`);
+    });
+  });
+}
+
+function bindTilt() {
+  $$("[data-tilt]").forEach((node) => {
+    node.addEventListener("pointermove", (event) => {
+      const rect = node.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      node.style.transform = `rotateX(${(-y * 7).toFixed(2)}deg) rotateY(${(x * 9).toFixed(2)}deg)`;
+    });
+    node.addEventListener("pointerleave", () => {
+      node.style.transform = "";
     });
   });
 }
@@ -316,6 +332,7 @@ window.addEventListener("DOMContentLoaded", () => {
   bootCharts();
   bindDemoButtons();
   bindPlanet();
+  bindTilt();
   bindPresentation();
 });
 
