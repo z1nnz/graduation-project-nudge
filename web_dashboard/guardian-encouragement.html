@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 鼓勵卡</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <body data-page="guardian">
+    <div class="shell">
+      <aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>鼓勵卡</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="guardian.html">家長陪伴中心</a></nav></aside>
+      <main class="main">
+        <header class="hero split">
+          <div><span class="eyebrow">Encouragement Cards</span><h1>送鼓勵，不代替孩子完成任務。</h1><p>選擇語氣、卡片、訊息，送出後孩子 App 端可以收到鼓勵紀錄。</p><div class="subnav"><a href="guardian.html">中心總覽</a><a href="guardian-report.html">孩子週報</a><a class="active" href="guardian-encouragement.html">鼓勵卡</a><a href="guardian-goals.html">共同目標</a><a href="guardian-permissions.html">權限設定</a></div></div>
+          <div class="hero-card"><span>本週已送</span><strong data-count="4">0</strong><p>孩子回覆 2 則。</p></div>
+        </header>
+        <section class="workspace-layout page-section" data-tool="encouragement-card">
+          <article class="tool-panel">
+            <div class="tool-copy"><span class="eyebrow">Create Card</span><h2>製作鼓勵卡</h2><p>系統會保留正向語氣，避免變成壓力訊息。</p></div>
+            <div class="tool-grid">
+              <label class="field"><span>卡片類型</span><select data-encourage-type><option value="今天也辛苦了">今天也辛苦了</option><option value="休息也是自律">休息也是自律</option><option value="我們一起調整">我們一起調整</option></select></label>
+              <label class="field"><span>語氣</span><select data-encourage-tone><option value="溫柔">溫柔</option><option value="活潑">活潑</option><option value="簡短">簡短</option></select></label>
+              <label class="field wide"><span>訊息</span><textarea data-encourage-message rows="5">這週你已經很努力了，今晚我們先把睡眠穩住就好。</textarea></label>
+            </div>
+            <div class="generated-card warm" data-output="encourage-preview"><strong>今天也辛苦了</strong><p>這週你已經很努力了，今晚我們先把睡眠穩住就好。</p></div>
+            <div class="button-row"><button class="button primary" data-action="preview-encouragement" type="button">預覽卡片</button><button class="button ghost" data-action="send-encouragement" type="button">送出 Demo</button></div>
+          </article>
+          <aside class="panel"><span class="eyebrow">Record</span><h2>鼓勵紀錄</h2><div class="saved-list" data-encourage-list><article><strong>休息也是自律</strong><span>昨天 22:30 已送出</span></article></div></aside>
+        </section>
+      </main>
+    </div><script src="assets/app.js"></script>
+  </body>
+</html>
+

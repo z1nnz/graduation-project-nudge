@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 人生技能樹</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>技能樹</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="planet.html">自律城市 / 星球</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Skill Tree</span>
+            <h1>把任務分類變成能力成長，不只是徽章牆。</h1>
+            <p>每個能力節點都有來源、進度和下一個解鎖條件，讓使用者知道自己在長什麼能力。</p>
+            <div class="subnav">
+              <a href="personal.html">中心總覽</a>
+              <a href="personal-trends.html">趨勢</a>
+              <a href="personal-pressure.html">壓力雷達</a>
+              <a href="personal-weather.html">自律天氣</a>
+              <a href="personal-time-capsule.html">時間膠囊</a>
+              <a href="personal-letter.html">未來的信</a>
+              <a class="active" href="personal-skill-tree.html">技能樹</a>
+              <a href="personal-template.html">任務模板</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>已點亮節點</span>
+            <strong data-count="18">0</strong>
+            <p>下個節點：專注力 Lv.4。</p>
+          </div>
+        </header>
+
+        <section class="card-grid-3 page-section">
+          <article class="mini-card"><strong>學習力</strong><p>讀書、報告、考試任務。</p><div class="progress"><span style="--value: 78%"></span></div></article>
+          <article class="mini-card"><strong>專注力</strong><p>專注分鐘與自動追蹤。</p><div class="progress"><span style="--value: 62%"></span></div></article>
+          <article class="mini-card"><strong>健康力</strong><p>睡眠、步數、運動。</p><div class="progress"><span style="--value: 84%"></span></div></article>
+          <article class="mini-card"><strong>生活管理力</strong><p>家事、整理、日常習慣。</p><div class="progress"><span style="--value: 56%"></span></div></article>
+          <article class="mini-card"><strong>社交陪伴力</strong><p>自律房與好友鼓勵。</p><div class="progress"><span style="--value: 48%"></span></div></article>
+          <article class="mini-card"><strong>壓力調節力</strong><p>截止日拆解與睡眠穩定。</p><div class="progress"><span style="--value: 34%"></span></div></article>
+        </section>
+
+        <section class="panel page-section">
+          <span class="eyebrow">下一個解鎖</span>
+          <h2>專注力 Lv.4：穩定番茄鐘</h2>
+          <p>條件：本週累積專注 180 分鐘，且至少 4 天有完成專注任務。完成後可解鎖「專注系稱號」與星球圖書館升級。</p>
+          <div class="progress"><span style="--value: 72%"></span></div>
+          <button class="button primary" data-toast="已把專注力 Lv.4 設為本週目標">設為本週目標</button>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

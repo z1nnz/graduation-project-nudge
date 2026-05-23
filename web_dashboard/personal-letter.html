@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 未來的自己寄來的信</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>未來的信</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Future Letter</span>
+            <h1>不是冷冰冰的報表，而是一封幫使用者往前走的信。</h1>
+            <p>依照今天狀態、壓力來源和下一個任務，產生一段像「未來的自己」寫回來的鼓勵。</p>
+            <div class="subnav">
+              <a href="personal.html">中心總覽</a>
+              <a href="personal-trends.html">趨勢</a>
+              <a href="personal-pressure.html">壓力雷達</a>
+              <a href="personal-weather.html">自律天氣</a>
+              <a href="personal-time-capsule.html">時間膠囊</a>
+              <a class="active" href="personal-letter.html">未來的信</a>
+              <a href="personal-skill-tree.html">技能樹</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>今日語氣</span>
+            <strong>溫柔推進</strong>
+            <p>先做一件小事，不追求爆衝。</p>
+          </div>
+        </header>
+
+        <section class="workspace-layout page-section" data-tool="future-letter">
+          <div class="workspace-stack">
+            <article class="panel">
+              <span class="eyebrow">產生條件</span>
+              <h2>選擇今天需要哪一種陪伴。</h2>
+              <div class="tool-grid">
+                <label class="field">
+                  <span>目前狀態</span>
+                  <select data-letter-state>
+                    <option value="穩定但有點累">穩定但有點累</option>
+                    <option value="截止日壓力偏高">截止日壓力偏高</option>
+                    <option value="專注啟動困難">專注啟動困難</option>
+                    <option value="睡眠不足">睡眠不足</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>下一步任務</span>
+                  <input data-letter-action value="完成 25 分鐘期中報告專注" />
+                </label>
+                <label class="field wide">
+                  <span>想提醒自己的話</span>
+                  <textarea data-letter-note rows="3">不要把今天想成要全部完成，只要先把第一段做完。</textarea>
+                </label>
+              </div>
+              <div class="button-row">
+                <button class="button primary" data-action="generate-letter" type="button">產生未來的信</button>
+                <button class="button ghost" data-action="download-letter" type="button">下載信件</button>
+              </div>
+            </article>
+          </div>
+          <aside class="workspace-stack">
+            <article class="result-board" data-letter-output>
+              <strong>一週後的你想說</strong>
+              <p>謝謝你今天沒有放棄。先完成 25 分鐘，剩下的事情就會比較不巨大。</p>
+            </article>
+            <article class="panel">
+              <span class="eyebrow">可以放進週報</span>
+              <h2>讓資料有情緒記憶</h2>
+              <p>這封信可以在週報或月報中出現，讓使用者回顧自己當時如何度過卡住的日子。</p>
+            </article>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

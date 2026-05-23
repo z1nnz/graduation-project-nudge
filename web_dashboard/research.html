@@ -1,143 +1,18 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nudge 研究 / 專題展示中心</title>
-    <link rel="stylesheet" href="assets/styles.css" />
-  </head>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 研究 / 專題展示中心</title><link rel="stylesheet" href="assets/styles.css" /></head>
   <body data-page="research">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>研究展示</small></span></a>
-        <nav class="nav">
-          <a href="index.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">營運後台</a>
-          <a class="active" href="research.html">研究 / 展示中心</a>
-          <a href="planet.html">自律城市 / 星球</a>
-          <a href="presentation.html">專題發表流程</a>
-        </nav>
-      </aside>
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>研究展示</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">營運後台</a><a class="active" href="research.html">研究 / 展示中心</a><a href="planet.html">自律城市 / 星球</a></nav></aside>
       <main class="main">
-        <header class="hero split">
-          <div>
-            <span class="eyebrow">Research & Demo</span>
-            <h1>給專題發表和研究分析看的系統完整性頁面。</h1>
-            <p>這裡不只是看資料，而是展示 Nudge 如何把任務、健康、專注、自律房、商城與社交串成一個閉環。</p>
-          </div>
-          <div class="hero-card">
-            <span>展示可信度</span>
-            <strong data-count="94">0</strong>
-            <p>已涵蓋資料來源、演算法、使用者回饋與遊戲化循環。</p>
-          </div>
-        </header>
-
-        <section class="lab-strip page-section">
-          <div><span>H1</span><strong>睡眠提升是否增加專注完成率？</strong></div>
-          <div><span>H2</span><strong>自律房互動是否提高任務留存？</strong></div>
-          <div><span>H3</span><strong>健康同步任務是否降低手動回報偏差？</strong></div>
-        </section>
-
-        <section class="dashboard-grid page-section">
-          <article class="panel chart-card">
-            <span class="eyebrow">匿名化資料分析</span>
-            <h2>任務完成率與資料來源分布</h2>
-            <canvas id="sourceDonut"></canvas>
-          </article>
-          <article class="panel">
-            <span class="eyebrow">研究假設</span>
-            <ul class="timeline">
-              <li><strong>睡眠時數與專注完成率是否有關</strong><span>睡眠低於 6 小時時，專注任務完成率下降。</span></li>
-              <li><strong>健康同步是否提高任務可信度</strong><span>自動追蹤任務比手動任務更不容易被濫用。</span></li>
-              <li><strong>自律房是否提高持續率</strong><span>多人房間可增加隔日回訪機率。</span></li>
-            </ul>
-          </article>
-        </section>
-
-        <section class="panel">
-          <div class="toolbar">
-            <div>
-              <span class="eyebrow">Demo 控制台</span>
-              <h2>發表時一鍵切換展示資料。</h2>
-            </div>
-            <button class="button primary" data-toast="展示模式已啟動">啟動展示模式</button>
-          </div>
-          <div class="weather-grid">
-            <button class="button ghost" data-toast="已切換成新手使用者資料">新手使用者</button>
-            <button class="button ghost" data-toast="已切換成高自律使用者資料">高自律使用者</button>
-            <button class="button ghost" data-toast="已切換成健康資料不足案例">健康資料不足</button>
-            <button class="button ghost" data-toast="已切換成自律房活躍案例">自律房活躍</button>
-          </div>
-        </section>
-
-        <section class="research-pipeline page-section">
-          <article><small>Step 01</small><strong>資料匿名化</strong><span>移除姓名、ID、原始健康細節，只保留統計特徵。</span></article>
-          <article><small>Step 02</small><strong>行為分群</strong><span>分成健康導向、專注導向、社交導向、截止日壓力型。</span></article>
-          <article><small>Step 03</small><strong>關聯分析</strong><span>比較睡眠、專注、自律房參與和完成率的關係。</span></article>
-          <article><small>Step 04</small><strong>展示輸出</strong><span>用 Demo 控制台切換不同故事案例給老師看。</span></article>
-        </section>
-
-        <section class="tool-panel page-section" id="scenarioLab" data-tool="scenario-builder">
-          <div class="tool-copy">
-            <span class="eyebrow">Demo Scenario</span>
-            <h2>專題展示場景產生器</h2>
-            <p>發表時不只切資料，而是產生一段能說明產品價值的故事腳本、資料條件與展示順序。</p>
-          </div>
-          <div class="tool-grid">
-            <label class="field">
-              <span>展示案例</span>
-              <select data-scenario-type>
-                <option value="健康資料不足案例">健康資料不足案例</option>
-                <option value="自律房活躍案例">自律房活躍案例</option>
-                <option value="截止日壓力案例">截止日壓力案例</option>
-                <option value="商城社交連動案例">商城社交連動案例</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>隱私層級</span>
-              <select data-scenario-privacy>
-                <option value="匿名統計">匿名統計</option>
-                <option value="去識別化個案">去識別化個案</option>
-                <option value="展示假資料">展示假資料</option>
-              </select>
-            </label>
-            <label class="field wide">
-              <span>老師想看的重點</span>
-              <textarea data-scenario-focus rows="3">自動追蹤如何影響自律分數，以及 Web 如何延伸成研究與營運工具。</textarea>
-            </label>
-          </div>
-          <div class="generated-card green" data-output="scenario-preview">
-            <strong>健康資料不足案例</strong>
-            <p>展示順序：App 權限說明 → 健康同步狀態 → 任務分數差異 → Web 研究中心匿名統計。</p>
-          </div>
-          <div class="button-row">
-            <button class="button primary" data-action="generate-scenario" type="button">產生展示腳本</button>
-            <button class="button ghost" data-action="download-scenario" type="button">下載 Demo 腳本</button>
-          </div>
-        </section>
-
-        <section class="two-col">
-          <article class="panel">
-            <span class="eyebrow">自律分數如何計算</span>
-            <h2>讓老師一眼看懂邏輯。</h2>
-            <ul class="timeline compact">
-              <li><strong>今日可執行任務</strong><span>未到期截止日任務不列入今日分母。</span></li>
-              <li><strong>自動追蹤來源</strong><span>專注、睡眠、步數、運動、自律房依資料判定。</span></li>
-              <li><strong>自律幣門檻</strong><span>依完成百分比給幣，並有日週月上限。</span></li>
-            </ul>
-          </article>
-          <article class="panel">
-            <span class="eyebrow">商城與社交如何連動</span>
-            <h2>完成任務不只得到分數。</h2>
-            <p>使用者透過自律幣購買服裝，好友公開頁與自律房能看到穿搭，因此商城、角色與社交會互相推動。</p>
-            <a class="button secondary" href="planet.html">看星球展示</a>
-          </article>
+        <header class="hero split"><div><span class="eyebrow">Research & Demo Hub</span><h1>研究中心拆成 Demo、匿名分析、分數展示三個頁面。</h1><p>發表用功能不能只是小卡片，要能切場景、下載腳本、展示計算邏輯。</p><div class="subnav"><a class="active" href="research.html">中心總覽</a><a href="research-scenario.html">Demo 場景</a><a href="research-anonymized.html">匿名資料</a><a href="research-score-demo.html">分數展示</a></div></div><div class="hero-card"><span>展示可信度</span><strong data-count="94">0</strong><p>涵蓋資料來源、演算法與遊戲化循環。</p></div></header>
+        <section class="center-hub page-section">
+          <a class="hub-card" href="research-scenario.html"><span>▶</span><strong>Demo 場景產生器</strong><p>產生發表腳本、資料條件與展示順序，不只是切換按鈕。</p><small>產生腳本</small></a>
+          <a class="hub-card" href="research-anonymized.html"><span>⌁</span><strong>匿名資料分析</strong><p>呈現健康同步、任務完成、專注時間的去識別化統計。</p><small>查看分析</small></a>
+          <a class="hub-card" href="research-score-demo.html"><span>≋</span><strong>自律分數展示</strong><p>讓老師看懂加權分數、今日可執行任務、自律幣門檻。</p><small>展示邏輯</small></a>
+          <a class="hub-card" href="presentation.html"><span>★</span><strong>專題發表流程</strong><p>把 App 核心、Web 延伸與自律星球整理成一條發表故事線。</p><small>進入發表</small></a>
         </section>
       </main>
-    </div>
-    <script src="assets/app.js"></script>
+    </div><script src="assets/app.js"></script>
   </body>
 </html>
+

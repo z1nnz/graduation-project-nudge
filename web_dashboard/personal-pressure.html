@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 壓力雷達</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>壓力雷達</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Pressure Radar</span>
+            <h1>把壓力來源拆開看，而不是只給一個分數。</h1>
+            <p>系統會用截止日、睡眠、專注中斷、任務堆積與自律房參與來推估壓力來源。</p>
+            <div class="subnav">
+              <a href="personal.html">中心總覽</a>
+              <a href="personal-trends.html">趨勢</a>
+              <a class="active" href="personal-pressure.html">壓力雷達</a>
+              <a href="personal-weather.html">自律天氣</a>
+              <a href="personal-time-capsule.html">時間膠囊</a>
+              <a href="personal-letter.html">未來的信</a>
+              <a href="personal-skill-tree.html">技能樹</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>壓力等級</span>
+            <strong>中</strong>
+            <p>主因是截止日集中與睡眠略低。</p>
+          </div>
+        </header>
+
+        <section class="workspace-layout page-section">
+          <article class="panel">
+            <span class="eyebrow">雷達判讀</span>
+            <h2>目前最需要被照顧的是截止日壓力。</h2>
+            <div class="radar"><div class="radar-shape"><span>中</span></div></div>
+            <div class="pill-row">
+              <span class="pill warn">截止日 78%</span>
+              <span class="pill">睡眠 54%</span>
+              <span class="pill">專注中斷 42%</span>
+              <span class="pill good">運動穩定</span>
+            </div>
+          </article>
+          <aside class="workspace-stack">
+            <article class="result-board">
+              <strong>系統關心提醒</strong>
+              <p>這週不是偷懶，而是截止日任務和睡眠下降同時發生。建議把大型任務切成兩個可完成段落。</p>
+            </article>
+            <article class="panel">
+              <span class="eyebrow">可執行調整</span>
+              <h2>三個低壓策略</h2>
+              <div class="saved-list">
+                <div><strong>拆小步驟</strong><span>把報告拆成資料整理、初稿、修稿。</span></div>
+                <div><strong>提前睡眠提醒</strong><span>把睡前提醒改到 23:00。</span></div>
+                <div><strong>加入共讀房</strong><span>用 25 分鐘衝刺降低啟動成本。</span></div>
+              </div>
+              <button class="button primary" data-toast="已把三個低壓策略存入 Demo">存成下週策略</button>
+            </article>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

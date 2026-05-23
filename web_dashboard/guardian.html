@@ -18,15 +18,21 @@
           <a href="operations.html">營運後台</a>
           <a href="research.html">研究 / 展示中心</a>
           <a href="planet.html">自律城市 / 星球</a>
-          <a href="presentation.html">專題發表流程</a>
         </nav>
       </aside>
       <main class="main">
         <header class="hero split">
           <div>
-            <span class="eyebrow">Guardian Companion</span>
-            <h1>陪孩子走一段，不是盯著孩子每一步。</h1>
-            <p>家長只能看到孩子同意分享的趨勢資料，系統用關心語氣提醒，而不是責備。</p>
+            <span class="eyebrow">Guardian Companion Hub</span>
+            <h1>家長中心拆成陪伴工具，不再全部塞一頁。</h1>
+            <p>家長只看孩子同意分享的趨勢資料。週報、鼓勵、共同目標、權限設定都拆成獨立頁面，避免變成監控看板。</p>
+            <div class="subnav">
+              <a class="active" href="guardian.html">中心總覽</a>
+              <a href="guardian-report.html">孩子週報</a>
+              <a href="guardian-encouragement.html">鼓勵卡</a>
+              <a href="guardian-goals.html">共同目標</a>
+              <a href="guardian-permissions.html">權限設定</a>
+            </div>
           </div>
           <div class="hero-card">
             <span>本週陪伴狀態</span>
@@ -35,133 +41,39 @@
           </div>
         </header>
 
+        <section class="center-hub page-section">
+          <a class="hub-card" href="guardian-report.html">
+            <span>□</span>
+            <strong>孩子週報</strong>
+            <p>整理睡眠、專注、任務、運動趨勢，用關心語氣產生家長可讀週報。</p>
+            <small>查看週報</small>
+          </a>
+          <a class="hub-card" href="guardian-encouragement.html">
+            <span>♡</span>
+            <strong>鼓勵卡 / 貼圖</strong>
+            <p>家長可以送鼓勵，但不能代完成任務或直接給幣，保留孩子自主性。</p>
+            <small>送出鼓勵</small>
+          </a>
+          <a class="hub-card" href="guardian-goals.html">
+            <span>◎</span>
+            <strong>共同目標</strong>
+            <p>例如一週睡滿 49 小時、每天專注 30 分鐘。孩子同意後才加入。</p>
+            <small>建立共同目標</small>
+          </a>
+          <a class="hub-card" href="guardian-permissions.html">
+            <span>⚙</span>
+            <strong>權限與解除連結</strong>
+            <p>設定家長能看哪些資料，不顯示原始健康資料，孩子可隨時解除。</p>
+            <small>管理權限</small>
+          </a>
+        </section>
+
         <section class="care-note page-section">
           <div>
             <span class="eyebrow">今日陪伴語氣</span>
             <h2>先理解，再提醒。</h2>
           </div>
           <p>孩子這週不是退步，而是截止日和睡眠一起影響狀態。今晚可以先問「今天最卡的是哪一件事？」再一起決定明天的小目標。</p>
-        </section>
-
-        <section class="metric-grid page-section">
-          <article class="metric-card"><small>完成任務</small><strong data-count="31" data-suffix=" 個">0</strong></article>
-          <article class="metric-card"><small>專注時間</small><strong data-count="240" data-suffix=" 分">0</strong></article>
-          <article class="metric-card"><small>平均睡眠</small><strong>6.1 小時</strong></article>
-          <article class="metric-card"><small>平均步數</small><strong data-count="6820">0</strong></article>
-        </section>
-
-        <section class="dashboard-grid">
-          <article class="panel chart-card">
-            <span class="eyebrow">週趨勢</span>
-            <h2>只看趨勢，不顯示過度細節。</h2>
-            <canvas id="sleepChart"></canvas>
-          </article>
-          <article class="panel">
-            <span class="eyebrow">關懷提醒</span>
-            <ul class="timeline">
-              <li><strong>最近 3 天睡眠偏低</strong><span>建議今晚一起討論睡前習慣。</span></li>
-              <li><strong>截止日任務集中</strong><span>可以協助孩子拆成兩個小步驟。</span></li>
-              <li><strong>完成率下降不代表偷懶</strong><span>可能是任務量太多，適合重新調整。</span></li>
-            </ul>
-          </article>
-        </section>
-
-        <section class="two-col">
-          <article class="panel">
-            <span class="eyebrow">鼓勵功能</span>
-            <h2>送一張加油卡。</h2>
-            <div class="weather-grid">
-              <button class="button ghost" data-toast="已送出：今天也辛苦了">今天也辛苦了</button>
-              <button class="button ghost" data-toast="已送出：我們一起調整">我們一起調整</button>
-              <button class="button ghost" data-toast="已送出：你已經進步很多">你已經進步很多</button>
-              <button class="button ghost" data-toast="已送出：休息也是自律">休息也是自律</button>
-            </div>
-            <p>家長不能直接幫孩子完成任務，也不能代領自律幣。</p>
-          </article>
-          <article class="panel">
-            <span class="eyebrow">共同目標</span>
-            <h2>孩子同意後才加入。</h2>
-            <div class="mini-card"><strong>一週睡滿 49 小時</strong><div class="progress"><span style="--value: 62%"></span></div></div>
-            <div class="mini-card"><strong>每天專注 30 分鐘</strong><div class="progress"><span style="--value: 78%"></span></div></div>
-            <button class="button primary" data-toast="共同目標邀請已送出，等待孩子同意">新增共同目標</button>
-          </article>
-        </section>
-
-        <section class="guardian-flow page-section">
-          <article>
-            <span>1</span>
-            <strong>孩子同意連結</strong>
-            <p>家長輸入 ID 或掃 QR Code，孩子端確認後才開始分享。</p>
-          </article>
-          <article>
-            <span>2</span>
-            <strong>只看趨勢</strong>
-            <p>預設不顯示原始健康資料與詳細任務內容，避免變成監控。</p>
-          </article>
-          <article>
-            <span>3</span>
-            <strong>系統轉成關心語氣</strong>
-            <p>把風險提醒改成陪伴建議，例如一起調整睡前習慣。</p>
-          </article>
-          <article>
-            <span>4</span>
-            <strong>共同目標雙方確認</strong>
-            <p>睡眠、專注、運動目標都要孩子同意，並可隨時解除。</p>
-          </article>
-        </section>
-
-        <section class="tool-panel page-section" id="guardianInviteLab" data-tool="guardian-invite">
-          <div class="tool-copy">
-            <span class="eyebrow">Companion Tool</span>
-            <h2>共同目標邀請器</h2>
-            <p>家長不是直接控制孩子，而是送出需要孩子同意的陪伴邀請，並清楚設定可查看的資料範圍。</p>
-          </div>
-          <div class="tool-grid">
-            <label class="field">
-              <span>共同目標</span>
-              <select data-guardian-goal>
-                <option value="一週睡滿 49 小時">一週睡滿 49 小時</option>
-                <option value="每天專注 30 分鐘">每天專注 30 分鐘</option>
-                <option value="每週運動 3 次">每週運動 3 次</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>分享權限</span>
-              <select data-guardian-permission>
-                <option value="只看總覽">只看總覽</option>
-                <option value="可看週報">可看週報</option>
-                <option value="可看任務類型">可看任務類型</option>
-                <option value="可看健康趨勢">可看健康趨勢</option>
-              </select>
-            </label>
-            <label class="field wide">
-              <span>鼓勵訊息</span>
-              <textarea data-guardian-message rows="3">這週我們一起把睡眠穩住，不用一次做到完美。</textarea>
-            </label>
-          </div>
-          <div class="generated-card warm" data-output="guardian-preview">
-            <strong>邀請預覽</strong>
-            <p>目標：一週睡滿 49 小時。權限：只看總覽。孩子可同意或拒絕，也能隨時解除連結。</p>
-          </div>
-          <div class="button-row">
-            <button class="button primary" data-action="preview-guardian" type="button">更新邀請</button>
-            <button class="button ghost" data-action="send-guardian" type="button">送出邀請 Demo</button>
-          </div>
-        </section>
-
-        <section class="panel">
-          <span class="eyebrow">權限分級</span>
-          <h2>孩子端同意機制</h2>
-          <div class="permission-grid">
-            <div class="mini-card"><strong>只看總覽</strong><p>分數、完成率、趨勢。</p></div>
-            <div class="mini-card"><strong>可看週報</strong><p>系統整理，不顯示原始資料。</p></div>
-            <div class="mini-card"><strong>可看任務類型</strong><p>只顯示學習、健康、生活類別。</p></div>
-            <div class="mini-card"><strong>可看健康趨勢</strong><p>不顯示原始睡眠或逐分鐘資料。</p></div>
-          </div>
-          <div class="button-row">
-            <button class="button secondary" data-toast="已產生家長週報 PDF Demo">下載週報</button>
-            <button class="button ghost" data-toast="已模擬解除陪伴連結">解除連結</button>
-          </div>
         </section>
       </main>
     </div>

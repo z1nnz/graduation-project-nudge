@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 孩子週報</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="guardian">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>孩子週報</small></span></a>
+        <nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a></nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Weekly Companion Report</span>
+            <h1>給家長看的週報，不顯示過度細節。</h1>
+            <p>只呈現趨勢、可陪伴方向與風險提醒，不顯示每分鐘行為或原始健康資料。</p>
+            <div class="subnav"><a href="guardian.html">中心總覽</a><a class="active" href="guardian-report.html">孩子週報</a><a href="guardian-encouragement.html">鼓勵卡</a><a href="guardian-goals.html">共同目標</a><a href="guardian-permissions.html">權限設定</a></div>
+          </div>
+          <div class="hero-card"><span>本週完成率</span><strong data-count="76" data-suffix="%">0</strong><p>比上週提升 8%。</p></div>
+        </header>
+        <section class="metric-grid page-section">
+          <article class="metric-card"><small>完成任務</small><strong data-count="31" data-suffix=" 個">0</strong></article>
+          <article class="metric-card"><small>專注時間</small><strong data-count="240" data-suffix=" 分">0</strong></article>
+          <article class="metric-card"><small>平均睡眠</small><strong>6.1 小時</strong></article>
+          <article class="metric-card"><small>平均步數</small><strong data-count="6820">0</strong></article>
+        </section>
+        <section class="workspace-layout page-section">
+          <article class="panel chart-card"><span class="eyebrow">週趨勢</span><h2>睡眠與專注趨勢</h2><canvas id="sleepChart"></canvas></article>
+          <aside class="result-board"><strong>本週關心方向</strong><p>最近 3 天睡眠偏低。建議今晚一起討論睡前習慣，而不是直接責備。</p><button class="button primary" data-toast="已產生家長週報 PDF Demo">下載週報 Demo</button></aside>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
+

@@ -240,6 +240,10 @@ function bindExtensionTools() {
   const campaignTool = $('[data-tool="campaign-builder"]');
   const scenarioTool = $('[data-tool="scenario-builder"]');
   const planetTool = $('[data-tool="planet-builder"]');
+  const capsuleTool = $('[data-tool="time-capsule"]');
+  const encouragementTool = $('[data-tool="encouragement-card"]');
+  const studyScheduleTool = $('[data-tool="study-schedule"]');
+  const futureLetterTool = $('[data-tool="future-letter"]');
 
   const setOutput = (root, html) => {
     const output = $('[data-output]', root);
@@ -359,6 +363,109 @@ function bindExtensionTools() {
   });
   planetTool?.querySelector('[data-action="save-planet"]')?.addEventListener("click", () => {
     toast("已設為下週星球目標");
+  });
+
+  const renderSavedList = (selector, items, fallback) => {
+    const list = $(selector);
+    if (!list) return;
+    if (!items.length) {
+      list.innerHTML = fallback;
+      return;
+    }
+    list.innerHTML = items
+      .map((item) => `<article><strong>${item.title}</strong><span>${item.meta}</span></article>`)
+      .join("");
+  };
+
+  const savedTools = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  const saveToolCollection = (key, items) => {
+    const current = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    current[key] = items;
+    current[`${key}UpdatedAt`] = new Date().toISOString();
+    localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+  };
+  renderSavedList(
+    "[data-capsule-list]",
+    savedTools.capsules || [],
+    "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>",
+  );
+  renderSavedList(
+    "[data-encourage-list]",
+    savedTools.encouragements || [],
+    "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>",
+  );
+  renderSavedList(
+    "[data-study-list]",
+    savedTools.studySchedules || [],
+    "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>",
+  );
+
+  let capsuleText = "";
+  capsuleTool?.querySelector('[data-action="save-capsule"]')?.addEventListener("click", () => {
+    const title = $('[data-capsule-title]', capsuleTool).value.trim() || "未命名時間膠囊";
+    const date = $('[data-capsule-date]', capsuleTool).value || "未設定";
+    const message = $('[data-capsule-message]', capsuleTool).value.trim();
+    capsuleText = `${title}\n解鎖日：${date}\n\n${message}`;
+    setOutput(capsuleTool, `<strong>${title}</strong><p>將於 ${date} 解鎖。內容已保存到 Demo localStorage。</p>`);
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const capsules = store.capsules || [];
+    capsules.unshift({ title, meta: `${date} 解鎖`, message });
+    saveToolCollection("capsules", capsules.slice(0, 6));
+    renderSavedList("[data-capsule-list]", capsules.slice(0, 6), "");
+    toast("時間膠囊已保存");
+  });
+  capsuleTool?.querySelector('[data-action="download-capsule"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-time-capsule.txt", capsuleText || "請先保存時間膠囊。");
+  });
+
+  encouragementTool?.querySelector('[data-action="preview-encouragement"]')?.addEventListener("click", () => {
+    const type = $('[data-encourage-type]', encouragementTool).value;
+    const tone = $('[data-encourage-tone]', encouragementTool).value;
+    const message = $('[data-encourage-message]', encouragementTool).value.trim();
+    setOutput(encouragementTool, `<strong>${type}</strong><p>語氣：${tone}。${message}</p>`);
+    toast("鼓勵卡已更新");
+  });
+  encouragementTool?.querySelector('[data-action="send-encouragement"]')?.addEventListener("click", () => {
+    const type = $('[data-encourage-type]', encouragementTool).value;
+    const tone = $('[data-encourage-tone]', encouragementTool).value;
+    const message = $('[data-encourage-message]', encouragementTool).value.trim();
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const encouragements = store.encouragements || [];
+    encouragements.unshift({ title: type, meta: `${tone}語氣：${message}` });
+    saveToolCollection("encouragements", encouragements.slice(0, 6));
+    renderSavedList("[data-encourage-list]", encouragements.slice(0, 6), "");
+    toast("鼓勵卡已送出 Demo");
+  });
+
+  studyScheduleTool?.querySelector('[data-action="save-study-schedule"]')?.addEventListener("click", () => {
+    const title = $('[data-study-title]', studyScheduleTool).value.trim() || "未命名共讀";
+    const time = $('[data-study-time]', studyScheduleTool).value || "未設定";
+    const duration = $('[data-study-duration]', studyScheduleTool).value;
+    const room = $('[data-study-room]', studyScheduleTool).value;
+    setOutput(studyScheduleTool, `<strong>${title}</strong><p>${time}，${duration}，將建立${room}並排程提醒。</p>`);
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const studySchedules = store.studySchedules || [];
+    studySchedules.unshift({ title, meta: `${time} / ${duration} / ${room}` });
+    saveToolCollection("studySchedules", studySchedules.slice(0, 6));
+    renderSavedList("[data-study-list]", studySchedules.slice(0, 6), "");
+    toast("讀書時段已建立 Demo");
+  });
+
+  let futureLetterText = "";
+  futureLetterTool?.querySelector('[data-action="generate-letter"]')?.addEventListener("click", () => {
+    const state = $('[data-letter-state]', futureLetterTool).value;
+    const action = $('[data-letter-action]', futureLetterTool).value.trim() || "完成一個小任務";
+    const note = $('[data-letter-note]', futureLetterTool).value.trim();
+    futureLetterText = `一週後的你想說：\n\n我知道你現在是「${state}」。但你不用今天就解決全部事情。先做「${action}」，讓自己重新回到軌道。\n\n你留給自己的提醒：${note}`;
+    const output = $('[data-letter-output]', futureLetterTool);
+    if (output) {
+      output.innerHTML = `<strong>一週後的你想說</strong><p>我知道你現在是「${state}」。先做「${action}」，你會感覺事情開始變小。</p><p>${note}</p>`;
+    }
+    saveDemoState("futureLetter", { state, action, note });
+    toast("未來的信已產生");
+  });
+  futureLetterTool?.querySelector('[data-action="download-letter"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-future-letter.txt", futureLetterText || "請先產生未來的信。");
   });
 }
 

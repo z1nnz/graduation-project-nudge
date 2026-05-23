@@ -1,167 +1,19 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nudge 團體 / 教育管理</title>
-    <link rel="stylesheet" href="assets/styles.css" />
-  </head>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 團體 / 教育管理</title><link rel="stylesheet" href="assets/styles.css" /></head>
   <body data-page="groups">
     <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>團體管理</small></span></a>
-        <nav class="nav">
-          <a href="index.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a class="active" href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">營運後台</a>
-          <a href="research.html">研究 / 展示中心</a>
-          <a href="planet.html">自律城市 / 星球</a>
-          <a href="presentation.html">專題發表流程</a>
-        </nav>
-      </aside>
+      <aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>團體管理</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a class="active" href="groups.html">團體 / 教育管理</a><a href="operations.html">營運後台</a><a href="research.html">研究 / 展示中心</a><a href="planet.html">自律城市 / 星球</a></nav></aside>
       <main class="main">
-        <header class="hero split">
-          <div>
-            <span class="eyebrow">Group & Education</span>
-            <h1>讓企業、讀書會、補習班可以建立自己的自律場域。</h1>
-            <p>Web 端處理大型管理工作：挑戰活動、排行榜、複習提醒、考試倒數模板與小組自律房。</p>
-          </div>
-          <div class="hero-card">
-            <span>活躍團體</span>
-            <strong data-count="12">0</strong>
-            <p>本週共有 4 個企業挑戰與 8 個讀書會房間。</p>
-          </div>
-        </header>
-
-        <section class="command-strip page-section">
-          <button class="button primary" data-toast="已排程今晚共讀時段">排程讀書時段</button>
-          <button class="button ghost" data-toast="已派發考試倒數模板">派發任務模板</button>
-          <button class="button ghost" data-toast="已建立小組挑戰">建立小組挑戰</button>
-          <button class="button ghost" data-toast="已匯出班級週報">匯出週報</button>
-        </section>
-
-        <section class="metric-grid page-section">
-          <article class="metric-card"><small>步數挑戰參與</small><strong data-count="128">0</strong></article>
-          <article class="metric-card"><small>讀書時段</small><strong data-count="34">0</strong></article>
-          <article class="metric-card"><small>複習提醒</small><strong data-count="86">0</strong></article>
-          <article class="metric-card"><small>小組房間</small><strong data-count="18">0</strong></article>
-        </section>
-
-        <section class="dashboard-grid">
-          <article class="panel chart-card">
-            <span class="eyebrow">企業 / 團隊健康挑戰</span>
-            <h2>把健康任務變成團隊活動。</h2>
-            <canvas id="groupChart"></canvas>
-          </article>
-          <article class="panel">
-            <span class="eyebrow">挑戰模板</span>
-            <div class="weather-grid">
-              <button class="button ghost" data-toast="已建立一週步數挑戰">一週步數挑戰</button>
-              <button class="button ghost" data-toast="已建立 30 分鐘專注挑戰">專注挑戰</button>
-              <button class="button ghost" data-toast="已建立早睡挑戰">早睡挑戰</button>
-              <button class="button ghost" data-toast="已建立運動累積挑戰">運動挑戰</button>
-            </div>
-          </article>
-        </section>
-
-        <section class="two-col">
-          <article class="panel">
-            <span class="eyebrow">補習班 / 讀書會後台</span>
-            <h2>管理讀書時段與考試倒數。</h2>
-            <ul class="timeline">
-              <li><strong>期中考倒數 14 天</strong><span>自動建立每日 30 分鐘複習任務。</span></li>
-              <li><strong>週六共讀 19:00</strong><span>已排程提醒 42 位學生。</span></li>
-              <li><strong>國文單字複習模板</strong><span>可一鍵派發到班級。</span></li>
-            </ul>
-          </article>
-          <article class="panel">
-            <span class="eyebrow">班級 / 小組排行</span>
-            <table class="table">
-              <thead><tr><th>名次</th><th>小組</th><th>本週分數</th></tr></thead>
-              <tbody>
-                <tr><td>1</td><td>A 組</td><td>842</td></tr>
-                <tr><td>2</td><td>C 組</td><td>798</td></tr>
-                <tr><td>3</td><td>B 組</td><td>751</td></tr>
-              </tbody>
-            </table>
-          </article>
-        </section>
-
-        <section class="program-builder page-section">
-          <div>
-            <span class="eyebrow">課程 / 挑戰編排器</span>
-            <h2>把一週活動設計成可執行節奏。</h2>
-          </div>
-          <div class="program-grid">
-            <article><small>週一</small><strong>建立目標</strong><span>派發本週讀書與健康任務。</span></article>
-            <article><small>週三</small><strong>中段提醒</strong><span>自動提醒落後小組與個人。</span></article>
-            <article><small>週五</small><strong>共同自律房</strong><span>排程 50 分鐘團體專注。</span></article>
-            <article><small>週日</small><strong>週報匯出</strong><span>生成班級、小組、個人摘要。</span></article>
-          </div>
-        </section>
-
-        <section class="tool-panel page-section" id="challengeLab" data-tool="challenge-builder">
-          <div class="tool-copy">
-            <span class="eyebrow">Challenge Builder</span>
-            <h2>團體挑戰建立器</h2>
-            <p>給企業、班級、補習班建立可執行挑戰，包含排行榜規則、提醒節奏與獎勵條件。</p>
-          </div>
-          <div class="tool-grid">
-            <label class="field">
-              <span>團體名稱</span>
-              <input data-challenge-group value="資管三甲" />
-            </label>
-            <label class="field">
-              <span>挑戰類型</span>
-              <select data-challenge-type>
-                <option value="專注挑戰">專注挑戰</option>
-                <option value="步數挑戰">步數挑戰</option>
-                <option value="早睡挑戰">早睡挑戰</option>
-                <option value="期末衝刺">期末衝刺</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>活動天數</span>
-              <input data-challenge-days type="number" min="3" max="30" value="7" />
-            </label>
-            <label class="field">
-              <span>獎勵</span>
-              <select data-challenge-reward>
-                <option value="限定徽章">限定徽章</option>
-                <option value="商城折扣券">商城折扣券</option>
-                <option value="班級排行榜稱號">班級排行榜稱號</option>
-              </select>
-            </label>
-          </div>
-          <div class="generated-card blue" data-output="challenge-preview">
-            <strong>資管三甲：7 日專注挑戰</strong>
-            <p>每日 30 分鐘專注，排名採完成天數與累積分鐘雙指標，完成後發放限定徽章。</p>
-          </div>
-          <div class="button-row">
-            <button class="button primary" data-action="generate-challenge" type="button">建立挑戰草稿</button>
-            <button class="button ghost" data-action="download-challenge" type="button">下載活動規則</button>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="toolbar">
-            <div>
-              <span class="eyebrow">小組自律房管理</span>
-              <h2>把房間變成班級與團隊的行動空間。</h2>
-            </div>
-            <button class="button primary" data-toast="已建立小組自律房 Demo">建立房間</button>
-          </div>
-          <div class="building-grid">
-            <div class="mini-card"><strong>期末衝刺房</strong><p>28 人，專注中 12 人。</p></div>
-            <div class="mini-card"><strong>早睡挑戰房</strong><p>16 人，今晚目標 23:30。</p></div>
-            <div class="mini-card"><strong>步數健走房</strong><p>團隊今日累積 82,400 步。</p></div>
-            <div class="mini-card"><strong>考前複習房</strong><p>倒數 5 天，任務模板已派發。</p></div>
-          </div>
+        <header class="hero split"><div><span class="eyebrow">Group & Education Hub</span><h1>團體中心改成教育與企業工具入口。</h1><p>挑戰、讀書時段、排行、考試模板分頁處理，中心頁只保留總覽和入口。</p><div class="subnav"><a class="active" href="groups.html">中心總覽</a><a href="groups-challenge.html">挑戰建立</a><a href="groups-study-schedule.html">讀書時段</a><a href="groups-ranking.html">排行與週報</a><a href="groups-templates.html">考試模板</a></div></div><div class="hero-card"><span>活躍團體</span><strong data-count="12">0</strong><p>本週共有 4 個企業挑戰與 8 個讀書會房間。</p></div></header>
+        <section class="center-hub page-section">
+          <a class="hub-card" href="groups-challenge.html"><span>◎</span><strong>團體挑戰建立器</strong><p>建立步數、專注、早睡、期末衝刺挑戰，包含規則、獎勵與排行榜。</p><small>建立挑戰</small></a>
+          <a class="hub-card" href="groups-study-schedule.html"><span>◷</span><strong>讀書時段管理</strong><p>安排讀書會或補習班共讀時段，自動產生提醒與自律房。</p><small>排程時段</small></a>
+          <a class="hub-card" href="groups-ranking.html"><span>↟</span><strong>排行與週報</strong><p>查看小組排名、班級摘要與可下載週報。</p><small>查看排行</small></a>
+          <a class="hub-card" href="groups-templates.html"><span>＋</span><strong>考試倒數模板</strong><p>建立複習提醒、倒數任務、班級派發模板。</p><small>建立模板</small></a>
         </section>
       </main>
-    </div>
-    <script src="assets/app.js"></script>
+    </div><script src="assets/app.js"></script>
   </body>
 </html>
+

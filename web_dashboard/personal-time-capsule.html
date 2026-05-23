@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 自律時間膠囊</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>時間膠囊</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Time Capsule</span>
+            <h1>寫給未來的自己，等指定日期再打開。</h1>
+            <p>這不再只是小區塊，而是一個完整功能：寫內容、設定解鎖日、保存、預覽、下載。</p>
+            <div class="subnav">
+              <a href="personal.html">中心總覽</a>
+              <a href="personal-trends.html">趨勢</a>
+              <a href="personal-pressure.html">壓力雷達</a>
+              <a href="personal-weather.html">自律天氣</a>
+              <a class="active" href="personal-time-capsule.html">時間膠囊</a>
+              <a href="personal-letter.html">未來的信</a>
+              <a href="personal-skill-tree.html">技能樹</a>
+              <a href="personal-template.html">任務模板</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>已保存膠囊</span>
+            <strong data-count="3">0</strong>
+            <p>資料會先存於瀏覽器 Demo localStorage。</p>
+          </div>
+        </header>
+
+        <section class="workspace-layout page-section" data-tool="time-capsule">
+          <article class="tool-panel">
+            <div class="tool-copy">
+              <span class="eyebrow">Create</span>
+              <h2>新增時間膠囊</h2>
+              <p>適合考試、專題、期末、比賽前寫下承諾，之後回來看自己是否做到。</p>
+            </div>
+            <div class="tool-grid">
+              <label class="field"><span>膠囊標題</span><input data-capsule-title value="期末前的我" /></label>
+              <label class="field"><span>解鎖日</span><input data-capsule-date type="date" value="2026-06-15" /></label>
+              <label class="field wide"><span>寫給未來的自己</span><textarea data-capsule-message rows="7">我希望自己每天至少專注 30 分鐘，不要把壓力留到最後一天。</textarea></label>
+            </div>
+            <div class="generated-card" data-output="capsule-preview">
+              <strong>期末前的我</strong>
+              <p>將於 2026-06-15 解鎖。到時候會一起顯示當時設定的目標與實際完成狀態。</p>
+            </div>
+            <div class="button-row">
+              <button class="button primary" data-action="save-capsule" type="button">保存膠囊</button>
+              <button class="button ghost" data-action="download-capsule" type="button">下載文字檔</button>
+            </div>
+          </article>
+          <aside class="panel">
+            <span class="eyebrow">Saved</span>
+            <h2>已保存膠囊</h2>
+            <div class="saved-list" data-capsule-list>
+              <article><strong>期末前的我</strong><span>2026-06-15 解鎖</span></article>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

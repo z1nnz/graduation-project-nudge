@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 讀書時段管理</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <body data-page="groups">
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>讀書時段</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="groups.html">團體 / 教育管理</a></nav></aside>
+      <main class="main">
+        <header class="hero split"><div><span class="eyebrow">Study Schedule</span><h1>安排共讀時段，並生成對應自律房。</h1><p>適合補習班、班級、讀書會排程讀書時段和提醒。</p><div class="subnav"><a href="groups.html">中心總覽</a><a href="groups-challenge.html">挑戰建立</a><a class="active" href="groups-study-schedule.html">讀書時段</a><a href="groups-ranking.html">排行與週報</a><a href="groups-templates.html">考試模板</a></div></div><div class="hero-card"><span>本週時段</span><strong data-count="34">0</strong><p>已排程共讀。</p></div></header>
+        <section class="workspace-layout page-section" data-tool="study-schedule">
+          <article class="tool-panel"><div class="tool-copy"><span class="eyebrow">Schedule</span><h2>新增讀書時段</h2><p>排程後會生成提醒和自律房草稿。</p></div><div class="tool-grid"><label class="field"><span>時段名稱</span><input data-study-title value="資料庫期末共讀" /></label><label class="field"><span>時間</span><input data-study-time type="datetime-local" value="2026-06-01T19:00" /></label><label class="field"><span>長度</span><select data-study-duration><option value="50 分鐘">50 分鐘</option><option value="90 分鐘">90 分鐘</option><option value="120 分鐘">120 分鐘</option></select></label><label class="field"><span>房間類型</span><select data-study-room><option value="讀書房">讀書房</option><option value="考前衝刺房">考前衝刺房</option><option value="靜音房">靜音房</option></select></label></div><div class="generated-card blue" data-output="study-preview"><strong>資料庫期末共讀</strong><p>2026-06-01 19:00，50 分鐘，將建立讀書房。</p></div><div class="button-row"><button class="button primary" data-action="save-study-schedule" type="button">建立時段 Demo</button></div></article>
+          <aside class="panel"><span class="eyebrow">Upcoming</span><h2>即將開始</h2><div class="saved-list" data-study-list><article><strong>週六共讀 19:00</strong><span>已排程提醒 42 位學生。</span></article></div></aside>
+        </section>
+      </main>
+    </div><script src="assets/app.js"></script>
+  </body>
+</html>
+
