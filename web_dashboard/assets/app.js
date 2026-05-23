@@ -212,6 +212,156 @@ function bindPlanet() {
   });
 }
 
+function saveDemoState(key, payload) {
+  const current = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  current[key] = {
+    ...payload,
+    updatedAt: new Date().toISOString(),
+  };
+  localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+}
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function bindExtensionTools() {
+  const templateTool = $('[data-tool="template-builder"]');
+  const guardianTool = $('[data-tool="guardian-invite"]');
+  const challengeTool = $('[data-tool="challenge-builder"]');
+  const campaignTool = $('[data-tool="campaign-builder"]');
+  const scenarioTool = $('[data-tool="scenario-builder"]');
+  const planetTool = $('[data-tool="planet-builder"]');
+
+  const setOutput = (root, html) => {
+    const output = $('[data-output]', root);
+    if (output) output.innerHTML = html;
+  };
+
+  let templateText = "";
+  templateTool?.querySelector('[data-action="generate-template"]')?.addEventListener("click", () => {
+    const type = $('[data-template-type]', templateTool).value;
+    const days = Number($('[data-template-days]', templateTool).value || 7);
+    const effort = $('[data-template-effort]', templateTool).value;
+    const pressure = $('[data-template-pressure]', templateTool).value;
+    const phase = pressure === "截止日前" ? "先拆交付物、再安排檢查日" : "前段建立節奏，中段執行，最後回顧調整";
+    templateText = `${type} ${days} 日任務模板\n每日投入：${effort}\n策略：${phase}\n\nDay 1：整理目標與資料\nDay ${Math.ceil(days / 2)}：完成主要進度\nDay ${days}：回顧、補強與提交`;
+    setOutput(
+      templateTool,
+      `<strong>${type} ${days} 日模板</strong><p>每日 ${effort}，${phase}。已產生可匯入 App 的分段任務草稿。</p>`,
+    );
+    saveDemoState("template", { type, days, effort, pressure });
+    toast("已產生任務模板");
+  });
+  templateTool?.querySelector('[data-action="download-template"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-task-template.txt", templateText || "請先產生任務模板。");
+  });
+
+  guardianTool?.querySelector('[data-action="preview-guardian"]')?.addEventListener("click", () => {
+    const goal = $('[data-guardian-goal]', guardianTool).value;
+    const permission = $('[data-guardian-permission]', guardianTool).value;
+    const message = $('[data-guardian-message]', guardianTool).value.trim();
+    setOutput(
+      guardianTool,
+      `<strong>${goal}</strong><p>權限：${permission}。鼓勵訊息：「${message}」孩子同意後才會啟用，並可隨時解除。</p>`,
+    );
+    saveDemoState("guardianInvite", { goal, permission, message });
+    toast("邀請預覽已更新");
+  });
+  guardianTool?.querySelector('[data-action="send-guardian"]')?.addEventListener("click", () => {
+    saveDemoState("guardianInviteStatus", { status: "pending_child_approval" });
+    toast("已送出陪伴邀請 Demo");
+  });
+
+  let challengeText = "";
+  challengeTool?.querySelector('[data-action="generate-challenge"]')?.addEventListener("click", () => {
+    const group = $('[data-challenge-group]', challengeTool).value.trim() || "未命名團體";
+    const type = $('[data-challenge-type]', challengeTool).value;
+    const days = Number($('[data-challenge-days]', challengeTool).value || 7);
+    const reward = $('[data-challenge-reward]', challengeTool).value;
+    challengeText = `${group} ${days} 日${type}\n獎勵：${reward}\n規則：每日完成目標得 1 點，連續完成加成，排行榜只顯示前 10 名。`;
+    setOutput(
+      challengeTool,
+      `<strong>${group}：${days} 日${type}</strong><p>獎勵為 ${reward}，系統會自動產生排行榜、提醒節奏與活動週報。</p>`,
+    );
+    saveDemoState("challenge", { group, type, days, reward });
+    toast("挑戰草稿已建立");
+  });
+  challengeTool?.querySelector('[data-action="download-challenge"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-group-challenge.txt", challengeText || "請先建立挑戰草稿。");
+  });
+
+  campaignTool?.querySelector('[data-action="generate-campaign"]')?.addEventListener("click", () => {
+    const name = $('[data-campaign-name]', campaignTool).value.trim() || "未命名套裝";
+    const rarity = $('[data-campaign-rarity]', campaignTool).value;
+    const price = Number($('[data-campaign-price]', campaignTool).value || 0);
+    const days = Number($('[data-campaign-days]', campaignTool).value || 7);
+    const health = price <= 40 ? "新手友善" : price <= 90 ? "價格健康" : "適合活動限定";
+    setOutput(
+      campaignTool,
+      `<strong>${name}：${rarity} / ${price} 枚</strong><p>${days} 天活動，${health}。以每日 15 枚、每月 400 枚上限估算，兌換壓力合理。</p>`,
+    );
+    saveDemoState("campaign", { name, rarity, price, days, health });
+    toast("價格檢查完成");
+  });
+  campaignTool?.querySelector('[data-action="save-campaign"]')?.addEventListener("click", () => {
+    toast("已排程上架 Demo");
+  });
+
+  $$("[data-review-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = button.closest(".review-item");
+      const action = button.dataset.reviewAction;
+      item?.classList.add("reviewed");
+      item?.querySelector(".compact-actions")?.replaceChildren(Object.assign(document.createElement("span"), {
+        className: "status-tag",
+        textContent: `已${action}`,
+      }));
+      toast(`申請已${action}`);
+    });
+  });
+
+  let scenarioText = "";
+  scenarioTool?.querySelector('[data-action="generate-scenario"]')?.addEventListener("click", () => {
+    const type = $('[data-scenario-type]', scenarioTool).value;
+    const privacy = $('[data-scenario-privacy]', scenarioTool).value;
+    const focus = $('[data-scenario-focus]', scenarioTool).value.trim();
+    scenarioText = `${type}\n隱私層級：${privacy}\n展示重點：${focus}\n\n展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。`;
+    setOutput(
+      scenarioTool,
+      `<strong>${type}</strong><p>${privacy}。展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。</p>`,
+    );
+    saveDemoState("scenario", { type, privacy, focus });
+    toast("展示腳本已產生");
+  });
+  scenarioTool?.querySelector('[data-action="download-scenario"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-demo-scenario.txt", scenarioText || "請先產生展示腳本。");
+  });
+
+  planetTool?.querySelector('[data-action="generate-planet"]')?.addEventListener("click", () => {
+    const building = $('[data-planet-building]', planetTool).value;
+    const condition = $('[data-planet-condition]', planetTool).value;
+    const event = $('[data-planet-event]', planetTool).value.trim();
+    setOutput(
+      planetTool,
+      `<strong>${building}建築計畫</strong><p>解鎖條件：${condition}。${event}</p>`,
+    );
+    saveDemoState("planetBuilding", { building, condition, event });
+    toast("星球建築已規劃");
+  });
+  planetTool?.querySelector('[data-action="save-planet"]')?.addEventListener("click", () => {
+    toast("已設為下週星球目標");
+  });
+}
+
 function bindTilt() {
   $$("[data-tilt]").forEach((node) => {
     node.addEventListener("pointermove", (event) => {
@@ -332,6 +482,7 @@ window.addEventListener("DOMContentLoaded", () => {
   bootCharts();
   bindDemoButtons();
   bindPlanet();
+  bindExtensionTools();
   bindTilt();
   bindPresentation();
 });

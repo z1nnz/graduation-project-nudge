@@ -113,6 +113,53 @@
           </div>
         </section>
 
+        <section class="tool-panel page-section" id="templateLab" data-tool="template-builder">
+          <div class="tool-copy">
+            <span class="eyebrow">Action Lab</span>
+            <h2>任務模板產生器</h2>
+            <p>Web 端應該能幫使用者把大目標拆成可執行任務，生成後可以複製到 App、匯出給老師或存成個人模板。</p>
+          </div>
+          <div class="tool-grid">
+            <label class="field">
+              <span>目標類型</span>
+              <select data-template-type>
+                <option value="期中報告">期中報告</option>
+                <option value="考試複習">考試複習</option>
+                <option value="睡眠調整">睡眠調整</option>
+                <option value="專注習慣">專注習慣</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>天數</span>
+              <input data-template-days type="number" min="3" max="30" value="7" />
+            </label>
+            <label class="field">
+              <span>每日投入</span>
+              <select data-template-effort>
+                <option value="25 分鐘">25 分鐘</option>
+                <option value="45 分鐘">45 分鐘</option>
+                <option value="60 分鐘">60 分鐘</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>壓力狀態</span>
+              <select data-template-pressure>
+                <option value="穩定">穩定</option>
+                <option value="偏高">偏高</option>
+                <option value="截止日前">截止日前</option>
+              </select>
+            </label>
+          </div>
+          <div class="generated-card" data-output="template-preview">
+            <strong>期中報告 7 日模板</strong>
+            <p>每天 25 分鐘，前 3 天蒐集資料，中段整理大綱，最後 2 天修改與檢查。</p>
+          </div>
+          <div class="button-row">
+            <button class="button primary" data-action="generate-template" type="button">產生模板</button>
+            <button class="button ghost" data-action="download-template" type="button">下載任務模板</button>
+          </div>
+        </section>
+
         <section class="two-col">
           <article class="panel">
             <span class="eyebrow">未來的自己寄來的信</span>

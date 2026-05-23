@@ -110,6 +110,45 @@
           </article>
         </section>
 
+        <section class="tool-panel page-section" id="guardianInviteLab" data-tool="guardian-invite">
+          <div class="tool-copy">
+            <span class="eyebrow">Companion Tool</span>
+            <h2>共同目標邀請器</h2>
+            <p>家長不是直接控制孩子，而是送出需要孩子同意的陪伴邀請，並清楚設定可查看的資料範圍。</p>
+          </div>
+          <div class="tool-grid">
+            <label class="field">
+              <span>共同目標</span>
+              <select data-guardian-goal>
+                <option value="一週睡滿 49 小時">一週睡滿 49 小時</option>
+                <option value="每天專注 30 分鐘">每天專注 30 分鐘</option>
+                <option value="每週運動 3 次">每週運動 3 次</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>分享權限</span>
+              <select data-guardian-permission>
+                <option value="只看總覽">只看總覽</option>
+                <option value="可看週報">可看週報</option>
+                <option value="可看任務類型">可看任務類型</option>
+                <option value="可看健康趨勢">可看健康趨勢</option>
+              </select>
+            </label>
+            <label class="field wide">
+              <span>鼓勵訊息</span>
+              <textarea data-guardian-message rows="3">這週我們一起把睡眠穩住，不用一次做到完美。</textarea>
+            </label>
+          </div>
+          <div class="generated-card warm" data-output="guardian-preview">
+            <strong>邀請預覽</strong>
+            <p>目標：一週睡滿 49 小時。權限：只看總覽。孩子可同意或拒絕，也能隨時解除連結。</p>
+          </div>
+          <div class="button-row">
+            <button class="button primary" data-action="preview-guardian" type="button">更新邀請</button>
+            <button class="button ghost" data-action="send-guardian" type="button">送出邀請 Demo</button>
+          </div>
+        </section>
+
         <section class="panel">
           <span class="eyebrow">權限分級</span>
           <h2>孩子端同意機制</h2>
