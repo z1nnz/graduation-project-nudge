@@ -29,8 +29,11 @@ class AvatarPartCategory {
 }
 
 class AvatarCatalog {
-  static const List<String> faceShapeLabels = ['男生', '女生'];
+  static const List<String> faceShapeLabels = ['晨光練習生', '星光少女'];
 
+  // Future layered-avatar expansion. These labels stay here so older saved
+  // profiles can still be normalized, but the current shop/editor only exposes
+  // complete character images.
   static const List<String> hairStyleLabels = ['夜色短髮'];
 
   static const List<String> eyeStyleLabels = ['閃亮圓眼'];
@@ -55,25 +58,10 @@ class AvatarCatalog {
     AvatarPartCategory(
       key: 'faceShape',
       title: '角色',
-      hint: '先選男生或女生角色，讓換裝系統保持簡單穩定。',
-      icon: Icons.face_outlined,
+      hint: '選擇已購買的完整角色造型。部件換裝會先放到未來發展。',
+      icon: Icons.face_retouching_natural_outlined,
       labels: faceShapeLabels,
-      requiresUnlock: false,
-      appearsInShop: false,
-    ),
-    AvatarPartCategory(
-      key: 'outfitStyle',
-      title: '服裝',
-      hint: '選擇完整套裝，買完就能直接回來穿。',
-      icon: Icons.checkroom_outlined,
-      labels: outfitStyleLabels,
-    ),
-    AvatarPartCategory(
-      key: 'accessory',
-      title: '配件',
-      hint: '加上星星、耳機、眼鏡等小配件，讓角色更有個性。',
-      icon: Icons.auto_awesome_outlined,
-      labels: accessoryLabels,
+      requiresUnlock: true,
     ),
   ];
 

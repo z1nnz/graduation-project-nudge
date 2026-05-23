@@ -58,17 +58,9 @@ class FriendPublicProfilePage extends StatelessWidget {
     }
   }
 
-  String _outfitLabel(AvatarProfile? profile) {
+  String _characterLabel(AvatarProfile? profile) {
     if (profile == null) return '尚未建立角色';
-    final outfit = AvatarCatalog.labelFor(
-      'outfitStyle',
-      profile.outfitStyleIndex,
-    );
-    final accessory = AvatarCatalog.labelFor(
-      'accessory',
-      profile.accessoryIndex,
-    );
-    return '$outfit / $accessory';
+    return AvatarCatalog.labelFor('faceShape', profile.faceShapeIndex);
   }
 
   String _partLabel(AvatarProfile? profile, String key, int index) {
@@ -168,7 +160,7 @@ class FriendPublicProfilePage extends StatelessWidget {
                       Icon(Icons.checkroom_outlined, color: avatarColor),
                       const SizedBox(width: 8),
                       Text(
-                        '穿搭展示',
+                        '角色展示',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -177,7 +169,7 @@ class FriendPublicProfilePage extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        _outfitLabel(avatarProfile),
+                        _characterLabel(avatarProfile),
                         style: TextStyle(
                           color: secondaryText,
                           fontSize: 12,
@@ -191,53 +183,33 @@ class FriendPublicProfilePage extends StatelessWidget {
                     items: [
                       _OutfitPart(
                         icon: Icons.face_retouching_natural_outlined,
-                        title: '髮型',
+                        title: '角色',
                         value: _partLabel(
                           avatarProfile,
-                          'hairStyle',
-                          avatarProfile?.hairStyleIndex ?? 0,
+                          'faceShape',
+                          avatarProfile?.faceShapeIndex ?? 0,
                         ),
                         color: const Color(0xFF7C6AE6),
                       ),
                       _OutfitPart(
-                        icon: Icons.visibility_outlined,
-                        title: '眼睛',
-                        value: _partLabel(
-                          avatarProfile,
-                          'eyeStyle',
-                          avatarProfile?.eyeStyleIndex ?? 0,
-                        ),
+                        icon: Icons.storefront_outlined,
+                        title: '取得方式',
+                        value: '角色商城',
                         color: const Color(0xFF4F8CFF),
                       ),
                       _OutfitPart(
-                        icon: Icons.checkroom_outlined,
-                        title: '服裝',
-                        value: _partLabel(
-                          avatarProfile,
-                          'outfitStyle',
-                          avatarProfile?.outfitStyleIndex ?? 0,
-                        ),
+                        icon: Icons.auto_awesome_outlined,
+                        title: '展示類型',
+                        value: '完整角色',
                         color: const Color(0xFFF59E0B),
                       ),
                       _OutfitPart(
-                        icon: Icons.auto_awesome_outlined,
-                        title: '配件',
-                        value: _partLabel(
-                          avatarProfile,
-                          'accessory',
-                          avatarProfile?.accessoryIndex ?? 0,
-                        ),
+                        icon: Icons.update_outlined,
+                        title: '未來發展',
+                        value: '部件換裝',
                         color: const Color(0xFF14B8A6),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  _ShowcasePill(
-                    icon: Icons.wallpaper_outlined,
-                    text: avatarProfile == null
-                        ? '尚未設定展示背景'
-                        : '展示背景：${AvatarCatalog.labelFor('backgroundColor', avatarProfile!.backgroundColorIndex)}',
-                    color: const Color(0xFF14B8A6),
                   ),
                 ],
               ),

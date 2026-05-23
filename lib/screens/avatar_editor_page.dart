@@ -121,7 +121,7 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('已儲存穿搭')));
+    ).showSnackBar(const SnackBar(content: Text('已套用角色')));
     Navigator.pop(context);
   }
 
@@ -178,7 +178,7 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
               top: 13,
               left: 52,
               child: Text(
-                '我的穿搭',
+                '我的角色',
                 style: TextStyle(
                   color: AppUI.textPrimaryOf(context),
                   fontSize: 24,
@@ -190,7 +190,7 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
               top: 10,
               right: 8,
               child: IconButton(
-                tooltip: '造型商城',
+                tooltip: '角色商城',
                 onPressed: _openShop,
                 icon: const Icon(Icons.storefront_outlined),
               ),
@@ -379,7 +379,7 @@ class _DressDrawer extends StatelessWidget {
                 Icon(Icons.tune_rounded, color: accentColor, size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  '選擇部位',
+                  '選擇角色',
                   style: TextStyle(
                     color: primaryText,
                     fontSize: 14,
@@ -577,7 +577,7 @@ class _DressDrawer extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('取消試穿'),
+                      child: const Text('取消預覽'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -589,7 +589,7 @@ class _DressDrawer extends StatelessWidget {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('儲存外觀'),
+                      child: const Text('套用角色'),
                     ),
                   ),
                 ],
@@ -697,7 +697,7 @@ class _CategoryDetailHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              TextButton(onPressed: onOpenShop, child: const Text('商城')),
+              TextButton(onPressed: onOpenShop, child: const Text('角色商城')),
             ],
           ),
           const SizedBox(height: 12),

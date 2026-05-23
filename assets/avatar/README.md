@@ -1,34 +1,44 @@
-# Avatar Layered Assets
+# Avatar Character Assets
 
-這個資料夾是新版簡化換裝素材管線。
+目前 Nudge 的角色系統先改成「完整角色圖」模式。
 
-每張圖建議使用：
+也就是商城販售一張已經畫好髮型、五官、衣服與配件的角色圖片，使用者購買後直接套用，不再即時疊衣服、眼睛、配件或背景。這樣可以先避免圖層對位不穩，讓商城和好友展示都能穩定呈現漂亮角色。
 
-- PNG
-- 透明背景
-- 512 x 768 px
-- 所有部件使用同一個角色骨架座標
+## 正式使用的檔案
 
-目前正式導入的 Nudge 素材改成穩定展示版：
+- `characters/character_0.png`：預設角色，免費
+- `characters/character_1.png`：商城角色
 
-- `characters/character_0.png`：男生角色底圖
-- `characters/character_1.png`：女生角色底圖
-- `characters/character_0_outfit_1.png`：男生穿著粉紫日常套裝的完整角色圖，可選
-- `characters/character_1_outfit_1.png`：女生穿著粉紫日常套裝的完整角色圖，可選
-- `simple_outfits/outfit_1.png`：粉紫日常套裝
-- `simple_outfits/outfit_2.png`：夜讀連帽套裝
-- `simple_outfits/outfit_3.png`：薄荷晨讀套裝
-- `simple_outfits/outfit_4.png`：暖陽行動套裝
-- `simple_outfits/outfit_5.png`：粉莓專注套裝
-- `simple_outfits/outfit_6.png`：森林自律套裝
-- `accessories/accessory_1.png`：金色星光
-- `accessories/accessory_2.png`：藍色星光
-- `accessories/accessory_3.png`：粉色星光
+新增角色時請照這個格式：
 
-先不拆五官、眉毛、嘴巴、前髮與後髮，也不再把背景放進換裝系統，避免圖層對位不穩。後續新增第二套素材時，請沿用相同 512 x 768 畫布與骨架座標，並同步更新 `AvatarCatalog` 的標籤數量。
+- 檔名：`characters/character_{index}.png`
+- 尺寸：建議 `512 x 768 px`
+- 背景：透明 PNG
+- 內容：完整角色本體，包含髮型、臉、衣服、鞋子與配件
 
-如果服裝和身體一直對不準，優先使用「完整套裝角色圖」：
+新增角色後，同步到 `lib/models/avatar_catalog.dart` 的 `faceShapeLabels` 加一個角色名稱。例：
 
-- 命名格式：`characters/character_{角色編號}_outfit_{服裝編號}.png`
-- 例如：`character_0_outfit_2.png` 代表男生穿著夜讀連帽套裝
-- App 會先找完整套裝角色圖；找不到時才退回 `角色底圖 + simple_outfits` 疊圖
+```dart
+static const List<String> faceShapeLabels = [
+  '晨光練習生',
+  '星光少女',
+  '夜讀少年',
+];
+```
+
+對應檔案就要新增：
+
+```text
+assets/avatar/characters/character_2.png
+```
+
+## 未來發展
+
+以下資料夾目前視為未來的分層換裝管線，App 現階段不再主動使用：
+
+- `simple_outfits/`
+- `accessories/`
+- 五官、眉毛、嘴巴、前髮、後髮等分層素材
+- 換裝背景素材
+
+如果之後要重新啟用部件換裝，必須先重新建立統一骨架座標與素材輸出規格，再回來接 `AvatarProfile` 裡保留的舊欄位。

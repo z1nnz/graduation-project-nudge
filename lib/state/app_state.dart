@@ -14,7 +14,6 @@ import '../models/study_room_models.dart';
 import '../models/task_model.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
-import '../theme/app_ui.dart';
 
 class ReminderChannelSetting {
   final String key;
@@ -377,8 +376,6 @@ class AppState extends ChangeNotifier {
     final normalizedSeed = seed.abs();
     return AvatarProfile.initial().copyWith(
       faceShapeIndex: normalizedSeed % AvatarCatalog.faceShapeLabels.length,
-      outfitStyleIndex: normalizedSeed % AvatarCatalog.outfitStyleLabels.length,
-      accessoryIndex: normalizedSeed % AvatarCatalog.accessoryLabels.length,
     );
   }
 
@@ -396,13 +393,7 @@ class AppState extends ChangeNotifier {
 
     switch (category) {
       case 'faceShape':
-        return 0;
-      case 'outfitStyle':
-        return 14 + (index * 4);
-      case 'accessory':
-        return 8 + (index * 3);
-      case 'appBackground':
-        return 18 + (index * 5);
+        return 45 + (index * 15);
       default:
         return 8 + (index * 3);
     }
@@ -1518,10 +1509,7 @@ class AppState extends ChangeNotifier {
 
   void _unlockCurrentAvatarProfile() {
     _unlockedAvatarItemKeys.addAll({
-      avatarItemKey('appBackground', 0),
       avatarItemKey('faceShape', _avatarProfile.faceShapeIndex),
-      avatarItemKey('outfitStyle', _avatarProfile.outfitStyleIndex),
-      avatarItemKey('accessory', _avatarProfile.accessoryIndex),
     });
   }
 
@@ -1530,10 +1518,6 @@ class AppState extends ChangeNotifier {
       for (var i = 0; i < category.itemCount; i++) {
         _unlockedAvatarItemKeys.add(avatarItemKey(category.key, i));
       }
-    }
-
-    for (var i = 0; i < AppUI.backgroundThemeKeys.length; i++) {
-      _unlockedAvatarItemKeys.add(avatarItemKey('appBackground', i));
     }
   }
 

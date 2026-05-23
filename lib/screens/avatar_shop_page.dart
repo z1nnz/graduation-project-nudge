@@ -45,10 +45,8 @@ class _CheckoutLine {
 class _AvatarShopPageState extends State<AvatarShopPage> {
   late AvatarProfile draft;
   late AvatarProfile original;
-  int originalThemeIndex = 0;
   bool _initialized = false;
   int selectedCategoryIndex = 0;
-  int selectedThemeIndex = 0;
   bool showOwnedOnly = false;
   bool showSetsOnly = false;
   String shopQuery = '';
@@ -56,55 +54,20 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
 
   late final List<_ShopSet> shopSets = [
     const _ShopSet(
-      title: '粉紫日常套裝',
-      description: '柔和短袖與休閒長褲，適合日常自律展示。',
-      icon: Icons.checkroom_outlined,
-      items: [MapEntry('outfitStyle', 1)],
+      title: '晨光練習生',
+      description: '乾淨俐落的基礎角色，適合剛開始建立自律習慣。',
+      icon: Icons.wb_sunny_outlined,
+      items: [MapEntry('faceShape', 0)],
     ),
     const _ShopSet(
-      title: '夜讀連帽套裝',
-      description: '深藍連帽外套，適合專注房與夜讀情境。',
-      icon: Icons.nightlight_round,
-      items: [MapEntry('outfitStyle', 2)],
-    ),
-    const _ShopSet(
-      title: '薄荷晨讀套裝',
-      description: '清爽薄荷色系，適合早起、晨讀與輕量任務。',
-      icon: Icons.menu_book_outlined,
-      items: [MapEntry('outfitStyle', 3)],
-    ),
-    const _ShopSet(
-      title: '暖陽行動套裝',
-      description: '明亮暖色調，適合運動、步數與行動任務。',
-      icon: Icons.directions_walk_outlined,
-      items: [MapEntry('outfitStyle', 4)],
-    ),
-    const _ShopSet(
-      title: '粉莓專注套裝',
-      description: '活潑粉莓色，讓專注房裡的角色更醒目。',
-      icon: Icons.timer_outlined,
-      items: [MapEntry('outfitStyle', 5)],
-    ),
-    const _ShopSet(
-      title: '森林自律套裝',
-      description: '穩定綠色調，適合健康、睡眠與長期習慣。',
-      icon: Icons.eco_outlined,
-      items: [MapEntry('outfitStyle', 6)],
+      title: '星光少女',
+      description: '帶有星光感的完整角色，買完即可直接套用。',
+      icon: Icons.auto_awesome_outlined,
+      items: [MapEntry('faceShape', 1)],
     ),
   ];
 
-  late final List<AvatarPartCategory> categories = [
-    ...AvatarCatalog.shopCategories,
-    AvatarPartCategory(
-      key: 'appBackground',
-      title: '主題',
-      hint: '調整整個 App 的背景主題。',
-      icon: Icons.auto_awesome_mosaic_outlined,
-      labels: AppUI.backgroundThemeKeys
-          .map(AppUI.backgroundThemeLabel)
-          .toList(growable: false),
-    ),
-  ];
+  late final List<AvatarPartCategory> categories = AvatarCatalog.shopCategories;
 
   @override
   void initState() {
@@ -119,11 +82,6 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     if (_initialized) return;
     original = context.read<AppState>().avatarProfile;
     draft = original;
-    selectedThemeIndex = AppUI.backgroundThemeKeys.indexOf(
-      context.read<AppState>().backgroundThemeSetting,
-    );
-    if (selectedThemeIndex < 0) selectedThemeIndex = 0;
-    originalThemeIndex = selectedThemeIndex;
     _initialized = true;
   }
 
@@ -131,20 +89,6 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     switch (category) {
       case 'faceShape':
         return draft.faceShapeIndex;
-      case 'hairStyle':
-        return draft.hairStyleIndex;
-      case 'eyeStyle':
-        return draft.eyeStyleIndex;
-      case 'eyebrowStyle':
-        return draft.eyebrowStyleIndex;
-      case 'mouthStyle':
-        return draft.mouthStyleIndex;
-      case 'outfitStyle':
-        return draft.outfitStyleIndex;
-      case 'accessory':
-        return draft.accessoryIndex;
-      case 'appBackground':
-        return selectedThemeIndex;
       default:
         return 0;
     }
@@ -154,31 +98,13 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     switch (category) {
       case 'faceShape':
         return base.copyWith(faceShapeIndex: index);
-      case 'hairStyle':
-        return base.copyWith(hairStyleIndex: index);
-      case 'eyeStyle':
-        return base.copyWith(eyeStyleIndex: index);
-      case 'eyebrowStyle':
-        return base.copyWith(eyebrowStyleIndex: index);
-      case 'mouthStyle':
-        return base.copyWith(mouthStyleIndex: index);
-      case 'outfitStyle':
-        return base.copyWith(outfitStyleIndex: index);
-      case 'accessory':
-        return base.copyWith(accessoryIndex: index);
-      case 'appBackground':
-        return base;
       default:
         return base;
     }
   }
 
   List<MapEntry<String, int>> _selectedItems() {
-    return [
-      MapEntry('outfitStyle', draft.outfitStyleIndex),
-      MapEntry('accessory', draft.accessoryIndex),
-      MapEntry('appBackground', selectedThemeIndex),
-    ];
+    return [MapEntry('faceShape', draft.faceShapeIndex)];
   }
 
   int _checkoutPrice(AppState appState) {
@@ -213,11 +139,7 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
   void _applySet(_ShopSet set) {
     setState(() {
       for (final item in set.items) {
-        if (item.key == 'appBackground') {
-          selectedThemeIndex = item.value;
-        } else {
-          draft = _applyItem(draft, item.key, item.value);
-        }
+        draft = _applyItem(draft, item.key, item.value);
       }
     });
   }
@@ -241,12 +163,12 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: const Text('確認購買'),
+            title: const Text('確認購買角色'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('這次會購買 ${checkoutLines.length} 個尚未擁有的項目。'),
+                Text('這次會購買 ${checkoutLines.length} 個尚未擁有的角色。'),
                 const SizedBox(height: 12),
                 ...checkoutLines.map(
                   (line) => Padding(
@@ -284,7 +206,7 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('購買並儲存'),
+                child: const Text('購買並套用'),
               ),
             ],
           );
@@ -304,12 +226,9 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     }
 
     await appState.updateAvatarProfile(draft);
-    await appState.setBackgroundThemeSetting(
-      AppUI.backgroundThemeKeys[selectedThemeIndex],
-    );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(totalPrice > 0 ? '已購買並儲存造型' : '已儲存造型')),
+        SnackBar(content: Text(totalPrice > 0 ? '已購買並套用角色' : '已套用角色')),
       );
       Navigator.pop(context);
     }
@@ -410,15 +329,7 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                     accentColor: accentColor,
                     onItemTap: (index) {
                       setState(() {
-                        if (selectedCategory.key == 'appBackground') {
-                          selectedThemeIndex = index;
-                        } else {
-                          draft = _applyItem(
-                            draft,
-                            selectedCategory.key,
-                            index,
-                          );
-                        }
+                        draft = _applyItem(draft, selectedCategory.key, index);
                       });
                     },
                     previewBuilder: (index) =>
@@ -427,7 +338,6 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                     onReset: () {
                       setState(() {
                         draft = original;
-                        selectedThemeIndex = originalThemeIndex;
                       });
                     },
                     onSave: _saveLook,
@@ -534,71 +444,6 @@ class _CoinBadge extends StatelessWidget {
               color: AppUI.textPrimaryOf(context),
               fontSize: 18,
               fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThemePreview extends StatelessWidget {
-  final String themeKey;
-
-  const _ThemePreview({required this.themeKey});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppUI.backgroundThemeColors(themeKey, AppUI.isDark(context));
-    final accent = colors.length > 1 ? colors[1] : AppUI.primary;
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: colors,
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 8,
-            top: 8,
-            child: Icon(
-              Icons.auto_awesome_outlined,
-              color: Colors.white.withValues(alpha: 0.85),
-              size: 18,
-            ),
-          ),
-          Positioned(
-            right: -8,
-            bottom: -8,
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.34),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Text(
-                AppUI.backgroundThemeLabel(themeKey),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  height: 1.1,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
             ),
           ),
         ],
@@ -811,7 +656,7 @@ class _ShopDrawer extends StatelessWidget {
             child: TextField(
               onChanged: onSearchChanged,
               decoration: InputDecoration(
-                hintText: showSetsOnly ? '搜尋套裝' : '搜尋目前分類',
+                hintText: showSetsOnly ? '搜尋精選角色' : '搜尋角色',
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 filled: true,
@@ -876,7 +721,7 @@ class _ShopDrawer extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _ShopFilterChip(
-                  label: '套裝',
+                  label: '精選',
                   selected: showSetsOnly,
                   accentColor: accentColor,
                   onTap: () => onSetsOnlyChanged(true),
@@ -948,12 +793,6 @@ class _ShopDrawer extends StatelessWidget {
                       );
                       final rarity = _rarityForPrice(price);
                       final preview = previewBuilder(index);
-                      final isThemeCategory =
-                          selectedCategory.key == 'appBackground';
-                      final themeKey = isThemeCategory
-                          ? AppUI.backgroundThemeKeys[index]
-                          : null;
-
                       return GestureDetector(
                         onTap: () => onItemTap(index),
                         child: Column(
@@ -983,19 +822,17 @@ class _ShopDrawer extends StatelessWidget {
                                     width: 2,
                                   ),
                                 ),
-                                child: isThemeCategory && themeKey != null
-                                    ? _ThemePreview(themeKey: themeKey)
-                                    : AvatarPreview(
-                                        profile: preview,
-                                        size: 54,
-                                        showBackgroundRing: false,
-                                      ),
+                                child: AvatarPreview(
+                                  profile: preview,
+                                  size: 54,
+                                  showBackgroundRing: false,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 6),
                             if (unlocked)
                               Text(
-                                selected ? '試穿中' : '已擁有',
+                                selected ? '預覽中' : '已擁有',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -1067,7 +904,7 @@ class _ShopDrawer extends StatelessWidget {
                               : Colors.transparent,
                         ),
                       ),
-                      child: const Text('取消試穿'),
+                      child: const Text('取消預覽'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1087,7 +924,7 @@ class _ShopDrawer extends StatelessWidget {
                               : Colors.transparent,
                         ),
                       ),
-                      child: Text(totalPrice > 0 ? '購買 $totalPrice' : '儲存'),
+                      child: Text(totalPrice > 0 ? '購買 $totalPrice' : '套用'),
                     ),
                   ),
                 ],
@@ -1120,9 +957,6 @@ class _ShopSetList extends StatelessWidget {
   });
 
   String _itemLabel(MapEntry<String, int> item) {
-    if (item.key == 'appBackground') {
-      return AppUI.backgroundThemeLabel(AppUI.backgroundThemeKeys[item.value]);
-    }
     final category = AvatarCatalog.categoryFor(item.key);
     return '${category.title} ${category.labelFor(item.value)}';
   }
@@ -1135,7 +969,7 @@ class _ShopSetList extends StatelessWidget {
     if (sets.isEmpty) {
       return Center(
         child: Text(
-          '找不到符合條件的套裝',
+          '找不到符合條件的精選角色',
           style: TextStyle(
             color: secondaryText,
             fontSize: 13,

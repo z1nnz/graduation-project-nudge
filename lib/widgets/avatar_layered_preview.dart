@@ -62,7 +62,7 @@ class AvatarLayeredPreview extends StatelessWidget {
           decoration: BoxDecoration(
             shape: showBackgroundRing ? BoxShape.circle : BoxShape.rectangle,
             color: showBackgroundRing
-                ? profile.backgroundColor
+                ? const Color(0xFFEDE9FE)
                 : Colors.transparent,
             border: showBackgroundRing
                 ? Border.all(
@@ -99,23 +99,11 @@ class AvatarLayerPaths {
   String get character =>
       'assets/avatar/characters/character_${profile.faceShapeIndex}.png';
 
-  String get outfit =>
-      'assets/avatar/simple_outfits/outfit_${profile.outfitStyleIndex}.png';
-
-  String get completeOutfit =>
-      'assets/avatar/characters/character_${profile.faceShapeIndex}_outfit_${profile.outfitStyleIndex}.png';
-
-  String get accessory =>
-      'assets/avatar/accessories/accessory_${profile.accessoryIndex}.png';
-
   List<String> get ordered {
-    return [character, outfit, accessory];
+    return [character];
   }
 
   List<String> orderedForAssets(List<String> assets) {
-    if (profile.outfitStyleIndex > 0 && assets.contains(completeOutfit)) {
-      return [completeOutfit, accessory];
-    }
     return ordered;
   }
 }
