@@ -16,7 +16,92 @@ import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../theme/app_ui.dart';
 
+class ReminderChannelSetting {
+  final String key;
+  final String title;
+  final String description;
+  final String timeLabel;
+  final bool enabled;
+
+  const ReminderChannelSetting({
+    required this.key,
+    required this.title,
+    required this.description,
+    required this.timeLabel,
+    required this.enabled,
+  });
+
+  ReminderChannelSetting copyWith({String? timeLabel, bool? enabled}) {
+    return ReminderChannelSetting(
+      key: key,
+      title: title,
+      description: description,
+      timeLabel: timeLabel ?? this.timeLabel,
+      enabled: enabled ?? this.enabled,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'key': key, 'timeLabel': timeLabel, 'enabled': enabled};
+  }
+
+  static ReminderChannelSetting fromJson(
+    Map<String, dynamic> json,
+    ReminderChannelSetting fallback,
+  ) {
+    return fallback.copyWith(
+      timeLabel: json['timeLabel'] as String? ?? fallback.timeLabel,
+      enabled: json['enabled'] as bool? ?? fallback.enabled,
+    );
+  }
+}
+
+class ReminderPreview {
+  final String channelKey;
+  final String title;
+  final String subtitle;
+  final String timeLabel;
+
+  const ReminderPreview({
+    required this.channelKey,
+    required this.title,
+    required this.subtitle,
+    required this.timeLabel,
+  });
+}
+
 class AppState extends ChangeNotifier {
+  static const List<ReminderChannelSetting> _defaultReminderSettings = [
+    ReminderChannelSetting(
+      key: 'tasks',
+      title: '任務提醒',
+      description: '提醒尚未完成的今日可執行任務。',
+      timeLabel: '20:30',
+      enabled: true,
+    ),
+    ReminderChannelSetting(
+      key: 'sleep',
+      title: '睡眠提醒',
+      description: '睡前提醒，幫助健康任務穩定累積。',
+      timeLabel: '23:00',
+      enabled: true,
+    ),
+    ReminderChannelSetting(
+      key: 'rooms',
+      title: '自律房開始提醒',
+      description: '朋友或房間開始活動時提醒你回到房間。',
+      timeLabel: '19:30',
+      enabled: true,
+    ),
+    ReminderChannelSetting(
+      key: 'deadline',
+      title: '截止日提醒',
+      description: '截止日前提醒拆任務與驗收，不列入每日分數。',
+      timeLabel: '09:00',
+      enabled: true,
+    ),
+  ];
+
   final List<Map<String, dynamic>> _defaultTasks = [
     {
       'title': '完成 2 小時讀書',
@@ -69,6 +154,7 @@ class AppState extends ChangeNotifier {
   static const String _profileSignatureKey = 'profile_signature_setting';
   static const String _profileTitleBadgeStorageKey =
       'profile_title_badge_key_setting';
+  static const String _reminderSettingsKey = 'reminder_settings';
   static const String _avatarProfileKey = 'avatar_profile_setting';
   static const String _socialFriendsKey = 'social_friends_setting';
   static const String _myNudgeIdKey = 'my_nudge_id_setting';
@@ -124,6 +210,9 @@ class AppState extends ChangeNotifier {
   String _profileNickname = '老闆';
   String _profileSignature = '今天也在穩定前進';
   String _profileTitleBadgeKey = '';
+  List<ReminderChannelSetting> _reminderSettings = List.of(
+    _defaultReminderSettings,
+  );
 
   AvatarProfile _avatarProfile = AvatarProfile.initial();
 
@@ -269,6 +358,10 @@ class AppState extends ChangeNotifier {
   String get profileNickname => _profileNickname;
   String get profileSignature => _profileSignature;
   String get profileTitleBadgeKey => _profileTitleBadgeKey;
+  List<ReminderChannelSetting> get reminderSettings =>
+      List.unmodifiable(_reminderSettings);
+  int get enabledReminderCount =>
+      _reminderSettings.where((setting) => setting.enabled).length;
   String get profileTitle {
     if (_profileTitleBadgeKey.isEmpty) return '';
 
@@ -471,6 +564,93 @@ class AppState extends ChangeNotifier {
 
   List<TaskModel> get todayActionableTaskModels {
     return taskModels.where(isTaskActionableToday).toList();
+  }
+
+  List<ReminderPreview> get upcomingReminders {
+    final settingsByKey = {
+      for (final setting in _reminderSettings) setting.key: setting,
+    };
+    final previews = <ReminderPreview>[];
+
+    final taskSetting = settingsByKey['tasks'];
+    if (taskSetting != null && taskSetting.enabled) {
+      final undoneTasks = todayActionableTaskModels
+          .where((task) => !task.isDone)
+          .toList();
+      if (undoneTasks.isNotEmpty) {
+        previews.add(
+          ReminderPreview(
+            channelKey: 'tasks',
+            title: '還有 ${undoneTasks.length} 個今日任務',
+            subtitle: '下一個：${undoneTasks.first.title}',
+            timeLabel: taskSetting.timeLabel,
+          ),
+        );
+      }
+    }
+
+    final sleepSetting = settingsByKey['sleep'];
+    if (sleepSetting != null && sleepSetting.enabled) {
+      previews.add(
+        ReminderPreview(
+          channelKey: 'sleep',
+          title: '睡前整理提醒',
+          subtitle: '目前睡眠 ${sleepHours.toStringAsFixed(1)} 小時，今晚可以提早收尾。',
+          timeLabel: sleepSetting.timeLabel,
+        ),
+      );
+    }
+
+    final roomSetting = settingsByKey['rooms'];
+    if (roomSetting != null && roomSetting.enabled) {
+      final joinedRooms = _studyRooms
+          .where(
+            (room) =>
+                room.members.any((member) => member.name == _profileNickname),
+          )
+          .toList();
+      if (joinedRooms.isNotEmpty) {
+        previews.add(
+          ReminderPreview(
+            channelKey: 'rooms',
+            title: '自律房活動提醒',
+            subtitle: '${joinedRooms.first.name} 今天可以回房間累積進度。',
+            timeLabel: roomSetting.timeLabel,
+          ),
+        );
+      }
+    }
+
+    final deadlineSetting = settingsByKey['deadline'];
+    if (deadlineSetting != null && deadlineSetting.enabled) {
+      final deadlineTasks = taskModels.where((task) {
+        if (task.taskType != TaskType.deadline || task.dueDate == null) {
+          return false;
+        }
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final due = DateTime(
+          task.dueDate!.year,
+          task.dueDate!.month,
+          task.dueDate!.day,
+        );
+        final days = due.difference(today).inDays;
+        return days >= 0 && days <= 3 && !task.isDone;
+      }).toList();
+      if (deadlineTasks.isNotEmpty) {
+        previews.add(
+          ReminderPreview(
+            channelKey: 'deadline',
+            title: '截止日快到了',
+            subtitle: '${deadlineTasks.first.title} 已進入 3 天提醒區間。',
+            timeLabel: deadlineSetting.timeLabel,
+          ),
+        );
+      }
+    }
+
+    previews.sort((a, b) => a.timeLabel.compareTo(b.timeLabel));
+    return previews;
   }
 
   int get todayActionableTaskTotal => todayActionableTaskModels.length;
@@ -1424,6 +1604,7 @@ class AppState extends ChangeNotifier {
       await _loadFriendIdentityAndRequests();
       await _loadCurrentUser();
       await _loadPrivacyConsent();
+      await _loadReminderSettings();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
       await _loadSeenUnlockedBadges();
@@ -1457,6 +1638,7 @@ class AppState extends ChangeNotifier {
       await _loadFriendIdentityAndRequests();
       await _loadCurrentUser();
       await _loadPrivacyConsent();
+      await _loadReminderSettings();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
       await _loadSeenUnlockedBadges();
@@ -1725,6 +1907,60 @@ class AppState extends ChangeNotifier {
     await clearHealthData();
     notifyListeners();
     await _savePrivacyConsent();
+  }
+
+  Future<void> _loadReminderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_reminderSettingsKey);
+    if (raw == null || raw.isEmpty) {
+      _reminderSettings = List.of(_defaultReminderSettings);
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as List;
+      final savedByKey = <String, Map<String, dynamic>>{};
+      for (final item in decoded) {
+        if (item is! Map) continue;
+        final map = Map<String, dynamic>.from(item);
+        final key = map['key'] as String?;
+        if (key == null) continue;
+        savedByKey[key] = map;
+      }
+      _reminderSettings = _defaultReminderSettings.map((fallback) {
+        final saved = savedByKey[fallback.key];
+        if (saved == null) return fallback;
+        return ReminderChannelSetting.fromJson(saved, fallback);
+      }).toList();
+    } catch (_) {
+      _reminderSettings = List.of(_defaultReminderSettings);
+    }
+  }
+
+  Future<void> _saveReminderSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _reminderSettingsKey,
+      jsonEncode(_reminderSettings.map((setting) => setting.toJson()).toList()),
+    );
+  }
+
+  Future<void> setReminderEnabled(String key, bool enabled) async {
+    _reminderSettings = _reminderSettings.map((setting) {
+      if (setting.key != key) return setting;
+      return setting.copyWith(enabled: enabled);
+    }).toList();
+    notifyListeners();
+    await _saveReminderSettings();
+  }
+
+  Future<void> setReminderTime(String key, String timeLabel) async {
+    _reminderSettings = _reminderSettings.map((setting) {
+      if (setting.key != key) return setting;
+      return setting.copyWith(timeLabel: timeLabel);
+    }).toList();
+    notifyListeners();
+    await _saveReminderSettings();
   }
 
   Future<void> _saveSocialEncouragementRecords() async {

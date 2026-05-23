@@ -5,6 +5,7 @@ import '../theme/app_ui.dart';
 import 'about_page.dart';
 import 'account_page.dart';
 import 'privacy_data_page.dart';
+import 'reminder_center_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -277,6 +278,29 @@ class SettingsPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AccountPage()),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          _sectionCard(
+            context: context,
+            title: '提醒與通知',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.notifications_active_outlined,
+                color: accentColor,
+              ),
+              title: const Text('提醒中心'),
+              subtitle: Text(
+                '已開啟 ${appState.enabledReminderCount} 種提醒：任務、睡眠、自律房、截止日',
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReminderCenterPage()),
                 );
               },
             ),
