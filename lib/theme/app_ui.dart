@@ -71,6 +71,10 @@ class AppUI {
     return isDark(context) ? darkCard : lightCard;
   }
 
+  static Color surfaceVariantOf(BuildContext context) {
+    return isDark(context) ? const Color(0xFF202530) : const Color(0xFFF4F1FF);
+  }
+
   static Color scaffoldBackgroundOf(BuildContext context) {
     return Colors.transparent;
   }

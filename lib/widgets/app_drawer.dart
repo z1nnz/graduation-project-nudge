@@ -15,6 +15,7 @@ import '../screens/avatar_shop_page.dart';
 import '../screens/calendar_page.dart';
 import '../screens/coin_wallet_page.dart';
 import '../screens/my_profile_page.dart';
+import '../screens/onboarding_page.dart';
 import '../screens/reminder_center_page.dart';
 import '../widgets/avatar_preview.dart';
 
@@ -271,6 +272,13 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.notifications_active_outlined,
                     title: '提醒中心',
                     onTap: () => _openPage(context, const ReminderCenterPage()),
+                    accentColor: accentColor,
+                  ),
+                  _drawerItem(
+                    context: context,
+                    icon: Icons.flag_circle_outlined,
+                    title: '重新查看新手引導',
+                    onTap: () => _openPage(context, const OnboardingPage()),
                     accentColor: accentColor,
                   ),
                   Padding(

@@ -421,6 +421,7 @@ class TodayAdvicePage extends StatelessWidget {
     final weightedTask = weightedRecommendations.isEmpty
         ? null
         : weightedRecommendations.first;
+    final mainLineTasks = weightedRecommendations.take(3).toList();
 
     final mainAdviceTitle = urgentDeadlineTask != null
         ? '今天最優先'
@@ -484,7 +485,7 @@ class TodayAdvicePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
-          if (weightedTask != null) ...[
+          if (mainLineTasks.isNotEmpty) ...[
             Card(
               shape: AppUI.cardShape(),
               child: Padding(
@@ -494,10 +495,10 @@ class TodayAdvicePage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.insights_outlined, color: accentColor),
+                        Icon(Icons.route_outlined, color: accentColor),
                         const SizedBox(width: 8),
                         Text(
-                          '下一個最值得做',
+                          '今日主線任務',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -506,22 +507,34 @@ class TodayAdvicePage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 6),
                     Text(
-                      weightedTask.title,
+                      '先處理這 ${mainLineTasks.length} 件，今天就會有清楚推進感。',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: primaryText,
+                        color: secondaryText,
+                        height: 1.4,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${appState.taskRewardReasonForTask(weightedTask)}。完成後約 +${appState.taskPotentialScoreForTask(weightedTask)} 分，若跨過門檻可拿 +3 枚自律幣。',
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.5,
-                        color: secondaryText,
+                    const SizedBox(height: 14),
+                    ...mainLineTasks.asMap().entries.map(
+                      (entry) => Padding(
+                        padding: EdgeInsets.only(
+                          bottom: entry.key == mainLineTasks.length - 1
+                              ? 0
+                              : 10,
+                        ),
+                        child: _MainQuestCard(
+                          index: entry.key + 1,
+                          task: entry.value,
+                          score: appState.taskPotentialScoreForTask(
+                            entry.value,
+                          ),
+                          reason: appState.taskRewardReasonForTask(entry.value),
+                          accentColor: accentColor,
+                          onStart: () =>
+                              _runPrimaryAction(context, appState, entry.value),
+                        ),
                       ),
                     ),
                   ],
@@ -714,6 +727,144 @@ class _DetailPill extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MainQuestCard extends StatelessWidget {
+  final int index;
+  final TaskModel task;
+  final int score;
+  final String reason;
+  final Color accentColor;
+  final VoidCallback onStart;
+
+  const _MainQuestCard({
+    required this.index,
+    required this.task,
+    required this.score,
+    required this.reason,
+    required this.accentColor,
+    required this.onStart,
+  });
+
+  IconData get _icon {
+    switch (task.sourceType) {
+      case TaskSourceType.focusMinutes:
+        return Icons.timer_outlined;
+      case TaskSourceType.sleepHours:
+      case TaskSourceType.steps:
+      case TaskSourceType.exerciseMinutes:
+        return Icons.health_and_safety_outlined;
+      case TaskSourceType.studyRoom:
+        return Icons.groups_2_outlined;
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+      case null:
+        return Icons.checklist_rounded;
+    }
+  }
+
+  String get _actionLabel {
+    switch (task.sourceType) {
+      case TaskSourceType.focusMinutes:
+        return '開始專注';
+      case TaskSourceType.sleepHours:
+      case TaskSourceType.steps:
+      case TaskSourceType.exerciseMinutes:
+        return '去健康頁';
+      case TaskSourceType.studyRoom:
+        return '進入房間';
+      case TaskSourceType.manual:
+      case TaskSourceType.system:
+      case null:
+        return '看詳情';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppUI.surfaceVariantOf(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: AppUI.softCardOf(context, accentColor),
+                child: Icon(_icon, color: accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$index. ${task.title}',
+                      style: TextStyle(
+                        color: primaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      reason,
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 12,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _DetailPill(label: '完成後', value: '+$score 分', color: accentColor),
+              _DetailPill(
+                label: '自律幣',
+                value: score > 0 ? '跨門檻 +3' : '額外規則',
+                color: AppUI.orange,
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                ),
+                onPressed: onStart,
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: Text(_actionLabel),
+              ),
+            ],
           ),
         ],
       ),

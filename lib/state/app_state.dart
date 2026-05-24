@@ -161,6 +161,7 @@ class AppState extends ChangeNotifier {
   static const String _currentUserKey = 'current_user_setting';
   static const String _privacyConsentKey = 'privacy_consent_setting';
   static const String _privacyConsentAtKey = 'privacy_consent_at_setting';
+  static const String _onboardingCompletedKey = 'onboarding_completed_setting';
   static const String _seenUnlockedBadgesKey = 'seen_unlocked_badges_setting';
   static const String _unlockedBadgesKey = 'unlocked_badges_setting';
   static const String _socialEncouragementRecordsKey =
@@ -222,6 +223,8 @@ class AppState extends ChangeNotifier {
   UserModel? _currentUser;
   bool _hasAcceptedPrivacyPolicy = false;
   DateTime? _privacyAcceptedAt;
+  bool _hasCompletedOnboarding = false;
+  bool _isHydrated = false;
   Set<String> _seenUnlockedBadgeKeys = <String>{};
   Map<String, String> _unlockedBadgeDates = <String, String>{};
   List<SocialEncouragementRecord> _socialEncouragementRecords = [];
@@ -321,6 +324,8 @@ class AppState extends ChangeNotifier {
   bool get isSignedIn => _currentUser != null;
   bool get hasAcceptedPrivacyPolicy => _hasAcceptedPrivacyPolicy;
   DateTime? get privacyAcceptedAt => _privacyAcceptedAt;
+  bool get hasCompletedOnboarding => _hasCompletedOnboarding;
+  bool get isHydrated => _isHydrated;
   String get accountProviderLabel {
     switch (_currentUser?.authProvider) {
       case 'email':
@@ -1588,6 +1593,7 @@ class AppState extends ChangeNotifier {
       await _loadFriendIdentityAndRequests();
       await _loadCurrentUser();
       await _loadPrivacyConsent();
+      await _loadOnboardingState();
       await _loadReminderSettings();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
@@ -1610,6 +1616,7 @@ class AppState extends ChangeNotifier {
       _unlockAllAvatarItemsForPreview();
       await _saveAvatarUnlockState();
       _syncTodaySummary();
+      _isHydrated = true;
       notifyListeners();
     } catch (e) {
       debugPrint('load data error: $e');
@@ -1622,6 +1629,7 @@ class AppState extends ChangeNotifier {
       await _loadFriendIdentityAndRequests();
       await _loadCurrentUser();
       await _loadPrivacyConsent();
+      await _loadOnboardingState();
       await _loadReminderSettings();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
@@ -1643,6 +1651,7 @@ class AppState extends ChangeNotifier {
       _unlockAllAvatarItemsForPreview();
       await _saveAvatarUnlockState();
       _syncTodaySummary();
+      _isHydrated = true;
       notifyListeners();
     }
   }
@@ -1883,6 +1892,25 @@ class AppState extends ChangeNotifier {
     _privacyAcceptedAt = DateTime.now();
     notifyListeners();
     await _savePrivacyConsent();
+  }
+
+  Future<void> _loadOnboardingState() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hasCompletedOnboarding = prefs.getBool(_onboardingCompletedKey) ?? false;
+  }
+
+  Future<void> completeOnboarding() async {
+    _hasCompletedOnboarding = true;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingCompletedKey, true);
+  }
+
+  Future<void> resetOnboardingForPreview() async {
+    _hasCompletedOnboarding = false;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingCompletedKey, false);
   }
 
   Future<void> revokePrivacyPolicyConsent() async {
@@ -3189,6 +3217,7 @@ class AppState extends ChangeNotifier {
     _currentUser = null;
     _hasAcceptedPrivacyPolicy = false;
     _privacyAcceptedAt = null;
+    _hasCompletedOnboarding = false;
     _seenUnlockedBadgeKeys = <String>{};
     _unlockedBadgeDates = <String, String>{};
     _socialEncouragementRecords = [];
@@ -3211,6 +3240,7 @@ class AppState extends ChangeNotifier {
     await _saveFriendIdentityAndRequests();
     await _saveCurrentUser();
     await _savePrivacyConsent();
+    await prefs.setBool(_onboardingCompletedKey, false);
     await _saveSocialEncouragementRecords();
     await _saveUnlockedBadges();
     await _saveSeenUnlockedBadges();
