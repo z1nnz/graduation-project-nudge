@@ -28,8 +28,60 @@ class AvatarPartCategory {
   }
 }
 
+class AvatarEvolutionStage {
+  final int index;
+  final String series;
+  final String name;
+  final int stage;
+  final int requiredLevel;
+  final int requiredExperience;
+  final String description;
+
+  const AvatarEvolutionStage({
+    required this.index,
+    required this.series,
+    required this.name,
+    required this.stage,
+    required this.requiredLevel,
+    required this.requiredExperience,
+    required this.description,
+  });
+
+  String get stageLabel => '第 $stage 階';
+}
+
 class AvatarCatalog {
-  static const List<String> faceShapeLabels = ['晨光練習生', '星光少女'];
+  static const List<AvatarEvolutionStage> evolutionStages = [
+    AvatarEvolutionStage(
+      index: 0,
+      series: '晨光夥伴',
+      name: '晨光練習生',
+      stage: 1,
+      requiredLevel: 1,
+      requiredExperience: 0,
+      description: '剛開始陪你建立自律節奏的基礎型態。',
+    ),
+    AvatarEvolutionStage(
+      index: 1,
+      series: '晨光夥伴',
+      name: '星光少女',
+      stage: 2,
+      requiredLevel: 30,
+      requiredExperience: 10000,
+      description: '連續累積約 20 天滿額經驗後解鎖的進階造型。',
+    ),
+    AvatarEvolutionStage(
+      index: 2,
+      series: '晨光夥伴',
+      name: '星耀守護者',
+      stage: 3,
+      requiredLevel: 60,
+      requiredExperience: 30000,
+      description: '長期穩定累積約 60 天滿額經驗後解鎖的最終造型。',
+    ),
+  ];
+
+  static const List<String> faceShapeLabels = ['晨光練習生', '星光少女', '星耀守護者'];
 
   // Future layered-avatar expansion. These labels stay here so older saved
   // profiles can still be normalized, but the current shop/editor only exposes
@@ -77,5 +129,12 @@ class AvatarCatalog {
 
   static String labelFor(String key, int index) {
     return categoryFor(key).labelFor(index);
+  }
+
+  static AvatarEvolutionStage stageForIndex(int index) {
+    return evolutionStages.firstWhere(
+      (stage) => stage.index == index,
+      orElse: () => evolutionStages.first,
+    );
   }
 }

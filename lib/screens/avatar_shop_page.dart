@@ -6,6 +6,7 @@ import '../models/avatar_profile.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import 'avatar_evolution_page.dart';
 
 class AvatarShopPage extends StatefulWidget {
   const AvatarShopPage({super.key});
@@ -65,6 +66,12 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
       icon: Icons.auto_awesome_outlined,
       items: [MapEntry('faceShape', 1)],
     ),
+    const _ShopSet(
+      title: '星耀守護者',
+      description: '需要長期穩定自律才會開放的第三階段角色。',
+      icon: Icons.workspace_premium_outlined,
+      items: [MapEntry('faceShape', 2)],
+    ),
   ];
 
   late final List<AvatarPartCategory> categories = AvatarCatalog.shopCategories;
@@ -107,6 +114,18 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     return [MapEntry('faceShape', draft.faceShapeIndex)];
   }
 
+  Future<void> _openEvolutionGuide() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AvatarEvolutionPage()),
+    );
+    if (!mounted) return;
+    setState(() {
+      original = context.read<AppState>().avatarProfile;
+      draft = original;
+    });
+  }
+
   int _checkoutPrice(AppState appState) {
     var total = 0;
     for (final item in _selectedItems()) {
@@ -137,6 +156,25 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
   }
 
   void _applySet(_ShopSet set) {
+    final appState = context.read<AppState>();
+    MapEntry<String, int>? lockedItem;
+    for (final item in set.items) {
+      if (!appState.isAvatarItemUnlocked(item.key, item.value)) {
+        lockedItem = item;
+        break;
+      }
+    }
+    if (lockedItem != null) {
+      final category = AvatarCatalog.categoryFor(lockedItem.key);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${category.labelFor(lockedItem.value)} 需要 ${appState.avatarEvolutionRequirementText(lockedItem.value)}。',
+          ),
+        ),
+      );
+      return;
+    }
     setState(() {
       for (final item in set.items) {
         draft = _applyItem(draft, item.key, item.value);
@@ -269,8 +307,40 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                 ),
                 Positioned(
                   top: 14,
+                  left: 12,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: '返回',
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '角色商城',
+                        style: TextStyle(
+                          color: AppUI.textPrimaryOf(context),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: 14,
                   right: 18,
-                  child: _CoinBadge(coins: appState.disciplineCoins),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: '進化圖鑑',
+                        onPressed: _openEvolutionGuide,
+                        icon: const Icon(Icons.auto_graph_rounded),
+                      ),
+                      const SizedBox(width: 4),
+                      _CoinBadge(coins: appState.disciplineCoins),
+                    ],
+                  ),
                 ),
                 Positioned(
                   top: 50,
@@ -328,6 +398,19 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                     currentIndex: _currentIndexFor(selectedCategory.key),
                     accentColor: accentColor,
                     onItemTap: (index) {
+                      if (!appState.isAvatarItemUnlocked(
+                        selectedCategory.key,
+                        index,
+                      )) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${selectedCategory.labelFor(index)} 需要 ${appState.avatarEvolutionRequirementText(index)}。',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
                       setState(() {
                         draft = _applyItem(draft, selectedCategory.key, index);
                       });
@@ -537,6 +620,7 @@ class _ShopDrawer extends StatelessWidget {
   int _setPrice(AppState appState, _ShopSet set) {
     return set.items.fold<int>(0, (sum, item) {
       if (appState.isAvatarItemUnlocked(item.key, item.value)) return sum;
+      if (item.key == 'faceShape') return -1;
       return sum + appState.avatarItemPrice(item.key, item.value);
     });
   }
@@ -841,6 +925,19 @@ class _ShopDrawer extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                 ),
                               )
+                            else if (selectedCategory.key == 'faceShape')
+                              Text(
+                                appState.avatarEvolutionRequirementText(index),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? const Color(0xFFFBBF24)
+                                      : const Color(0xFFB7791F),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
                             else
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1086,7 +1183,11 @@ class _ShopSetList extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      price == 0 ? '已擁有' : '$price',
+                      price < 0
+                          ? '需進化'
+                          : price == 0
+                          ? '已擁有'
+                          : '$price',
                       style: TextStyle(
                         color: price == 0 ? accentColor : color,
                         fontSize: 12,

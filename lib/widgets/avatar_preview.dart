@@ -66,7 +66,9 @@ class AvatarPreview extends StatelessWidget {
   Widget _buildAssetLayer(String path) {
     return OverflowBox(
       alignment: Alignment.center,
-      maxWidth: size,
+      minWidth: 0,
+      minHeight: 0,
+      maxWidth: size * 1.5,
       maxHeight: size * 1.5,
       child: SizedBox(
         width: size,

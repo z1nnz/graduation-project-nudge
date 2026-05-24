@@ -6,6 +6,7 @@ import '../models/avatar_profile.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import 'avatar_evolution_page.dart';
 import 'avatar_shop_page.dart';
 
 class AvatarEditorPage extends StatefulWidget {
@@ -116,6 +117,18 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
     }
   }
 
+  Future<void> _openEvolutionGuide() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AvatarEvolutionPage()),
+    );
+    if (!mounted) return;
+    setState(() {
+      original = context.read<AppState>().avatarProfile;
+      draft = original;
+    });
+  }
+
   Future<void> _saveLook() async {
     await context.read<AppState>().updateAvatarProfile(draft);
     if (!mounted) return;
@@ -127,11 +140,10 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
 
   void _showLockedHint(AvatarPartCategory category, int index) {
     final appState = context.read<AppState>();
-    final price = appState.avatarItemPrice(category.key, index);
+    final requirement = appState.avatarEvolutionRequirementText(index);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${category.labelFor(index)} 尚未擁有，需要 $price 枚自律幣。'),
-        action: SnackBarAction(label: '去商城', onPressed: _openShop),
+        content: Text('${category.labelFor(index)} 尚未進化解鎖，$requirement。'),
       ),
     );
   }
@@ -189,10 +201,19 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
             Positioned(
               top: 10,
               right: 8,
-              child: IconButton(
-                tooltip: '角色商城',
-                onPressed: _openShop,
-                icon: const Icon(Icons.storefront_outlined),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: '進化圖鑑',
+                    onPressed: _openEvolutionGuide,
+                    icon: const Icon(Icons.auto_graph_rounded),
+                  ),
+                  IconButton(
+                    tooltip: '角色商城',
+                    onPressed: _openShop,
+                    icon: const Icon(Icons.storefront_outlined),
+                  ),
+                ],
               ),
             ),
             Positioned(
@@ -651,6 +672,7 @@ class _CategoryDetailHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
+    final appState = context.watch<AppState>();
 
     return Container(
       width: double.infinity,
@@ -714,6 +736,33 @@ class _CategoryDetailHeader extends StatelessWidget {
                 label: category.requiresUnlock ? '收藏' : '狀態',
                 value: ownedText,
                 color: category.requiresUnlock ? AppUI.orange : AppUI.green,
+              ),
+              _EditorInfoPill(
+                label: '角色等級',
+                value:
+                    'Lv.${appState.avatarLevel} / ${appState.avatarExperience} EXP',
+                color: AppUI.green,
+              ),
+              _EditorInfoPill(
+                label: appState.avatarLevel >= AppState.avatarMaxLevel
+                    ? '已滿等'
+                    : '下一等',
+                value: appState.avatarLevel >= AppState.avatarMaxLevel
+                    ? 'Lv.${AppState.avatarMaxLevel}'
+                    : '還差 ${appState.avatarExperienceToNextLevel} EXP',
+                color: AppUI.purple,
+              ),
+              _EditorInfoPill(
+                label: '任務 EXP',
+                value:
+                    '+${appState.todayAvatarScoreExperience}/${AppState.avatarDailyScoreExperienceCap}',
+                color: AppUI.blue,
+              ),
+              _EditorInfoPill(
+                label: '偵測 EXP',
+                value:
+                    '+${appState.todayAvatarAutoExperience}/${AppState.avatarDailyAutoExperienceCap}',
+                color: AppUI.orange,
               ),
             ],
           ),

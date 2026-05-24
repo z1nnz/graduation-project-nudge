@@ -4,6 +4,7 @@ import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import 'about_page.dart';
 import 'account_page.dart';
+import 'onboarding_page.dart';
 import 'privacy_data_page.dart';
 import 'reminder_center_page.dart';
 
@@ -301,6 +302,24 @@ class SettingsPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ReminderCenterPage()),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          _sectionCard(
+            context: context,
+            title: '初始偏好',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.flag_circle_outlined, color: accentColor),
+              title: const Text('重新查看新手引導'),
+              subtitle: const Text('調整目標類型、起步任務、角色、提醒與隱私確認'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OnboardingPage()),
                 );
               },
             ),

@@ -189,6 +189,11 @@ class AppState extends ChangeNotifier {
     80: 3,
     100: 3,
   };
+  static const int avatarDailyScoreExperienceCap = 400;
+  static const int avatarDailyAutoExperienceCap = 100;
+  static const int avatarMaxLevel = 60;
+  static const double _avatarLevelCurveA = 5.454899668809663;
+  static const double _avatarLevelCurveB = 186.63549581141635;
 
   List<Map<String, dynamic>> _tasks = [];
   int _focusSeconds = 0;
@@ -377,6 +382,134 @@ class AppState extends ChangeNotifier {
 
   AvatarProfile get avatarProfile => _avatarProfile;
 
+  int get todayAvatarExperience {
+    return avatarExperienceForSummary(_buildTodayExperienceSummary());
+  }
+
+  int get todayAvatarScoreExperience {
+    return avatarScoreExperienceForSummary(_buildTodayExperienceSummary());
+  }
+
+  int get todayAvatarAutoExperience {
+    return avatarAutoExperienceForSummary(_buildTodayExperienceSummary());
+  }
+
+  int get avatarExperience {
+    final today = _todayKey();
+    final historyExp = _dailySummaries.fold<int>(
+      0,
+      (sum, summary) => summary.date == today
+          ? sum
+          : sum + avatarExperienceForSummary(summary),
+    );
+    return historyExp + todayAvatarExperience;
+  }
+
+  int get avatarLevel {
+    var level = 1;
+    for (var candidate = 2; candidate <= avatarMaxLevel; candidate++) {
+      if (avatarExperience < avatarExperienceRequiredForLevel(candidate)) {
+        break;
+      }
+      level = candidate;
+    }
+    return level;
+  }
+
+  int get avatarNextLevelExperience {
+    if (avatarLevel >= avatarMaxLevel) {
+      return avatarExperienceRequiredForLevel(avatarMaxLevel);
+    }
+    return avatarExperienceRequiredForLevel(avatarLevel + 1);
+  }
+
+  int get avatarExperienceToNextLevel {
+    if (avatarLevel >= avatarMaxLevel) return 0;
+    final remaining = avatarNextLevelExperience - avatarExperience;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  static int avatarExperienceRequiredForLevel(int level) {
+    final normalizedLevel = level.clamp(1, avatarMaxLevel).toInt();
+    final levelOffset = normalizedLevel - 1;
+    final required =
+        (_avatarLevelCurveA * levelOffset * levelOffset) +
+        (_avatarLevelCurveB * levelOffset);
+    return required.round();
+  }
+
+  int get currentAvatarStageIndex => _avatarProfile.faceShapeIndex;
+
+  bool isAvatarEvolutionStageUnlocked(int index) {
+    final stage = AvatarCatalog.stageForIndex(index);
+    if (index == 0) return true;
+    return avatarLevel >= stage.requiredLevel &&
+        avatarExperience >= stage.requiredExperience;
+  }
+
+  String avatarEvolutionRequirementText(int index) {
+    final stage = AvatarCatalog.stageForIndex(index);
+    if (isAvatarEvolutionStageUnlocked(index)) return '已解鎖';
+    return 'Lv.${stage.requiredLevel} / ${stage.requiredExperience} EXP 解鎖';
+  }
+
+  int avatarExperienceForSummary(DailySummary summary) {
+    return avatarScoreExperienceForSummary(summary) +
+        avatarAutoExperienceForSummary(summary);
+  }
+
+  int avatarScoreExperienceForSummary(DailySummary summary) {
+    if (summary.totalTasks <= 0) return 0;
+    final raw = (summary.disciplineScore * 4).round();
+    final multiplier = _avatarExperienceVolumeMultiplier(summary.totalTasks);
+    return (raw * multiplier)
+        .round()
+        .clamp(0, avatarDailyScoreExperienceCap)
+        .toInt();
+  }
+
+  int avatarAutoExperienceForSummary(DailySummary summary) {
+    var exp = 0;
+
+    if (summary.focusMinutes >= 50) {
+      exp += 35;
+    } else if (summary.focusMinutes >= 25) {
+      exp += 25;
+    }
+
+    if (summary.sleepHours >= 7) {
+      exp += 20;
+    } else if (summary.sleepHours >= 6.5) {
+      exp += 12;
+    }
+
+    if (summary.steps >= 6000) {
+      exp += 20;
+    } else if (summary.steps >= 4000) {
+      exp += 10;
+    }
+
+    if (summary.exerciseMinutes >= 20) {
+      exp += 20;
+    } else if (summary.exerciseMinutes >= 10) {
+      exp += 10;
+    }
+
+    if (summary.roomCompleted > 0) exp += 15;
+    if (summary.autoTrackedCompleted >= 3) exp += 10;
+
+    return exp.clamp(0, avatarDailyAutoExperienceCap).toInt();
+  }
+
+  double _avatarExperienceVolumeMultiplier(int totalTasks) {
+    if (totalTasks <= 0) return 0;
+    if (totalTasks == 1) return 0.35;
+    if (totalTasks == 2) return 0.55;
+    if (totalTasks == 3) return 0.75;
+    if (totalTasks == 4) return 0.9;
+    return 1.0;
+  }
+
   AvatarProfile avatarVariantForSeed(int seed) {
     final normalizedSeed = seed.abs();
     return AvatarProfile.initial().copyWith(
@@ -390,6 +523,9 @@ class AppState extends ChangeNotifier {
 
   bool isAvatarItemUnlocked(String category, int index) {
     if (index == 0) return true;
+    if (category == 'faceShape' && isAvatarEvolutionStageUnlocked(index)) {
+      return true;
+    }
     return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
   }
 
@@ -398,7 +534,7 @@ class AppState extends ChangeNotifier {
 
     switch (category) {
       case 'faceShape':
-        return 45 + (index * 15);
+        return 0;
       default:
         return 8 + (index * 3);
     }
@@ -1519,15 +1655,14 @@ class AppState extends ChangeNotifier {
   }
 
   void _unlockAllAvatarItemsForPreview() {
-    for (final category in AvatarCatalog.shopCategories) {
-      for (var i = 0; i < category.itemCount; i++) {
-        _unlockedAvatarItemKeys.add(avatarItemKey(category.key, i));
-      }
-    }
+    _unlockCurrentAvatarProfile();
   }
 
   Future<bool> purchaseAvatarItem(String category, int index) async {
     if (isAvatarItemUnlocked(category, index)) return true;
+    if (category == 'faceShape' && !isAvatarEvolutionStageUnlocked(index)) {
+      return false;
+    }
 
     final price = avatarItemPrice(category, index);
     if (_disciplineCoins < price) return false;
@@ -2559,8 +2694,7 @@ class AppState extends ChangeNotifier {
     return labels.toList()..sort();
   }
 
-  void _syncTodaySummary() {
-    final today = _todayKey();
+  DailySummary _buildTodayExperienceSummary() {
     final todayTasks = _tasks.where(_isTodayActionableTask).toList();
     final completedCount = todayTasks
         .where((task) => task['done'] == true)
@@ -2578,8 +2712,8 @@ class AppState extends ChangeNotifier {
     final focusSources = {TaskSourceType.focusMinutes};
     final roomSources = {TaskSourceType.studyRoom};
 
-    final summary = DailySummary(
-      date: today,
+    return DailySummary(
+      date: _todayKey(),
       completedTasks: completedCount,
       totalTasks: todayTasks.length,
       focusMinutes: focusMinutes,
@@ -2600,6 +2734,11 @@ class AppState extends ChangeNotifier {
       focusTotal: _countTasksBySource(focusSources),
       autoTrackedSources: _autoTrackedSourceLabels(),
     );
+  }
+
+  void _syncTodaySummary() {
+    final today = _todayKey();
+    final summary = _buildTodayExperienceSummary();
 
     final index = _dailySummaries.indexWhere((item) => item.date == today);
 
