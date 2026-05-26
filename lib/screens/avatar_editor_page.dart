@@ -209,7 +209,7 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
                     icon: const Icon(Icons.auto_graph_rounded),
                   ),
                   IconButton(
-                    tooltip: '角色商城',
+                    tooltip: '造型商城',
                     onPressed: _openShop,
                     icon: const Icon(Icons.storefront_outlined),
                   ),
@@ -719,7 +719,7 @@ class _CategoryDetailHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              TextButton(onPressed: onOpenShop, child: const Text('角色商城')),
+              TextButton(onPressed: onOpenShop, child: const Text('造型商城')),
             ],
           ),
           const SizedBox(height: 12),

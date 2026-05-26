@@ -15,6 +15,7 @@ import '../models/task_model.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
+import '../theme/app_ui.dart';
 
 class ReminderChannelSetting {
   final String key;
@@ -611,6 +612,10 @@ class AppState extends ChangeNotifier {
     if (category == 'faceShape') {
       return isAvatarEvolutionStageUnlocked(index);
     }
+    if (category == 'appBackground') {
+      if (index == 0) return true;
+      return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
+    }
     if (index == 0) return true;
     return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
   }
@@ -619,6 +624,9 @@ class AppState extends ChangeNotifier {
     switch (category) {
       case 'faceShape':
         return AvatarCatalog.stageForIndex(index).coinPrice;
+      case 'appBackground':
+        if (index < 0 || index >= AppUI.backgroundThemeKeys.length) return 0;
+        return AppUI.backgroundThemePrice(AppUI.backgroundThemeKeys[index]);
       default:
         return 8 + (index * 3);
     }
@@ -1748,6 +1756,7 @@ class AppState extends ChangeNotifier {
   void _unlockCurrentAvatarProfile() {
     _unlockedAvatarItemKeys.addAll({
       avatarItemKey('faceShape', _avatarProfile.faceShapeIndex),
+      avatarItemKey('appBackground', 0),
     });
   }
 
@@ -1757,6 +1766,10 @@ class AppState extends ChangeNotifier {
 
   Future<bool> purchaseAvatarItem(String category, int index) async {
     if (isAvatarItemUnlocked(category, index)) return true;
+    if (category == 'appBackground' &&
+        (index < 0 || index >= AppUI.backgroundThemeKeys.length)) {
+      return false;
+    }
     if (category == 'faceShape' && !isAvatarEvolutionStageUnlocked(index)) {
       final stage = AvatarCatalog.stageForIndex(index);
       if (stage.stage != 1 || stage.coinPrice <= 0) {
@@ -1836,6 +1849,7 @@ class AppState extends ChangeNotifier {
       final hasRewardState = await _loadRewardState();
       await _loadAvatarUnlockState();
       await _loadAvatarExperienceLedger();
+      _normalizeBackgroundThemeSettingForUnlocks();
       _normalizeAvatarProfileForCatalog();
 
       await _checkAndPerformDailyResetIfNeeded();
@@ -1875,6 +1889,7 @@ class AppState extends ChangeNotifier {
       final hasRewardState = await _loadRewardState();
       await _loadAvatarUnlockState();
       await _loadAvatarExperienceLedger();
+      _normalizeBackgroundThemeSettingForUnlocks();
       _normalizeAvatarProfileForCatalog();
       await _checkAndPerformDailyResetIfNeeded();
       _syncMyHealthMetricsAcrossRooms();
@@ -1925,6 +1940,13 @@ class AppState extends ChangeNotifier {
   int _clampAvatarIndex(int value, int length) {
     if (length <= 0) return 0;
     return value.clamp(0, length - 1).toInt();
+  }
+
+  void _normalizeBackgroundThemeSettingForUnlocks() {
+    final index = AppUI.backgroundThemeKeys.indexOf(_backgroundThemeSetting);
+    if (index < 0 || !isAvatarItemUnlocked('appBackground', index)) {
+      _backgroundThemeSetting = 'softGlow';
+    }
   }
 
   void _normalizeAvatarProfileForCatalog({bool enforceUnlocks = true}) {
@@ -3020,6 +3042,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> setBackgroundThemeSetting(String value) async {
+    final index = AppUI.backgroundThemeKeys.indexOf(value);
+    if (index < 0 || !isAvatarItemUnlocked('appBackground', index)) return;
     _backgroundThemeSetting = value;
     notifyListeners();
     await _saveAppearanceSettings();

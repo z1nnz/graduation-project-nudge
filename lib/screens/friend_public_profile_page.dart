@@ -194,7 +194,7 @@ class FriendPublicProfilePage extends StatelessWidget {
                       _OutfitPart(
                         icon: Icons.storefront_outlined,
                         title: '取得方式',
-                        value: '角色商城',
+                        value: '造型商城',
                         color: const Color(0xFF4F8CFF),
                       ),
                       _OutfitPart(

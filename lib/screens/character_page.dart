@@ -416,7 +416,7 @@ class _CharacterShortcutGrid extends StatelessWidget {
         ),
         _CharacterShortcutButton(
           icon: Icons.storefront_rounded,
-          title: '角色商城',
+          title: '造型商城',
           subtitle: '造型',
           color: accentColor,
           onTap: onOpenShop,

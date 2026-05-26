@@ -214,6 +214,12 @@ class _HeroDashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusText = score >= 90
+        ? '今日狀態很好'
+        : score >= 60
+        ? '今日穩定推進'
+        : '今日正在起步';
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -222,126 +228,155 @@ class _HeroDashboardCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             accentColor.withValues(alpha: 0.95),
-            accentColor.withValues(alpha: 0.76),
-            const Color(0xFF0F766E),
+            Color.lerp(accentColor, const Color(0xFF4F8CFF), 0.42) ??
+                accentColor,
+            const Color(0xFF0F766E).withValues(alpha: 0.96),
           ],
+          stops: const [0, 0.58, 1],
         ),
         borderRadius: BorderRadius.circular(AppUI.radiusLarge),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withValues(alpha: 0.22),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: accentColor.withValues(alpha: 0.24),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const _DashboardPill(
+            icon: Icons.data_usage_rounded,
+            label: '今日儀表板',
+            color: Colors.white,
+          ),
+          const SizedBox(height: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.data_usage_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                        SizedBox(width: 5),
-                        Text(
-                          '今日儀表板',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$score',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      height: 0.9,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 2),
-                    child: Text(
-                      '分',
-                      style: TextStyle(
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$score',
+                      maxLines: 1,
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 50,
                         fontWeight: FontWeight.w900,
+                        height: 0.9,
                       ),
                     ),
-                  ),
-                  const Spacer(),
-                ],
+                    const SizedBox(width: 7),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '分',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 14),
-              GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 2.35,
-                children: [
-                  _DashboardMetricCard(
-                    icon: Icons.task_alt_outlined,
-                    label: '任務',
-                    value: '$completedCount/$totalTasks',
-                    color: const Color(0xFF34D399),
-                  ),
-                  _DashboardMetricCard(
-                    icon: Icons.timer_outlined,
-                    label: '專注',
-                    value: '$focusMinutes 分',
-                    color: const Color(0xFF93C5FD),
-                  ),
-                  _DashboardMetricCard(
-                    icon: Icons.bedtime_outlined,
-                    label: '睡眠',
-                    value: isHealthConnected
-                        ? '${sleepHours.toStringAsFixed(1)} 小時'
-                        : '未同步',
-                    color: const Color(0xFFC4B5FD),
-                  ),
-                  _DashboardMetricCard(
-                    icon: Icons.directions_walk,
-                    label: '步數',
-                    value: isHealthConnected ? '$steps' : '未同步',
-                    color: const Color(0xFF6EE7B7),
-                  ),
-                ],
+              const SizedBox(height: 6),
+              Text(
+                statusText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 18),
+          GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 2.55,
+            children: [
+              _DashboardMetricCard(
+                icon: Icons.task_alt_outlined,
+                label: '任務',
+                value: '$completedCount/$totalTasks',
+                color: const Color(0xFF34D399),
+              ),
+              _DashboardMetricCard(
+                icon: Icons.timer_outlined,
+                label: '專注',
+                value: '$focusMinutes 分',
+                color: const Color(0xFF93C5FD),
+              ),
+              _DashboardMetricCard(
+                icon: Icons.bedtime_outlined,
+                label: '睡眠',
+                value: isHealthConnected
+                    ? '${sleepHours.toStringAsFixed(1)} 小時'
+                    : '未同步',
+                color: const Color(0xFFC4B5FD),
+              ),
+              _DashboardMetricCard(
+                icon: Icons.directions_walk,
+                label: '步數',
+                value: isHealthConnected ? '$steps' : '未同步',
+                color: const Color(0xFF6EE7B7),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _DashboardPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppUI.radiusPill),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
@@ -365,11 +400,11 @@ class _DashboardMetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: Colors.white.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
       ),
       child: Row(
         children: [
@@ -377,7 +412,7 @@ class _DashboardMetricCard extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.18),
+              color: color.withValues(alpha: 0.20),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 18),

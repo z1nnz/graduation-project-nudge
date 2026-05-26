@@ -72,6 +72,7 @@ class EncouragementPage extends StatelessWidget {
     final todaySent = _todaySentCount(records, appState.profileNickname);
     final typeStats = _typeStats(records);
     final topEncourager = _mostFrequentEncourager(records);
+    final accentColor = appState.currentIconColor;
 
     return DefaultTabController(
       length: 2,
@@ -92,7 +93,7 @@ class EncouragementPage extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.all(18),
-                  decoration: AppUI.heroGradient(const Color(0xFFEC4899)),
+                  decoration: AppUI.heroGradient(accentColor),
                   child: const Text(
                     '看看誰最近鼓勵了你，讓互動不只是按一下而已。',
                     style: TextStyle(
@@ -123,7 +124,7 @@ class EncouragementPage extends StatelessWidget {
                               title: '今天收到',
                               value: '$todayReceived 次',
                               icon: Icons.favorite,
-                              color: const Color(0xFFEC4899),
+                              color: accentColor,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -132,7 +133,7 @@ class EncouragementPage extends StatelessWidget {
                               title: '今天送出',
                               value: '$todaySent 次',
                               icon: Icons.send_outlined,
-                              color: AppUI.primary,
+                              color: accentColor,
                             ),
                           ),
                         ],
@@ -182,7 +183,7 @@ class EncouragementPage extends StatelessWidget {
                             child: _TypeStatChip(
                               label: '繼續保持',
                               count: typeStats['繼續保持'] ?? 0,
-                              color: AppUI.primary,
+                              color: accentColor,
                             ),
                           ),
                         ],
@@ -205,7 +206,7 @@ class EncouragementPage extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.all(18),
-                  decoration: AppUI.heroGradient(AppUI.primary),
+                  decoration: AppUI.heroGradient(accentColor),
                   child: const Text(
                     '你送出去的每一句鼓勵，都會變成社交互動的一部分。',
                     style: TextStyle(

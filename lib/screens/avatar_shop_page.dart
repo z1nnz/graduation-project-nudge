@@ -18,6 +18,8 @@ class AvatarShopPage extends StatefulWidget {
 
 enum _ShopRarity { all, basic, rare, epic }
 
+enum _ShopShelf { characters, backgrounds }
+
 class _ShopSet {
   final String title;
   final String description;
@@ -45,9 +47,17 @@ class _CheckoutLine {
 }
 
 class _AvatarShopPageState extends State<AvatarShopPage> {
+  static const double _drawerMinExtent = 0.46;
+  static const double _drawerMaxExtent = 0.74;
+
   late AvatarProfile draft;
   late AvatarProfile original;
+  String draftBackgroundThemeKey = 'softGlow';
+  String originalBackgroundThemeKey = 'softGlow';
   bool _initialized = false;
+  bool _isDraggingDrawer = false;
+  double _drawerExtent = _drawerMinExtent;
+  _ShopShelf selectedShelf = _ShopShelf.characters;
   int selectedCategoryIndex = 0;
   bool showOwnedOnly = false;
   bool showSetsOnly = false;
@@ -106,8 +116,11 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialized) return;
-    original = context.read<AppState>().avatarProfile;
+    final appState = context.read<AppState>();
+    original = appState.avatarProfile;
     draft = original;
+    originalBackgroundThemeKey = appState.backgroundThemeSetting;
+    draftBackgroundThemeKey = originalBackgroundThemeKey;
     _initialized = true;
   }
 
@@ -118,6 +131,63 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
       default:
         return 0;
     }
+  }
+
+  double _lerp(double begin, double end, double progress) {
+    return begin + ((end - begin) * progress);
+  }
+
+  double _drawerHeightFor(double height) {
+    final rawHeight = height * _drawerExtent;
+    final minHeight = (height * _drawerMinExtent)
+        .clamp(320.0, 430.0)
+        .toDouble();
+    final maxAvailableHeight = (height - 86.0)
+        .clamp(minHeight, height)
+        .toDouble();
+    final maxHeight = (height * _drawerMaxExtent)
+        .clamp(minHeight, maxAvailableHeight)
+        .toDouble();
+    return rawHeight.clamp(minHeight, maxHeight).toDouble();
+  }
+
+  double _drawerProgress() {
+    return ((_drawerExtent - _drawerMinExtent) /
+            (_drawerMaxExtent - _drawerMinExtent))
+        .clamp(0.0, 1.0)
+        .toDouble();
+  }
+
+  double _previewSizeFor(double height) {
+    final progress = _drawerProgress();
+    final expandedSize = (height * 0.36).clamp(220.0, 286.0).toDouble();
+    final compactSize = (height * 0.22).clamp(132.0, 178.0).toDouble();
+    return _lerp(expandedSize, compactSize, progress);
+  }
+
+  void _updateDrawerExtent(DragUpdateDetails details, double height) {
+    final delta = details.primaryDelta ?? 0;
+    setState(() {
+      _isDraggingDrawer = true;
+      _drawerExtent = (_drawerExtent - (delta / height))
+          .clamp(_drawerMinExtent, _drawerMaxExtent)
+          .toDouble();
+    });
+  }
+
+  void _settleDrawerExtent(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    final nextExtent = velocity < -240
+        ? _drawerMaxExtent
+        : velocity > 240
+        ? _drawerMinExtent
+        : _drawerProgress() >= 0.48
+        ? _drawerMaxExtent
+        : _drawerMinExtent;
+    setState(() {
+      _isDraggingDrawer = false;
+      _drawerExtent = nextExtent;
+    });
   }
 
   AvatarProfile _applyItem(AvatarProfile base, String category, int index) {
@@ -167,6 +237,14 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
       }
     }
     return total;
+  }
+
+  int _backgroundCheckoutPrice(AppState appState) {
+    final index = AppUI.backgroundThemeKeys.indexOf(draftBackgroundThemeKey);
+    if (index < 0 || appState.isAvatarItemUnlocked('appBackground', index)) {
+      return 0;
+    }
+    return appState.avatarItemPrice('appBackground', index);
   }
 
   List<_CheckoutLine> _checkoutLines(AppState appState) {
@@ -320,6 +398,90 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     }
   }
 
+  Future<void> _saveBackgroundTheme() async {
+    final appState = context.read<AppState>();
+    final index = AppUI.backgroundThemeKeys.indexOf(draftBackgroundThemeKey);
+    if (index < 0) return;
+
+    final totalPrice = _backgroundCheckoutPrice(appState);
+    final themeName = AppUI.backgroundThemeLabel(draftBackgroundThemeKey);
+
+    if (appState.disciplineCoins < totalPrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('自律幣不足，還需要 ${totalPrice - appState.disciplineCoins} 枚'),
+        ),
+      );
+      return;
+    }
+
+    if (totalPrice > 0) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('確認購買背景主題'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('這次會購買並套用「$themeName」。'),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        AppUI.backgroundThemeDescription(
+                          draftBackgroundThemeKey,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '$totalPrice 枚',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('購買並套用'),
+              ),
+            ],
+          );
+        },
+      );
+      if (confirmed != true) return;
+    }
+
+    if (!appState.isAvatarItemUnlocked('appBackground', index)) {
+      final purchased = await appState.purchaseAvatarItem(
+        'appBackground',
+        index,
+      );
+      if (!purchased) return;
+    }
+
+    await appState.setBackgroundThemeSetting(draftBackgroundThemeKey);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            totalPrice > 0 ? '已購買並套用 $themeName' : '已套用 $themeName',
+          ),
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -335,14 +497,27 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final height = constraints.maxHeight;
-            final drawerHeight = (height * 0.46).clamp(340.0, 430.0);
-            final avatarSize = (height * 0.36).clamp(220.0, 286.0);
+            final drawerHeight = _drawerHeightFor(height);
+            final avatarSize = _previewSizeFor(height);
+            final drawerProgress = _drawerProgress();
+            final previewTop = _lerp(50.0, 42.0, drawerProgress);
+            final badgeTop = _lerp(88.0, 68.0, drawerProgress);
+            final animationDuration = _isDraggingDrawer
+                ? Duration.zero
+                : const Duration(milliseconds: 220);
             final draftStage = AvatarCatalog.stageForIndex(
               draft.faceShapeIndex,
             );
             final draftOwned = appState.isAvatarItemUnlocked(
               'faceShape',
               draft.faceShapeIndex,
+            );
+            final previewThemeKey = selectedShelf == _ShopShelf.backgrounds
+                ? draftBackgroundThemeKey
+                : appState.backgroundThemeSetting;
+            final backgroundColors = AppUI.backgroundThemeColors(
+              previewThemeKey,
+              AppUI.isDark(context),
             );
 
             return Stack(
@@ -353,9 +528,7 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: AppUI.isDark(context)
-                            ? const [Color(0xFF0F172A), Color(0xFF12312D)]
-                            : const [Color(0xFF55C7EE), Color(0xFFA8E6A2)],
+                        colors: backgroundColors,
                       ),
                     ),
                   ),
@@ -372,7 +545,7 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '角色商城',
+                        '造型商城',
                         style: TextStyle(
                           color: AppUI.textPrimaryOf(context),
                           fontSize: 22,
@@ -397,113 +570,188 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                     ],
                   ),
                 ),
-                Positioned(
-                  top: 50,
+                AnimatedPositioned(
+                  duration: animationDuration,
+                  curve: Curves.easeOutCubic,
+                  top: previewTop,
                   left: 0,
                   right: 0,
                   bottom: drawerHeight - 6,
                   child: Center(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _openMyProfile,
-                      child: AvatarPreview(
-                        profile: draft,
-                        size: avatarSize,
-                        showBackgroundRing: false,
-                      ),
+                    child: selectedShelf == _ShopShelf.backgrounds
+                        ? _BackgroundHeroPreview(
+                            themeKey: draftBackgroundThemeKey,
+                            size: avatarSize,
+                            profile: draft,
+                          )
+                        : GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _openMyProfile,
+                            child: AvatarPreview(
+                              profile: draft,
+                              size: avatarSize,
+                              showBackgroundRing: false,
+                            ),
+                          ),
+                  ),
+                ),
+                if (selectedShelf == _ShopShelf.characters)
+                  AnimatedPositioned(
+                    duration: animationDuration,
+                    curve: Curves.easeOutCubic,
+                    left: 18,
+                    top: badgeTop,
+                    child: _PreviewStageBadge(
+                      stage: draftStage,
+                      owned: draftOwned,
+                      accentColor: accentColor,
                     ),
                   ),
-                ),
-                Positioned(
-                  left: 18,
-                  top: 88,
-                  child: _PreviewStageBadge(
-                    stage: draftStage,
-                    owned: draftOwned,
-                    accentColor: accentColor,
+                if (selectedShelf == _ShopShelf.backgrounds)
+                  AnimatedPositioned(
+                    duration: animationDuration,
+                    curve: Curves.easeOutCubic,
+                    left: 18,
+                    top: badgeTop,
+                    child: _PreviewBackgroundBadge(
+                      themeKey: draftBackgroundThemeKey,
+                      owned: appState.isAvatarItemUnlocked(
+                        'appBackground',
+                        AppUI.backgroundThemeKeys.indexOf(
+                          draftBackgroundThemeKey,
+                        ),
+                      ),
+                      accentColor: accentColor,
+                    ),
                   ),
-                ),
-                Positioned(
+                AnimatedPositioned(
+                  duration: animationDuration,
+                  curve: Curves.easeOutCubic,
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: _ShopDrawer(
-                    height: drawerHeight,
-                    categories: categories,
-                    selectedCategoryIndex: selectedCategoryIndex,
-                    onCategoryChanged: (index) {
-                      setState(() {
-                        selectedCategoryIndex = index;
-                      });
-                    },
-                    showOwnedOnly: showOwnedOnly,
-                    onOwnedOnlyChanged: (value) {
-                      setState(() {
-                        showOwnedOnly = value;
-                      });
-                    },
-                    showSetsOnly: showSetsOnly,
-                    onSetsOnlyChanged: (value) {
-                      setState(() {
-                        showSetsOnly = value;
-                      });
-                    },
-                    searchQuery: shopQuery,
-                    onSearchChanged: (value) {
-                      setState(() {
-                        shopQuery = value;
-                      });
-                    },
-                    selectedRarity: selectedRarity,
-                    onRarityChanged: (value) {
-                      setState(() {
-                        selectedRarity = value;
-                      });
-                    },
-                    shopSets: shopSets,
-                    onSetTap: _applySet,
-                    selectedCategory: selectedCategory,
-                    currentIndex: _currentIndexFor(selectedCategory.key),
-                    accentColor: accentColor,
-                    onItemTap: (index) {
-                      if (!appState.isAvatarItemUnlocked(
-                        selectedCategory.key,
-                        index,
-                      )) {
-                        if (selectedCategory.key == 'faceShape' &&
-                            _isPurchasableLockedCharacter(appState, index)) {
-                          setState(() {
-                            draft = _applyItem(
-                              draft,
+                  child: selectedShelf == _ShopShelf.backgrounds
+                      ? _BackgroundThemeDrawer(
+                          height: drawerHeight,
+                          onDrawerDragUpdate: (details) =>
+                              _updateDrawerExtent(details, height),
+                          onDrawerDragEnd: _settleDrawerExtent,
+                          selectedShelf: selectedShelf,
+                          onShelfChanged: (shelf) {
+                            setState(() {
+                              selectedShelf = shelf;
+                            });
+                          },
+                          currentThemeKey: appState.backgroundThemeSetting,
+                          draftThemeKey: draftBackgroundThemeKey,
+                          accentColor: accentColor,
+                          onThemeTap: (themeKey) {
+                            setState(() {
+                              draftBackgroundThemeKey = themeKey;
+                            });
+                          },
+                          totalPrice: _backgroundCheckoutPrice(appState),
+                          onReset: () {
+                            setState(() {
+                              draftBackgroundThemeKey =
+                                  originalBackgroundThemeKey;
+                            });
+                          },
+                          onSave: _saveBackgroundTheme,
+                        )
+                      : _ShopDrawer(
+                          height: drawerHeight,
+                          onDrawerDragUpdate: (details) =>
+                              _updateDrawerExtent(details, height),
+                          onDrawerDragEnd: _settleDrawerExtent,
+                          selectedShelf: selectedShelf,
+                          onShelfChanged: (shelf) {
+                            setState(() {
+                              selectedShelf = shelf;
+                            });
+                          },
+                          categories: categories,
+                          selectedCategoryIndex: selectedCategoryIndex,
+                          onCategoryChanged: (index) {
+                            setState(() {
+                              selectedCategoryIndex = index;
+                            });
+                          },
+                          showOwnedOnly: showOwnedOnly,
+                          onOwnedOnlyChanged: (value) {
+                            setState(() {
+                              showOwnedOnly = value;
+                            });
+                          },
+                          showSetsOnly: showSetsOnly,
+                          onSetsOnlyChanged: (value) {
+                            setState(() {
+                              showSetsOnly = value;
+                            });
+                          },
+                          searchQuery: shopQuery,
+                          onSearchChanged: (value) {
+                            setState(() {
+                              shopQuery = value;
+                            });
+                          },
+                          selectedRarity: selectedRarity,
+                          onRarityChanged: (value) {
+                            setState(() {
+                              selectedRarity = value;
+                            });
+                          },
+                          shopSets: shopSets,
+                          onSetTap: _applySet,
+                          selectedCategory: selectedCategory,
+                          currentIndex: _currentIndexFor(selectedCategory.key),
+                          accentColor: accentColor,
+                          onItemTap: (index) {
+                            if (!appState.isAvatarItemUnlocked(
                               selectedCategory.key,
                               index,
-                            );
-                          });
-                          return;
-                        }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${selectedCategory.labelFor(index)} 需要 ${appState.avatarEvolutionRequirementText(index)}。',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                      setState(() {
-                        draft = _applyItem(draft, selectedCategory.key, index);
-                      });
-                    },
-                    previewBuilder: (index) =>
-                        _applyItem(draft, selectedCategory.key, index),
-                    totalPrice: totalPrice,
-                    onReset: () {
-                      setState(() {
-                        draft = original;
-                      });
-                    },
-                    onSave: _saveLook,
-                  ),
+                            )) {
+                              if (selectedCategory.key == 'faceShape' &&
+                                  _isPurchasableLockedCharacter(
+                                    appState,
+                                    index,
+                                  )) {
+                                setState(() {
+                                  draft = _applyItem(
+                                    draft,
+                                    selectedCategory.key,
+                                    index,
+                                  );
+                                });
+                                return;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${selectedCategory.labelFor(index)} 需要 ${appState.avatarEvolutionRequirementText(index)}。',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                            setState(() {
+                              draft = _applyItem(
+                                draft,
+                                selectedCategory.key,
+                                index,
+                              );
+                            });
+                          },
+                          previewBuilder: (index) =>
+                              _applyItem(draft, selectedCategory.key, index),
+                          totalPrice: totalPrice,
+                          onReset: () {
+                            setState(() {
+                              draft = original;
+                            });
+                          },
+                          onSave: _saveLook,
+                        ),
                 ),
               ],
             );
@@ -687,8 +935,285 @@ class _PreviewStageBadge extends StatelessWidget {
   }
 }
 
+class _PreviewBackgroundBadge extends StatelessWidget {
+  final String themeKey;
+  final bool owned;
+  final Color accentColor;
+
+  const _PreviewBackgroundBadge({
+    required this.themeKey,
+    required this.owned,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+    final color = owned ? AppUI.green : AppUI.orange;
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 190),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accentColor.withValues(alpha: 0.16)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: AppUI.isDark(context) ? 0.28 : 0.10,
+            ),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '背景主題',
+            style: TextStyle(
+              color: secondaryText,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            AppUI.backgroundThemeLabel(themeKey),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: primaryText,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                owned ? Icons.check_circle_rounded : Icons.lock_rounded,
+                color: color,
+                size: 15,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                owned ? '可套用' : '商城解鎖',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackgroundHeroPreview extends StatelessWidget {
+  final String themeKey;
+  final double size;
+  final AvatarProfile profile;
+
+  const _BackgroundHeroPreview({
+    required this.themeKey,
+    required this.size,
+    required this.profile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppUI.backgroundThemeColors(themeKey, AppUI.isDark(context));
+    final accent = colors.length > 1 ? colors[1] : AppUI.primary;
+
+    return Container(
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(size * 0.08),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: colors,
+        ),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.42)),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(
+              alpha: AppUI.isDark(context) ? 0.30 : 0.22,
+            ),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -size * 0.10,
+            bottom: -size * 0.12,
+            child: Icon(
+              AppUI.backgroundThemeIcon(themeKey),
+              size: size * 0.42,
+              color: Colors.white.withValues(alpha: 0.26),
+            ),
+          ),
+          Center(
+            child: AvatarPreview(
+              profile: profile,
+              size: size * 0.76,
+              showBackgroundRing: false,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopShelfSwitch extends StatelessWidget {
+  final _ShopShelf selectedShelf;
+  final ValueChanged<_ShopShelf> onChanged;
+  final Color accentColor;
+
+  const _ShopShelfSwitch({
+    required this.selectedShelf,
+    required this.onChanged,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppUI.isDark(context)
+            ? const Color(0xFF111827)
+            : const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(AppUI.radiusPill),
+      ),
+      child: Row(
+        children: [
+          _ShopShelfButton(
+            label: '角色',
+            icon: Icons.face_retouching_natural_outlined,
+            selected: selectedShelf == _ShopShelf.characters,
+            accentColor: accentColor,
+            onTap: () => onChanged(_ShopShelf.characters),
+          ),
+          _ShopShelfButton(
+            label: '背景',
+            icon: Icons.wallpaper_outlined,
+            selected: selectedShelf == _ShopShelf.backgrounds,
+            accentColor: accentColor,
+            onTap: () => onChanged(_ShopShelf.backgrounds),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopShelfButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _ShopShelfButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppUI.radiusPill),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? accentColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppUI.radiusPill),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? Colors.white : AppUI.textSecondaryOf(context),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected
+                      ? Colors.white
+                      : AppUI.textSecondaryOf(context),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerGrabber extends StatelessWidget {
+  final GestureDragUpdateCallback onDragUpdate;
+  final GestureDragEndCallback onDragEnd;
+
+  const _DrawerGrabber({required this.onDragUpdate, required this.onDragEnd});
+
+  @override
+  Widget build(BuildContext context) {
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragUpdate: onDragUpdate,
+      onVerticalDragEnd: onDragEnd,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 7, 0, 6),
+        child: Center(
+          child: Container(
+            width: 48,
+            height: 5,
+            decoration: BoxDecoration(
+              color: secondaryText.withValues(alpha: 0.28),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ShopDrawer extends StatelessWidget {
   final double height;
+  final GestureDragUpdateCallback onDrawerDragUpdate;
+  final GestureDragEndCallback onDrawerDragEnd;
+  final _ShopShelf selectedShelf;
+  final ValueChanged<_ShopShelf> onShelfChanged;
   final List<AvatarPartCategory> categories;
   final int selectedCategoryIndex;
   final ValueChanged<int> onCategoryChanged;
@@ -713,6 +1238,10 @@ class _ShopDrawer extends StatelessWidget {
 
   const _ShopDrawer({
     required this.height,
+    required this.onDrawerDragUpdate,
+    required this.onDrawerDragEnd,
+    required this.selectedShelf,
+    required this.onShelfChanged,
     required this.categories,
     required this.selectedCategoryIndex,
     required this.onCategoryChanged,
@@ -838,13 +1367,16 @@ class _ShopDrawer extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 7),
-          Container(
-            width: 42,
-            height: 4,
-            decoration: BoxDecoration(
-              color: secondaryText.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(999),
+          _DrawerGrabber(
+            onDragUpdate: onDrawerDragUpdate,
+            onDragEnd: onDrawerDragEnd,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 3, 16, 8),
+            child: _ShopShelfSwitch(
+              selectedShelf: selectedShelf,
+              onChanged: onShelfChanged,
+              accentColor: accentColor,
             ),
           ),
           if (categories.length > 1) ...[
@@ -1131,6 +1663,299 @@ class _ShopDrawer extends StatelessWidget {
                       );
                     },
                   ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor.withValues(alpha: 0.94),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onReset,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark
+                            ? const Color(0xFF1F2937)
+                            : Colors.white,
+                        foregroundColor: primaryText,
+                        elevation: 4,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.10)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: const Text('取消預覽'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onSave,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark
+                            ? const Color(0xFF1F2937)
+                            : Colors.white,
+                        foregroundColor: accentColor,
+                        elevation: 4,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(
+                          color: isDark
+                              ? accentColor.withValues(alpha: 0.30)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: Text(totalPrice > 0 ? '購買 $totalPrice' : '套用'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackgroundThemeDrawer extends StatelessWidget {
+  final double height;
+  final GestureDragUpdateCallback onDrawerDragUpdate;
+  final GestureDragEndCallback onDrawerDragEnd;
+  final _ShopShelf selectedShelf;
+  final ValueChanged<_ShopShelf> onShelfChanged;
+  final String currentThemeKey;
+  final String draftThemeKey;
+  final Color accentColor;
+  final ValueChanged<String> onThemeTap;
+  final int totalPrice;
+  final VoidCallback onReset;
+  final VoidCallback onSave;
+
+  const _BackgroundThemeDrawer({
+    required this.height,
+    required this.onDrawerDragUpdate,
+    required this.onDrawerDragEnd,
+    required this.selectedShelf,
+    required this.onShelfChanged,
+    required this.currentThemeKey,
+    required this.draftThemeKey,
+    required this.accentColor,
+    required this.onThemeTap,
+    required this.totalPrice,
+    required this.onReset,
+    required this.onSave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+    final isDark = AppUI.isDark(context);
+
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _DrawerGrabber(
+            onDragUpdate: onDrawerDragUpdate,
+            onDragEnd: onDrawerDragEnd,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 3, 16, 8),
+            child: _ShopShelfSwitch(
+              selectedShelf: selectedShelf,
+              onChanged: onShelfChanged,
+              accentColor: accentColor,
+            ),
+          ),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '背景主題',
+                        style: TextStyle(
+                          color: primaryText,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '買完即可套用到首頁、設定與自律房背景',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: secondaryText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.wallpaper_outlined, size: 22),
+              ],
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 72),
+              itemCount: AppUI.backgroundThemeKeys.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.92,
+              ),
+              itemBuilder: (context, index) {
+                final themeKey = AppUI.backgroundThemeKeys[index];
+                final colors = AppUI.backgroundThemeColors(themeKey, isDark);
+                final tileAccent = colors.length > 1 ? colors[1] : accentColor;
+                final selected = draftThemeKey == themeKey;
+                final unlocked = appState.isAvatarItemUnlocked(
+                  'appBackground',
+                  index,
+                );
+                final using = currentThemeKey == themeKey;
+                final price = appState.avatarItemPrice('appBackground', index);
+
+                return InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => onThemeTap(themeKey),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: selected
+                            ? accentColor
+                            : Theme.of(context).dividerColor,
+                        width: selected ? 2 : 1,
+                      ),
+                      boxShadow: selected
+                          ? [
+                              BoxShadow(
+                                color: tileAccent.withValues(alpha: 0.20),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: colors,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  right: -8,
+                                  bottom: -10,
+                                  child: Icon(
+                                    AppUI.backgroundThemeIcon(themeKey),
+                                    color: Colors.white.withValues(alpha: 0.42),
+                                    size: 58,
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 8,
+                                  top: 8,
+                                  child: Icon(
+                                    unlocked
+                                        ? Icons.check_circle_rounded
+                                        : Icons.lock_rounded,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    size: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          AppUI.backgroundThemeLabel(themeKey),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: primaryText,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                using
+                                    ? '使用中'
+                                    : unlocked
+                                    ? '已擁有'
+                                    : '$price 自律幣',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: unlocked ? accentColor : AppUI.orange,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              price >= 50
+                                  ? '史詩'
+                                  : price >= 40
+                                  ? '稀有'
+                                  : '基本',
+                              style: TextStyle(
+                                color: tileAccent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
