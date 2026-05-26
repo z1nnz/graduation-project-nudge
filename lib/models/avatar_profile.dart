@@ -12,6 +12,7 @@ class AvatarProfile {
   final int outfitColorIndex;
   final int accessoryIndex;
   final int backgroundColorIndex;
+  final int avatarIconIndex;
   final bool useCustomImage;
   final String? customImagePath;
 
@@ -27,6 +28,7 @@ class AvatarProfile {
     required this.outfitColorIndex,
     required this.accessoryIndex,
     required this.backgroundColorIndex,
+    required this.avatarIconIndex,
     required this.useCustomImage,
     required this.customImagePath,
   });
@@ -44,6 +46,7 @@ class AvatarProfile {
       outfitColorIndex: 0,
       accessoryIndex: 0,
       backgroundColorIndex: 0,
+      avatarIconIndex: 0,
       useCustomImage: false,
       customImagePath: null,
     );
@@ -61,6 +64,7 @@ class AvatarProfile {
     int? outfitColorIndex,
     int? accessoryIndex,
     int? backgroundColorIndex,
+    int? avatarIconIndex,
     bool? useCustomImage,
     String? customImagePath,
   }) {
@@ -76,6 +80,7 @@ class AvatarProfile {
       outfitColorIndex: outfitColorIndex ?? this.outfitColorIndex,
       accessoryIndex: accessoryIndex ?? this.accessoryIndex,
       backgroundColorIndex: backgroundColorIndex ?? this.backgroundColorIndex,
+      avatarIconIndex: avatarIconIndex ?? this.avatarIconIndex,
       useCustomImage: useCustomImage ?? this.useCustomImage,
       customImagePath: customImagePath ?? this.customImagePath,
     );
@@ -94,6 +99,7 @@ class AvatarProfile {
       'outfitColorIndex': outfitColorIndex,
       'accessoryIndex': accessoryIndex,
       'backgroundColorIndex': backgroundColorIndex,
+      'avatarIconIndex': avatarIconIndex,
       'useCustomImage': useCustomImage,
       'customImagePath': customImagePath,
     };
@@ -112,6 +118,7 @@ class AvatarProfile {
       outfitColorIndex: json['outfitColorIndex'] as int? ?? 0,
       accessoryIndex: json['accessoryIndex'] as int? ?? 0,
       backgroundColorIndex: json['backgroundColorIndex'] as int? ?? 0,
+      avatarIconIndex: json['avatarIconIndex'] as int? ?? 0,
       useCustomImage: json['useCustomImage'] as bool? ?? false,
       customImagePath: json['customImagePath'] as String?,
     );

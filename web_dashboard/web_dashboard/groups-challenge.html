@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 團體挑戰建立器</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <body data-page="groups">
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>挑戰建立</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="groups.html">團體 / 教育管理</a></nav></aside>
+      <main class="main">
+        <header class="hero split"><div><span class="eyebrow">Challenge Builder</span><h1>企業、班級、讀書會挑戰在這裡建立。</h1><p>可設定團體、類型、天數、獎勵，並下載活動規則。</p><div class="subnav"><a href="groups.html">中心總覽</a><a class="active" href="groups-challenge.html">挑戰建立</a><a href="groups-study-schedule.html">讀書時段</a><a href="groups-ranking.html">排行與週報</a><a href="groups-templates.html">考試模板</a></div></div><div class="hero-card"><span>參與人數</span><strong data-count="128">0</strong><p>本週活躍挑戰。</p></div></header>
+        <section class="tool-panel page-section" data-tool="challenge-builder">
+          <div class="tool-copy"><span class="eyebrow">Challenge Builder</span><h2>團體挑戰建立器</h2><p>包含排行榜規則、提醒節奏與獎勵條件。</p></div>
+          <div class="tool-grid"><label class="field"><span>團體名稱</span><input data-challenge-group value="資管三甲" /></label><label class="field"><span>挑戰類型</span><select data-challenge-type><option value="專注挑戰">專注挑戰</option><option value="步數挑戰">步數挑戰</option><option value="早睡挑戰">早睡挑戰</option><option value="期末衝刺">期末衝刺</option></select></label><label class="field"><span>活動天數</span><input data-challenge-days type="number" min="3" max="30" value="7" /></label><label class="field"><span>獎勵</span><select data-challenge-reward><option value="限定徽章">限定徽章</option><option value="商城折扣券">商城折扣券</option><option value="班級排行榜稱號">班級排行榜稱號</option></select></label></div>
+          <div class="generated-card blue" data-output="challenge-preview"><strong>資管三甲：7 日專注挑戰</strong><p>每日 30 分鐘專注，排名採完成天數與累積分鐘雙指標，完成後發放限定徽章。</p></div>
+          <div class="button-row"><button class="button primary" data-action="generate-challenge" type="button">建立挑戰草稿</button><button class="button ghost" data-action="download-challenge" type="button">下載活動規則</button></div>
+        </section>
+      </main>
+    </div><script src="assets/app.js"></script>
+  </body>
+</html>
+

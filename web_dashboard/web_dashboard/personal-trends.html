@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 自律趨勢分析</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>個人分析</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Trend Workbench</span>
+            <h1>只看長期自律趨勢，不把所有分析擠在一起。</h1>
+            <p>這一頁專門回答：分數、完成率、自律幣和專注時間是不是正在變穩。</p>
+            <div class="subnav">
+              <a href="personal.html">中心總覽</a>
+              <a class="active" href="personal-trends.html">趨勢</a>
+              <a href="personal-pressure.html">壓力雷達</a>
+              <a href="personal-weather.html">自律天氣</a>
+              <a href="personal-time-capsule.html">時間膠囊</a>
+              <a href="personal-letter.html">未來的信</a>
+              <a href="personal-skill-tree.html">技能樹</a>
+              <a href="personal-template.html">任務模板</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>本月平均</span>
+            <strong data-count="82" data-suffix=" 分">0</strong>
+            <p>較上月提升 11 分。</p>
+          </div>
+        </header>
+
+        <section class="workspace-layout page-section">
+          <div class="workspace-stack full-width">
+            <article class="panel chart-card">
+              <span class="eyebrow">月度 / 年度自律趨勢</span>
+              <h2>你的自律不是爆衝，是慢慢變穩。</h2>
+              <canvas id="trendChart"></canvas>
+            </article>
+            <article class="panel">
+              <span class="eyebrow">趨勢摘要</span>
+              <h2>這個月最重要的三件事</h2>
+              <div class="card-grid-3">
+                <div class="mini-card"><small>平均分數</small><strong>82 分</strong><p>較上月 +11 分。</p></div>
+                <div class="mini-card"><small>穩定天數</small><strong>18 天</strong><p>有達 80 分以上。</p></div>
+                <div class="mini-card"><small>自律幣</small><strong>+310 枚</strong><p>接近月上限 400 枚。</p></div>
+              </div>
+            </article>
+            <article class="result-board">
+              <strong>趨勢判讀</strong>
+              <p>目前分數提升主要來自固定任務與睡眠同步。若想再提高穩定度，下一步應補足專注任務的每日節奏。</p>
+              <a class="button primary" href="personal-template.html">建立專注模板</a>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

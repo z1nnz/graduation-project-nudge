@@ -1708,7 +1708,6 @@ class _TasksPageState extends State<TasksPage> {
         : completedCount / todayTasks.length;
     final weightedScore = appState.todayWeightedDisciplineScore;
     final nextMilestone = appState.nextScoreCoinMilestone;
-
     final priorityTasks = sortedTasks
         .where(
           (task) =>

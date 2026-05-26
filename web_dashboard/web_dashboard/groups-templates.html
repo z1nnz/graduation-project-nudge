@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 考試倒數模板</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <body data-page="groups">
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>考試模板</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="groups.html">團體 / 教育管理</a></nav></aside>
+      <main class="main">
+        <header class="hero split"><div><span class="eyebrow">Exam Templates</span><h1>建立考試倒數與複習提醒模板。</h1><p>給老師或讀書會管理員快速派發複習任務。</p><div class="subnav"><a href="groups.html">中心總覽</a><a href="groups-challenge.html">挑戰建立</a><a href="groups-study-schedule.html">讀書時段</a><a href="groups-ranking.html">排行與週報</a><a class="active" href="groups-templates.html">考試模板</a></div></div><div class="hero-card"><span>倒數模板</span><strong data-count="5">0</strong><p>可派發到班級。</p></div></header>
+        <section class="program-builder page-section">
+          <div class="template-form-container">
+            <span class="eyebrow">課程 / 挑戰編排器</span>
+            <h2>新增倒數模板</h2>
+            <p style="margin-top: 8px;">自訂班級或小組的複習節奏，並派發給成員。</p>
+            <div class="field" style="margin-top: 24px;">
+              <span>時間或標籤 (例如: 週一, 考前衝刺)</span>
+              <input type="text" data-template-time placeholder="輸入時間或標籤">
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <span>模板標題</span>
+              <input type="text" data-template-title placeholder="輸入模板名稱">
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <span>模板描述</span>
+              <textarea data-template-desc rows="2" placeholder="輸入說明"></textarea>
+            </div>
+            <button type="button" class="button primary" data-action="add-template" style="margin-top: 18px; width: 100%;">加入模板</button>
+          </div>
+          <div class="program-grid" data-template-list>
+            <!-- 透過 app.js 動態渲染 -->
+          </div>
+        </section>
+      </main>
+    </div><script src="assets/app.js"></script>
+  </body>
+</html>

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
+enum _PomodoroPhase { focus, rest }
+
 class FocusPage extends StatefulWidget {
   final bool autoStart;
 
@@ -14,14 +16,25 @@ class FocusPage extends StatefulWidget {
 }
 
 class _FocusPageState extends State<FocusPage> {
-  int selectedMinutes = 25;
+  int selectedFocusMinutes = 25;
+  int selectedRestMinutes = 5;
   int remainingSeconds = 25 * 60;
+  _PomodoroPhase currentPhase = _PomodoroPhase.focus;
 
   Timer? timer;
   bool isRunning = false;
-  bool hasCountedThisRound = false;
+  int completedPomodoros = 0;
 
-  int get initialSeconds => selectedMinutes * 60;
+  bool get isFocusPhase => currentPhase == _PomodoroPhase.focus;
+
+  int get focusSeconds => selectedFocusMinutes * 60;
+
+  int get restSeconds => selectedRestMinutes * 60;
+
+  int get phaseTotalSeconds => isFocusPhase ? focusSeconds : restSeconds;
+
+  Color phaseColor(Color accentColor) =>
+      isFocusPhase ? accentColor : const Color(0xFF20A994);
 
   @override
   void initState() {
@@ -34,11 +47,16 @@ class _FocusPageState extends State<FocusPage> {
   }
 
   int get elapsedSeconds {
-    final value = initialSeconds - remainingSeconds;
+    final value = phaseTotalSeconds - remainingSeconds;
     return value < 0 ? 0 : value;
   }
 
-  int get elapsedMinutes => elapsedSeconds ~/ 60;
+  int get currentRoundFocusSeconds {
+    if (isFocusPhase) return elapsedSeconds;
+    return focusSeconds;
+  }
+
+  int get elapsedMinutes => currentRoundFocusSeconds ~/ 60;
 
   String get formattedTime {
     final minutes = (remainingSeconds ~/ 60).toString().padLeft(2, '0');
@@ -46,21 +64,41 @@ class _FocusPageState extends State<FocusPage> {
     return '$minutes:$seconds';
   }
 
-  String get currentStatusText {
-    if (isRunning) return '專注進行中';
-    if (remainingSeconds != initialSeconds && remainingSeconds > 0) {
-      return '已暫停';
-    }
-    return '準備開始';
+  String formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final restSeconds = seconds % 60;
+    if (minutes <= 0) return '$restSeconds 秒';
+    if (restSeconds == 0) return '$minutes 分鐘';
+    return '$minutes 分 $restSeconds 秒';
   }
 
-  void changeFocusMinutes(int minutes) {
+  String get currentStatusText {
+    if (isRunning) return isFocusPhase ? '專注進行中' : '休息中';
+    if (remainingSeconds != phaseTotalSeconds && remainingSeconds > 0) {
+      return isFocusPhase ? '專注暫停' : '休息暫停';
+    }
+    return isFocusPhase ? '準備專注' : '準備休息';
+  }
+
+  String get phaseTitle => isFocusPhase ? '專注階段' : '休息階段';
+
+  String get startButtonText {
+    if (isRunning) return isFocusPhase ? '專注中' : '休息中';
+    return isFocusPhase ? '開始專注' : '開始休息';
+  }
+
+  void changePomodoroPreset({
+    required int focusMinutes,
+    required int restMinutes,
+  }) {
     if (isRunning) return;
 
     setState(() {
-      selectedMinutes = minutes;
-      remainingSeconds = minutes * 60;
-      hasCountedThisRound = false;
+      selectedFocusMinutes = focusMinutes;
+      selectedRestMinutes = restMinutes;
+      currentPhase = _PomodoroPhase.focus;
+      remainingSeconds = focusMinutes * 60;
+      completedPomodoros = 0;
     });
   }
 
@@ -68,46 +106,93 @@ class _FocusPageState extends State<FocusPage> {
     if (isRunning) return;
 
     setState(() {
+      if (remainingSeconds <= 0) {
+        remainingSeconds = phaseTotalSeconds;
+      }
       isRunning = true;
     });
 
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (remainingSeconds > 0) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (remainingSeconds > 1) {
         setState(() {
           remainingSeconds--;
         });
       } else {
         timer.cancel();
-
-        if (!hasCountedThisRound) {
-          context.read<AppState>().addFocusMinutes(selectedMinutes);
-          hasCountedThisRound = true;
-        }
-
-        setState(() {
-          isRunning = false;
-        });
-
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: const Text('專注完成'),
-              content: Text('恭喜你完成 $selectedMinutes 分鐘專注！'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('確定'),
-                ),
-              ],
-            );
-          },
-        );
+        completeCurrentPhase();
       }
     });
+  }
+
+  Future<void> completeCurrentPhase() async {
+    final finishedPhase = currentPhase;
+    final finishedFocusMinutes = selectedFocusMinutes;
+    final finishedRestMinutes = selectedRestMinutes;
+
+    if (finishedPhase == _PomodoroPhase.focus) {
+      context.read<AppState>().addFocusSeconds(focusSeconds);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      isRunning = false;
+      remainingSeconds = 0;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (!mounted) return;
+
+    final nextPhase = finishedPhase == _PomodoroPhase.focus
+        ? _PomodoroPhase.rest
+        : _PomodoroPhase.focus;
+
+    setState(() {
+      if (finishedPhase == _PomodoroPhase.focus) {
+        completedPomodoros++;
+      }
+      currentPhase = nextPhase;
+      remainingSeconds = phaseTotalSeconds;
+    });
+
+    if (!mounted) return;
+
+    final shouldStartNext = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final isFinishedFocus = finishedPhase == _PomodoroPhase.focus;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(isFinishedFocus ? '專注完成，休息一下' : '休息完成，回到專注'),
+          content: Text(
+            isFinishedFocus
+                ? '已記錄 $finishedFocusMinutes 分鐘專注。接下來休息 $finishedRestMinutes 分鐘，讓大腦喘口氣。'
+                : '這輪休息結束了，可以開始下一輪 $finishedFocusMinutes 分鐘專注。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('稍後'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(isFinishedFocus ? '開始休息' : '開始專注'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldStartNext == true && mounted) {
+      startTimer();
+    }
   }
 
   void pauseTimer() {
@@ -120,20 +205,69 @@ class _FocusPageState extends State<FocusPage> {
   void resetTimer() {
     timer?.cancel();
     setState(() {
-      remainingSeconds = selectedMinutes * 60;
+      currentPhase = _PomodoroPhase.focus;
+      remainingSeconds = focusSeconds;
       isRunning = false;
-      hasCountedThisRound = false;
+      completedPomodoros = 0;
     });
   }
 
   Future<void> endEarlyAndSave() async {
+    final wasRunning = isRunning;
+    if (wasRunning) {
+      timer?.cancel();
+      setState(() {
+        isRunning = false;
+      });
+    }
+
+    if (!isFocusPhase) {
+      final bool? shouldSkipRest = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text('提前結束休息'),
+            content: const Text('現在是休息階段，提前結束不會增加專注時間。要直接回到下一輪專注嗎？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('回到專注'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+      if (shouldSkipRest != true) {
+        if (wasRunning) startTimer();
+        return;
+      }
+
+      setState(() {
+        currentPhase = _PomodoroPhase.focus;
+        remainingSeconds = focusSeconds;
+        isRunning = false;
+      });
+      return;
+    }
+
     if (elapsedSeconds <= 0) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('目前還沒有可記錄的專注時間')));
+      if (wasRunning) startTimer();
       return;
     }
 
+    final savedSeconds = elapsedSeconds;
     final bool? shouldSave = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -142,7 +276,9 @@ class _FocusPageState extends State<FocusPage> {
             borderRadius: BorderRadius.circular(20),
           ),
           title: const Text('提前結束'),
-          content: Text('你目前已專注 $elapsedMinutes 分鐘，是否要提前結束並記錄這段時間？'),
+          content: Text(
+            '你目前已專注 ${formatDuration(savedSeconds)}，是否要提前結束並記錄這段時間？',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -157,48 +293,69 @@ class _FocusPageState extends State<FocusPage> {
       },
     );
 
-    if (shouldSave != true) return;
     if (!mounted) return;
+    if (shouldSave != true) {
+      if (wasRunning) startTimer();
+      return;
+    }
 
     timer?.cancel();
 
     final appState = context.read<AppState>();
-
-    if (!hasCountedThisRound && elapsedMinutes > 0) {
-      appState.addFocusMinutes(elapsedMinutes);
-    }
+    appState.addFocusSeconds(savedSeconds);
 
     setState(() {
       isRunning = false;
-      hasCountedThisRound = false;
-      remainingSeconds = selectedMinutes * 60;
+      currentPhase = _PomodoroPhase.focus;
+      remainingSeconds = focusSeconds;
     });
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('已記錄 $elapsedMinutes 分鐘專注時間')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('已記錄 ${formatDuration(savedSeconds)}專注時間')),
+    );
   }
 
   Future<void> showCustomMinutesDialog() async {
     if (isRunning) return;
 
-    final controller = TextEditingController(text: selectedMinutes.toString());
+    final focusController = TextEditingController(
+      text: selectedFocusMinutes.toString(),
+    );
+    final restController = TextEditingController(
+      text: selectedRestMinutes.toString(),
+    );
 
-    final int? customMinutes = await showDialog<int>(
+    final customMinutes = await showDialog<({int focus, int rest})>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text('自訂專注時間'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              hintText: '請輸入分鐘數',
-              border: OutlineInputBorder(),
-            ),
+          title: const Text('自訂番茄鐘'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: focusController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: '專注分鐘',
+                  hintText: '例如 25',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: restController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: '休息分鐘',
+                  hintText: '例如 5',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -207,9 +364,12 @@ class _FocusPageState extends State<FocusPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                final minutes = int.tryParse(controller.text.trim());
-                if (minutes == null || minutes <= 0) return;
-                Navigator.pop(dialogContext, minutes);
+                final focus = int.tryParse(focusController.text.trim());
+                final rest = int.tryParse(restController.text.trim());
+                if (focus == null || rest == null || focus <= 0 || rest <= 0) {
+                  return;
+                }
+                Navigator.pop(dialogContext, (focus: focus, rest: rest));
               },
               child: const Text('確定'),
             ),
@@ -218,8 +378,14 @@ class _FocusPageState extends State<FocusPage> {
       },
     );
 
+    focusController.dispose();
+    restController.dispose();
+
     if (customMinutes != null) {
-      changeFocusMinutes(customMinutes);
+      changePomodoroPreset(
+        focusMinutes: customMinutes.focus,
+        restMinutes: customMinutes.rest,
+      );
     }
   }
 
@@ -252,6 +418,36 @@ class _FocusPageState extends State<FocusPage> {
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildPhasePill({
+    required String title,
+    required bool isActive,
+    required Color activeColor,
+  }) {
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Expanded(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: isActive
+              ? activeColor.withValues(alpha: 0.14)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(AppUI.radiusPill),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isActive ? activeColor : secondaryText,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -309,17 +505,18 @@ class _FocusPageState extends State<FocusPage> {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final accentColor = appState.currentIconColor;
+    final activeColor = phaseColor(accentColor);
     final totalFocusMinutes = appState.focusMinutes;
-    final progress = initialSeconds == 0
+    final progress = phaseTotalSeconds == 0
         ? 0.0
-        : (elapsedSeconds / initialSeconds).clamp(0.0, 1.0);
+        : (elapsedSeconds / phaseTotalSeconds).clamp(0.0, 1.0);
 
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
     final isDark = AppUI.isDark(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('專注模式')),
+      appBar: AppBar(title: const Text('番茄鐘')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppUI.pagePadding,
@@ -340,8 +537,10 @@ class _FocusPageState extends State<FocusPage> {
                     color: Colors.white.withValues(alpha: 0.20),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.timer_outlined,
+                  child: Icon(
+                    isFocusPhase
+                        ? Icons.timer_outlined
+                        : Icons.local_cafe_outlined,
                     color: Colors.white,
                     size: 30,
                   ),
@@ -368,6 +567,15 @@ class _FocusPageState extends State<FocusPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '專注 $selectedFocusMinutes 分鐘 · 休息 $selectedRestMinutes 分鐘',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -375,27 +583,33 @@ class _FocusPageState extends State<FocusPage> {
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
-          _FocusSectionTitle(title: '專注模式', color: primaryText),
+          _FocusSectionTitle(title: '番茄鐘模式', color: primaryText),
           const SizedBox(height: AppUI.cardGap),
           Row(
             children: [
               buildModeButton(
-                title: '25 分鐘',
-                isSelected: selectedMinutes == 25,
-                onTap: () => changeFocusMinutes(25),
+                title: '25 + 5',
+                isSelected:
+                    selectedFocusMinutes == 25 && selectedRestMinutes == 5,
+                onTap: () =>
+                    changePomodoroPreset(focusMinutes: 25, restMinutes: 5),
                 accentColor: accentColor,
               ),
               const SizedBox(width: 10),
               buildModeButton(
-                title: '50 分鐘',
-                isSelected: selectedMinutes == 50,
-                onTap: () => changeFocusMinutes(50),
+                title: '50 + 10',
+                isSelected:
+                    selectedFocusMinutes == 50 && selectedRestMinutes == 10,
+                onTap: () =>
+                    changePomodoroPreset(focusMinutes: 50, restMinutes: 10),
                 accentColor: accentColor,
               ),
               const SizedBox(width: 10),
               buildModeButton(
                 title: '自訂',
-                isSelected: selectedMinutes != 25 && selectedMinutes != 50,
+                isSelected:
+                    !(selectedFocusMinutes == 25 && selectedRestMinutes == 5) &&
+                    !(selectedFocusMinutes == 50 && selectedRestMinutes == 10),
                 onTap: showCustomMinutesDialog,
                 accentColor: accentColor,
               ),
@@ -408,6 +622,22 @@ class _FocusPageState extends State<FocusPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
               child: Column(
                 children: [
+                  Row(
+                    children: [
+                      buildPhasePill(
+                        title: '專注',
+                        isActive: isFocusPhase,
+                        activeColor: accentColor,
+                      ),
+                      const SizedBox(width: 10),
+                      buildPhasePill(
+                        title: '休息',
+                        isActive: !isFocusPhase,
+                        activeColor: const Color(0xFF20A994),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
                   Text(
                     formattedTime,
                     style: TextStyle(
@@ -418,8 +648,9 @@ class _FocusPageState extends State<FocusPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '目前設定：$selectedMinutes 分鐘',
+                    '$phaseTitle · 本輪專注 $selectedFocusMinutes 分鐘 / 休息 $selectedRestMinutes 分鐘',
                     style: TextStyle(fontSize: 15, color: secondaryText),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 18),
                   ClipRRect(
@@ -427,9 +658,14 @@ class _FocusPageState extends State<FocusPage> {
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 10,
-                      backgroundColor: accentColor.withValues(alpha: 0.12),
-                      valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+                      backgroundColor: activeColor.withValues(alpha: 0.12),
+                      valueColor: AlwaysStoppedAnimation<Color>(activeColor),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '已完成 $completedPomodoros 顆番茄',
+                    style: TextStyle(fontSize: 13, color: secondaryText),
                   ),
                 ],
               ),
@@ -444,11 +680,11 @@ class _FocusPageState extends State<FocusPage> {
                 child: ElevatedButton(
                   onPressed: isRunning ? null : startTimer,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: accentColor,
+                    backgroundColor: activeColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('開始'),
+                  child: Text(startButtonText),
                 ),
               ),
               const SizedBox(width: 12),
@@ -456,7 +692,7 @@ class _FocusPageState extends State<FocusPage> {
                 child: ElevatedButton(
                   onPressed: isRunning ? pauseTimer : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: accentColor,
+                    backgroundColor: activeColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -473,8 +709,8 @@ class _FocusPageState extends State<FocusPage> {
                   onPressed: resetTimer,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: accentColor),
-                    foregroundColor: accentColor,
+                    side: BorderSide(color: activeColor),
+                    foregroundColor: activeColor,
                   ),
                   child: const Text('重設'),
                 ),
@@ -484,7 +720,7 @@ class _FocusPageState extends State<FocusPage> {
                 child: ElevatedButton(
                   onPressed: endEarlyAndSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: accentColor,
+                    backgroundColor: activeColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -499,7 +735,7 @@ class _FocusPageState extends State<FocusPage> {
               buildInfoCard(
                 icon: Icons.hourglass_bottom_outlined,
                 title: '本輪已專注',
-                value: '$elapsedMinutes 分鐘',
+                value: formatDuration(currentRoundFocusSeconds),
                 color: accentColor,
               ),
               const SizedBox(width: 12),
@@ -510,32 +746,6 @@ class _FocusPageState extends State<FocusPage> {
                 color: accentColor,
               ),
             ],
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.lightbulb_outline, color: accentColor),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      isRunning
-                          ? '正在專注中，若臨時有事，可以用「提前結束」保留已完成的專注時間。'
-                          : '你可以使用 25 分鐘、50 分鐘，或自訂時長；若想讓它影響分數，建議把專注分鐘數設成任務。',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: primaryText,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
           if (isDark) const SizedBox(height: 8),
         ],

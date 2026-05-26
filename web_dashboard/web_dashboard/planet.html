@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 自律城市 / 自律星球</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <body data-page="planet">
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">營運後台</a><a href="research.html">研究 / 展示中心</a><a class="active" href="planet.html">自律城市 / 星球</a></nav><section class="side-panel"><span class="eyebrow">視覺模式切換</span><div class="view-toggle"><button data-view="solar-system" class="active">🪐 太陽系視角</button><button data-view="city">🏙️ 城市視角</button></div><p style="margin-top: 15px;">切換不同視角來觀看你的自律成果。</p></section></aside>
+      <main class="main">
+        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>星球中心只展示世界，建築、事件、好友拜訪分頁管理。</h1><p>讓自律星球不只是儀表板，而是可以規劃、解鎖、產生事件的延伸系統。</p><div class="subnav"><a class="active" href="planet.html">星球展示</a><a href="planet-builder.html">建築規劃</a><a href="planet-events.html">城市事件</a></div></div><div class="hero-card"><span>星球繁榮度</span><strong data-count="73">0</strong><p>本週新增 5 棟建築，2 位好友到訪。</p></div></header>
+        <section class="planet-stage page-section immersive-stage" data-tilt>
+          
+          <!-- Solar System View -->
+          <div class="view-solar-system active">
+            <div class="starfield"></div>
+            <div class="planet-shadow"></div>
+            <div class="planet">
+              <span class="continent c1"></span>
+              <span class="continent c2"></span>
+              <span class="continent c3"></span>
+            </div>
+            
+            <div class="orbit-line orbit-one">
+              <div class="mission-satellite s1"></div>
+              <div class="mission-satellite s2"></div>
+              <div class="mission-satellite s3"></div>
+            </div>
+            <div class="orbit-line orbit-two">
+              <div class="mission-satellite s4"></div>
+              <div class="mission-satellite s5"></div>
+              <div class="mission-satellite s6"></div>
+            </div>
+            <div class="orbit-line orbit-three">
+              <div class="mission-satellite s7"></div>
+              <div class="mission-satellite s8"></div>
+              <div class="mission-satellite s9"></div>
+            </div>
+            <div class="orbit-line orbit-four">
+              <div class="mission-satellite s10"></div>
+              <div class="mission-satellite s11"></div>
+              <div class="mission-satellite s12"></div>
+            </div>
+            <div class="orbit-line orbit-five">
+              <div class="asteroid a1"></div>
+              <div class="asteroid a2"></div>
+              <div class="asteroid a3"></div>
+            </div>
+            <!-- Meteor Shower Container -->
+            <div class="meteor-shower-container" id="meteorShower"></div>
+          </div>
+
+          <!-- Galaxy View -->
+          <div class="view-galaxy" style="display: none;">
+            <div class="galaxy-core"></div>
+            <div class="galaxy-orbit-line g-orbit-one">
+              <div class="galaxy-planet g1"></div><div class="galaxy-planet g2"></div><div class="galaxy-planet g3"></div><div class="galaxy-planet g4"></div>
+            </div>
+            <div class="galaxy-orbit-line g-orbit-two">
+              <div class="galaxy-planet g5"></div><div class="galaxy-planet g6"></div><div class="galaxy-planet g7"></div><div class="galaxy-planet g8"></div>
+            </div>
+            <div class="galaxy-orbit-line g-orbit-three">
+              <div class="galaxy-planet g9"></div><div class="galaxy-planet g10"></div><div class="galaxy-planet g11"></div><div class="galaxy-planet g12"></div>
+            </div>
+            <div class="galaxy-orbit-line g-orbit-four">
+              <div class="galaxy-planet g13"></div><div class="galaxy-planet g14"></div><div class="galaxy-planet g15"></div><div class="galaxy-planet g16"></div>
+            </div>
+            <div class="galaxy-orbit-line g-orbit-five">
+              <div class="galaxy-planet g17"></div><div class="galaxy-planet g18"></div><div class="galaxy-planet g19"></div><div class="galaxy-planet g20"></div>
+            </div>
+            <div class="galaxy-orbit-line g-orbit-six">
+              <div class="galaxy-planet g21"></div><div class="galaxy-planet g22"></div><div class="galaxy-planet g23"></div><div class="galaxy-planet g24"></div>
+            </div>
+          </div>
+
+          <!-- Universe View -->
+          <div class="view-universe" style="display: none;">
+            <div class="universe-core"></div>
+            <div class="universe-orbit-line u-orbit-x">
+              <div class="universe-planet u1"></div><div class="universe-planet u2"></div><div class="universe-planet u3"></div>
+            </div>
+            <div class="universe-orbit-line u-orbit-y">
+              <div class="universe-planet u4"></div><div class="universe-planet u5"></div><div class="universe-planet u6"></div>
+            </div>
+            <div class="universe-orbit-line u-orbit-z">
+              <div class="universe-planet u7"></div><div class="universe-planet u8"></div><div class="universe-planet u9"></div>
+            </div>
+            <div class="universe-orbit-line u-orbit-w">
+              <div class="universe-planet u10"></div><div class="universe-planet u11"></div><div class="universe-planet u12"></div>
+            </div>
+            <div class="universe-bg"></div>
+            <div class="universe-web"></div>
+          </div>
+
+          <!-- Explosion Overlay -->
+          <div class="explosion-overlay" id="explosionOverlay">
+            <div class="starry-sky"></div>
+            <div class="supernova-rays"></div>
+            <div class="shockwave-ring"></div>
+            <div class="atomic-flash"></div>
+            <div class="debris-container" id="debrisContainer"></div>
+          </div>
+
+          <!-- Black Hole Suction Overlay -->
+          <div class="blackhole-overlay" id="blackholeOverlay">
+            <div class="blackhole-center"></div>
+          </div>
+
+          <!-- City View -->
+          <div class="view-city" style="display: none;">
+            <div class="neighborhood-scene">
+              <div class="city-plot p1" data-target="s1"></div>
+              <div class="city-plot p2" data-target="s2"></div>
+              <div class="city-plot p3" data-target="s3"></div>
+              <div class="city-plot p4" data-target="s4"></div>
+              <div class="city-plot p5" data-target="s5"></div>
+            </div>
+          </div>
+          
+          <div class="stage-hud">
+            <small id="hudTitle">COSMIC EVOLUTION</small>
+            <strong id="planetHud">太陽系</strong>
+            <span id="hudDesc">任務完成會累積行星數量</span>
+            <div class="stage-nav">
+              <button class="cyber-btn micro-split-btn" id="navSolar">太陽系</button>
+              <button class="cyber-btn micro-split-btn" id="navGalaxy">銀河系</button>
+              <button class="cyber-btn micro-split-btn" id="navUniverse">宇宙</button>
+            </div>
+          </div>
+
+          <!-- Mission Orb (Floating Button) -->
+          <div id="missionOrbBtn" class="ai-orb" style="position:fixed; bottom:30px; right: 110px; z-index: 10000; background: radial-gradient(circle at 30% 30%, #0ff, #0055ff);">
+            <div style="color: white; font-weight: bold; font-family: monospace; text-shadow: 0 0 5px #0ff;">任務</div>
+          </div>
+
+          <!-- Mission Log Panel -->
+          <div class="mission-log-panel" id="missionLogPanel">
+            <div class="mission-log-header" style="display: flex; justify-content: space-between; align-items: center;" id="missionToggleBtn">
+              <span>今日軌道任務</span>
+              <div>
+                <button id="btnForceExplosion" class="cyber-btn bypass" style="font-size: 10px; padding: 2px 5px; margin-right: 5px; border-color: #ff8c00; color: #ff8c00;">炸</button>
+                <button id="btnForceBlackhole" class="cyber-btn bypass" style="font-size: 10px; padding: 2px 5px; margin-right: 5px; border-color: #f0f; color: #f0f;">吸</button>
+                <button id="devCheatBtn" class="cyber-btn bypass" style="font-size: 10px; padding: 2px 5px; margin-right: 5px; border-color: #0ff; color: #0ff;">滿</button>
+              </div>
+            </div>
+            <ul class="mission-list" id="dynamicMissionList">
+              <!-- Dynamically populated by JS -->
+            </ul>
+            
+          </div>
+          
+          <!-- Combo Display Container -->
+          <div id="comboContainer" class="combo-container"></div>
+        </section>
+        <section class="center-hub page-section"><a class="hub-card" href="planet-builder.html"><span>＋</span><strong>星球建築規劃器</strong><p>把下週目標轉成建築、解鎖條件和城市事件。</p><small>規劃建築</small></a><a class="hub-card" href="planet-events.html"><span>✦</span><strong>城市事件與好友拜訪</strong><p>管理好友拜訪、鼓勵、建築亮起與活動事件。</p><small>查看事件</small></a></section>
+      </main>
+    </div><script src="assets/app.js"></script>
+  </body>
+</html>

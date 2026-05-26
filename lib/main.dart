@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'state/app_state.dart';
+import 'services/notification_service.dart';
 import 'screens/home_page.dart';
-import 'screens/tasks_page.dart';
 import 'screens/focus_page.dart';
 import 'screens/health_page.dart';
 import 'screens/statistics_page.dart';
 import 'screens/social_page.dart';
+import 'screens/character_page.dart';
 import 'theme/app_ui.dart';
 import 'screens/onboarding_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
   runApp(const NudgeApp());
 }
 
@@ -40,9 +43,37 @@ class _AppRoot extends StatelessWidget {
       title: 'Nudge',
       themeMode: appState.currentThemeMode,
       builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final width = mediaQuery.size.width;
+        final height = mediaQuery.size.height;
+        final compactScale = width <= 400 || height <= 760
+            ? 0.90
+            : width <= 430
+            ? 0.96
+            : 1.0;
+        final systemTextScale = mediaQuery.textScaler
+            .scale(1)
+            .clamp(0.85, 1.12)
+            .toDouble();
+        final adjustedMediaQuery = mediaQuery.copyWith(
+          textScaler: TextScaler.linear(systemTextScale * compactScale),
+        );
+
+        final iconScale = width <= 400 || height <= 760
+            ? 0.92
+            : width <= 430
+            ? 0.97
+            : 1.0;
+
         return AppBackground(
           themeKey: appState.backgroundThemeSetting,
-          child: child ?? const SizedBox.shrink(),
+          child: MediaQuery(
+            data: adjustedMediaQuery,
+            child: IconTheme.merge(
+              data: IconThemeData(size: 24 * iconScale),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
         );
       },
       theme: ThemeData(
@@ -83,6 +114,7 @@ class _AppRoot extends StatelessWidget {
           indicatorColor: seedColor.withValues(alpha: 0.14),
           labelTextStyle: WidgetStateProperty.all(
             const TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Color(0xFF2D2A32),
             ),
@@ -170,6 +202,7 @@ class _AppRoot extends StatelessWidget {
           indicatorColor: seedColor.withValues(alpha: 0.22),
           labelTextStyle: WidgetStateProperty.all(
             const TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Color(0xFFF3F4F6),
             ),
@@ -282,7 +315,7 @@ class _MainShellState extends State<MainShell> {
 
     final pages = [
       HomePage(onNavigate: changeTab, onOpenStatistics: openStatisticsPage),
-      const TasksPage(),
+      const CharacterPage(),
       const FocusPage(),
       const SocialPage(),
       const HealthPage(),
@@ -316,9 +349,9 @@ class _MainShellState extends State<MainShell> {
               label: '首頁',
             ),
             NavigationDestination(
-              icon: Icon(Icons.checklist_outlined),
-              selectedIcon: Icon(Icons.checklist),
-              label: '任務',
+              icon: Icon(Icons.auto_awesome_outlined),
+              selectedIcon: Icon(Icons.auto_awesome),
+              label: '角色',
             ),
             NavigationDestination(
               icon: Icon(Icons.timer_outlined),

@@ -49,7 +49,6 @@ class _AccountPageState extends State<AccountPage> {
     final user = appState.currentUser;
     final accentColor = appState.currentIconColor;
     final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('帳號與同步')),
@@ -102,7 +101,7 @@ class _AccountPageState extends State<AccountPage> {
                       Text(
                         appState.isSignedIn
                             ? '${appState.accountProviderLabel} 登入，名片資料會跟帳號綁定。'
-                            : '先建立帳號狀態，之後接後端時就能跨裝置同步。',
+                            : '本機帳號狀態已建立，Nudge ID 可用來加好友。',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -151,7 +150,7 @@ class _AccountPageState extends State<AccountPage> {
           _InfoCard(
             title: '登入方式',
             subtitle: user == null
-                ? '目前是本機資料。正式接後端後，這裡會連到 Firebase / Supabase 驗證。'
+                ? '目前使用本機資料與 Nudge ID。'
                 : '目前使用 ${appState.accountProviderLabel}，ID：${user.id}',
             icon: Icons.login_rounded,
             accentColor: accentColor,
@@ -235,7 +234,7 @@ class _AccountPageState extends State<AccountPage> {
           const SizedBox(height: AppUI.cardGap),
           _InfoCard(
             title: '同步範圍',
-            subtitle: '這些資料已整理成帳號層資料，之後可直接接雲端。',
+            subtitle: '名片、角色與好友邀請會跟帳號狀態放在一起管理。',
             icon: Icons.cloud_sync_outlined,
             accentColor: accentColor,
             child: Wrap(
@@ -248,11 +247,6 @@ class _AccountPageState extends State<AccountPage> {
                 _SyncChip(label: '好友邀請', color: AppUI.orange),
               ],
             ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Text(
-            '提醒：這一版先建立帳號與同步的 App 內邏輯。Google / Apple 真正登入需要後端專案、OAuth 憑證與平台簽章設定，不能只靠 Flutter 畫面完成。',
-            style: TextStyle(color: secondaryText, fontSize: 13, height: 1.5),
           ),
         ],
       ),

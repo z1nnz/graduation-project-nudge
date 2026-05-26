@@ -232,7 +232,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       result([
 
-        "success": true,
+        "success": firstErrorMessage == nil,
 
         "message": firstErrorMessage ?? "已成功同步 Apple 健康資料",
 

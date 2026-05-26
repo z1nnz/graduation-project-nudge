@@ -6,9 +6,9 @@ import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../widgets/avatar_icon_preview.dart';
 import '../widgets/avatar_preview.dart';
 import 'add_friend_page.dart';
-import 'avatar_editor_page.dart';
 import 'encouragement_page.dart';
 import 'friend_public_profile_page.dart';
 import 'friends_page.dart';
@@ -112,13 +112,6 @@ class SocialPage extends StatelessWidget {
     );
   }
 
-  void _openAvatarEditor(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AvatarEditorPage()),
-    );
-  }
-
   void _openMyProfile(BuildContext context) {
     Navigator.push(
       context,
@@ -170,6 +163,7 @@ class SocialPage extends StatelessWidget {
     final mySignature = appState.profileSignature;
     final myTitle = appState.profileTitle;
     final myAvatar = appState.avatarProfile;
+    final myAvatarIconIndex = appState.currentAvatarIconIndex;
 
     final roomFriends = _buildFriendsFromRooms(appState.studyRooms, appState);
     final manualFriends = _buildManualFriends(appState.socialFriends, appState);
@@ -214,7 +208,6 @@ class SocialPage extends StatelessWidget {
         });
 
     final previewLeaderboard = leaderboard.take(3).toList();
-
     return Scaffold(
       appBar: AppBar(title: const Text('社交中心')),
       floatingActionButton: FloatingActionButton.extended(
@@ -230,162 +223,135 @@ class SocialPage extends StatelessWidget {
         children: [
           Card(
             shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      AvatarPreview(
-                        profile: myAvatar,
-                        size: 78,
-                        showBackgroundRing: true,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              myNickname,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: primaryText,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppUI.radiusCard),
+              onTap: () => _openMyProfile(context),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        AvatarIconPreview(index: myAvatarIconIndex, size: 84),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                myNickname,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: primaryText,
+                                ),
                               ),
-                            ),
-                            if (myTitle.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: AppUI.softCardOf(
-                                  context,
-                                  accentColor,
-                                ),
-                                child: Text(
-                                  myTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: accentColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
+                              if (myTitle.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
                                   ),
+                                  decoration: AppUI.softCardOf(
+                                    context,
+                                    accentColor,
+                                  ),
+                                  child: Text(
+                                    myTitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: accentColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 6),
+                              Text(
+                                mySignature,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: secondaryText,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 6),
-                            Text(
-                              mySignature,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: secondaryText,
-                                height: 1.35,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SocialMiniInfo(
-                          title: '今日分數',
-                          value: '$myScore',
-                          icon: Icons.auto_graph_outlined,
-                          color: accentColor,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _SocialMiniInfo(
-                          title: '任務完成',
-                          value: '$myCompletedTasks / $myTotalTasks',
-                          icon: Icons.task_alt_outlined,
-                          color: accentColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _openMyProfile(context),
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('編輯名片'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _openAvatarEditor(context),
-                          icon: const Icon(
-                            Icons.face_retouching_natural,
-                            size: 18,
                           ),
-                          label: const Text('編輯角色'),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SocialMiniInfo(
+                            title: '今日分數',
+                            value: '$myScore',
+                            icon: Icons.auto_graph_outlined,
+                            color: accentColor,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _SocialMiniInfo(
+                            title: '任務完成',
+                            value: '$myCompletedTasks / $myTotalTasks',
+                            icon: Icons.task_alt_outlined,
+                            color: accentColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
 
           const SizedBox(height: AppUI.sectionGap),
 
-          _SectionHeader(title: '快速入口', subtitle: '常用社交功能放在首頁，其他細節進頁面看。'),
+          const _SectionHeader(title: '快速入口'),
           const SizedBox(height: AppUI.cardGap),
 
           GridView.count(
             crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.38,
+            childAspectRatio: 1.72,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
               _QuickActionCard(
                 icon: Icons.group_outlined,
                 title: '好友列表',
-                subtitle: '角色、狀態與公開頁',
                 color: accentColor,
                 onTap: () => _openFriendsPage(context),
               ),
               _QuickActionCard(
                 icon: Icons.menu_book_outlined,
                 title: '自律房',
-                subtitle: '進入房間與即時自律',
                 color: accentColor,
                 onTap: () => _openStudyRooms(context),
               ),
               _QuickActionCard(
                 icon: Icons.emoji_events_outlined,
                 title: '排行榜',
-                subtitle: '今日排名與好友分數',
                 color: accentColor,
                 onTap: () => _openLeaderboard(context),
               ),
               _QuickActionCard(
                 icon: Icons.favorite_outline,
                 title: '鼓勵紀錄',
-                subtitle: '貼圖、明信片與互動',
                 color: accentColor,
                 onTap: () => _openEncouragement(context),
               ),
@@ -394,7 +360,7 @@ class SocialPage extends StatelessWidget {
 
           const SizedBox(height: AppUI.sectionGap),
 
-          _SectionHeader(title: '今日社交摘要', subtitle: '最近發生什麼事，整理成一頁動態。'),
+          const _SectionHeader(title: '今日社交摘要'),
           const SizedBox(height: AppUI.cardGap),
           _SocialSummaryCard(
             icon: Icons.dynamic_feed_outlined,
@@ -462,14 +428,12 @@ class FriendData {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final String subtitle;
 
-  const _SectionHeader({required this.title, required this.subtitle});
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
     final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,11 +445,6 @@ class _SectionHeader extends StatelessWidget {
             fontWeight: FontWeight.bold,
             color: primaryText,
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: TextStyle(fontSize: 13, color: secondaryText, height: 1.4),
         ),
       ],
     );
@@ -662,7 +621,6 @@ class _SocialActivityPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('今日社交動態')),
@@ -743,7 +701,7 @@ class _SocialActivityPage extends StatelessWidget {
           const SizedBox(height: AppUI.sectionGap),
           _ActivitySectionHeader(
             title: '社交入口狀態',
-            subtitle: '把可行動的頁面集中在這裡。',
+            subtitle: '房間、排行、好友與互動',
             actionLabel: '自律房',
             onTap: () => _openStudyRooms(context),
           ),
@@ -796,11 +754,7 @@ class _SocialActivityPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            '先列前三名，完整排名可以進排行榜頁。',
-            style: TextStyle(color: secondaryText, fontSize: 13),
-          ),
-          const SizedBox(height: AppUI.cardGap),
+          const SizedBox(height: 8),
           Card(
             shape: AppUI.cardShape(),
             child: Padding(
@@ -1069,14 +1023,12 @@ class _ActivityEmptyCard extends StatelessWidget {
 class _QuickActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
   final Color color;
   final VoidCallback onTap;
 
   const _QuickActionCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.color,
     required this.onTap,
   });
@@ -1084,7 +1036,6 @@ class _QuickActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
 
     return Card(
       shape: AppUI.cardShape(),
@@ -1092,34 +1043,26 @@ class _QuickActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppUI.radiusCard),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(AppUI.innerPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 decoration: AppUI.softCardOf(context, color),
-                child: Icon(icon, color: color),
+                child: Icon(icon, color: color, size: 22),
               ),
-              const Spacer(),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: primaryText,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: secondaryText,
-                  height: 1.35,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: primaryText,
+                  ),
                 ),
               ),
             ],

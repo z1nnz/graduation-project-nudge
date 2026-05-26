@@ -279,7 +279,7 @@ class _FriendsPageState extends State<FriendsPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '目前有 $studyingCount 位好友正在專注，之後這裡也能承接角色換裝與好友展示。',
+                          '目前有 $studyingCount 位好友正在專注，好友卡會同步顯示角色穿搭與公開頁狀態。',
                           style: TextStyle(
                             fontSize: 13,
                             color: secondaryText,

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 專注躍遷模式</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell hyperdrive-mode">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>個人分析</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+          <a href="presentation.html">專題發表流程</a>
+        </nav>
+      </aside>
+      <main class="main" style="position: relative; z-index: 10;">
+        <header class="hero split" style="background: rgba(7, 10, 20, 0.4); backdrop-filter: blur(12px);">
+          <div>
+            <span class="eyebrow">Focus Hyperdrive</span>
+            <h1>專注躍遷模式</h1>
+            <p>啟動躍遷引擎，進入無干擾的深度學習狀態。專注時間越長，躍遷速度越快。</p>
+            <div class="subnav">
+              <a href="personal.html">返回中心總覽</a>
+              <a class="active" href="personal-focus.html">專注躍遷</a>
+            </div>
+          </div>
+        </header>
+
+        <section class="focus-timer-section page-section">
+          <div class="focus-timer-container">
+            <div class="timer-display" id="focusTimerDisplay">25:00</div>
+            <p class="timer-status" id="focusTimerStatus">等待啟動躍遷...</p>
+            <div class="timer-controls">
+              <button class="button primary" id="btnStartFocus">啟動引擎 (Start)</button>
+              <button class="button secondary" id="btnPauseFocus" style="display: none;">穩定航線 (Pause)</button>
+              <button class="button ghost" id="btnStopFocus" style="display: none;">中斷躍遷 (Stop)</button>
+            </div>
+          </div>
+        </section>
+      </main>
+      
+      <!-- Hyperdrive Background Layers -->
+      <div class="hyperdrive-bg" id="hyperdriveBg">
+        <div class="stars layer1"></div>
+        <div class="stars layer2"></div>
+        <div class="stars layer3"></div>
+      </div>
+    </div>
+    <script src="assets/app.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const focusMins = parseInt(urlParams.get('focus')) || 25;
+        const autoStart = urlParams.get('start') === 'true';
+
+        let timeLeft = focusMins * 60;
+        let timerId = null;
+        const display = document.getElementById('focusTimerDisplay');
+        const status = document.getElementById('focusTimerStatus');
+        const btnStart = document.getElementById('btnStartFocus');
+        const btnPause = document.getElementById('btnPauseFocus');
+        const btnStop = document.getElementById('btnStopFocus');
+        const hyperdriveBg = document.getElementById('hyperdriveBg');
+
+        const updateDisplay = () => {
+          const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+          const s = (timeLeft % 60).toString().padStart(2, '0');
+          display.textContent = `${m}:${s}`;
+        };
+        updateDisplay();
+
+        const startTimer = () => {
+          if (timerId) return;
+          hyperdriveBg.classList.add('active');
+          btnStart.style.display = 'none';
+          btnPause.style.display = 'inline-flex';
+          btnStop.style.display = 'inline-flex';
+          status.textContent = '躍遷進行中... 保持專注！';
+          status.style.color = '#00f0ff';
+          
+          timerId = setInterval(() => {
+            timeLeft--;
+            updateDisplay();
+            if (timeLeft <= 0) {
+              stopTimer();
+              status.textContent = '躍遷完成！您已抵達目標星系。';
+              status.style.color = '#00ff88';
+            }
+          }, 1000);
+        };
+
+        const pauseTimer = () => {
+          clearInterval(timerId);
+          timerId = null;
+          hyperdriveBg.classList.remove('active');
+          btnStart.style.display = 'inline-flex';
+          btnPause.style.display = 'none';
+          btnStart.textContent = '繼續躍遷 (Resume)';
+          status.textContent = '航線已暫停。';
+          status.style.color = '#ff9900';
+        };
+
+        const stopTimer = () => {
+          clearInterval(timerId);
+          timerId = null;
+          timeLeft = 25 * 60;
+          updateDisplay();
+          hyperdriveBg.classList.remove('active');
+          btnStart.style.display = 'inline-flex';
+          btnPause.style.display = 'none';
+          btnStop.style.display = 'none';
+          btnStart.textContent = '啟動引擎 (Start)';
+          status.textContent = '躍遷已中斷。';
+          status.style.color = '#ff3333';
+        };
+
+        btnStart.addEventListener('click', startTimer);
+        btnPause.addEventListener('click', pauseTimer);
+        btnStop.addEventListener('click', stopTimer);
+
+        if (autoStart) {
+          startTimer();
+        }
+      });
+    </script>
+  </body>
+</html>

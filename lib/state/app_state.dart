@@ -14,6 +14,7 @@ import '../models/study_room_models.dart';
 import '../models/task_model.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 
 class ReminderChannelSetting {
   final String key;
@@ -175,6 +176,8 @@ class AppState extends ChangeNotifier {
   static const String _monthlyDeadlineCoinEarnedKey =
       'monthly_deadline_coin_earned_setting';
   static const String _unlockedAvatarItemsKey = 'unlocked_avatar_items_setting';
+  static const String _avatarExperienceLedgerKey =
+      'avatar_experience_ledger_setting';
   static const int coinDailyLimit = 15;
   static const int coinWeeklyLimit = 100;
   static const int coinMonthlyLimit = 400;
@@ -191,6 +194,10 @@ class AppState extends ChangeNotifier {
   };
   static const int avatarDailyScoreExperienceCap = 400;
   static const int avatarDailyAutoExperienceCap = 100;
+  static const int avatarAutoFocusFullMinutes = 60;
+  static const double avatarAutoSleepFullHours = 7;
+  static const int avatarAutoStepsFull = 8000;
+  static const int avatarAutoExerciseFullMinutes = 30;
   static const int avatarMaxLevel = 60;
   static const double _avatarLevelCurveA = 5.454899668809663;
   static const double _avatarLevelCurveB = 186.63549581141635;
@@ -207,6 +214,8 @@ class AppState extends ChangeNotifier {
   Map<String, int> _dailyCoinEarned = <String, int>{};
   Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
   Set<String> _unlockedAvatarItemKeys = <String>{};
+  Map<String, Map<String, int>> _avatarExperienceLedger =
+      <String, Map<String, int>>{};
 
   String _themeModeSetting = 'system';
   String _iconColorSetting = 'purple';
@@ -242,6 +251,7 @@ class AppState extends ChangeNotifier {
   int get exerciseMinutes => _exerciseMinutes;
   bool get isHealthConnected => _isHealthConnected;
   List<DailySummary> get dailySummaries => _dailySummaries;
+  DailySummary get todaySummary => _buildTodayExperienceSummary();
   int get disciplineCoins => _disciplineCoins;
   int get unlockedAvatarItemCount => _unlockedAvatarItemKeys.length;
   int get todayCoinEarned => _dailyCoinEarned[_todayKey()] ?? 0;
@@ -325,6 +335,20 @@ class AppState extends ChangeNotifier {
   List<SocialFriendProfile> get socialFriends => _socialFriends;
   List<FriendRequest> get friendRequests => _friendRequests;
   String get myNudgeId => _myNudgeId;
+  String get myFriendInvitePayload {
+    final uri = Uri(
+      scheme: 'nudge',
+      host: 'friend',
+      path: 'add',
+      queryParameters: {
+        'nudgeId': _myNudgeId,
+        'name': _profileNickname,
+        'signature': _profileSignature,
+      },
+    );
+    return uri.toString();
+  }
+
   UserModel? get currentUser => _currentUser;
   bool get isSignedIn => _currentUser != null;
   bool get hasAcceptedPrivacyPolicy => _hasAcceptedPrivacyPolicy;
@@ -381,39 +405,28 @@ class AppState extends ChangeNotifier {
   }
 
   AvatarProfile get avatarProfile => _avatarProfile;
+  String get currentAvatarSeries {
+    return AvatarCatalog.stageForIndex(_avatarProfile.faceShapeIndex).series;
+  }
 
   int get todayAvatarExperience {
-    return avatarExperienceForSummary(_buildTodayExperienceSummary());
+    return todayAvatarExperienceForSeries(currentAvatarSeries);
   }
 
   int get todayAvatarScoreExperience {
-    return avatarScoreExperienceForSummary(_buildTodayExperienceSummary());
+    return todayAvatarScoreExperienceForSeries(currentAvatarSeries);
   }
 
   int get todayAvatarAutoExperience {
-    return avatarAutoExperienceForSummary(_buildTodayExperienceSummary());
+    return todayAvatarAutoExperienceForSeries(currentAvatarSeries);
   }
 
   int get avatarExperience {
-    final today = _todayKey();
-    final historyExp = _dailySummaries.fold<int>(
-      0,
-      (sum, summary) => summary.date == today
-          ? sum
-          : sum + avatarExperienceForSummary(summary),
-    );
-    return historyExp + todayAvatarExperience;
+    return avatarExperienceForSeries(currentAvatarSeries);
   }
 
   int get avatarLevel {
-    var level = 1;
-    for (var candidate = 2; candidate <= avatarMaxLevel; candidate++) {
-      if (avatarExperience < avatarExperienceRequiredForLevel(candidate)) {
-        break;
-      }
-      level = candidate;
-    }
-    return level;
+    return avatarLevelForSeries(currentAvatarSeries);
   }
 
   int get avatarNextLevelExperience {
@@ -429,6 +442,61 @@ class AppState extends ChangeNotifier {
     return remaining < 0 ? 0 : remaining;
   }
 
+  int avatarExperienceForSeries(String series) {
+    var total = 0;
+    for (final entry in _avatarExperienceLedger.values) {
+      total += entry[series] ?? 0;
+    }
+    return total;
+  }
+
+  int avatarExperienceForStage(int index) {
+    return avatarExperienceForSeries(AvatarCatalog.stageForIndex(index).series);
+  }
+
+  int todayAvatarExperienceForSeries(String series) {
+    return _avatarExperienceLedger[_todayKey()]?[series] ?? 0;
+  }
+
+  double _todayAvatarExperienceRatioForSeries(String series) {
+    final summary = _buildTodayExperienceSummary();
+    final totalTodayExperience = avatarExperienceForSummary(summary);
+    if (totalTodayExperience <= 0) return 0;
+    return (todayAvatarExperienceForSeries(series) / totalTodayExperience)
+        .clamp(0, 1)
+        .toDouble();
+  }
+
+  int todayAvatarScoreExperienceForSeries(String series) {
+    final ratio = _todayAvatarExperienceRatioForSeries(series);
+    return (avatarScoreExperienceForSummary(_buildTodayExperienceSummary()) *
+            ratio)
+        .round();
+  }
+
+  int todayAvatarAutoExperienceForSeries(String series) {
+    final total = todayAvatarExperienceForSeries(series);
+    final score = todayAvatarScoreExperienceForSeries(series);
+    final auto = total - score;
+    return auto < 0 ? 0 : auto;
+  }
+
+  int avatarLevelForSeries(String series) {
+    final experience = avatarExperienceForSeries(series);
+    var level = 1;
+    for (var candidate = 2; candidate <= avatarMaxLevel; candidate++) {
+      if (experience < avatarExperienceRequiredForLevel(candidate)) {
+        break;
+      }
+      level = candidate;
+    }
+    return level;
+  }
+
+  int avatarLevelForStage(int index) {
+    return avatarLevelForSeries(AvatarCatalog.stageForIndex(index).series);
+  }
+
   static int avatarExperienceRequiredForLevel(int level) {
     final normalizedLevel = level.clamp(1, avatarMaxLevel).toInt();
     final levelOffset = normalizedLevel - 1;
@@ -439,17 +507,45 @@ class AppState extends ChangeNotifier {
   }
 
   int get currentAvatarStageIndex => _avatarProfile.faceShapeIndex;
+  int get currentAvatarIconIndex => _avatarProfile.avatarIconIndex;
+
+  AvatarEvolutionStage _firstAvatarStageForSeries(String series) {
+    return AvatarCatalog.evolutionStages.firstWhere(
+      (stage) => stage.series == series && stage.stage == 1,
+      orElse: () => AvatarCatalog.evolutionStages.first,
+    );
+  }
+
+  bool _isAvatarSeriesPurchased(String series) {
+    final firstStage = _firstAvatarStageForSeries(series);
+    if (firstStage.coinPrice <= 0) return true;
+    return _unlockedAvatarItemKeys.contains(
+      avatarItemKey('faceShape', firstStage.index),
+    );
+  }
 
   bool isAvatarEvolutionStageUnlocked(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
-    if (index == 0) return true;
-    return avatarLevel >= stage.requiredLevel &&
-        avatarExperience >= stage.requiredExperience;
+    if (!_isAvatarSeriesPurchased(stage.series)) return false;
+    if (stage.stage == 1) return true;
+    return avatarLevelForSeries(stage.series) >= stage.requiredLevel &&
+        avatarExperienceForSeries(stage.series) >= stage.requiredExperience;
+  }
+
+  bool isAvatarIconUnlocked(int index) {
+    return isAvatarEvolutionStageUnlocked(index);
   }
 
   String avatarEvolutionRequirementText(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
     if (isAvatarEvolutionStageUnlocked(index)) return '已解鎖';
+    final firstStage = _firstAvatarStageForSeries(stage.series);
+    if (!_isAvatarSeriesPurchased(stage.series)) {
+      if (stage.index == firstStage.index && firstStage.coinPrice > 0) {
+        return '${firstStage.coinPrice} 自律幣購買';
+      }
+      return '先購買${firstStage.name}';
+    }
     return 'Lv.${stage.requiredLevel} / ${stage.requiredExperience} EXP 解鎖';
   }
 
@@ -469,36 +565,20 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarAutoExperienceForSummary(DailySummary summary) {
-    var exp = 0;
+    final sourceRatios = <double>[
+      summary.focusMinutes / avatarAutoFocusFullMinutes,
+      summary.sleepHours / avatarAutoSleepFullHours,
+      summary.steps / avatarAutoStepsFull,
+      summary.exerciseMinutes / avatarAutoExerciseFullMinutes,
+      summary.roomCompleted > 0 ? 1 : 0,
+    ];
 
-    if (summary.focusMinutes >= 50) {
-      exp += 35;
-    } else if (summary.focusMinutes >= 25) {
-      exp += 25;
+    var bestRatio = 0.0;
+    for (final ratio in sourceRatios) {
+      if (ratio > bestRatio) bestRatio = ratio;
     }
 
-    if (summary.sleepHours >= 7) {
-      exp += 20;
-    } else if (summary.sleepHours >= 6.5) {
-      exp += 12;
-    }
-
-    if (summary.steps >= 6000) {
-      exp += 20;
-    } else if (summary.steps >= 4000) {
-      exp += 10;
-    }
-
-    if (summary.exerciseMinutes >= 20) {
-      exp += 20;
-    } else if (summary.exerciseMinutes >= 10) {
-      exp += 10;
-    }
-
-    if (summary.roomCompleted > 0) exp += 15;
-    if (summary.autoTrackedCompleted >= 3) exp += 10;
-
-    return exp.clamp(0, avatarDailyAutoExperienceCap).toInt();
+    return (bestRatio.clamp(0, 1) * avatarDailyAutoExperienceCap).round();
   }
 
   double _avatarExperienceVolumeMultiplier(int totalTasks) {
@@ -512,8 +592,14 @@ class AppState extends ChangeNotifier {
 
   AvatarProfile avatarVariantForSeed(int seed) {
     final normalizedSeed = seed.abs();
+    final starterIndexes = AvatarCatalog.evolutionStages
+        .where((stage) => stage.stage == 1 && stage.coinPrice <= 0)
+        .map((stage) => stage.index)
+        .toList(growable: false);
     return AvatarProfile.initial().copyWith(
-      faceShapeIndex: normalizedSeed % AvatarCatalog.faceShapeLabels.length,
+      faceShapeIndex: starterIndexes.isEmpty
+          ? 0
+          : starterIndexes[normalizedSeed % starterIndexes.length],
     );
   }
 
@@ -522,19 +608,17 @@ class AppState extends ChangeNotifier {
   }
 
   bool isAvatarItemUnlocked(String category, int index) {
-    if (index == 0) return true;
-    if (category == 'faceShape' && isAvatarEvolutionStageUnlocked(index)) {
-      return true;
+    if (category == 'faceShape') {
+      return isAvatarEvolutionStageUnlocked(index);
     }
+    if (index == 0) return true;
     return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
   }
 
   int avatarItemPrice(String category, int index) {
-    if (index == 0) return 0;
-
     switch (category) {
       case 'faceShape':
-        return 0;
+        return AvatarCatalog.stageForIndex(index).coinPrice;
       default:
         return 8 + (index * 3);
     }
@@ -783,6 +867,19 @@ class AppState extends ChangeNotifier {
 
     previews.sort((a, b) => a.timeLabel.compareTo(b.timeLabel));
     return previews;
+  }
+
+  List<LocalReminderRequest> get localReminderRequests {
+    return upcomingReminders
+        .map(
+          (preview) => LocalReminderRequest(
+            channelKey: preview.channelKey,
+            title: preview.title,
+            body: preview.subtitle,
+            timeLabel: preview.timeLabel,
+          ),
+        )
+        .toList(growable: false);
   }
 
   int get todayActionableTaskTotal => todayActionableTaskModels.length;
@@ -1661,7 +1758,10 @@ class AppState extends ChangeNotifier {
   Future<bool> purchaseAvatarItem(String category, int index) async {
     if (isAvatarItemUnlocked(category, index)) return true;
     if (category == 'faceShape' && !isAvatarEvolutionStageUnlocked(index)) {
-      return false;
+      final stage = AvatarCatalog.stageForIndex(index);
+      if (stage.stage != 1 || stage.coinPrice <= 0) {
+        return false;
+      }
     }
 
     final price = avatarItemPrice(category, index);
@@ -1735,6 +1835,8 @@ class AppState extends ChangeNotifier {
       await _loadSeenUnlockedBadges();
       final hasRewardState = await _loadRewardState();
       await _loadAvatarUnlockState();
+      await _loadAvatarExperienceLedger();
+      _normalizeAvatarProfileForCatalog();
 
       await _checkAndPerformDailyResetIfNeeded();
       _syncMyHealthMetricsAcrossRooms();
@@ -1753,6 +1855,7 @@ class AppState extends ChangeNotifier {
       _syncTodaySummary();
       _isHydrated = true;
       notifyListeners();
+      await _rescheduleLocalReminders();
     } catch (e) {
       debugPrint('load data error: $e');
       _tasks = List<Map<String, dynamic>>.from(_defaultTasks);
@@ -1771,6 +1874,8 @@ class AppState extends ChangeNotifier {
       await _loadSeenUnlockedBadges();
       final hasRewardState = await _loadRewardState();
       await _loadAvatarUnlockState();
+      await _loadAvatarExperienceLedger();
+      _normalizeAvatarProfileForCatalog();
       await _checkAndPerformDailyResetIfNeeded();
       _syncMyHealthMetricsAcrossRooms();
       _syncStudyRoomGoalTasks();
@@ -1788,6 +1893,7 @@ class AppState extends ChangeNotifier {
       _syncTodaySummary();
       _isHydrated = true;
       notifyListeners();
+      await _rescheduleLocalReminders();
     }
   }
 
@@ -1813,7 +1919,7 @@ class AppState extends ChangeNotifier {
     } else {
       _avatarProfile = AvatarProfile.initial();
     }
-    _normalizeAvatarProfileForCatalog();
+    _normalizeAvatarProfileForCatalog(enforceUnlocks: false);
   }
 
   int _clampAvatarIndex(int value, int length) {
@@ -1821,7 +1927,7 @@ class AppState extends ChangeNotifier {
     return value.clamp(0, length - 1).toInt();
   }
 
-  void _normalizeAvatarProfileForCatalog() {
+  void _normalizeAvatarProfileForCatalog({bool enforceUnlocks = true}) {
     _avatarProfile = _avatarProfile.copyWith(
       skinToneIndex: _clampAvatarIndex(
         _avatarProfile.skinToneIndex,
@@ -1867,7 +1973,42 @@ class AppState extends ChangeNotifier {
         _avatarProfile.backgroundColorIndex,
         AvatarProfile.backgroundColors.length,
       ),
+      avatarIconIndex: _clampAvatarIndex(
+        _avatarProfile.avatarIconIndex,
+        AvatarCatalog.evolutionStages.length,
+      ),
     );
+    if (!enforceUnlocks) return;
+    if (!isAvatarEvolutionStageUnlocked(_avatarProfile.faceShapeIndex)) {
+      final series = AvatarCatalog.stageForIndex(
+        _avatarProfile.faceShapeIndex,
+      ).series;
+      _avatarProfile = _avatarProfile.copyWith(
+        faceShapeIndex: _highestUnlockedAvatarStageIndex(series: series),
+      );
+    }
+    if (!isAvatarIconUnlocked(_avatarProfile.avatarIconIndex)) {
+      final series = AvatarCatalog.stageForIndex(
+        _avatarProfile.avatarIconIndex,
+      ).series;
+      _avatarProfile = _avatarProfile.copyWith(
+        avatarIconIndex: _highestUnlockedAvatarStageIndex(series: series),
+      );
+    }
+  }
+
+  int _highestUnlockedAvatarStageIndex({String? series}) {
+    var highest = 0;
+    var hasMatch = false;
+    for (final stage in AvatarCatalog.evolutionStages) {
+      if (series != null && stage.series != series) continue;
+      hasMatch = true;
+      if (isAvatarEvolutionStageUnlocked(stage.index)) {
+        highest = math.max(highest, stage.index);
+      }
+    }
+    if (hasMatch) return highest;
+    return AvatarCatalog.evolutionStages.first.index;
   }
 
   Future<void> _saveAppearanceSettings() async {
@@ -1959,11 +2100,57 @@ class AppState extends ChangeNotifier {
             .toSet();
   }
 
+  Future<void> _loadAvatarExperienceLedger() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_avatarExperienceLedgerKey);
+    if (raw == null || raw.isEmpty) {
+      _avatarExperienceLedger = <String, Map<String, int>>{};
+      _migrateLegacyAvatarExperienceLedger();
+      await _saveAvatarExperienceLedger();
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as Map;
+      _avatarExperienceLedger = decoded.map((date, value) {
+        final rawSeries = value is Map ? value : const <String, dynamic>{};
+        final seriesMap = rawSeries.map(
+          (series, experience) =>
+              MapEntry(series.toString(), (experience as num?)?.round() ?? 0),
+        )..removeWhere((_, experience) => experience <= 0);
+        return MapEntry(date.toString(), seriesMap);
+      })..removeWhere((_, seriesMap) => seriesMap.isEmpty);
+    } catch (_) {
+      _avatarExperienceLedger = <String, Map<String, int>>{};
+      _migrateLegacyAvatarExperienceLedger();
+      await _saveAvatarExperienceLedger();
+    }
+  }
+
+  void _migrateLegacyAvatarExperienceLedger() {
+    if (_dailySummaries.isEmpty) return;
+    final series = currentAvatarSeries;
+    _avatarExperienceLedger = <String, Map<String, int>>{};
+    for (final summary in _dailySummaries) {
+      final experience = avatarExperienceForSummary(summary);
+      if (experience <= 0) continue;
+      _avatarExperienceLedger[summary.date] = {series: experience};
+    }
+  }
+
   Future<void> _saveAvatarUnlockState() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
       _unlockedAvatarItemsKey,
       _unlockedAvatarItemKeys.toList(),
+    );
+  }
+
+  Future<void> _saveAvatarExperienceLedger() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _avatarExperienceLedgerKey,
+      jsonEncode(_avatarExperienceLedger),
     );
   }
 
@@ -2099,6 +2286,7 @@ class AppState extends ChangeNotifier {
     }).toList();
     notifyListeners();
     await _saveReminderSettings();
+    await _rescheduleLocalReminders();
   }
 
   Future<void> setReminderTime(String key, String timeLabel) async {
@@ -2108,6 +2296,19 @@ class AppState extends ChangeNotifier {
     }).toList();
     notifyListeners();
     await _saveReminderSettings();
+    await _rescheduleLocalReminders();
+  }
+
+  Future<bool> requestNotificationPermissionAndSchedule() async {
+    final granted = await NotificationService.requestPermission();
+    if (granted) {
+      await _rescheduleLocalReminders();
+    }
+    return granted;
+  }
+
+  Future<void> _rescheduleLocalReminders() async {
+    await NotificationService.scheduleDailyReminders(localReminderRequests);
   }
 
   Future<void> _saveSocialEncouragementRecords() async {
@@ -2749,6 +2950,61 @@ class AppState extends ChangeNotifier {
     }
 
     _saveDailySummaries();
+    _syncAvatarExperienceLedgerForSummary(summary);
+  }
+
+  void _syncAvatarExperienceLedgerForSummary(DailySummary summary) {
+    final expectedExperience = avatarExperienceForSummary(summary);
+    final seriesExperience = Map<String, int>.from(
+      _avatarExperienceLedger[summary.date] ?? const <String, int>{},
+    );
+    final recordedExperience = seriesExperience.values.fold<int>(
+      0,
+      (sum, value) => sum + value,
+    );
+    final delta = expectedExperience - recordedExperience;
+    if (delta == 0) return;
+
+    if (delta > 0) {
+      final series = currentAvatarSeries;
+      seriesExperience[series] = (seriesExperience[series] ?? 0) + delta;
+    } else {
+      _removeAvatarExperienceFromLedgerEntry(
+        seriesExperience,
+        amount: -delta,
+        preferredSeries: currentAvatarSeries,
+      );
+    }
+
+    seriesExperience.removeWhere((_, experience) => experience <= 0);
+    if (seriesExperience.isEmpty) {
+      _avatarExperienceLedger.remove(summary.date);
+    } else {
+      _avatarExperienceLedger[summary.date] = seriesExperience;
+    }
+    _saveAvatarExperienceLedger();
+  }
+
+  void _removeAvatarExperienceFromLedgerEntry(
+    Map<String, int> seriesExperience, {
+    required int amount,
+    required String preferredSeries,
+  }) {
+    var remaining = amount;
+
+    void consume(String series) {
+      if (remaining <= 0) return;
+      final available = seriesExperience[series] ?? 0;
+      if (available <= 0) return;
+      final used = math.min(available, remaining);
+      seriesExperience[series] = available - used;
+      remaining -= used;
+    }
+
+    consume(preferredSeries);
+    for (final series in seriesExperience.keys.toList()) {
+      consume(series);
+    }
   }
 
   Future<void> setThemeModeSetting(String value) async {
@@ -2870,6 +3126,14 @@ class AppState extends ChangeNotifier {
     await _saveStudyRooms();
   }
 
+  Future<void> updateAvatarIconIndex(int index) async {
+    if (!isAvatarIconUnlocked(index)) return;
+    _avatarProfile = _avatarProfile.copyWith(avatarIconIndex: index);
+    _normalizeAvatarProfileForCatalog();
+    notifyListeners();
+    await _saveAppearanceSettings();
+  }
+
   SocialFriendProfile? getSocialFriendById(String id) {
     try {
       return _socialFriends.firstWhere((f) => f.id == id);
@@ -2918,6 +3182,48 @@ class AppState extends ChangeNotifier {
       (candidate) => candidate.nudgeId.toUpperCase() == nudgeId,
     );
     return match.isEmpty ? null : match.first;
+  }
+
+  SocialFriendProfile? findFriendCandidateFromInvite(String rawValue) {
+    final value = rawValue.trim();
+    if (value.isEmpty) return null;
+
+    final directCandidate = findFriendCandidateByNudgeId(value);
+    if (directCandidate != null) return directCandidate;
+
+    final uri = Uri.tryParse(value);
+    if (uri == null) return null;
+
+    final isNudgeInvite =
+        uri.scheme == 'nudge' && uri.host == 'friend' && uri.path == '/add';
+    final isWebInvite =
+        (uri.scheme == 'https' || uri.scheme == 'http') &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'friend' &&
+        uri.pathSegments[1] == 'add';
+    if (!isNudgeInvite && !isWebInvite) return null;
+
+    final nudgeId = (uri.queryParameters['nudgeId'] ?? '').trim().toUpperCase();
+    if (nudgeId.isEmpty || nudgeId == _myNudgeId) return null;
+
+    final knownCandidate = findFriendCandidateByNudgeId(nudgeId);
+    if (knownCandidate != null) return knownCandidate;
+
+    final name = (uri.queryParameters['name'] ?? '').trim();
+    final signature = (uri.queryParameters['signature'] ?? '').trim();
+
+    return SocialFriendProfile(
+      id: 'candidate_${nudgeId.toLowerCase().replaceAll('-', '_')}',
+      nudgeId: nudgeId,
+      name: name.isEmpty ? 'Nudge 好友' : name,
+      signature: signature.isEmpty ? '想和你一起自律前進' : signature,
+      todayFocusSeconds: 0,
+      isStudying: false,
+      avatarColor: const Color(0xFF4F8CFF),
+      avatarProfile: avatarVariantForSeed(nudgeId.hashCode),
+      isFollowing: false,
+      encouragementCount: 0,
+    );
   }
 
   Future<void> addSocialFriend({
@@ -3203,6 +3509,48 @@ class AppState extends ChangeNotifier {
     _saveTasks();
   }
 
+  void setHealthTrackingTask({
+    required TaskSourceType sourceType,
+    required String title,
+    required String category,
+    required double targetValue,
+    required String unitLabel,
+  }) {
+    final index = _tasks.indexWhere((task) {
+      final isAutoTracked = task['isAutoTracked'] as bool? ?? false;
+      final isSystemTask = task['isSystemTask'] as bool? ?? false;
+      return isAutoTracked &&
+          !isSystemTask &&
+          _readTaskSourceType(task) == sourceType;
+    });
+
+    if (index == -1) {
+      addTask(
+        title,
+        category,
+        taskType: 'fixed',
+        priority: '中',
+        isAutoTracked: true,
+        sourceType: sourceType,
+        targetValue: targetValue,
+        unitLabel: unitLabel,
+      );
+      return;
+    }
+
+    updateTask(
+      index: index,
+      title: title,
+      category: category,
+      taskType: 'fixed',
+      priority: '中',
+      isAutoTracked: true,
+      sourceType: sourceType,
+      targetValue: targetValue,
+      unitLabel: unitLabel,
+    );
+  }
+
   void deleteTask(int index) {
     if (index < 0 || index >= _tasks.length) return;
 
@@ -3340,6 +3688,7 @@ class AppState extends ChangeNotifier {
     _dailyCoinEarned = <String, int>{};
     _monthlyDeadlineCoinEarned = <String, int>{};
     _unlockedAvatarItemKeys = <String>{};
+    _avatarExperienceLedger = <String, Map<String, int>>{};
 
     _themeModeSetting = 'system';
     _iconColorSetting = 'purple';
@@ -3373,6 +3722,7 @@ class AppState extends ChangeNotifier {
     await _saveDailySummaries();
     await _saveRewardState();
     await _saveAvatarUnlockState();
+    await _saveAvatarExperienceLedger();
     await _saveAppearanceSettings();
     await _saveStudyRooms();
     await _saveSocialFriends();
@@ -3445,15 +3795,20 @@ class AppState extends ChangeNotifier {
     ];
 
     _dailySummaries = mock;
+    _avatarExperienceLedger = <String, Map<String, int>>{};
+    _migrateLegacyAvatarExperienceLedger();
     notifyListeners();
     await _saveDailySummaries();
+    await _saveAvatarExperienceLedger();
   }
 
   Future<void> clearDailySummaries() async {
     _dailySummaries = [];
+    _avatarExperienceLedger = <String, Map<String, int>>{};
     _syncTodaySummary();
     notifyListeners();
     await _saveDailySummaries();
+    await _saveAvatarExperienceLedger();
   }
 
   void _syncMyFocusSecondsAcrossRooms() {

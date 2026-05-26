@@ -567,7 +567,7 @@ class _AvatarPicker extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.9,
+        childAspectRatio: 0.78,
       ),
       itemCount: AvatarCatalog.faceShapeLabels.length,
       itemBuilder: (context, index) {
@@ -594,16 +594,23 @@ class _AvatarPicker extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                AvatarPreview(
-                  profile: profile,
-                  size: 112,
-                  showBackgroundRing: true,
+                SizedBox(
+                  height: 132,
+                  child: Center(
+                    child: AvatarPreview(
+                      profile: profile,
+                      size: 112,
+                      showBackgroundRing: false,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   AvatarCatalog.faceShapeLabels[index],
                   style: AppUI.cardTitleOf(context),
                   textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

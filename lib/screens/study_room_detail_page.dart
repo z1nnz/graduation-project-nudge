@@ -7,6 +7,7 @@ import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import 'health_page.dart';
 import 'study_room_live_page.dart';
 
 class StudyRoomDetailPage extends StatelessWidget {
@@ -134,6 +135,10 @@ class StudyRoomDetailPage extends StatelessWidget {
   }
 
   String _activeStatusText(StudyRoomData room) {
+    if (_usesExternalProgress(room)) {
+      return '同步中';
+    }
+
     switch (room.roomType) {
       case StudyRoomType.study:
         return '專注中';
@@ -148,16 +153,77 @@ class StudyRoomDetailPage extends StatelessWidget {
     }
   }
 
+  bool _usesExternalProgress(StudyRoomData room) {
+    return room.goalSourceType == TaskSourceType.sleepHours ||
+        room.goalSourceType == TaskSourceType.exerciseMinutes ||
+        room.goalSourceType == TaskSourceType.steps;
+  }
+
+  bool _hasInRoomTimer(StudyRoomData room) {
+    return !_usesExternalProgress(room);
+  }
+
+  String _liveRoomTitle(StudyRoomData room) {
+    return _hasInRoomTimer(room) ? '即時自律房' : '房間同步看板';
+  }
+
+  String _liveRoomSubtitle(StudyRoomData room) {
+    if (!_usesExternalProgress(room)) {
+      return '進入角色房間，開始倒數、聊天、送鼓勵貼圖。';
+    }
+
+    switch (room.roomType) {
+      case StudyRoomType.sleep:
+        return '睡眠時數由健康資料導入，房內負責陪伴、提醒與查看進度。';
+      case StudyRoomType.exercise:
+        return '運動分鐘由健康資料導入，房內用打卡與鼓勵維持節奏。';
+      case StudyRoomType.steps:
+        return '步數由健康資料導入，房內查看排行榜並互相提醒去走走。';
+      case StudyRoomType.study:
+      case StudyRoomType.custom:
+        return '查看同步進度、聊天、送鼓勵貼圖。';
+    }
+  }
+
+  String _liveRoomButtonLabel(
+    StudyRoomData room, {
+    required bool isCurrentUserPending,
+  }) {
+    if (isCurrentUserPending) return '審核中';
+    return _hasInRoomTimer(room) ? '進入' : '查看';
+  }
+
+  String _activityMetricTitle(StudyRoomData room) {
+    return _usesExternalProgress(room) ? '已達標人數' : '進行中人數';
+  }
+
+  IconData _activityMetricIcon(StudyRoomData room) {
+    return _usesExternalProgress(room)
+        ? Icons.verified_outlined
+        : Icons.local_fire_department_outlined;
+  }
+
+  Color _activityMetricColor(StudyRoomData room) {
+    return _usesExternalProgress(room)
+        ? const Color(0xFF0EA5E9)
+        : const Color(0xFF10B981);
+  }
+
+  String _personalGoalText(StudyRoomData room, StudyMemberData member) {
+    if (_usesExternalProgress(room)) return _goalText(room);
+    return _formatHours(member.personalGoalSeconds);
+  }
+
   String _startActionText(StudyRoomData room) {
     switch (room.roomType) {
       case StudyRoomType.study:
         return '開始專注';
       case StudyRoomType.sleep:
-        return '開始睡覺';
+        return '同步睡眠';
       case StudyRoomType.exercise:
-        return '開始運動';
+        return '同步運動';
       case StudyRoomType.steps:
-        return '開始走路';
+        return '同步步數';
       case StudyRoomType.custom:
         return '開始自律';
     }
@@ -179,6 +245,14 @@ class StudyRoomDetailPage extends StatelessWidget {
   }
 
   String _memberStatusText(StudyRoomData room, StudyMemberStatus status) {
+    if (_usesExternalProgress(room)) {
+      return switch (status) {
+        StudyMemberStatus.studying => '同步中',
+        StudyMemberStatus.resting => '已同步達標',
+        StudyMemberStatus.offline => '待同步',
+      };
+    }
+
     switch (status) {
       case StudyMemberStatus.studying:
         return _activeStatusText(room);
@@ -685,9 +759,11 @@ class StudyRoomDetailPage extends StatelessWidget {
         final trackedValue = _roomTrackedValue(room);
         final trackedValueText = _formatRoomTrackedValue(room, trackedValue);
         final goalText = _goalText(room);
-        final activeCount = approvedMembers
-            .where((m) => m.status == StudyMemberStatus.studying)
-            .length;
+        final activityCount = _usesExternalProgress(room)
+            ? approvedMembers.where((m) => m.hasReachedPersonalGoal).length
+            : approvedMembers
+                  .where((m) => m.status == StudyMemberStatus.studying)
+                  .length;
         final double progress = room.dailyGoalValue <= 0
             ? 0.0
             : (trackedValue / room.dailyGoalValue).clamp(0.0, 1.0).toDouble();
@@ -855,7 +931,7 @@ class StudyRoomDetailPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '即時自律房',
+                                    _liveRoomTitle(room),
                                     style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
@@ -864,7 +940,7 @@ class StudyRoomDetailPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '進入角色房間，開始倒數、聊天、送鼓勵貼圖。',
+                                    _liveRoomSubtitle(room),
                                     style: TextStyle(
                                       fontSize: 13,
                                       height: 1.35,
@@ -889,7 +965,12 @@ class StudyRoomDetailPage extends StatelessWidget {
                                     }
                                   : null,
                               icon: const Icon(Icons.login_rounded),
-                              label: Text(isCurrentUserPending ? '審核中' : '進入'),
+                              label: Text(
+                                _liveRoomButtonLabel(
+                                  room,
+                                  isCurrentUserPending: isCurrentUserPending,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -949,10 +1030,10 @@ class StudyRoomDetailPage extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _DashboardMiniInfo(
-                                title: '進行中人數',
-                                value: '$activeCount 人',
-                                icon: Icons.local_fire_department_outlined,
-                                color: const Color(0xFF10B981),
+                                title: _activityMetricTitle(room),
+                                value: '$activityCount 人',
+                                icon: _activityMetricIcon(room),
+                                color: _activityMetricColor(room),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -1185,7 +1266,7 @@ class StudyRoomDetailPage extends StatelessWidget {
                                       room,
                                       _memberTrackedValue(room, me),
                                     ),
-                                    icon: Icons.timer_outlined,
+                                    icon: _roomTypeIcon(room.roomType),
                                     color: accent,
                                   ),
                                 ),
@@ -1193,7 +1274,7 @@ class StudyRoomDetailPage extends StatelessWidget {
                                 Expanded(
                                   child: _DashboardMiniInfo(
                                     title: '個人目標',
-                                    value: _formatHours(me.personalGoalSeconds),
+                                    value: _personalGoalText(room, me),
                                     icon: Icons.track_changes_outlined,
                                     color: const Color(0xFFF59E0B),
                                   ),
@@ -1201,61 +1282,124 @@ class StudyRoomDetailPage extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 14),
-                            GridView.count(
-                              crossAxisCount: 2,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: 2.7,
-                              children: [
-                                _RoomActionButton(
-                                  label: _startActionText(room),
-                                  icon: _startActionIcon(room),
-                                  isPrimary: true,
-                                  onPressed: () {
-                                    appState.updateMyStudyRoomPresence(
-                                      roomId: room.id,
-                                      status: StudyMemberStatus.studying,
-                                      sessionSeconds:
-                                          room.goalSourceType ==
-                                                  TaskSourceType.studyRoom ||
-                                              room.goalSourceType ==
-                                                  TaskSourceType.focusMinutes
-                                          ? 25 * 60
-                                          : 0,
-                                    );
-                                  },
-                                ),
-                                _RoomActionButton(
-                                  label: '休息',
-                                  icon: Icons.free_breakfast_outlined,
-                                  onPressed: () {
-                                    appState.updateMyStudyRoomPresence(
-                                      roomId: room.id,
-                                      status: StudyMemberStatus.resting,
-                                      sessionSeconds: 0,
-                                    );
-                                  },
-                                ),
-                                _RoomActionButton(
-                                  label: '離線',
-                                  icon: Icons.stop_circle_outlined,
-                                  onPressed: () {
-                                    appState.clearMyStudyRoomPresence(room.id);
-                                  },
-                                ),
-                                _RoomActionButton(
-                                  label: '改目標',
-                                  icon: Icons.edit_note_outlined,
-                                  onPressed: () => _showSetPersonalGoalDialog(
-                                    context,
-                                    appState,
-                                    room,
+                            if (_hasInRoomTimer(room))
+                              GridView.count(
+                                crossAxisCount: 2,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                childAspectRatio: 2.7,
+                                children: [
+                                  _RoomActionButton(
+                                    label: _startActionText(room),
+                                    icon: _startActionIcon(room),
+                                    isPrimary: true,
+                                    onPressed: () {
+                                      appState.updateMyStudyRoomPresence(
+                                        roomId: room.id,
+                                        status: StudyMemberStatus.studying,
+                                        sessionSeconds: 25 * 60,
+                                      );
+                                    },
                                   ),
+                                  _RoomActionButton(
+                                    label: '休息',
+                                    icon: Icons.free_breakfast_outlined,
+                                    onPressed: () {
+                                      appState.updateMyStudyRoomPresence(
+                                        roomId: room.id,
+                                        status: StudyMemberStatus.resting,
+                                        sessionSeconds: 0,
+                                      );
+                                    },
+                                  ),
+                                  _RoomActionButton(
+                                    label: '離線',
+                                    icon: Icons.stop_circle_outlined,
+                                    onPressed: () {
+                                      appState.clearMyStudyRoomPresence(
+                                        room.id,
+                                      );
+                                    },
+                                  ),
+                                  _RoomActionButton(
+                                    label: '改目標',
+                                    icon: Icons.edit_note_outlined,
+                                    onPressed: () => _showSetPersonalGoalDialog(
+                                      context,
+                                      appState,
+                                      room,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: AppUI.softCardOf(context, accent),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Icon(
+                                          Icons.health_and_safety_outlined,
+                                          color: accent,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            '這間房不在房內手動計時，今日${_metricName(room)}會從健康資料同步進來。',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              height: 1.45,
+                                              color: primaryText,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      children: [
+                                        ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const HealthPage(),
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.sync_outlined),
+                                          label: const Text('同步健康資料'),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: () =>
+                                              _showSetPersonalGoalDialog(
+                                                context,
+                                                appState,
+                                                room,
+                                              ),
+                                          icon: const Icon(
+                                            Icons.edit_note_outlined,
+                                          ),
+                                          label: const Text('改目標'),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
                             if (room.syncTaskEnabled) ...[
                               const SizedBox(height: 10),
                               SizedBox(
@@ -2140,11 +2284,11 @@ class _RoomLiveStage extends StatelessWidget {
       case StudyRoomType.study:
         return '按下開始專注後，你的人物會出現在房間裡。';
       case StudyRoomType.sleep:
-        return '按下開始睡覺後，你的人物會進入睡眠房。';
+        return '同步健康資料後，你的睡眠進度會出現在房間裡。';
       case StudyRoomType.exercise:
-        return '按下開始運動後，你的人物會出現在運動房。';
+        return '同步健康資料後，你的運動進度會出現在房間裡。';
       case StudyRoomType.steps:
-        return '按下開始走路後，你的人物會出現在步數房。';
+        return '同步健康資料後，你的步數進度會出現在房間裡。';
       case StudyRoomType.custom:
         return '按下開始自律後，你的人物會出現在房間裡。';
     }

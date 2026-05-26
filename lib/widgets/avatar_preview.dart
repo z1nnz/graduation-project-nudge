@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
 
 class AvatarPreview extends StatelessWidget {
@@ -105,7 +106,7 @@ class _AvatarLayerPaths {
   const _AvatarLayerPaths(this.profile);
 
   String get character =>
-      'assets/avatar/characters/character_${profile.faceShapeIndex}.png';
+      AvatarCatalog.characterAssetForIndex(profile.faceShapeIndex);
 
   List<String> get ordered {
     return [character];

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/badge_record.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
-import '../widgets/avatar_preview.dart';
-import 'avatar_editor_page.dart';
+import '../widgets/avatar_icon_preview.dart';
+import 'avatar_icon_picker_page.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -91,10 +90,48 @@ class _MyProfilePageState extends State<MyProfilePage> {
             decoration: AppUI.heroGradient(accentColor),
             child: Row(
               children: [
-                AvatarPreview(
-                  profile: appState.avatarProfile,
-                  size: 92,
-                  showBackgroundRing: true,
+                InkWell(
+                  borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AvatarIconPickerPage(),
+                      ),
+                    );
+                  },
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AvatarIconPreview(
+                        index: appState.avatarProfile.avatarIconIndex,
+                        size: 92,
+                      ),
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.18),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.edit_rounded,
+                            color: accentColor,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -194,19 +231,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AvatarEditorPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.face_retouching_natural),
-                    label: const Text('編輯角色外觀'),
-                  ),
                 ],
               ),
             ),
@@ -240,22 +264,38 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _TitleOptionTile(
-                    title: '不使用稱號',
-                    subtitle: '名片只顯示你的暱稱與簽名',
-                    selected: selectedTitleKey.isEmpty,
-                    accentColor: accentColor,
-                    onTap: () {
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedTitleKey,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: '選擇稱號',
+                      prefixIcon: Icon(Icons.emoji_events_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: '', child: Text('不使用稱號')),
+                      ...unlockedBadges.map(
+                        (badge) => DropdownMenuItem(
+                          value: badge.badgeKey,
+                          child: Text(
+                            badge.badgeName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
                       setState(() {
-                        _selectedTitleBadgeKey = '';
+                        _selectedTitleBadgeKey = value ?? '';
                       });
                     },
                   ),
-                  const SizedBox(height: 10),
-                  if (unlockedBadges.isEmpty)
+                  if (unlockedBadges.isEmpty) ...[
+                    const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       decoration: AppUI.softCardOf(context, accentColor),
                       child: Text(
                         '目前還沒有可使用的成就稱號，解鎖成就後就能放到名片上。',
@@ -265,24 +305,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    )
-                  else
-                    ...unlockedBadges.map(
-                      (badge) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _TitleOptionTile(
-                          title: badge.badgeName,
-                          subtitle: _badgeSubtitle(badge),
-                          selected: selectedTitleKey == badge.badgeKey,
-                          accentColor: accentColor,
-                          onTap: () {
-                            setState(() {
-                              _selectedTitleBadgeKey = badge.badgeKey;
-                            });
-                          },
-                        ),
-                      ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -297,90 +321,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
           ),
           const SizedBox(height: 20),
         ],
-      ),
-    );
-  }
-
-  String _badgeSubtitle(BadgeRecord badge) {
-    final unlockedAt = badge.unlockedAt;
-    if (unlockedAt == null) return '已解鎖';
-    return '解鎖於 ${unlockedAt.month}/${unlockedAt.day}';
-  }
-}
-
-class _TitleOptionTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final Color accentColor;
-  final VoidCallback onTap;
-
-  const _TitleOptionTile({
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.accentColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected
-              ? accentColor.withValues(
-                  alpha: AppUI.isDark(context) ? 0.18 : 0.12,
-                )
-              : (AppUI.isDark(context)
-                    ? const Color(0xFF1F2430)
-                    : const Color(0xFFF8FAFC)),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected
-                ? accentColor
-                : secondaryText.withValues(alpha: 0.18),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected ? Icons.check_circle : Icons.emoji_events_outlined,
-              color: selected ? accentColor : secondaryText,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: primaryText,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: secondaryText,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

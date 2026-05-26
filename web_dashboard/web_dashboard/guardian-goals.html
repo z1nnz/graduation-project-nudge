@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 共同目標</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <body data-page="guardian">
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>共同目標</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="guardian.html">家長陪伴中心</a></nav></aside>
+      <main class="main">
+        <header class="hero split"><div><span class="eyebrow">Shared Goals</span><h1>共同目標必須孩子同意後才啟用。</h1><p>家長送出邀請，孩子端可以同意、拒絕或之後解除連結。</p><div class="subnav"><a href="guardian.html">中心總覽</a><a href="guardian-report.html">孩子週報</a><a href="guardian-encouragement.html">鼓勵卡</a><a class="active" href="guardian-goals.html">共同目標</a><a href="guardian-permissions.html">權限設定</a></div></div><div class="hero-card"><span>待孩子同意</span><strong data-count="1">0</strong><p>一週睡滿 49 小時。</p></div></header>
+        <section class="tool-panel page-section" data-tool="guardian-invite">
+          <div class="tool-copy"><span class="eyebrow">Companion Tool</span><h2>共同目標邀請器</h2><p>設定目標、權限與鼓勵語氣，孩子同意後才會啟用。</p></div>
+          <div class="tool-grid">
+            <label class="field"><span>共同目標</span><select data-guardian-goal><option value="一週睡滿 49 小時">一週睡滿 49 小時</option><option value="每天專注 30 分鐘">每天專注 30 分鐘</option><option value="每週運動 3 次">每週運動 3 次</option></select></label>
+            <label class="field"><span>分享權限</span><select data-guardian-permission><option value="只看總覽">只看總覽</option><option value="可看週報">可看週報</option><option value="可看任務類型">可看任務類型</option><option value="可看健康趨勢">可看健康趨勢</option></select></label>
+            <label class="field wide"><span>鼓勵訊息</span><textarea data-guardian-message rows="3">這週我們一起把睡眠穩住，不用一次做到完美。</textarea></label>
+          </div>
+          <div class="generated-card warm" data-output="guardian-preview"><strong>邀請預覽</strong><p>目標：一週睡滿 49 小時。權限：只看總覽。孩子可同意或拒絕，也能隨時解除連結。</p></div>
+          <div class="button-row"><button class="button primary" data-action="preview-guardian" type="button">更新邀請</button><button class="button ghost" data-action="send-guardian" type="button">送出邀請 Demo</button></div>
+        </section>
+      </main>
+    </div><script src="assets/app.js"></script>
+  </body>
+</html>
+

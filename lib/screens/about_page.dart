@@ -129,15 +129,16 @@ class AboutPage extends StatelessWidget {
           _aboutCard(
             context,
             title: '核心功能',
-            content: '目前包含首頁儀表板、任務管理、專注模式、健康同步、統計分析、每日紀錄、每週報告與成就徽章等功能。',
+            content:
+                '首頁儀表板、任務管理、專注模式、健康追蹤、統計分析、每日紀錄、每週報告、成就徽章、角色穿搭與社交自律房已整合成同一套自律系統。',
             icon: Icons.dashboard_customize_outlined,
             color: AppUI.blue,
           ),
           const SizedBox(height: AppUI.cardGap),
           _aboutCard(
             context,
-            title: '未來方向',
-            content: '未來可延伸至個人化角色、社交互動、排行榜與更多主題外觀，讓自律管理不只實用，也更有陪伴感與趣味性。',
+            title: '產品重點',
+            content: '任務、健康、專注與房間進度會回到分數、徽章、自律幣與角色展示，讓每一次完成都有可見回饋。',
             icon: Icons.rocket_launch_outlined,
             color: AppUI.blue,
           ),

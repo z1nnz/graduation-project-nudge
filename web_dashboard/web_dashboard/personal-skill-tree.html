@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 人生技能樹</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>技能樹</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="planet.html">自律城市 / 星球</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Skill Tree</span>
+            <h1>把任務分類變成能力成長，不只是徽章牆。</h1>
+            <p>每個能力節點都有來源、進度和下一個解鎖條件，讓使用者知道自己在長什麼能力。</p>
+            <div class="subnav">
+              <a href="personal.html">中心總覽</a>
+              <a href="personal-trends.html">趨勢</a>
+              <a href="personal-pressure.html">壓力雷達</a>
+              <a href="personal-weather.html">自律天氣</a>
+              <a href="personal-time-capsule.html">時間膠囊</a>
+              <a href="personal-letter.html">未來的信</a>
+              <a class="active" href="personal-skill-tree.html">技能樹</a>
+              <a href="personal-template.html">任務模板</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>已點亮節點</span>
+            <strong data-count="18">0</strong>
+            <p>下個節點：專注力 Lv.4。</p>
+          </div>
+        </header>
+
+        <section class="skill-tree-layout page-section">
+          <div class="skill-tree-container">
+            <!-- Tier 1 -->
+            <div class="skill-tier">
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🏃‍♂️</span></div>
+                <div class="node-info">
+                  <strong>健康力 Lv.6</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 84%;"></div></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="skill-path-v"></div>
+            
+            <!-- Tier 2 -->
+            <div class="skill-tier split-2">
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🧠</span></div>
+                <div class="node-info">
+                  <strong>學習力 Lv.5</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 78%;"></div></div>
+                </div>
+              </div>
+              <div class="skill-node active-target">
+                <div class="node-hex"><span class="node-icon">⏱️</span></div>
+                <div class="node-info">
+                  <strong>專注力 Lv.3</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 62%;"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="skill-path-v branch"></div>
+
+            <!-- Tier 3 -->
+            <div class="skill-tier split-3">
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🧹</span></div>
+                <div class="node-info">
+                  <strong>生活管理 Lv.2</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 56%;"></div></div>
+                </div>
+              </div>
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🤝</span></div>
+                <div class="node-info">
+                  <strong>社交陪伴 Lv.2</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 48%;"></div></div>
+                </div>
+              </div>
+              <div class="skill-node locked">
+                <div class="node-hex"><span class="node-icon">🧘</span></div>
+                <div class="node-info">
+                  <strong>壓力調節 Lv.1</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 34%;"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel page-section">
+          <span class="eyebrow">下一個解鎖</span>
+          <h2>專注力 Lv.4：穩定番茄鐘</h2>
+          <p>條件：本週累積專注 180 分鐘，且至少 4 天有完成專注任務。完成後可解鎖「專注系稱號」與星球圖書館升級。</p>
+          <div class="progress" style="margin-bottom: 20px;"><span style="--value: 72%"></span></div>
+          <button class="button primary" data-toast="已把專注力 Lv.4 設為本週目標" style="margin-top: 10px; width: 100%;">設為本週目標</button>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

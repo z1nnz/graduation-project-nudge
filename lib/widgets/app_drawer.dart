@@ -13,10 +13,11 @@ import '../screens/about_page.dart';
 import '../screens/account_page.dart';
 import '../screens/avatar_shop_page.dart';
 import '../screens/calendar_page.dart';
+import '../screens/character_page.dart';
 import '../screens/coin_wallet_page.dart';
 import '../screens/my_profile_page.dart';
 import '../screens/reminder_center_page.dart';
-import '../widgets/avatar_preview.dart';
+import '../widgets/avatar_icon_preview.dart';
 
 class AppDrawer extends StatelessWidget {
   final VoidCallback? onOpenTasks;
@@ -116,10 +117,9 @@ class AppDrawer extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      AvatarPreview(
-                        profile: appState.avatarProfile,
+                      AvatarIconPreview(
+                        index: appState.avatarProfile.avatarIconIndex,
                         size: 74,
-                        showBackgroundRing: true,
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -254,8 +254,15 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _drawerItem(
                     context: context,
-                    icon: Icons.checkroom_outlined,
-                    title: '時裝商城',
+                    icon: Icons.auto_awesome_outlined,
+                    title: '角色中心',
+                    onTap: () => _openPage(context, const CharacterPage()),
+                    accentColor: accentColor,
+                  ),
+                  _drawerItem(
+                    context: context,
+                    icon: Icons.storefront_outlined,
+                    title: '角色商城',
                     onTap: () => _openPage(context, const AvatarShopPage()),
                     accentColor: accentColor,
                   ),

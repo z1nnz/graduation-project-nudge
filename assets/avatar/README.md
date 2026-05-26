@@ -6,8 +6,10 @@
 
 ## 正式使用的檔案
 
-- `characters/character_0.png`：預設角色，免費
-- `characters/character_1.png`：商城角色
+- `characters/character_0.png` ~ `characters/character_11.png`：前四個三階段系列，首次進入 App 即可取得第 1 階，後續用 EXP 進化
+- `characters/character_12.png` ~ `characters/character_14.png`：月影忍者系列，自律幣購買第 1 階後再用 EXP 進化
+- `characters/character_15.png` ~ `characters/character_17.png`：森語女神系列，自律幣購買第 1 階後再用 EXP 進化
+- `icons/icon_{index}.png`：對應角色階段的圓形頭像
 
 新增角色時請照這個格式：
 
@@ -15,6 +17,9 @@
 - 尺寸：建議 `512 x 768 px`
 - 背景：透明 PNG
 - 內容：完整角色本體，包含髮型、臉、衣服、鞋子與配件
+- 頭像檔名：`icons/icon_{index}.png`
+- 頭像尺寸：建議 `512 x 512 px`
+- 購買規則：一開始送的角色把 `coinPrice` 留 0；自律幣角色只在第 1 階設定 `coinPrice`
 
 新增角色後，同步到 `lib/models/avatar_catalog.dart` 的 `faceShapeLabels` 加一個角色名稱。例：
 

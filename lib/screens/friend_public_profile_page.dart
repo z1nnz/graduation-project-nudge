@@ -205,7 +205,7 @@ class FriendPublicProfilePage extends StatelessWidget {
                       ),
                       _OutfitPart(
                         icon: Icons.update_outlined,
-                        title: '未來發展',
+                        title: '穿搭',
                         value: '部件換裝',
                         color: const Color(0xFF14B8A6),
                       ),
@@ -279,7 +279,7 @@ class FriendPublicProfilePage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(AppUI.innerPadding),
                 child: Text(
-                  '這是你自己的公開頁。之後完整換裝系統做好後，這裡也會優先展示你的角色外觀。',
+                  '這是你自己的公開頁，好友看到的角色外觀會和目前穿搭一致。',
                   style: TextStyle(
                     fontSize: 13,
                     color: secondaryText,

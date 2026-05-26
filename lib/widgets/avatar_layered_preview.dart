@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
 import 'avatar_preview.dart';
 
@@ -97,7 +98,7 @@ class AvatarLayerPaths {
   const AvatarLayerPaths(this.profile);
 
   String get character =>
-      'assets/avatar/characters/character_${profile.faceShapeIndex}.png';
+      AvatarCatalog.characterAssetForIndex(profile.faceShapeIndex);
 
   List<String> get ordered {
     return [character];

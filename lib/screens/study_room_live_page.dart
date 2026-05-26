@@ -9,6 +9,7 @@ import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import 'health_page.dart';
 
 class StudyRoomLivePage extends StatefulWidget {
   final String roomId;
@@ -181,6 +182,35 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         room.goalSourceType == TaskSourceType.focusMinutes;
   }
 
+  bool _usesExternalProgress(StudyRoomData room) {
+    return room.goalSourceType == TaskSourceType.sleepHours ||
+        room.goalSourceType == TaskSourceType.exerciseMinutes ||
+        room.goalSourceType == TaskSourceType.steps;
+  }
+
+  bool _hasInRoomTimer(StudyRoomData room) {
+    return !_usesExternalProgress(room);
+  }
+
+  String _formatMetricValue(StudyRoomData room, double value) {
+    if (value % 1 == 0) return '${value.toInt()} ${room.goalUnitLabel}';
+    return '${value.toStringAsFixed(1)} ${room.goalUnitLabel}';
+  }
+
+  String _healthSyncDescription(StudyRoomData room) {
+    switch (room.roomType) {
+      case StudyRoomType.sleep:
+        return '睡眠房不在房內開始計時，會讀取健康資料中的睡眠時數來更新進度。';
+      case StudyRoomType.exercise:
+        return '運動房以健康資料的運動分鐘更新進度，房內保留聊天和鼓勵打卡。';
+      case StudyRoomType.steps:
+        return '步數房不在房內開始走路，會讀取健康資料中的今日步數來更新進度。';
+      case StudyRoomType.study:
+      case StudyRoomType.custom:
+        return '這間房會從外部資料同步今日進度。';
+    }
+  }
+
   String _metricName(StudyRoomData room) {
     switch (room.roomType) {
       case StudyRoomType.study:
@@ -216,11 +246,11 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
       case StudyRoomType.study:
         return '開始專注';
       case StudyRoomType.sleep:
-        return '開始睡覺';
+        return '同步睡眠';
       case StudyRoomType.exercise:
-        return '開始運動';
+        return '同步運動';
       case StudyRoomType.steps:
-        return '開始走路';
+        return '同步步數';
       case StudyRoomType.custom:
         return '開始自律';
     }
@@ -242,6 +272,14 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   }
 
   String _memberStatusText(StudyRoomData room, StudyMemberStatus status) {
+    if (_usesExternalProgress(room)) {
+      return switch (status) {
+        StudyMemberStatus.studying => '同步中',
+        StudyMemberStatus.resting => '已達標',
+        StudyMemberStatus.offline => '待同步',
+      };
+    }
+
     switch (status) {
       case StudyMemberStatus.studying:
         return '${_activeNoun(room)}中';
@@ -298,9 +336,33 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         final approvedMembers = room.members
             .where((member) => member.isApproved)
             .toList(growable: false);
-        final activeCount = approvedMembers
-            .where((member) => member.status == StudyMemberStatus.studying)
-            .length;
+        final activityCount = _usesExternalProgress(room)
+            ? approvedMembers
+                  .where((member) => member.hasReachedPersonalGoal)
+                  .length
+            : approvedMembers
+                  .where(
+                    (member) => member.status == StudyMemberStatus.studying,
+                  )
+                  .length;
+        final me = approvedMembers.firstWhere(
+          (member) => member.memberId == 'local_user',
+          orElse: () => StudyMemberData(
+            memberId: 'local_user',
+            name: appState.profileNickname,
+            roomNickname: appState.profileNickname,
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: appState.focusSeconds,
+            todayMetricValue: 0,
+            avatarColor: const Color(0xFF7C6AE6),
+          ),
+        );
+        final externalProgress = room.dailyGoalValue <= 0
+            ? 0.0
+            : (me.todayMetricValue / room.dailyGoalValue)
+                  .clamp(0.0, 1.0)
+                  .toDouble();
 
         return Scaffold(
           appBar: AppBar(
@@ -310,8 +372,12 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                 padding: const EdgeInsets.only(right: 12),
                 child: Center(
                   child: _LivePill(
-                    text: '$activeCount 人進行中',
-                    color: const Color(0xFF10B981),
+                    text: _usesExternalProgress(room)
+                        ? '$activityCount 人達標'
+                        : '$activityCount 人進行中',
+                    color: _usesExternalProgress(room)
+                        ? const Color(0xFF0EA5E9)
+                        : const Color(0xFF10B981),
                   ),
                 ),
               ),
@@ -322,7 +388,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
             children: [
               _LiveRoomHeader(
                 room: room,
-                activeCount: activeCount,
+                activeCount: activityCount,
                 messageCount: room.messages.length,
                 eventCount: room.events.length,
                 accent: accent,
@@ -340,21 +406,41 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                     _memberAvatarProfile(appState, member),
               ),
               const SizedBox(height: AppUI.sectionGap),
-              _TimerPanel(
-                accent: accent,
-                timerText: _timerText(),
-                isRunning: _isRunning,
-                progress: _durationSeconds <= 0
-                    ? 0
-                    : 1 - (_remainingSeconds / _durationSeconds),
-                startText: _startActionText(room),
-                startIcon: _startActionIcon(room),
-                onStart: () => _startSession(appState, room),
-                onPause: () => _pauseSession(appState, room),
-                onStop: () => _stopSession(appState, room),
-                onDurationChanged: _setDuration,
-                selectedDuration: _durationSeconds,
-              ),
+              if (_hasInRoomTimer(room))
+                _TimerPanel(
+                  accent: accent,
+                  timerText: _timerText(),
+                  isRunning: _isRunning,
+                  progress: _durationSeconds <= 0
+                      ? 0
+                      : 1 - (_remainingSeconds / _durationSeconds),
+                  startText: _startActionText(room),
+                  startIcon: _startActionIcon(room),
+                  onStart: () => _startSession(appState, room),
+                  onPause: () => _pauseSession(appState, room),
+                  onStop: () => _stopSession(appState, room),
+                  onDurationChanged: _setDuration,
+                  selectedDuration: _durationSeconds,
+                )
+              else
+                _HealthSyncPanel(
+                  accent: accent,
+                  metricName: _metricName(room),
+                  currentValueText: _formatMetricValue(
+                    room,
+                    me.todayMetricValue,
+                  ),
+                  goalText: _formatMetricValue(room, room.dailyGoalValue),
+                  progress: externalProgress,
+                  isHealthConnected: appState.isHealthConnected,
+                  description: _healthSyncDescription(room),
+                  onSync: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HealthPage()),
+                    );
+                  },
+                ),
               const SizedBox(height: AppUI.sectionGap),
               _StickerPanel(
                 accent: accent,
@@ -427,6 +513,28 @@ class _LiveRoomHeader extends StatelessWidget {
     }
   }
 
+  bool _usesExternalProgress() {
+    return room.goalSourceType == TaskSourceType.sleepHours ||
+        room.goalSourceType == TaskSourceType.exerciseMinutes ||
+        room.goalSourceType == TaskSourceType.steps;
+  }
+
+  String _activityLabel() {
+    return _usesExternalProgress() ? '達標' : '進行中';
+  }
+
+  IconData _activityIcon() {
+    return _usesExternalProgress()
+        ? Icons.verified_outlined
+        : Icons.local_fire_department_outlined;
+  }
+
+  Color _activityColor() {
+    return _usesExternalProgress()
+        ? const Color(0xFF0EA5E9)
+        : const Color(0xFF10B981);
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryText = AppUI.textPrimaryOf(context);
@@ -491,10 +599,10 @@ class _LiveRoomHeader extends StatelessWidget {
             children: [
               Expanded(
                 child: _HeaderMetric(
-                  label: '進行中',
+                  label: _activityLabel(),
                   value: '$activeCount',
-                  icon: Icons.local_fire_department_outlined,
-                  color: const Color(0xFF10B981),
+                  icon: _activityIcon(),
+                  color: _activityColor(),
                 ),
               ),
               const SizedBox(width: 8),
@@ -623,11 +731,11 @@ class _LiveStage extends StatelessWidget {
       case StudyRoomType.study:
         return '大家各自安靜讀書，進度會同步到房間。';
       case StudyRoomType.sleep:
-        return '開始睡覺後，角色會留在房內陪你維持作息。';
+        return '睡眠時數由健康資料同步，房內負責提醒與陪伴。';
       case StudyRoomType.exercise:
-        return '開始運動後，成員會一起出現在訓練區。';
+        return '運動分鐘由健康資料同步，房內負責打卡與鼓勵。';
       case StudyRoomType.steps:
-        return '開始走路後，大家會在步道上累積步數。';
+        return '今日步數由健康資料同步，房內負責排行榜與提醒。';
       case StudyRoomType.custom:
         return '開始自律後，房內成員會一起進入狀態。';
     }
@@ -1383,6 +1491,206 @@ class _StageFloorMark extends StatelessWidget {
           color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(AppUI.radiusPill),
         ),
+      ),
+    );
+  }
+}
+
+class _HealthSyncPanel extends StatelessWidget {
+  final Color accent;
+  final String metricName;
+  final String currentValueText;
+  final String goalText;
+  final double progress;
+  final bool isHealthConnected;
+  final String description;
+  final VoidCallback onSync;
+
+  const _HealthSyncPanel({
+    required this.accent,
+    required this.metricName,
+    required this.currentValueText,
+    required this.goalText,
+    required this.progress,
+    required this.isHealthConnected,
+    required this.description,
+    required this.onSync,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.health_and_safety_outlined, color: accent),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '健康資料同步',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isHealthConnected ? '已連接健康資料' : '尚未連接健康資料',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isHealthConnected
+                              ? const Color(0xFF10B981)
+                              : secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                color: secondaryText,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _SyncMetricTile(
+                    label: '今日$metricName',
+                    value: currentValueText,
+                    icon: Icons.insights_outlined,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _SyncMetricTile(
+                    label: '房間目標',
+                    value: goalText,
+                    icon: Icons.flag_outlined,
+                    color: const Color(0xFFF59E0B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppUI.radiusPill),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                minHeight: 10,
+                backgroundColor: AppUI.isDark(context)
+                    ? const Color(0xFF2A2F3A)
+                    : const Color(0xFFE5E7EB),
+                valueColor: AlwaysStoppedAnimation<Color>(accent),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '目前進度 ${(progress * 100).round()}%',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: primaryText,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onSync,
+                icon: const Icon(Icons.sync_outlined),
+                label: const Text('前往健康頁同步'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SyncMetricTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _SyncMetricTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: AppUI.softCardOf(context, color),
+      child: Row(
+        children: [
+          Icon(icon, size: 19, color: color),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: primaryText,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: secondaryText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

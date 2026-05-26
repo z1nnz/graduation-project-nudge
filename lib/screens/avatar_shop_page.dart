@@ -7,6 +7,7 @@ import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
 import 'avatar_evolution_page.dart';
+import 'my_profile_page.dart';
 
 class AvatarShopPage extends StatefulWidget {
   const AvatarShopPage({super.key});
@@ -55,22 +56,40 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
 
   late final List<_ShopSet> shopSets = [
     const _ShopSet(
-      title: '晨光練習生',
-      description: '乾淨俐落的基礎角色，適合剛開始建立自律習慣。',
+      title: '星辰學徒',
+      description: '初始角色，可套用到名片、好友公開頁與自律房。',
       icon: Icons.wb_sunny_outlined,
       items: [MapEntry('faceShape', 0)],
     ),
     const _ShopSet(
-      title: '星光少女',
-      description: '帶有星光感的完整角色，買完即可直接套用。',
+      title: '星詠魔導',
+      description: '第二位三階段角色，從見習生一路進化成星穹大魔導。',
       icon: Icons.auto_awesome_outlined,
-      items: [MapEntry('faceShape', 1)],
+      items: [MapEntry('faceShape', 3)],
     ),
     const _ShopSet(
-      title: '星耀守護者',
-      description: '需要長期穩定自律才會開放的第三階段角色。',
-      icon: Icons.workspace_premium_outlined,
-      items: [MapEntry('faceShape', 2)],
+      title: '焰心鬥士',
+      description: '第三位火焰系三階段角色，從焰心新星進化成赤龍焰姬。',
+      icon: Icons.local_fire_department_outlined,
+      items: [MapEntry('faceShape', 6)],
+    ),
+    const _ShopSet(
+      title: '玫瑰學院',
+      description: '第四位薔薇系三階段角色，從玫瑰書生進化成緋玫守護者。',
+      icon: Icons.local_florist_outlined,
+      items: [MapEntry('faceShape', 9)],
+    ),
+    const _ShopSet(
+      title: '月影忍者',
+      description: '自律幣購買角色，從月影見習忍進化成蒼月隱曜忍。',
+      icon: Icons.nightlight_round,
+      items: [MapEntry('faceShape', 12)],
+    ),
+    const _ShopSet(
+      title: '森語女神',
+      description: '自律幣購買角色，從森芽靈童進化成森律女神。',
+      icon: Icons.eco_outlined,
+      items: [MapEntry('faceShape', 15)],
     ),
   ];
 
@@ -110,6 +129,13 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     }
   }
 
+  bool _isPurchasableLockedCharacter(AppState appState, int index) {
+    final stage = AvatarCatalog.stageForIndex(index);
+    return stage.stage == 1 &&
+        stage.coinPrice > 0 &&
+        !appState.isAvatarItemUnlocked('faceShape', index);
+  }
+
   List<MapEntry<String, int>> _selectedItems() {
     return [MapEntry('faceShape', draft.faceShapeIndex)];
   }
@@ -124,6 +150,13 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
       original = context.read<AppState>().avatarProfile;
       draft = original;
     });
+  }
+
+  Future<void> _openMyProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MyProfilePage()),
+    );
   }
 
   int _checkoutPrice(AppState appState) {
@@ -165,6 +198,15 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
       }
     }
     if (lockedItem != null) {
+      if (lockedItem.key == 'faceShape' &&
+          _isPurchasableLockedCharacter(appState, lockedItem.value)) {
+        setState(() {
+          for (final item in set.items) {
+            draft = _applyItem(draft, item.key, item.value);
+          }
+        });
+        return;
+      }
       final category = AvatarCatalog.categoryFor(lockedItem.key);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -266,7 +308,13 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     await appState.updateAvatarProfile(draft);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(totalPrice > 0 ? '已購買並套用角色' : '已套用角色')),
+        SnackBar(
+          content: Text(
+            totalPrice > 0
+                ? '已購買並套用角色，社交頁、排行榜與自律房會同步展示'
+                : '已套用角色，社交頁、排行榜與自律房會同步展示',
+          ),
+        ),
       );
       Navigator.pop(context);
     }
@@ -287,8 +335,15 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final height = constraints.maxHeight;
-            final drawerHeight = (height * 0.60).clamp(440.0, 560.0);
-            final avatarSize = (height * 0.26).clamp(168.0, 202.0);
+            final drawerHeight = (height * 0.46).clamp(340.0, 430.0);
+            final avatarSize = (height * 0.36).clamp(220.0, 286.0);
+            final draftStage = AvatarCatalog.stageForIndex(
+              draft.faceShapeIndex,
+            );
+            final draftOwned = appState.isAvatarItemUnlocked(
+              'faceShape',
+              draft.faceShapeIndex,
+            );
 
             return Stack(
               children: [
@@ -333,7 +388,7 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                   child: Row(
                     children: [
                       IconButton(
-                        tooltip: '進化圖鑑',
+                        tooltip: '進化路線',
                         onPressed: _openEvolutionGuide,
                         icon: const Icon(Icons.auto_graph_rounded),
                       ),
@@ -346,13 +401,26 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                   top: 50,
                   left: 0,
                   right: 0,
-                  bottom: drawerHeight - 18,
+                  bottom: drawerHeight - 6,
                   child: Center(
-                    child: AvatarPreview(
-                      profile: draft,
-                      size: avatarSize,
-                      showBackgroundRing: false,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _openMyProfile,
+                      child: AvatarPreview(
+                        profile: draft,
+                        size: avatarSize,
+                        showBackgroundRing: false,
+                      ),
                     ),
+                  ),
+                ),
+                Positioned(
+                  left: 18,
+                  top: 88,
+                  child: _PreviewStageBadge(
+                    stage: draftStage,
+                    owned: draftOwned,
+                    accentColor: accentColor,
                   ),
                 ),
                 Positioned(
@@ -402,6 +470,17 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                         selectedCategory.key,
                         index,
                       )) {
+                        if (selectedCategory.key == 'faceShape' &&
+                            _isPurchasableLockedCharacter(appState, index)) {
+                          setState(() {
+                            draft = _applyItem(
+                              draft,
+                              selectedCategory.key,
+                              index,
+                            );
+                          });
+                          return;
+                        }
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -424,17 +503,6 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                       });
                     },
                     onSave: _saveLook,
-                  ),
-                ),
-                Positioned(
-                  left: 18,
-                  bottom: 28,
-                  child: FloatingActionButton.small(
-                    heroTag: null,
-                    backgroundColor: Theme.of(context).cardColor,
-                    foregroundColor: AppUI.textPrimaryOf(context),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Icon(Icons.close),
                   ),
                 ),
               ],
@@ -469,7 +537,7 @@ class _ShopFilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: selected
               ? accentColor.withValues(alpha: isDark ? 0.24 : 0.14)
@@ -485,7 +553,7 @@ class _ShopFilterChip extends StatelessWidget {
           label,
           style: TextStyle(
             color: selected ? accentColor : primaryText,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -528,6 +596,90 @@ class _CoinBadge extends StatelessWidget {
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewStageBadge extends StatelessWidget {
+  final AvatarEvolutionStage stage;
+  final bool owned;
+  final Color accentColor;
+
+  const _PreviewStageBadge({
+    required this.stage,
+    required this.owned,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+    final color = owned ? AppUI.green : AppUI.orange;
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 178),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accentColor.withValues(alpha: 0.16)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: AppUI.isDark(context) ? 0.28 : 0.10,
+            ),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            stage.series,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: secondaryText,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            stage.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: primaryText,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                owned ? Icons.check_circle_rounded : Icons.lock_rounded,
+                color: color,
+                size: 15,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                owned ? '可套用' : '待解鎖',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -617,10 +769,15 @@ class _ShopDrawer extends StatelessWidget {
     }
   }
 
+  List<int> _sellableIndexes(AvatarPartCategory category) {
+    return List<int>.generate(category.itemCount, (index) => index)
+        .where((index) => AvatarCatalog.stageForIndex(index).stage == 1)
+        .toList(growable: false);
+  }
+
   int _setPrice(AppState appState, _ShopSet set) {
     return set.items.fold<int>(0, (sum, item) {
       if (appState.isAvatarItemUnlocked(item.key, item.value)) return sum;
-      if (item.key == 'faceShape') return -1;
       return sum + appState.avatarItemPrice(item.key, item.value);
     });
   }
@@ -639,40 +796,32 @@ class _ShopDrawer extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.10)
         : Colors.transparent;
     final normalizedQuery = searchQuery.trim().toLowerCase();
-    final visibleIndexes =
-        List<int>.generate(selectedCategory.itemCount, (index) => index)
-            .where((index) {
-              if (!showOwnedOnly) return true;
-              return appState.isAvatarItemUnlocked(selectedCategory.key, index);
-            })
-            .where((index) {
-              final label = selectedCategory.labelFor(index).toLowerCase();
-              if (normalizedQuery.isNotEmpty &&
-                  !label.contains(normalizedQuery) &&
-                  !selectedCategory.title.toLowerCase().contains(
-                    normalizedQuery,
-                  )) {
-                return false;
-              }
-              if (selectedRarity == _ShopRarity.all) return true;
-              final price = appState.avatarItemPrice(
-                selectedCategory.key,
-                index,
-              );
-              return _rarityForPrice(price) == selectedRarity;
-            })
-            .toList();
+    final sellableIndexes = _sellableIndexes(selectedCategory);
+    final visibleIndexes = sellableIndexes
+        .where((index) {
+          if (!showOwnedOnly) return true;
+          return appState.isAvatarItemUnlocked(selectedCategory.key, index);
+        })
+        .where((index) {
+          final label = selectedCategory.labelFor(index).toLowerCase();
+          if (normalizedQuery.isNotEmpty &&
+              !label.contains(normalizedQuery) &&
+              !selectedCategory.title.toLowerCase().contains(normalizedQuery)) {
+            return false;
+          }
+          if (selectedRarity == _ShopRarity.all) return true;
+          final price = appState.avatarItemPrice(selectedCategory.key, index);
+          return _rarityForPrice(price) == selectedRarity;
+        })
+        .toList();
     final visibleSets = shopSets.where((set) {
       if (normalizedQuery.isEmpty) return true;
       return set.title.toLowerCase().contains(normalizedQuery) ||
           set.description.toLowerCase().contains(normalizedQuery);
     }).toList();
-    final ownedCount =
-        List<int>.generate(selectedCategory.itemCount, (index) => index).where((
-          index,
-        ) {
-          return appState.isAvatarItemUnlocked(selectedCategory.key, index);
-        }).length;
+    final ownedCount = sellableIndexes.where((index) {
+      return appState.isAvatarItemUnlocked(selectedCategory.key, index);
+    }).length;
 
     return Container(
       height: height,
@@ -689,73 +838,80 @@ class _ShopDrawer extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           Container(
-            width: 44,
-            height: 5,
+            width: 42,
+            height: 4,
             decoration: BoxDecoration(
               color: secondaryText.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(999),
             ),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 58,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              itemCount: categories.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 18),
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                final selected = index == selectedCategoryIndex;
-                return GestureDetector(
-                  onTap: () => onCategoryChanged(index),
-                  child: Column(
-                    children: [
-                      Icon(
-                        category.icon,
-                        color: selected ? accentColor : secondaryText,
-                        size: 28,
-                      ),
-                      const SizedBox(height: 6),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        width: 34,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: selected ? accentColor : Colors.transparent,
-                          borderRadius: BorderRadius.circular(999),
+          if (categories.length > 1) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 46,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                itemCount: categories.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 14),
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  final selected = index == selectedCategoryIndex;
+                  return GestureDetector(
+                    onTap: () => onCategoryChanged(index),
+                    child: Column(
+                      children: [
+                        Icon(
+                          category.icon,
+                          color: selected ? accentColor : secondaryText,
+                          size: 24,
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                        const SizedBox(height: 5),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: 30,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: selected ? accentColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
+          ] else
+            const SizedBox(height: 9),
           Divider(height: 1, color: Theme.of(context).dividerColor),
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
-            child: TextField(
-              onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                hintText: showSetsOnly ? '搜尋精選角色' : '搜尋角色',
-                prefixIcon: const Icon(Icons.search),
-                isDense: true,
-                filled: true,
-                fillColor: isDark
-                    ? const Color(0xFF111827)
-                    : const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppUI.radiusPill),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SizedBox(
+              height: 42,
+              child: TextField(
+                onChanged: onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: showSetsOnly ? '搜尋精選角色' : '搜尋角色',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  filled: true,
+                  fillColor: isDark
+                      ? const Color(0xFF111827)
+                      : const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
             child: Row(
               children: [
                 Expanded(
@@ -766,13 +922,13 @@ class _ShopDrawer extends StatelessWidget {
                         selectedCategory.title,
                         style: TextStyle(
                           color: primaryText,
-                          fontSize: 17,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '已擁有 $ownedCount / ${selectedCategory.itemCount}',
+                        '已擁有 $ownedCount / ${sellableIndexes.length}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -815,10 +971,10 @@ class _ShopDrawer extends StatelessWidget {
           ),
           if (!showSetsOnly)
             SizedBox(
-              height: 34,
+              height: 30,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemBuilder: (context, index) {
                   final rarity = _ShopRarity.values[index];
                   return _ShopFilterChip(
@@ -855,14 +1011,14 @@ class _ShopDrawer extends StatelessWidget {
                     ),
                   )
                 : GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 82),
+                    padding: const EdgeInsets.fromLTRB(16, 3, 16, 64),
                     itemCount: visibleIndexes.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: 0.78,
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.76,
                         ),
                     itemBuilder: (context, visibleIndex) {
                       final index = visibleIndexes[visibleIndex];
@@ -908,7 +1064,7 @@ class _ShopDrawer extends StatelessWidget {
                                 ),
                                 child: AvatarPreview(
                                   profile: preview,
-                                  size: 54,
+                                  size: 62,
                                   showBackgroundRing: false,
                                 ),
                               ),
@@ -979,7 +1135,7 @@ class _ShopDrawer extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(84, 10, 18, 18),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor.withValues(alpha: 0.94),
               ),
@@ -994,7 +1150,7 @@ class _ShopDrawer extends StatelessWidget {
                             : Colors.white,
                         foregroundColor: primaryText,
                         elevation: 4,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         side: BorderSide(
                           color: isDark
                               ? Colors.white.withValues(alpha: 0.10)
@@ -1014,7 +1170,7 @@ class _ShopDrawer extends StatelessWidget {
                             : Colors.white,
                         foregroundColor: accentColor,
                         elevation: 4,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         side: BorderSide(
                           color: isDark
                               ? accentColor.withValues(alpha: 0.30)

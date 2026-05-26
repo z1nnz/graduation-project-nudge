@@ -186,6 +186,17 @@ class ReminderCenterPage extends StatelessWidget {
     );
   }
 
+  Future<void> _enableSystemNotifications(BuildContext context) async {
+    final granted = await context
+        .read<AppState>()
+        .requestNotificationPermissionAndSchedule();
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(granted ? '已啟用系統提醒並完成排程' : '尚未取得系統通知權限')),
+    );
+  }
+
   Widget _buildPreviewCard(BuildContext context, ReminderPreview preview) {
     final color = _colorForChannel(preview.channelKey);
 
@@ -281,8 +292,14 @@ class ReminderCenterPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        '先建立 App 內提醒邏輯；接本機推播套件後會變成系統通知。',
+                        '任務、睡眠、自律房與截止日會依設定時間排序。',
                         style: TextStyle(color: Colors.white70, height: 1.45),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () => _enableSystemNotifications(context),
+                        icon: const Icon(Icons.notifications_active_outlined),
+                        label: const Text('啟用系統提醒'),
                       ),
                     ],
                   ),
@@ -318,34 +335,6 @@ class ReminderCenterPage extends StatelessWidget {
             (setting) => Padding(
               padding: const EdgeInsets.only(bottom: AppUI.cardGap),
               child: _buildReminderChannel(context, setting),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.integration_instructions_outlined,
-                        color: accentColor,
-                      ),
-                      const SizedBox(width: 10),
-                      Text('後續串接規劃', style: AppUI.cardTitleOf(context)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '下一步可接 flutter_local_notifications：任務提醒、睡眠提醒、'
-                    '自律房開始提醒與截止日提醒會從這裡的設定產生系統推播。',
-                    style: AppUI.bodyOf(context),
-                  ),
-                ],
-              ),
             ),
           ),
         ],

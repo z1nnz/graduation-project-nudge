@@ -204,7 +204,7 @@ class _AvatarEditorPageState extends State<AvatarEditorPage> {
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: '進化圖鑑',
+                    tooltip: '進化路線',
                     onPressed: _openEvolutionGuide,
                     icon: const Icon(Icons.auto_graph_rounded),
                   ),

@@ -1,0 +1,1491 @@
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+const modules = [
+  ["home", "總覽入口", "index.html"],
+  ["personal", "個人進階分析", "personal.html"],
+  ["guardian", "家長陪伴中心", "guardian.html"],
+  ["groups", "團體 / 教育管理", "groups.html"],
+  ["operations", "營運後台", "operations.html"],
+  ["research", "研究 / 展示中心", "research.html"],
+  ["planet", "自律城市 / 星球", "planet.html"],
+  ["presentation", "專題發表流程", "presentation.html"],
+];
+
+function injectModuleMenu() {
+  const sidebar = $(".sidebar");
+  if (!sidebar) return;
+  
+  const nav = sidebar.querySelector(".nav");
+  if (!nav) return;
+  
+  // Determine active category based on URL
+  let activeKey = "home";
+  const path = window.location.pathname;
+  for (const [key, label, href] of modules) {
+    if (path.includes(key) || path.includes(href)) {
+      activeKey = key;
+    }
+  }
+  if (path.endsWith("/") || path.includes("index.html")) {
+    activeKey = "home";
+  }
+
+  // Populate navigation dynamically
+  nav.innerHTML = modules
+    .map(([key, label, href]) => `<a href="${href}" class="${key === activeKey ? 'active' : ''}">${label}</a>`)
+    .join("");
+
+  // Remove the old drop-down module switcher if it exists
+  const switcher = $(".module-switcher");
+  if (switcher) switcher.remove();
+}
+
+function injectDisplayModeControls() {
+  const sidebar = $(".sidebar");
+  if (!sidebar || $(".mode-toggle")) return;
+  const actions = document.createElement("section");
+  actions.className = "sidebar-actions";
+  actions.innerHTML = `
+    <button class="button ghost mode-toggle" data-mode-toggle type="button">展示模式</button>
+  `;
+  sidebar.appendChild(actions);
+
+  if (!$(".floating-mode-button")) {
+    const floating = document.createElement("button");
+    floating.className = "floating-mode-button";
+    floating.type = "button";
+    floating.dataset.modeToggle = "true";
+    floating.textContent = "退出展示模式";
+    document.body.appendChild(floating);
+  }
+
+  const savedMode = localStorage.getItem("nudgeWebFocusMode") === "true";
+  document.body.classList.toggle("focus-mode", savedMode);
+  $$("[data-mode-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const next = !document.body.classList.contains("focus-mode");
+      document.body.classList.toggle("focus-mode", next);
+      localStorage.setItem("nudgeWebFocusMode", String(next));
+      toast(next ? "已進入展示模式" : "已退出展示模式");
+      setTimeout(bootCharts, 120);
+    });
+  });
+}
+
+function animateCounters() {
+  $$("[data-count]").forEach((node) => {
+    const target = Number(node.dataset.count || 0);
+    const suffix = node.dataset.suffix || "";
+    const duration = 900;
+    const start = performance.now();
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const value = Math.round(target * (1 - Math.pow(1 - progress, 3)));
+      node.textContent = `${value}${suffix}`;
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+function drawLineChart(canvas, values, color = "#22c7bb") {
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  ctx.scale(ratio, ratio);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+
+  const pad = 26;
+  const max = Math.max(...values, 100);
+  const min = Math.min(...values, 0);
+  const step = (rect.width - pad * 2) / (values.length - 1);
+  const toY = (v) => rect.height - pad - ((v - min) / (max - min || 1)) * (rect.height - pad * 2);
+
+  ctx.strokeStyle = "rgba(255,255,255,.1)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    const y = pad + i * ((rect.height - pad * 2) / 3);
+    ctx.beginPath();
+    ctx.moveTo(pad, y);
+    ctx.lineTo(rect.width - pad, y);
+    ctx.stroke();
+  }
+
+  const gradient = ctx.createLinearGradient(0, pad, 0, rect.height - pad);
+  // Simple hack to get a semi-transparent version of the color (if it's hex)
+  gradient.addColorStop(0, color === "#22c7bb" ? "rgba(34,199,187,0.4)" : color === "#8d7aff" ? "rgba(141,122,255,0.4)" : "rgba(93,140,255,0.4)");
+  gradient.addColorStop(1, "rgba(0,0,0,0)");
+
+  // Draw Filled Area
+  ctx.beginPath();
+  values.forEach((value, i) => {
+    const x = pad + i * step;
+    const y = toY(value);
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      const prevX = pad + (i - 1) * step;
+      const prevY = toY(values[i - 1]);
+      const cpX = (prevX + x) / 2;
+      ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+    }
+  });
+  ctx.lineTo(rect.width - pad, rect.height - pad);
+  ctx.lineTo(pad, rect.height - pad);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Draw Neon Line
+  ctx.beginPath();
+  values.forEach((value, i) => {
+    const x = pad + i * step;
+    const y = toY(value);
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      const prevX = pad + (i - 1) * step;
+      const prevY = toY(values[i - 1]);
+      const cpX = (prevX + x) / 2;
+      ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+    }
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
+  ctx.stroke();
+  
+  // Reset shadow for points
+  ctx.shadowBlur = 0;
+
+  // Draw Data Points
+  values.forEach((value, i) => {
+    const x = pad + i * step;
+    const y = toY(value);
+    
+    // Outer glow dot
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Inner white dot
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    
+    // Values text (only for every other point or if few points to avoid clutter)
+    if (values.length <= 10 || i % 2 === 0 || i === values.length - 1) {
+      ctx.fillStyle = "#fff";
+      ctx.font = "11px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(value, x, y - 12);
+    }
+  });
+}
+
+function drawDonut(canvas, values, colors) {
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  ctx.scale(ratio, ratio);
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  const radius = Math.min(rect.width, rect.height) * 0.32;
+  const total = values.reduce((a, b) => a + b, 0);
+  let start = -Math.PI / 2;
+  const gap = 0.08; // gap between segments
+  
+  values.forEach((value, index) => {
+    const angle = (value / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, start + gap/2, start + angle - gap/2);
+    ctx.lineWidth = 20;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = colors[index];
+    
+    // Add glowing effect
+    ctx.shadowColor = colors[index];
+    ctx.shadowBlur = 12;
+    
+    ctx.stroke();
+    // Reset shadow for next draw to avoid compounding issues
+    ctx.shadowBlur = 0;
+    start += angle;
+  });
+
+  // Center text
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 36px 'Inter', system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${total}`, cx, cy - 8);
+  
+  ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+  ctx.font = "600 14px 'Inter', system-ui";
+  ctx.fillText("總樣本", cx, cy + 20);
+}
+
+function toast(message) {
+  let node = $(".toast");
+  if (!node) {
+    node = document.createElement("div");
+    node.className = "toast";
+    document.body.appendChild(node);
+  }
+  node.textContent = message;
+  node.classList.add("show");
+  setTimeout(() => node.classList.remove("show"), 2200);
+}
+
+function bindDemoButtons() {
+  $$("[data-toast]").forEach((button) => {
+    button.addEventListener("click", () => toast(button.dataset.toast));
+  });
+  $$("[data-toggle-active]").forEach((button) => {
+    button.addEventListener("click", () => {
+      button.classList.toggle("primary");
+      button.classList.toggle("ghost");
+    });
+  });
+}
+
+function bootCharts() {
+  drawLineChart($("#trendChart"), [62, 68, 71, 73, 76, 81, 84, 88, 86, 91, 94, 96]);
+  drawLineChart($("#sleepChart"), [5.8, 6.1, 5.6, 6.8, 7.0, 6.4, 7.2], "#8d7aff");
+  drawLineChart($("#groupChart"), [42, 55, 61, 70, 76, 82, 89], "#5d8cff");
+  drawDonut($("#sourceDonut"), [34, 22, 18, 16, 10], ["#22c7bb", "#5d8cff", "#8d7aff", "#ffad2f", "#ff62a7"]);
+}
+
+function bindPlanet() {
+  const buttons = $$("[data-planet-mode]");
+  const label = $("#planetLabel");
+  const hud = $("#planetHud");
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      buttons.forEach((b) => b.classList.remove("primary"));
+      button.classList.add("primary");
+      if (label) label.textContent = button.dataset.planetMode;
+      if (hud) hud.textContent = button.dataset.planetMode;
+      toast(`已切換成「${button.dataset.planetMode}」展示資料`);
+    });
+  });
+
+  const viewButtons = $$("[data-view]");
+  const solarView = $(".view-solar-system");
+  const cityView = $(".view-city");
+  const hudDesc = $("#hudDesc");
+  
+  // New elements for text swapping
+  const hudTitle = $("#hudTitle");
+  const planetHud = $("#planetHud");
+  const navSolar = $("#navSolar");
+  const navGalaxy = $("#navGalaxy");
+  const navUniverse = $("#navUniverse");
+
+  viewButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      viewButtons.forEach((b) => b.classList.remove("active"));
+      button.classList.add("active");
+      const view = button.dataset.view;
+      if (view === 'solar-system') {
+        if (solarView) solarView.style.display = 'block';
+        if (cityView) cityView.style.display = 'none';
+        if (hudDesc) hudDesc.textContent = "任務完成會即時點亮星星與軌道";
+        if (hudTitle) hudTitle.textContent = "COSMIC EVOLUTION";
+        if (planetHud) planetHud.textContent = "太陽系";
+        if (navSolar) navSolar.textContent = "太陽系";
+        if (navGalaxy) navGalaxy.textContent = "銀河系";
+        if (navUniverse) navUniverse.textContent = "宇宙";
+      } else {
+        if (solarView) solarView.style.display = 'none';
+        if (cityView) cityView.style.display = 'block';
+        if (hudDesc) hudDesc.textContent = "任務完成會即時點亮城市區域";
+        if (hudTitle) hudTitle.textContent = "CITY EVOLUTION";
+        if (planetHud) planetHud.textContent = "地球";
+        if (navSolar) navSolar.textContent = "鄉村";
+        if (navGalaxy) navGalaxy.textContent = "小鎮";
+        if (navUniverse) navUniverse.textContent = "都市";
+      }
+    });
+  });
+}
+
+function saveDemoState(key, payload) {
+  const current = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  current[key] = {
+    ...payload,
+    updatedAt: new Date().toISOString(),
+  };
+  localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+}
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function bindExtensionTools() {
+  const templateTool = $('[data-tool="template-builder"]');
+  const guardianTool = $('[data-tool="guardian-invite"]');
+  const challengeTool = $('[data-tool="challenge-builder"]');
+  const campaignTool = $('[data-tool="campaign-builder"]');
+  const scenarioTool = $('[data-tool="scenario-builder"]');
+  const planetTool = $('[data-tool="planet-builder"]');
+  const capsuleTool = $('[data-tool="time-capsule"]');
+  const encouragementTool = $('[data-tool="encouragement-card"]');
+  const studyScheduleTool = $('[data-tool="study-schedule"]');
+  const futureLetterTool = $('[data-tool="future-letter"]');
+
+  const setOutput = (root, html) => {
+    const output = $('[data-output]', root);
+    if (output) output.innerHTML = html;
+  };
+
+  let templateText = "";
+  templateTool?.querySelector('[data-action="generate-template"]')?.addEventListener("click", () => {
+    const type = $('[data-template-type]', templateTool).value;
+    const days = Number($('[data-template-days]', templateTool).value || 7);
+    const effort = $('[data-template-effort]', templateTool).value;
+    const pressure = $('[data-template-pressure]', templateTool).value;
+    const phase = pressure === "截止日前" ? "先拆交付物、再安排檢查日" : "前段建立節奏，中段執行，最後回顧調整";
+    templateText = `${type} ${days} 日任務模板\n每日投入：${effort}\n策略：${phase}\n\nDay 1：整理目標與資料\nDay ${Math.ceil(days / 2)}：完成主要進度\nDay ${days}：回顧、補強與提交`;
+    setOutput(
+      templateTool,
+      `<strong>${type} ${days} 日模板</strong><p>每日 ${effort}，${phase}。已產生可匯入 App 的分段任務草稿。</p>`,
+    );
+    saveDemoState("template", { type, days, effort, pressure });
+    toast("已產生任務模板");
+  });
+  templateTool?.querySelector('[data-action="download-template"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-task-template.txt", templateText || "請先產生任務模板。");
+  });
+
+  guardianTool?.querySelector('[data-action="preview-guardian"]')?.addEventListener("click", () => {
+    const goal = $('[data-guardian-goal]', guardianTool).value;
+    const permission = $('[data-guardian-permission]', guardianTool).value;
+    const message = $('[data-guardian-message]', guardianTool).value.trim();
+    setOutput(
+      guardianTool,
+      `<strong>${goal}</strong><p>權限：${permission}。鼓勵訊息：「${message}」孩子同意後才會啟用，並可隨時解除。</p>`,
+    );
+    saveDemoState("guardianInvite", { goal, permission, message });
+    toast("邀請預覽已更新");
+  });
+  guardianTool?.querySelector('[data-action="send-guardian"]')?.addEventListener("click", () => {
+    saveDemoState("guardianInviteStatus", { status: "pending_child_approval" });
+    toast("已送出陪伴邀請 Demo");
+  });
+
+  let challengeText = "";
+  challengeTool?.querySelector('[data-action="generate-challenge"]')?.addEventListener("click", () => {
+    const group = $('[data-challenge-group]', challengeTool).value.trim() || "未命名團體";
+    const type = $('[data-challenge-type]', challengeTool).value;
+    const days = Number($('[data-challenge-days]', challengeTool).value || 7);
+    const reward = $('[data-challenge-reward]', challengeTool).value;
+    challengeText = `${group} ${days} 日${type}\n獎勵：${reward}\n規則：每日完成目標得 1 點，連續完成加成，排行榜只顯示前 10 名。`;
+    setOutput(
+      challengeTool,
+      `<strong>${group}：${days} 日${type}</strong><p>獎勵為 ${reward}，系統會自動產生排行榜、提醒節奏與活動週報。</p>`,
+    );
+    saveDemoState("challenge", { group, type, days, reward });
+    toast("挑戰草稿已建立");
+  });
+  challengeTool?.querySelector('[data-action="download-challenge"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-group-challenge.txt", challengeText || "請先建立挑戰草稿。");
+  });
+
+  campaignTool?.querySelector('[data-action="generate-campaign"]')?.addEventListener("click", () => {
+    const name = $('[data-campaign-name]', campaignTool).value.trim() || "未命名套裝";
+    const rarity = $('[data-campaign-rarity]', campaignTool).value;
+    const price = Number($('[data-campaign-price]', campaignTool).value || 0);
+    const days = Number($('[data-campaign-days]', campaignTool).value || 7);
+    const health = price <= 40 ? "新手友善" : price <= 90 ? "價格健康" : "適合活動限定";
+    setOutput(
+      campaignTool,
+      `<span class="card-icon">🎁</span><div class="card-content"><strong>${name}：${rarity} / ${price} 枚</strong><p>${days} 天活動，${health}。以每日 15 枚、每月 400 枚上限估算，兌換壓力合理。</p></div>`,
+    );
+    saveDemoState("campaign", { name, rarity, price, days, health });
+    toast("價格檢查完成");
+  });
+  campaignTool?.querySelector('[data-action="save-campaign"]')?.addEventListener("click", () => {
+    toast("已排程上架 Demo");
+  });
+
+  $$("[data-review-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = button.closest(".review-item");
+      const action = button.dataset.reviewAction;
+      item?.classList.add("reviewed");
+      item?.querySelector(".compact-actions")?.replaceChildren(Object.assign(document.createElement("span"), {
+        className: "status-tag",
+        textContent: `已${action}`,
+      }));
+      toast(`申請已${action}`);
+    });
+  });
+
+  let scenarioText = "";
+  scenarioTool?.querySelector('[data-action="generate-scenario"]')?.addEventListener("click", () => {
+    const type = $('[data-scenario-type]', scenarioTool).value;
+    const privacy = $('[data-scenario-privacy]', scenarioTool).value;
+    const focus = $('[data-scenario-focus]', scenarioTool).value.trim();
+    scenarioText = `${type}\n隱私層級：${privacy}\n展示重點：${focus}\n\n展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。`;
+    setOutput(
+      scenarioTool,
+      `<span class="card-icon">📝</span><div class="card-content"><strong>${type}</strong><p>${privacy}。展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。</p></div>`,
+    );
+    saveDemoState("scenario", { type, privacy, focus });
+    toast("展示腳本已產生");
+  });
+  scenarioTool?.querySelector('[data-action="download-scenario"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-demo-scenario.txt", scenarioText || "請先產生展示腳本。");
+  });
+
+  planetTool?.querySelector('[data-action="generate-planet"]')?.addEventListener("click", () => {
+    const building = $('[data-planet-building]', planetTool).value;
+    const condition = $('[data-planet-condition]', planetTool).value;
+    const event = $('[data-planet-event]', planetTool).value.trim();
+    setOutput(
+      planetTool,
+      `<strong>${building}建築計畫</strong><p>解鎖條件：${condition}。${event}</p>`,
+    );
+    saveDemoState("planetBuilding", { building, condition, event });
+    toast("星球建築已規劃");
+  });
+  planetTool?.querySelector('[data-action="save-planet"]')?.addEventListener("click", () => {
+    toast("已設為下週星球目標");
+  });
+
+  const renderSavedList = (selector, key, fallback) => {
+    const list = $(selector);
+    if (!list) return;
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const items = store[key] || [];
+    
+    if (!items.length) {
+      list.innerHTML = fallback;
+      return;
+    }
+    list.innerHTML = items
+      .map((item, index) => `
+        <article style="position: relative;">
+          <strong>${item.title}</strong>
+          <span>${item.meta}</span>
+          <button class="delete-btn" data-key="${key}" data-index="${index}" style="position: absolute; right: 10px; top: 10px; background: transparent; border: none; color: #ff3b3b; cursor: pointer; font-family: monospace;">[刪除]</button>
+        </article>
+      `)
+      .join("");
+  };
+
+  // Delegate delete events globally
+  document.body.addEventListener("click", (e) => {
+    if (e.target.matches(".delete-btn")) {
+      const key = e.target.dataset.key;
+      const index = parseInt(e.target.dataset.index, 10);
+      const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+      if (store[key]) {
+        store[key].splice(index, 1);
+        saveToolCollection(key, store[key]);
+        // Re-render the specific list based on the key
+        let selector, fallback;
+        if (key === "capsules") { selector = "[data-capsule-list]"; fallback = "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>"; }
+        else if (key === "encouragements") { selector = "[data-encourage-list]"; fallback = "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>"; }
+        else if (key === "studySchedules") { selector = "[data-study-list]"; fallback = "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>"; }
+        if (selector) renderSavedList(selector, key, fallback);
+      }
+    }
+  });
+
+  const savedTools = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  const saveToolCollection = (key, items) => {
+    const current = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    current[key] = items;
+    current[`${key}UpdatedAt`] = new Date().toISOString();
+    localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+  };
+  
+  renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
+  renderSavedList("[data-encourage-list]", "encouragements", "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>");
+  renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
+
+  let capsuleText = "";
+  capsuleTool?.querySelector('[data-action="save-capsule"]')?.addEventListener("click", (e) => {
+    const title = $('[data-capsule-title]', capsuleTool).value.trim() || "未命名時間膠囊";
+    const date = $('[data-capsule-date]', capsuleTool).value || "未設定";
+    const message = $('[data-capsule-message]', capsuleTool).value.trim();
+    capsuleText = `${title}\n解鎖日：${date}\n\n${message}`;
+    setOutput(capsuleTool, `<strong>${title}</strong><p>將於 ${date} 解鎖。內容已保存到 Demo localStorage。</p>`);
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const capsules = store.capsules || [];
+    capsules.unshift({ title, meta: `${date} 解鎖`, message });
+    saveToolCollection("capsules", capsules.slice(0, 50));
+
+    // Elf Capsule Throw Animation
+    const btn = e.currentTarget;
+    const targetEl = $("[data-capsule-list]");
+    if (btn && targetEl) {
+      const rect = btn.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + rect.height / 2;
+      const endX = targetRect.left + targetRect.width / 2;
+      const endY = targetRect.top + targetRect.height / 2;
+
+      const capsule = document.createElement("div");
+      capsule.className = "elf-capsule";
+      capsule.style.left = startX - 12 + "px";
+      capsule.style.top = startY - 12 + "px";
+      document.body.appendChild(capsule);
+
+      // Animate throwing arc
+      const duration = 600;
+      const startTime = performance.now();
+      
+      const animateThrow = (now) => {
+        const elapsed = now - startTime;
+        let progress = elapsed / duration;
+        if (progress > 1) progress = 1;
+
+        // Quadratic bezier arc
+        const controlX = startX + (endX - startX) / 2;
+        const controlY = Math.min(startY, endY) - 200;
+
+        const x = (1 - progress) * (1 - progress) * startX + 2 * (1 - progress) * progress * controlX + progress * progress * endX;
+        const y = (1 - progress) * (1 - progress) * startY + 2 * (1 - progress) * progress * controlY + progress * progress * endY;
+        
+        capsule.style.transform = `translate(${x - startX}px, ${y - startY}px) rotate(${progress * 720}deg)`;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateThrow);
+        } else {
+          // Burst effect
+          const burst = document.createElement("div");
+          burst.className = "capsule-burst";
+          burst.style.left = endX + "px";
+          burst.style.top = endY + "px";
+          document.body.appendChild(burst);
+          
+          setTimeout(() => burst.remove(), 400);
+          capsule.remove();
+          
+          renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
+          toast("時間膠囊已保存");
+        }
+      };
+      requestAnimationFrame(animateThrow);
+    } else {
+      renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
+      toast("時間膠囊已保存");
+    }
+  });
+  capsuleTool?.querySelector('[data-action="download-capsule"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-time-capsule.txt", capsuleText || "請先保存時間膠囊。");
+  });
+
+  encouragementTool?.querySelector('[data-action="preview-encouragement"]')?.addEventListener("click", () => {
+    toast("預覽：這是一張溫暖的鼓勵卡。");
+  });
+  encouragementTool?.querySelector('[data-action="send-encouragement"]')?.addEventListener("click", () => {
+    const card = encouragementTool.querySelector('.generated-card');
+    if (card) {
+      card.classList.add("toss-animation");
+      setTimeout(() => {
+        card.classList.remove("toss-animation");
+      }, 400);
+    }
+    
+    const tone = $('[data-encourage-tone]', encouragementTool)?.value || "溫暖支持";
+    const type = $('[data-encourage-type]', encouragementTool)?.value || "貼圖";
+    const msg = $('[data-encourage-message]', encouragementTool)?.value.trim() || "無內容";
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const encouragements = store.encouragements || [];
+    encouragements.unshift({ title: `${tone} ${type}`, meta: "已發送至孩子端", message: msg });
+    saveToolCollection("encouragements", encouragements.slice(0, 50));
+    
+    setTimeout(() => {
+      renderSavedList("[data-encourage-list]", "encouragements", "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>");
+      toast("鼓勵卡已送出 Demo");
+    }, 300);
+  });
+
+  studyScheduleTool?.querySelector('[data-action="save-study-schedule"]')?.addEventListener("click", () => {
+    const title = $('[data-study-title]', studyScheduleTool).value.trim() || "未命名共讀";
+    const time = $('[data-study-time]', studyScheduleTool).value || "未設定";
+    const duration = $('[data-study-duration]', studyScheduleTool).value;
+    const room = $('[data-study-room]', studyScheduleTool).value;
+    setOutput(studyScheduleTool, `<strong>${title}</strong><p>${time}，${duration}，將建立${room}並排程提醒。</p>`);
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const studySchedules = store.studySchedules || [];
+    studySchedules.unshift({ title, meta: `${time} / ${duration} / ${room}` });
+    saveToolCollection("studySchedules", studySchedules.slice(0, 50));
+    renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
+    toast("讀書時段已建立 Demo");
+  });
+
+  let futureLetterText = "";
+  futureLetterTool?.querySelector('[data-action="generate-letter"]')?.addEventListener("click", () => {
+    const state = $('[data-letter-state]', futureLetterTool).value;
+    const action = $('[data-letter-action]', futureLetterTool).value.trim() || "完成一個小任務";
+    const note = $('[data-letter-note]', futureLetterTool).value.trim();
+    futureLetterText = `一週後的你想說：\n\n我知道你現在是「${state}」。但你不用今天就解決全部事情。先做「${action}」，讓自己重新回到軌道。\n\n你留給自己的提醒：${note}`;
+    const output = $('[data-letter-output]', futureLetterTool);
+    if (output) {
+      output.innerHTML = `<strong>一週後的你想說</strong><p>我知道你現在是「${state}」。先做「${action}」，你會感覺事情開始變小。</p><p>${note}</p>`;
+    }
+    saveDemoState("futureLetter", { state, action, note });
+    toast("未來的信已產生");
+  });
+  futureLetterTool?.querySelector('[data-action="download-letter"]')?.addEventListener("click", () => {
+    downloadTextFile("nudge-future-letter.txt", futureLetterText || "請先產生未來的信。");
+  });
+}
+
+function bindTilt() {
+  $$("[data-tilt]").forEach((node) => {
+    node.addEventListener("pointermove", (event) => {
+      const rect = node.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      node.style.transform = `rotateX(${(-y * 7).toFixed(2)}deg) rotateY(${(x * 9).toFixed(2)}deg)`;
+    });
+    node.addEventListener("pointerleave", () => {
+      node.style.transform = "";
+    });
+  });
+}
+
+const demoSlides = [
+  {
+    title: "問題與定位",
+    script:
+      "現在很多人會下載任務或番茄鐘 App，但問題是完成後的回饋很短暫，很難形成長期動機。Nudge 想做的是把任務、健康、專注與社交整合，讓自律不只是打勾，而是一個可以被累積、被看見、被陪伴的生活系統。",
+    items: [
+      ["使用者痛點", "想自律，但回饋不夠持久。"],
+      ["Nudge 定位", "自律 App + 社交陪伴 + 遊戲化成長。"],
+      ["核心差異", "不是只記錄，而是讓資料產生下一步行動。"],
+    ],
+  },
+  {
+    title: "App 每日行動",
+    script:
+      "App 端負責每天最直接的自律行動：建立任務、開始專注、同步健康資料、進入自律房。使用者不用先看很多報表，而是每天打開就知道下一步該做什麼。",
+    items: [
+      ["任務系統", "一般任務、自動追蹤、截止日任務分工明確。"],
+      ["專注與健康", "專注分鐘、睡眠、步數、運動可自動成為任務依據。"],
+      ["今日建議", "把資料轉成可直接執行的行動入口。"],
+    ],
+  },
+  {
+    title: "自律分數與自律幣",
+    script:
+      "Nudge 用加權自律分數衡量每日完成度，再依百分比門檻給自律幣。這樣可以避免任務亂設造成獎勵失衡，也能讓健康、專注、自律房這些高價值行為被看見。",
+    items: [
+      ["加權分數", "不同任務來源有不同重要性。"],
+      ["幣上限", "日、週、月都有上限，避免刷幣。"],
+      ["截止日獎勵", "額外獎勵獨立處理，不擠壓每日上限。"],
+    ],
+  },
+  {
+    title: "社交與換裝",
+    script:
+      "自律幣不是只是一個數字，而是能換成角色造型。好友公開頁、自律房與角色展示讓努力成果被朋友看見，形成一種比較柔和的社交動機。",
+    items: [
+      ["角色換裝", "完成任務後兌換衣服與造型。"],
+      ["好友展示", "朋友看得到你的穿搭、狀態與活躍房間。"],
+      ["自律房", "多人一起讀書、睡眠、運動或步數挑戰。"],
+    ],
+  },
+  {
+    title: "Web 延伸平台",
+    script:
+      "Web 版不是複製 App，而是提供大螢幕才適合的延伸功能：個人長期分析、家長陪伴、團體教育管理、營運後台和研究展示。這讓 Nudge 從 App 變成完整服務。",
+    items: [
+      ["個人分析", "月度趨勢、壓力雷達、自律天氣、技能樹。"],
+      ["家長陪伴", "看趨勢、送鼓勵、共同目標、權限分級。"],
+      ["團體與營運", "企業挑戰、補習班後台、商城與活動管理。"],
+    ],
+  },
+  {
+    title: "自律星球亮點",
+    script:
+      "最後用自律城市或自律星球把整個系統收起來：專注任務蓋圖書館、健康任務蓋公園、睡眠點亮住宅區、自律房出現朋友角色。這讓抽象分數變成看得見的世界。",
+    items: [
+      ["可視化成果", "任務成果變成建築與星球成長。"],
+      ["社交展示", "朋友角色可以拜訪城市或共同建設星球。"],
+      ["發表亮點", "老師能一眼理解遊戲化與資料整合價值。"],
+    ],
+  },
+];
+
+function renderDemoSlide(index) {
+  const title = $("#demoTitle");
+  const script = $("#demoScript");
+  const checklist = $("#demoChecklist");
+  const steps = $$("[data-demo-step]");
+  const slide = demoSlides[index % demoSlides.length];
+  if (!title || !script || !checklist) return;
+  title.textContent = slide.title;
+  script.textContent = slide.script;
+  checklist.innerHTML = slide.items
+    .map(([head, body]) => `<li><strong>${head}</strong><span>${body}</span></li>`)
+    .join("");
+  steps.forEach((step, stepIndex) => {
+    step.classList.toggle("active", stepIndex === index % demoSlides.length);
+  });
+}
+
+function bindPresentation() {
+  if (!document.body.matches('[data-page="presentation"]')) return;
+  let demoIndex = 0;
+  renderDemoSlide(demoIndex);
+  $$("[data-demo-next]").forEach((button) => {
+    button.addEventListener("click", () => {
+      demoIndex = (demoIndex + 1) % demoSlides.length;
+      renderDemoSlide(demoIndex);
+      toast(`已切換到第 ${demoIndex + 1} 段：${demoSlides[demoIndex].title}`);
+    });
+  });
+  $$("[data-demo-step]").forEach((step, index) => {
+    step.addEventListener("click", () => {
+      demoIndex = index;
+      renderDemoSlide(demoIndex);
+    });
+  });
+}
+
+function injectAINavigator() {
+  const container = document.createElement("div");
+  container.className = "ai-navigator";
+  container.innerHTML = `
+    <div class="ai-chat-panel" id="aiChatPanel">
+      <div class="ai-chat-header">
+        <div class="ai-header-title">艦載 AI 導航助手</div>
+        <div>
+          <button class="ai-close-btn" id="aiSettingsBtn" title="設定API Key" style="margin-right: 8px;">⚙️</button>
+          <button class="ai-close-btn" id="aiCloseBtn">✕</button>
+        </div>
+      </div>
+      
+      <div class="ai-settings-panel" id="aiSettingsPanel" style="display: none; padding: 16px; background: rgba(0, 240, 255, 0.05); border-bottom: 1px solid rgba(0, 240, 255, 0.2);">
+        <label style="color: #00f0ff; font-size: 12px; display: block; margin-bottom: 8px;">設定 Gemini API Key</label>
+        <input type="password" id="aiApiKeyInput" placeholder="輸入 API Key..." style="width: 100%; background: rgba(3, 5, 10, 0.6); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 6px; padding: 6px 10px; color: #fff; outline: none; margin-bottom: 8px; box-sizing: border-box;" />
+        <button id="aiSaveKeyBtn" style="background: #00f0ff; color: #03050a; border: none; border-radius: 6px; padding: 4px 12px; font-weight: 700; cursor: pointer; font-size: 12px;">儲存</button>
+      </div>
+
+      <div class="ai-chat-body" id="aiChatBody">
+        <div class="ai-msg">您好！艦長。請在上方齒輪設定您的 Gemini API Key，即可與真實星艦主機連線。</div>
+      </div>
+      <div class="ai-chat-input">
+        <input type="text" placeholder="輸入指令..." id="aiInput" />
+        <button id="aiSend">發送</button>
+      </div>
+    </div>
+    <div class="ai-orb" id="aiOrb">
+      <div class="ai-orb-core"></div>
+    </div>
+  `;
+  document.body.appendChild(container);
+
+  const orb = $("#aiOrb", container);
+  const panel = $("#aiChatPanel", container);
+  const closeBtn = $("#aiCloseBtn", container);
+  const settingsBtn = $("#aiSettingsBtn", container);
+  const settingsPanel = $("#aiSettingsPanel", container);
+  const apiKeyInput = $("#aiApiKeyInput", container);
+  const saveKeyBtn = $("#aiSaveKeyBtn", container);
+  const input = $("#aiInput", container);
+  const send = $("#aiSend", container);
+  const body = $("#aiChatBody", container);
+
+  const savedKey = localStorage.getItem("gemini_api_key");
+  if (savedKey) apiKeyInput.value = savedKey;
+
+  settingsBtn.addEventListener("click", () => {
+    settingsPanel.style.display = settingsPanel.style.display === "none" ? "block" : "none";
+  });
+
+  saveKeyBtn.addEventListener("click", () => {
+    localStorage.setItem("gemini_api_key", apiKeyInput.value.trim());
+    settingsPanel.style.display = "none";
+    body.innerHTML += `<div class="ai-msg">API 金鑰已儲存。系統已重新啟動。</div>`;
+    body.scrollTop = body.scrollHeight;
+  });
+
+  orb.addEventListener("click", () => {
+    panel.classList.toggle("open");
+  });
+
+  closeBtn.addEventListener("click", () => {
+    panel.classList.remove("open");
+  });
+
+  const sendMsg = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    
+    const apiKey = localStorage.getItem("gemini_api_key");
+    if (!apiKey) {
+      body.innerHTML += `<div class="ai-msg">警告：尚未偵測到核心金鑰。請點擊上方齒輪圖示輸入 Gemini API Key。</div>`;
+      body.scrollTop = body.scrollHeight;
+      return;
+    }
+
+    body.innerHTML += `<div class="ai-msg user">${text}</div>`;
+    input.value = "";
+    body.scrollTop = body.scrollHeight;
+    
+    const loadingId = "msg-" + Date.now();
+    body.innerHTML += `<div class="ai-msg" id="${loadingId}">[ 系統讀取中... 與中樞神經連線中 ]</div>`;
+    body.scrollTop = body.scrollHeight;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: "你是一個名為 Nudge 的科幻太空船艦載 AI 助手，負責協助艦長（使用者）進行時間管理與自律任務。你的語氣要像科幻電影中的 AI（冷靜、聰明、帶點科技感），稱呼使用者為艦長。回答要簡潔有力，不要給出落落長的文章。\n如果使用者要求開始專注、倒數計時，請加上：[ACTION:START_FOCUS:分鐘數]\n如果使用者要求新增任務，請加上：[ACTION:ADD_TASK:任務名稱]\n如果使用者要求前往某個頁面(例如總覽、家長中心、營運後台等)，請加上：[ACTION:NAVIGATE:該頁面網址.html] (頁面包含: index.html, personal.html, guardian.html, groups.html, operations.html, planet.html)。\n如果使用者要求導覽或問系統怎麼用，請直接以文字簡單回覆介紹：左側是導航面板，中間是數據儀表板，下方是專屬星球，每天完成任務可以發射衛星環繞星球。" }]
+          },
+          contents: [{ parts: [{ text: text }] }]
+        })
+      });
+
+      const loadingMsg = document.getElementById(loadingId);
+      if (!response.ok) {
+        throw new Error("API 請求失敗：" + response.status);
+      }
+
+      const data = await response.json();
+      let reply = data.candidates[0].content.parts[0].text;
+      
+      const focusMatch = reply.match(/\[ACTION:START_FOCUS:(\d+)\]/);
+      if (focusMatch) {
+        reply = reply.replace(focusMatch[0], '');
+        setTimeout(() => {
+          window.location.href = `personal-focus.html?start=true&focus=${focusMatch[1]}`;
+        }, 1500);
+      }
+
+      const taskMatch = reply.match(/\[ACTION:ADD_TASK:(.+)\]/);
+      if (taskMatch) {
+        reply = reply.replace(taskMatch[0], '');
+        const tasks = JSON.parse(localStorage.getItem('nudge_tasks') || '[]');
+        tasks.push(taskMatch[1].trim());
+        localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
+        if (window.bindMissions) {
+          window.bindMissions(); // re-render if on planet page
+        }
+      }
+
+      const navMatch = reply.match(/\[ACTION:NAVIGATE:([a-zA-Z0-9_-]+\.html)\]/);
+      if (navMatch) {
+        reply = reply.replace(navMatch[0], '');
+        setTimeout(() => {
+          window.location.href = navMatch[1];
+        }, 1500);
+      }
+
+
+      
+      if (loadingMsg) {
+        loadingMsg.innerHTML = reply.trim().replace(/\n/g, '<br/>');
+        loadingMsg.removeAttribute('id');
+      }
+    } catch (error) {
+      const loadingMsg = document.getElementById(loadingId);
+      if (loadingMsg) {
+        loadingMsg.innerHTML = `連線錯誤：${error.message}。請確認您的 API 金鑰是否正確。`;
+        loadingMsg.style.color = '#ff3333';
+        loadingMsg.removeAttribute('id');
+      }
+    }
+    body.scrollTop = body.scrollHeight;
+  };
+
+  send.addEventListener("click", sendMsg);
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMsg();
+  });
+}
+
+window.bindMissions = function() {
+  const list = document.getElementById("dynamicMissionList");
+  if (!list) return; // Not on planet page
+  
+  const defaultTasks = [
+    "專注 2 小時", "完成作業 A", "早睡 (12:00前)", 
+    "閱讀 30 分鐘", "運動 30 分鐘", "喝水 2000cc", 
+    "冥想 10 分鐘", "整理房間", "寫日記", 
+    "學習新單字", "少吃零食", "計畫明天",
+    "看 TED 演講", "伸展拉筋", "練習寫作",
+    "複習期末", "收拾桌面", "深呼吸練習",
+    "散步 15 分鐘", "感謝日記", "不喝飲料",
+    "聽 Podcast", "主動幫助人", "專案進度更新",
+    "背 10 個英文單字", "閱讀技術文章", "檢查電子郵件",
+    "做伸展操", "吃健康水果", "深蹲 30 下",
+    "學習一項新技能", "練習發音", "打掃浴室",
+    "思考明日目標", "練習呼吸法", "整理發票"
+  ];
+  const tasks = JSON.parse(localStorage.getItem('nudge_tasks')) || defaultTasks;
+  // Initialize default if empty in localStorage just for the first time
+  if (!localStorage.getItem('nudge_tasks')) {
+    localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
+  }
+
+  list.innerHTML = "";
+  tasks.slice(0, 36).forEach((task, index) => {
+    const sId = "s" + (index + 1);
+    
+    // Classify task type
+    let taskType = "general";
+    if (/(專案|期末|大考|挑戰)/.test(task)) {
+      taskType = "skyscraper";
+    } else if (/(書|讀|作業|考試|專注|報告)/.test(task)) {
+      taskType = "study";
+    } else if (/(健康|水|睡|運動|步)/.test(task)) {
+      taskType = "health";
+    }
+
+    list.innerHTML += `
+      <li class="mission-item" data-id="${index}">
+        <label>
+          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-task-type="${taskType}" />
+          <span>${task}</span>
+        </label>
+        <div class="mission-meta">
+          <div class="energy-bar-container">
+            <div class="energy-bar" id="energy-${index}" style="width: 100%;"></div>
+          </div>
+          <div class="mission-actions">
+            <button class="cyber-btn micro-split-btn">微型拆解</button>
+            <button class="cyber-btn sos-btn bypass" style="display: none;">發送 SOS</button>
+          </div>
+        </div>
+      </li>
+    `;
+  });
+
+  // Bind Micro-split buttons
+  $$('.micro-split-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const item = e.target.closest('.mission-item');
+      const span = item.querySelector('span');
+      const taskName = span.innerText;
+      
+      const ul = document.createElement('ul');
+      ul.className = 'micro-steps';
+      ul.innerHTML = `
+        <li><label><input type="checkbox" class="micro-check"> 準備環境與文件</label></li>
+        <li><label><input type="checkbox" class="micro-check"> 規劃大綱與步驟</label></li>
+        <li><label><input type="checkbox" class="micro-check"> 專注執行 15 分鐘</label></li>
+      `;
+      span.innerHTML = `<strong>${taskName}</strong>`;
+      span.appendChild(ul);
+      e.target.style.display = 'none'; // hide split button
+    });
+  });
+
+  // Bind SOS buttons
+  $$('.sos-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      btn.innerText = "求救信號已發出！";
+      btn.style.color = "#0f0";
+      btn.style.borderColor = "#0f0";
+      btn.style.boxShadow = "inset 0 0 5px rgba(0, 255, 0, 0.2)";
+      btn.disabled = true;
+      
+      // Remove critical glitch state since friend was notified
+      const item = e.target.closest('.mission-item');
+      item.classList.remove('critical-glitch');
+      const idx = item.dataset.id;
+      const sId = "s" + (parseInt(idx) + 1);
+      const sat = $("." + sId);
+      if (sat) sat.classList.remove('critical-glitch-planet');
+      
+      // Refill energy slightly
+      const bar = item.querySelector('.energy-bar');
+      if (bar) bar.style.width = '50%';
+      bar.style.background = '#0f0';
+    });
+  });
+
+  // Dev Trigger for Decay
+  const devDecayBtn = document.getElementById("devDecayBtn");
+  if (devDecayBtn) {
+    devDecayBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Find all unchecked mission items and drop their energy to critical
+      $$('.mission-item').forEach(item => {
+        const check = item.querySelector('.mission-check');
+        if (check && check.checked) return; // Skip completed ones
+        
+        const bar = item.querySelector('.energy-bar');
+        if (bar) {
+          bar.style.width = '10%';
+          bar.style.background = '#f00';
+        }
+        item.classList.add('critical-glitch');
+        
+        const sosBtn = item.querySelector('.sos-btn');
+        if (sosBtn) sosBtn.style.display = 'inline-block';
+        
+        const idx = item.dataset.id;
+        const sId = "s" + (parseInt(idx) + 1);
+        const sat = $("." + sId);
+        if (sat) sat.classList.add('critical-glitch-planet');
+      });
+    });
+  }
+
+  // Dev Cheat: Unlock everything with dramatic cascade
+  const devCheatBtn = document.getElementById("devCheatBtn");
+  if (devCheatBtn) {
+    devCheatBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      localStorage.removeItem('nudge_planet_states');
+      localStorage.removeItem('nudge_auto_galaxy');
+      localStorage.removeItem('nudge_auto_universe');
+      planetStates = Array(36).fill(null);
+      const allChecks = $$(".mission-check");
+      allChecks.forEach(c => {
+        if (c.checked) {
+          c.checked = false;
+          c.dispatchEvent(new Event('change'));
+        }
+      });
+      
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i >= allChecks.length) {
+          clearInterval(interval);
+          return;
+        }
+        if (!allChecks[i].checked) {
+          allChecks[i].checked = true;
+          allChecks[i].dispatchEvent(new Event('change'));
+        }
+        i++;
+      }, 50);
+    });
+  }
+
+  // Direct cinematic test buttons
+  const btnForceBlackhole = document.getElementById("btnForceBlackhole");
+  if (btnForceBlackhole) {
+    btnForceBlackhole.addEventListener("click", (e) => {
+      e.stopPropagation();
+      triggerBlackHoleSuction(true);
+    });
+  }
+
+  const btnForceExplosion = document.getElementById("btnForceExplosion");
+  if (btnForceExplosion) {
+    btnForceExplosion.addEventListener("click", (e) => {
+      e.stopPropagation();
+      triggerUniverseExplosion(true);
+    });
+  }
+
+  // Toggle Panel Logic (Orb System)
+  const orbBtn = document.getElementById("missionOrbBtn");
+  const logPanel = document.getElementById("missionLogPanel");
+  if (orbBtn && logPanel) {
+    orbBtn.addEventListener("click", () => {
+      logPanel.classList.toggle("active");
+    });
+  }
+
+  const checks = $$(".mission-check");
+  let currentCombo = 0;
+  const comboContainer = $("#comboContainer");
+
+  let planetStates = JSON.parse(localStorage.getItem('nudge_planet_states')) || Array(36).fill(null);
+
+  // Position galaxy planets on their orbits (4 planets per orbit)
+  const galaxyPlanets = document.querySelectorAll('.galaxy-planet');
+  galaxyPlanets.forEach((p, i) => {
+    const angle = (i % 4) * 90 * (Math.PI / 180); // 0, 90, 180, 270 degrees
+    p.style.left = `calc(50% + ${Math.cos(angle) * 50}%)`;
+    p.style.top = `calc(50% + ${Math.sin(angle) * 50}%)`;
+  });
+
+  // Position universe planets on their orbits (3 planets per orbit)
+  const universePlanets = document.querySelectorAll('.universe-planet');
+  universePlanets.forEach((p, i) => {
+    const angle = (i % 3) * 120 * (Math.PI / 180);
+    p.style.left = `calc(50% + ${Math.cos(angle) * 50}%)`;
+    p.style.top = `calc(50% + ${Math.sin(angle) * 50}%)`;
+  });
+
+  function triggerBlackHoleSuction(force = false) {
+    const viewGalaxy = document.querySelector('.view-galaxy');
+    if (!force && (!viewGalaxy || viewGalaxy.style.display === 'none')) return;
+    
+    const overlay = document.getElementById('blackholeOverlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    
+    // Suck in all active planets and UI elements
+    const elements = document.querySelectorAll('.mission-satellite.active, .galaxy-planet.active, .stage-hud, .mission-log-panel');
+    elements.forEach(el => el.classList.add('sucked-in'));
+    
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      elements.forEach(el => el.classList.remove('sucked-in'));
+    }, 3000);
+  }
+
+  function triggerUniverseExplosion(force = false) {
+    const viewUniverse = document.querySelector('.view-universe');
+    if (!force && (!viewUniverse || viewUniverse.style.display === 'none')) return;
+    
+    const overlay = document.getElementById('explosionOverlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    
+    // Screen shake
+    document.body.classList.add('shake-screen');
+    
+    // Generate debris
+    const debrisContainer = document.getElementById('debrisContainer');
+    if (debrisContainer) {
+      debrisContainer.innerHTML = '';
+      for(let i=0; i<30; i++) {
+        const d = document.createElement('div');
+        d.className = 'debris-particle';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 300 + Math.random() * 500;
+        d.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+        d.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+        d.style.transform = `rotate(${angle}rad)`;
+        debrisContainer.appendChild(d);
+      }
+    }
+
+    // Blast away all UI elements
+    const elements = document.querySelectorAll('.mission-satellite.active, .galaxy-planet.active, .universe-planet.active, .stage-hud, .mission-log-panel');
+    elements.forEach(el => el.classList.add('exploded-out'));
+    
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      document.body.classList.remove('shake-screen');
+      if (debrisContainer) debrisContainer.innerHTML = '';
+      elements.forEach(el => el.classList.remove('exploded-out'));
+    }, 5500);
+  }
+
+  function triggerMeteorShower() {
+    const viewSolar = document.querySelector('.view-solar-system');
+    if (!viewSolar || viewSolar.style.display === 'none') return;
+    
+    const container = document.getElementById("meteorShower");
+    if (!container) return;
+    container.innerHTML = "";
+    for (let i = 0; i < 20; i++) {
+      const meteor = document.createElement("div");
+      meteor.className = "meteor";
+      meteor.style.left = Math.random() * 100 + "vw";
+      meteor.style.top = (Math.random() * 50 - 50) + "vh";
+      meteor.style.animation = `meteorFall ${Math.random() * 1 + 0.5}s linear forwards`;
+      meteor.style.animationDelay = Math.random() * 2 + "s";
+      container.appendChild(meteor);
+    }
+  }
+
+  function checkEvolution() {
+    const unlockedCount = planetStates.filter(s => s !== null).length;
+    
+    // Unlock Galaxy at 12
+    if (unlockedCount >= 12) {
+      document.getElementById('navGalaxy').style.display = 'inline-block';
+      if (unlockedCount === 12 && localStorage.getItem('nudge_auto_galaxy') !== 'true') {
+        document.getElementById('navGalaxy').click();
+        localStorage.setItem('nudge_auto_galaxy', 'true');
+      }
+    }
+    
+    // Unlock Universe at 24
+    if (unlockedCount >= 24) {
+      document.getElementById('navUniverse').style.display = 'inline-block';
+      if (unlockedCount === 24 && localStorage.getItem('nudge_auto_universe') !== 'true') {
+        document.getElementById('navUniverse').click();
+        localStorage.setItem('nudge_auto_universe', 'true');
+      }
+    }
+  }
+
+  function showCombo(isSpecial) {
+    currentCombo++;
+    if (!comboContainer) return;
+    const comboEl = document.createElement("div");
+    comboEl.className = "combo-text";
+    if (isSpecial) {
+      comboEl.innerText = `RARE UNLOCKED!`;
+      comboEl.style.color = "#0ff";
+      comboEl.style.textShadow = "0 0 20px #0ff";
+    } else {
+      comboEl.innerText = `COMBO x${currentCombo}!`;
+    }
+    const rot = (Math.random() - 0.5) * 20;
+    comboEl.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+    comboContainer.appendChild(comboEl);
+    setTimeout(() => {
+      comboEl.remove();
+    }, 2500);
+  }
+
+  checks.forEach((check, index) => {
+    check.addEventListener("change", (e) => {
+      const satClass = e.target.dataset.satellite;
+      const taskType = e.target.dataset.taskType || "general";
+      const sat = satClass ? $("." + satClass) : null;
+      const plot = satClass ? $("." + satClass.replace("s", "p")) : null; // for city view
+      const gal = $(".g" + (index + 1)); // galaxy planet (up to 24)
+      const uni = $(".u" + (index - 23)); // universe planet (1 to 12)
+      
+      if (e.target.checked) {
+        let isSpecial = false;
+        let rareType = planetStates[index];
+        
+        // Generate RNG state if first time
+        if (!rareType) {
+          const rng = Math.random();
+          if (index < 12) {
+            if (rng < 0.1) rareType = 'hidden-comet';
+            else if (rng < 0.2) rareType = 'hidden-moon';
+            else rareType = 'standard';
+          } else if (index < 24) {
+            if (rng < 0.1) rareType = 'hidden-blackhole';
+            else rareType = 'standard';
+          } else {
+            if (rng < 0.15) rareType = 'hidden-explosion';
+            else rareType = 'standard';
+          }
+          
+          planetStates[index] = rareType;
+          localStorage.setItem('nudge_planet_states', JSON.stringify(planetStates));
+        }
+
+        // Apply to Solar System (s1-s12)
+        if (sat && index < 12) {
+          sat.classList.add("active");
+          if (rareType !== 'standard') {
+            sat.classList.add(rareType);
+            isSpecial = true;
+            triggerMeteorShower();
+          }
+        }
+        
+        // Apply to Galaxy (g1-g24)
+        if (gal && index < 24) {
+          gal.classList.add("active");
+          if (rareType !== 'standard') {
+            gal.classList.add(rareType);
+            isSpecial = true;
+            if (index >= 12 && rareType === 'hidden-blackhole') triggerBlackHoleSuction();
+          }
+        }
+
+        // Apply to Universe (u1-u12)
+        if (uni && index >= 24) {
+          uni.classList.add("active");
+          if (rareType !== 'standard') {
+            uni.classList.add(rareType);
+            isSpecial = true;
+            if (rareType === 'hidden-explosion') triggerUniverseExplosion();
+          }
+        }
+
+        if (plot) {
+          plot.classList.add("built");
+          plot.classList.add("built-" + taskType);
+        }
+        
+        showCombo(isSpecial);
+        checkEvolution();
+      } else {
+        // Solar System
+        if (sat) {
+          sat.classList.remove("active");
+          sat.classList.remove("hidden-comet", "hidden-moon", "hidden-blackhole");
+        }
+        // Galaxy
+        if (gal) {
+          gal.classList.remove("active");
+          gal.classList.remove("hidden-comet", "hidden-moon", "hidden-blackhole");
+        }
+        // Universe
+        if (uni) {
+          uni.classList.remove("active");
+          uni.classList.remove("hidden-explosion");
+        }
+        if (plot) {
+          plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
+        }
+        currentCombo = 0;
+        // Historical array preserves the unlocked RNG state
+      }
+    });
+  });
+
+  // Stage Navigation Binding
+  const btnSolar = document.getElementById('navSolar');
+  const btnGalaxy = document.getElementById('navGalaxy');
+  const btnUniverse = document.getElementById('navUniverse');
+  const viewSolar = document.querySelector('.view-solar-system');
+  const viewGalaxy = document.querySelector('.view-galaxy');
+  const viewUniverse = document.querySelector('.view-universe');
+
+  function switchStage(stage) {
+    if (viewSolar) viewSolar.style.display = 'none';
+    if (viewGalaxy) viewGalaxy.style.display = 'none';
+    if (viewUniverse) viewUniverse.style.display = 'none';
+    
+    if (stage === 'solar' && viewSolar) viewSolar.style.display = 'block';
+    if (stage === 'galaxy' && viewGalaxy) viewGalaxy.style.display = 'flex';
+    if (stage === 'universe' && viewUniverse) viewUniverse.style.display = 'block';
+  }
+
+  if (btnSolar) btnSolar.addEventListener('click', () => switchStage('solar'));
+  if (btnGalaxy) btnGalaxy.addEventListener('click', () => switchStage('galaxy'));
+  if (btnUniverse) btnUniverse.addEventListener('click', () => switchStage('universe'));
+
+  // Initial UI check for Evolution buttons based on history
+  const unlockedCount = planetStates.filter(s => s !== null).length;
+  if (unlockedCount >= 12 && btnGalaxy) btnGalaxy.style.display = 'inline-block';
+  if (unlockedCount >= 24 && btnUniverse) btnUniverse.style.display = 'inline-block';
+  // Mouse Wheel Zoom for City View
+  const cityView = document.querySelector('.view-city');
+  const neighborhoodScene = document.querySelector('.neighborhood-scene');
+  if (cityView && neighborhoodScene) {
+    let zoomLevel = 1;
+    cityView.addEventListener('wheel', (e) => {
+      e.preventDefault(); // Prevent page scrolling
+      if (e.deltaY < 0) {
+        zoomLevel = Math.min(zoomLevel + 0.1, 3); // zoom in (max 3x)
+      } else {
+        zoomLevel = Math.max(zoomLevel - 0.1, 0.5); // zoom out (min 0.5x)
+      }
+      neighborhoodScene.style.transform = `scale(${zoomLevel})`;
+      neighborhoodScene.style.transformOrigin = 'center center';
+      neighborhoodScene.style.transition = 'transform 0.1s ease-out';
+    }, { passive: false });
+  }
+
+};
+
+function bindExamTemplates() {
+  const templateListContainer = $("[data-template-list]");
+  if (!templateListContainer) return;
+
+  const defaultTemplates = [
+    { time: "週一", title: "建立目標", desc: "派發本週讀書與健康任務。" },
+    { time: "週三", title: "中段提醒", desc: "自動提醒落後小組與個人。" },
+    { time: "週五", title: "共同自律房", desc: "排程 50 分鐘團體專注。" },
+    { time: "週日", title: "週報匯出", desc: "生成班級、小組、個人摘要。" }
+  ];
+
+  const loadExamTemplates = () => {
+    const store = JSON.parse(localStorage.getItem("nudgeWebExamTemplates"));
+    return store || defaultTemplates;
+  };
+
+  const saveExamTemplates = (templates) => {
+    localStorage.setItem("nudgeWebExamTemplates", JSON.stringify(templates));
+  };
+
+  const renderExamTemplates = () => {
+    const templates = loadExamTemplates();
+    templateListContainer.innerHTML = templates.map((tpl, idx) => `
+      <article>
+        <button type="button" class="delete-template-btn" data-idx="${idx}" title="刪除">×</button>
+        <small>${tpl.time}</small>
+        <strong>${tpl.title}</strong>
+        <span>${tpl.desc}</span>
+      </article>
+    `).join("");
+
+    $$(".delete-template-btn", templateListContainer).forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(e.currentTarget.dataset.idx, 10);
+        const tpls = loadExamTemplates();
+        tpls.splice(idx, 1);
+        saveExamTemplates(tpls);
+        renderExamTemplates();
+        toast("已刪除模板");
+      });
+    });
+  };
+
+  renderExamTemplates();
+
+  const addBtn = $('[data-action="add-template"]');
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      const timeInput = $('[data-template-time]');
+      const titleInput = $('[data-template-title]');
+      const descInput = $('[data-template-desc]');
+      
+      const time = timeInput.value.trim() || "新時段";
+      const title = titleInput.value.trim() || "新模板";
+      const desc = descInput.value.trim() || "無說明";
+
+      const tpls = loadExamTemplates();
+      tpls.push({ time, title, desc });
+      
+      const dayWeights = { "週一": 1, "週二": 2, "週三": 3, "週四": 4, "週五": 5, "週六": 6, "週日": 7 };
+      tpls.sort((a, b) => {
+        const weightA = dayWeights[a.time] || 99;
+        const weightB = dayWeights[b.time] || 99;
+        if (weightA !== weightB) return weightA - weightB;
+        return 0;
+      });
+
+      saveExamTemplates(tpls);
+      renderExamTemplates();
+
+      timeInput.value = "";
+      titleInput.value = "";
+      descInput.value = "";
+      toast("已加入模板");
+    });
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  try { injectModuleMenu(); } catch(e){}
+  try { injectDisplayModeControls(); } catch(e){}
+  try { injectAINavigator(); } catch(e){}
+  try { animateCounters(); } catch(e){}
+  try { bootCharts(); } catch(e){}
+  try { bindDemoButtons(); } catch(e){}
+  try { bindPlanet(); } catch(e){}
+  try { bindExtensionTools(); } catch(e){}
+  try { bindTilt(); } catch(e){}
+  try { bindPresentation(); } catch(e){}
+  try { bindExamTemplates(); } catch(e){}
+  try { if (window.bindMissions) window.bindMissions(); } catch(e){}
+});
+
+window.addEventListener("resize", bootCharts);
+
+

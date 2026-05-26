@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 星球建築規劃器</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <body data-page="planet">
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>建築規劃</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="planet.html">自律城市 / 星球</a><a href="operations.html">營運後台</a></nav></aside>
+      <main class="main">
+        <header class="hero split"><div><span class="eyebrow">Planet Builder</span><h1>把下週自律目標變成具體建築。</h1><p>這個頁面專門規劃建築、解鎖條件與完成後事件。</p><div class="subnav"><a href="planet.html">星球展示</a><a class="active" href="planet-builder.html">建築規劃</a><a href="planet-events.html">城市事件</a></div></div><div class="hero-card"><span>下一地標</span><strong>觀測台</strong><p>進度 66%。</p></div></header>
+        <section class="tool-panel page-section" data-tool="planet-builder"><div class="tool-copy"><span class="eyebrow">Planet Builder</span><h2>星球建築規劃器</h2><p>把下週目標轉成一棟具體建築。</p></div><div class="tool-grid"><label class="field"><span>建築類型</span><select data-planet-building><option value="圖書館">圖書館</option><option value="健康公園">健康公園</option><option value="住宅區">住宅區</option><option value="共讀廣場">共讀廣場</option><option value="星光觀測台">星光觀測台</option></select></label><label class="field"><span>解鎖條件</span><select data-planet-condition><option value="連續 3 天達 80 分">連續 3 天達 80 分</option><option value="本週專注 180 分鐘">本週專注 180 分鐘</option><option value="完成 5 個健康任務">完成 5 個健康任務</option><option value="自律房共同達標 2 次">自律房共同達標 2 次</option></select></label><label class="field wide"><span>城市事件文案</span><textarea data-planet-event rows="3">完成後城市會亮起新的夜讀燈光，好友可以來圖書館留下鼓勵。</textarea></label></div><div class="generated-card cyan" data-output="planet-preview"><strong>圖書館建築計畫</strong><p>解鎖條件：連續 3 天達 80 分。完成後城市會亮起新的夜讀燈光。</p></div><div class="button-row"><button class="button primary" data-action="generate-planet" type="button">規劃建築</button><button class="button ghost" data-action="save-planet" type="button">設為下週星球目標</button></div></section>
+      </main>
+    </div><script src="assets/app.js"></script>
+  </body>
+</html>
+

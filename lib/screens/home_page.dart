@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../widgets/app_drawer.dart';
 import '../theme/app_ui.dart';
@@ -8,6 +7,8 @@ import 'coin_wallet_page.dart';
 import 'today_advice_page.dart';
 import 'badges_page.dart';
 import 'weekly_report_page.dart';
+import 'tasks_page.dart';
+import 'today_data_page.dart';
 
 class HomePage extends StatelessWidget {
   final void Function(int) onNavigate;
@@ -18,50 +19,6 @@ class HomePage extends StatelessWidget {
     required this.onNavigate,
     required this.onOpenStatistics,
   });
-
-  int calculateDisciplineScoreFromTasks(List<Map<String, dynamic>> tasks) {
-    if (tasks.isEmpty) return 0;
-    final completedCount = tasks.where((task) => task['done'] == true).length;
-    return ((completedCount / tasks.length) * 100).round().clamp(0, 100);
-  }
-
-  IconData getStatusIcon(int score) {
-    if (score >= 90) return Icons.sentiment_very_satisfied;
-    if (score >= 70) return Icons.sentiment_satisfied_alt;
-    if (score >= 50) return Icons.sentiment_neutral;
-    return Icons.sentiment_dissatisfied;
-  }
-
-  Color getStatusIconBackground(int score) {
-    if (score >= 90) return Colors.white.withValues(alpha: 0.26);
-    if (score >= 70) return Colors.white.withValues(alpha: 0.22);
-    if (score >= 50) return Colors.white.withValues(alpha: 0.18);
-    return Colors.white.withValues(alpha: 0.14);
-  }
-
-  String getStatusTitle(int score) {
-    if (score >= 90) return '今天表現很穩定';
-    if (score >= 70) return '今天進度不錯';
-    if (score >= 50) return '今天還能再補強';
-    return '今天先慢慢來';
-  }
-
-  String getStatusSubtitle(int score, int completedCount, int totalTasks) {
-    if (totalTasks == 0) {
-      return '今天還沒有任務，先新增一個明確目標吧。';
-    }
-
-    if (score >= 90) {
-      return '你今天已完成 $completedCount / $totalTasks 個任務，繼續保持。';
-    }
-    if (score >= 70) {
-      return '目前已完成 $completedCount / $totalTasks 個任務，進度很不錯。';
-    }
-    if (score >= 50) {
-      return '目前已完成 $completedCount / $totalTasks 個任務，再努力一點就能更好。';
-    }
-    return '目前已完成 $completedCount / $totalTasks 個任務，先把最重要的一件事完成就好。';
-  }
 
   int _quickActionCrossAxisCount(double width) {
     if (width < 520) return 2;
@@ -79,30 +36,23 @@ class HomePage extends StatelessWidget {
     final appState = context.watch<AppState>();
     final accentColor = appState.currentIconColor;
 
-    final todayTasks = appState.todayActionableTaskModels;
     final completedCount = appState.todayActionableTaskCompleted;
     final totalTasks = appState.todayActionableTaskTotal;
     final disciplineScore = appState.todayWeightedDisciplineScore;
-    final overallProgress = totalTasks == 0
-        ? 0.0
-        : (completedCount / totalTasks).clamp(0.0, 1.0);
-    final recommendedTasks = todayTasks.where((task) => !task.isDone).toList()
-      ..sort(
-        (a, b) => appState
-            .taskPotentialScoreForTask(b)
-            .compareTo(appState.taskPotentialScoreForTask(a)),
-      );
-    final recommendedTask = recommendedTasks.isEmpty
-        ? null
-        : recommendedTasks.first;
 
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
     final isDark = AppUI.isDark(context);
+    void openTasksPage() {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TasksPage()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppUI.scaffoldBackgroundOf(context),
-      drawer: AppDrawer(onOpenTasks: () => onNavigate(1)),
+      drawer: AppDrawer(onOpenTasks: openTasksPage),
       appBar: AppBar(
         title: const Text('首頁'),
         actions: [
@@ -117,7 +67,7 @@ class HomePage extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          CoinWalletPage(onOpenTasks: () => onNavigate(1)),
+                          CoinWalletPage(onOpenTasks: openTasksPage),
                     ),
                   );
                 },
@@ -136,48 +86,28 @@ class HomePage extends StatelessWidget {
         children: [
           _HeroDashboardCard(
             score: disciplineScore,
-            progress: overallProgress,
-            statusTitle: getStatusTitle(disciplineScore),
-            statusSubtitle: getStatusSubtitle(
-              disciplineScore,
-              completedCount,
-              totalTasks,
-            ),
-            statusIcon: getStatusIcon(disciplineScore),
-            statusIconBackground: getStatusIconBackground(disciplineScore),
-            accentColor: accentColor,
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          _TodayActionCenter(
             completedCount: completedCount,
             totalTasks: totalTasks,
             focusMinutes: appState.focusMinutes,
             sleepHours: appState.sleepHours,
             steps: appState.steps,
             isHealthConnected: appState.isHealthConnected,
-            recommendedTask: recommendedTask,
-            potentialScore: recommendedTask == null
-                ? 0
-                : appState.taskPotentialScoreForTask(recommendedTask),
-            reason: recommendedTask == null
-                ? ''
-                : appState.taskRewardReasonForTask(recommendedTask),
+            accentColor: accentColor,
+          ),
+          const SizedBox(height: AppUI.sectionGap),
+          _TodayActionCenter(
+            completedCount: completedCount,
+            totalTasks: totalTasks,
             accentColor: accentColor,
             primaryText: primaryText,
             secondaryText: secondaryText,
-            onOpenTasks: () => onNavigate(1),
-            onOpenAdvice: () {
+            onOpenTasks: openTasksPage,
+            onOpenData: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => TodayAdvicePage(
-                    onOpenTasks: () => onNavigate(1),
-                    onNavigate: onNavigate,
-                  ),
-                ),
+                MaterialPageRoute(builder: (_) => const TodayDataPage()),
               );
             },
-            onOpenStatistics: onOpenStatistics,
           ),
           const SizedBox(height: AppUI.sectionGap),
           _SectionTitle(title: '工具入口', color: primaryText),
@@ -210,7 +140,7 @@ class HomePage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => TodayAdvicePage(
-                            onOpenTasks: () => onNavigate(1),
+                            onOpenTasks: openTasksPage,
                             onNavigate: onNavigate,
                           ),
                         ),
@@ -263,20 +193,22 @@ class HomePage extends StatelessWidget {
 
 class _HeroDashboardCard extends StatelessWidget {
   final int score;
-  final double progress;
-  final String statusTitle;
-  final String statusSubtitle;
-  final IconData statusIcon;
-  final Color statusIconBackground;
+  final int completedCount;
+  final int totalTasks;
+  final int focusMinutes;
+  final double sleepHours;
+  final int steps;
+  final bool isHealthConnected;
   final Color accentColor;
 
   const _HeroDashboardCard({
     required this.score,
-    required this.progress,
-    required this.statusTitle,
-    required this.statusSubtitle,
-    required this.statusIcon,
-    required this.statusIconBackground,
+    required this.completedCount,
+    required this.totalTasks,
+    required this.focusMinutes,
+    required this.sleepHours,
+    required this.steps,
+    required this.isHealthConnected,
     required this.accentColor,
   });
 
@@ -306,18 +238,6 @@ class _HeroDashboardCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          Positioned(
-            top: -18,
-            right: -14,
-            child: Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-              ),
-            ),
-          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -342,7 +262,7 @@ class _HeroDashboardCard extends StatelessWidget {
                         ),
                         SizedBox(width: 5),
                         Text(
-                          '今日自律儀表板',
+                          '今日儀表板',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -352,19 +272,9 @@ class _HeroDashboardCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: statusIconBackground,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(statusIcon, color: Colors.white, size: 24),
-                  ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -387,45 +297,49 @@ class _HeroDashboardCard extends StatelessWidget {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
                   const Spacer(),
-                  _RecordSignalPill(progress: progress),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                statusTitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                statusSubtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  height: 1.4,
-                ),
-              ),
               const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppUI.radiusPill),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 7,
-                  backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 2.35,
+                children: [
+                  _DashboardMetricCard(
+                    icon: Icons.task_alt_outlined,
+                    label: '任務',
+                    value: '$completedCount/$totalTasks',
+                    color: const Color(0xFF34D399),
+                  ),
+                  _DashboardMetricCard(
+                    icon: Icons.timer_outlined,
+                    label: '專注',
+                    value: '$focusMinutes 分',
+                    color: const Color(0xFF93C5FD),
+                  ),
+                  _DashboardMetricCard(
+                    icon: Icons.bedtime_outlined,
+                    label: '睡眠',
+                    value: isHealthConnected
+                        ? '${sleepHours.toStringAsFixed(1)} 小時'
+                        : '未同步',
+                    color: const Color(0xFFC4B5FD),
+                  ),
+                  _DashboardMetricCard(
+                    icon: Icons.directions_walk,
+                    label: '步數',
+                    value: isHealthConnected ? '$steps' : '未同步',
+                    color: const Color(0xFF6EE7B7),
+                  ),
+                ],
               ),
             ],
           ),
@@ -435,38 +349,70 @@ class _HeroDashboardCard extends StatelessWidget {
   }
 }
 
-class _RecordSignalPill extends StatelessWidget {
-  final double progress;
+class _DashboardMetricCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
 
-  const _RecordSignalPill({required this.progress});
+  const _DashboardMetricCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(width: 6),
-          Text(
-            '已記錄 ${(progress * 100).round()}%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -478,42 +424,24 @@ class _RecordSignalPill extends StatelessWidget {
 class _TodayActionCenter extends StatelessWidget {
   final int completedCount;
   final int totalTasks;
-  final int focusMinutes;
-  final double sleepHours;
-  final int steps;
-  final bool isHealthConnected;
-  final TaskModel? recommendedTask;
-  final int potentialScore;
-  final String reason;
   final Color accentColor;
   final Color primaryText;
   final Color secondaryText;
   final VoidCallback onOpenTasks;
-  final VoidCallback onOpenAdvice;
-  final VoidCallback onOpenStatistics;
+  final VoidCallback onOpenData;
 
   const _TodayActionCenter({
     required this.completedCount,
     required this.totalTasks,
-    required this.focusMinutes,
-    required this.sleepHours,
-    required this.steps,
-    required this.isHealthConnected,
-    required this.recommendedTask,
-    required this.potentialScore,
-    required this.reason,
     required this.accentColor,
     required this.primaryText,
     required this.secondaryText,
     required this.onOpenTasks,
-    required this.onOpenAdvice,
-    required this.onOpenStatistics,
+    required this.onOpenData,
   });
 
   @override
   Widget build(BuildContext context) {
-    final task = recommendedTask;
-
     return Card(
       shape: AppUI.cardShape(),
       child: Padding(
@@ -538,92 +466,34 @@ class _TodayActionCenter extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 3.6,
-              children: [
-                _ActionInfoPill(
-                  icon: Icons.task_alt_outlined,
-                  label: '任務',
-                  value: '$completedCount/$totalTasks',
-                  color: AppUI.green,
-                ),
-                _ActionInfoPill(
-                  icon: Icons.timer_outlined,
-                  label: '專注',
-                  value: '$focusMinutes 分',
-                  color: AppUI.blue,
-                ),
-                _ActionInfoPill(
-                  icon: Icons.bedtime_outlined,
-                  label: '睡眠',
-                  value: isHealthConnected
-                      ? '${sleepHours.toStringAsFixed(1)} 小時'
-                      : '未同步',
-                  color: AppUI.purple,
-                ),
-                _ActionInfoPill(
-                  icon: Icons.directions_walk,
-                  label: '步數',
-                  value: isHealthConnected ? '$steps' : '未同步',
-                  color: AppUI.green,
-                ),
-              ],
+            _PrimaryTaskButton(
+              completedCount: completedCount,
+              totalTasks: totalTasks,
+              color: accentColor,
+              primaryText: primaryText,
+              secondaryText: secondaryText,
+              onPressed: onOpenTasks,
             ),
-            const SizedBox(height: 12),
-            if (task == null)
-              _EmptyRecommendationCard(
-                onOpenTasks: onOpenTasks,
-                onOpenAdvice: onOpenAdvice,
-                primaryText: primaryText,
-                secondaryText: secondaryText,
-                accentColor: accentColor,
-              )
-            else
-              _RecommendedTaskCard(
-                task: task,
-                potentialScore: potentialScore,
-                reason: reason,
-                accentColor: accentColor,
-                primaryText: primaryText,
-                secondaryText: secondaryText,
-                onGradient: false,
-                onTap: onOpenTasks,
-              ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: _HeroActionButton(
-                    icon: Icons.checklist_outlined,
-                    label: '任務',
+                  child: _ActionCenterCard(
+                    icon: Icons.edit_note_rounded,
+                    title: '任務',
+                    subtitle: '整理今日行動',
                     color: accentColor,
-                    onGradient: false,
-                    onPressed: onOpenTasks,
+                    onTap: onOpenTasks,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: _HeroActionButton(
-                    icon: Icons.tips_and_updates_outlined,
-                    label: '建議',
-                    color: accentColor,
-                    onGradient: false,
-                    onPressed: onOpenAdvice,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _HeroActionButton(
-                    icon: Icons.insights_outlined,
-                    label: '分析',
-                    color: accentColor,
-                    onGradient: false,
-                    onPressed: onOpenStatistics,
+                  child: _ActionCenterCard(
+                    icon: Icons.monitor_heart_outlined,
+                    title: '數據',
+                    subtitle: '查看今日核心',
+                    color: const Color(0xFF4F8CFF),
+                    onTap: onOpenData,
                   ),
                 ),
               ],
@@ -635,274 +505,48 @@ class _TodayActionCenter extends StatelessWidget {
   }
 }
 
-class _ActionInfoPill extends StatelessWidget {
+class _ActionCenterCard extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final String value;
+  final String title;
+  final String subtitle;
   final Color color;
-
-  const _ActionInfoPill({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: AppUI.softCardOf(context, color),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 17),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$label $value',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final bool onGradient;
-  final VoidCallback onPressed;
-
-  const _HeroActionButton({
-    required this.icon,
-    required this.label,
-    this.color = Colors.white,
-    this.onGradient = true,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: onGradient ? Colors.white : color,
-        backgroundColor: onGradient
-            ? Colors.white.withValues(alpha: 0.10)
-            : color.withValues(alpha: 0.08),
-        side: BorderSide(
-          color: onGradient
-              ? Colors.white.withValues(alpha: 0.52)
-              : color.withValues(alpha: 0.35),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-      ),
-    );
-  }
-}
-
-class _EmptyRecommendationCard extends StatelessWidget {
-  final VoidCallback onOpenTasks;
-  final VoidCallback onOpenAdvice;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color accentColor;
-
-  const _EmptyRecommendationCard({
-    required this.onOpenTasks,
-    required this.onOpenAdvice,
-    this.primaryText = Colors.white,
-    this.secondaryText = Colors.white70,
-    this.accentColor = Colors.white,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accentColor.withValues(alpha: 0.16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '下一個最值得做',
-            style: TextStyle(
-              color: secondaryText,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '今天沒有待完成任務',
-            style: TextStyle(
-              color: primaryText,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '可以新增一個小目標，或先看看今日建議。',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: secondaryText, fontSize: 12, height: 1.45),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _SmallHeroTextButton(
-                label: '新增任務',
-                color: accentColor,
-                onPressed: onOpenTasks,
-              ),
-              _SmallHeroTextButton(
-                label: '查看建議',
-                color: accentColor,
-                onPressed: onOpenAdvice,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SmallHeroTextButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final VoidCallback onPressed;
-
-  const _SmallHeroTextButton({
-    required this.label,
-    required this.color,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        foregroundColor: color,
-        backgroundColor: color.withValues(alpha: 0.10),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-      ),
-    );
-  }
-}
-
-class _RecommendedTaskCard extends StatelessWidget {
-  final TaskModel task;
-  final int potentialScore;
-  final String reason;
-  final Color accentColor;
-  final Color primaryText;
-  final Color secondaryText;
-  final bool onGradient;
   final VoidCallback onTap;
 
-  const _RecommendedTaskCard({
-    required this.task,
-    required this.potentialScore,
-    required this.reason,
-    required this.accentColor,
-    required this.primaryText,
-    required this.secondaryText,
-    this.onGradient = false,
+  const _ActionCenterCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
     required this.onTap,
   });
 
-  IconData get _icon {
-    switch (task.sourceType) {
-      case TaskSourceType.sleepHours:
-        return Icons.bedtime_outlined;
-      case TaskSourceType.steps:
-        return Icons.directions_walk;
-      case TaskSourceType.exerciseMinutes:
-        return Icons.fitness_center;
-      case TaskSourceType.focusMinutes:
-        return Icons.timer_outlined;
-      case TaskSourceType.studyRoom:
-      case TaskSourceType.system:
-        return Icons.groups_2_outlined;
-      case TaskSourceType.manual:
-      case null:
-        return task.taskType == TaskType.deadline
-            ? Icons.event_available_outlined
-            : Icons.task_alt_outlined;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final cardColor = onGradient
-        ? Colors.white.withValues(alpha: 0.14)
-        : Theme.of(context).cardColor;
-    final borderColor = onGradient
-        ? Colors.white.withValues(alpha: 0.16)
-        : Colors.transparent;
-    final iconBackground = onGradient
-        ? BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.16),
-            borderRadius: BorderRadius.circular(16),
-          )
-        : AppUI.softCardOf(context, accentColor);
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
         onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
-            color: cardColor,
+            color: color.withValues(alpha: AppUI.isDark(context) ? 0.16 : 0.08),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: borderColor),
-            boxShadow: onGradient
-                ? null
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.035),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+            border: Border.all(color: color.withValues(alpha: 0.20)),
           ),
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
-                decoration: iconBackground,
-                child: Icon(_icon, color: accentColor, size: 22),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: Colors.white, size: 21),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -910,46 +554,30 @@ class _RecommendedTaskCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '下一個最值得做',
-                      style: TextStyle(
-                        color: secondaryText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      task.title,
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: primaryText,
                         fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 5,
-                      children: [
-                        _MiniInfoPill(
-                          text: reason,
-                          color: const Color(0xFF2563EB),
-                          onGradient: onGradient,
-                        ),
-                        _MiniInfoPill(
-                          text: '約 $potentialScore 分',
-                          color: const Color(0xFF10B981),
-                          onGradient: onGradient,
-                        ),
-                      ],
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
-              Icon(Icons.chevron_right, color: secondaryText),
+              Icon(Icons.chevron_right_rounded, color: color, size: 22),
             ],
           ),
         ),
@@ -958,35 +586,115 @@ class _RecommendedTaskCard extends StatelessWidget {
   }
 }
 
-class _MiniInfoPill extends StatelessWidget {
-  final String text;
+class _PrimaryTaskButton extends StatelessWidget {
+  final int completedCount;
+  final int totalTasks;
   final Color color;
-  final bool onGradient;
+  final Color primaryText;
+  final Color secondaryText;
+  final VoidCallback onPressed;
 
-  const _MiniInfoPill({
-    required this.text,
+  const _PrimaryTaskButton({
+    required this.completedCount,
+    required this.totalTasks,
     required this.color,
-    this.onGradient = false,
+    required this.primaryText,
+    required this.secondaryText,
+    required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: onGradient
-          ? BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(AppUI.radiusPill),
-            )
-          : AppUI.softCardOf(context, color),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: onGradient ? Colors.white : color,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+    final progress = totalTasks == 0
+        ? 0.0
+        : (completedCount / totalTasks).clamp(0.0, 1.0);
+    final title = totalTasks == 0 ? '建立今日任務' : '整理今日任務';
+    final subtitle = totalTasks == 0
+        ? '先放進一個明確目標，今天就有主線可以推進。'
+        : '已完成 $completedCount / $totalTasks，點進去安排下一個行動。';
+
+    return Material(
+      color: color.withValues(alpha: AppUI.isDark(context) ? 0.18 : 0.10),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: color.withValues(alpha: 0.24)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.24),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.assignment_turned_in_outlined,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: primaryText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 12,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (totalTasks > 0) ...[
+                      const SizedBox(height: 9),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 6,
+                          backgroundColor: AppUI.isDark(context)
+                              ? const Color(0xFF2A2F3A)
+                              : Colors.white.withValues(alpha: 0.82),
+                          valueColor: AlwaysStoppedAnimation<Color>(color),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, color: color, size: 22),
+            ],
+          ),
         ),
       ),
     );

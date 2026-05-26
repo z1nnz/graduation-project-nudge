@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 任務模板產生器</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="personal">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>任務模板</small></span></a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a class="active" href="personal.html">個人進階分析</a>
+          <a href="groups.html">團體 / 教育管理</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Template Builder</span>
+            <h1>把大目標拆成可以匯入 App 的每日任務。</h1>
+            <p>這個功能獨立出來後，就能真的輸入條件、產生計畫、下載模板，而不是塞在中心頁的一張小卡。</p>
+            <div class="subnav">
+              <a href="personal.html">中心總覽</a>
+              <a href="personal-trends.html">趨勢</a>
+              <a href="personal-pressure.html">壓力雷達</a>
+              <a href="personal-weather.html">自律天氣</a>
+              <a href="personal-time-capsule.html">時間膠囊</a>
+              <a href="personal-letter.html">未來的信</a>
+              <a href="personal-skill-tree.html">技能樹</a>
+              <a class="active" href="personal-template.html">任務模板</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>可生成</span>
+            <strong data-count="4">0</strong>
+            <p>考試、報告、睡眠、專注。</p>
+          </div>
+        </header>
+
+        <section class="tool-panel page-section" data-tool="template-builder">
+          <div class="tool-copy">
+            <span class="eyebrow">Action Lab</span>
+            <h2>任務模板產生器</h2>
+            <p>產生後可以下載文字檔，之後再接 App 匯入或後端模板庫。</p>
+          </div>
+          <div class="tool-grid">
+            <label class="field"><span>目標類型</span><select data-template-type><option value="期中報告">期中報告</option><option value="考試複習">考試複習</option><option value="睡眠調整">睡眠調整</option><option value="專注習慣">專注習慣</option></select></label>
+            <label class="field"><span>天數</span><input data-template-days type="number" min="3" max="30" value="7" /></label>
+            <label class="field"><span>每日投入</span><select data-template-effort><option value="25 分鐘">25 分鐘</option><option value="45 分鐘">45 分鐘</option><option value="60 分鐘">60 分鐘</option></select></label>
+            <label class="field"><span>壓力狀態</span><select data-template-pressure><option value="穩定">穩定</option><option value="偏高">偏高</option><option value="截止日前">截止日前</option></select></label>
+          </div>
+          <div class="generated-card" data-output="template-preview">
+            <strong>期中報告 7 日模板</strong>
+            <p>每天 25 分鐘，前 3 天蒐集資料，中段整理大綱，最後 2 天修改與檢查。</p>
+          </div>
+          <div class="button-row">
+            <button class="button primary" data-action="generate-template" type="button">產生模板</button>
+            <button class="button ghost" data-action="download-template" type="button">下載任務模板</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

@@ -244,81 +244,114 @@ class _HealthPageState extends State<HealthPage> {
     );
   }
 
-  Widget buildStatusHintCard({
-    required bool isConnected,
-    required bool hasAnyData,
-    required String message,
-    required Color accentColor,
-  }) {
-    final bodyStyle = TextStyle(
-      fontSize: 14,
-      color: AppUI.textPrimaryOf(context),
-      height: 1.5,
+  TaskModel? _trackingTaskForSource(
+    List<TaskModel> tasks,
+    TaskSourceType sourceType,
+  ) {
+    for (final task in tasks) {
+      if (task.sourceType == sourceType) return task;
+    }
+    return null;
+  }
+
+  String _formatGoalValue(double value) {
+    if (value % 1 == 0) return value.toInt().toString();
+    return value.toStringAsFixed(1);
+  }
+
+  double _effectiveTargetValue(TaskModel? task, double fallback) {
+    final value = task?.targetValue;
+    if (value == null || value <= 0) return fallback;
+    return value;
+  }
+
+  Future<void> _showHealthGoalDialog({
+    required TaskSourceType sourceType,
+    required String metricName,
+    required String category,
+    required double currentTargetValue,
+    required String unitLabel,
+    required bool hasTrackingTask,
+  }) async {
+    final controller = TextEditingController(
+      text: _formatGoalValue(currentTargetValue),
+    );
+    String? errorText;
+
+    final targetValue = await showDialog<double>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('設定$metricName目標'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('你今天想達成多少$unitLabel？設定後會自動建立健康追蹤任務，達標時任務會自動完成。'),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: sourceType == TaskSourceType.sleepHours,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: '目標',
+                      suffixText: unitLabel,
+                      errorText: errorText,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final value = double.tryParse(controller.text.trim());
+                    if (value == null || value <= 0) {
+                      setDialogState(() {
+                        errorText = '請輸入大於 0 的目標';
+                      });
+                      return;
+                    }
+                    if (sourceType != TaskSourceType.sleepHours &&
+                        value % 1 != 0) {
+                      setDialogState(() {
+                        errorText = '$metricName目標請輸入整數';
+                      });
+                      return;
+                    }
+                    Navigator.pop(context, value);
+                  },
+                  child: Text(hasTrackingTask ? '更新目標' : '開始追蹤'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
-    if (!isConnected) {
-      return Card(
-        shape: AppUI.cardShape(),
-        color: AppUI.isDark(context)
-            ? const Color(0xFF2A231C)
-            : Colors.orange.shade50,
-        child: Padding(
-          padding: const EdgeInsets.all(AppUI.innerPadding),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.info_outline, color: Colors.orange),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '尚未連接健康資料。完成連接後，可同步睡眠、步數與運動資料，作為自動追蹤任務的判定來源。',
-                  style: bodyStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    controller.dispose();
+    if (!mounted || targetValue == null) return;
 
-    if (!hasAnyData) {
-      return Card(
-        shape: AppUI.cardShape(),
-        color: AppUI.isDark(context)
-            ? const Color(0xFF241F31)
-            : const Color(0xFFF8F5FF),
-        child: Padding(
-          padding: const EdgeInsets.all(AppUI.innerPadding),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.cloud_off_outlined, color: accentColor),
-              const SizedBox(width: 12),
-              Expanded(child: Text(message, style: bodyStyle)),
-            ],
-          ),
-        ),
-      );
-    }
+    final title = '$metricName ${_formatGoalValue(targetValue)} $unitLabel';
+    context.read<AppState>().setHealthTrackingTask(
+      sourceType: sourceType,
+      title: title,
+      category: category,
+      targetValue: targetValue,
+      unitLabel: unitLabel,
+    );
 
-    return Card(
-      shape: AppUI.cardShape(),
-      color: AppUI.isDark(context)
-          ? const Color(0xFF1F2C22)
-          : Colors.green.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.green),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('健康資料已同步完成，現在可以把睡眠、步數、運動設成自動追蹤任務。', style: bodyStyle),
-            ),
-          ],
-        ),
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(hasTrackingTask ? '已更新：$title' : '已新增：$title')),
     );
   }
 
@@ -337,12 +370,18 @@ class _HealthPageState extends State<HealthPage> {
           task.sourceType == TaskSourceType.steps ||
           task.sourceType == TaskSourceType.exerciseMinutes;
     }).toList();
-
-    final hasAnyData = getHasAnyHealthData(
-      sleepHours: sleepHours,
-      steps: steps,
-      exerciseMinutes: exerciseMinutes,
+    final sleepTask = _trackingTaskForSource(
+      healthTasks,
+      TaskSourceType.sleepHours,
     );
+    final stepsTask = _trackingTaskForSource(healthTasks, TaskSourceType.steps);
+    final exerciseTask = _trackingTaskForSource(
+      healthTasks,
+      TaskSourceType.exerciseMinutes,
+    );
+    final sleepTarget = _effectiveTargetValue(sleepTask, 7);
+    final stepsTarget = _effectiveTargetValue(stepsTask, 8000);
+    final exerciseTarget = _effectiveTargetValue(exerciseTask, 30);
 
     final healthStatus = getHealthStatus(
       isConnected: isConnected,
@@ -418,92 +457,28 @@ class _HealthPageState extends State<HealthPage> {
             ),
           ),
           const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: ListTile(
-              leading: Container(
-                width: 42,
-                height: 42,
-                decoration: AppUI.softCardOf(context, accentColor),
-                child: Icon(
-                  platformStatus.provider == HealthDataProvider.appleHealth
-                      ? Icons.apple
-                      : platformStatus.provider ==
-                            HealthDataProvider.healthConnect
-                      ? Icons.health_and_safety_outlined
-                      : Icons.info_outline,
-                  color: accentColor,
-                ),
-              ),
-              title: Text(platformStatus.title),
-              subtitle: Text(platformStatus.description),
-              trailing: _StatusDot(
-                label: platformStatus.isSupported ? '可同步' : '不支援',
-                color: platformStatus.isSupported ? AppUI.green : AppUI.orange,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      statusMessage.isEmpty ? '尚未同步健康資料' : statusMessage,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppUI.textPrimaryOf(context),
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: isBusy
-                        ? null
-                        : () {
-                            if (isConnected) {
-                              syncHealthData();
-                            } else {
-                              showConnectInfoDialog();
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(
-                      isRequestingPermission
-                          ? '授權中...'
-                          : isSyncing
-                          ? '同步中...'
-                          : isConnected
-                          ? '重新同步'
-                          : '連接',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _HealthSyncStatusCard(
+          _HealthConnectionPanel(
             isConnected: isConnected,
+            isBusy: isBusy,
+            platformStatus: platformStatus,
             lastSyncTime: lastSyncTime,
             statusMessage: statusMessage.isEmpty ? '尚未同步健康資料' : statusMessage,
             healthTasks: healthTasks,
             accentColor: accentColor,
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          buildStatusHintCard(
-            isConnected: isConnected,
-            hasAnyData: hasAnyData,
-            message: normalizeMessage(statusMessage),
-            accentColor: accentColor,
+            onPressed: () {
+              if (isConnected) {
+                syncHealthData();
+              } else {
+                showConnectInfoDialog();
+              }
+            },
+            buttonLabel: isRequestingPermission
+                ? '授權中...'
+                : isSyncing
+                ? '同步中...'
+                : isConnected
+                ? '更新資料'
+                : '連接',
           ),
           const SizedBox(height: AppUI.sectionGap),
           Text(
@@ -552,35 +527,65 @@ class _HealthPageState extends State<HealthPage> {
             ),
           ),
           const SizedBox(height: AppUI.cardGap),
-          Row(
-            children: [
-              Expanded(
-                child: _HealthMiniCard(
-                  icon: Icons.bedtime_outlined,
-                  title: '睡眠',
-                  value: isConnected
-                      ? '${sleepHours.toStringAsFixed(1)} 小時'
-                      : '尚未讀取',
-                  color: const Color(0xFF8B5CF6),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _HealthMiniCard(
-                  icon: Icons.directions_walk,
-                  title: '步數',
-                  value: isConnected ? '$steps 步' : '尚未讀取',
-                  color: const Color(0xFF10B981),
-                ),
-              ),
-            ],
+          _HealthMetricProgressCard(
+            icon: Icons.bedtime_outlined,
+            title: '睡眠',
+            value: isConnected ? sleepHours.toStringAsFixed(1) : '--',
+            unit: '小時',
+            progress: isConnected
+                ? (sleepHours / sleepTarget).clamp(0.0, 1.0)
+                : 0,
+            targetText: '目標 ${_formatGoalValue(sleepTarget)} 小時',
+            color: const Color(0xFF8B5CF6),
+            hasTrackingTask: sleepTask != null,
+            onSetGoal: () => _showHealthGoalDialog(
+              sourceType: TaskSourceType.sleepHours,
+              metricName: '睡眠',
+              category: '睡眠',
+              currentTargetValue: sleepTarget,
+              unitLabel: '小時',
+              hasTrackingTask: sleepTask != null,
+            ),
           ),
           const SizedBox(height: AppUI.cardGap),
-          _HealthWideCard(
+          _HealthMetricProgressCard(
+            icon: Icons.directions_walk,
+            title: '步數',
+            value: isConnected ? '$steps' : '--',
+            unit: '步',
+            progress: isConnected ? (steps / stepsTarget).clamp(0.0, 1.0) : 0,
+            targetText: '目標 ${_formatGoalValue(stepsTarget)} 步',
+            color: const Color(0xFF10B981),
+            hasTrackingTask: stepsTask != null,
+            onSetGoal: () => _showHealthGoalDialog(
+              sourceType: TaskSourceType.steps,
+              metricName: '步數',
+              category: '運動',
+              currentTargetValue: stepsTarget,
+              unitLabel: '步',
+              hasTrackingTask: stepsTask != null,
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          _HealthMetricProgressCard(
             icon: Icons.fitness_center,
-            title: '運動資料',
-            value: isConnected ? '$exerciseMinutes 分鐘' : '尚未讀取',
+            title: '運動',
+            value: isConnected ? '$exerciseMinutes' : '--',
+            unit: '分鐘',
+            progress: isConnected
+                ? (exerciseMinutes / exerciseTarget).clamp(0.0, 1.0)
+                : 0,
+            targetText: '目標 ${_formatGoalValue(exerciseTarget)} 分鐘',
             color: const Color(0xFFF59E0B),
+            hasTrackingTask: exerciseTask != null,
+            onSetGoal: () => _showHealthGoalDialog(
+              sourceType: TaskSourceType.exerciseMinutes,
+              metricName: '運動',
+              category: '運動',
+              currentTargetValue: exerciseTarget,
+              unitLabel: '分鐘',
+              hasTrackingTask: exerciseTask != null,
+            ),
           ),
         ],
       ),
@@ -588,68 +593,27 @@ class _HealthPageState extends State<HealthPage> {
   }
 }
 
-class _HealthMiniCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-  final Color color;
-
-  const _HealthMiniCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
-    return Card(
-      shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: AppUI.softCardOf(context, color),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(height: 10),
-            Text(title, style: TextStyle(fontSize: 13, color: secondaryText)),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryText,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HealthSyncStatusCard extends StatelessWidget {
+class _HealthConnectionPanel extends StatelessWidget {
   final bool isConnected;
+  final bool isBusy;
+  final HealthPlatformStatus platformStatus;
   final String? lastSyncTime;
   final String statusMessage;
   final List<TaskModel> healthTasks;
   final Color accentColor;
+  final VoidCallback onPressed;
+  final String buttonLabel;
 
-  const _HealthSyncStatusCard({
+  const _HealthConnectionPanel({
     required this.isConnected,
+    required this.isBusy,
+    required this.platformStatus,
     required this.lastSyncTime,
     required this.statusMessage,
     required this.healthTasks,
     required this.accentColor,
+    required this.onPressed,
+    required this.buttonLabel,
   });
 
   @override
@@ -666,11 +630,19 @@ class _HealthSyncStatusCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.cloud_sync_outlined, color: accentColor),
+                Icon(
+                  platformStatus.provider == HealthDataProvider.appleHealth
+                      ? Icons.apple
+                      : platformStatus.provider ==
+                            HealthDataProvider.healthConnect
+                      ? Icons.health_and_safety_outlined
+                      : Icons.info_outline,
+                  color: accentColor,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '同步狀態',
+                    platformStatus.title,
                     style: TextStyle(
                       color: primaryText,
                       fontSize: 18,
@@ -679,10 +651,17 @@ class _HealthSyncStatusCard extends StatelessWidget {
                   ),
                 ),
                 _StatusDot(
-                  label: isConnected ? '已連接' : '未連接',
-                  color: isConnected ? AppUI.green : AppUI.orange,
+                  label: platformStatus.isSupported ? '可用' : '不支援',
+                  color: platformStatus.isSupported
+                      ? AppUI.green
+                      : AppUI.orange,
                 ),
               ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              platformStatus.description,
+              style: TextStyle(color: secondaryText, fontSize: 13),
             ),
             const SizedBox(height: 12),
             Text(
@@ -700,6 +679,10 @@ class _HealthSyncStatusCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _StatusDot(
+                  label: isConnected ? '已連接' : '未連接',
+                  color: isConnected ? AppUI.green : AppUI.orange,
+                ),
+                _StatusDot(
                   label: '上次同步 ${lastSyncTime ?? '--'}',
                   color: accentColor,
                 ),
@@ -708,6 +691,19 @@ class _HealthSyncStatusCard extends StatelessWidget {
                   color: AppUI.purple,
                 ),
               ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isBusy ? null : onPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: Colors.white,
+                ),
+                icon: Icon(isConnected ? Icons.refresh : Icons.link),
+                label: Text(buttonLabel),
+              ),
             ),
             if (healthTasks.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -773,39 +769,115 @@ class _StatusDot extends StatelessWidget {
   }
 }
 
-class _HealthWideCard extends StatelessWidget {
+class _HealthMetricProgressCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
+  final String unit;
+  final double progress;
+  final String targetText;
   final Color color;
+  final bool hasTrackingTask;
+  final VoidCallback onSetGoal;
 
-  const _HealthWideCard({
+  const _HealthMetricProgressCard({
     required this.icon,
     required this.title,
     required this.value,
+    required this.unit,
+    required this.progress,
+    required this.targetText,
     required this.color,
+    required this.hasTrackingTask,
+    required this.onSetGoal,
   });
 
   @override
   Widget build(BuildContext context) {
     final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
 
     return Card(
       shape: AppUI.cardShape(),
-      child: ListTile(
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: AppUI.softCardOf(context, color),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(title),
-        subtitle: Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: primaryText,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onSetGoal,
+        child: Padding(
+          padding: const EdgeInsets.all(AppUI.innerPadding),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: AppUI.softCardOf(context, color),
+                    child: Icon(icon, color: color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: secondaryText,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$value $unit',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: primaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: onSetGoal,
+                    icon: Icon(
+                      hasTrackingTask ? Icons.tune : Icons.add_circle_outline,
+                      size: 18,
+                    ),
+                    label: Text(hasTrackingTask ? '設定' : '追蹤'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: color.withValues(alpha: 0.12),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    targetText,
+                    style: TextStyle(color: secondaryText, fontSize: 12),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

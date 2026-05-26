@@ -6,6 +6,7 @@ import '../models/avatar_profile.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import 'avatar_codex_page.dart';
 
 class AvatarEvolutionPage extends StatelessWidget {
   const AvatarEvolutionPage({super.key});
@@ -23,11 +24,16 @@ class AvatarEvolutionPage extends StatelessWidget {
 
   double _stageProgress(AppState appState, AvatarEvolutionStage stage) {
     if (stage.requiredExperience <= 0) return 1;
-    return (appState.avatarExperience / stage.requiredExperience).clamp(0, 1);
+    return (appState.avatarExperienceForStage(stage.index) /
+            stage.requiredExperience)
+        .clamp(0, 1);
   }
 
-  AvatarEvolutionStage? _nextLockedStage(AppState appState) {
-    for (final stage in AvatarCatalog.evolutionStages) {
+  AvatarEvolutionStage? _nextLockedStage(
+    AppState appState,
+    List<AvatarEvolutionStage> stages,
+  ) {
+    for (final stage in stages) {
       if (!appState.isAvatarEvolutionStageUnlocked(stage.index)) {
         return stage;
       }
@@ -56,10 +62,35 @@ class AvatarEvolutionPage extends StatelessWidget {
     final accentColor = appState.currentIconColor;
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
-    final nextStage = _nextLockedStage(appState);
+    final currentStage = AvatarCatalog.stageForIndex(
+      appState.avatarProfile.faceShapeIndex,
+    );
+    final currentSeries = AvatarCatalog.series.firstWhere(
+      (series) => series.name == currentStage.series,
+      orElse: () => AvatarCatalog.series.first,
+    );
+    final currentSeriesStages = currentSeries.stages;
+    final nextStage = _nextLockedStage(appState, currentSeriesStages);
+    final unlockedSeriesCount = currentSeriesStages
+        .where((stage) => appState.isAvatarEvolutionStageUnlocked(stage.index))
+        .length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('角色進化圖鑑')),
+      appBar: AppBar(
+        title: const Text('角色進化路線'),
+        actions: [
+          IconButton(
+            tooltip: '角色圖鑑',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AvatarCodexPage()),
+              );
+            },
+            icon: const Icon(Icons.grid_view_rounded),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
@@ -74,7 +105,7 @@ class AvatarEvolutionPage extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '晨光夥伴進化路線',
+                  '${currentSeries.name}進化路線',
                   style: TextStyle(
                     color: primaryText,
                     fontSize: 18,
@@ -83,7 +114,7 @@ class AvatarEvolutionPage extends StatelessWidget {
                 ),
               ),
               Text(
-                '${AvatarCatalog.evolutionStages.where((stage) => appState.isAvatarEvolutionStageUnlocked(stage.index)).length}/${AvatarCatalog.evolutionStages.length}',
+                '$unlockedSeriesCount/${currentSeriesStages.length}',
                 style: TextStyle(
                   color: secondaryText,
                   fontSize: 13,
@@ -93,7 +124,7 @@ class AvatarEvolutionPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ...AvatarCatalog.evolutionStages.map(
+          ...currentSeriesStages.map(
             (stage) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _EvolutionStageCard(
@@ -469,7 +500,7 @@ class _EvolutionRuleCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '每日最多 500 EXP。任務分數是基礎，自動偵測會看專注、睡眠、步數、運動與自律房參與，鼓勵真的有行動的使用者更快進化。',
+              '每日最多 500 EXP。任務分數最多 400 EXP；自動偵測加成最多 100 EXP，會從專注 60 分鐘、睡眠 7 小時、步數 8000 步、運動 30 分鐘、完成自律房目標中取最高達成率，不會重複疊加。',
               style: TextStyle(
                 color: secondaryText,
                 fontSize: 13,
