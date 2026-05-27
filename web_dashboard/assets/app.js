@@ -14,23 +14,31 @@ const modules = [
 
 function injectModuleMenu() {
   const sidebar = $(".sidebar");
-  const brand = $(".brand");
-  if (!sidebar || !brand || $(".module-switcher")) return;
-  const page = document.body.dataset.page || "home";
-  const switcher = document.createElement("section");
-  switcher.className = "module-switcher";
-  switcher.innerHTML = `
-    <label for="moduleSelect">選擇 Web 功能中心</label>
-    <select class="module-select" id="moduleSelect" aria-label="選擇 Web 功能中心">
-      ${modules
-        .map(([key, label, href]) => `<option value="${href}" ${key === page ? "selected" : ""}>${label}</option>`)
-        .join("")}
-    </select>
-  `;
-  brand.insertAdjacentElement("afterend", switcher);
-  $("#moduleSelect")?.addEventListener("change", (event) => {
-    window.location.href = event.target.value;
-  });
+  if (!sidebar) return;
+  
+  const nav = sidebar.querySelector(".nav");
+  if (!nav) return;
+  
+  // Determine active category based on URL
+  let activeKey = "home";
+  const path = window.location.pathname;
+  for (const [key, label, href] of modules) {
+    if (path.includes(key) || path.includes(href)) {
+      activeKey = key;
+    }
+  }
+  if (path.endsWith("/") || path.includes("index.html")) {
+    activeKey = "home";
+  }
+
+  // Populate navigation dynamically
+  nav.innerHTML = modules
+    .map(([key, label, href]) => `<a href="${href}" class="${key === activeKey ? 'active' : ''}">${label}</a>`)
+    .join("");
+
+  // Remove the old drop-down module switcher if it exists
+  const switcher = $(".module-switcher");
+  if (switcher) switcher.remove();
 }
 
 function injectDisplayModeControls() {
@@ -108,15 +116,23 @@ function drawLineChart(canvas, values, color = "#22c7bb") {
   }
 
   const gradient = ctx.createLinearGradient(0, pad, 0, rect.height - pad);
-  gradient.addColorStop(0, "rgba(34,199,187,.42)");
-  gradient.addColorStop(1, "rgba(34,199,187,0)");
+  // Simple hack to get a semi-transparent version of the color (if it's hex)
+  gradient.addColorStop(0, color === "#22c7bb" ? "rgba(34,199,187,0.4)" : color === "#8d7aff" ? "rgba(141,122,255,0.4)" : "rgba(93,140,255,0.4)");
+  gradient.addColorStop(1, "rgba(0,0,0,0)");
 
+  // Draw Filled Area
   ctx.beginPath();
   values.forEach((value, i) => {
     const x = pad + i * step;
     const y = toY(value);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      const prevX = pad + (i - 1) * step;
+      const prevY = toY(values[i - 1]);
+      const cpX = (prevX + x) / 2;
+      ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+    }
   });
   ctx.lineTo(rect.width - pad, rect.height - pad);
   ctx.lineTo(pad, rect.height - pad);
@@ -124,18 +140,56 @@ function drawLineChart(canvas, values, color = "#22c7bb") {
   ctx.fillStyle = gradient;
   ctx.fill();
 
+  // Draw Neon Line
   ctx.beginPath();
   values.forEach((value, i) => {
     const x = pad + i * step;
     const y = toY(value);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      const prevX = pad + (i - 1) * step;
+      const prevY = toY(values[i - 1]);
+      const cpX = (prevX + x) / 2;
+      ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+    }
   });
   ctx.strokeStyle = color;
   ctx.lineWidth = 4;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
   ctx.stroke();
+  
+  // Reset shadow for points
+  ctx.shadowBlur = 0;
+
+  // Draw Data Points
+  values.forEach((value, i) => {
+    const x = pad + i * step;
+    const y = toY(value);
+    
+    // Outer glow dot
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Inner white dot
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    
+    // Values text (only for every other point or if few points to avoid clutter)
+    if (values.length <= 10 || i % 2 === 0 || i === values.length - 1) {
+      ctx.fillStyle = "#fff";
+      ctx.font = "11px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(value, x, y - 12);
+    }
+  });
 }
 
 function drawDonut(canvas, values, colors) {
@@ -148,22 +202,39 @@ function drawDonut(canvas, values, colors) {
   ctx.scale(ratio, ratio);
   const cx = rect.width / 2;
   const cy = rect.height / 2;
-  const radius = Math.min(rect.width, rect.height) * 0.34;
+  const radius = Math.min(rect.width, rect.height) * 0.32;
   const total = values.reduce((a, b) => a + b, 0);
   let start = -Math.PI / 2;
+  const gap = 0.08; // gap between segments
+  
   values.forEach((value, index) => {
     const angle = (value / total) * Math.PI * 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, start, start + angle);
-    ctx.lineWidth = 24;
+    ctx.arc(cx, cy, radius, start + gap/2, start + angle - gap/2);
+    ctx.lineWidth = 20;
+    ctx.lineCap = "round";
     ctx.strokeStyle = colors[index];
+    
+    // Add glowing effect
+    ctx.shadowColor = colors[index];
+    ctx.shadowBlur = 12;
+    
     ctx.stroke();
+    // Reset shadow for next draw to avoid compounding issues
+    ctx.shadowBlur = 0;
     start += angle;
   });
-  ctx.fillStyle = "#f7f8ff";
-  ctx.font = "900 34px system-ui";
+
+  // Center text
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 36px 'Inter', system-ui";
   ctx.textAlign = "center";
-  ctx.fillText(`${total}`, cx, cy + 10);
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${total}`, cx, cy - 8);
+  
+  ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+  ctx.font = "600 14px 'Inter', system-ui";
+  ctx.fillText("總樣本", cx, cy + 20);
 }
 
 function toast(message) {
@@ -208,6 +279,45 @@ function bindPlanet() {
       if (label) label.textContent = button.dataset.planetMode;
       if (hud) hud.textContent = button.dataset.planetMode;
       toast(`已切換成「${button.dataset.planetMode}」展示資料`);
+    });
+  });
+
+  const viewButtons = $$("[data-view]");
+  const solarView = $(".view-solar-system");
+  const cityView = $(".view-city");
+  const hudDesc = $("#hudDesc");
+  
+  // New elements for text swapping
+  const hudTitle = $("#hudTitle");
+  const planetHud = $("#planetHud");
+  const navSolar = $("#navSolar");
+  const navGalaxy = $("#navGalaxy");
+  const navUniverse = $("#navUniverse");
+
+  viewButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      viewButtons.forEach((b) => b.classList.remove("active"));
+      button.classList.add("active");
+      const view = button.dataset.view;
+      if (view === 'solar-system') {
+        if (solarView) solarView.style.display = 'block';
+        if (cityView) cityView.style.display = 'none';
+        if (hudDesc) hudDesc.textContent = "任務完成會即時點亮星星與軌道";
+        if (hudTitle) hudTitle.textContent = "COSMIC EVOLUTION";
+        if (planetHud) planetHud.textContent = "太陽系";
+        if (navSolar) navSolar.textContent = "太陽系";
+        if (navGalaxy) navGalaxy.textContent = "銀河系";
+        if (navUniverse) navUniverse.textContent = "宇宙";
+      } else {
+        if (solarView) solarView.style.display = 'none';
+        if (cityView) cityView.style.display = 'block';
+        if (hudDesc) hudDesc.textContent = "任務完成會即時點亮城市區域";
+        if (hudTitle) hudTitle.textContent = "CITY EVOLUTION";
+        if (planetHud) planetHud.textContent = "地球";
+        if (navSolar) navSolar.textContent = "鄉村";
+        if (navGalaxy) navGalaxy.textContent = "小鎮";
+        if (navUniverse) navUniverse.textContent = "都市";
+      }
     });
   });
 }
@@ -311,7 +421,7 @@ function bindExtensionTools() {
     const health = price <= 40 ? "新手友善" : price <= 90 ? "價格健康" : "適合活動限定";
     setOutput(
       campaignTool,
-      `<strong>${name}：${rarity} / ${price} 枚</strong><p>${days} 天活動，${health}。以每日 15 枚、每月 400 枚上限估算，兌換壓力合理。</p>`,
+      `<span class="card-icon">🎁</span><div class="card-content"><strong>${name}：${rarity} / ${price} 枚</strong><p>${days} 天活動，${health}。以每日 15 枚、每月 400 枚上限估算，兌換壓力合理。</p></div>`,
     );
     saveDemoState("campaign", { name, rarity, price, days, health });
     toast("價格檢查完成");
@@ -341,7 +451,7 @@ function bindExtensionTools() {
     scenarioText = `${type}\n隱私層級：${privacy}\n展示重點：${focus}\n\n展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。`;
     setOutput(
       scenarioTool,
-      `<strong>${type}</strong><p>${privacy}。展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。</p>`,
+      `<span class="card-icon">📝</span><div class="card-content"><strong>${type}</strong><p>${privacy}。展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。</p></div>`,
     );
     saveDemoState("scenario", { type, privacy, focus });
     toast("展示腳本已產生");
@@ -365,17 +475,45 @@ function bindExtensionTools() {
     toast("已設為下週星球目標");
   });
 
-  const renderSavedList = (selector, items, fallback) => {
+  const renderSavedList = (selector, key, fallback) => {
     const list = $(selector);
     if (!list) return;
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    const items = store[key] || [];
+    
     if (!items.length) {
       list.innerHTML = fallback;
       return;
     }
     list.innerHTML = items
-      .map((item) => `<article><strong>${item.title}</strong><span>${item.meta}</span></article>`)
+      .map((item, index) => `
+        <article style="position: relative;">
+          <strong>${item.title}</strong>
+          <span>${item.meta}</span>
+          <button class="delete-btn" data-key="${key}" data-index="${index}" style="position: absolute; right: 10px; top: 10px; background: transparent; border: none; color: #ff3b3b; cursor: pointer; font-family: monospace;">[刪除]</button>
+        </article>
+      `)
       .join("");
   };
+
+  // Delegate delete events globally
+  document.body.addEventListener("click", (e) => {
+    if (e.target.matches(".delete-btn")) {
+      const key = e.target.dataset.key;
+      const index = parseInt(e.target.dataset.index, 10);
+      const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+      if (store[key]) {
+        store[key].splice(index, 1);
+        saveToolCollection(key, store[key]);
+        // Re-render the specific list based on the key
+        let selector, fallback;
+        if (key === "capsules") { selector = "[data-capsule-list]"; fallback = "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>"; }
+        else if (key === "encouragements") { selector = "[data-encourage-list]"; fallback = "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>"; }
+        else if (key === "studySchedules") { selector = "[data-study-list]"; fallback = "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>"; }
+        if (selector) renderSavedList(selector, key, fallback);
+      }
+    }
+  });
 
   const savedTools = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
   const saveToolCollection = (key, items) => {
@@ -384,24 +522,13 @@ function bindExtensionTools() {
     current[`${key}UpdatedAt`] = new Date().toISOString();
     localStorage.setItem("nudgeWebTools", JSON.stringify(current));
   };
-  renderSavedList(
-    "[data-capsule-list]",
-    savedTools.capsules || [],
-    "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>",
-  );
-  renderSavedList(
-    "[data-encourage-list]",
-    savedTools.encouragements || [],
-    "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>",
-  );
-  renderSavedList(
-    "[data-study-list]",
-    savedTools.studySchedules || [],
-    "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>",
-  );
+  
+  renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
+  renderSavedList("[data-encourage-list]", "encouragements", "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>");
+  renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
 
   let capsuleText = "";
-  capsuleTool?.querySelector('[data-action="save-capsule"]')?.addEventListener("click", () => {
+  capsuleTool?.querySelector('[data-action="save-capsule"]')?.addEventListener("click", (e) => {
     const title = $('[data-capsule-title]', capsuleTool).value.trim() || "未命名時間膠囊";
     const date = $('[data-capsule-date]', capsuleTool).value || "未設定";
     const message = $('[data-capsule-message]', capsuleTool).value.trim();
@@ -410,31 +537,94 @@ function bindExtensionTools() {
     const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
     const capsules = store.capsules || [];
     capsules.unshift({ title, meta: `${date} 解鎖`, message });
-    saveToolCollection("capsules", capsules.slice(0, 6));
-    renderSavedList("[data-capsule-list]", capsules.slice(0, 6), "");
-    toast("時間膠囊已保存");
+    saveToolCollection("capsules", capsules.slice(0, 50));
+
+    // Elf Capsule Throw Animation
+    const btn = e.currentTarget;
+    const targetEl = $("[data-capsule-list]");
+    if (btn && targetEl) {
+      const rect = btn.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + rect.height / 2;
+      const endX = targetRect.left + targetRect.width / 2;
+      const endY = targetRect.top + targetRect.height / 2;
+
+      const capsule = document.createElement("div");
+      capsule.className = "elf-capsule";
+      capsule.style.left = startX - 12 + "px";
+      capsule.style.top = startY - 12 + "px";
+      document.body.appendChild(capsule);
+
+      // Animate throwing arc
+      const duration = 600;
+      const startTime = performance.now();
+      
+      const animateThrow = (now) => {
+        const elapsed = now - startTime;
+        let progress = elapsed / duration;
+        if (progress > 1) progress = 1;
+
+        // Quadratic bezier arc
+        const controlX = startX + (endX - startX) / 2;
+        const controlY = Math.min(startY, endY) - 200;
+
+        const x = (1 - progress) * (1 - progress) * startX + 2 * (1 - progress) * progress * controlX + progress * progress * endX;
+        const y = (1 - progress) * (1 - progress) * startY + 2 * (1 - progress) * progress * controlY + progress * progress * endY;
+        
+        capsule.style.transform = `translate(${x - startX}px, ${y - startY}px) rotate(${progress * 720}deg)`;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateThrow);
+        } else {
+          // Burst effect
+          const burst = document.createElement("div");
+          burst.className = "capsule-burst";
+          burst.style.left = endX + "px";
+          burst.style.top = endY + "px";
+          document.body.appendChild(burst);
+          
+          setTimeout(() => burst.remove(), 400);
+          capsule.remove();
+          
+          renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
+          toast("時間膠囊已保存");
+        }
+      };
+      requestAnimationFrame(animateThrow);
+    } else {
+      renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
+      toast("時間膠囊已保存");
+    }
   });
   capsuleTool?.querySelector('[data-action="download-capsule"]')?.addEventListener("click", () => {
     downloadTextFile("nudge-time-capsule.txt", capsuleText || "請先保存時間膠囊。");
   });
 
   encouragementTool?.querySelector('[data-action="preview-encouragement"]')?.addEventListener("click", () => {
-    const type = $('[data-encourage-type]', encouragementTool).value;
-    const tone = $('[data-encourage-tone]', encouragementTool).value;
-    const message = $('[data-encourage-message]', encouragementTool).value.trim();
-    setOutput(encouragementTool, `<strong>${type}</strong><p>語氣：${tone}。${message}</p>`);
-    toast("鼓勵卡已更新");
+    toast("預覽：這是一張溫暖的鼓勵卡。");
   });
   encouragementTool?.querySelector('[data-action="send-encouragement"]')?.addEventListener("click", () => {
-    const type = $('[data-encourage-type]', encouragementTool).value;
-    const tone = $('[data-encourage-tone]', encouragementTool).value;
-    const message = $('[data-encourage-message]', encouragementTool).value.trim();
+    const card = encouragementTool.querySelector('.generated-card');
+    if (card) {
+      card.classList.add("toss-animation");
+      setTimeout(() => {
+        card.classList.remove("toss-animation");
+      }, 400);
+    }
+    
+    const tone = $('[data-encourage-tone]', encouragementTool)?.value || "溫暖支持";
+    const type = $('[data-encourage-type]', encouragementTool)?.value || "貼圖";
+    const msg = $('[data-encourage-message]', encouragementTool)?.value.trim() || "無內容";
     const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
     const encouragements = store.encouragements || [];
-    encouragements.unshift({ title: type, meta: `${tone}語氣：${message}` });
-    saveToolCollection("encouragements", encouragements.slice(0, 6));
-    renderSavedList("[data-encourage-list]", encouragements.slice(0, 6), "");
-    toast("鼓勵卡已送出 Demo");
+    encouragements.unshift({ title: `${tone} ${type}`, meta: "已發送至孩子端", message: msg });
+    saveToolCollection("encouragements", encouragements.slice(0, 50));
+    
+    setTimeout(() => {
+      renderSavedList("[data-encourage-list]", "encouragements", "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>");
+      toast("鼓勵卡已送出 Demo");
+    }, 300);
   });
 
   studyScheduleTool?.querySelector('[data-action="save-study-schedule"]')?.addEventListener("click", () => {
@@ -446,8 +636,8 @@ function bindExtensionTools() {
     const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
     const studySchedules = store.studySchedules || [];
     studySchedules.unshift({ title, meta: `${time} / ${duration} / ${room}` });
-    saveToolCollection("studySchedules", studySchedules.slice(0, 6));
-    renderSavedList("[data-study-list]", studySchedules.slice(0, 6), "");
+    saveToolCollection("studySchedules", studySchedules.slice(0, 50));
+    renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
     toast("讀書時段已建立 Demo");
   });
 
@@ -582,23 +772,724 @@ function bindPresentation() {
   });
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  injectModuleMenu();
-  injectDisplayModeControls();
-  animateCounters();
-  bootCharts();
-  bindDemoButtons();
-  bindPlanet();
-  bindExtensionTools();
-  bindTilt();
-  bindPresentation();
-  initializeFirebaseWeb();
-  if (document.body.dataset.page === "planet") {
-    setTimeout(init3DPlanet, 300);
+function injectAINavigator() {
+  const container = document.createElement("div");
+  container.className = "ai-navigator";
+  container.innerHTML = `
+    <div class="ai-chat-panel" id="aiChatPanel">
+      <div class="ai-chat-header">
+        <div class="ai-header-title">艦載 AI 導航助手</div>
+        <div>
+          <button class="ai-close-btn" id="aiSettingsBtn" title="設定API Key" style="margin-right: 8px;">⚙️</button>
+          <button class="ai-close-btn" id="aiCloseBtn">✕</button>
+        </div>
+      </div>
+      
+      <div class="ai-settings-panel" id="aiSettingsPanel" style="display: none; padding: 16px; background: rgba(0, 240, 255, 0.05); border-bottom: 1px solid rgba(0, 240, 255, 0.2);">
+        <label style="color: #00f0ff; font-size: 12px; display: block; margin-bottom: 8px;">設定 Gemini API Key</label>
+        <input type="password" id="aiApiKeyInput" placeholder="輸入 API Key..." style="width: 100%; background: rgba(3, 5, 10, 0.6); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 6px; padding: 6px 10px; color: #fff; outline: none; margin-bottom: 8px; box-sizing: border-box;" />
+        <button id="aiSaveKeyBtn" style="background: #00f0ff; color: #03050a; border: none; border-radius: 6px; padding: 4px 12px; font-weight: 700; cursor: pointer; font-size: 12px;">儲存</button>
+      </div>
+
+      <div class="ai-chat-body" id="aiChatBody">
+        <div class="ai-msg">您好！艦長。請在上方齒輪設定您的 Gemini API Key，即可與真實星艦主機連線。</div>
+      </div>
+      <div class="ai-chat-input">
+        <input type="text" placeholder="輸入指令..." id="aiInput" />
+        <button id="aiSend">發送</button>
+      </div>
+    </div>
+    <div class="ai-orb" id="aiOrb">
+      <div class="ai-orb-core"></div>
+    </div>
+  `;
+  document.body.appendChild(container);
+
+  const orb = $("#aiOrb", container);
+  const panel = $("#aiChatPanel", container);
+  const closeBtn = $("#aiCloseBtn", container);
+  const settingsBtn = $("#aiSettingsBtn", container);
+  const settingsPanel = $("#aiSettingsPanel", container);
+  const apiKeyInput = $("#aiApiKeyInput", container);
+  const saveKeyBtn = $("#aiSaveKeyBtn", container);
+  const input = $("#aiInput", container);
+  const send = $("#aiSend", container);
+  const body = $("#aiChatBody", container);
+
+  const savedKey = localStorage.getItem("gemini_api_key");
+  if (savedKey) apiKeyInput.value = savedKey;
+
+  settingsBtn.addEventListener("click", () => {
+    settingsPanel.style.display = settingsPanel.style.display === "none" ? "block" : "none";
+  });
+
+  saveKeyBtn.addEventListener("click", () => {
+    localStorage.setItem("gemini_api_key", apiKeyInput.value.trim());
+    settingsPanel.style.display = "none";
+    body.innerHTML += `<div class="ai-msg">API 金鑰已儲存。系統已重新啟動。</div>`;
+    body.scrollTop = body.scrollHeight;
+  });
+
+  orb.addEventListener("click", () => {
+    panel.classList.toggle("open");
+  });
+
+  closeBtn.addEventListener("click", () => {
+    panel.classList.remove("open");
+  });
+
+  const sendMsg = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    
+    const apiKey = localStorage.getItem("gemini_api_key");
+    if (!apiKey) {
+      body.innerHTML += `<div class="ai-msg">警告：尚未偵測到核心金鑰。請點擊上方齒輪圖示輸入 Gemini API Key。</div>`;
+      body.scrollTop = body.scrollHeight;
+      return;
+    }
+
+    body.innerHTML += `<div class="ai-msg user">${text}</div>`;
+    input.value = "";
+    body.scrollTop = body.scrollHeight;
+    
+    const loadingId = "msg-" + Date.now();
+    body.innerHTML += `<div class="ai-msg" id="${loadingId}">[ 系統讀取中... 與中樞神經連線中 ]</div>`;
+    body.scrollTop = body.scrollHeight;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: "你是一個名為 Nudge 的科幻太空船艦載 AI 助手，負責協助艦長（使用者）進行時間管理與自律任務。你的語氣要像科幻電影中的 AI（冷靜、聰明、帶點科技感），稱呼使用者為艦長。回答要簡潔有力，不要給出落落長的文章。\n如果使用者要求開始專注、倒數計時，請加上：[ACTION:START_FOCUS:分鐘數]\n如果使用者要求新增任務，請加上：[ACTION:ADD_TASK:任務名稱]\n如果使用者要求前往某個頁面(例如總覽、家長中心、營運後台等)，請加上：[ACTION:NAVIGATE:該頁面網址.html] (頁面包含: index.html, personal.html, guardian.html, groups.html, operations.html, planet.html)。\n如果使用者要求導覽或問系統怎麼用，請直接以文字簡單回覆介紹：左側是導航面板，中間是數據儀表板，下方是專屬星球，每天完成任務可以發射衛星環繞星球。" }]
+          },
+          contents: [{ parts: [{ text: text }] }]
+        })
+      });
+
+      const loadingMsg = document.getElementById(loadingId);
+      if (!response.ok) {
+        throw new Error("API 請求失敗：" + response.status);
+      }
+
+      const data = await response.json();
+      let reply = data.candidates[0].content.parts[0].text;
+      
+      const focusMatch = reply.match(/\[ACTION:START_FOCUS:(\d+)\]/);
+      if (focusMatch) {
+        reply = reply.replace(focusMatch[0], '');
+        setTimeout(() => {
+          window.location.href = `personal-focus.html?start=true&focus=${focusMatch[1]}`;
+        }, 1500);
+      }
+
+      const taskMatch = reply.match(/\[ACTION:ADD_TASK:(.+)\]/);
+      if (taskMatch) {
+        reply = reply.replace(taskMatch[0], '');
+        const tasks = JSON.parse(localStorage.getItem('nudge_tasks') || '[]');
+        tasks.push(taskMatch[1].trim());
+        localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
+        if (window.bindMissions) {
+          window.bindMissions(); // re-render if on planet page
+        }
+      }
+
+      const navMatch = reply.match(/\[ACTION:NAVIGATE:([a-zA-Z0-9_-]+\.html)\]/);
+      if (navMatch) {
+        reply = reply.replace(navMatch[0], '');
+        setTimeout(() => {
+          window.location.href = navMatch[1];
+        }, 1500);
+      }
+
+
+      
+      if (loadingMsg) {
+        loadingMsg.innerHTML = reply.trim().replace(/\n/g, '<br/>');
+        loadingMsg.removeAttribute('id');
+      }
+    } catch (error) {
+      const loadingMsg = document.getElementById(loadingId);
+      if (loadingMsg) {
+        loadingMsg.innerHTML = `連線錯誤：${error.message}。請確認您的 API 金鑰是否正確。`;
+        loadingMsg.style.color = '#ff3333';
+        loadingMsg.removeAttribute('id');
+      }
+    }
+    body.scrollTop = body.scrollHeight;
+  };
+
+  send.addEventListener("click", sendMsg);
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMsg();
+  });
+}
+
+window.bindMissions = function() {
+  const list = document.getElementById("dynamicMissionList");
+  if (!list) return; // Not on planet page
+  
+  const defaultTasks = [
+    "專注 2 小時", "完成作業 A", "早睡 (12:00前)", 
+    "閱讀 30 分鐘", "運動 30 分鐘", "喝水 2000cc", 
+    "冥想 10 分鐘", "整理房間", "寫日記", 
+    "學習新單字", "少吃零食", "計畫明天",
+    "看 TED 演講", "伸展拉筋", "練習寫作",
+    "複習期末", "收拾桌面", "深呼吸練習",
+    "散步 15 分鐘", "感謝日記", "不喝飲料",
+    "聽 Podcast", "主動幫助人", "專案進度更新",
+    "背 10 個英文單字", "閱讀技術文章", "檢查電子郵件",
+    "做伸展操", "吃健康水果", "深蹲 30 下",
+    "學習一項新技能", "練習發音", "打掃浴室",
+    "思考明日目標", "練習呼吸法", "整理發票"
+  ];
+  const tasks = JSON.parse(localStorage.getItem('nudge_tasks')) || defaultTasks;
+  // Initialize default if empty in localStorage just for the first time
+  if (!localStorage.getItem('nudge_tasks')) {
+    localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
   }
+
+  list.innerHTML = "";
+  tasks.slice(0, 36).forEach((task, index) => {
+    const sId = "s" + (index + 1);
+    
+    // Classify task type
+    let taskType = "general";
+    if (/(專案|期末|大考|挑戰)/.test(task)) {
+      taskType = "skyscraper";
+    } else if (/(書|讀|作業|考試|專注|報告)/.test(task)) {
+      taskType = "study";
+    } else if (/(健康|水|睡|運動|步)/.test(task)) {
+      taskType = "health";
+    }
+
+    list.innerHTML += `
+      <li class="mission-item" data-id="${index}">
+        <label>
+          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-task-type="${taskType}" />
+          <span>${task}</span>
+        </label>
+        <div class="mission-meta">
+          <div class="energy-bar-container">
+            <div class="energy-bar" id="energy-${index}" style="width: 100%;"></div>
+          </div>
+          <div class="mission-actions">
+            <button class="cyber-btn micro-split-btn">微型拆解</button>
+            <button class="cyber-btn sos-btn bypass" style="display: none;">發送 SOS</button>
+          </div>
+        </div>
+      </li>
+    `;
+  });
+
+  // Bind Micro-split buttons
+  $$('.micro-split-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const item = e.target.closest('.mission-item');
+      const span = item.querySelector('span');
+      const taskName = span.innerText;
+      
+      const ul = document.createElement('ul');
+      ul.className = 'micro-steps';
+      ul.innerHTML = `
+        <li><label><input type="checkbox" class="micro-check"> 準備環境與文件</label></li>
+        <li><label><input type="checkbox" class="micro-check"> 規劃大綱與步驟</label></li>
+        <li><label><input type="checkbox" class="micro-check"> 專注執行 15 分鐘</label></li>
+      `;
+      span.innerHTML = `<strong>${taskName}</strong>`;
+      span.appendChild(ul);
+      e.target.style.display = 'none'; // hide split button
+    });
+  });
+
+  // Bind SOS buttons
+  $$('.sos-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      btn.innerText = "求救信號已發出！";
+      btn.style.color = "#0f0";
+      btn.style.borderColor = "#0f0";
+      btn.style.boxShadow = "inset 0 0 5px rgba(0, 255, 0, 0.2)";
+      btn.disabled = true;
+      
+      // Remove critical glitch state since friend was notified
+      const item = e.target.closest('.mission-item');
+      item.classList.remove('critical-glitch');
+      const idx = item.dataset.id;
+      const sId = "s" + (parseInt(idx) + 1);
+      const sat = $("." + sId);
+      if (sat) sat.classList.remove('critical-glitch-planet');
+      
+      // Refill energy slightly
+      const bar = item.querySelector('.energy-bar');
+      if (bar) bar.style.width = '50%';
+      bar.style.background = '#0f0';
+    });
+  });
+
+  // Dev Trigger for Decay
+  const devDecayBtn = document.getElementById("devDecayBtn");
+  if (devDecayBtn) {
+    devDecayBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Find all unchecked mission items and drop their energy to critical
+      $$('.mission-item').forEach(item => {
+        const check = item.querySelector('.mission-check');
+        if (check && check.checked) return; // Skip completed ones
+        
+        const bar = item.querySelector('.energy-bar');
+        if (bar) {
+          bar.style.width = '10%';
+          bar.style.background = '#f00';
+        }
+        item.classList.add('critical-glitch');
+        
+        const sosBtn = item.querySelector('.sos-btn');
+        if (sosBtn) sosBtn.style.display = 'inline-block';
+        
+        const idx = item.dataset.id;
+        const sId = "s" + (parseInt(idx) + 1);
+        const sat = $("." + sId);
+        if (sat) sat.classList.add('critical-glitch-planet');
+      });
+    });
+  }
+
+  // Dev Cheat: Unlock everything with dramatic cascade
+  const devCheatBtn = document.getElementById("devCheatBtn");
+  if (devCheatBtn) {
+    devCheatBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      localStorage.removeItem('nudge_planet_states');
+      localStorage.removeItem('nudge_auto_galaxy');
+      localStorage.removeItem('nudge_auto_universe');
+      planetStates = Array(36).fill(null);
+      const allChecks = $$(".mission-check");
+      allChecks.forEach(c => {
+        if (c.checked) {
+          c.checked = false;
+          c.dispatchEvent(new Event('change'));
+        }
+      });
+      
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i >= allChecks.length) {
+          clearInterval(interval);
+          return;
+        }
+        if (!allChecks[i].checked) {
+          allChecks[i].checked = true;
+          allChecks[i].dispatchEvent(new Event('change'));
+        }
+        i++;
+      }, 50);
+    });
+  }
+
+  // Direct cinematic test buttons
+  const btnForceBlackhole = document.getElementById("btnForceBlackhole");
+  if (btnForceBlackhole) {
+    btnForceBlackhole.addEventListener("click", (e) => {
+      e.stopPropagation();
+      triggerBlackHoleSuction(true);
+    });
+  }
+
+  const btnForceExplosion = document.getElementById("btnForceExplosion");
+  if (btnForceExplosion) {
+    btnForceExplosion.addEventListener("click", (e) => {
+      e.stopPropagation();
+      triggerUniverseExplosion(true);
+    });
+  }
+
+  // Toggle Panel Logic (Orb System)
+  const orbBtn = document.getElementById("missionOrbBtn");
+  const logPanel = document.getElementById("missionLogPanel");
+  if (orbBtn && logPanel) {
+    orbBtn.addEventListener("click", () => {
+      logPanel.classList.toggle("active");
+    });
+  }
+
+  const checks = $$(".mission-check");
+  let currentCombo = 0;
+  const comboContainer = $("#comboContainer");
+
+  let planetStates = JSON.parse(localStorage.getItem('nudge_planet_states')) || Array(36).fill(null);
+
+  // Position galaxy planets on their orbits (4 planets per orbit)
+  const galaxyPlanets = document.querySelectorAll('.galaxy-planet');
+  galaxyPlanets.forEach((p, i) => {
+    const angle = (i % 4) * 90 * (Math.PI / 180); // 0, 90, 180, 270 degrees
+    p.style.left = `calc(50% + ${Math.cos(angle) * 50}%)`;
+    p.style.top = `calc(50% + ${Math.sin(angle) * 50}%)`;
+  });
+
+  // Position universe planets on their orbits (3 planets per orbit)
+  const universePlanets = document.querySelectorAll('.universe-planet');
+  universePlanets.forEach((p, i) => {
+    const angle = (i % 3) * 120 * (Math.PI / 180);
+    p.style.left = `calc(50% + ${Math.cos(angle) * 50}%)`;
+    p.style.top = `calc(50% + ${Math.sin(angle) * 50}%)`;
+  });
+
+  function triggerBlackHoleSuction(force = false) {
+    const viewGalaxy = document.querySelector('.view-galaxy');
+    if (!force && (!viewGalaxy || viewGalaxy.style.display === 'none')) return;
+    
+    const overlay = document.getElementById('blackholeOverlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    
+    // Suck in all active planets and UI elements
+    const elements = document.querySelectorAll('.mission-satellite.active, .galaxy-planet.active, .stage-hud, .mission-log-panel');
+    elements.forEach(el => el.classList.add('sucked-in'));
+    
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      elements.forEach(el => el.classList.remove('sucked-in'));
+    }, 3000);
+  }
+
+  function triggerUniverseExplosion(force = false) {
+    const viewUniverse = document.querySelector('.view-universe');
+    if (!force && (!viewUniverse || viewUniverse.style.display === 'none')) return;
+    
+    const overlay = document.getElementById('explosionOverlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    
+    // Screen shake
+    document.body.classList.add('shake-screen');
+    
+    // Generate debris
+    const debrisContainer = document.getElementById('debrisContainer');
+    if (debrisContainer) {
+      debrisContainer.innerHTML = '';
+      for(let i=0; i<30; i++) {
+        const d = document.createElement('div');
+        d.className = 'debris-particle';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 300 + Math.random() * 500;
+        d.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+        d.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+        d.style.transform = `rotate(${angle}rad)`;
+        debrisContainer.appendChild(d);
+      }
+    }
+
+    // Blast away all UI elements
+    const elements = document.querySelectorAll('.mission-satellite.active, .galaxy-planet.active, .universe-planet.active, .stage-hud, .mission-log-panel');
+    elements.forEach(el => el.classList.add('exploded-out'));
+    
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      document.body.classList.remove('shake-screen');
+      if (debrisContainer) debrisContainer.innerHTML = '';
+      elements.forEach(el => el.classList.remove('exploded-out'));
+    }, 5500);
+  }
+
+  function triggerMeteorShower() {
+    const viewSolar = document.querySelector('.view-solar-system');
+    if (!viewSolar || viewSolar.style.display === 'none') return;
+    
+    const container = document.getElementById("meteorShower");
+    if (!container) return;
+    container.innerHTML = "";
+    for (let i = 0; i < 20; i++) {
+      const meteor = document.createElement("div");
+      meteor.className = "meteor";
+      meteor.style.left = Math.random() * 100 + "vw";
+      meteor.style.top = (Math.random() * 50 - 50) + "vh";
+      meteor.style.animation = `meteorFall ${Math.random() * 1 + 0.5}s linear forwards`;
+      meteor.style.animationDelay = Math.random() * 2 + "s";
+      container.appendChild(meteor);
+    }
+  }
+
+  function checkEvolution() {
+    const unlockedCount = planetStates.filter(s => s !== null).length;
+    
+    // Unlock Galaxy at 12
+    if (unlockedCount >= 12) {
+      document.getElementById('navGalaxy').style.display = 'inline-block';
+      if (unlockedCount === 12 && localStorage.getItem('nudge_auto_galaxy') !== 'true') {
+        document.getElementById('navGalaxy').click();
+        localStorage.setItem('nudge_auto_galaxy', 'true');
+      }
+    }
+    
+    // Unlock Universe at 24
+    if (unlockedCount >= 24) {
+      document.getElementById('navUniverse').style.display = 'inline-block';
+      if (unlockedCount === 24 && localStorage.getItem('nudge_auto_universe') !== 'true') {
+        document.getElementById('navUniverse').click();
+        localStorage.setItem('nudge_auto_universe', 'true');
+      }
+    }
+  }
+
+  function showCombo(isSpecial) {
+    currentCombo++;
+    if (!comboContainer) return;
+    const comboEl = document.createElement("div");
+    comboEl.className = "combo-text";
+    if (isSpecial) {
+      comboEl.innerText = `RARE UNLOCKED!`;
+      comboEl.style.color = "#0ff";
+      comboEl.style.textShadow = "0 0 20px #0ff";
+    } else {
+      comboEl.innerText = `COMBO x${currentCombo}!`;
+    }
+    const rot = (Math.random() - 0.5) * 20;
+    comboEl.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`;
+    comboContainer.appendChild(comboEl);
+    setTimeout(() => {
+      comboEl.remove();
+    }, 2500);
+  }
+
+  checks.forEach((check, index) => {
+    check.addEventListener("change", (e) => {
+      const satClass = e.target.dataset.satellite;
+      const taskType = e.target.dataset.taskType || "general";
+      const sat = satClass ? $("." + satClass) : null;
+      const plot = satClass ? $("." + satClass.replace("s", "p")) : null; // for city view
+      const gal = $(".g" + (index + 1)); // galaxy planet (up to 24)
+      const uni = $(".u" + (index - 23)); // universe planet (1 to 12)
+      
+      if (e.target.checked) {
+        let isSpecial = false;
+        let rareType = planetStates[index];
+        
+        // Generate RNG state if first time
+        if (!rareType) {
+          const rng = Math.random();
+          if (index < 12) {
+            if (rng < 0.1) rareType = 'hidden-comet';
+            else if (rng < 0.2) rareType = 'hidden-moon';
+            else rareType = 'standard';
+          } else if (index < 24) {
+            if (rng < 0.1) rareType = 'hidden-blackhole';
+            else rareType = 'standard';
+          } else {
+            if (rng < 0.15) rareType = 'hidden-explosion';
+            else rareType = 'standard';
+          }
+          
+          planetStates[index] = rareType;
+          localStorage.setItem('nudge_planet_states', JSON.stringify(planetStates));
+        }
+
+        // Apply to Solar System (s1-s12)
+        if (sat && index < 12) {
+          sat.classList.add("active");
+          if (rareType !== 'standard') {
+            sat.classList.add(rareType);
+            isSpecial = true;
+            triggerMeteorShower();
+          }
+        }
+        
+        // Apply to Galaxy (g1-g24)
+        if (gal && index < 24) {
+          gal.classList.add("active");
+          if (rareType !== 'standard') {
+            gal.classList.add(rareType);
+            isSpecial = true;
+            if (index >= 12 && rareType === 'hidden-blackhole') triggerBlackHoleSuction();
+          }
+        }
+
+        // Apply to Universe (u1-u12)
+        if (uni && index >= 24) {
+          uni.classList.add("active");
+          if (rareType !== 'standard') {
+            uni.classList.add(rareType);
+            isSpecial = true;
+            if (rareType === 'hidden-explosion') triggerUniverseExplosion();
+          }
+        }
+
+        if (plot) {
+          plot.classList.add("built");
+          plot.classList.add("built-" + taskType);
+        }
+        
+        showCombo(isSpecial);
+        checkEvolution();
+      } else {
+        // Solar System
+        if (sat) {
+          sat.classList.remove("active");
+          sat.classList.remove("hidden-comet", "hidden-moon", "hidden-blackhole");
+        }
+        // Galaxy
+        if (gal) {
+          gal.classList.remove("active");
+          gal.classList.remove("hidden-comet", "hidden-moon", "hidden-blackhole");
+        }
+        // Universe
+        if (uni) {
+          uni.classList.remove("active");
+          uni.classList.remove("hidden-explosion");
+        }
+        if (plot) {
+          plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
+        }
+        currentCombo = 0;
+        // Historical array preserves the unlocked RNG state
+      }
+    });
+  });
+
+  // Stage Navigation Binding
+  const btnSolar = document.getElementById('navSolar');
+  const btnGalaxy = document.getElementById('navGalaxy');
+  const btnUniverse = document.getElementById('navUniverse');
+  const viewSolar = document.querySelector('.view-solar-system');
+  const viewGalaxy = document.querySelector('.view-galaxy');
+  const viewUniverse = document.querySelector('.view-universe');
+
+  function switchStage(stage) {
+    if (viewSolar) viewSolar.style.display = 'none';
+    if (viewGalaxy) viewGalaxy.style.display = 'none';
+    if (viewUniverse) viewUniverse.style.display = 'none';
+    
+    if (stage === 'solar' && viewSolar) viewSolar.style.display = 'block';
+    if (stage === 'galaxy' && viewGalaxy) viewGalaxy.style.display = 'flex';
+    if (stage === 'universe' && viewUniverse) viewUniverse.style.display = 'block';
+  }
+
+  if (btnSolar) btnSolar.addEventListener('click', () => switchStage('solar'));
+  if (btnGalaxy) btnGalaxy.addEventListener('click', () => switchStage('galaxy'));
+  if (btnUniverse) btnUniverse.addEventListener('click', () => switchStage('universe'));
+
+  // Initial UI check for Evolution buttons based on history
+  const unlockedCount = planetStates.filter(s => s !== null).length;
+  if (unlockedCount >= 12 && btnGalaxy) btnGalaxy.style.display = 'inline-block';
+  if (unlockedCount >= 24 && btnUniverse) btnUniverse.style.display = 'inline-block';
+  // Mouse Wheel Zoom for City View
+  const cityView = document.querySelector('.view-city');
+  const neighborhoodScene = document.querySelector('.neighborhood-scene');
+  if (cityView && neighborhoodScene) {
+    let zoomLevel = 1;
+    cityView.addEventListener('wheel', (e) => {
+      e.preventDefault(); // Prevent page scrolling
+      if (e.deltaY < 0) {
+        zoomLevel = Math.min(zoomLevel + 0.1, 3); // zoom in (max 3x)
+      } else {
+        zoomLevel = Math.max(zoomLevel - 0.1, 0.5); // zoom out (min 0.5x)
+      }
+      neighborhoodScene.style.transform = `scale(${zoomLevel})`;
+      neighborhoodScene.style.transformOrigin = 'center center';
+      neighborhoodScene.style.transition = 'transform 0.1s ease-out';
+    }, { passive: false });
+  }
+
+};
+
+function bindExamTemplates() {
+  const templateListContainer = $("[data-template-list]");
+  if (!templateListContainer) return;
+
+  const defaultTemplates = [
+    { time: "週一", title: "建立目標", desc: "派發本週讀書與健康任務。" },
+    { time: "週三", title: "中段提醒", desc: "自動提醒落後小組與個人。" },
+    { time: "週五", title: "共同自律房", desc: "排程 50 分鐘團體專注。" },
+    { time: "週日", title: "週報匯出", desc: "生成班級、小組、個人摘要。" }
+  ];
+
+  const loadExamTemplates = () => {
+    const store = JSON.parse(localStorage.getItem("nudgeWebExamTemplates"));
+    return store || defaultTemplates;
+  };
+
+  const saveExamTemplates = (templates) => {
+    localStorage.setItem("nudgeWebExamTemplates", JSON.stringify(templates));
+  };
+
+  const renderExamTemplates = () => {
+    const templates = loadExamTemplates();
+    templateListContainer.innerHTML = templates.map((tpl, idx) => `
+      <article>
+        <button type="button" class="delete-template-btn" data-idx="${idx}" title="刪除">×</button>
+        <small>${tpl.time}</small>
+        <strong>${tpl.title}</strong>
+        <span>${tpl.desc}</span>
+      </article>
+    `).join("");
+
+    $$(".delete-template-btn", templateListContainer).forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(e.currentTarget.dataset.idx, 10);
+        const tpls = loadExamTemplates();
+        tpls.splice(idx, 1);
+        saveExamTemplates(tpls);
+        renderExamTemplates();
+        toast("已刪除模板");
+      });
+    });
+  };
+
+  renderExamTemplates();
+
+  const addBtn = $('[data-action="add-template"]');
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      const timeInput = $('[data-template-time]');
+      const titleInput = $('[data-template-title]');
+      const descInput = $('[data-template-desc]');
+      
+      const time = timeInput.value.trim() || "新時段";
+      const title = titleInput.value.trim() || "新模板";
+      const desc = descInput.value.trim() || "無說明";
+
+      const tpls = loadExamTemplates();
+      tpls.push({ time, title, desc });
+      
+      const dayWeights = { "週一": 1, "週二": 2, "週三": 3, "週四": 4, "週五": 5, "週六": 6, "週日": 7 };
+      tpls.sort((a, b) => {
+        const weightA = dayWeights[a.time] || 99;
+        const weightB = dayWeights[b.time] || 99;
+        if (weightA !== weightB) return weightA - weightB;
+        return 0;
+      });
+
+      saveExamTemplates(tpls);
+      renderExamTemplates();
+
+      timeInput.value = "";
+      titleInput.value = "";
+      descInput.value = "";
+      toast("已加入模板");
+    });
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  try { injectModuleMenu(); } catch(e){}
+  try { injectDisplayModeControls(); } catch(e){}
+  try { injectAINavigator(); } catch(e){}
+  try { animateCounters(); } catch(e){}
+  try { bootCharts(); } catch(e){}
+  try { bindDemoButtons(); } catch(e){}
+  try { bindPlanet(); } catch(e){}
+  try { bindExtensionTools(); } catch(e){}
+  try { bindTilt(); } catch(e){}
+  try { bindPresentation(); } catch(e){}
+  try { bindExamTemplates(); } catch(e){}
+  try { if (window.bindMissions) window.bindMissions(); } catch(e){}
+  try { initializeFirebaseWeb(); } catch(e){}
 });
 
 window.addEventListener("resize", bootCharts);
+
+// ─── Firebase / Firestore Real-time Sync Integration ──────────────────────────
 
 const firebaseConfig = {
   apiKey: "AIzaSyCsvP-r0EygpkhH0Zwzfrl4uFzy6LcbsTQ",
@@ -784,6 +1675,13 @@ function listenToUser(userId) {
         chipA.dataset.count = completionRate;
         chipA.textContent = `${completionRate}%`;
       }
+      
+      // If we are on the planet page, bind the tasks list dynamically from Firestore!
+      if (document.body.dataset.page === "planet") {
+        if (typeof window.bindFirestoreMissions === 'function') {
+          window.bindFirestoreMissions(tasks);
+        }
+      }
     }
 
     if (document.body.dataset.page === "planet") {
@@ -802,320 +1700,84 @@ function listenToUser(userId) {
   });
 }
 
-function updateTextContent(selector, text) {
-  const node = $(selector);
-  if (node) node.textContent = text;
-}
-
-let activePlanetScene = null;
-let update3DPlanetFn = null;
-
-function update3DPlanet(data) {
-  if (typeof update3DPlanetFn === 'function') {
-    update3DPlanetFn(data);
-  }
-}
-
-function init3DPlanet() {
-  const container = document.getElementById("planetCanvasContainer");
-  if (!container) return;
-
-  const width = container.clientWidth;
-  const height = container.clientHeight;
-
-  // Scene, Camera, Renderer
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x050608, 0.015);
-
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-  camera.position.set(0, 0, 15);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(width, height);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.shadowMap.enabled = true;
-  container.appendChild(renderer.domElement);
-
-  // Controls
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.minDistance = 6;
-  controls.maxDistance = 25;
-
-  // Lights
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
-  scene.add(ambientLight);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
-  dirLight.position.set(5, 10, 7);
-  dirLight.castShadow = true;
-  scene.add(dirLight);
-
-  // Planet Base (Purple sphere representing Nudge)
-  const planetRadius = 3.5;
-  const planetGeo = new THREE.SphereGeometry(planetRadius, 32, 32);
-  const planetMat = new THREE.MeshPhongMaterial({
-    color: 0x7c6ae6,
-    emissive: 0x1a153b,
-    shininess: 25,
-    flatShading: true
-  });
-  const planet = new THREE.Mesh(planetGeo, planetMat);
-  planet.receiveShadow = true;
-  scene.add(planet);
-
-  // Continents (smaller overlay panels)
-  const continentMat = new THREE.MeshPhongMaterial({
-    color: 0x5a48c4,
-    shininess: 5,
-    flatShading: true
-  });
-  const continentCount = 6;
-  for (let i = 0; i < continentCount; i++) {
-    const size = 1.2 + Math.random() * 1.6;
-    const contGeo = new THREE.BoxGeometry(size, size, 0.4);
-    const cont = new THREE.Mesh(contGeo, continentMat);
-    // Position on sphere surface
-    const u = Math.random();
-    const v = Math.random();
-    const theta = u * 2.0 * Math.PI;
-    const phi = Math.acos(2.0 * v - 1.0);
-    cont.position.set(
-      planetRadius * Math.sin(phi) * Math.cos(theta),
-      planetRadius * Math.sin(phi) * Math.sin(theta),
-      planetRadius * Math.cos(phi)
-    );
-    cont.lookAt(0, 0, 0);
-    planet.add(cont);
-  }
-
-  // Starfield
-  const starGeo = new THREE.BufferGeometry();
-  const starCount = 500;
-  const starPositions = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount * 3; i += 3) {
-    const dist = 30 + Math.random() * 40;
-    const u = Math.random();
-    const v = Math.random();
-    const theta = u * 2.0 * Math.PI;
-    const phi = Math.acos(2.0 * v - 1.0);
-    starPositions[i] = dist * Math.sin(phi) * Math.cos(theta);
-    starPositions[i+1] = dist * Math.sin(phi) * Math.sin(theta);
-    starPositions[i+2] = dist * Math.cos(phi);
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  const starMat = new THREE.PointsMaterial({
-    color: 0xffffff,
-    size: 0.22,
-    transparent: true,
-    opacity: 0.8
-  });
-  const starfield = new THREE.Points(starGeo, starMat);
-  scene.add(starfield);
-
-  // Group to hold spawned buildings/assets on the planet
-  const assetGroup = new THREE.Group();
-  planet.add(assetGroup);
-
-  // Helper to convert lat/lon to Cartesian position on planet surface
-  function getPositionOnPlanet(lat, lon, heightOffset = 0) {
-    const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lon + 180) * (Math.PI / 180);
-    const r = planetRadius + heightOffset;
-    return new THREE.Vector3(
-      r * Math.sin(phi) * Math.cos(theta),
-      r * Math.cos(phi),
-      r * Math.sin(phi) * Math.sin(theta)
-    );
-  }
-
-  // Spawning systems
-  function clearAssets() {
-    while (assetGroup.children.length > 0) {
-      assetGroup.remove(assetGroup.children[0]);
-    }
-  }
-
-  function spawnTree(lat, lon) {
-    const tree = new THREE.Group();
-    // Trunk
-    const trunkGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.35, 6);
-    const trunkMat = new THREE.MeshPhongMaterial({ color: 0x5c4033 });
-    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-    trunk.position.y = 0.15;
-    tree.add(trunk);
-
-    // Leaves
-    const leavesGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
-    const leavesMat = new THREE.MeshPhongMaterial({ color: 0x10B981 });
-    const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-    leaves.position.y = 0.5;
-    tree.add(leaves);
-
-    const pos = getPositionOnPlanet(lat, lon);
-    tree.position.copy(pos);
-    tree.lookAt(new THREE.Vector3(0, 0, 0));
-    tree.rotateX(Math.PI / 2);
-    assetGroup.add(tree);
-  }
-
-  function spawnLibrary(lat, lon) {
-    const library = new THREE.Group();
-    // Base
-    const baseGeo = new THREE.BoxGeometry(0.6, 0.5, 0.6);
-    const baseMat = new THREE.MeshPhongMaterial({ color: 0x3B82F6 });
-    const base = new THREE.Mesh(baseGeo, baseMat);
-    base.position.y = 0.25;
-    library.add(base);
-
-    // Roof
-    const roofGeo = new THREE.ConeGeometry(0.5, 0.35, 4);
-    const roofMat = new THREE.MeshPhongMaterial({ color: 0xEF4444 });
-    const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.y = 0.6;
-    roof.rotation.y = Math.PI / 4;
-    library.add(roof);
-
-    const pos = getPositionOnPlanet(lat, lon);
-    library.position.copy(pos);
-    library.lookAt(new THREE.Vector3(0, 0, 0));
-    library.rotateX(Math.PI / 2);
-    assetGroup.add(library);
-  }
-
-  function spawnStreetLight(lat, lon, isGlowing) {
-    const lightGroup = new THREE.Group();
-    const poleGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.6, 4);
-    const poleMat = new THREE.MeshPhongMaterial({ color: 0x4B5563 });
-    const pole = new THREE.Mesh(poleGeo, poleMat);
-    pole.position.y = 0.3;
-    lightGroup.add(pole);
-
-    const bulbGeo = new THREE.SphereGeometry(0.06, 8, 8);
-    const bulbMat = new THREE.MeshBasicMaterial({ color: isGlowing ? 0xFBBF24 : 0x9CA3AF });
-    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
-    bulb.position.y = 0.6;
-    lightGroup.add(bulb);
-
-    if (isGlowing) {
-      const glow = new THREE.PointLight(0xFBBF24, 1.5, 3);
-      glow.position.set(0, 0.6, 0);
-      lightGroup.add(glow);
+window.bindFirestoreMissions = function(tasks) {
+  const list = document.getElementById("dynamicMissionList");
+  if (!list) return;
+  
+  list.innerHTML = "";
+  tasks.slice(0, 36).forEach((task, index) => {
+    const sId = "s" + (index + 1);
+    const title = task.title || task.name || "自律任務";
+    const done = task.done || task.isDone || false;
+    
+    let taskType = "general";
+    if (/(專案|期末|大考|挑戰)/.test(title)) {
+      taskType = "skyscraper";
+    } else if (/(書|讀|作業|考試|專注|報告)/.test(title)) {
+      taskType = "study";
+    } else if (/(健康|水|睡|運動|步)/.test(title)) {
+      taskType = "health";
     }
 
-    const pos = getPositionOnPlanet(lat, lon);
-    lightGroup.position.copy(pos);
-    lightGroup.lookAt(new THREE.Vector3(0, 0, 0));
-    lightGroup.rotateX(Math.PI / 2);
-    assetGroup.add(lightGroup);
-  }
-
-  function spawnFriendAvatar(lat, lon) {
-    const avatar = new THREE.Group();
-    const headGeo = new THREE.SphereGeometry(0.14, 8, 8);
-    const headMat = new THREE.MeshPhongMaterial({ color: 0xFDBA74 });
-    const head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 0.4;
-    avatar.add(head);
-
-    const bodyGeo = new THREE.CylinderGeometry(0.02, 0.12, 0.3, 8);
-    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x8B5CF6 });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.15;
-    avatar.add(body);
-
-    const pos = getPositionOnPlanet(lat, lon);
-    avatar.position.copy(pos);
-    avatar.lookAt(new THREE.Vector3(0, 0, 0));
-    avatar.rotateX(Math.PI / 2);
-    assetGroup.add(avatar);
-  }
-
-  update3DPlanetFn = function(data) {
-    clearAssets();
-
-    // Spawn Trees based on completedTasks
-    const completedTasks = data.completedTasks || 0;
-    const treeCount = Math.min(completedTasks * 3, 24);
-    for (let i = 0; i < treeCount; i++) {
-      const lat = -65 + (i * 137.5) % 130;
-      const lon = -180 + (i * 222.5) % 360;
-      spawnTree(lat, lon);
-    }
-
-    // Spawn Libraries based on focusMinutes
-    const focusMinutes = data.focusMinutes || 0;
-    const libCount = Math.min(Math.floor(focusMinutes / 20), 6);
-    for (let i = 0; i < libCount; i++) {
-      const lat = -35 + (i * 117.5) % 70;
-      const lon = -160 + (i * 197.5) % 320;
-      spawnLibrary(lat, lon);
-    }
-
-    // Spawn Street Lights based on sleepHours
-    const sleepHours = data.sleepHours || 0;
-    const lightCount = Math.min(Math.floor(sleepHours), 8);
-    const isGlowing = sleepHours >= 6.5;
-    for (let i = 0; i < lightCount; i++) {
-      const lat = -50 + (i * 97.5) % 100;
-      const lon = -170 + (i * 187.5) % 340;
-      spawnStreetLight(lat, lon, isGlowing);
-    }
-
-    // Spawn Friend avatars
-    const friendsCount = data.activeFriendsCount || 2;
-    for (let i = 0; i < friendsCount; i++) {
-      const lat = -25 + (i * 77.5) % 50;
-      const lon = -140 + (i * 167.5) % 280;
-      spawnFriendAvatar(lat, lon);
-    }
-
-    // Update Prosperity in HUD
-    const prosperity = (completedTasks * 8) + (focusMinutes * 2) + Math.round(sleepHours * 5);
-    const hud = document.getElementById("planetHud");
-    if (hud) hud.textContent = "已連動 - 星球繁榮度 " + Math.max(prosperity, 10);
-    const label = document.getElementById("planetLabel");
-    if (label) label.textContent = "自律星球 (繁榮度: " + Math.max(prosperity, 10) + ")";
-  };
-
-  // Seed default display
-  update3DPlanet({
-    completedTasks: 4,
-    focusMinutes: 45,
-    sleepHours: 7.5,
-    activeFriendsCount: 2
+    list.innerHTML += `
+      <li class="mission-item" data-id="${index}">
+        <label>
+          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-task-type="${taskType}" ${done ? 'checked' : ''} disabled />
+          <span>${title}</span>
+        </label>
+        <div class="mission-meta">
+          <div class="energy-bar-container">
+            <div class="energy-bar" id="energy-${index}" style="width: ${done ? '100%' : '60%'}; background: ${done ? '#00ffcc' : '#f59e0b'};"></div>
+          </div>
+          <div class="mission-actions">
+            <span style="font-size: 11px; color: ${done ? '#00ffcc' : 'rgba(255,255,255,0.4)'}; font-weight: 700;">
+              ${done ? '✅ 已同步完成' : '⏳ 行動中'}
+            </span>
+          </div>
+        </div>
+      </li>
+    `;
   });
 
-  // Animation Loop
-  let reqId;
-  function animate() {
-    reqId = requestAnimationFrame(animate);
-    planet.rotation.y += 0.0018;
-    planet.rotation.x += 0.0003;
-    starfield.rotation.y -= 0.0003;
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  animate();
+  const checks = $$(".mission-check");
+  checks.forEach((check, index) => {
+    const satClass = check.dataset.satellite;
+    const taskType = check.dataset.taskType || "general";
+    const sat = satClass ? $("." + satClass) : null;
+    const plot = satClass ? $("." + satClass.replace("s", "p")) : null;
+    const gal = $(".g" + (index + 1));
+    const uni = $(".u" + (index - 23));
 
-  function handleResize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-  }
-  window.addEventListener("resize", handleResize);
-
-  // Auto clean up
-  const observer = new MutationObserver(() => {
-    if (!document.body.contains(container)) {
-      cancelAnimationFrame(reqId);
-      window.removeEventListener("resize", handleResize);
-      renderer.dispose();
-      observer.disconnect();
+    if (check.checked) {
+      if (sat && index < 12) {
+        sat.classList.add("active");
+      }
+      if (gal && index < 24) {
+        gal.classList.add("active");
+      }
+      if (uni && index >= 24) {
+        uni.classList.add("active");
+      }
+      if (plot) {
+        plot.classList.add("built");
+        plot.classList.add("built-" + taskType);
+      }
+    } else {
+      if (sat) {
+        sat.classList.remove("active");
+      }
+      if (gal) {
+        gal.classList.remove("active");
+      }
+      if (uni) {
+        uni.classList.remove("active");
+      }
+      if (plot) {
+        plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
+      }
     }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
-}
+};
+
+
+

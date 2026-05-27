@@ -46,14 +46,56 @@
         <section class="page-section panel">
           <span class="eyebrow">一週自律天氣</span>
           <h2>把每天的風險變成一眼看懂的提醒。</h2>
-          <div class="weather-grid">
-            <div class="mini-card"><small>週一</small><strong>晴</strong><p>任務量穩定，適合累積分數。</p></div>
-            <div class="mini-card"><small>週二</small><strong>晴</strong><p>可以安排 30 分鐘專注。</p></div>
-            <div class="mini-card"><small>週三</small><strong>陰</strong><p>截止日靠近，建議拆成小任務。</p></div>
-            <div class="mini-card"><small>週四</small><strong>微雨</strong><p>睡眠資料偏低，先保留休息時間。</p></div>
-            <div class="mini-card"><small>週五</small><strong>雷雨</strong><p>睡眠不足加上專注下降，適合早點休息。</p></div>
-            <div class="mini-card"><small>週六</small><strong>多雲</strong><p>可完成運動或整理任務。</p></div>
-            <div class="mini-card"><small>週日</small><strong>彩虹</strong><p>適合整理下週任務與時間膠囊。</p></div>
+          <div class="weather-chart-container">
+            <div class="chart-bar-group">
+              <div class="chart-bar bar-sunny" style="height: 85%;">
+                <span class="chart-icon">☀️</span>
+              </div>
+              <span class="chart-label">週一</span>
+              <span class="chart-desc">晴朗穩定</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar bar-sunny" style="height: 90%;">
+                <span class="chart-icon">☀️</span>
+              </div>
+              <span class="chart-label">週二</span>
+              <span class="chart-desc">狀態極佳</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar bar-cloudy" style="height: 60%;">
+                <span class="chart-icon">☁️</span>
+              </div>
+              <span class="chart-label">週三</span>
+              <span class="chart-desc">能量下降</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar bar-rain" style="height: 40%;">
+                <span class="chart-icon">🌧️</span>
+              </div>
+              <span class="chart-label">週四</span>
+              <span class="chart-desc">疲憊微雨</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar bar-storm" style="height: 25%;">
+                <span class="chart-icon">⛈️</span>
+              </div>
+              <span class="chart-label">週五</span>
+              <span class="chart-desc">紅色警戒</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar bar-cloudy" style="height: 65%;">
+                <span class="chart-icon">⛅</span>
+              </div>
+              <span class="chart-label">週六</span>
+              <span class="chart-desc">逐漸恢復</span>
+            </div>
+            <div class="chart-bar-group">
+              <div class="chart-bar bar-rainbow" style="height: 100%;">
+                <span class="chart-icon">🌈</span>
+              </div>
+              <span class="chart-label">週日</span>
+              <span class="chart-desc">狀態滿檔</span>
+            </div>
           </div>
         </section>
 

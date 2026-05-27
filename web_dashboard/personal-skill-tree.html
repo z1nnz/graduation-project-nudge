@@ -40,21 +40,74 @@
           </div>
         </header>
 
-        <section class="card-grid-3 page-section">
-          <article class="mini-card"><strong>學習力</strong><p>讀書、報告、考試任務。</p><div class="progress"><span style="--value: 78%"></span></div></article>
-          <article class="mini-card"><strong>專注力</strong><p>專注分鐘與自動追蹤。</p><div class="progress"><span style="--value: 62%"></span></div></article>
-          <article class="mini-card"><strong>健康力</strong><p>睡眠、步數、運動。</p><div class="progress"><span style="--value: 84%"></span></div></article>
-          <article class="mini-card"><strong>生活管理力</strong><p>家事、整理、日常習慣。</p><div class="progress"><span style="--value: 56%"></span></div></article>
-          <article class="mini-card"><strong>社交陪伴力</strong><p>自律房與好友鼓勵。</p><div class="progress"><span style="--value: 48%"></span></div></article>
-          <article class="mini-card"><strong>壓力調節力</strong><p>截止日拆解與睡眠穩定。</p><div class="progress"><span style="--value: 34%"></span></div></article>
+        <section class="skill-tree-layout page-section">
+          <div class="skill-tree-container">
+            <!-- Tier 1 -->
+            <div class="skill-tier">
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🏃‍♂️</span></div>
+                <div class="node-info">
+                  <strong>健康力 Lv.6</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 84%;"></div></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="skill-path-v"></div>
+            
+            <!-- Tier 2 -->
+            <div class="skill-tier split-2">
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🧠</span></div>
+                <div class="node-info">
+                  <strong>學習力 Lv.5</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 78%;"></div></div>
+                </div>
+              </div>
+              <div class="skill-node active-target">
+                <div class="node-hex"><span class="node-icon">⏱️</span></div>
+                <div class="node-info">
+                  <strong>專注力 Lv.3</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 62%;"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="skill-path-v branch"></div>
+
+            <!-- Tier 3 -->
+            <div class="skill-tier split-3">
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🧹</span></div>
+                <div class="node-info">
+                  <strong>生活管理 Lv.2</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 56%;"></div></div>
+                </div>
+              </div>
+              <div class="skill-node unlocked">
+                <div class="node-hex"><span class="node-icon">🤝</span></div>
+                <div class="node-info">
+                  <strong>社交陪伴 Lv.2</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 48%;"></div></div>
+                </div>
+              </div>
+              <div class="skill-node locked">
+                <div class="node-hex"><span class="node-icon">🧘</span></div>
+                <div class="node-info">
+                  <strong>壓力調節 Lv.1</strong>
+                  <div class="node-bar"><div class="bar-fill" style="width: 34%;"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="panel page-section">
           <span class="eyebrow">下一個解鎖</span>
           <h2>專注力 Lv.4：穩定番茄鐘</h2>
           <p>條件：本週累積專注 180 分鐘，且至少 4 天有完成專注任務。完成後可解鎖「專注系稱號」與星球圖書館升級。</p>
-          <div class="progress"><span style="--value: 72%"></span></div>
-          <button class="button primary" data-toast="已把專注力 Lv.4 設為本週目標">設為本週目標</button>
+          <div class="progress" style="margin-bottom: 20px;"><span style="--value: 72%"></span></div>
+          <button class="button primary" data-toast="已把專注力 Lv.4 設為本週目標" style="margin-top: 10px; width: 100%;">設為本週目標</button>
         </section>
       </main>
     </div>

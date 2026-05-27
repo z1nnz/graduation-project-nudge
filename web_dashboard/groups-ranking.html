@@ -5,7 +5,43 @@
     <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>排行週報</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="groups.html">團體 / 教育管理</a></nav></aside>
       <main class="main">
         <header class="hero split"><div><span class="eyebrow">Ranking & Report</span><h1>小組排名、班級摘要和週報匯出。</h1><p>排行頁只處理團體成果，不再和挑戰建立混在同一頁。</p><div class="subnav"><a href="groups.html">中心總覽</a><a href="groups-challenge.html">挑戰建立</a><a href="groups-study-schedule.html">讀書時段</a><a class="active" href="groups-ranking.html">排行與週報</a><a href="groups-templates.html">考試模板</a></div></div><div class="hero-card"><span>最高分組</span><strong>A 組</strong><p>842 分。</p></div></header>
-        <section class="two-col page-section"><article class="panel"><span class="eyebrow">班級 / 小組排行</span><table class="table"><thead><tr><th>名次</th><th>小組</th><th>本週分數</th></tr></thead><tbody><tr><td>1</td><td>A 組</td><td>842</td></tr><tr><td>2</td><td>C 組</td><td>798</td></tr><tr><td>3</td><td>B 組</td><td>751</td></tr></tbody></table></article><article class="result-board"><strong>週報摘要</strong><p>A 組專注最穩，C 組步數成長最多。B 組截止日任務較集中，下週建議拆小步驟。</p><button class="button primary" data-toast="已匯出班級週報 Demo">匯出週報 Demo</button></article></section>
+        <section class="two-col page-section">
+          <article class="panel galaxy-map-section">
+            <div class="galaxy-map-header">
+              <span class="eyebrow">星系群組地圖 (Interactive Galaxy Map)</span>
+              <p style="margin-top: 8px; color: var(--muted); font-size: 14px;">您的群組成員皆化為發光星球，星球大小代表本週積分。</p>
+            </div>
+            <div class="galaxy-container">
+              <!-- Center Hub -->
+              <div class="center-node">
+                <div class="node-label">群組核心</div>
+              </div>
+              
+              <!-- Orbit Ring 1 -->
+              <div class="galaxy-orbit" style="--orbit-size: 260px; --orbit-duration: 40s;">
+                <div class="member-node" style="--angle: 0deg;">
+                  <div class="node-content">
+                    <div class="node-planet" style="--p-color: #00f0ff; --p-size: 45px;" title="A 組 (842分)"></div>
+                    <div class="node-label">A 組 (842)</div>
+                  </div>
+                </div>
+                <div class="member-node" style="--angle: 120deg;">
+                  <div class="node-content">
+                    <div class="node-planet" style="--p-color: #7b2cbf; --p-size: 35px;" title="C 組 (798分)"></div>
+                    <div class="node-label">C 組 (798)</div>
+                  </div>
+                </div>
+                <div class="member-node" style="--angle: 240deg;">
+                  <div class="node-content">
+                    <div class="node-planet" style="--p-color: #ff00ff; --p-size: 30px;" title="B 組 (751分)"></div>
+                    <div class="node-label">B 組 (751)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="result-board"><strong>週報摘要</strong><p>A 組專注最穩，C 組步數成長最多。B 組截止日任務較集中，下週建議拆小步驟。</p><button class="button primary" data-toast="已匯出班級週報 Demo">匯出週報 Demo</button></article>
+        </section>
       </main>
     </div><script src="assets/app.js"></script>
   </body>
