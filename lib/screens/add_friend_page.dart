@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../models/avatar_profile.dart';
 import '../models/friend_request.dart';
@@ -27,11 +28,29 @@ class _AddFriendPageState extends State<AddFriendPage> {
     super.dispose();
   }
 
-  void _search(AppState appState) {
+  bool _searching = false;
+
+  Future<void> _search(AppState appState) async {
+    final query = _idController.text.trim();
+    if (query.isEmpty) return;
     setState(() {
       _searched = true;
-      _candidate = appState.findFriendCandidateByNudgeId(_idController.text);
+      _searching = true;
+      _candidate = null;
     });
+
+    try {
+      final candidate = await appState.searchFriendByNudgeId(query);
+      setState(() {
+        _candidate = candidate;
+      });
+    } catch (e) {
+      debugPrint('Search error: $e');
+    } finally {
+      setState(() {
+        _searching = false;
+      });
+    }
   }
 
   Future<void> _sendRequest(AppState appState) async {
@@ -71,15 +90,46 @@ class _AddFriendPageState extends State<AddFriendPage> {
             controller: _idController,
             candidate: _candidate,
             searched: _searched,
+            searching: _searching,
             accentColor: accentColor,
             primaryText: primaryText,
             secondaryText: secondaryText,
             onSearch: () => _search(appState),
             onSendRequest: () => _sendRequest(appState),
             onScannerTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('QR 掃描會在接後端與相機套件時開放')),
-              );
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Scaffold(
+                    appBar: AppBar(title: const Text('掃描好友 QR Code')),
+                    body: MobileScanner(
+                      onDetect: (capture) {
+                        final List<Barcode> barcodes = capture.barcodes;
+                        if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+                          final String code = barcodes.first.rawValue!;
+                          Navigator.pop(context, code);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ).then((result) async {
+                if (result != null && result is String) {
+                  final candidate = await appState.searchFriendFromInvite(result);
+                  if (candidate != null) {
+                    setState(() {
+                      _searched = true;
+                      _candidate = candidate;
+                      _idController.text = candidate.nudgeId;
+                    });
+                  } else {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('無效的邀請連結或找不到該使用者')),
+                    );
+                  }
+                }
+              });
             },
           ),
           const SizedBox(height: AppUI.sectionGap),
@@ -222,6 +272,7 @@ class _SearchByIdCard extends StatelessWidget {
   final TextEditingController controller;
   final SocialFriendProfile? candidate;
   final bool searched;
+  final bool searching;
   final Color accentColor;
   final Color primaryText;
   final Color secondaryText;
@@ -233,6 +284,7 @@ class _SearchByIdCard extends StatelessWidget {
     required this.controller,
     required this.candidate,
     required this.searched,
+    required this.searching,
     required this.accentColor,
     required this.primaryText,
     required this.secondaryText,
@@ -287,9 +339,15 @@ class _SearchByIdCard extends StatelessWidget {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: onSearch,
-                  icon: const Icon(Icons.person_search_rounded),
-                  label: const Text('搜尋 ID'),
+                  onPressed: searching ? null : onSearch,
+                  icon: searching
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.person_search_rounded),
+                  label: Text(searching ? '搜尋中...' : '搜尋 ID'),
                   style: FilledButton.styleFrom(
                     backgroundColor: accentColor,
                     padding: const EdgeInsets.symmetric(vertical: 13),

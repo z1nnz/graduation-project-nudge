@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "497972469632",
+    "project_id": "nudge-discipline-app",
+    "storage_bucket": "nudge-discipline-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:497972469632:android:11d43ae71ddb64202f6b65",
+        "android_client_info": {
+          "package_name": "com.example.nudge"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBSG3vn7bB_f0jmCaGnMdcO8f-G0HlYgA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

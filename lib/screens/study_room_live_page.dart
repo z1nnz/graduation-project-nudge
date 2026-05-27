@@ -30,12 +30,20 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   int _remainingSeconds = _defaultFocusSeconds;
   int _elapsedSeconds = 0;
   bool _isRunning = false;
+  DateTime? _sessionStartTime;
+  bool _voiceJoined = false;
+  bool _micMuted = false;
 
   @override
   void dispose() {
     _timer?.cancel();
     _commitSessionAsResting();
     _chatController.dispose();
+    if (_voiceJoined) {
+      try {
+        context.read<AppState>().leaveVoiceRoom(widget.roomId);
+      } catch (_) {}
+    }
     super.dispose();
   }
 
@@ -43,6 +51,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     if (_isRunning) return;
     setState(() {
       _isRunning = true;
+      _sessionStartTime = DateTime.now();
     });
     appState.addStudyRoomEvent(
       roomId: room.id,
@@ -91,7 +100,9 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     _timer?.cancel();
     final finishedSeconds = _elapsedSeconds + 1;
     if (_isFocusRoom(room) && finishedSeconds > 0) {
-      appState.addFocusSeconds(finishedSeconds);
+      final endTime = DateTime.now();
+      final startTime = _sessionStartTime ?? endTime.subtract(Duration(seconds: finishedSeconds));
+      appState.addSecureFocusSeconds(finishedSeconds, startTime, endTime);
     }
     appState.updateMyStudyRoomPresence(
       roomId: room.id,
@@ -113,7 +124,9 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   void _stopSession(AppState appState, StudyRoomData room) {
     _timer?.cancel();
     if (_isFocusRoom(room) && _elapsedSeconds > 0) {
-      appState.addFocusSeconds(_elapsedSeconds);
+      final endTime = DateTime.now();
+      final startTime = _sessionStartTime ?? endTime.subtract(Duration(seconds: _elapsedSeconds));
+      appState.addSecureFocusSeconds(_elapsedSeconds, startTime, endTime);
     }
     appState.clearMyStudyRoomPresence(room.id);
     appState.addStudyRoomEvent(
@@ -134,7 +147,9 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     final room = appState.getStudyRoomById(widget.roomId);
     if (room == null) return;
     if (_isFocusRoom(room)) {
-      appState.addFocusSeconds(_elapsedSeconds);
+      final endTime = DateTime.now();
+      final startTime = _sessionStartTime ?? endTime.subtract(Duration(seconds: _elapsedSeconds));
+      appState.addSecureFocusSeconds(_elapsedSeconds, startTime, endTime);
     }
     appState.updateMyStudyRoomPresence(
       roomId: room.id,
@@ -368,6 +383,44 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
           appBar: AppBar(
             title: Text(room.name),
             actions: [
+              if (_voiceJoined)
+                IconButton(
+                  icon: Icon(_micMuted ? Icons.mic_off_rounded : Icons.mic_rounded, color: _micMuted ? Colors.red : const Color(0xFF10B981)),
+                  tooltip: _micMuted ? '取消靜音' : '靜音',
+                  onPressed: () {
+                    setState(() {
+                      _micMuted = !_micMuted;
+                    });
+                  },
+                ),
+              IconButton(
+                icon: Icon(_voiceJoined ? Icons.headset_rounded : Icons.headset_off_rounded, color: _voiceJoined ? accent : null),
+                tooltip: _voiceJoined ? '退出語音房' : '加入語音房',
+                onPressed: () async {
+                  if (_voiceJoined) {
+                    await appState.leaveVoiceRoom(widget.roomId);
+                    setState(() {
+                      _voiceJoined = false;
+                    });
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('已退出語音房間')),
+                      );
+                    }
+                  } else {
+                    await appState.joinVoiceRoom(widget.roomId);
+                    setState(() {
+                      _voiceJoined = true;
+                      _micMuted = false;
+                    });
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('已進入自律語音房 (Firestore 信令準備中)')),
+                      );
+                    }
+                  }
+                },
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: Center(

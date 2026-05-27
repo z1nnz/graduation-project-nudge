@@ -45,3 +45,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase Service Account Private Key
+firebase-service-account.json
+
+# Scripts Node modules
+scripts/node_modules/
+/scripts/node_modules/

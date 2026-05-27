@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'state/app_state.dart';
 import 'services/notification_service.dart';
 import 'screens/home_page.dart';
@@ -8,12 +9,20 @@ import 'screens/health_page.dart';
 import 'screens/statistics_page.dart';
 import 'screens/social_page.dart';
 import 'screens/character_page.dart';
+import 'screens/account_page.dart';
 import 'theme/app_ui.dart';
 import 'screens/onboarding_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.initialize();
+  try {
+    await Firebase.initializeApp();
+    debugPrint('Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    debugPrint('Please ensure google-services.json and GoogleService-Info.plist are correctly configured.');
+  }
   runApp(const NudgeApp());
 }
 
@@ -252,11 +261,12 @@ class _AppRoot extends StatelessWidget {
           ),
         ),
       ),
+      // App always goes directly to main shell — sign in/register via Account tab
       home: !appState.isHydrated
           ? const _AppLoadingScreen()
           : (appState.hasCompletedOnboarding
-                ? const MainShell()
-                : const OnboardingPage()),
+              ? const MainShell()
+              : const OnboardingPage()),
     );
   }
 }
@@ -319,6 +329,7 @@ class _MainShellState extends State<MainShell> {
       const FocusPage(),
       const SocialPage(),
       const HealthPage(),
+      const AccountPage(),
     ];
 
     return Scaffold(
@@ -367,6 +378,11 @@ class _MainShellState extends State<MainShell> {
               icon: Icon(Icons.favorite_border),
               selectedIcon: Icon(Icons.favorite),
               label: '健康',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: '帳號',
             ),
           ],
         ),

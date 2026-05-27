@@ -1,4 +1,6 @@
-platform :ios, '13.0'
+platform :ios, '15.5'
+
+use_modular_headers!
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -26,6 +28,11 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
+  use_frameworks! :linkage => :static
+
+  pod 'gRPC-Core', :modular_headers => false
+  pod 'BoringSSL-GRPC', :modular_headers => false
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths
@@ -37,6 +44,12 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
+      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      
+      if target.name == 'gRPC-Core'
+        config.build_settings['DEFINES_MODULE'] = 'YES'
+      end
+
       if target.name == 'Pods-Runner'
         config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'NO'
       end

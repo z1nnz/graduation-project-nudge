@@ -232,6 +232,17 @@ class TodayAdvicePage extends StatelessWidget {
     );
   }
 
+  void _showAICoachDialog(BuildContext context, AppState appState) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return _AICoachBottomSheet(appState: appState);
+      },
+    );
+  }
+
   void _runPrimaryAction(
     BuildContext context,
     AppState appState,
@@ -485,6 +496,70 @@ class TodayAdvicePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
+          Card(
+            shape: AppUI.cardShape(),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  colors: [
+                    accentColor.withValues(alpha: 0.12),
+                    accentColor.withValues(alpha: 0.03),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: accentColor.withValues(alpha: 0.18),
+                      child: Icon(Icons.psychology_outlined, size: 28, color: accentColor),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI 智能自律導師',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: primaryText,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '一鍵診斷歷史健康與專注的盲點關聯性',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: secondaryText,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accentColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => _showAICoachDialog(context, appState),
+                      child: const Text('諮詢', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
           if (mainLineTasks.isNotEmpty) ...[
             Card(
               shape: AppUI.cardShape(),
@@ -943,6 +1018,154 @@ class _AdviceActionCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AICoachBottomSheet extends StatefulWidget {
+  final AppState appState;
+  const _AICoachBottomSheet({required this.appState});
+
+  @override
+  State<_AICoachBottomSheet> createState() => _AICoachBottomSheetState();
+}
+
+class _AICoachBottomSheetState extends State<_AICoachBottomSheet> {
+  bool _loading = true;
+  String _advice = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAdvice();
+  }
+
+  Future<void> _fetchAdvice() async {
+    final response = await widget.appState.askAICoach();
+    if (mounted) {
+      setState(() {
+        _advice = response;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+    final accentColor = widget.appState.currentIconColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.80,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 48,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: theme.dividerColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: accentColor.withValues(alpha: 0.12),
+                  child: Icon(Icons.psychology_alt_outlined, color: accentColor),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI 智能自律導師',
+                        style: TextStyle(
+                          color: primaryText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '基於歷史步數、睡眠與專注關聯性診斷',
+                        style: TextStyle(color: secondaryText, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            Expanded(
+              child: _loading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(strokeWidth: 3),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '正在分析你過去 7 天的自律數據...',
+                            style: TextStyle(color: secondaryText, fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '尋找睡眠、步數與專注之間的盲點關聯...',
+                            style: TextStyle(color: secondaryText, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Text(
+                          _advice,
+                          style: TextStyle(
+                            color: primaryText,
+                            fontSize: 15,
+                            height: 1.6,
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+            if (!_loading) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: accentColor,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.check_circle_outline_rounded),
+                label: const Text('好的，我會試著調整', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ],
         ),
       ),
     );

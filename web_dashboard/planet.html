@@ -1,14 +1,86 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 自律城市 / 自律星球</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 自律城市 / 自律星球</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <!-- Three.js 3D Engine & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Firebase Compat SDK for real-time Firestore sync -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  </head>
   <body data-page="planet">
-    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">營運後台</a><a href="research.html">研究 / 展示中心</a><a class="active" href="planet.html">自律城市 / 星球</a></nav><section class="side-panel"><span class="eyebrow">目前展示</span><strong id="planetLabel">穩定成長星球</strong><p>切換不同資料可以看到城市如何變化。</p></section></aside>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>自律星球</small></span>
+        </a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">營運後台</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a class="active" href="planet.html">自律城市 / 星球</a>
+        </nav>
+        <section class="side-panel">
+          <span class="eyebrow">目前展示</span>
+          <strong id="planetLabel">我的 3D 自律星球</strong>
+          <p>任務完成與專注時數會即時在 3D 星球上長出對應建築與森林！</p>
+        </section>
+      </aside>
       <main class="main">
-        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>星球中心只展示世界，建築、事件、好友拜訪分頁管理。</h1><p>讓自律星球不只是儀表板，而是可以規劃、解鎖、產生事件的延伸系統。</p><div class="subnav"><a class="active" href="planet.html">星球展示</a><a href="planet-builder.html">建築規劃</a><a href="planet-events.html">城市事件</a></div></div><div class="hero-card"><span>星球繁榮度</span><strong data-count="73">0</strong><p>本週新增 5 棟建築，2 位好友到訪。</p></div></header>
-        <section class="planet-stage page-section immersive-stage" data-tilt><div class="starfield"></div><div class="planet-shadow"></div><div class="planet"><span class="continent c1"></span><span class="continent c2"></span><span class="continent c3"></span></div><div class="orbit-line orbit-one"></div><div class="orbit-line orbit-two"></div><div class="building b1">圖書館<br /><small>專注</small></div><div class="building b2">公園<br /><small>健康</small></div><div class="building b3">住宅<br /><small>睡眠</small></div><div class="building b4">廣場<br /><small>自律房</small></div><div class="building b5">鐘塔<br /><small>截止日</small></div><div class="avatar-visitor v1">小安</div><div class="avatar-visitor v2">老闆</div><div class="stage-hud"><small>LIVE PLANET</small><strong id="planetHud">穩定成長星球</strong><span>任務完成會即時點亮城市區域</span></div></section>
-        <section class="center-hub page-section"><a class="hub-card" href="planet-builder.html"><span>＋</span><strong>星球建築規劃器</strong><p>把下週目標轉成建築、解鎖條件和城市事件。</p><small>規劃建築</small></a><a class="hub-card" href="planet-events.html"><span>✦</span><strong>城市事件與好友拜訪</strong><p>管理好友拜訪、鼓勵、建築亮起與活動事件。</p><small>查看事件</small></a></section>
+        <header class="hero split planet-hero cinematic">
+          <div>
+            <span class="eyebrow">3D Visualized Planet</span>
+            <h1>將你的自律努力，實時建造成一個會呼吸的 3D 星球。</h1>
+            <p>手機打勾任務或是同步健康資料，星球上的物件會立刻動態長出。</p>
+            <div class="subnav">
+              <a class="active" href="planet.html">星球展示</a>
+              <a href="planet-builder.html">建築規劃</a>
+              <a href="planet-events.html">城市事件</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>星球繁榮度</span>
+            <strong id="planetProsperity" data-count="85">0</strong>
+            <p>完成綠色任務長樹林，專注蓋圖書館，睡眠亮夜燈。</p>
+          </div>
+        </header>
+
+        <section class="planet-stage page-section immersive-stage" style="height: 520px; padding: 0; position: relative;">
+          <!-- Three.js Canvas Container -->
+          <div id="planetCanvasContainer" style="width: 100%; height: 100%; outline: none;"></div>
+          
+          <!-- UI HUD Overlay -->
+          <div class="stage-hud" style="pointer-events: none;">
+            <small>REAL-TIME 3D PLANET</small>
+            <strong id="planetHud">連線中...</strong>
+            <span>支援滑鼠拖移旋轉與滾輪縮放</span>
+          </div>
+        </section>
+
+        <section class="center-hub page-section">
+          <a class="hub-card" href="planet-builder.html">
+            <span>＋</span>
+            <strong>星球建築規劃器</strong>
+            <p>把下週目標轉成建築、解鎖條件和城市事件。</p>
+            <small>規劃建築</small>
+          </a>
+          <a class="hub-card" href="planet-events.html">
+            <span>✦</span>
+            <strong>城市事件與好友拜訪</strong>
+            <p>管理好友拜訪、鼓勵、建築亮起與活動事件。</p>
+            <small>查看事件</small>
+          </a>
+        </section>
       </main>
-    </div><script src="assets/app.js"></script>
+    </div>
+    <script src="assets/app.js"></script>
   </body>
 </html>
-

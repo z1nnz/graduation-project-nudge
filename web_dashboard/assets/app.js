@@ -592,6 +592,530 @@ window.addEventListener("DOMContentLoaded", () => {
   bindExtensionTools();
   bindTilt();
   bindPresentation();
+  initializeFirebaseWeb();
+  if (document.body.dataset.page === "planet") {
+    setTimeout(init3DPlanet, 300);
+  }
 });
 
 window.addEventListener("resize", bootCharts);
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCsvP-r0EygpkhH0Zwzfrl4uFzy6LcbsTQ",
+  authDomain: "nudge-discipline-app.firebaseapp.com",
+  projectId: "nudge-discipline-app",
+  storageBucket: "nudge-discipline-app.firebasestorage.app",
+  messagingSenderId: "497972469632",
+  appId: "1:497972469632:web:cb87819a70c7cb8f2f6b65"
+};
+
+function loadFirebaseSDKs() {
+  return new Promise((resolve) => {
+    if (window.firebase) {
+      resolve();
+      return;
+    }
+    const coreScript = document.createElement('script');
+    coreScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js";
+    coreScript.onload = () => {
+      const dbScript = document.createElement('script');
+      dbScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js";
+      dbScript.onload = () => {
+        resolve();
+      };
+      dbScript.onerror = () => resolve();
+      document.head.appendChild(dbScript);
+    };
+    coreScript.onerror = () => resolve();
+    document.head.appendChild(coreScript);
+  });
+}
+
+let db = null;
+
+function initializeFirebaseWeb() {
+  loadFirebaseSDKs().then(() => {
+    if (typeof firebase !== 'undefined') {
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        console.log("Firebase initialized successfully on Web Center");
+        startListeningToFirestoreData();
+      } catch (e) {
+        console.warn("Firebase initialization failed, falling back to mock data: ", e);
+      }
+    } else {
+      console.log("Firebase SDK not loaded, using local demo data");
+    }
+  });
+}
+
+function startListeningToFirestoreData() {
+  if (!db) return;
+  db.collection("users").get().then((querySnapshot) => {
+    const users = [];
+    querySnapshot.forEach((doc) => {
+      users.push({ id: doc.id, ...doc.data() });
+    });
+    
+    if (users.length === 0) {
+      console.log("No users found in Firestore.");
+      return;
+    }
+    
+    let activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || users[0].id;
+    if (!users.some(u => u.id === activeUserId)) {
+      activeUserId = users[0].id;
+    }
+    localStorage.setItem("nudgeActiveDemoUserId", activeUserId);
+    
+    // Clear static demo panel status
+    const panel = $(".side-panel");
+    if (panel) {
+      panel.innerHTML = "";
+    }
+    
+    injectUserSwitcher(users, activeUserId);
+    listenToUser(activeUserId);
+  }).catch(e => {
+    console.warn("Firestore access error: ", e);
+  });
+}
+
+function injectUserSwitcher(users, activeUserId) {
+  const panel = $(".side-panel");
+  if (!panel || $(".demo-user-select").length) return;
+  
+  const selectHtml = `
+    <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;" class="demo-user-select">
+      <span class="eyebrow">切換自律帳號</span>
+      <select id="demoUserSelect" class="module-select" style="width: 100%; margin-top: 5px; background: #1a1d24; color: #fff; border: 1px solid rgba(255,255,255,0.12); padding: 8px; borderRadius: 8px; font-weight: 600; cursor: pointer;">
+        ${users.map(u => `<option value="${u.id}" ${u.id === activeUserId ? 'selected' : ''}>${u.nickname} (${u.username || 'NDG'})</option>`).join('')}
+      </select>
+    </div>
+  `;
+  panel.insertAdjacentHTML('beforeend', selectHtml);
+  
+  document.getElementById("demoUserSelect")?.addEventListener("change", (e) => {
+    const nextUserId = e.target.value;
+    localStorage.setItem("nudgeActiveDemoUserId", nextUserId);
+    toast(`已切換自律帳號數據`);
+    setTimeout(() => window.location.reload(), 500);
+  });
+}
+
+function updateSidebarProfile(data) {
+  const panel = $(".side-panel");
+  if (!panel) return;
+  
+  const nickname = data.nickname || "未知使用者";
+  const nudgeId = data.myNudgeId || data.username || "NDG-Guest";
+  const coins = typeof data.disciplineCoins === 'number' ? data.disciplineCoins : 0;
+  
+  let accentColor = "#7c6ae6";
+  if (data.accentColor) {
+    if (typeof data.accentColor === 'number') {
+      const hex = (data.accentColor & 0x00FFFFFF).toString(16).padStart(6, '0');
+      accentColor = `#${hex}`;
+    } else {
+      accentColor = data.accentColor;
+    }
+  }
+
+  let profileContainer = $(".sidebar-profile-container");
+  const cardHtml = `
+    <div class="sidebar-profile-container" style="text-align: left;">
+      <span class="eyebrow">同步使用者資料</span>
+      <div class="user-profile-card" style="margin-top: 8px; margin-bottom: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: ${accentColor}; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 16px; box-shadow: 0 4px 12px ${accentColor}40; flex-shrink: 0;">
+          ${nickname.substring(0, 1).toUpperCase()}
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 700; color: #fff; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nickname}</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.4); font-family: monospace;">ID: ${nudgeId}</div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-weight: 800; color: #f59e0b; font-size: 13px;">🪙${coins}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (profileContainer) {
+    profileContainer.outerHTML = cardHtml;
+  } else {
+    panel.insertAdjacentHTML('afterbegin', cardHtml);
+  }
+}
+
+function listenToUser(userId) {
+  if (!db) return;
+  db.collection("users").doc(userId).onSnapshot((docSnap) => {
+    if (!docSnap.exists) return;
+    const data = docSnap.data();
+    
+    updateSidebarProfile(data);
+    
+    const dailySummaries = data.dailySummaries || [];
+    const tasks = data.tasks || [];
+    
+    if (dailySummaries.length > 0) {
+      const scores = dailySummaries.map(s => s.disciplineScore || 0);
+      const sleepHours = dailySummaries.map(s => s.sleepHours || 0);
+      
+      const trendChart = $("#trendChart");
+      if (trendChart && scores.length > 0) {
+        drawLineChart(trendChart, scores.slice(-12));
+      }
+      
+      const sleepChart = $("#sleepChart");
+      if (sleepChart && sleepHours.length > 0) {
+        drawLineChart(sleepChart, sleepHours.slice(-7), "#8d7aff");
+      }
+    }
+    
+    if (tasks.length > 0) {
+      const completedCount = tasks.filter(t => t.done || t.isDone).length;
+      const completionRate = Math.round((completedCount / tasks.length) * 100);
+      const chipA = $(".chip-a strong");
+      if (chipA) {
+        chipA.dataset.count = completionRate;
+        chipA.textContent = `${completionRate}%`;
+      }
+    }
+
+    if (document.body.dataset.page === "planet") {
+      const todaySummary = dailySummaries[dailySummaries.length - 1] || {};
+      const completedCount = tasks.filter(t => t.done || t.isDone).length;
+      const syncData = {
+        completedTasks: completedCount || 3,
+        focusMinutes: todaySummary.focusMinutes || (data.focusSeconds ? Math.floor(data.focusSeconds/60) : 40),
+        sleepHours: todaySummary.sleepHours || 7.0,
+        activeFriendsCount: data.friends ? data.friends.length : 2
+      };
+      if (typeof update3DPlanet === 'function') {
+        update3DPlanet(syncData);
+      }
+    }
+  });
+}
+
+function updateTextContent(selector, text) {
+  const node = $(selector);
+  if (node) node.textContent = text;
+}
+
+let activePlanetScene = null;
+let update3DPlanetFn = null;
+
+function update3DPlanet(data) {
+  if (typeof update3DPlanetFn === 'function') {
+    update3DPlanetFn(data);
+  }
+}
+
+function init3DPlanet() {
+  const container = document.getElementById("planetCanvasContainer");
+  if (!container) return;
+
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  // Scene, Camera, Renderer
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x050608, 0.015);
+
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+  camera.position.set(0, 0, 15);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
+  container.appendChild(renderer.domElement);
+
+  // Controls
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.minDistance = 6;
+  controls.maxDistance = 25;
+
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
+  dirLight.position.set(5, 10, 7);
+  dirLight.castShadow = true;
+  scene.add(dirLight);
+
+  // Planet Base (Purple sphere representing Nudge)
+  const planetRadius = 3.5;
+  const planetGeo = new THREE.SphereGeometry(planetRadius, 32, 32);
+  const planetMat = new THREE.MeshPhongMaterial({
+    color: 0x7c6ae6,
+    emissive: 0x1a153b,
+    shininess: 25,
+    flatShading: true
+  });
+  const planet = new THREE.Mesh(planetGeo, planetMat);
+  planet.receiveShadow = true;
+  scene.add(planet);
+
+  // Continents (smaller overlay panels)
+  const continentMat = new THREE.MeshPhongMaterial({
+    color: 0x5a48c4,
+    shininess: 5,
+    flatShading: true
+  });
+  const continentCount = 6;
+  for (let i = 0; i < continentCount; i++) {
+    const size = 1.2 + Math.random() * 1.6;
+    const contGeo = new THREE.BoxGeometry(size, size, 0.4);
+    const cont = new THREE.Mesh(contGeo, continentMat);
+    // Position on sphere surface
+    const u = Math.random();
+    const v = Math.random();
+    const theta = u * 2.0 * Math.PI;
+    const phi = Math.acos(2.0 * v - 1.0);
+    cont.position.set(
+      planetRadius * Math.sin(phi) * Math.cos(theta),
+      planetRadius * Math.sin(phi) * Math.sin(theta),
+      planetRadius * Math.cos(phi)
+    );
+    cont.lookAt(0, 0, 0);
+    planet.add(cont);
+  }
+
+  // Starfield
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 500;
+  const starPositions = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount * 3; i += 3) {
+    const dist = 30 + Math.random() * 40;
+    const u = Math.random();
+    const v = Math.random();
+    const theta = u * 2.0 * Math.PI;
+    const phi = Math.acos(2.0 * v - 1.0);
+    starPositions[i] = dist * Math.sin(phi) * Math.cos(theta);
+    starPositions[i+1] = dist * Math.sin(phi) * Math.sin(theta);
+    starPositions[i+2] = dist * Math.cos(phi);
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const starMat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.22,
+    transparent: true,
+    opacity: 0.8
+  });
+  const starfield = new THREE.Points(starGeo, starMat);
+  scene.add(starfield);
+
+  // Group to hold spawned buildings/assets on the planet
+  const assetGroup = new THREE.Group();
+  planet.add(assetGroup);
+
+  // Helper to convert lat/lon to Cartesian position on planet surface
+  function getPositionOnPlanet(lat, lon, heightOffset = 0) {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lon + 180) * (Math.PI / 180);
+    const r = planetRadius + heightOffset;
+    return new THREE.Vector3(
+      r * Math.sin(phi) * Math.cos(theta),
+      r * Math.cos(phi),
+      r * Math.sin(phi) * Math.sin(theta)
+    );
+  }
+
+  // Spawning systems
+  function clearAssets() {
+    while (assetGroup.children.length > 0) {
+      assetGroup.remove(assetGroup.children[0]);
+    }
+  }
+
+  function spawnTree(lat, lon) {
+    const tree = new THREE.Group();
+    // Trunk
+    const trunkGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.35, 6);
+    const trunkMat = new THREE.MeshPhongMaterial({ color: 0x5c4033 });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = 0.15;
+    tree.add(trunk);
+
+    // Leaves
+    const leavesGeo = new THREE.ConeGeometry(0.2, 0.5, 6);
+    const leavesMat = new THREE.MeshPhongMaterial({ color: 0x10B981 });
+    const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+    leaves.position.y = 0.5;
+    tree.add(leaves);
+
+    const pos = getPositionOnPlanet(lat, lon);
+    tree.position.copy(pos);
+    tree.lookAt(new THREE.Vector3(0, 0, 0));
+    tree.rotateX(Math.PI / 2);
+    assetGroup.add(tree);
+  }
+
+  function spawnLibrary(lat, lon) {
+    const library = new THREE.Group();
+    // Base
+    const baseGeo = new THREE.BoxGeometry(0.6, 0.5, 0.6);
+    const baseMat = new THREE.MeshPhongMaterial({ color: 0x3B82F6 });
+    const base = new THREE.Mesh(baseGeo, baseMat);
+    base.position.y = 0.25;
+    library.add(base);
+
+    // Roof
+    const roofGeo = new THREE.ConeGeometry(0.5, 0.35, 4);
+    const roofMat = new THREE.MeshPhongMaterial({ color: 0xEF4444 });
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.y = 0.6;
+    roof.rotation.y = Math.PI / 4;
+    library.add(roof);
+
+    const pos = getPositionOnPlanet(lat, lon);
+    library.position.copy(pos);
+    library.lookAt(new THREE.Vector3(0, 0, 0));
+    library.rotateX(Math.PI / 2);
+    assetGroup.add(library);
+  }
+
+  function spawnStreetLight(lat, lon, isGlowing) {
+    const lightGroup = new THREE.Group();
+    const poleGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.6, 4);
+    const poleMat = new THREE.MeshPhongMaterial({ color: 0x4B5563 });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.y = 0.3;
+    lightGroup.add(pole);
+
+    const bulbGeo = new THREE.SphereGeometry(0.06, 8, 8);
+    const bulbMat = new THREE.MeshBasicMaterial({ color: isGlowing ? 0xFBBF24 : 0x9CA3AF });
+    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+    bulb.position.y = 0.6;
+    lightGroup.add(bulb);
+
+    if (isGlowing) {
+      const glow = new THREE.PointLight(0xFBBF24, 1.5, 3);
+      glow.position.set(0, 0.6, 0);
+      lightGroup.add(glow);
+    }
+
+    const pos = getPositionOnPlanet(lat, lon);
+    lightGroup.position.copy(pos);
+    lightGroup.lookAt(new THREE.Vector3(0, 0, 0));
+    lightGroup.rotateX(Math.PI / 2);
+    assetGroup.add(lightGroup);
+  }
+
+  function spawnFriendAvatar(lat, lon) {
+    const avatar = new THREE.Group();
+    const headGeo = new THREE.SphereGeometry(0.14, 8, 8);
+    const headMat = new THREE.MeshPhongMaterial({ color: 0xFDBA74 });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.y = 0.4;
+    avatar.add(head);
+
+    const bodyGeo = new THREE.CylinderGeometry(0.02, 0.12, 0.3, 8);
+    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x8B5CF6 });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.15;
+    avatar.add(body);
+
+    const pos = getPositionOnPlanet(lat, lon);
+    avatar.position.copy(pos);
+    avatar.lookAt(new THREE.Vector3(0, 0, 0));
+    avatar.rotateX(Math.PI / 2);
+    assetGroup.add(avatar);
+  }
+
+  update3DPlanetFn = function(data) {
+    clearAssets();
+
+    // Spawn Trees based on completedTasks
+    const completedTasks = data.completedTasks || 0;
+    const treeCount = Math.min(completedTasks * 3, 24);
+    for (let i = 0; i < treeCount; i++) {
+      const lat = -65 + (i * 137.5) % 130;
+      const lon = -180 + (i * 222.5) % 360;
+      spawnTree(lat, lon);
+    }
+
+    // Spawn Libraries based on focusMinutes
+    const focusMinutes = data.focusMinutes || 0;
+    const libCount = Math.min(Math.floor(focusMinutes / 20), 6);
+    for (let i = 0; i < libCount; i++) {
+      const lat = -35 + (i * 117.5) % 70;
+      const lon = -160 + (i * 197.5) % 320;
+      spawnLibrary(lat, lon);
+    }
+
+    // Spawn Street Lights based on sleepHours
+    const sleepHours = data.sleepHours || 0;
+    const lightCount = Math.min(Math.floor(sleepHours), 8);
+    const isGlowing = sleepHours >= 6.5;
+    for (let i = 0; i < lightCount; i++) {
+      const lat = -50 + (i * 97.5) % 100;
+      const lon = -170 + (i * 187.5) % 340;
+      spawnStreetLight(lat, lon, isGlowing);
+    }
+
+    // Spawn Friend avatars
+    const friendsCount = data.activeFriendsCount || 2;
+    for (let i = 0; i < friendsCount; i++) {
+      const lat = -25 + (i * 77.5) % 50;
+      const lon = -140 + (i * 167.5) % 280;
+      spawnFriendAvatar(lat, lon);
+    }
+
+    // Update Prosperity in HUD
+    const prosperity = (completedTasks * 8) + (focusMinutes * 2) + Math.round(sleepHours * 5);
+    const hud = document.getElementById("planetHud");
+    if (hud) hud.textContent = "已連動 - 星球繁榮度 " + Math.max(prosperity, 10);
+    const label = document.getElementById("planetLabel");
+    if (label) label.textContent = "自律星球 (繁榮度: " + Math.max(prosperity, 10) + ")";
+  };
+
+  // Seed default display
+  update3DPlanet({
+    completedTasks: 4,
+    focusMinutes: 45,
+    sleepHours: 7.5,
+    activeFriendsCount: 2
+  });
+
+  // Animation Loop
+  let reqId;
+  function animate() {
+    reqId = requestAnimationFrame(animate);
+    planet.rotation.y += 0.0018;
+    planet.rotation.x += 0.0003;
+    starfield.rotation.y -= 0.0003;
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  function handleResize() {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+  window.addEventListener("resize", handleResize);
+
+  // Auto clean up
+  const observer = new MutationObserver(() => {
+    if (!document.body.contains(container)) {
+      cancelAnimationFrame(reqId);
+      window.removeEventListener("resize", handleResize);
+      renderer.dispose();
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}

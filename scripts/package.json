@@ -1,0 +1,10 @@
+{
+  "name": "nudge-scripts",
+  "version": "1.0.0",
+  "description": "Seeding scripts for Nudge project",
+  "main": "seed_firestore.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "type": "module"
+}

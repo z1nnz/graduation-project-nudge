@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ─────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // ─── /users/{userId} ──────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false;
+
+      // ─── /users/{userId}/friends/{friendId} ───────────────────────
+      match /friends/{friendId} {
+        allow read: if isOwner(userId) || (isAuth() && request.auth.uid == friendId);
+        allow write: if isAuth() && request.resource.data.id == friendId;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // ─── /friend_requests/{requestId} ────────────────────────────────
+    match /friend_requests/{requestId} {
+      allow read: if isAuth() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid
+      );
+      allow create: if isAuth()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll([
+          'senderId', 'senderNudgeId', 'senderName',
+          'receiverId', 'receiverNudgeId', 'receiverName',
+          'status', 'createdAt'
+        ]);
+      allow update: if isAuth()
+        && resource.data.receiverId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['accepted', 'declined'];
+      allow delete: if false;
+    }
+
+    // ─── /rooms/{roomId} ─────────────────────────────────────────────
+    // Study rooms: authenticated members can read rooms they belong to.
+    // The 'memberIds' array field is used for efficient array-contains queries.
+    match /rooms/{roomId} {
+      // Any authenticated user can read rooms (needed for QR-code join flow)
+      allow read: if isAuth();
+
+      // Any authenticated user can create a room (they become owner)
+      allow create: if isAuth()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberIds.hasAll([request.auth.uid]);
+
+      // Any authenticated member of the room can update it
+      // (members update their own presence, owner updates settings)
+      allow update: if isAuth()
+        && (resource.data.memberIds.hasAll([request.auth.uid])
+            || request.resource.data.memberIds.hasAll([request.auth.uid]));
+
+      allow delete: if isAuth()
+        && resource.data.ownerId == request.auth.uid;
+
+      // ─── /rooms/{roomId}/calls/{callUserId} ───────────────────────
+      match /calls/{callUserId} {
+        allow read: if isAuth();
+        allow write: if isOwner(callUserId);
+        allow delete: if isOwner(callUserId);
+
+        // ─── sdpExchange ────────────────────────────────────────────
+        match /sdpExchange/{senderId} {
+          allow read: if isAuth() && (
+            request.auth.uid == callUserId || request.auth.uid == senderId
+          );
+          allow write: if isAuth() && request.auth.uid == senderId;
+          allow delete: if isAuth() && request.auth.uid == senderId;
+        }
+
+        // ─── ICE candidates ─────────────────────────────────────────
+        match /candidates/{candidateId} {
+          allow read: if isAuth() && request.auth.uid == callUserId;
+          allow create: if isAuth()
+            && request.resource.data.senderId == request.auth.uid;
+          allow delete: if isAuth()
+            && resource.data.senderId == request.auth.uid;
+        }
+      }
+    }
+  }
+}
