@@ -3523,6 +3523,12 @@ class AppState extends ChangeNotifier {
       password: password.trim(),
     );
     if (credential.user != null) {
+      try {
+        await credential.user!.sendEmailVerification();
+        debugPrint('Verification email sent to ${email.trim()}');
+      } catch (e) {
+        debugPrint('Could not send email verification: $e');
+      }
       _profileNickname = nickname.trim();
       await _syncProfileFromFirebaseUser(credential.user!);
     }

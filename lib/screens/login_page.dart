@@ -177,7 +177,84 @@ class _LoginPageState extends State<LoginPage> {
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: secondaryText.withValues(alpha: 0.2))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          '或第三方快速登入',
+                          style: TextStyle(color: secondaryText, fontSize: 12),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: secondaryText.withValues(alpha: 0.2))),
+                    ],
+                  ),
                   const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Google Button
+                      _SocialIconButton(
+                        icon: Icons.g_mobiledata_rounded,
+                        color: Colors.redAccent,
+                        onTap: () async {
+                          setState(() {
+                            _loading = true;
+                            _errorMessage = null;
+                          });
+                          try {
+                            await context.read<AppState>().signInWithGoogle();
+                          } catch (e) {
+                            setState(() {
+                              _errorMessage = 'Google 登入失敗：$e';
+                            });
+                          } finally {
+                            if (mounted) {
+                              setState(() {
+                                _loading = false;
+                              });
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      // Apple Button
+                      _SocialIconButton(
+                        icon: Icons.apple_rounded,
+                        color: Colors.white,
+                        onTap: () => _showPresentationDialog(
+                          context,
+                          'Apple 登入',
+                          '需要配備 Apple 付費開發者帳號（年費 \$99 美元）與配置相關 App ID 與憑證金鑰。',
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Facebook Button
+                      _SocialIconButton(
+                        icon: Icons.facebook_rounded,
+                        color: Colors.blueAccent,
+                        onTap: () => _showPresentationDialog(
+                          context,
+                          'Facebook 登入',
+                          '需要配置 Meta for Developers 平台之 App ID 與 Android/iOS 原生 SDK 安全認證金鑰。',
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Microsoft Button
+                      _SocialIconButton(
+                        icon: Icons.grid_view_rounded,
+                        color: Colors.orangeAccent,
+                        onTap: () => _showPresentationDialog(
+                          context,
+                          'Microsoft 登入',
+                          '需要配置 Microsoft Azure Active Directory 的租戶權限與 Client ID 設定。',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                   // Switch to register / offline mode
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -224,6 +301,88 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showPresentationDialog(BuildContext context, String provider, String details) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final primaryText = AppUI.textPrimaryOf(context);
+        final secondaryText = AppUI.textSecondaryOf(context);
+        return AlertDialog(
+          backgroundColor: AppUI.scaffoldBackgroundOf(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppUI.primary),
+              const SizedBox(width: 10),
+              Text(
+                '展示環境提示',
+                style: TextStyle(color: primaryText, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '本平台在當前 Demo 展示環境中未配置 $provider 的開發者憑證。',
+                style: TextStyle(color: primaryText, fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '原因：$details',
+                style: TextStyle(color: secondaryText, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '此按鈕僅供 UI 介面展示，請使用「電子郵件」或「Google 帳號」進行登入！',
+                style: TextStyle(color: AppUI.primary, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('我知道了', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SocialIconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _SocialIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(icon, size: 28, color: color),
       ),
     );
   }

@@ -218,14 +218,20 @@
           <button type="submit" class="button primary submit-btn" id="submitBtn">建立帳號並登入</button>
         </form>
 
-        <div class="divider">或使用第三方登入</div>
-
         <div class="social-login">
-          <button type="button" class="social-btn">
+          <button type="button" class="social-btn" id="btnGoogle" style="flex: 1;">
             G Google
           </button>
-          <button type="button" class="social-btn">
+          <button type="button" class="social-btn" id="btnApple" style="flex: 1;">
             🍎 Apple
+          </button>
+        </div>
+        <div class="social-login" style="margin-top: -16px; margin-bottom: 24px;">
+          <button type="button" class="social-btn" id="btnFacebook" style="flex: 1;">
+            👤 Facebook
+          </button>
+          <button type="button" class="social-btn" id="btnMicrosoft" style="flex: 1;">
+            ❖ Microsoft
           </button>
         </div>
 
@@ -417,7 +423,16 @@
           submitBtn.textContent = "建立帳號中...";
           auth.createUserWithEmailAndPassword(email, password)
             .then((result) => {
-              return syncUserProfile(result.user, nickname);
+              // Send verification email in background
+              result.user.sendEmailVerification().then(() => {
+                console.log("Verification email sent.");
+              }).catch((e) => {
+                console.warn("Could not send email verification:", e);
+              });
+              
+              return syncUserProfile(result.user, nickname).then(() => {
+                alert("已成功註冊！我們已發送一封電子郵件驗證信至 " + email + "，請至您的信箱查看。（您現在仍可直接開始體驗功能）");
+              });
             })
             .catch((err) => {
               submitBtn.disabled = false;
@@ -427,8 +442,13 @@
         }
       });
 
-      // Google Sign-In
-      document.querySelector('.social-btn:nth-child(1)').addEventListener('click', (e) => {
+      // Show Presentation Info Modal helper
+      function showPresentationAlert(providerName, reason) {
+        showError(`展示環境提示：本平台在當前 Demo 展示環境中未配置 ${providerName} 的開發者認證金鑰。原因：${reason}。此按鈕僅供 UI 介面展示，請使用「電子郵件/密碼」或「Google 帳號」進行登入！`);
+      }
+
+      // Google Sign-In (Real Integration)
+      document.getElementById('btnGoogle').addEventListener('click', (e) => {
         e.preventDefault();
         showError("");
         const provider = new firebase.auth.GoogleAuthProvider();
@@ -441,18 +461,25 @@
           });
       });
 
-      // Apple Sign-In
-      document.querySelector('.social-btn:nth-child(2)').addEventListener('click', (e) => {
+      // Apple Sign-In (Demo Alert)
+      document.getElementById('btnApple').addEventListener('click', (e) => {
         e.preventDefault();
         showError("");
-        const provider = new firebase.auth.OAuthProvider('apple.com');
-        auth.signInWithPopup(provider)
-          .then((result) => {
-            syncUserProfile(result.user);
-          })
-          .catch((err) => {
-            showError("Apple 第三方登入失敗：" + err.message);
-          });
+        showPresentationAlert("Apple", "需要配備 Apple 付費開發者帳號（年費 $99 美元）與配置相關 App ID 與憑證金鑰。");
+      });
+
+      // Facebook Sign-In (Demo Alert)
+      document.getElementById('btnFacebook').addEventListener('click', (e) => {
+        e.preventDefault();
+        showError("");
+        showPresentationAlert("Facebook", "需要配置 Meta for Developers 平台之 App ID 與相關 OAuth 回呼金鑰。");
+      });
+
+      // Microsoft Sign-In (Demo Alert)
+      document.getElementById('btnMicrosoft').addEventListener('click', (e) => {
+        e.preventDefault();
+        showError("");
+        showPresentationAlert("Microsoft", "需要配置 Microsoft Azure Active Directory 企業租戶憑證與 Client ID。");
       });
     </script>
   </body>

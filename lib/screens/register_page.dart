@@ -65,6 +65,13 @@ class _RegisterPageState extends State<RegisterPage> {
       await appState.signUpWithEmailAndPassword(email, password, nickname);
       // Success will pop this page and navigate to main shell in AppRoot
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('註冊成功！驗證信已寄送至 $email，請至信箱查看。（您現在仍可直接使用功能）'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
         Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
