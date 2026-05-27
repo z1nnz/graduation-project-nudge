@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge - 登入 / 註冊</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <style>
+      .login-page {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        position: relative;
+        z-index: 1;
+      }
+      .login-card {
+        width: 100%;
+        max-width: 440px;
+        padding: 40px;
+        text-align: center;
+      }
+      .login-title {
+        font-size: 32px;
+        margin-bottom: 12px;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      .login-subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        margin-bottom: 30px;
+      }
+      .auth-tabs {
+        display: flex;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 999px;
+        padding: 4px;
+        margin-bottom: 24px;
+      }
+      .auth-tab {
+        flex: 1;
+        padding: 12px;
+        border-radius: 999px;
+        color: var(--muted);
+        font-weight: 800;
+        cursor: pointer;
+        transition: 200ms ease;
+      }
+      .auth-tab.active {
+        background: var(--page-wash);
+        color: var(--page-accent);
+      }
+      .input-group {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 0 16px;
+        margin-bottom: 16px;
+        transition: 200ms ease;
+      }
+      .input-group:focus-within {
+        border-color: var(--page-accent);
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+      }
+      .input-group span {
+        color: var(--muted);
+        margin-right: 12px;
+        font-size: 20px;
+      }
+      .input-group input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--text);
+        padding: 16px 0;
+        font-size: 15px;
+        outline: none;
+      }
+      .input-group .toggle-pwd {
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .submit-btn {
+        width: 100%;
+        margin-top: 8px;
+        padding: 16px;
+        font-size: 16px;
+        border-radius: 16px;
+      }
+      .divider {
+        display: flex;
+        align-items: center;
+        margin: 24px 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+        margin: 0 12px;
+      }
+      .social-login {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 30px;
+      }
+      .social-btn {
+        flex: 1;
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        color: var(--text);
+        font-weight: 800;
+        cursor: pointer;
+        transition: 200ms ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .social-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .skip-link {
+        color: var(--muted);
+        text-decoration: underline;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .skip-link:hover {
+        color: var(--text);
+      }
+      /* Mobile bottom nav style to match user request */
+      .mobile-nav {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(3, 5, 10, 0.95);
+        border-top: 1px solid var(--line);
+        padding: 12px 20px 24px;
+        justify-content: space-between;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .nav-item.active {
+        color: var(--page-accent);
+      }
+      .nav-item span {
+        font-size: 24px;
+      }
+      @media (max-width: 600px) {
+        .mobile-nav {
+          display: flex;
+        }
+        .login-page {
+          padding-bottom: 90px;
+        }
+      }
+    </style>
+  </head>
+  <body data-page="home">
+    <div class="login-page">
+      <div class="panel login-card">
+        <h1 class="login-title" id="loginTitle">建立你的自律身分</h1>
+        <p class="login-subtitle" id="loginSubtitle">同步你的進度，與全球好友一同專注</p>
+
+        <div class="auth-tabs">
+          <div class="auth-tab" id="tabLogin">登入</div>
+          <div class="auth-tab active" id="tabRegister">註冊</div>
+        </div>
+
+        <form id="loginForm">
+          <div class="input-group" id="groupNickname">
+            <span>👤</span>
+            <input type="text" placeholder="自律暱稱" required />
+          </div>
+          <div class="input-group">
+            <span>✉️</span>
+            <input type="email" placeholder="電子郵件" required />
+          </div>
+          <div class="input-group">
+            <span>🔒</span>
+            <input type="password" placeholder="密碼" required />
+            <span class="toggle-pwd">👁️</span>
+          </div>
+          <div class="input-group" id="groupConfirm">
+            <span>🔒</span>
+            <input type="password" placeholder="確認密碼" required />
+            <span class="toggle-pwd">👁️</span>
+          </div>
+
+          <button type="submit" class="button primary submit-btn" id="submitBtn">建立帳號並登入</button>
+        </form>
+
+        <div class="divider">或使用第三方登入</div>
+
+        <div class="social-login">
+          <button type="button" class="social-btn">
+            G Google
+          </button>
+          <button type="button" class="social-btn">
+            🍎 Apple
+          </button>
+        </div>
+
+        <a href="index.html" class="skip-link">稍後再說，先體驗功能</a>
+      </div>
+    </div>
+
+    <!-- Mobile Nav Bar (Visible on small screens) -->
+    <div class="mobile-nav">
+      <div class="nav-item">
+        <span>🏠</span>
+        首頁
+      </div>
+      <div class="nav-item">
+        <span>✨</span>
+        角色
+      </div>
+      <div class="nav-item">
+        <span>⏱️</span>
+        專注
+      </div>
+      <div class="nav-item">
+        <span>👥</span>
+        社交
+      </div>
+      <div class="nav-item">
+        <span>❤️</span>
+        健康
+      </div>
+      <div class="nav-item active">
+        <span>👤</span>
+        帳號
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        localStorage.setItem('nudgeWebLoggedIn', 'true');
+        window.location.href = 'index.html';
+      });
+
+      // Tab switching logic
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const groupNickname = document.getElementById('groupNickname');
+      const groupConfirm = document.getElementById('groupConfirm');
+      const loginTitle = document.getElementById('loginTitle');
+      const loginSubtitle = document.getElementById('loginSubtitle');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      const nicknameInput = groupNickname.querySelector('input');
+      const confirmInput = groupConfirm.querySelector('input');
+
+      tabLogin.addEventListener('click', () => {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+        
+        groupNickname.style.display = 'none';
+        groupConfirm.style.display = 'none';
+        nicknameInput.required = false;
+        confirmInput.required = false;
+        
+        loginTitle.textContent = '歡迎回來';
+        loginSubtitle.textContent = '繼續你的自律旅程';
+        submitBtn.textContent = '登入';
+      });
+
+      tabRegister.addEventListener('click', () => {
+        tabRegister.classList.add('active');
+        tabLogin.classList.remove('active');
+        
+        groupNickname.style.display = 'flex';
+        groupConfirm.style.display = 'flex';
+        nicknameInput.required = true;
+        confirmInput.required = true;
+        
+        loginTitle.textContent = '建立你的自律身分';
+        loginSubtitle.textContent = '同步你的進度，與全球好友一同專注';
+        submitBtn.textContent = '建立帳號並登入';
+      });
+
+      // Also allow social login to just bypass for demo
+      document.querySelectorAll('.social-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          localStorage.setItem('nudgeWebLoggedIn', 'true');
+          window.location.href = 'index.html';
+        });
+      });
+    </script>
+  </body>
+</html>

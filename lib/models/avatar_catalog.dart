@@ -73,7 +73,7 @@ class AvatarSeries {
 }
 
 class AvatarCatalog {
-  static const List<AvatarEvolutionStage> evolutionStages = [
+  static List<AvatarEvolutionStage> evolutionStages = [
     AvatarEvolutionStage(
       index: 0,
       series: '星辰旅人',
@@ -335,7 +335,7 @@ class AvatarCatalog {
     ];
   }
 
-  static const List<String> faceShapeLabels = [
+  static List<String> faceShapeLabels = [
     '星辰學徒',
     '星光魔導士',
     '星耀守護者',
@@ -379,7 +379,7 @@ class AvatarCatalog {
 
   static const List<String> accessoryLabels = ['無配件', '金色星光', '藍色星光', '粉色星光'];
 
-  static const List<AvatarPartCategory> editorCategories = [
+  static List<AvatarPartCategory> editorCategories = [
     AvatarPartCategory(
       key: 'faceShape',
       title: '角色',
@@ -417,5 +417,25 @@ class AvatarCatalog {
 
   static String iconAssetForIndex(int index) {
     return stageForIndex(index).iconAsset;
+  }
+
+  static void addDynamicStage(AvatarEvolutionStage stage) {
+    // Convert to growable if it's currently fixed-length or unmodifiable
+    try {
+      evolutionStages.add(stage);
+    } catch (_) {
+      evolutionStages = List<AvatarEvolutionStage>.from(evolutionStages)..add(stage);
+    }
+    
+    try {
+      if (!faceShapeLabels.contains(stage.name)) {
+        faceShapeLabels.add(stage.name);
+      }
+    } catch (_) {
+      faceShapeLabels = List<String>.from(faceShapeLabels);
+      if (!faceShapeLabels.contains(stage.name)) {
+        faceShapeLabels.add(stage.name);
+      }
+    }
   }
 }

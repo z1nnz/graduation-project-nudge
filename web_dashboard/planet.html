@@ -1,18 +1,14 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nudge 自律城市 / 自律星球</title>
-    <link rel="stylesheet" href="assets/styles.css" />
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 自律城市 / 自律星球</title><link rel="stylesheet" href="assets/styles.css" />
     <!-- Firebase Compat SDK for real-time Firestore sync -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   </head>
   <body data-page="planet">
-    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">營運後台</a><a href="research.html">研究 / 展示中心</a><a class="active" href="planet.html">自律城市 / 星球</a></nav><section class="side-panel"><span class="eyebrow">視覺模式切換</span><div class="view-toggle"><button data-view="solar-system" class="active">🪐 太陽系視角</button><button data-view="city">🏙️ 城市視角</button></div><p style="margin-top: 15px;">切換不同視角來觀看你的自律成果。</p></section></aside>
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">商城頁</a><a href="research.html">研究 / 展示中心</a><a class="active" href="planet.html">自律星球</a></nav><section class="side-panel"><span class="eyebrow">視覺模式切換</span><div class="view-toggle"><button data-view="solar-system" class="active">🪐 太陽系視角</button></div><p style="margin-top: 15px;">切換不同視角來觀看你的自律成果。</p></section></aside>
       <main class="main">
-        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>星球中心只展示世界，建築、事件、好友拜訪分頁管理。</h1><p>讓自律星球不只是儀表板，而是可以規劃、解鎖、產生事件的延伸系統。</p><div class="subnav"><a class="active" href="planet.html">星球展示</a><a href="planet-builder.html">建築規劃</a><a href="planet-events.html">城市事件</a></div></div><div class="hero-card"><span>星球繁榮度</span><strong data-count="73">0</strong><p>本週新增 5 棟建築，2 位好友到訪。</p></div></header>
+        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>星球中心只展示世界，星球、事件、好友拜訪分頁管理。</h1><p>讓自律星球不只是儀表板，而是可以規劃、解鎖、產生事件的延伸系統。</p><div class="subnav"><a class="active" href="planet.html">星球展示</a><a href="planet-builder.html">星球規劃</a><a href="planet-events.html">星球事件</a></div></div><div class="hero-card"><span>星球繁榮度</span><strong data-count="73">0</strong><p>本週新增 5 個星球，2 位好友到訪。</p></div></header>
         <section class="planet-stage page-section immersive-stage" data-tilt>
           
           <!-- Solar System View -->
@@ -20,10 +16,7 @@
             <div class="starfield"></div>
             <div class="planet-shadow"></div>
             <div class="planet">
-              <span class="continent c1"></span>
-              <span class="continent c2"></span>
-              <span class="continent c3"></span>
-            </div>
+              </div>
             
             <div class="orbit-line orbit-one">
               <div class="mission-satellite s1"></div>
@@ -110,16 +103,7 @@
             <div class="blackhole-center"></div>
           </div>
 
-          <!-- City View -->
-          <div class="view-city" style="display: none;">
-            <div class="neighborhood-scene">
-              <div class="city-plot p1" data-target="s1"></div>
-              <div class="city-plot p2" data-target="s2"></div>
-              <div class="city-plot p3" data-target="s3"></div>
-              <div class="city-plot p4" data-target="s4"></div>
-              <div class="city-plot p5" data-target="s5"></div>
-            </div>
-          </div>
+
           
           <div class="stage-hud">
             <small id="hudTitle">COSMIC EVOLUTION</small>
@@ -156,8 +140,33 @@
           <!-- Combo Display Container -->
           <div id="comboContainer" class="combo-container"></div>
         </section>
-        <section class="center-hub page-section"><a class="hub-card" href="planet-builder.html"><span>＋</span><strong>星球建築規劃器</strong><p>把下週目標轉成建築、解鎖條件和城市事件。</p><small>規劃建築</small></a><a class="hub-card" href="planet-events.html"><span>✦</span><strong>城市事件與好友拜訪</strong><p>管理好友拜訪、鼓勵、建築亮起與活動事件。</p><small>查看事件</small></a></section>
+        <section class="center-hub page-section"><a class="hub-card" href="planet-builder.html"><span>＋</span><strong>星球規劃器</strong><p>把下週目標轉成星球、解鎖條件和星球事件。</p><small>規劃星球</small></a><a class="hub-card" href="planet-events.html"><span>✦</span><strong>星球事件與好友拜訪</strong><p>管理好友拜訪、鼓勵、星球點亮與活動事件。</p><small>查看事件</small></a></section>
       </main>
-    </div><script src="assets/app.js"></script>
+    </div>
+    <script>
+      // Sync targeted planet & satellite colors from admin dashboard
+      document.addEventListener('DOMContentLoaded', () => {
+        const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
+        
+        if (colors['planet']) {
+          const p = document.querySelector('.planet');
+          if (p) {
+            p.style.background = `radial-gradient(circle at 38% 28%, ${colors['planet']}44, transparent 30%), linear-gradient(145deg, #0a0f25, ${colors['planet']})`;
+            p.style.boxShadow = `inset 0 0 40px ${colors['planet']}66, 0 0 20px ${colors['planet']}33`;
+          }
+        }
+        
+        ['sat1', 'sat2', 'sat3'].forEach(satId => {
+          if (colors[satId]) {
+            const sat = document.querySelector(`.mission-satellite.${satId.replace('sat', 's')}`);
+            if (sat) {
+              sat.style.background = colors[satId];
+              sat.style.boxShadow = `0 0 15px ${colors[satId]}`;
+            }
+          }
+        });
+      });
+    </script>
+    <script src="assets/app.js?v=2"></script>
   </body>
 </html>

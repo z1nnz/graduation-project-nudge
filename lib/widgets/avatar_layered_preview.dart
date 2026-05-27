@@ -27,6 +27,41 @@ class AvatarLayeredPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final characterPath = AvatarCatalog.characterAssetForIndex(profile.faceShapeIndex);
+    if (characterPath.startsWith('http://') ||
+        characterPath.startsWith('https://') ||
+        characterPath.startsWith('data:image') ||
+        characterPath.contains(';base64,')) {
+      final character = OverflowBox(
+        alignment: Alignment.center,
+        maxWidth: size,
+        maxHeight: size * 1.5,
+        child: SizedBox(
+          width: size,
+          height: size * 1.5,
+          child: buildAvatarImage(characterPath, fit: BoxFit.contain),
+        ),
+      );
+
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: showBackgroundRing ? BoxShape.circle : BoxShape.rectangle,
+          color: showBackgroundRing
+              ? const Color(0xFFEDE9FE)
+              : Colors.transparent,
+          border: showBackgroundRing
+              ? Border.all(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  width: size * 0.035,
+                )
+              : null,
+        ),
+        child: showBackgroundRing ? ClipOval(child: character) : character,
+      );
+    }
+
     return FutureBuilder<AssetManifest>(
       future: _loadManifest(),
       builder: (context, snapshot) {

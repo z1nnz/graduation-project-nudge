@@ -95,6 +95,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _incomingRequestsSubscription;
   StreamSubscription? _outgoingRequestsSubscription;
   StreamSubscription? _roomsSubscription;
+  StreamSubscription? _shopSubscription;
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -230,6 +231,39 @@ class AppState extends ChangeNotifier {
         .listen((snapshot) {
       _mergeFirestoreRooms(snapshot.docs);
     });
+
+    // Shop items listener (dynamic characters)
+    _shopSubscription = FirebaseFirestore.instance
+        .collection('shop_items')
+        .snapshots()
+        .listen((snapshot) {
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['type'] == 'event_character') {
+          final name = data['name'] as String? ?? '未命名角色';
+          final price = data['price'] as int? ?? 60;
+          final imagePath = data['image_path'] as String? ?? '';
+          
+          final dynamicIndex = 18 + (name.hashCode.abs() % 1000);
+          
+          final stage = AvatarEvolutionStage(
+            index: dynamicIndex,
+            series: '活動限定角色',
+            name: name,
+            stage: 1,
+            requiredLevel: 1,
+            requiredExperience: 0,
+            description: 'Web 端上架的活動限時角色。',
+            characterAsset: imagePath,
+            iconAsset: imagePath,
+            coinPrice: price,
+          );
+          
+          AvatarCatalog.addDynamicStage(stage);
+        }
+      }
+      notifyListeners();
+    });
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
@@ -263,11 +297,13 @@ class AppState extends ChangeNotifier {
     _incomingRequestsSubscription?.cancel();
     _outgoingRequestsSubscription?.cancel();
     _roomsSubscription?.cancel();
+    _shopSubscription?.cancel();
     _userSubscription = null;
     _friendsSubscription = null;
     _incomingRequestsSubscription = null;
     _outgoingRequestsSubscription = null;
     _roomsSubscription = null;
+    _shopSubscription = null;
   }
 
   Future<void> _syncProfileFromFirebaseUser(fb_auth.User user) async {
@@ -322,6 +358,8 @@ class AppState extends ChangeNotifier {
         'themeMode': _themeModeSetting,
         'accentColor': _iconColorSetting,
         'disciplineCoins': _disciplineCoins,
+        'planetCount': _planetCount,
+        'weeklyPlanetEarned': _weeklyPlanetEarned,
         'avatarProfile': _avatarProfile.toJson(),
         'unlockedAvatarItems': _unlockedAvatarItemKeys.toList(),
         'tasks': _tasks,
@@ -348,6 +386,8 @@ class AppState extends ChangeNotifier {
           );
         }
         _disciplineCoins = data['disciplineCoins'] as int? ?? _disciplineCoins;
+        _planetCount = data['planetCount'] as int? ?? _planetCount;
+        _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
         if (data['avatarProfile'] != null) {
           _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile']));
         }
@@ -481,6 +521,8 @@ class AppState extends ChangeNotifier {
   static const String _legacyStudyGoalTaskTitle = '完成今日共讀目標';
   static const String _lastDailyResetDateKey = 'last_daily_reset_date';
   static const String _disciplineCoinsKey = 'discipline_coins_setting';
+  static const String _planetCountKey = 'planet_count_setting';
+  static const String _weeklyPlanetEarnedKey = 'weekly_planet_earned_setting';
   static const String _rewardedTaskKeysKey = 'rewarded_task_keys_setting';
   static const String _dailyCoinEarnedKey = 'daily_coin_earned_setting';
   static const String _monthlyDeadlineCoinEarnedKey =
@@ -522,6 +564,8 @@ class AppState extends ChangeNotifier {
   int _lastStepsCount = 0;
   List<DailySummary> _dailySummaries = [];
   int _disciplineCoins = 0;
+  int _planetCount = 0;
+  bool _weeklyPlanetEarned = false;
   Set<String> _rewardedTaskKeys = <String>{};
   Map<String, int> _dailyCoinEarned = <String, int>{};
   Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
@@ -565,6 +609,8 @@ class AppState extends ChangeNotifier {
   List<DailySummary> get dailySummaries => _dailySummaries;
   DailySummary get todaySummary => _buildTodayExperienceSummary();
   int get disciplineCoins => _disciplineCoins;
+  int get planetCount => _planetCount;
+  bool get weeklyPlanetEarned => _weeklyPlanetEarned;
   int get unlockedAvatarItemCount => _unlockedAvatarItemKeys.length;
   int get todayCoinEarned => _dailyCoinEarned[_todayKey()] ?? 0;
   int get todayCoinRemaining {
@@ -2395,6 +2441,8 @@ class AppState extends ChangeNotifier {
         prefs.containsKey(_monthlyDeadlineCoinEarnedKey);
 
     _disciplineCoins = prefs.getInt(_disciplineCoinsKey) ?? 0;
+    _planetCount = prefs.getInt(_planetCountKey) ?? 0;
+    _weeklyPlanetEarned = prefs.getBool(_weeklyPlanetEarnedKey) ?? false;
     _rewardedTaskKeys =
         (prefs.getStringList(_rewardedTaskKeysKey) ?? const <String>[]).toSet();
     final dailyEarnedRaw = prefs.getString(_dailyCoinEarnedKey);
@@ -2423,6 +2471,8 @@ class AppState extends ChangeNotifier {
   Future<void> _saveRewardState() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_disciplineCoinsKey, _disciplineCoins);
+    await prefs.setInt(_planetCountKey, _planetCount);
+    await prefs.setBool(_weeklyPlanetEarnedKey, _weeklyPlanetEarned);
     await prefs.setStringList(_rewardedTaskKeysKey, _rewardedTaskKeys.toList());
     await prefs.setString(_dailyCoinEarnedKey, jsonEncode(_dailyCoinEarned));
     await prefs.setString(

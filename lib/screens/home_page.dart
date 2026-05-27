@@ -56,6 +56,21 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('首頁'),
         actions: [
+          Center(
+            child: _PlanetPill(
+              planetCount: appState.planetCount,
+              accentColor: const Color(0xFFA855F7),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('您已在 Web 端解鎖了 ${appState.planetCount} 顆自律星球！'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Center(
@@ -807,6 +822,58 @@ class _QuickActionCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlanetPill extends StatelessWidget {
+  final int planetCount;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _PlanetPill({
+    required this.planetCount,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(
+              alpha: AppUI.isDark(context) ? 0.18 : 0.12,
+            ),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: accentColor.withValues(alpha: 0.28)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.language,
+                color: accentColor,
+                size: 17,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '$planetCount',
+                style: TextStyle(
+                  color: AppUI.textPrimaryOf(context),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
       ),

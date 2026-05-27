@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/avatar_catalog.dart';
 import '../theme/app_ui.dart';
+import 'avatar_preview.dart';
 
 class AvatarIconPreview extends StatelessWidget {
   final int index;
@@ -48,14 +49,9 @@ class AvatarIconPreview extends StatelessWidget {
       child: ClipOval(
         child: Transform.scale(
           scale: 1.18,
-          child: Image.asset(
+          child: buildAvatarImage(
             asset,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Icon(
-              Icons.person_rounded,
-              color: AppUI.textSecondaryOf(context),
-              size: size * 0.42,
-            ),
           ),
         ),
       ),

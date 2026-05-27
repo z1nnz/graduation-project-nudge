@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,27 @@ import 'package:flutter/services.dart';
 
 import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
+
+Widget buildAvatarImage(String path, {double? width, double? height, BoxFit fit = BoxFit.contain}) {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return Image.network(path, width: width, height: height, fit: fit);
+  } else if (path.startsWith('data:image') || path.contains(';base64,')) {
+    final cleanBase64 = path.contains(',') ? path.split(',')[1] : path;
+    try {
+      return Image.memory(
+        base64Decode(cleanBase64.trim()),
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    } catch (e) {
+      debugPrint('Base64 decode error: $e');
+      return const Icon(Icons.broken_image, color: Colors.red);
+    }
+  } else {
+    return Image.asset(path, width: width, height: height, fit: fit);
+  }
+}
 
 class AvatarPreview extends StatelessWidget {
   final AvatarProfile profile;
@@ -27,6 +49,27 @@ class AvatarPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final characterPath = AvatarCatalog.characterAssetForIndex(profile.faceShapeIndex);
+    if (characterPath.startsWith('http://') ||
+        characterPath.startsWith('https://') ||
+        characterPath.startsWith('data:image') ||
+        characterPath.contains(';base64,')) {
+      return _wrapCharacter(
+        OverflowBox(
+          alignment: Alignment.center,
+          minWidth: 0,
+          minHeight: 0,
+          maxWidth: size * 1.5,
+          maxHeight: size * 1.5,
+          child: SizedBox(
+            width: size,
+            height: size * 1.5,
+            child: buildAvatarImage(characterPath, fit: BoxFit.contain),
+          ),
+        ),
+      );
+    }
+
     return FutureBuilder<AssetManifest>(
       future: _loadManifest(),
       builder: (context, snapshot) {

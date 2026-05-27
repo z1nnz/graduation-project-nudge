@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 營運後台 - 管理總覽</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      /* Admin Specific Styles */
+      .admin-panel {
+        background: var(--c-panel-bg);
+        border: 1px solid var(--c-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      .admin-panel h2 {
+        font-size: 1.25rem;
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--c-border);
+        padding-bottom: 0.75rem;
+      }
+      .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+      }
+      .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+      /* Form Styles for Shop Management */
+      .admin-form-group {
+        margin-bottom: 1rem;
+      }
+      .admin-form-group label {
+        display: block;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        color: var(--c-text-muted);
+      }
+      .admin-form-group input, .admin-form-group textarea, .admin-form-group select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--c-border);
+        background: var(--c-bg);
+        color: var(--c-text);
+        font-family: inherit;
+        box-sizing: border-box;
+      }
+      .admin-form-group input:focus, .admin-form-group textarea:focus {
+        outline: none;
+        border-color: var(--c-primary);
+      }
+      .admin-btn {
+        background: var(--c-primary);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      .admin-btn:hover {
+        background: var(--c-primary-hover, #6650d0);
+      }
+      .admin-btn.danger {
+        background: transparent;
+        border: 1px solid #ef4444;
+        color: #ef4444;
+      }
+      .admin-btn.danger:hover {
+        background: #ef4444;
+        color: white;
+      }
+      /* Data Table Styles */
+      .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .admin-table th, .admin-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--c-border);
+        font-size: 0.875rem;
+      }
+      .admin-table th {
+        color: var(--c-text-muted);
+        font-weight: 600;
+      }
+      .admin-table tr:hover td {
+        background: var(--c-bg-hover, rgba(0,0,0,0.02));
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+      }
+      /* Planet Mini View */
+      .planet-preview-box {
+        position: relative;
+        height: 400px;
+        background: #090a0f;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--c-border);
+      }
+      .planet-preview-scale {
+        transform: scale(0.6);
+        transform-origin: center center;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+      }
+      .crud-action-group {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        align-items: center;
+      }
+      /* Tab System */
+      .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .image-preview-container {
+        width: 100%;
+        height: 150px;
+        border: 2px dashed var(--c-border);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        margin-top: 1rem;
+        background: rgba(0,0,0,0.2);
+      }
+      .image-preview-container img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: cover;
+      }
+    </style>
+  
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    </head>
+  <body data-page="operations">
+    <div class="shell">
+      <aside class="sidebar" style="border-right: 1px solid var(--c-primary-alpha);">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" style="background: #ef4444; color: white;">A</span>
+          <span><strong>Admin</strong><small>營運總覽中心</small></span>
+        </a>
+        <nav class="nav">
+          <a class="active" href="#" onclick="switchTab('planet-section', this); return false;">行星控制</a>
+          <a href="#" onclick="switchTab('data-section', this); return false;">各項數據分析</a>
+          <a href="#" onclick="switchTab('shop-section', this); return false;">商城上架</a>
+        </nav>
+      </aside>
+
+      <main class="main" style="position: relative;">
+        <!-- Planet Management Section (Tab) -->
+        <div id="planet-section" class="tab-content active">
+          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+            <div>
+              <span class="eyebrow" style="color: #22c55e;">Planet Control</span>
+              <h2 style="margin: 0; font-size: 1.5rem;">行星控制 (即時預覽)</h2>
+              <p style="margin-top: 0.5rem; color: var(--c-text-muted);">直接新增、修改與刪除板塊，所有變化將即時同步至前台。</p>
+            </div>
+          </header>
+          <div class="admin-grid" style="margin-bottom: 2rem;">
+            <!-- Left: Planet View -->
+            <div class="planet-preview-box">
+              <div class="planet-preview-scale view-solar-system active" style="display: block;">
+                <div class="starfield"></div>
+                <div class="planet-shadow"></div>
+                <div class="planet planet-target active" id="adminPlanet" onclick="selectTarget(this, 'planet')">
+                  </div>
+                
+                <div class="orbit-line orbit-one" id="orbit1">
+                  <div class="mission-satellite s1" onclick="selectTarget(this, 'sat1')"></div>
+                </div>
+                <div class="orbit-line orbit-two" id="orbit2">
+                  <div class="mission-satellite s2" onclick="selectTarget(this, 'sat2')"></div>
+                </div>
+                <div class="orbit-line orbit-three" id="orbit3">
+                  <div class="mission-satellite s3" onclick="selectTarget(this, 'sat3')"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Planet CRUD Tools -->
+            <div class="admin-panel" style="margin-bottom: 0;">
+              <h2>星球元素操作 (CRUD)</h2>
+              <p style="color: var(--c-text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">直接對左側的星球與軌道衛星進行新增、修改與刪除操作，所有變化將即時呈現並同步至前台。</p>
+              
+              <div class="crud-action-group">
+                <strong style="width: 80px;">衛星管理</strong>
+                <button class="admin-btn" onclick="addSatellite()">＋ 新增衛星</button>
+                <button class="admin-btn danger" onclick="removeSatellite()">－ 刪除衛星</button>
+              </div>
+
+              
+
+              <div class="crud-action-group" style="margin-top: 1.5rem; align-items: flex-start;">
+                <strong style="width: 80px; padding-top: 0.5rem;">修改風格</strong>
+                <div style="flex-grow: 1;">
+                  <div class="admin-form-group">
+                    <label>目標主要顏色</label>
+                    <input type="color" id="planetColor" value="#22c55e" style="height: 40px; padding: 2px;" onchange="applyColorToTarget(this.value)" />
+                  </div>
+                  <small style="color: var(--c-text-muted);">選擇顏色後會立刻變更您所選定星球或衛星的色調，並且儲存同步至前台的自律星球。</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Section (Tab) -->
+        <div id="data-section" class="tab-content">
+          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+            <div>
+              <span class="eyebrow" style="color: #3b82f6;">Data Analytics</span>
+              <h2 style="margin: 0; font-size: 1.5rem;">各項數據分析</h2>
+              <p style="margin-top: 0.5rem; color: var(--c-text-muted);">查看全站總活躍用戶與商城自律幣消耗趨勢。</p>
+            </div>
+            <div class="hero-card" style="border-color: #3b82f6; background: transparent; padding: 0;">
+              <span>全站總活躍用戶</span>
+              <strong style="font-size: 2rem; color: white;">12,540</strong>
+            </div>
+          </header>
+          <div class="admin-grid">
+            <div class="admin-panel">
+              <h2>功能使用狀況 (本週)</h2>
+              <div class="chart-container">
+                <canvas id="usageChart"></canvas>
+              </div>
+            </div>
+            <div class="admin-panel">
+              <h2>商城自律幣消耗趨勢</h2>
+              <div class="chart-container">
+                <canvas id="economyChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shop Management Section (Tab) -->
+        <div id="shop-section" class="tab-content">
+          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+            <div>
+              <span class="eyebrow" style="color: #f59e0b;">Shop Management</span>
+              <h2 style="margin: 0; font-size: 1.5rem;">商城上架</h2>
+              <p style="margin-top: 0.5rem; color: var(--c-text-muted);">管理現有商品、設定專屬折扣活動以及發佈新商品。</p>
+            </div>
+          </header>
+          <div class="admin-grid">
+            <!-- Shop Form -->
+            <div class="admin-panel">
+              <h2>商城上架商品功能 (與後端同步)</h2>
+              <form onsubmit="handleShopUpload(event)">
+                <div class="admin-form-group">
+                  <label>商品名稱</label>
+                  <input type="text" id="shopItemName" placeholder="例如：夜精靈服裝" required />
+                </div>
+                <div class="admin-form-group">
+                  <label>商品類型</label>
+                  <select id="shopItemType" onchange="toggleAdminDays()">
+                    <option value="permanent">常駐商品</option>
+                    <option value="limited">限時商品</option>
+                    <option value="event_character">活動限定角色</option>
+                  </select>
+                </div>
+                <div id="adminTimeGroup" style="display: none; display: flex; gap: 1rem; margin-bottom: 1rem;">
+                  <div class="admin-form-group" style="flex: 1; margin-bottom: 0;">
+                    <label>開始時間</label>
+                    <input type="text" id="shopItemStart" placeholder="選擇開始時間..." />
+                  </div>
+                  <div class="admin-form-group" style="flex: 1; margin-bottom: 0;">
+                    <label>結束時間</label>
+                    <input type="text" id="shopItemEnd" placeholder="選擇結束時間..." />
+                  </div>
+                </div>
+                <div class="admin-form-group">
+                  <label>商品描述</label>
+                  <textarea rows="3" id="shopItemDesc" placeholder="輸入商品特色與屬性加成..."></textarea>
+                </div>
+                <div class="admin-form-group">
+                  <label>價格 (自律幣)</label>
+                  <input type="number" id="shopItemPrice" placeholder="120" required />
+                </div>
+                <div class="admin-form-group">
+                  <label>上傳商品圖片 (本地上傳)</label>
+                  <input type="file" accept="image/*" id="shopItemImage" onchange="previewImage(event)" required />
+                  <div class="image-preview-container">
+                    <span id="previewPlaceholder" style="color: var(--c-text-muted); font-size: 0.875rem;">圖片預覽區</span>
+                    <img id="imagePreview" style="display: none;" />
+                  </div>
+                </div>
+                <button type="submit" class="admin-btn" style="width: 100%; margin-top: 1rem;">上架發佈商品</button>
+              </form>
+            </div>
+
+            <!-- Active Products Table -->
+            <div class="admin-panel">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin: 0; border: none; padding: 0;">目前上架商品 (自動過濾過期)</h2>
+                <button class="admin-btn" style="padding: 0.5rem 1rem; font-size: 0.8rem;" type="button" onclick="fetchAdminActiveItems()">重新整理</button>
+              </div>
+              <div style="overflow-x: auto;">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>圖片</th>
+                      <th>名稱</th>
+                      <th>商品類型</th>
+                      <th>價格</th>
+                      <th>到期時間</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activeShopTableBody">
+                    <!-- Data will be populated here by fetchAdminActiveItems -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Purchase Table -->
+            <div class="admin-panel">
+              <h2>近期商品購買情況</h2>
+              <div style="overflow-x: auto;">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>用戶 ID</th>
+                      <th>購買商品</th>
+                      <th>花費幣值</th>
+                      <th>狀態</th>
+                      <th>時間</th>
+                    </tr>
+                  </thead>
+                  <tbody id="purchaseTableBody">
+                    <tr>
+                      <td>#U9124</td>
+                      <td>月影見習忍</td>
+                      <td>120</td>
+                      <td><span class="status-badge">成功</span></td>
+                      <td>10 分鐘前</td>
+                    </tr>
+                    <tr>
+                      <td>#U8821</td>
+                      <td>森芽靈童</td>
+                      <td>120</td>
+                      <td><span class="status-badge">成功</span></td>
+                      <td>25 分鐘前</td>
+                    </tr>
+                    <tr>
+                      <td>#U7102</td>
+                      <td>月影見習忍</td>
+                      <td>120</td>
+                      <td><span class="status-badge">成功</span></td>
+                      <td>1 小時前</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Discount Settings Panel -->
+          <div class="admin-panel" style="margin-top: 1.5rem;">
+            <h2>商品折扣與活動設定</h2>
+            <form onsubmit="handleDiscount(event)">
+              <div class="admin-grid">
+                <div class="admin-form-group">
+                  <label>選擇現有商品</label>
+                  <select id="discountItem" required onchange="calculateDiscount()">
+                    <option value="">請選擇...</option>
+                    <option value="月影見習忍">月影見習忍 (原價: 120)</option>
+                    <option value="森芽靈童">森芽靈童 (原價: 120)</option>
+                    <option value="星際探險家">星際探險家 (原價: 150)</option>
+                  </select>
+                </div>
+                <div class="admin-form-group">
+                  <label>折扣折數 (例如輸入8代表8折)</label>
+                  <div style="display: flex; gap: 10px;">
+                    <input type="number" id="discountPercent" placeholder="8" oninput="calculateDiscount()" required style="width: 50%;" />
+                    <input type="text" id="discountResult" placeholder="折後自律幣" readonly style="width: 50%; background: rgba(255,255,255,0.05);" />
+                  </div>
+                </div>
+                <div class="admin-form-group">
+                  <label>活動開始時間</label>
+                  <input type="text" id="discountStart" placeholder="選擇開始時間..." required />
+                </div>
+                <div class="admin-form-group">
+                  <label>活動結束時間 (有效期限)</label>
+                  <input type="text" id="discountEnd" placeholder="選擇結束時間..." required />
+                </div>
+              </div>
+              <button type="submit" class="admin-btn" style="margin-top: 1rem;">設定折扣活動</button>
+            </form>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- UI Interaction Scripts -->
+    <script>
+      // Tab Switching Logic
+      function switchTab(tabId, element) {
+        // Update sidebar active state
+        document.querySelectorAll('.sidebar .nav a').forEach(a => a.classList.remove('active'));
+        element.classList.add('active');
+        
+        // Hide all tabs, show selected tab
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+      }
+
+      // The targeted color logic handles the initialization below.
+
+      
+      // Targeted Color Selection Logic
+      let currentTarget = document.getElementById('adminPlanet');
+      let currentTargetId = 'planet';
+
+      function selectTarget(element, targetId) {
+        document.querySelectorAll('.planet-target, .mission-satellite').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        currentTarget = element;
+        currentTargetId = targetId;
+        
+        const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
+        if (colors[targetId]) {
+          document.getElementById('planetColor').value = colors[targetId];
+        }
+      }
+
+      function applyColorToTarget(colorCode) {
+        const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
+        colors[currentTargetId] = colorCode;
+        localStorage.setItem('nudgeColors', JSON.stringify(colors));
+
+        if (currentTargetId === 'planet') {
+          currentTarget.style.background = `radial-gradient(circle at 38% 28%, ${colorCode}44, transparent 30%), linear-gradient(145deg, #0a0f25, ${colorCode})`;
+          currentTarget.style.boxShadow = `inset 0 0 40px ${colorCode}66, 0 0 20px ${colorCode}33`;
+        } else {
+          currentTarget.style.background = colorCode;
+          currentTarget.style.boxShadow = `0 0 15px ${colorCode}`;
+        }
+      }
+
+      // Initialize targeted colors on load
+      document.addEventListener('DOMContentLoaded', () => {
+        const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
+        if (colors['planet']) {
+          document.getElementById('planetColor').value = colors['planet'];
+          const p = document.getElementById('adminPlanet');
+          p.style.background = `radial-gradient(circle at 38% 28%, ${colors['planet']}44, transparent 30%), linear-gradient(145deg, #0a0f25, ${colors['planet']})`;
+          p.style.boxShadow = `inset 0 0 40px ${colors['planet']}66, 0 0 20px ${colors['planet']}33`;
+        }
+        ['sat1', 'sat2', 'sat3'].forEach(satId => {
+          if (colors[satId]) {
+            const sat = document.querySelector(`.mission-satellite.${satId.replace('sat', 's')}`);
+            if (sat) {
+              sat.style.background = colors[satId];
+              sat.style.boxShadow = `0 0 15px ${colors[satId]}`;
+            }
+          }
+        });
+        
+        // Initialize Flatpickr
+        flatpickr("#discountStart", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
+        flatpickr("#discountEnd", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
+        flatpickr("#shopItemStart", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
+        flatpickr("#shopItemEnd", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
+      });
+
+      function calculateDiscount() {
+        const itemSelect = document.getElementById('discountItem');
+        const percentInput = document.getElementById('discountPercent').value;
+        const resultInput = document.getElementById('discountResult');
+        
+        if (!itemSelect.value || !percentInput) {
+          resultInput.value = '';
+          return;
+        }
+        
+        let originalPrice = 120;
+        if (itemSelect.value === '星際探險家') originalPrice = 150;
+        
+        let percent = parseFloat(percentInput);
+        if (percent > 10 && percent < 100) percent = percent / 100;
+        else if (percent > 0 && percent <= 10) percent = percent / 10;
+        
+        const finalPrice = Math.round(originalPrice * percent);
+        resultInput.value = finalPrice + ' 幣';
+      }
+
+      // Planet CRUD Logic
+      
+
+      let satCount = 3;
+      function addSatellite() {
+        const orbits = ['orbit1', 'orbit2', 'orbit3'];
+        const randomOrbit = document.getElementById(orbits[Math.floor(Math.random() * orbits.length)]);
+        const sat = document.createElement('div');
+        satCount++;
+        const satId = 'sat' + satCount;
+        sat.className = 'mission-satellite s' + (satCount > 12 ? Math.floor(Math.random()*12+1) : satCount) + ' ' + satId;
+        sat.setAttribute('onclick', `selectTarget(this, '${satId}')`);
+        randomOrbit.appendChild(sat);
+      }
+
+      function removeSatellite() {
+        const orbits = ['orbit1', 'orbit2', 'orbit3'];
+        for (let i = 0; i < orbits.length; i++) {
+          const orbit = document.getElementById(orbits[i]);
+          if (orbit.lastElementChild) {
+            orbit.removeChild(orbit.lastElementChild);
+            break;
+          }
+        }
+      }
+
+      // Image Upload (Base64) & Mock Save Logic
+      let currentBase64Image = null;
+
+      function previewImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            currentBase64Image = e.target.result;
+            const img = document.getElementById('imagePreview');
+            img.src = currentBase64Image;
+            img.style.display = 'block';
+            document.getElementById('previewPlaceholder').style.display = 'none';
+          }
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function toggleAdminDays() {
+        const type = document.getElementById('shopItemType').value;
+        const timeContainer = document.getElementById('adminTimeGroup');
+        if (type === 'limited' || type === 'event_character') {
+          timeContainer.style.display = 'flex';
+        } else {
+          timeContainer.style.display = 'none';
+        }
+      }
+
+      async function fetchAdminActiveItems() {
+        try {
+          const response = await fetch('/active-shop-items');
+          const result = await response.json();
+          const tbody = document.getElementById('activeShopTableBody');
+          tbody.innerHTML = '';
+          
+          if (result.success && result.items) {
+            if (result.items.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
+            } else {
+              result.items.forEach(item => {
+                let expiresHTML = '';
+                if (item.end_time) {
+                  const startDate = new Date(item.start_time * 1000).toLocaleString('zh-TW');
+                  const endDate = new Date(item.end_time * 1000).toLocaleString('zh-TW');
+                  expiresHTML = `<div style="font-size: 0.75rem; color: #3b82f6;">起: ${startDate}</div><div style="font-size: 0.75rem; color: #ef4444;">迄: ${endDate}</div>`;
+                } else {
+                  expiresHTML = `<span style="color: #22c55e;">常駐</span>`;
+                }
+                
+                let typeText = '常駐商品';
+                if (item.type === 'limited') typeText = '限時商品';
+                if (item.type === 'event_character') typeText = '活動限定角色';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td><img src="/${item.image_path}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
+                  <td><strong>${item.name}</strong></td>
+                  <td>${typeText}</td>
+                  <td>${item.price}</td>
+                  <td>${expiresHTML}</td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+          }
+        } catch (error) {
+          console.error("無法取得上架商品", error);
+        }
+      }
+
+      // 載入頁面時自動抓取一次
+      document.addEventListener('DOMContentLoaded', fetchAdminActiveItems);
+
+      async function handleShopUpload(event) {
+        event.preventDefault();
+        
+        const fileInput = document.getElementById('shopItemImage');
+        if (fileInput.files.length === 0) {
+          alert('請先選擇圖片！');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+        formData.append('name', document.getElementById('shopItemName').value);
+        const type = document.getElementById('shopItemType').value;
+        formData.append('type', type);
+        formData.append('price', document.getElementById('shopItemPrice').value);
+        
+        if (type !== 'permanent') {
+          const startTime = document.getElementById('shopItemStart').value;
+          const endTime = document.getElementById('shopItemEnd').value;
+          if (!startTime || !endTime) {
+            alert('限時商品請務必選擇開始與結束時間！');
+            return;
+          }
+          formData.append('start_time', startTime);
+          formData.append('end_time', endTime);
+        }
+
+        try {
+          const response = await fetch('/upload-shop-item', {
+            method: 'POST',
+            body: formData
+          });
+          const result = await response.json();
+          
+          if (result.success) {
+            alert(`商品「${result.item.name}」已成功上架！`);
+            
+            // Mock add to purchase table just for UI effect
+            const tbody = document.getElementById('purchaseTableBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>#UAdmin</td>
+              <td>${result.item.name} (測試上架)</td>
+              <td>${result.item.price}</td>
+              <td><span class="status-badge" style="background: rgba(59,130,246,0.1); color: #3b82f6;">上架</span></td>
+              <td>剛剛</td>
+            `;
+            tbody.prepend(tr);
+            
+            // Refresh active items
+            fetchAdminActiveItems();
+            
+            // Reset form
+            event.target.reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('previewPlaceholder').style.display = 'block';
+            currentBase64Image = null;
+            toggleAdminDays(); // Reset days field visibility
+          } else {
+            alert('上傳失敗：' + result.error);
+          }
+        } catch (error) {
+          alert('伺服器錯誤，請確認後端已啟動。');
+          console.error(error);
+        }
+      }
+
+      function handleDiscount(event) {
+        event.preventDefault();
+        const item = document.getElementById('discountItem').value;
+        const price = document.getElementById('discountResult').value.replace(' 幣', '');
+        const start = document.getElementById('discountStart').value;
+        const end = document.getElementById('discountEnd').value;
+        
+        // Mock save to localStorage
+        const discountEvent = {
+          item: item,
+          discountPrice: price,
+          startTime: start,
+          endTime: end
+        };
+        localStorage.setItem('nudgeActiveDiscount', JSON.stringify(discountEvent));
+        
+        alert(`成功設定！「${item}」將於 ${start.replace('T', ' ')} 開始特價 ${price} 自律幣，期限至 ${end.replace('T', ' ')}。`);
+        event.target.reset();
+      }
+    </script>
+
+    <!-- Chart.js Logic -->
+    <script>
+      const ctxUsage = document.getElementById('usageChart').getContext('2d');
+      new Chart(ctxUsage, {
+        type: 'bar',
+        data: {
+          labels: ['自律房', '每日任務', '健康同步', '專題發表', '社群互動'],
+          datasets: [{
+            label: '本週活躍次數',
+            data: [4500, 8200, 3100, 1200, 5600],
+            backgroundColor: 'rgba(124, 106, 230, 0.7)',
+            borderColor: 'rgba(124, 106, 230, 1)',
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+
+      const ctxEconomy = document.getElementById('economyChart').getContext('2d');
+      new Chart(ctxEconomy, {
+        type: 'line',
+        data: {
+          labels: ['週一', '週二', '週三', '週四', '週五', '週六', '週日'],
+          datasets: [{
+            label: '每日兌換消耗 (幣)',
+            data: [1200, 1900, 1500, 2200, 2800, 4100, 3900],
+            fill: true,
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            borderColor: 'rgba(34, 197, 94, 1)',
+            tension: 0.4,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    </script>
+    <script src="assets/app.js?v=2"></script>
+  </body>
+</html>

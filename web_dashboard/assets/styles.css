@@ -4611,3 +4611,26 @@ body[data-page="planet"] .building {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* Added advanced styling */
+.admin-form-group select {
+  appearance: none;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+.admin-form-group select option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+.continent {
+  box-shadow: inset -5px -5px 15px rgba(0,0,0,0.5), inset 5px 5px 15px rgba(255,255,255,0.3) !important;
+  border-radius: 40% 60% 50% 40% !important;
+  transition: all 0.5s ease;
+}
+.planet-target, .mission-satellite {
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+}
+.planet-target.active, .mission-satellite.active {
+  box-shadow: 0 0 0 4px #00f0ff, 0 0 20px #00f0ff !important;
+}

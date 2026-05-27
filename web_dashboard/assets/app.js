@@ -6,13 +6,22 @@ const modules = [
   ["personal", "個人進階分析", "personal.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
-  ["operations", "營運後台", "operations.html"],
+  ["operations", "商城頁", "operations.html"],
   ["research", "研究 / 展示中心", "research.html"],
-  ["planet", "自律城市 / 星球", "planet.html"],
+  ["planet", "自律星球", "planet.html"],
   ["presentation", "專題發表流程", "presentation.html"],
 ];
 
+// Authentication Check
+const pathName = window.location.pathname;
+const isPublicPage = pathName.endsWith("/") || pathName.endsWith("index.html") || pathName.endsWith("login.html") || pathName.includes("admin_dashboard.html");
+if (!isPublicPage && localStorage.getItem("nudgeWebLoggedIn") !== "true") {
+  window.location.href = "login.html";
+}
+
+
 function injectModuleMenu() {
+  if (window.location.pathname.includes('admin_dashboard.html')) return;
   const sidebar = $(".sidebar");
   if (!sidebar) return;
   
@@ -35,6 +44,29 @@ function injectModuleMenu() {
   nav.innerHTML = modules
     .map(([key, label, href]) => `<a href="${href}" class="${key === activeKey ? 'active' : ''}">${label}</a>`)
     .join("");
+
+  // 登出按鈕邏輯：如果目前是登入狀態，就在選單最後面加入「登出」按鈕
+  if (localStorage.getItem("nudgeWebLoggedIn") === "true") {
+    const logoutBtn = document.createElement("a");
+    logoutBtn.href = "#";
+    logoutBtn.style.marginTop = "16px";
+    logoutBtn.style.color = "var(--red)"; // 使用現有的紅色彩色變數
+    logoutBtn.innerHTML = "<span>🚪</span> 登出帳號";
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.removeItem("nudgeWebLoggedIn");
+      window.location.href = "index.html"; // 登出後回到總覽頁面
+    });
+    nav.appendChild(logoutBtn);
+  } else {
+    // 若未登入，也可選擇顯示「登入」按鈕
+    const loginBtn = document.createElement("a");
+    loginBtn.href = "login.html";
+    loginBtn.style.marginTop = "16px";
+    loginBtn.style.color = "var(--page-accent)";
+    loginBtn.innerHTML = "<span>👤</span> 登入 / 註冊";
+    nav.appendChild(loginBtn);
+  }
 
   // Remove the old drop-down module switcher if it exists
   const switcher = $(".module-switcher");
@@ -301,22 +333,12 @@ function bindPlanet() {
       const view = button.dataset.view;
       if (view === 'solar-system') {
         if (solarView) solarView.style.display = 'block';
-        if (cityView) cityView.style.display = 'none';
         if (hudDesc) hudDesc.textContent = "任務完成會即時點亮星星與軌道";
         if (hudTitle) hudTitle.textContent = "COSMIC EVOLUTION";
         if (planetHud) planetHud.textContent = "太陽系";
         if (navSolar) navSolar.textContent = "太陽系";
         if (navGalaxy) navGalaxy.textContent = "銀河系";
         if (navUniverse) navUniverse.textContent = "宇宙";
-      } else {
-        if (solarView) solarView.style.display = 'none';
-        if (cityView) cityView.style.display = 'block';
-        if (hudDesc) hudDesc.textContent = "任務完成會即時點亮城市區域";
-        if (hudTitle) hudTitle.textContent = "CITY EVOLUTION";
-        if (planetHud) planetHud.textContent = "地球";
-        if (navSolar) navSolar.textContent = "鄉村";
-        if (navGalaxy) navGalaxy.textContent = "小鎮";
-        if (navUniverse) navUniverse.textContent = "都市";
       }
     });
   });
@@ -727,10 +749,10 @@ const demoSlides = [
   {
     title: "自律星球亮點",
     script:
-      "最後用自律城市或自律星球把整個系統收起來：專注任務蓋圖書館、健康任務蓋公園、睡眠點亮住宅區、自律房出現朋友角色。這讓抽象分數變成看得見的世界。",
+      "最後用自律星球把整個系統收起來：專注任務蓋圖書館、健康任務蓋公園、睡眠點亮住宅區、自律房出現朋友角色。這讓抽象分數變成看得見的世界。",
     items: [
       ["可視化成果", "任務成果變成建築與星球成長。"],
-      ["社交展示", "朋友角色可以拜訪城市或共同建設星球。"],
+      ["社交展示", "朋友角色可以共同建設星球。"],
       ["發表亮點", "老師能一眼理解遊戲化與資料整合價值。"],
     ],
   },
@@ -888,11 +910,16 @@ function injectAINavigator() {
       const taskMatch = reply.match(/\[ACTION:ADD_TASK:(.+)\]/);
       if (taskMatch) {
         reply = reply.replace(taskMatch[0], '');
-        const tasks = JSON.parse(localStorage.getItem('nudge_tasks') || '[]');
-        tasks.push(taskMatch[1].trim());
-        localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
-        if (window.bindMissions) {
-          window.bindMissions(); // re-render if on planet page
+        const taskTitle = taskMatch[1].trim();
+        if (typeof db !== 'undefined' && db) {
+          addFirestoreTask(taskTitle);
+        } else {
+          const tasks = JSON.parse(localStorage.getItem('nudge_tasks') || '[]');
+          tasks.push(taskTitle);
+          localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
+          if (window.bindMissions) {
+            window.bindMissions(); // re-render if on planet page
+          }
         }
       }
 
@@ -1072,10 +1099,26 @@ window.bindMissions = function() {
           c.dispatchEvent(new Event('change'));
         }
       });
+      const viewSolar = document.querySelector('.view-solar-system');
+      const viewGalaxy = document.querySelector('.view-galaxy');
+      const viewUniverse = document.querySelector('.view-universe');
       
-      let i = 0;
+      let startIdx = 0;
+      let endIdx = 36;
+      if (viewSolar && viewSolar.style.display !== 'none') {
+        startIdx = 0;
+        endIdx = 12;
+      } else if (viewGalaxy && viewGalaxy.style.display !== 'none') {
+        startIdx = 12;
+        endIdx = 36;
+      } else if (viewUniverse && viewUniverse.style.display !== 'none') {
+        startIdx = 0;
+        endIdx = 36;
+      }
+      
+      let i = startIdx;
       const interval = setInterval(() => {
-        if (i >= allChecks.length) {
+        if (i >= endIdx || i >= allChecks.length) {
           clearInterval(interval);
           return;
         }
@@ -1138,7 +1181,7 @@ window.bindMissions = function() {
 
   function triggerBlackHoleSuction(force = false) {
     const viewGalaxy = document.querySelector('.view-galaxy');
-    if (!force && (!viewGalaxy || viewGalaxy.style.display === 'none')) return;
+    if (!viewGalaxy || viewGalaxy.style.display === 'none') return;
     
     const overlay = document.getElementById('blackholeOverlay');
     if (!overlay) return;
@@ -1156,7 +1199,7 @@ window.bindMissions = function() {
 
   function triggerUniverseExplosion(force = false) {
     const viewUniverse = document.querySelector('.view-universe');
-    if (!force && (!viewUniverse || viewUniverse.style.display === 'none')) return;
+    if (!viewUniverse || viewUniverse.style.display === 'none') return;
     
     const overlay = document.getElementById('explosionOverlay');
     if (!overlay) return;
@@ -1217,19 +1260,11 @@ window.bindMissions = function() {
     // Unlock Galaxy at 12
     if (unlockedCount >= 12) {
       document.getElementById('navGalaxy').style.display = 'inline-block';
-      if (unlockedCount === 12 && localStorage.getItem('nudge_auto_galaxy') !== 'true') {
-        document.getElementById('navGalaxy').click();
-        localStorage.setItem('nudge_auto_galaxy', 'true');
-      }
     }
     
     // Unlock Universe at 24
     if (unlockedCount >= 24) {
       document.getElementById('navUniverse').style.display = 'inline-block';
-      if (unlockedCount === 24 && localStorage.getItem('nudge_auto_universe') !== 'true') {
-        document.getElementById('navUniverse').click();
-        localStorage.setItem('nudge_auto_universe', 'true');
-      }
     }
   }
 
@@ -1484,10 +1519,144 @@ window.addEventListener("DOMContentLoaded", () => {
   try { bindPresentation(); } catch(e){}
   try { bindExamTemplates(); } catch(e){}
   try { if (window.bindMissions) window.bindMissions(); } catch(e){}
-  try { initializeFirebaseWeb(); } catch(e){}
 });
 
 window.addEventListener("resize", bootCharts);
+
+
+
+
+
+
+function injectAdminSwitch() {
+  const existingBtn1 = document.querySelector('.admin-switch-btn');
+  if (existingBtn1) existingBtn1.remove();
+  const existingBtn2 = document.querySelector('.exit-admin-btn');
+  if (existingBtn2) existingBtn2.remove();
+
+  const isAdminPage = window.location.pathname.includes('admin_dashboard.html');
+
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .global-admin-switch-btn {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: transparent;
+      border: none;
+      color: #F3F4F6;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+      transition: opacity 0.2s;
+    }
+    .global-admin-switch-btn:hover {
+      opacity: 0.8;
+    }
+    .global-login-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .global-login-modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .global-login-modal {
+      background: var(--c-panel-bg);
+      padding: 2.5rem;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 24px 48px var(--shadow-color);
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+      border: 1px solid var(--c-border);
+      color: var(--c-text);
+    }
+    .global-login-modal-overlay.active .global-login-modal {
+      transform: translateY(0);
+    }
+    .global-login-modal h2 { margin-top: 0; margin-bottom: 1.5rem; font-size: 1.5rem; }
+    .global-form-group { margin-bottom: 1.25rem; text-align: left; }
+    .global-form-group label { display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--c-text-muted); }
+    .global-form-group input { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-text); box-sizing: border-box; }
+    .global-login-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
+    .global-btn-cancel { background: transparent; border: 1px solid var(--c-border); color: var(--c-text); padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; }
+    .global-btn-submit { background: var(--c-primary); border: none; color: white; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .global-error-msg { color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem; display: none; text-align: left; }
+  `;
+  document.head.appendChild(style);
+
+  const main = document.querySelector('.main');
+  if (main) main.style.position = 'relative';
+  const btnContainer = main || document.body;
+  
+  const btn = document.createElement('button');
+  btn.className = 'global-admin-switch-btn';
+  
+  if (isAdminPage) {
+    btn.innerHTML = '⚙ 切回前台';
+    btn.onclick = () => window.location.href = 'index.html';
+  } else {
+    btn.innerHTML = '⚙ 切換成後台';
+    btn.onclick = () => document.getElementById('globalLoginModal').classList.add('active');
+  }
+  
+  btnContainer.appendChild(btn);
+
+  if (!isAdminPage) {
+    const modalHtml = `
+      <div class="global-login-modal-overlay" id="globalLoginModal">
+        <div class="global-login-modal">
+          <h2>後台登入</h2>
+          <div class="global-form-group">
+            <label>帳號</label>
+            <input type="text" id="gAdminUsername" placeholder="請輸入 admin" />
+          </div>
+          <div class="global-form-group">
+            <label>密碼</label>
+            <input type="password" id="gAdminPassword" placeholder="請輸入 admin" />
+          </div>
+          <div class="global-error-msg" id="gLoginError">帳號或密碼錯誤！預設請使用 admin / admin。</div>
+          <div class="global-login-actions">
+            <button class="global-btn-cancel" onclick="document.getElementById('globalLoginModal').classList.remove('active')">取消</button>
+            <button class="global-btn-submit" onclick="gAttemptLogin()">登入</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    window.gAttemptLogin = function() {
+      const user = document.getElementById('gAdminUsername').value;
+      const pass = document.getElementById('gAdminPassword').value;
+      if (user === 'admin' && pass === 'admin') {
+        window.location.href = 'admin_dashboard.html';
+      } else {
+        document.getElementById('gLoginError').style.display = 'block';
+      }
+    }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(injectAdminSwitch, 100);
+    try { initializeFirebaseWeb(); } catch(e){}
+});
 
 // ─── Firebase / Firestore Real-time Sync Integration ──────────────────────────
 
@@ -1534,6 +1703,7 @@ function initializeFirebaseWeb() {
         db = firebase.firestore();
         console.log("Firebase initialized successfully on Web Center");
         startListeningToFirestoreData();
+        document.dispatchEvent(new Event('firebase-ready'));
       } catch (e) {
         console.warn("Firebase initialization failed, falling back to mock data: ", e);
       }
@@ -1565,10 +1735,11 @@ function startListeningToFirestoreData() {
     // Clear static demo panel status
     const panel = $(".side-panel");
     if (panel) {
-      panel.innerHTML = "";
+      if (!$(".demo-user-select").length) {
+        injectUserSwitcher(users, activeUserId);
+      }
     }
     
-    injectUserSwitcher(users, activeUserId);
     listenToUser(activeUserId);
   }).catch(e => {
     console.warn("Firestore access error: ", e);
@@ -1604,6 +1775,7 @@ function updateSidebarProfile(data) {
   const nickname = data.nickname || "未知使用者";
   const nudgeId = data.myNudgeId || data.username || "NDG-Guest";
   const coins = typeof data.disciplineCoins === 'number' ? data.disciplineCoins : 0;
+  const planets = typeof data.planetCount === 'number' ? data.planetCount : 0;
   
   let accentColor = "#7c6ae6";
   if (data.accentColor) {
@@ -1627,8 +1799,9 @@ function updateSidebarProfile(data) {
           <div style="font-weight: 700; color: #fff; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nickname}</div>
           <div style="font-size: 11px; color: rgba(255,255,255,0.4); font-family: monospace;">ID: ${nudgeId}</div>
         </div>
-        <div style="text-align: right; flex-shrink: 0;">
+        <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px;">
           <div style="font-weight: 800; color: #f59e0b; font-size: 13px;">🪙${coins}</div>
+          <div style="font-weight: 800; color: #a855f7; font-size: 12px;">🪐${planets}</div>
         </div>
       </div>
     </div>
@@ -1641,6 +1814,8 @@ function updateSidebarProfile(data) {
   }
 }
 
+let previousTasksState = null;
+
 function listenToUser(userId) {
   if (!db) return;
   db.collection("users").doc(userId).onSnapshot((docSnap) => {
@@ -1651,6 +1826,23 @@ function listenToUser(userId) {
     
     const dailySummaries = data.dailySummaries || [];
     const tasks = data.tasks || [];
+    
+    // 如果任務為空，自動在 Firestore 初始化預設自律任務，以達成雙端靜態任務同步
+    if (tasks.length === 0) {
+      initializeDefaultTasksInFirestore(userId);
+      return;
+    }
+    
+    // 📡 網頁端自動偵測任務在手機端達成！
+    if (previousTasksState !== null) {
+      tasks.forEach(task => {
+        const prev = previousTasksState.find(pt => pt.id === task.id);
+        if (prev && !prev.isDone && !prev.done && (task.isDone || task.done)) {
+          toast(`📡 星艦通訊：偵測到手機完成任務【${task.title || task.name}】，網頁星球已同步點亮建築與發射衛星！`);
+        }
+      });
+    }
+    previousTasksState = JSON.parse(JSON.stringify(tasks));
     
     if (dailySummaries.length > 0) {
       const scores = dailySummaries.map(s => s.disciplineScore || 0);
@@ -1667,16 +1859,22 @@ function listenToUser(userId) {
       }
     }
     
+    let completionRate = 0;
     if (tasks.length > 0) {
-      const completedCount = tasks.filter(t => t.done || t.isDone).length;
-      const completionRate = Math.round((completedCount / tasks.length) * 100);
+      const completedCount = tasks.filter(t => t.isDone || t.done).length;
+      completionRate = Math.round((completedCount / tasks.length) * 100);
       const chipA = $(".chip-a strong");
       if (chipA) {
         chipA.dataset.count = completionRate;
         chipA.textContent = `${completionRate}%`;
       }
       
-      // If we are on the planet page, bind the tasks list dynamically from Firestore!
+      const prosperityElement = document.querySelector(".hero-card strong");
+      if (prosperityElement) {
+        prosperityElement.dataset.count = completionRate;
+        prosperityElement.textContent = `${completionRate}`;
+      }
+      
       if (document.body.dataset.page === "planet") {
         if (typeof window.bindFirestoreMissions === 'function') {
           window.bindFirestoreMissions(tasks);
@@ -1684,9 +1882,22 @@ function listenToUser(userId) {
       }
     }
 
+    if (completionRate >= 60) {
+      const currentPlanetEarned = data.weeklyPlanetEarned || false;
+      if (!currentPlanetEarned) {
+        const currentPlanetCount = typeof data.planetCount === 'number' ? data.planetCount : 0;
+        db.collection("users").doc(userId).update({
+          weeklyPlanetEarned: true,
+          planetCount: currentPlanetCount + 1
+        }).then(() => {
+          toast("🎉 太棒了！您本週自律完成度達到 60%，獲得了一顆新星 🪐！已同步至手機 App");
+        });
+      }
+    }
+    
     if (document.body.dataset.page === "planet") {
       const todaySummary = dailySummaries[dailySummaries.length - 1] || {};
-      const completedCount = tasks.filter(t => t.done || t.isDone).length;
+      const completedCount = tasks.filter(t => t.isDone || t.done).length;
       const syncData = {
         completedTasks: completedCount || 3,
         focusMinutes: todaySummary.focusMinutes || (data.focusSeconds ? Math.floor(data.focusSeconds/60) : 40),
@@ -1705,10 +1916,10 @@ window.bindFirestoreMissions = function(tasks) {
   if (!list) return;
   
   list.innerHTML = "";
-  tasks.slice(0, 36).forEach((task, index) => {
-    const sId = "s" + (index + 1);
+  tasks.slice(0, 36).forEach((task) => {
     const title = task.title || task.name || "自律任務";
-    const done = task.done || task.isDone || false;
+    const done = task.isDone || task.done || false;
+    const taskId = task.id || "";
     
     let taskType = "general";
     if (/(專案|期末|大考|挑戰)/.test(title)) {
@@ -1720,64 +1931,229 @@ window.bindFirestoreMissions = function(tasks) {
     }
 
     list.innerHTML += `
-      <li class="mission-item" data-id="${index}">
+      <li class="mission-item" data-task-id="${taskId}">
         <label>
-          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-task-type="${taskType}" ${done ? 'checked' : ''} disabled />
+          <input type="checkbox" class="mission-check" data-task-id="${taskId}" data-task-type="${taskType}" ${done ? 'checked' : ''} />
           <span>${title}</span>
         </label>
         <div class="mission-meta">
           <div class="energy-bar-container">
-            <div class="energy-bar" id="energy-${index}" style="width: ${done ? '100%' : '60%'}; background: ${done ? '#00ffcc' : '#f59e0b'};"></div>
+            <div class="energy-bar" style="width: ${done ? '100%' : '60%'}; background: ${done ? '#00ffcc' : '#f59e0b'};"></div>
           </div>
-          <div class="mission-actions">
+          <div class="mission-actions" style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 11px; color: ${done ? '#00ffcc' : 'rgba(255,255,255,0.4)'}; font-weight: 700;">
               ${done ? '✅ 已同步完成' : '⏳ 行動中'}
             </span>
+            <button class="cyber-btn delete-mission-btn" data-task-id="${taskId}" style="font-size: 10px; padding: 2px 6px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: transparent; cursor: pointer; border-radius: 4px; box-shadow: none;">刪除</button>
           </div>
         </div>
       </li>
     `;
   });
 
-  const checks = $$(".mission-check");
+  const checks = list.querySelectorAll(".mission-check");
+  checks.forEach((check) => {
+    check.addEventListener("change", (e) => {
+      const taskId = e.target.dataset.taskId;
+      const isChecked = e.target.checked;
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
+      if (!activeUserId || !db) return;
+      
+      const docRef = db.collection("users").doc(activeUserId);
+      docRef.get().then((docSnap) => {
+        if (!docSnap.exists) return;
+        const data = docSnap.data();
+        const currentTasks = data.tasks || [];
+        const updatedTasks = currentTasks.map(t => {
+          if (t.id === taskId) {
+            return {
+              ...t,
+              isDone: isChecked,
+              done: isChecked,
+              completedAt: isChecked ? new Date().toISOString() : null,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return t;
+        });
+        docRef.update({ tasks: updatedTasks }).then(() => {
+          toast(isChecked ? "任務已標記為完成！" : "任務取消完成");
+        });
+      });
+    });
+  });
+
+  // 🗑️ 刪除任務事件綁定與同步手機
+  const deleteBtns = list.querySelectorAll(".delete-mission-btn");
+  deleteBtns.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const taskId = e.target.dataset.taskId;
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
+      if (!activeUserId || !db) return;
+      
+      if (confirm("確定要刪除此自律任務並同步至手機端嗎？")) {
+        const docRef = db.collection("users").doc(activeUserId);
+        docRef.get().then((docSnap) => {
+          if (!docSnap.exists) return;
+          const data = docSnap.data();
+          const currentTasks = data.tasks || [];
+          const updatedTasks = currentTasks.filter(t => t.id !== taskId);
+          docRef.update({ tasks: updatedTasks }).then(() => {
+            toast("任務已成功刪除並同步至手機！");
+          });
+        });
+      }
+    });
+  });
+
   checks.forEach((check, index) => {
-    const satClass = check.dataset.satellite;
     const taskType = check.dataset.taskType || "general";
-    const sat = satClass ? $("." + satClass) : null;
-    const plot = satClass ? $("." + satClass.replace("s", "p")) : null;
+    const sId = "s" + (index + 1);
+    const sat = $("." + sId);
+    const plot = $("." + sId.replace("s", "p"));
     const gal = $(".g" + (index + 1));
     const uni = $(".u" + (index - 23));
 
     if (check.checked) {
-      if (sat && index < 12) {
-        sat.classList.add("active");
-      }
-      if (gal && index < 24) {
-        gal.classList.add("active");
-      }
-      if (uni && index >= 24) {
-        uni.classList.add("active");
-      }
+      if (sat && index < 12) sat.classList.add("active");
+      if (gal && index < 24) gal.classList.add("active");
+      if (uni && index >= 24) uni.classList.add("active");
       if (plot) {
         plot.classList.add("built");
         plot.classList.add("built-" + taskType);
       }
     } else {
-      if (sat) {
-        sat.classList.remove("active");
-      }
-      if (gal) {
-        gal.classList.remove("active");
-      }
-      if (uni) {
-        uni.classList.remove("active");
-      }
-      if (plot) {
-        plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
-      }
+      if (sat) sat.classList.remove("active");
+      if (gal) gal.classList.remove("active");
+      if (uni) uni.classList.remove("active");
+      if (plot) plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
     }
   });
 };
 
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
+function addFirestoreTask(taskTitle) {
+  const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
+  if (!activeUserId || !db) {
+    console.warn("Firebase not initialized or user missing");
+    return;
+  }
+  const docRef = db.collection("users").doc(activeUserId);
+  docRef.get().then((docSnap) => {
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      const currentTasks = data.tasks || [];
+      const newTask = {
+        id: generateUUID(),
+        userId: activeUserId,
+        title: taskTitle,
+        category: "自定義",
+        taskType: "fixed",
+        priority: "medium",
+        isDone: false,
+        isSystemTask: false,
+        isAutoTracked: false,
+        sourceType: "manual",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      currentTasks.push(newTask);
+      docRef.update({ tasks: currentTasks }).then(() => {
+        toast(`已成功新增任務：${taskTitle}`);
+      });
+    }
+  });
+}
 
+const defaultFirestoreTasks = [
+  {
+    id: "task_default_1",
+    userId: "",
+    title: "完成 2 小時讀書",
+    category: "讀書",
+    taskType: "fixed",
+    priority: "high",
+    isDone: false,
+    isSystemTask: false,
+    isAutoTracked: false,
+    sourceType: "manual"
+  },
+  {
+    id: "task_default_2",
+    userId: "",
+    title: "步行超過 6000 步",
+    category: "運動",
+    taskType: "fixed",
+    priority: "medium",
+    isDone: false,
+    isSystemTask: false,
+    isAutoTracked: false,
+    sourceType: "manual"
+  },
+  {
+    id: "task_default_3",
+    userId: "",
+    title: "運動 30 分鐘",
+    category: "運動",
+    taskType: "fixed",
+    priority: "medium",
+    isDone: false,
+    isSystemTask: false,
+    isAutoTracked: false,
+    sourceType: "manual"
+  },
+  {
+    id: "task_default_4",
+    userId: "",
+    title: "晚上 11:30 前睡覺",
+    category: "睡眠",
+    taskType: "fixed",
+    priority: "high",
+    isDone: false,
+    isSystemTask: false,
+    isAutoTracked: false,
+    sourceType: "manual"
+  },
+  {
+    id: "task_default_5",
+    userId: "",
+    title: "準備期中報告",
+    category: "讀書",
+    taskType: "deadline",
+    priority: "high",
+    isDone: false,
+    isSystemTask: false,
+    isAutoTracked: false,
+    sourceType: "manual"
+  }
+];
+
+function initializeDefaultTasksInFirestore(userId) {
+  if (!db) return;
+  const docRef = db.collection("users").doc(userId);
+  docRef.get().then((docSnap) => {
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      if (!data.tasks || data.tasks.length === 0) {
+        const initializedTasks = defaultFirestoreTasks.map(t => ({
+          ...t,
+          userId: userId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }));
+        docRef.update({ tasks: initializedTasks }).then(() => {
+          console.log("Initialized default static tasks in Firestore for user: " + userId);
+        });
+      }
+    }
+  });
+}

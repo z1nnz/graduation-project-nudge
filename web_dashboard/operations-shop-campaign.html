@@ -2,12 +2,247 @@
 <html lang="zh-Hant">
   <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 商城活動配置</title><link rel="stylesheet" href="assets/styles.css" /></head>
   <body data-page="operations">
-    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>商城活動</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="operations.html">營運後台</a></nav></aside>
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>商城活動</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a class="active" href="operations.html">商城頁</a></nav></aside>
       <main class="main">
         <header class="hero split"><div><span class="eyebrow">Commerce Ops</span><h1>商城上架、套裝定價、活動期間配置。</h1><p>這裡是完整上架工作台，可以先檢查價格再排程。</p><div class="subnav"><a href="operations.html">中心總覽</a><a href="operations-room-review.html">房間審核</a><a class="active" href="operations-shop-campaign.html">商城活動</a><a href="operations-economy.html">幣值經濟</a></div></div><div class="hero-card"><span>本週排程</span><strong data-count="4">0</strong><p>新品套裝。</p></div></header>
-        <section class="tool-panel page-section" data-tool="campaign-builder"><div class="tool-copy"><span class="eyebrow">Commerce Ops</span><h2>商城活動配置器</h2><p>模擬套裝價格、稀有度和活動期間。</p></div><div class="tool-grid"><label class="field"><span>套裝名稱</span><input data-campaign-name value="夜讀專注套裝" /></label><label class="field"><span>稀有度</span><select data-campaign-rarity><option value="一般">一般</option><option value="稀有" selected>稀有</option><option value="活動限定">活動限定</option><option value="傳說">傳說</option></select></label><label class="field"><span>價格</span><input data-campaign-price type="number" min="10" max="160" value="60" /></label><label class="field"><span>活動天數</span><input data-campaign-days type="number" min="1" max="30" value="10" /></label></div><div class="generated-card amber with-icon" data-output="campaign-preview"><span class="card-icon">🎁</span><div class="card-content"><strong>夜讀專注套裝：稀有 / 60 枚</strong><p>以月上限 400 枚估算，穩定玩家約 5-7 天可兌換，價格健康。</p></div></div><div class="button-row"><button class="button primary" data-action="generate-campaign" type="button">檢查價格</button><button class="button ghost" data-action="save-campaign" type="button">排程上架 Demo</button></div></section>
-      </main>
-    </div><script src="assets/app.js"></script>
+        <section class="tool-panel page-section" data-tool="campaign-builder"><div class="tool-copy"><span class="eyebrow">Commerce Ops</span><h2>商城活動配置器</h2><p>模擬套裝價格、稀有度和活動期間。</p></div><div class="tool-grid"><label class="field"><span>商品圖片</span><input type="file" id="shop-image-upload" accept="image/*" /></label><label class="field"><span>商品類型</span><select id="shop-item-type" onchange="toggleDays()"><option value="permanent">常駐商品</option><option value="limited">限時商品</option><option value="event_character">活動限定角色</option></select></label><label class="field"><span>套裝名稱</span><input data-campaign-name value="夜讀專注套裝" id="shop-item-name" /></label><label class="field"><span>價格</span><input data-campaign-price type="number" min="10" max="160" value="60" id="shop-item-price" /></label>
+        <div id="days-field-container" style="display: none; display: flex; gap: 10px; grid-column: 1 / -1;">
+          <label class="field" style="flex: 1;"><span>開始時間</span><input type="datetime-local" id="shop-item-start" /></label>
+          <label class="field" style="flex: 1;"><span>結束時間</span><input type="datetime-local" id="shop-item-end" /></label>
+        </div></div><div class="generated-card amber with-icon" data-output="campaign-preview"><span class="card-icon">🎁</span><div class="card-content"><strong>夜讀專注套裝：稀有 / 60 枚</strong><p>以月上限 400 枚估算，穩定玩家約 5-7 天可兌換，價格健康。</p><img id="shop-image-preview" style="display: none; max-width: 100px; margin-top: 10px; border-radius: 8px;" /></div></div><div class="button-row"><button class="button primary" data-action="generate-campaign" type="button">檢查價格</button><button class="button ghost" data-action="save-campaign" type="button" id="upload-btn">排程上架 Demo & 儲存圖片</button></div></section>
+        
+        <section class="tool-panel page-section" style="margin-top: 2rem;">
+          <div class="tool-copy">
+            <span class="eyebrow">Live Operations</span>
+            <h2>目前上架中商品 (自動過濾過期)    </div><script src="assets/app.js?v=2"></script>
+    <script>
+      function toggleDays() {
+        const type = document.getElementById('shop-item-type').value;
+        const daysContainer = document.getElementById('days-field-container');
+        if (type === 'limited' || type === 'event_character') {
+          daysContainer.style.display = 'flex';
+        } else {
+          daysContainer.style.display = 'none';
+        }
+      }
+
+      function generateLocalUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+
+      async function fetchActiveItems() {
+        const listDiv = document.getElementById('active-items-list');
+        
+        // 優先從 Firestore 讀取商品
+        if (typeof db !== 'undefined' && db) {
+          try {
+            const querySnapshot = await db.collection("shop_items").get();
+            const items = [];
+            querySnapshot.forEach((doc) => {
+              items.push({ id: doc.id, ...doc.data() });
+            });
+            
+            listDiv.innerHTML = '';
+            const currentTime = Math.floor(Date.now() / 1000);
+            const activeItems = [];
+            
+            items.forEach(item => {
+              if (item.type === 'permanent' || !item.expires_at) {
+                activeItems.push(item);
+              } else {
+                const startTs = item.start_time || 0;
+                const endTs = item.end_time || item.expires_at || 0;
+                if (startTs <= currentTime && currentTime <= endTs) {
+                  activeItems.push(item);
+                }
+              }
+            });
+            
+            activeItems.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+            
+            if (activeItems.length === 0) {
+              listDiv.innerHTML = '<p>目前沒有上架中的商品。</p>';
+            } else {
+              activeItems.forEach(item => {
+                let expiresHTML = '';
+                if (item.end_time) {
+                  const startDate = new Date(item.start_time * 1000).toLocaleString('zh-TW');
+                  const endDate = new Date(item.end_time * 1000).toLocaleString('zh-TW');
+                  expiresHTML = `<small style="color: #3b82f6; font-weight: bold;">起: <br/>${startDate}</small><br/><small style="color: #d9534f; font-weight: bold;">迄: <br/>${endDate}</small>`;
+                } else {
+                  expiresHTML = `<small style="color: #5cb85c; font-weight: bold;">常駐商品</small>`;
+                }
+                let typeText = '常駐商品';
+                if (item.type === 'limited') typeText = '限時商品';
+                if (item.type === 'event_character') typeText = '活動限定角色';
+                
+                const imgSrc = (item.image_path.startsWith('data:') || item.image_path.startsWith('http')) 
+                  ? item.image_path 
+                  : '/' + item.image_path;
+                  
+                const card = document.createElement('div');
+                card.className = 'generated-card amber';
+                card.style.cssText = 'flex: 1 1 200px; max-width: 250px; display: flex; flex-direction: column; gap: 0.5rem;';
+                card.innerHTML = `
+                  <img src="${imgSrc}" style="width: 100%; border-radius: 4px; object-fit: cover; aspect-ratio: 1;" />
+                  <strong>${item.name}</strong>
+                  <small>商品類型: ${typeText} | 價格: ${item.price}</small>
+                  ${expiresHTML}
+                `;
+                listDiv.appendChild(card);
+              });
+            }
+            return; // 成功從 Firestore 渲染，直接返回
+          } catch (e) {
+            console.warn("無法從 Firestore 取得商品，嘗試讀取伺服器本機 json...", e);
+          }
+        }
+
+        // Fallback: 讀取伺服器本機接口
+        try {
+          const response = await fetch('/active-shop-items');
+          const result = await response.json();
+          listDiv.innerHTML = '';
+          
+          if (result.success && result.items) {
+            if (result.items.length === 0) {
+              listDiv.innerHTML = '<p>目前沒有上架中的商品。</p>';
+            } else {
+              result.items.forEach(item => {
+                let expiresHTML = '';
+                if (item.end_time) {
+                  const startDate = new Date(item.start_time * 1000).toLocaleString('zh-TW');
+                  const endDate = new Date(item.end_time * 1000).toLocaleString('zh-TW');
+                  expiresHTML = `<small style="color: #3b82f6; font-weight: bold;">起: <br/>${startDate}</small><br/><small style="color: #d9534f; font-weight: bold;">迄: <br/>${endDate}</small>`;
+                } else {
+                  expiresHTML = `<small style="color: #5cb85c; font-weight: bold;">常駐商品</small>`;
+                }
+                let typeText = '常駐商品';
+                if (item.type === 'limited') typeText = '限時商品';
+                if (item.type === 'event_character') typeText = '活動限定角色';
+                
+                const card = document.createElement('div');
+                card.className = 'generated-card amber';
+                card.style.cssText = 'flex: 1 1 200px; max-width: 250px; display: flex; flex-direction: column; gap: 0.5rem;';
+                card.innerHTML = `
+                  <img src="/${item.image_path}" style="width: 100%; border-radius: 4px; object-fit: cover; aspect-ratio: 1;" />
+                  <strong>${item.name}</strong>
+                  <small>商品類型: ${typeText} | 價格: ${item.price}</small>
+                  ${expiresHTML}
+                `;
+                listDiv.appendChild(card);
+              });
+            }
+          }
+        } catch (error) {
+          console.error("無法取得上架商品", error);
+        }
+      }
+
+      // 當 Firebase 連接就緒時，自動刷新為 Firestore 數據
+      document.addEventListener('firebase-ready', fetchActiveItems);
+
+      // 頁面載入時先抓一次
+      window.addEventListener('DOMContentLoaded', fetchActiveItems);
+
+      document.getElementById('upload-btn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('shop-image-upload');
+        if (fileInput.files.length === 0) {
+          alert('請先選擇圖片！');
+          return;
+        }
+        
+        const file = fileInput.files[0];
+        const type = document.getElementById('shop-item-type').value;
+        const name = document.getElementById('shop-item-name').value;
+        const price = parseInt(document.getElementById('shop-item-price').value) || 60;
+        
+        let startTimeTs = null;
+        let endTimeTs = null;
+        
+        if (type !== 'permanent') {
+          const startVal = document.getElementById('shop-item-start').value;
+          const endVal = document.getElementById('shop-item-end').value;
+          if (!startVal || !endVal) {
+            alert('限時商品與限定角色請務必選擇開始與結束時間！');
+            return;
+          }
+          startTimeTs = Math.floor(new Date(startVal).getTime() / 1000);
+          endTimeTs = Math.floor(new Date(endVal).getTime() / 1000);
+        }
+
+        // 優先使用 Firestore Base64 上架
+        if (typeof db !== 'undefined' && db) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+              const base64Data = e.target.result;
+              
+              await db.collection("shop_items").add({
+                id: generateLocalUUID(),
+                type: type,
+                name: name,
+                price: price,
+                image_path: base64Data, // 直接將 Base64 保存於 image_path
+                created_at: Math.floor(Date.now() / 1000),
+                start_time: startTimeTs,
+                end_time: endTimeTs,
+                expires_at: endTimeTs
+              });
+              
+              alert('上傳成功！商品已同步至 Firestore。');
+              const preview = document.getElementById('shop-image-preview');
+              preview.src = base64Data;
+              preview.style.display = 'block';
+              
+              fetchActiveItems();
+            };
+            reader.readAsDataURL(file);
+            return; // 成功走 Firestore，結束
+          } catch (err) {
+            console.warn("Firestore 上傳失敗，嘗試 fallback 走本機 python 伺服器...", err);
+          }
+        }
+
+        // Fallback: 走伺服器本機 API 上傳
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('type', type);
+        formData.append('name', name);
+        formData.append('price', price);
+        
+        if (type !== 'permanent') {
+          const startVal = document.getElementById('shop-item-start').value;
+          const endVal = document.getElementById('shop-item-end').value;
+          formData.append('start_time', startVal.replace('T', ' '));
+          formData.append('end_time', endVal.replace('T', ' '));
+        }
+        
+        try {
+          const response = await fetch('/upload-shop-item', {
+            method: 'POST',
+            body: formData
+          });
+          const result = await response.json();
+          
+          if (result.success) {
+            alert('本機上傳成功！商品已上架。');
+            const preview = document.getElementById('shop-image-preview');
+            preview.src = '/' + result.path;
+            preview.style.display = 'block';
+            
+            fetchActiveItems();
+          } else {
+            alert('本機上傳失敗：' + result.error);
+          }
+        } catch (error) {
+          alert('伺服器錯誤，請確認後端已啟動。');
+          console.error(error);
+        }
+    </script>
   </body>
 </html>
 
