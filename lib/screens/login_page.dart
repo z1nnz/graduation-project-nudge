@@ -231,26 +231,36 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      // Facebook Button
+                      // Facebook Button (Real Integration)
                       _SocialIconButton(
                         icon: Icons.facebook_rounded,
                         color: Colors.blueAccent,
-                        onTap: () => _showPresentationDialog(
-                          context,
-                          'Facebook 登入',
-                          '需要配置 Meta for Developers 平台之 App ID 與 Android/iOS 原生 SDK 安全認證金鑰。',
-                        ),
+                        onTap: () async {
+                          setState(() { _loading = true; _errorMessage = null; });
+                          try {
+                            await context.read<AppState>().signInWithFacebook();
+                          } catch (e) {
+                            setState(() { _errorMessage = 'Facebook 登入失敗：$e'; });
+                          } finally {
+                            if (mounted) setState(() { _loading = false; });
+                          }
+                        },
                       ),
                       const SizedBox(width: 16),
-                      // Microsoft Button
+                      // Microsoft Button (Real Integration)
                       _SocialIconButton(
                         icon: Icons.grid_view_rounded,
                         color: Colors.orangeAccent,
-                        onTap: () => _showPresentationDialog(
-                          context,
-                          'Microsoft 登入',
-                          '需要配置 Microsoft Azure Active Directory 的租戶權限與 Client ID 設定。',
-                        ),
+                        onTap: () async {
+                          setState(() { _loading = true; _errorMessage = null; });
+                          try {
+                            await context.read<AppState>().signInWithMicrosoft();
+                          } catch (e) {
+                            setState(() { _errorMessage = 'Microsoft 登入失敗：$e'; });
+                          } finally {
+                            if (mounted) setState(() { _loading = false; });
+                          }
+                        },
                       ),
                     ],
                   ),

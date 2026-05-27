@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
@@ -3585,6 +3586,42 @@ class AppState extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Apple Sign-in error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> signInWithFacebook() async {
+    try {
+      final LoginResult result = await FacebookAuth.instance.login(
+        permissions: ['email', 'public_profile'],
+      );
+      if (result.status != LoginStatus.success) {
+        throw Exception('Facebook 登入被取消或失敗：${result.message}');
+      }
+      final fb_auth.OAuthCredential credential =
+          fb_auth.FacebookAuthProvider.credential(result.accessToken!.tokenString);
+      final userCredential =
+          await fb_auth.FirebaseAuth.instance.signInWithCredential(credential);
+      if (userCredential.user != null) {
+        await _syncProfileFromFirebaseUser(userCredential.user!);
+      }
+    } catch (e) {
+      debugPrint('Facebook Sign-in error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> signInWithMicrosoft() async {
+    try {
+      final provider = fb_auth.OAuthProvider('microsoft.com')
+        ..setCustomParameters({'prompt': 'select_account'});
+      final userCredential =
+          await fb_auth.FirebaseAuth.instance.signInWithProvider(provider);
+      if (userCredential.user != null) {
+        await _syncProfileFromFirebaseUser(userCredential.user!);
+      }
+    } catch (e) {
+      debugPrint('Microsoft Sign-in error: $e');
       rethrow;
     }
   }

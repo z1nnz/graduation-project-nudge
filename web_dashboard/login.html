@@ -442,44 +442,45 @@
         }
       });
 
-      // Show Presentation Info Modal helper
-      function showPresentationAlert(providerName, reason) {
-        showError(`展示環境提示：本平台在當前 Demo 展示環境中未配置 ${providerName} 的開發者認證金鑰。原因：${reason}。此按鈕僅供 UI 介面展示，請使用「電子郵件/密碼」或「Google 帳號」進行登入！`);
+      // Apple Sign-In (Demo Alert — requires paid Apple Developer account)
+      function showAppleAlert() {
+        showError('Apple 登入需要配備 Apple 付費開發者帳號（年費 $99 美元）並在 Firebase 控制台填入 Team ID、Service ID 與 .p8 私鑰後才可使用。請改用 Google 或 Email 登入。');
       }
+      document.getElementById('btnApple').addEventListener('click', (e) => {
+        e.preventDefault();
+        showError('');
+        showAppleAlert();
+      });
 
       // Google Sign-In (Real Integration)
       document.getElementById('btnGoogle').addEventListener('click', (e) => {
         e.preventDefault();
-        showError("");
+        showError('');
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider)
-          .then((result) => {
-            syncUserProfile(result.user);
-          })
-          .catch((err) => {
-            showError("Google 第三方登入失敗：" + err.message);
-          });
+          .then((result) => { syncUserProfile(result.user); })
+          .catch((err) => { showError('Google 登入失敗：' + err.message); });
       });
 
-      // Apple Sign-In (Demo Alert)
-      document.getElementById('btnApple').addEventListener('click', (e) => {
-        e.preventDefault();
-        showError("");
-        showPresentationAlert("Apple", "需要配備 Apple 付費開發者帳號（年費 $99 美元）與配置相關 App ID 與憑證金鑰。");
-      });
-
-      // Facebook Sign-In (Demo Alert)
+      // Facebook Sign-In (Real Integration)
       document.getElementById('btnFacebook').addEventListener('click', (e) => {
         e.preventDefault();
-        showError("");
-        showPresentationAlert("Facebook", "需要配置 Meta for Developers 平台之 App ID 與相關 OAuth 回呼金鑰。");
+        showError('');
+        const provider = new firebase.auth.FacebookAuthProvider();
+        auth.signInWithPopup(provider)
+          .then((result) => { syncUserProfile(result.user); })
+          .catch((err) => { showError('Facebook 登入失敗：' + err.message); });
       });
 
-      // Microsoft Sign-In (Demo Alert)
+      // Microsoft Sign-In (Real Integration)
       document.getElementById('btnMicrosoft').addEventListener('click', (e) => {
         e.preventDefault();
-        showError("");
-        showPresentationAlert("Microsoft", "需要配置 Microsoft Azure Active Directory 企業租戶憑證與 Client ID。");
+        showError('');
+        const provider = new firebase.auth.OAuthProvider('microsoft.com');
+        provider.setCustomParameters({ prompt: 'select_account' });
+        auth.signInWithPopup(provider)
+          .then((result) => { syncUserProfile(result.user); })
+          .catch((err) => { showError('Microsoft 登入失敗：' + err.message); });
       });
     </script>
   </body>
