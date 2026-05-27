@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge - 登入 / 註冊</title>
     <link rel="stylesheet" href="assets/styles.css" />
+    <!-- Firebase Compat SDK for real-time Firebase Auth and Firestore sync -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
       .login-page {
         display: flex;
@@ -183,6 +187,9 @@
         <h1 class="login-title" id="loginTitle">建立你的自律身分</h1>
         <p class="login-subtitle" id="loginSubtitle">同步你的進度，與全球好友一同專注</p>
 
+        <!-- Error Message Banner -->
+        <div id="errorMsg" style="display: none; color: #ff4a5a; background: rgba(255, 74, 90, 0.1); border: 1px solid rgba(255, 74, 90, 0.2); padding: 12px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; font-weight: 700; text-align: center;"></div>
+
         <div class="auth-tabs">
           <div class="auth-tab" id="tabLogin">登入</div>
           <div class="auth-tab active" id="tabRegister">註冊</div>
@@ -255,10 +262,78 @@
     </div>
 
     <script>
-      document.getElementById('loginForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        localStorage.setItem('nudgeWebLoggedIn', 'true');
-        window.location.href = 'index.html';
+      // Firebase Config
+      const firebaseConfig = {
+        apiKey: "AIzaSyCsvP-r0EygpkhH0Zwzfrl4uFzy6LcbsTQ",
+        authDomain: "nudge-discipline-app.firebaseapp.com",
+        projectId: "nudge-discipline-app",
+        storageBucket: "nudge-discipline-app.firebasestorage.app",
+        messagingSenderId: "497972469632",
+        appId: "1:497972469632:web:cb87819a70c7cb8f2f6b65"
+      };
+
+      // Initialize Firebase
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      // Show/Hide Error Helper
+      function showError(msg) {
+        const errDiv = document.getElementById('errorMsg');
+        if (msg) {
+          errDiv.textContent = msg;
+          errDiv.style.display = 'block';
+        } else {
+          errDiv.style.display = 'none';
+        }
+      }
+
+      // Sync user profile to Firestore (creates it if missing)
+      function syncUserProfile(user, nickname) {
+        showError("");
+        const userRef = db.collection("users").doc(user.uid);
+        return userRef.get().then((docSnap) => {
+          if (!docSnap.exists) {
+            const now = firebase.firestore.FieldValue.serverTimestamp();
+            return userRef.set({
+              id: user.uid,
+              email: user.email,
+              nickname: nickname || user.displayName || user.email.split('@')[0],
+              myNudgeId: 'NDG_' + user.uid.substring(0, 6).toUpperCase(),
+              username: 'NDG_' + user.uid.substring(0, 6).toUpperCase(),
+              disciplineCoins: 0,
+              planetCount: 0,
+              weeklyPlanetEarned: false,
+              tasks: [],
+              dailySummaries: [],
+              createdAt: now,
+              updatedAt: now
+            }, { merge: true });
+          }
+        }).then(() => {
+          localStorage.setItem('nudgeWebLoggedIn', 'true');
+          localStorage.setItem('nudgeActiveDemoUserId', user.uid);
+          window.location.href = 'index.html';
+        }).catch((err) => {
+          console.error("Firestore sync error:", err);
+          showError("同步使用者資料失敗：" + err.message);
+        });
+      }
+
+      // Password visibility toggler
+      document.querySelectorAll('.toggle-pwd').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+          const input = e.target.previousElementSibling;
+          if (input.type === 'password') {
+            input.type = 'text';
+            e.target.textContent = '🙈';
+          } else {
+            input.type = 'password';
+            e.target.textContent = '👁️';
+          }
+        });
       });
 
       // Tab switching logic
@@ -273,7 +348,10 @@
       const nicknameInput = groupNickname.querySelector('input');
       const confirmInput = groupConfirm.querySelector('input');
 
+      let isLoginMode = false; // Default is register mode (tabRegister active)
+
       tabLogin.addEventListener('click', () => {
+        isLoginMode = true;
         tabLogin.classList.add('active');
         tabRegister.classList.remove('active');
         
@@ -285,9 +363,11 @@
         loginTitle.textContent = '歡迎回來';
         loginSubtitle.textContent = '繼續你的自律旅程';
         submitBtn.textContent = '登入';
+        showError("");
       });
 
       tabRegister.addEventListener('click', () => {
+        isLoginMode = false;
         tabRegister.classList.add('active');
         tabLogin.classList.remove('active');
         
@@ -299,14 +379,80 @@
         loginTitle.textContent = '建立你的自律身分';
         loginSubtitle.textContent = '同步你的進度，與全球好友一同專注';
         submitBtn.textContent = '建立帳號並登入';
+        showError("");
       });
 
-      // Also allow social login to just bypass for demo
-      document.querySelectorAll('.social-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          localStorage.setItem('nudgeWebLoggedIn', 'true');
-          window.location.href = 'index.html';
-        });
+      // Form Submission
+      document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        showError("");
+
+        const email = e.target.querySelector('input[type="email"]').value.trim();
+        const password = e.target.querySelector('input[type="password"]').value;
+
+        if (isLoginMode) {
+          // Log In
+          submitBtn.disabled = true;
+          submitBtn.textContent = "登入中...";
+          auth.signInWithEmailAndPassword(email, password)
+            .then((result) => {
+              syncUserProfile(result.user);
+            })
+            .catch((err) => {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "登入";
+              showError("登入失敗：" + err.message);
+            });
+        } else {
+          // Register
+          const nickname = nicknameInput.value.trim();
+          const confirmPassword = confirmInput.value;
+
+          if (password !== confirmPassword) {
+            showError("兩次輸入的密碼不一致！");
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = "建立帳號中...";
+          auth.createUserWithEmailAndPassword(email, password)
+            .then((result) => {
+              return syncUserProfile(result.user, nickname);
+            })
+            .catch((err) => {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "建立帳號並登入";
+              showError("註冊失敗：" + err.message);
+            });
+        }
+      });
+
+      // Google Sign-In
+      document.querySelector('.social-btn:nth-child(1)').addEventListener('click', (e) => {
+        e.preventDefault();
+        showError("");
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider)
+          .then((result) => {
+            syncUserProfile(result.user);
+          })
+          .catch((err) => {
+            showError("Google 第三方登入失敗：" + err.message);
+          });
+      });
+
+      // Apple Sign-In
+      document.querySelector('.social-btn:nth-child(2)').addEventListener('click', (e) => {
+        e.preventDefault();
+        showError("");
+        const provider = new firebase.auth.OAuthProvider('apple.com');
+        auth.signInWithPopup(provider)
+          .then((result) => {
+            syncUserProfile(result.user);
+          })
+          .catch((err) => {
+            showError("Apple 第三方登入失敗：" + err.message);
+          });
       });
     </script>
   </body>

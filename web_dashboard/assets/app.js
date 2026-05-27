@@ -55,7 +55,18 @@ function injectModuleMenu() {
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
       localStorage.removeItem("nudgeWebLoggedIn");
-      window.location.href = "index.html"; // 登出後回到總覽頁面
+      localStorage.removeItem("nudgeActiveDemoUserId");
+      
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().signOut().then(() => {
+          window.location.href = "index.html"; // 登出後回到總覽頁面
+        }).catch(err => {
+          console.error("Firebase sign out failed:", err);
+          window.location.href = "index.html";
+        });
+      } else {
+        window.location.href = "index.html";
+      }
     });
     nav.appendChild(logoutBtn);
   } else {
@@ -1671,20 +1682,26 @@ const firebaseConfig = {
 
 function loadFirebaseSDKs() {
   return new Promise((resolve) => {
-    if (window.firebase) {
+    if (window.firebase && window.firebase.auth && window.firebase.firestore) {
       resolve();
       return;
     }
     const coreScript = document.createElement('script');
     coreScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js";
     coreScript.onload = () => {
-      const dbScript = document.createElement('script');
-      dbScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js";
-      dbScript.onload = () => {
-        resolve();
+      const authScript = document.createElement('script');
+      authScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js";
+      authScript.onload = () => {
+        const dbScript = document.createElement('script');
+        dbScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js";
+        dbScript.onload = () => {
+          resolve();
+        };
+        dbScript.onerror = () => resolve();
+        document.head.appendChild(dbScript);
       };
-      dbScript.onerror = () => resolve();
-      document.head.appendChild(dbScript);
+      authScript.onerror = () => resolve();
+      document.head.appendChild(authScript);
     };
     coreScript.onerror = () => resolve();
     document.head.appendChild(coreScript);
@@ -1702,13 +1719,33 @@ function initializeFirebaseWeb() {
         }
         db = firebase.firestore();
         console.log("Firebase initialized successfully on Web Center");
-        startListeningToFirestoreData();
-        document.dispatchEvent(new Event('firebase-ready'));
+        
+        // Listen to Auth State
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            console.log("Authenticated user detected:", user.uid);
+            if (!user.isAnonymous) {
+              localStorage.setItem("nudgeWebLoggedIn", "true");
+              localStorage.setItem("nudgeActiveDemoUserId", user.uid);
+            }
+          } else {
+            console.log("No authenticated user. Attempting anonymous sign in...");
+            // Sign in anonymously if not logged in, to allow reading the users list and data!
+            firebase.auth().signInAnonymously().catch(err => {
+              console.warn("Anonymous sign in failed: ", err);
+            });
+          }
+          startListeningToFirestoreData();
+          document.dispatchEvent(new Event('firebase-ready'));
+        });
       } catch (e) {
         console.warn("Firebase initialization failed, falling back to mock data: ", e);
+        startListeningToFirestoreData();
+        document.dispatchEvent(new Event('firebase-ready'));
       }
     } else {
       console.log("Firebase SDK not loaded, using local demo data");
+      startListeningToFirestoreData();
     }
   });
 }
