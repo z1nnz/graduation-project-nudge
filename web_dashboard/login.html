@@ -230,9 +230,6 @@
           <button type="button" class="social-btn" id="btnFacebook" style="flex: 1;">
             👤 Facebook
           </button>
-          <button type="button" class="social-btn" id="btnMicrosoft" style="flex: 1;">
-            ❖ Microsoft
-          </button>
         </div>
 
         <a href="index.html" class="skip-link">稍後再說，先體驗功能</a>
@@ -472,16 +469,6 @@
           .catch((err) => { showError('Facebook 登入失敗：' + err.message); });
       });
 
-      // Microsoft Sign-In (Real Integration)
-      document.getElementById('btnMicrosoft').addEventListener('click', (e) => {
-        e.preventDefault();
-        showError('');
-        const provider = new firebase.auth.OAuthProvider('microsoft.com');
-        provider.setCustomParameters({ prompt: 'select_account' });
-        auth.signInWithPopup(provider)
-          .then((result) => { syncUserProfile(result.user); })
-          .catch((err) => { showError('Microsoft 登入失敗：' + err.message); });
-      });
     </script>
   </body>
 </html>

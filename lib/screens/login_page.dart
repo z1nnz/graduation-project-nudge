@@ -246,22 +246,6 @@ class _LoginPageState extends State<LoginPage> {
                           }
                         },
                       ),
-                      const SizedBox(width: 16),
-                      // Microsoft Button (Real Integration)
-                      _SocialIconButton(
-                        icon: Icons.grid_view_rounded,
-                        color: Colors.orangeAccent,
-                        onTap: () async {
-                          setState(() { _loading = true; _errorMessage = null; });
-                          try {
-                            await context.read<AppState>().signInWithMicrosoft();
-                          } catch (e) {
-                            setState(() { _errorMessage = 'Microsoft 登入失敗：$e'; });
-                          } finally {
-                            if (mounted) setState(() { _loading = false; });
-                          }
-                        },
-                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
