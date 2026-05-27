@@ -273,72 +273,20 @@ class _HealthPageState extends State<HealthPage> {
     required String unitLabel,
     required bool hasTrackingTask,
   }) async {
-    final controller = TextEditingController(
-      text: _formatGoalValue(currentTargetValue),
-    );
-    String? errorText;
-
+    // 使用獨立的 StatefulWidget 管理 TextEditingController 生命週期，
+    // 避免 showDialog await 返回後立刻 dispose controller，
+    // 但退場動畫仍在執行，造成 ChangeNotifier disposed 無限 rebuild 崩潰。
     final targetValue = await showDialog<double>(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('設定$metricName目標'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('你今天想達成多少$unitLabel？設定後會自動建立健康追蹤任務，達標時任務會自動完成。'),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    keyboardType: TextInputType.numberWithOptions(
-                      decimal: sourceType == TaskSourceType.sleepHours,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: '目標',
-                      suffixText: unitLabel,
-                      errorText: errorText,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('取消'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final value = double.tryParse(controller.text.trim());
-                    if (value == null || value <= 0) {
-                      setDialogState(() {
-                        errorText = '請輸入大於 0 的目標';
-                      });
-                      return;
-                    }
-                    if (sourceType != TaskSourceType.sleepHours &&
-                        value % 1 != 0) {
-                      setDialogState(() {
-                        errorText = '$metricName目標請輸入整數';
-                      });
-                      return;
-                    }
-                    Navigator.pop(context, value);
-                  },
-                  child: Text(hasTrackingTask ? '更新目標' : '開始追蹤'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (context) => _HealthGoalDialogWidget(
+        sourceType: sourceType,
+        metricName: metricName,
+        unitLabel: unitLabel,
+        initialValue: _formatGoalValue(currentTargetValue),
+        hasTrackingTask: hasTrackingTask,
+      ),
     );
 
-    controller.dispose();
     if (!mounted || targetValue == null) return;
 
     final title = '$metricName ${_formatGoalValue(targetValue)} $unitLabel';
@@ -881,6 +829,97 @@ class _HealthMetricProgressCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 獨立的 StatefulWidget 管理 TextEditingController 生命週期。
+/// 確保 controller.dispose() 在 Dialog 退場動畫完全結束後才被呼叫，
+/// 避免「動畫仍在執行時 TextField 嘗試 addListener 到已 dispose 的 controller」
+/// 所造成的 ChangeNotifier.debugAssertNotDisposed 無限 rebuild 崩潰。
+class _HealthGoalDialogWidget extends StatefulWidget {
+  final TaskSourceType sourceType;
+  final String metricName;
+  final String unitLabel;
+  final String initialValue;
+  final bool hasTrackingTask;
+
+  const _HealthGoalDialogWidget({
+    required this.sourceType,
+    required this.metricName,
+    required this.unitLabel,
+    required this.initialValue,
+    required this.hasTrackingTask,
+  });
+
+  @override
+  State<_HealthGoalDialogWidget> createState() => _HealthGoalDialogWidgetState();
+}
+
+class _HealthGoalDialogWidgetState extends State<_HealthGoalDialogWidget> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    // Flutter 在 Dialog 退場動畫完全結束後才呼叫此方法，
+    // 確保 controller 不會在動畫期間被提前 dispose。
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('設定${widget.metricName}目標'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('你今天想達成多少${widget.unitLabel}？設定後會自動建立健康追蹤任務，達標時任務會自動完成。'),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: TextInputType.numberWithOptions(
+              decimal: widget.sourceType == TaskSourceType.sleepHours,
+            ),
+            decoration: InputDecoration(
+              labelText: '目標',
+              suffixText: widget.unitLabel,
+              errorText: _errorText,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final value = double.tryParse(_controller.text.trim());
+            if (value == null || value <= 0) {
+              setState(() { _errorText = '請輸入大於 0 的目標'; });
+              return;
+            }
+            if (widget.sourceType != TaskSourceType.sleepHours && value % 1 != 0) {
+              setState(() { _errorText = '${widget.metricName}目標請輸入整數'; });
+              return;
+            }
+            Navigator.pop(context, value);
+          },
+          child: Text(widget.hasTrackingTask ? '更新目標' : '開始追蹤'),
+        ),
+      ],
     );
   }
 }
