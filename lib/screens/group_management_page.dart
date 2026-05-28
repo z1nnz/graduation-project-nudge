@@ -1,0 +1,439 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
+import '../theme/app_ui.dart';
+import 'study_room_list_page.dart';
+
+class GroupManagementPage extends StatelessWidget {
+  const GroupManagementPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final accentColor = appState.currentIconColor;
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    final challenge = appState.groupChallenge;
+    final schedules = appState.studySchedules;
+    final template = appState.examTemplate;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('團體與教育管理'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(AppUI.pagePadding),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: AppUI.heroGradient(accentColor),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.business_center_outlined,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '團體與教育管理端',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '企業、學校、補習班專屬自律挑戰與學習任務清單接收端。',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppUI.sectionGap),
+
+          // ─── 團體挑戰 ──────────────────────────────────────────────
+          Row(
+            children: [
+              const Icon(Icons.emoji_events_outlined, color: AppUI.orange),
+              const SizedBox(width: 8),
+              Text(
+                '團體自律挑戰',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUI.cardGap),
+
+          if (challenge == null)
+            Card(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Text(
+                  '目前尚未被指派團體挑戰。請在 Web 平台「挑戰建立器」中派發。',
+                  style: TextStyle(fontSize: 13, color: secondaryText),
+                ),
+              ),
+            )
+          else
+            _buildChallengeCard(context, challenge, accentColor),
+
+          const SizedBox(height: AppUI.sectionGap),
+
+          // ─── 補習班/團體讀書時段 ──────────────────────────────────────
+          Row(
+            children: [
+              const Icon(Icons.timer_outlined, color: AppUI.blue),
+              const SizedBox(width: 8),
+              Text(
+                '團體共讀/讀書時段',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryText,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppUI.blue.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${schedules.length}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppUI.blue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUI.cardGap),
+
+          if (schedules.isEmpty)
+            Card(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Text(
+                  '目前無排程的讀書時段。家長或老師可在 Web 端「讀書時段」中新增。',
+                  style: TextStyle(fontSize: 13, color: secondaryText),
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: schedules.length,
+              itemBuilder: (context, index) {
+                final schedule = schedules[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                  child: _buildStudyScheduleCard(context, schedule, accentColor),
+                );
+              },
+            ),
+
+          const SizedBox(height: AppUI.sectionGap),
+
+          // ─── 考試/自律任務模板 ────────────────────────────────────────
+          Row(
+            children: [
+              const Icon(Icons.assignment_outlined, color: AppUI.green),
+              const SizedBox(width: 8),
+              Text(
+                '學業大考任務模板',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUI.cardGap),
+
+          if (template == null)
+            Card(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Text(
+                  '目前尚未發佈考試模板。請在 Web 平台「大考任務模板」中建立。',
+                  style: TextStyle(fontSize: 13, color: secondaryText),
+                ),
+              ),
+            )
+          else
+            _buildTemplateCard(context, template, appState, accentColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChallengeCard(
+    BuildContext context,
+    Map<String, dynamic> challenge,
+    Color accentColor,
+  ) {
+    final group = challenge['group'] ?? '自律團體';
+    final type = challenge['type'] ?? '專注挑戰';
+    final days = challenge['days'] ?? 7;
+    final reward = challenge['reward'] ?? '徽章';
+
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  group,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppUI.green.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '進行中',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppUI.green,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$days 日$type',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: primaryText,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '挑戰規則：每日完成目標，連續累積點數。只顯示前 10 名。\n完成獎勵：$reward。',
+              style: TextStyle(fontSize: 12, color: secondaryText, height: 1.45),
+            ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('已成功參與 $group 的「$days日$type」！')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('參與挑戰'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStudyScheduleCard(
+    BuildContext context,
+    Map<String, dynamic> schedule,
+    Color accentColor,
+  ) {
+    final title = schedule['title'] ?? '共讀時段';
+    final meta = schedule['meta'] ?? '時間與房間未定';
+
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppUI.blue.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.menu_book, color: AppUI.blue, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      meta,
+                      style: TextStyle(fontSize: 12, color: secondaryText),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const StudyRoomListPage()),
+                  );
+                },
+                child: Row(
+                  children: [
+                    Text('進入自律房', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_ios, size: 12, color: accentColor),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemplateCard(
+    BuildContext context,
+    Map<String, dynamic> template,
+    AppState appState,
+    Color accentColor,
+  ) {
+    final type = template['type'] ?? '大考';
+    final days = int.tryParse(template['days']?.toString() ?? '7') ?? 7;
+    final effort = template['effort'] ?? '每日投入中等';
+    final pressure = template['pressure'] ?? '策略性規劃';
+
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$type大考 $days 日規劃模板',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: primaryText,
+              ),
+            ),
+            const Divider(height: 20),
+            Text(
+              '每日投入強度：',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: secondaryText),
+            ),
+            Text(
+              effort,
+              style: TextStyle(fontSize: 14, color: primaryText),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '準備階段策略：',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: secondaryText),
+            ),
+            Text(
+              pressure,
+              style: TextStyle(fontSize: 14, color: primaryText, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      appState.importExamTemplate(type, days, effort, pressure);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('成功匯入 $type 的 $days 日學習任務至任務清單！'),
+                          backgroundColor: AppUI.green,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    label: const Text('匯入為我的自律任務'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentColor,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

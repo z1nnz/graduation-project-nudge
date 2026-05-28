@@ -160,6 +160,17 @@ class AppState extends ChangeNotifier {
             (data['dailySummaries'] as List).map((s) => DailySummary.fromJson(Map<String, dynamic>.from(s as Map))),
           );
         }
+        if (data['webToolsState'] != null) {
+          _webToolsState = Map<String, dynamic>.from(data['webToolsState'] as Map);
+        } else {
+          _webToolsState = null;
+        }
+        if (data['webToolsCollection'] != null) {
+          _webToolsCollection = Map<String, dynamic>.from(data['webToolsCollection'] as Map);
+        } else {
+          _webToolsCollection = null;
+        }
+        _userRole = data['userRole'] as String? ?? _userRole;
         notifyListeners();
       }
     });
@@ -403,11 +414,22 @@ class AppState extends ChangeNotifier {
             (data['dailySummaries'] as List).map((s) => DailySummary.fromJson(Map<String, dynamic>.from(s))),
           );
         }
+        if (data['webToolsState'] != null) {
+          _webToolsState = Map<String, dynamic>.from(data['webToolsState'] as Map);
+        } else {
+          _webToolsState = null;
+        }
+        if (data['webToolsCollection'] != null) {
+          _webToolsCollection = Map<String, dynamic>.from(data['webToolsCollection'] as Map);
+        } else {
+          _webToolsCollection = null;
+        }
         _profileNickname = data['nickname'] as String? ?? _profileNickname;
         _profileSignature = data['signature'] as String? ?? _profileSignature;
         _myNudgeId = data['myNudgeId'] as String? ?? _myNudgeId;
         _themeModeSetting = data['themeMode'] as String? ?? _themeModeSetting;
         _iconColorSetting = data['accentColor'] as String? ?? _iconColorSetting;
+        _userRole = data['userRole'] as String? ?? _userRole;
         notifyListeners();
 
         // Also save locally so that it matches
@@ -457,6 +479,7 @@ class AppState extends ChangeNotifier {
     {
       'title': '完成 2 小時讀書',
       'done': false,
+      'isDone': false,
       'category': '讀書',
       'taskType': 'fixed',
       'dueDate': null,
@@ -465,6 +488,7 @@ class AppState extends ChangeNotifier {
     {
       'title': '步行超過 6000 步',
       'done': false,
+      'isDone': false,
       'category': '運動',
       'taskType': 'fixed',
       'dueDate': null,
@@ -473,6 +497,7 @@ class AppState extends ChangeNotifier {
     {
       'title': '運動 30 分鐘',
       'done': false,
+      'isDone': false,
       'category': '運動',
       'taskType': 'fixed',
       'dueDate': null,
@@ -481,6 +506,7 @@ class AppState extends ChangeNotifier {
     {
       'title': '晚上 11:30 前睡覺',
       'done': false,
+      'isDone': false,
       'category': '睡眠',
       'taskType': 'fixed',
       'dueDate': null,
@@ -489,6 +515,7 @@ class AppState extends ChangeNotifier {
     {
       'title': '準備期中報告',
       'done': false,
+      'isDone': false,
       'category': '讀書',
       'taskType': 'deadline',
       'dueDate': null,
@@ -599,8 +626,61 @@ class AppState extends ChangeNotifier {
   Set<String> _seenUnlockedBadgeKeys = <String>{};
   Map<String, String> _unlockedBadgeDates = <String, String>{};
   List<SocialEncouragementRecord> _socialEncouragementRecords = [];
+  Map<String, dynamic>? _webToolsState;
+  Map<String, dynamic>? _webToolsCollection;
+  String _userRole = 'personal';
 
   List<Map<String, dynamic>> get tasks => _tasks;
+  Map<String, dynamic>? get webToolsState => _webToolsState;
+  Map<String, dynamic>? get webToolsCollection => _webToolsCollection;
+  String get userRole => _userRole;
+
+  Map<String, dynamic>? get guardianInvite {
+    if (_webToolsState == null) return null;
+    final invite = _webToolsState!['guardianInvite'];
+    if (invite == null) return null;
+    final status = _webToolsState!['guardianInviteStatus']?['status'] ?? 'pending_child_approval';
+    return {
+      ...Map<String, dynamic>.from(invite as Map),
+      'status': status,
+    };
+  }
+
+  List<Map<String, dynamic>> get guardianEncouragements {
+    if (_webToolsCollection == null || _webToolsCollection!['encouragements'] == null) return [];
+    return List<Map<String, dynamic>>.from(
+      (_webToolsCollection!['encouragements'] as List).map((x) => Map<String, dynamic>.from(x as Map)),
+    );
+  }
+
+  List<Map<String, dynamic>> get timeCapsules {
+    if (_webToolsCollection == null || _webToolsCollection!['capsules'] == null) return [];
+    return List<Map<String, dynamic>>.from(
+      (_webToolsCollection!['capsules'] as List).map((x) => Map<String, dynamic>.from(x as Map)),
+    );
+  }
+
+  Map<String, dynamic>? get futureLetter {
+    if (_webToolsState == null || _webToolsState!['futureLetter'] == null) return null;
+    return Map<String, dynamic>.from(_webToolsState!['futureLetter'] as Map);
+  }
+
+  Map<String, dynamic>? get groupChallenge {
+    if (_webToolsState == null || _webToolsState!['challenge'] == null) return null;
+    return Map<String, dynamic>.from(_webToolsState!['challenge'] as Map);
+  }
+
+  List<Map<String, dynamic>> get studySchedules {
+    if (_webToolsCollection == null || _webToolsCollection!['studySchedules'] == null) return [];
+    return List<Map<String, dynamic>>.from(
+      (_webToolsCollection!['studySchedules'] as List).map((x) => Map<String, dynamic>.from(x as Map)),
+    );
+  }
+
+  Map<String, dynamic>? get examTemplate {
+    if (_webToolsState == null || _webToolsState!['template'] == null) return null;
+    return Map<String, dynamic>.from(_webToolsState!['template'] as Map);
+  }
   int get focusSeconds => _focusSeconds;
   int get focusMinutes => _focusSeconds ~/ 60;
   double get sleepHours => _sleepHours;
@@ -2188,6 +2268,7 @@ class AppState extends ChangeNotifier {
       await _loadAppearanceSettings();
 
       final prefs = await SharedPreferences.getInstance();
+      _userRole = prefs.getString('user_role_setting') ?? 'personal';
       if (prefs.containsKey(_focusSecondsKey)) {
         _focusSeconds = prefs.getInt(_focusSecondsKey) ?? 0;
       } else {
@@ -4081,6 +4162,7 @@ class AppState extends ChangeNotifier {
     }
 
     _tasks[index]['done'] = value;
+    _tasks[index]['isDone'] = value;
     _tasks[index]['updatedAt'] = DateTime.now().toIso8601String();
     _tasks[index]['completedAt'] = value
         ? DateTime.now().toIso8601String()
@@ -4118,6 +4200,7 @@ class AppState extends ChangeNotifier {
       'userId': 'local_user',
       'title': title,
       'done': false,
+      'isDone': false,
       'category': category,
       'taskType': taskType,
       'dueDate': taskType == 'fixed' ? null : dueDate,
@@ -5415,6 +5498,249 @@ ${summaryBuf.toString()}
       });
     } catch (e) {
       debugPrint('Failed to send voice ICE Candidate: $e');
+    }
+  }
+
+  Future<void> acceptGuardianInvite() async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      await docRef.update({
+        'webToolsState.guardianInviteStatus': {
+          'status': 'linked',
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to accept guardian invite: $e');
+    }
+  }
+
+  Future<void> declineGuardianInvite() async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      await docRef.update({
+        'webToolsState.guardianInviteStatus': {
+          'status': 'declined',
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to decline guardian invite: $e');
+    }
+  }
+
+  Future<void> removeGuardian() async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      await docRef.update({
+        'webToolsState.guardianInvite': FieldValue.delete(),
+        'webToolsState.guardianInviteStatus': FieldValue.delete(),
+      });
+    } catch (e) {
+      debugPrint('Failed to remove guardian: $e');
+    }
+  }
+
+  Future<void> saveTimeCapsule(String title, String date, String message) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final newCapsule = {
+        'title': title,
+        'meta': '$date 解鎖',
+        'message': message,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      final updatedCapsules = [newCapsule, ...timeCapsules];
+      await docRef.update({
+        'webToolsCollection.capsules': updatedCapsules,
+        'webToolsCollection.capsulesUpdatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('Failed to save time capsule: $e');
+    }
+  }
+
+  Future<void> deleteTimeCapsule(int index) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final list = [...timeCapsules];
+      if (index >= 0 && index < list.length) {
+        list.removeAt(index);
+        await docRef.update({
+          'webToolsCollection.capsules': list,
+          'webToolsCollection.capsulesUpdatedAt': DateTime.now().toIso8601String(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to delete time capsule: $e');
+    }
+  }
+
+  Future<void> saveFutureLetter(String state, String action, String note) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      await docRef.update({
+        'webToolsState.futureLetter': {
+          'state': state,
+          'action': action,
+          'note': note,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to save future letter: $e');
+    }
+  }
+
+  void importExamTemplate(String type, int days, String effort, String strategy) {
+    for (int d = 1; d <= days; d++) {
+      String title = '';
+      if (d == 1) {
+        title = '[$type第$d天] 整理目標與資料';
+      } else if (d == (days / 2).ceil()) {
+        title = '[$type第$d天] 完成主要進度 ($effort)';
+      } else if (d == days) {
+        title = '[$type第$d天] 回顧、補強與提交';
+      } else {
+        title = '[$type第$d天] 執行進度 ($strategy)';
+      }
+      addTask(
+        title,
+        '讀書',
+        taskType: 'fixed',
+        priority: '高',
+      );
+    }
+  }
+
+  Future<void> setUserRole(String role) async {
+    _userRole = role;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_role_setting', role);
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        await docRef.update({
+          'userRole': role,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Failed to update user role in Firestore: $e');
+      }
+    }
+  }
+
+  Future<void> sendParentEncouragementCard(String title, String message) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final newCard = {
+        'title': title,
+        'meta': '剛剛',
+        'message': message,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      final updated = [newCard, ...guardianEncouragements];
+      await docRef.update({
+        'webToolsCollection.encouragements': updated,
+        'webToolsCollection.encouragementsUpdatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('Failed to send encouragement card: $e');
+    }
+  }
+
+  Future<void> sendParentSharedGoal(String goal, String permission, String message) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      await docRef.update({
+        'webToolsState.guardianInvite': {
+          'goal': goal,
+          'permission': permission,
+          'message': message,
+        },
+        'webToolsState.guardianInviteStatus': {
+          'status': 'pending_child_approval',
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to send shared goal: $e');
+    }
+  }
+
+  Future<void> publishGroupChallenge(String groupName, String type, int days, String reward) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      await docRef.update({
+        'webToolsState.challenge': {
+          'group': groupName,
+          'type': type,
+          'days': days,
+          'reward': reward,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to publish group challenge: $e');
+    }
+  }
+
+  Future<void> publishStudySchedule(String title, String meta) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final newSchedule = {
+        'title': title,
+        'meta': meta,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      final updated = [newSchedule, ...studySchedules];
+      await docRef.update({
+        'webToolsCollection.studySchedules': updated,
+        'webToolsCollection.studySchedulesUpdatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('Failed to publish study schedule: $e');
+    }
+  }
+
+  Future<void> publishExamTemplate(String type, int days, String effort, String strategy) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      await docRef.update({
+        'webToolsState.template': {
+          'type': type,
+          'days': days,
+          'effort': effort,
+          'pressure': strategy,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to publish exam template: $e');
     }
   }
 }

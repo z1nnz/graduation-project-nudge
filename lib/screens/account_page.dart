@@ -219,6 +219,58 @@ class _AccountPageState extends State<AccountPage>
         ),
         const SizedBox(height: AppUI.cardGap),
 
+        // Role Switcher Card
+        _InfoCard(
+          title: '切換自律角色身份',
+          subtitle: '切換不同的模式以使用對應的自律中心或控制台',
+          icon: Icons.swap_horizontal_circle_outlined,
+          accentColor: accent,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  _RolePill(
+                    label: '個人模式',
+                    role: 'personal',
+                    activeRole: appState.userRole,
+                    accentColor: accent,
+                    onTap: () => appState.setUserRole('personal'),
+                  ),
+                  const SizedBox(width: 8),
+                  _RolePill(
+                    label: '學生/孩子',
+                    role: 'child',
+                    activeRole: appState.userRole,
+                    accentColor: accent,
+                    onTap: () => appState.setUserRole('child'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _RolePill(
+                    label: '家長端',
+                    role: 'parent',
+                    activeRole: appState.userRole,
+                    accentColor: accent,
+                    onTap: () => appState.setUserRole('parent'),
+                  ),
+                  const SizedBox(width: 8),
+                  _RolePill(
+                    label: '團體管理',
+                    role: 'group_manager',
+                    activeRole: appState.userRole,
+                    accentColor: accent,
+                    onTap: () => appState.setUserRole('group_manager'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppUI.cardGap),
+
         // Nudge ID card
         _InfoCard(
           title: 'Nudge ID',
@@ -817,6 +869,56 @@ class _SyncChip extends StatelessWidget {
       child: Text(label,
           style: TextStyle(
               color: color, fontSize: 12, fontWeight: FontWeight.w800)),
+    );
+  }
+}
+
+class _RolePill extends StatelessWidget {
+  final String label;
+  final String role;
+  final String activeRole;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _RolePill({
+    required this.label,
+    required this.role,
+    required this.activeRole,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = role == activeRole;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? accentColor.withValues(alpha: 0.12)
+                : AppUI.surfaceVariantOf(context),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? accentColor : Theme.of(context).dividerColor,
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? accentColor : AppUI.textSecondaryOf(context),
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -6,9 +6,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   </head>
   <body data-page="planet">
-    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">商城頁</a><a href="research.html">研究 / 展示中心</a><a class="active" href="planet.html">自律星球</a></nav><section class="side-panel"><span class="eyebrow">視覺模式切換</span><div class="view-toggle"><button data-view="solar-system" class="active">🪐 太陽系視角</button></div><p style="margin-top: 15px;">切換不同視角來觀看你的自律成果。</p></section></aside>
+    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">商城頁</a><a href="research.html">研究中心</a><a href="friend.html">好友功能</a>
+          <a class="active" href="planet.html">自律星球</a></nav><section class="side-panel"><span class="eyebrow">視覺模式切換</span><div class="view-toggle"><button data-view="solar-system" class="active">🪐 太陽系視角</button></div><p style="margin-top: 15px;">切換不同視角來觀看你的自律成果。</p></section></aside>
       <main class="main">
-        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>星球中心只展示世界，星球、事件、好友拜訪分頁管理。</h1><p>讓自律星球不只是儀表板，而是可以規劃、解鎖、產生事件的延伸系統。</p><div class="subnav"><a class="active" href="planet.html">星球展示</a><a href="planet-builder.html">星球規劃</a><a href="planet-events.html">星球事件</a></div></div><div class="hero-card"><span>星球繁榮度</span><strong data-count="73">0</strong><p>本週新增 5 個星球，2 位好友到訪。</p></div></header>
+        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>只展示自律星球，將你的努力轉為動態宇宙。</h1><p>看著你的行星系逐漸繁榮，享受自律的成就感。</p></div><div class="hero-card"><span>星球繁榮度</span><strong data-count="73">0</strong><p>本週新增 5 個星球，2 位好友到訪。</p></div></header>
         <section class="planet-stage page-section immersive-stage" data-tilt>
           
           <!-- Solar System View -->
@@ -18,6 +19,11 @@
             <div class="planet">
               </div>
             
+            
+            <div class="orbit-line orbit-unlocked" id="unlockedPlanetsOrbit" style="width: 500px; height: 500px; animation-duration: 40s;">
+              <!-- Unlocked planets will be injected here via JS -->
+            </div>
+
             <div class="orbit-line orbit-one">
               <div class="mission-satellite s1"></div>
               <div class="mission-satellite s2"></div>
@@ -140,7 +146,7 @@
           <!-- Combo Display Container -->
           <div id="comboContainer" class="combo-container"></div>
         </section>
-        <section class="center-hub page-section"><a class="hub-card" href="planet-builder.html"><span>＋</span><strong>星球規劃器</strong><p>把下週目標轉成星球、解鎖條件和星球事件。</p><small>規劃星球</small></a><a class="hub-card" href="planet-events.html"><span>✦</span><strong>星球事件與好友拜訪</strong><p>管理好友拜訪、鼓勵、星球點亮與活動事件。</p><small>查看事件</small></a></section>
+        
       </main>
     </div>
     <script>
@@ -168,5 +174,85 @@
       });
     </script>
     <script src="assets/app.js?v=2"></script>
+  
+    <script>
+      // Fetch unlocked planets from backend and render them
+      async function fetchUnlockedPlanets() {
+        try {
+          // In a real app, this ID comes from login session. We use an_nudge for demo.
+          const res = await fetch('http://127.0.0.1:5001/api/user/an_nudge');
+          const data = await res.json();
+          if (data.success && data.user && data.user.planet && data.user.planet.unlocked) {
+            const unlockedList = data.user.planet.unlocked;
+            const orbitContainer = document.getElementById('unlockedPlanetsOrbit');
+            if (orbitContainer) {
+              orbitContainer.innerHTML = ''; // clear
+              
+              const colors = {
+                  "新手星球": "#9ca3af",
+                  "綠洲星球": "#34d399", 
+                  "熔岩星球": "#ef4444", 
+                  "冰雪星球": "#60a5fa", 
+                  "沙漠星球": "#fbbf24", 
+                  "水晶星球": "#a78bfa", 
+                  "暗物質星球": "#8b5cf6"
+              };
+              
+              // Only render if we have unlocked planets other than the base one
+              const displayPlanets = unlockedList.filter(p => p !== "新手星球");
+              
+              if(displayPlanets.length > 0) {
+                 displayPlanets.forEach((pName, index) => {
+                    const angle = (360 / displayPlanets.length) * index;
+                    const color = colors[pName] || "#ffffff";
+                    
+                    const planetDiv = document.createElement('div');
+                    planetDiv.className = 'unlocked-planet-node';
+                    planetDiv.style.cssText = `
+                        position: absolute;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 50%;
+                        background: radial-gradient(circle at 30% 30%, #fff, ${color});
+                        box-shadow: 0 0 20px ${color}, 0 0 40px ${color}88;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%) rotate(${angle}deg) translateX(250px) rotate(-${angle}deg);
+                        animation: counter-rotate 40s linear infinite;
+                    `;
+                    orbitContainer.appendChild(planetDiv);
+                 });
+                 
+                 // Add the CSS for counter-rotation if not present
+                 if(!document.getElementById('unlockedPlanetStyles')) {
+                     const style = document.createElement('style');
+                     style.id = 'unlockedPlanetStyles';
+                     style.innerHTML = `
+                        @keyframes counter-rotate {
+                            from { transform: translate(-50%, -50%) rotate(0deg) translateX(250px) rotate(0deg); }
+                            to { transform: translate(-50%, -50%) rotate(360deg) translateX(250px) rotate(-360deg); }
+                        }
+                        .orbit-unlocked {
+                            border: 1px dashed rgba(255,255,255,0.1);
+                        }
+                     `;
+                     document.head.appendChild(style);
+                 }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Backend not running or user not found, skipping planet fetch.", e);
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        // Fetch initially
+        fetchUnlockedPlanets();
+        // Poll every 5 seconds to see if a new planet was unlocked!
+        setInterval(fetchUnlockedPlanets, 5000);
+      });
+    </script>
+
   </body>
 </html>

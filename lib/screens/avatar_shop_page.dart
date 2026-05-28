@@ -1299,8 +1299,13 @@ class _ShopDrawer extends StatelessWidget {
   }
 
   List<int> _sellableIndexes(AvatarPartCategory category) {
+    if (category.key == 'faceShape') {
+      return AvatarCatalog.evolutionStages
+          .where((stage) => stage.stage == 1)
+          .map((stage) => stage.index)
+          .toList();
+    }
     return List<int>.generate(category.itemCount, (index) => index)
-        .where((index) => AvatarCatalog.stageForIndex(index).stage == 1)
         .toList(growable: false);
   }
 

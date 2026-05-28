@@ -1,18 +1,274 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 研究 / 專題展示中心</title><link rel="stylesheet" href="assets/styles.css" /></head>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 研究中心</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
   <body data-page="research">
-    <div class="shell"><aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>研究展示</small></span></a><nav class="nav"><a href="index.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">商城頁</a><a class="active" href="research.html">研究 / 展示中心</a><a href="planet.html">自律城市 / 星球</a></nav></aside>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>研究中心</small></span>
+        </a>
+        <nav class="nav">
+          <!-- Sidebar injected by app.js -->
+        </nav>
+      </aside>
       <main class="main">
-        <header class="hero split"><div><span class="eyebrow">Research & Demo Hub</span><h1>研究中心拆成 Demo、匿名分析、分數展示三個頁面。</h1><p>發表用功能不能只是小卡片，要能切場景、下載腳本、展示計算邏輯。</p><div class="subnav"><a class="active" href="research.html">中心總覽</a><a href="research-scenario.html">Demo 場景</a><a href="research-anonymized.html">匿名資料</a><a href="research-score-demo.html">分數展示</a></div></div><div class="hero-card"><span>展示可信度</span><strong data-count="94">0</strong><p>涵蓋資料來源、演算法與遊戲化循環。</p></div></header>
-        <section class="center-hub page-section">
-          <a class="hub-card" href="research-scenario.html"><span>▶</span><strong>Demo 場景產生器</strong><p>產生發表腳本、資料條件與展示順序，不只是切換按鈕。</p><small>產生腳本</small></a>
-          <a class="hub-card" href="research-anonymized.html"><span>⌁</span><strong>匿名資料分析</strong><p>呈現健康同步、任務完成、專注時間的去識別化統計。</p><small>查看分析</small></a>
-          <a class="hub-card" href="research-score-demo.html"><span>≋</span><strong>自律分數展示</strong><p>讓老師看懂加權分數、今日可執行任務、自律幣門檻。</p><small>展示邏輯</small></a>
-          <a class="hub-card" href="presentation.html"><span>★</span><strong>專題發表流程</strong><p>把 App 核心、Web 延伸與自律星球整理成一條發表故事線。</p><small>進入發表</small></a>
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Research Center</span>
+            <h1>研究中心</h1>
+            <p>全站使用者的整體健康與專注表現。</p>
+          </div>
+          <div class="hero-card">
+            <span>全站活躍用戶</span>
+            <strong data-count="1254">0</strong>
+            <p>統計數據每小時更新一次。</p>
+          </div>
+        </header>
+        
+        <section class="page-section">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Global Analytics</span>
+              <h2>全站用戶平均數據</h2>
+            </div>
+            <p>展示所有使用者的平均睡眠、平均專注時間、平均步數與平均運動時間的趨勢圖表。</p>
+          </div>
+          
+          <div class="feature-grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+            <article class="panel">
+              <div class="panel-head">
+                <strong>用戶睡眠時長分佈 (甜甜圈圖)</strong>
+                <div class="panel-actions">
+                  <span style="color:#f472b6; font-size:12px;">不足6h</span>
+                  <span style="color:#a78bfa; font-size:12px; margin-left:8px;">6-8h</span>
+                  <span style="color:#60a5fa; font-size:12px; margin-left:8px;">>8h</span>
+                </div>
+              </div>
+              <div class="chart-container" style="height: 220px; position: relative;">
+                <canvas id="researchSleepChart"></canvas>
+              </div>
+            </article>
+            
+            <article class="panel">
+              <div class="panel-head">
+                <strong>平均專注時間 (長條圖)</strong>
+                <div class="panel-actions"><span style="color:#60a5fa; font-weight:bold;">本週趨勢</span></div>
+              </div>
+              <div class="chart-container" style="height: 220px;">
+                <canvas id="researchFocusChart"></canvas>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <strong>平均步數 (折線圖)</strong>
+                <div class="panel-actions"><span style="color:#34d399; font-weight:bold;">今日 6,250 步</span></div>
+              </div>
+              <div class="chart-container" style="height: 220px;">
+                <canvas id="researchStepsChart"></canvas>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <strong>平均運動時間 (長條圖)</strong>
+                <div class="panel-actions"><span style="color:#f472b6; font-weight:bold;">今日 25 分鐘</span></div>
+              </div>
+              <div class="chart-container" style="height: 220px;">
+                <canvas id="researchExerciseChart"></canvas>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Removed the center-hub section containing links to demo scenario, anonymized data, and score demo -->
+        <section class="center-hub page-section" style="grid-template-columns: 1fr;">
+          <a class="hub-card" href="presentation.html" style="background: linear-gradient(135deg, rgba(34,199,187,0.1) 0%, rgba(30,30,45,1) 100%);">
+            <span>★</span>
+            <strong>專題發表流程</strong>
+            <p>把 App 核心、Web 延伸與自律星球整理成一條發表故事線。</p>
+            <small>進入發表</small>
+          </a>
         </section>
       </main>
-    </div><script src="assets/app.js?v=2"></script>
+    </div>
+    
+    <script src="assets/app.js?v=2"></script>
+    <script>
+      function drawBarChart(canvas, values, labels, color) {
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const ratio = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * ratio;
+        canvas.height = rect.height * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        const pad = 30;
+        const max = Math.max(...values) * 1.3; // increase max slightly to leave room for text
+        const step = (rect.width - pad * 2) / values.length;
+        const barWidth = step * 0.5;
+        
+        values.forEach((value, i) => {
+          const x = pad + i * step + (step - barWidth) / 2;
+          const h = (value / max) * (rect.height - pad * 2);
+          const y = rect.height - pad - h;
+          
+          // Draw Bar
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 15;
+          ctx.beginPath();
+          ctx.roundRect(x, y, barWidth, h, [6, 6, 0, 0]);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          
+          // Draw Label (X-axis)
+          ctx.fillStyle = "#9ca3af";
+          ctx.font = "12px system-ui";
+          ctx.textAlign = "center";
+          ctx.fillText(labels[i], x + barWidth/2, rect.height - 10);
+          
+          // Draw Value (Top of bar)
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 12px system-ui";
+          ctx.fillText(value, x + barWidth/2, y - 8);
+        });
+      }
+
+      function drawCustomDonut(canvas, data, colors, labels) {
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const ratio = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * ratio;
+        canvas.height = rect.height * ratio;
+        ctx.scale(ratio, ratio);
+        
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const r = Math.min(cx, cy) - 25;
+        const total = data.reduce((a, b) => a + b, 0);
+        
+        let startAngle = -Math.PI / 2;
+        data.forEach((val, i) => {
+          const sliceAngle = (val / total) * 2 * Math.PI;
+          
+          // Draw Slice
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
+          ctx.lineWidth = 18;
+          ctx.strokeStyle = colors[i];
+          ctx.shadowColor = colors[i];
+          ctx.shadowBlur = 15;
+          ctx.stroke();
+          
+          // Draw Value text near the slice
+          const textAngle = startAngle + sliceAngle / 2;
+          const textR = r + 20; // push text outside the donut
+          const tx = cx + textR * Math.cos(textAngle);
+          const ty = cy + textR * Math.sin(textAngle);
+          
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 12px system-ui";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(val + "%", tx, ty);
+          
+          startAngle += sliceAngle;
+        });
+
+        // Center Text
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 24px system-ui";
+        ctx.fillText("6.8h", cx, cy - 5);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "12px system-ui";
+        ctx.fillText("平均", cx, cy + 15);
+      }
+      
+      // Custom Line Chart for Research with Values displayed
+      function drawValueLineChart(canvas, values, labels, color) {
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const ratio = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * ratio;
+        canvas.height = rect.height * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        
+        const pad = 30;
+        const max = Math.max(...values) * 1.2;
+        const min = Math.min(...values) * 0.8;
+        const range = max - min;
+        const step = (rect.width - pad * 2) / (values.length - 1);
+        
+        // Draw Line
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        
+        const points = [];
+        values.forEach((value, i) => {
+          const x = pad + i * step;
+          const y = rect.height - pad - ((value - min) / range) * (rect.height - pad * 2);
+          points.push({x, y, value, label: labels[i]});
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        
+        // Draw points, values, and labels
+        points.forEach(p => {
+          // Circle point
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = "#fff";
+          ctx.fill();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // X-axis label
+          ctx.fillStyle = "#9ca3af";
+          ctx.font = "12px system-ui";
+          ctx.textAlign = "center";
+          ctx.fillText(p.label, p.x, rect.height - 10);
+          
+          // Value text above point
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 11px system-ui";
+          ctx.fillText(p.value, p.x, p.y - 12);
+        });
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          // 1. Donut for Sleep (Added percentages next to slices)
+          drawCustomDonut(document.getElementById("researchSleepChart"), [20, 55, 25], ["#f472b6", "#a78bfa", "#60a5fa"], ["不足6h", "6-8h", "超過8h"]);
+          
+          // 2. Bar for Focus (Values displayed on top of bars)
+          drawBarChart(document.getElementById("researchFocusChart"), [30, 45, 20, 60, 50, 80, 45], ["一", "二", "三", "四", "五", "六", "日"], "#60a5fa");
+          
+          // 3. Line for Steps (Customized to show points and values)
+          drawValueLineChart(document.getElementById("researchStepsChart"), [4000, 5200, 4800, 6000, 7500, 5500, 6250], ["一", "二", "三", "四", "五", "六", "日"], "#34d399");
+          
+          // 4. Bar for Exercise (Values displayed on top of bars)
+          drawBarChart(document.getElementById("researchExerciseChart"), [10, 15, 0, 30, 45, 20, 25], ["一", "二", "三", "四", "五", "六", "日"], "#f472b6");
+        }, 150);
+      });
+    </script>
   </body>
 </html>
-

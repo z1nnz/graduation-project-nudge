@@ -252,14 +252,12 @@
           <a href="guardian.html">家長陪伴中心</a>
           <a href="groups.html">團體 / 教育管理</a>
           <a class="active" href="operations.html">商城頁</a>
-          <a href="research.html">研究 / 展示中心</a>
+          <a href="research.html">研究中心</a>
+          <a href="friend.html">好友功能</a>
           <a href="planet.html">自律城市 / 星球</a>
         </nav>
       </aside>
       <main class="main" style="position: relative;">
-        <!-- Top Right Admin Button -->
-        <button class="admin-switch-btn" onclick="openLoginModal()">⚙ 切換成後台</button>
-
         <header class="hero split">
           <div>
             <span class="eyebrow">Avatar Store Hub</span>
@@ -312,55 +310,8 @@
       </main>
     </div>
 
-    <!-- Login Modal -->
-    <div class="login-modal-overlay" id="loginModal">
-      <div class="login-modal">
-        <h2>後台登入</h2>
-        <div class="form-group">
-          <label for="adminUsername">帳號</label>
-          <input type="text" id="adminUsername" placeholder="請輸入 admin" />
-        </div>
-        <div class="form-group">
-          <label for="adminPassword">密碼</label>
-          <input type="password" id="adminPassword" placeholder="請輸入 admin" />
-        </div>
-        <div class="error-msg" id="loginError">帳號或密碼錯誤！預設請使用 admin / admin。</div>
-        <div class="login-actions">
-          <button class="btn-cancel" onclick="closeLoginModal()">取消</button>
-          <button class="btn-submit" onclick="attemptLogin()">登入</button>
-        </div>
-      </div>
-    </div>
-
     <script src="assets/app.js?v=2"></script>
     <script>
-      function openLoginModal() {
-        document.getElementById('loginModal').classList.add('active');
-        document.getElementById('adminUsername').focus();
-      }
-
-      function closeLoginModal() {
-        document.getElementById('loginModal').classList.remove('active');
-        document.getElementById('loginError').style.display = 'none';
-        document.getElementById('adminUsername').value = '';
-        document.getElementById('adminPassword').value = '';
-      }
-
-      function attemptLogin() {
-        const user = document.getElementById('adminUsername').value;
-        const pass = document.getElementById('adminPassword').value;
-        if (user === 'admin' && pass === 'admin') {
-          window.location.href = 'admin_dashboard.html';
-        } else {
-          document.getElementById('loginError').style.display = 'block';
-        }
-      }
-
-      // Enter key to login
-      document.getElementById('adminPassword').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') attemptLogin();
-      });
-
       // Apply Discount Logic
       document.addEventListener('DOMContentLoaded', () => {
         const discountStr = localStorage.getItem('nudgeActiveDiscount');
@@ -395,6 +346,15 @@
           } catch(e) {}
         }
       // Fetch and Render Dynamic Shop Items
+      
+        // 備用示範資料 (若後台 fetch 失敗時呈現)
+        const mockShopItems = [
+          { name: "專注精靈 (藍)", type: "permanent", price: 1500, image_path: "assets/character1.png" },
+          { name: "自律法師", type: "permanent", price: 2500, image_path: "assets/character2.png" },
+          { name: "時間刺客", type: "limited", price: 3000, image_path: "assets/character3.png", end_time: Date.now()/1000 + 86400*3 },
+          { name: "聖誕雪人", type: "event_character", price: 800, image_path: "assets/character4.png", end_time: Date.now()/1000 + 86400*7 }
+        ];
+
       let allActiveItems = [];
       let currentShopTab = 'permanent';
 
@@ -403,10 +363,15 @@
           const response = await fetch('/active-shop-items');
           const result = await response.json();
           if (result.success && result.items) {
+            if (result.success && result.items && result.items.length > 0) {
             allActiveItems = result.items;
+          } else {
+            allActiveItems = mockShopItems;
+          }
           }
         } catch (error) {
           console.error("無法取得上架商品", error);
+          allActiveItems = mockShopItems;
         }
         renderShopItems();
       }

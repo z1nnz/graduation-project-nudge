@@ -1,6 +1,7 @@
 platform :ios, '15.5'
 
 use_modular_headers!
+inhibit_all_warnings!
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -45,14 +46,33 @@ post_install do |installer|
 
     target.build_configurations.each do |config|
       config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-      
+
+      # 強制所有 Pod 的 Deployment Target 至少為 12.0
+      if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 12.0
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      end
+
       if target.name == 'gRPC-Core'
         config.build_settings['DEFINES_MODULE'] = 'YES'
+      end
+
+      # 修復 flutter_local_notifications 編譯問題
+      if target.name == 'flutter_local_notifications'
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
       end
 
       if target.name == 'Pods-Runner'
         config.build_settings['ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES'] = 'NO'
       end
     end
+
+    # 修復 "Create Symlinks to Header Folders" 警告
+    target.build_phases.each do |build_phase|
+      if build_phase.respond_to?(:name) && build_phase.name&.include?('Create Symlinks')
+        build_phase.always_out_of_date = '1'
+      end
+    end
   end
-end 
+end
+

@@ -363,10 +363,15 @@ class _DressDrawer extends StatelessWidget {
     final mutedColor = isDark
         ? const Color(0xFF111827).withValues(alpha: 0.82)
         : Colors.white.withValues(alpha: 0.74);
-    final ownedCount = List<int>.generate(
-      selectedCategory.itemCount,
-      (index) => index,
-    ).where(isUnlocked).length;
+
+    final List<int> itemIndexes;
+    if (selectedCategory.key == 'faceShape') {
+      itemIndexes = AvatarCatalog.evolutionStages.map((s) => s.index).toList();
+    } else {
+      itemIndexes = List<int>.generate(selectedCategory.itemCount, (i) => i);
+    }
+
+    final ownedCount = itemIndexes.where(isUnlocked).length;
 
     return Container(
       height: height,
@@ -470,7 +475,7 @@ class _DressDrawer extends StatelessWidget {
               category: selectedCategory,
               currentLabel: selectedCategory.labelFor(currentIndex),
               ownedText: selectedCategory.requiresUnlock
-                  ? '已擁有 $ownedCount / ${selectedCategory.itemCount}'
+                  ? '已擁有 $ownedCount / ${itemIndexes.length}'
                   : '可自由調整',
               accentColor: accentColor,
               onOpenShop: onOpenShop,
@@ -479,17 +484,20 @@ class _DressDrawer extends StatelessWidget {
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
-              itemCount: selectedCategory.itemCount,
+              itemCount: itemIndexes.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 14,
                 childAspectRatio: 0.78,
               ),
-              itemBuilder: (context, index) {
+              itemBuilder: (context, gridIndex) {
+                final index = itemIndexes[gridIndex];
                 final unlocked = isUnlocked(index);
                 final selected = index == currentIndex;
-                final color = selectedCategory.colors?[index];
+                final color = selectedCategory.colors != null && gridIndex < selectedCategory.colors!.length
+                    ? selectedCategory.colors![gridIndex]
+                    : null;
                 return GestureDetector(
                   onTap: () => onItemTap(index),
                   child: Column(

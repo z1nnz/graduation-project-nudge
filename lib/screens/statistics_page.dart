@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../models/daily_summary.dart';
 import '../theme/app_ui.dart';
+import 'time_capsule_page.dart';
+import 'future_letter_page.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -693,6 +695,79 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       icon: const Icon(Icons.open_in_new_rounded, size: 18),
                       label: const Text('查看完整分析'),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppUI.sectionGap),
+          Card(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.insights_rounded, color: accentColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        '個人進階中心',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '時間膠囊與未來的信，寫給未來的自律期許與情緒陪伴。',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: secondaryText,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TimeCapsulePage()),
+                            );
+                          },
+                          icon: const Icon(Icons.hourglass_empty_rounded, size: 18),
+                          label: const Text('時間膠囊'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: accentColor,
+                            side: BorderSide(color: accentColor.withValues(alpha: 0.5)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const FutureLetterPage()),
+                            );
+                          },
+                          icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                          label: const Text('未來的信'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: accentColor,
+                            side: BorderSide(color: accentColor.withValues(alpha: 0.5)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

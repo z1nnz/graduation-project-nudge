@@ -24,6 +24,9 @@ class AvatarPartCategory {
   int get itemCount => labels.length;
 
   String labelFor(int index) {
+    if (key == 'faceShape') {
+      return AvatarCatalog.stageForIndex(index).name;
+    }
     return labels[index.clamp(0, labels.length - 1)];
   }
 }
@@ -277,7 +280,7 @@ class AvatarCatalog {
   ];
 
   static List<AvatarSeries> get series {
-    return [
+    final List<AvatarSeries> list = [
       AvatarSeries(
         key: 'star-traveler',
         name: '星辰旅人',
@@ -333,6 +336,33 @@ class AvatarCatalog {
             .toList(growable: false),
       ),
     ];
+
+    final predefinedSeriesNames = {
+      '星辰旅人',
+      '星詠魔導',
+      '焰心鬥士',
+      '玫瑰學院',
+      '月影忍者',
+      '森語女神',
+    };
+
+    final dynamicStages = evolutionStages
+        .where((stage) => !predefinedSeriesNames.contains(stage.series))
+        .toList();
+
+    for (final stage in dynamicStages) {
+      list.add(
+        AvatarSeries(
+          key: 'dynamic-${stage.index}',
+          name: stage.name,
+          theme: '限時特展',
+          description: '由 Web 端上架的活動限時角色。',
+          stages: [stage],
+        ),
+      );
+    }
+
+    return list;
   }
 
   static List<String> faceShapeLabels = [
@@ -379,16 +409,18 @@ class AvatarCatalog {
 
   static const List<String> accessoryLabels = ['無配件', '金色星光', '藍色星光', '粉色星光'];
 
-  static List<AvatarPartCategory> editorCategories = [
-    AvatarPartCategory(
-      key: 'faceShape',
-      title: '角色',
-      hint: '選擇已購買的完整角色造型。部件換裝會先放到未來發展。',
-      icon: Icons.face_retouching_natural_outlined,
-      labels: faceShapeLabels,
-      requiresUnlock: true,
-    ),
-  ];
+  static List<AvatarPartCategory> get editorCategories {
+    return [
+      AvatarPartCategory(
+        key: 'faceShape',
+        title: '角色',
+        hint: '選擇已購買的完整角色造型。部件換裝會先放到未來發展。',
+        icon: Icons.face_retouching_natural_outlined,
+        labels: faceShapeLabels,
+        requiresUnlock: true,
+      ),
+    ];
+  }
 
   static List<AvatarPartCategory> get shopCategories {
     return editorCategories
@@ -420,22 +452,18 @@ class AvatarCatalog {
   }
 
   static void addDynamicStage(AvatarEvolutionStage stage) {
-    // Convert to growable if it's currently fixed-length or unmodifiable
-    try {
+    final exists = evolutionStages.any((s) => s.index == stage.index);
+    if (!exists) {
       evolutionStages.add(stage);
-    } catch (_) {
-      evolutionStages = List<AvatarEvolutionStage>.from(evolutionStages)..add(stage);
+    } else {
+      final idx = evolutionStages.indexWhere((s) => s.index == stage.index);
+      if (idx != -1) {
+        evolutionStages[idx] = stage;
+      }
     }
     
-    try {
-      if (!faceShapeLabels.contains(stage.name)) {
-        faceShapeLabels.add(stage.name);
-      }
-    } catch (_) {
-      faceShapeLabels = List<String>.from(faceShapeLabels);
-      if (!faceShapeLabels.contains(stage.name)) {
-        faceShapeLabels.add(stage.name);
-      }
+    if (!faceShapeLabels.contains(stage.name)) {
+      faceShapeLabels.add(stage.name);
     }
   }
 }

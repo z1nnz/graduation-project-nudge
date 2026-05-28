@@ -25,6 +25,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   bool _roomReminder = true;
   bool _deadlineReminder = true;
   bool _privacyChecked = false;
+  String _roleSetting = 'personal';
 
   static const List<_GoalOption> _goals = [
     _GoalOption(
@@ -117,6 +118,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (_privacyChecked && !appState.hasAcceptedPrivacyPolicy) {
       await appState.acceptPrivacyPolicy();
     }
+    await appState.setUserRole(_roleSetting);
     await appState.completeOnboarding();
     if (mounted && Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
@@ -184,6 +186,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 controller: _controller,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
+                   _OnboardingStep(
+                    title: '選擇您的自律身份',
+                    subtitle: 'Nudge 會依據您的身份載入不同的功能與數據端。',
+                    child: _RoleGrid(
+                      selectedRole: _roleSetting,
+                      accentColor: accentColor,
+                      onSelected: (value) => setState(() => _roleSetting = value),
+                    ),
+                  ),
                   _OnboardingStep(
                     title: '你現在最想養成什麼？',
                     subtitle: 'Nudge 會依目標先建立第一批任務。',
@@ -313,10 +324,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         backgroundColor: accentColor,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: _step == 4
+                      onPressed: _step == 5
                           ? (canFinish ? () => _finish(appState) : null)
                           : () => _go(_step + 1),
-                      child: Text(_step == 4 ? '進入首頁' : '下一步'),
+                      child: Text(_step == 5 ? '進入首頁' : '下一步'),
                     ),
                   ),
                 ],
@@ -401,7 +412,7 @@ class _StepDots extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(5, (index) {
+      children: List.generate(6, (index) {
         final selected = current == index;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
@@ -552,6 +563,8 @@ class _AvatarPicker extends StatelessWidget {
   final Color accentColor;
   final ValueChanged<int> onSelected;
 
+  static const List<int> starterIndexes = [0, 3, 6, 9];
+
   const _AvatarPicker({
     required this.selectedIndex,
     required this.accentColor,
@@ -569,13 +582,14 @@ class _AvatarPicker extends StatelessWidget {
         mainAxisSpacing: 12,
         childAspectRatio: 0.78,
       ),
-      itemCount: AvatarCatalog.faceShapeLabels.length,
+      itemCount: starterIndexes.length,
       itemBuilder: (context, index) {
-        final selected = selectedIndex == index;
-        final profile = AvatarProfile.initial().copyWith(faceShapeIndex: index);
+        final actualIndex = starterIndexes[index];
+        final selected = selectedIndex == actualIndex;
+        final profile = AvatarProfile.initial().copyWith(faceShapeIndex: actualIndex);
         return InkWell(
           borderRadius: BorderRadius.circular(22),
-          onTap: () => onSelected(index),
+          onTap: () => onSelected(actualIndex),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.all(14),
@@ -606,7 +620,7 @@ class _AvatarPicker extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  AvatarCatalog.faceShapeLabels[index],
+                  AvatarCatalog.faceShapeLabels[actualIndex],
                   style: AppUI.cardTitleOf(context),
                   textAlign: TextAlign.center,
                   maxLines: 1,
@@ -736,6 +750,117 @@ class _PrivacyConsentCard extends StatelessWidget {
           label: const Text('查看完整隱私與資料頁'),
         ),
       ],
+    );
+  }
+}
+
+class _RoleGrid extends StatelessWidget {
+  final String selectedRole;
+  final Color accentColor;
+  final ValueChanged<String> onSelected;
+
+  const _RoleGrid({
+    required this.selectedRole,
+    required this.accentColor,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final roles = [
+      {
+        'key': 'personal',
+        'title': '個人自律模式',
+        'subtitle': '獨自記錄與精進專注，寫信給未來的自己。',
+        'icon': Icons.person_outline_rounded,
+      },
+      {
+        'key': 'child',
+        'title': '學生/孩子模式',
+        'subtitle': '接收家長陪伴邀請與鼓勵卡，匯入學校任務模板。',
+        'icon': Icons.face_outlined,
+      },
+      {
+        'key': 'parent',
+        'title': '家長陪伴端',
+        'subtitle': '送鼓勵卡、建立共同目標，即時查看孩子的自律數據。',
+        'icon': Icons.family_restroom_outlined,
+      },
+      {
+        'key': 'group_manager',
+        'title': '教育/團體管理端',
+        'subtitle': '班級、補習班或企業自律大考挑戰發佈端。',
+        'icon': Icons.business_center_outlined,
+      },
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 430;
+        return GridView.count(
+          crossAxisCount: isNarrow ? 1 : 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: isNarrow ? 3.0 : 1.45,
+          children: roles.map((role) {
+            final key = role['key'] as String;
+            final title = role['title'] as String;
+            final subtitle = role['subtitle'] as String;
+            final icon = role['icon'] as IconData;
+            final selected = selectedRole == key;
+
+            return InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => onSelected(key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? accentColor.withValues(
+                          alpha: AppUI.isDark(context) ? 0.22 : 0.12,
+                        )
+                      : AppUI.surfaceVariantOf(context),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: selected ? accentColor : Theme.of(context).dividerColor,
+                    width: selected ? 1.6 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: AppUI.softCardOf(context, accentColor),
+                      child: Icon(icon, color: accentColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: AppUI.cardTitleOf(context)),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: AppUI.bodyOf(context),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

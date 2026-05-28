@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 好友功能</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <style>
+      .friend-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 12px;
+      }
+      .friend-tab {
+        padding: 8px 16px;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+      }
+      .friend-tab.active {
+        background: var(--page-accent, #34d399);
+        color: #000;
+        border-color: var(--page-accent, #34d399);
+      }
+      .friend-list-item {
+        display: flex;
+        align-items: stretch;
+        background: linear-gradient(90deg, rgba(30,30,45,1) 0%, rgba(42,42,64,0.4) 100%);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 16px;
+        overflow: hidden;
+        transition: transform 0.2s, border-color 0.2s;
+        cursor: pointer;
+      }
+      .friend-list-item:hover {
+        border-color: var(--page-accent, #34d399);
+        transform: translateX(4px);
+      }
+      .friend-avatar {
+        width: 100px;
+        background: #2a2a40;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        position: relative;
+        border-right: 1px solid var(--border);
+      }
+      .friend-lv-badge {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: rgba(0,0,0,0.7);
+        color: #fbbf24;
+        font-size: 11px;
+        font-weight: 900;
+        padding: 2px 6px;
+        border-bottom-right-radius: 8px;
+      }
+      .friend-info {
+        flex: 1;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .friend-name-row {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .friend-name {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-primary);
+      }
+      .friend-status {
+        font-size: 13px;
+        color: var(--text-secondary);
+        background: rgba(255,255,255,0.05);
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+      .friend-stats-row {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        color: #9ca3af;
+      }
+      .friend-meta {
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: space-between;
+        border-left: 1px dashed var(--border);
+      }
+      .friend-last-login {
+        font-size: 12px;
+        color: #9ca3af;
+      }
+      
+      /* Detail View specific styles */
+      #friendDetailView .back-button {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: bold;
+      }
+      #friendDetailView .back-button:hover {
+        background: rgba(255,255,255,0.05);
+      }
+    </style>
+  </head>
+  <body data-page="friend">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>好友功能</small></span></a>
+        <nav class="nav">
+          <!-- Sidebar injected by app.js -->
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Friend Profile</span>
+            <h1>好友列表與動態</h1>
+            <p>點擊好友列表中的卡片，即可拜訪他們的星球並查看詳細的自律數據。</p>
+            <div class="subnav">
+              <a class="active" href="friend.html">好友列表與動態</a>
+              <a href="friend-visits.html">好友參訪記錄</a>
+              <a href="planet.html">返回我的星球</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>好友人數</span>
+            <strong>24 / 50</strong>
+            <p>有 5 位好友正在線上自律。</p>
+          </div>
+        </header>
+
+        <!-- LIST VIEW -->
+        <section id="friendListView" class="page-section">
+          <div class="friend-tabs">
+            <button class="friend-tab active" onclick="switchFriendTab('列表', this)">好友列表</button>
+            <button class="friend-tab" onclick="switchFriendTab('申請', this)">好友申請 <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 4px;">3</span></button>
+            <button class="friend-tab" onclick="switchFriendTab('搜尋', this)">好友搜尋</button>
+          </div>
+
+          <div class="friend-list">
+            <!-- Friend Item 1 -->
+            <div class="friend-list-item" onclick="showFriendDetail('小安', 'an_nudge', '綠洲星球', 'Lv.12', '🧑‍🚀', '#34d399')">
+              <div class="friend-avatar">
+                <div class="friend-lv-badge">Lv.12</div>
+                🧑‍🚀
+              </div>
+              <div class="friend-info">
+                <div class="friend-name-row">
+                  <span class="friend-name">小安</span>
+                  <span class="friend-status">狀態：被專題快搞瘋了 QWQ</span>
+                </div>
+                <div class="friend-stats-row">
+                  <span>🎯 目前目標：演算法作業</span>
+                  <span>⏱️ 本週專注：320 分鐘</span>
+                </div>
+              </div>
+              <div class="friend-meta">
+                <span class="friend-last-login">最後登入 2 小時前</span>
+                <button class="button primary" style="padding: 6px 16px; font-size: 13px;">拜訪星球</button>
+              </div>
+            </div>
+
+            <!-- Friend Item 2 -->
+            <div class="friend-list-item" onclick="showFriendDetail('傑森', 'jason_007', '熔岩星球', 'Lv.15', '🧛‍♂️', '#ef4444')">
+              <div class="friend-avatar">
+                <div class="friend-lv-badge">Lv.15</div>
+                🧛‍♂️
+              </div>
+              <div class="friend-info">
+                <div class="friend-name-row">
+                  <span class="friend-name">傑森</span>
+                  <span class="friend-status">狀態：健身房報到中</span>
+                </div>
+                <div class="friend-stats-row">
+                  <span>🎯 目前目標：增肌減脂</span>
+                  <span>🏃 本週運動：240 分鐘</span>
+                </div>
+              </div>
+              <div class="friend-meta">
+                <span class="friend-last-login">最後登入 9 小時前</span>
+                <button class="button primary" style="padding: 6px 16px; font-size: 13px;">拜訪星球</button>
+              </div>
+            </div>
+
+            <!-- Friend Item 3 -->
+            <div class="friend-list-item" onclick="showFriendDetail('莉莉露亞', 'lily_rua', '冰雪星球', 'Lv.8', '🧝‍♀️', '#60a5fa')">
+              <div class="friend-avatar">
+                <div class="friend-lv-badge">Lv.8</div>
+                🧝‍♀️
+              </div>
+              <div class="friend-info">
+                <div class="friend-name-row">
+                  <span class="friend-name">莉莉露亞</span>
+                  <span class="friend-status">狀態：圖書館讀書會</span>
+                </div>
+                <div class="friend-stats-row">
+                  <span>🎯 目前目標：多益 900 分</span>
+                  <span>🌙 昨晚睡眠：5.5 小時</span>
+                </div>
+              </div>
+              <div class="friend-meta">
+                <span class="friend-last-login">最後登入 23 小時前</span>
+                <button class="button primary" style="padding: 6px 16px; font-size: 13px;">拜訪星球</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- DETAIL VIEW -->
+        <section id="friendDetailView" class="page-section" style="display: none;">
+          <button class="back-button" onclick="showFriendList()">◀ 返回好友列表</button>
+          
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Friend Showcase</span>
+              <h2>參觀好友資料與星球</h2>
+            </div>
+            <p>目前展示好友：<strong id="detailId">小安 (ID: an_nudge)</strong></p>
+          </div>
+          
+          <div class="two-col">
+            <article class="panel" style="text-align: center; background: linear-gradient(135deg, #1e1e2d 0%, #2a2a40 100%); position: relative; overflow: hidden;">
+              <span class="eyebrow" style="position: absolute; top: 20px; left: 20px;">好友角色與星球</span>
+              <div style="height: 250px; display: flex; align-items: center; justify-content: center; margin-top: 30px;">
+                <div class="planet" id="detailPlanetColor" style="width: 150px; height: 150px; background: radial-gradient(circle at 30% 30%, #34d399 0%, #059669 100%); box-shadow: 0 0 30px rgba(52, 211, 153, 0.4);">
+                  <div id="detailAvatar" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-size: 50px;">🧑‍🚀</div>
+                </div>
+              </div>
+              <h3 id="detailPlanetName">小安的綠洲星球</h3>
+              <p>星球繁榮度：<span id="detailLevel">LV. 12</span></p>
+              <button class="button primary" style="margin-top: 15px;">給他一個鼓勵</button>
+            </article>
+
+            <article class="panel">
+              <span class="eyebrow">好友狀態總覽</span>
+              <div class="feature-grid" style="grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div class="feature-card" style="padding: 15px;">
+                  <span class="icon" style="font-size: 20px;">⏱️</span>
+                  <small>本週專注時間</small>
+                  <strong style="display: block; font-size: 20px; color: #60a5fa; margin-top: 5px;" id="detailFocus">320 分鐘</strong>
+                </div>
+                <div class="feature-card" style="padding: 15px;">
+                  <span class="icon" style="font-size: 20px;">👟</span>
+                  <small>今日步數</small>
+                  <strong style="display: block; font-size: 20px; color: #34d399; margin-top: 5px;" id="detailSteps">8,420 步</strong>
+                </div>
+                <div class="feature-card" style="padding: 15px;">
+                  <span class="icon" style="font-size: 20px;">🏃</span>
+                  <small>本週運動時間</small>
+                  <strong style="display: block; font-size: 20px; color: #f472b6; margin-top: 5px;" id="detailExercise">90 分鐘</strong>
+                </div>
+                <div class="feature-card" style="padding: 15px;">
+                  <span class="icon" style="font-size: 20px;">🌙</span>
+                  <small>昨晚睡眠狀況</small>
+                  <strong style="display: block; font-size: 20px; color: #a78bfa; margin-top: 5px;" id="detailSleep">7.2 小時</strong>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="two-col" style="margin-top: 24px;">
+            <article class="panel">
+              <span class="eyebrow">近期表現</span>
+              <h3>近期完成任務狀況</h3>
+              <ul class="timeline">
+                <li><strong>英文單字複習 (50字)</strong><span>今天 14:30 完成，獲得 10 枚自律幣。</span></li>
+                <li><strong>早晨慢跑 3 公里</strong><span>今天 07:15 完成，達成步數與運動時間雙目標。</span></li>
+                <li><strong>演算法專題報告進度</strong><span>昨天 21:00 完成，專注房內堅持了 45 分鐘。</span></li>
+              </ul>
+            </article>
+            <article class="panel">
+              <span class="eyebrow">角色能力與成就</span>
+              <h3>擁有技能與壓力狀況</h3>
+              <ul class="timeline compact">
+                <li><strong>🏅 成就徽章：晨型人、專注大師</strong><span>已連續 7 天在早上 8 點前完成第一項任務。</span></li>
+                <li><strong>🧠 人生技能樹：時間管理 Lv.3</strong><span>番茄鐘使用效率極高，任務拖延率低於 5%。</span></li>
+                <li><strong>⚠️ 壓力狀況：輕度疲勞</strong><span>近期連續熬夜天數為 0，整體壓力值在健康範圍 (20/100)。</span></li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+      </main>
+    </div>
+    
+    <script>
+      
+      // 切換好友清單的子頁籤
+      function switchFriendTab(tabName, btnElement) {
+        document.querySelectorAll('.friend-tab').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+        
+        const listContainer = document.querySelector('.friend-list');
+        if(tabName === '申請') {
+          listContainer.innerHTML = '<div style="text-align:center; padding: 40px; color:#9ca3af;">目前有 3 個好友申請，等待確認中...</div>';
+        } else if(tabName === '搜尋') {
+          listContainer.innerHTML = '<div style="text-align:center; padding: 40px;"><input type="text" placeholder="輸入好友 ID..." style="padding:10px; border-radius:8px; border:1px solid #444; background:#2a2a40; color:#fff;"/><button class="button primary" style="margin-left:10px;">搜尋</button></div>';
+        } else {
+          // 重新載入列表 (為了示範，重新整理頁面)
+          window.location.reload();
+        }
+      }
+
+      // 模擬連線手機端：抓取真實的好友頭像與星球
+      async function syncMobileFriendData(friendId) {
+        console.log(`正在與手機端同步好友 ${friendId} 的真實星球與頭像資料...`);
+        // 這裡可以透過 Firebase 或是 Flutter Web 通訊橋樑抓取真實 SVG / 模型
+        // return await firebase.firestore().collection('users').doc(friendId).get();
+      }
+
+      function showFriendDetail(name, id, planetName, level, avatar, color) {
+        // 連線並偵測好友自身的真實星球樣子與頭像
+        syncMobileFriendData(id);
+        // Update DOM elements with specific friend data
+        document.getElementById('detailId').textContent = `${name} (ID: ${id})`;
+        document.getElementById('detailPlanetName').textContent = `${name}的${planetName}`;
+        document.getElementById('detailLevel').textContent = level;
+        document.getElementById('detailAvatar').textContent = avatar;
+        
+        // Dynamically change planet color based on user
+        const planetEl = document.getElementById('detailPlanetColor');
+        planetEl.style.background = `radial-gradient(circle at 30% 30%, ${color} 0%, rgba(0,0,0,0.5) 100%)`;
+        planetEl.style.boxShadow = `0 0 30px ${color}88`;
+
+        // Add some random fuzz to stats to make it feel dynamic
+        document.getElementById('detailFocus').textContent = Math.floor(Math.random() * 500 + 100) + ' 分鐘';
+        document.getElementById('detailSteps').textContent = Math.floor(Math.random() * 8000 + 2000) + ' 步';
+
+        // Switch views
+        document.getElementById('friendListView').style.display = 'none';
+        document.getElementById('friendDetailView').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function showFriendList() {
+        document.getElementById('friendDetailView').style.display = 'none';
+        document.getElementById('friendListView').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    </script>
+    <script src="assets/app.js?v=2"></script>
+  </body>
+</html>

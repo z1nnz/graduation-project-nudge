@@ -66,7 +66,7 @@ class AvatarEvolutionPage extends StatelessWidget {
       appState.avatarProfile.faceShapeIndex,
     );
     final currentSeries = AvatarCatalog.series.firstWhere(
-      (series) => series.name == currentStage.series,
+      (series) => series.stages.any((stage) => stage.index == currentStage.index),
       orElse: () => AvatarCatalog.series.first,
     );
     final currentSeriesStages = currentSeries.stages;

@@ -7,7 +7,8 @@ const modules = [
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
   ["operations", "商城頁", "operations.html"],
-  ["research", "研究 / 展示中心", "research.html"],
+  ["research", "研究中心", "research.html"],
+  ["friend", "好友功能", "friend.html"],
   ["planet", "自律星球", "planet.html"],
   ["presentation", "專題發表流程", "presentation.html"],
 ];
@@ -362,6 +363,14 @@ function saveDemoState(key, payload) {
     updatedAt: new Date().toISOString(),
   };
   localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+  
+  // Sync to Firestore if user logged in
+  const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
+  if (activeUserId && typeof db !== 'undefined' && db) {
+    db.collection("users").doc(activeUserId).update({
+      [`webToolsState.${key}`]: current[key]
+    }).catch(e => console.warn("Firestore update error:", e));
+  }
 }
 
 function downloadTextFile(filename, text) {
@@ -400,16 +409,16 @@ function bindExtensionTools() {
     const effort = $('[data-template-effort]', templateTool).value;
     const pressure = $('[data-template-pressure]', templateTool).value;
     const phase = pressure === "截止日前" ? "先拆交付物、再安排檢查日" : "前段建立節奏，中段執行，最後回顧調整";
-    templateText = `${type} ${days} 日任務模板\n每日投入：${effort}\n策略：${phase}\n\nDay 1：整理目標與資料\nDay ${Math.ceil(days / 2)}：完成主要進度\nDay ${days}：回顧、補強與提交`;
+    templateText = `${type} ${days} 日任務規劃\n每日投入：${effort}\n策略：${phase}\n\nDay 1：整理目標與資料\nDay ${Math.ceil(days / 2)}：完成主要進度\nDay ${days}：回顧、補強與提交`;
     setOutput(
       templateTool,
       `<strong>${type} ${days} 日模板</strong><p>每日 ${effort}，${phase}。已產生可匯入 App 的分段任務草稿。</p>`,
     );
     saveDemoState("template", { type, days, effort, pressure });
-    toast("已產生任務模板");
+    toast("已產生任務規劃");
   });
   templateTool?.querySelector('[data-action="download-template"]')?.addEventListener("click", () => {
-    downloadTextFile("nudge-task-template.txt", templateText || "請先產生任務模板。");
+    downloadTextFile("nudge-task-template.txt", templateText || "請先產生任務規劃。");
   });
 
   guardianTool?.querySelector('[data-action="preview-guardian"]')?.addEventListener("click", () => {
@@ -528,6 +537,7 @@ function bindExtensionTools() {
       `)
       .join("");
   };
+  window.renderSavedList = renderSavedList;
 
   // Delegate delete events globally
   document.body.addEventListener("click", (e) => {
@@ -554,6 +564,15 @@ function bindExtensionTools() {
     current[key] = items;
     current[`${key}UpdatedAt`] = new Date().toISOString();
     localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+    
+    // Sync to Firestore if user logged in
+    const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
+    if (activeUserId && typeof db !== 'undefined' && db) {
+      db.collection("users").doc(activeUserId).update({
+        [`webToolsCollection.${key}`]: items,
+        [`webToolsCollection.${key}UpdatedAt`]: current[`${key}UpdatedAt`]
+      }).catch(e => console.warn("Firestore update error:", e));
+    }
   };
   
   renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
@@ -970,18 +989,11 @@ window.bindMissions = function() {
   if (!list) return; // Not on planet page
   
   const defaultTasks = [
-    "專注 2 小時", "完成作業 A", "早睡 (12:00前)", 
-    "閱讀 30 分鐘", "運動 30 分鐘", "喝水 2000cc", 
-    "冥想 10 分鐘", "整理房間", "寫日記", 
-    "學習新單字", "少吃零食", "計畫明天",
-    "看 TED 演講", "伸展拉筋", "練習寫作",
-    "複習期末", "收拾桌面", "深呼吸練習",
-    "散步 15 分鐘", "感謝日記", "不喝飲料",
-    "聽 Podcast", "主動幫助人", "專案進度更新",
-    "背 10 個英文單字", "閱讀技術文章", "檢查電子郵件",
-    "做伸展操", "吃健康水果", "深蹲 30 下",
-    "學習一項新技能", "練習發音", "打掃浴室",
-    "思考明日目標", "練習呼吸法", "整理發票"
+    "完成 2 小時讀書",
+    "步行超過 6000 步",
+    "運動 30 分鐘",
+    "晚上 11:30 前睡覺",
+    "準備期中報告"
   ];
   const tasks = JSON.parse(localStorage.getItem('nudge_tasks')) || defaultTasks;
   // Initialize default if empty in localStorage just for the first time
@@ -1120,8 +1132,8 @@ window.bindMissions = function() {
         startIdx = 0;
         endIdx = 12;
       } else if (viewGalaxy && viewGalaxy.style.display !== 'none') {
-        startIdx = 12;
-        endIdx = 36;
+        startIdx = 0;
+        endIdx = 24;
       } else if (viewUniverse && viewUniverse.style.display !== 'none') {
         startIdx = 0;
         endIdx = 36;
@@ -1615,42 +1627,48 @@ function injectAdminSwitch() {
   const main = document.querySelector('.main');
   if (main) main.style.position = 'relative';
   const btnContainer = main || document.body;
-  
-  const btn = document.createElement('button');
-  btn.className = 'global-admin-switch-btn';
-  
+
   if (isAdminPage) {
+    const btn = document.createElement('button');
+    btn.className = 'global-admin-switch-btn';
     btn.innerHTML = '⚙ 切回前台';
     btn.onclick = () => window.location.href = 'index.html';
+    btnContainer.appendChild(btn);
   } else {
-    btn.innerHTML = '⚙ 切換成後台';
-    btn.onclick = () => document.getElementById('globalLoginModal').classList.add('active');
-  }
-  
-  btnContainer.appendChild(btn);
+    window.showAdminLoginModal = function() {
+      let overlay = document.getElementById('globalLoginModal');
+      if (!overlay) {
+        const modalHtml = `
+          <div class="global-login-modal-overlay" id="globalLoginModal">
+            <div class="global-login-modal">
+              <h2>後台登入</h2>
+              <div class="global-form-group">
+                <label>帳號</label>
+                <input type="text" id="gAdminUsername" placeholder="請輸入 admin" />
+              </div>
+              <div class="global-form-group">
+                <label>密碼</label>
+                <input type="password" id="gAdminPassword" placeholder="請輸入 admin" />
+              </div>
+              <div class="global-error-msg" id="gLoginError">帳號或密碼錯誤！預設請使用 admin / admin。</div>
+              <div class="global-login-actions">
+                <button class="global-btn-cancel" onclick="document.getElementById('globalLoginModal').classList.remove('active')">取消</button>
+                <button class="global-btn-submit" onclick="gAttemptLogin()">登入</button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-  if (!isAdminPage) {
-    const modalHtml = `
-      <div class="global-login-modal-overlay" id="globalLoginModal">
-        <div class="global-login-modal">
-          <h2>後台登入</h2>
-          <div class="global-form-group">
-            <label>帳號</label>
-            <input type="text" id="gAdminUsername" placeholder="請輸入 admin" />
-          </div>
-          <div class="global-form-group">
-            <label>密碼</label>
-            <input type="password" id="gAdminPassword" placeholder="請輸入 admin" />
-          </div>
-          <div class="global-error-msg" id="gLoginError">帳號或密碼錯誤！預設請使用 admin / admin。</div>
-          <div class="global-login-actions">
-            <button class="global-btn-cancel" onclick="document.getElementById('globalLoginModal').classList.remove('active')">取消</button>
-            <button class="global-btn-submit" onclick="gAttemptLogin()">登入</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+        // Enter key to login
+        document.getElementById('gAdminPassword').addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') gAttemptLogin();
+        });
+      }
+
+      document.getElementById('globalLoginModal').classList.add('active');
+      document.getElementById('gAdminUsername').focus();
+    };
 
     window.gAttemptLogin = function() {
       const user = document.getElementById('gAdminUsername').value;
@@ -1660,6 +1678,29 @@ function injectAdminSwitch() {
       } else {
         document.getElementById('gLoginError').style.display = 'block';
       }
+    };
+
+    // Secret entry triggers:
+    
+    // 1. Double Click Brand Mark
+    const brandMark = document.querySelector('.brand-mark');
+    if (brandMark) {
+      brandMark.addEventListener('dblclick', () => {
+        window.showAdminLoginModal();
+      });
+    }
+
+    // 2. Keyboard Shortcut: Ctrl + Shift + A (or Cmd + Shift + A)
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        window.showAdminLoginModal();
+      }
+    });
+
+    // 3. Query Parameter: ?admin or ?ops
+    if (window.location.search.includes('admin') || window.location.search.includes('ops')) {
+      setTimeout(() => window.showAdminLoginModal(), 200);
     }
   }
 }
@@ -1851,6 +1892,55 @@ function updateSidebarProfile(data) {
   }
 }
 
+function syncToFlaskServer(data, dailySummaries, tasks) {
+  const latestSummary = dailySummaries[dailySummaries.length - 1] || {};
+  const completedCount = tasks.filter(t => t.isDone || t.done).length;
+  
+  // 1. Sync User Profile
+  fetch("http://127.0.0.1:5001/api/sync/user", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: "an_nudge",
+      name: data.nickname || data.name || "使用者",
+      avatar: "🧑‍🚀",
+      status: data.signature || "被專案快搞瘋了"
+    })
+  }).catch(err => console.log("Flask User Sync Error: ", err));
+
+  // 2. Sync Health
+  fetch("http://127.0.0.1:5001/api/sync/health", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: "an_nudge",
+      sleep_hours: latestSummary.sleepHours || 7.5,
+      steps: latestSummary.steps || 8000,
+      exercise_minutes: latestSummary.exerciseMinutes || 45
+    })
+  }).catch(err => console.log("Flask Health Sync Error: ", err));
+
+  // 3. Sync Focus & Planet Unlock
+  fetch("http://127.0.0.1:5001/api/sync/focus", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: "an_nudge",
+      tasks_completed: completedCount,
+      tasks_total: tasks.length,
+      focus_minutes: latestSummary.focusMinutes || (data.focusSeconds ? Math.floor(data.focusSeconds / 60) : 40),
+      current_goal: data.webToolsState?.guardianInvite?.goal || ""
+    })
+  })
+  .then(res => res.json())
+  .then(resData => {
+    if (resData.new_planet_unlocked) {
+      toast(`🪐 太陽系躍遷！本週自律達標，Flask 後端成功為您解鎖新星球：【${resData.new_planet_unlocked}】！`);
+    }
+  })
+  .catch(err => console.log("Flask Focus Sync Error: ", err));
+}
+
 let previousTasksState = null;
 
 function listenToUser(userId) {
@@ -1945,6 +2035,37 @@ function listenToUser(userId) {
         update3DPlanet(syncData);
       }
     }
+
+    // Propagate user, health, and focus stats to local python Flask server
+    syncToFlaskServer(data, dailySummaries, tasks);
+    
+    // 📡 Web端自動偵測並同步來自手機 App 建立的膠囊、信件、家長狀態等
+    let store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    let changed = false;
+    if (data.webToolsState) {
+      for (const k in data.webToolsState) {
+        if (JSON.stringify(store[k]) !== JSON.stringify(data.webToolsState[k])) {
+          store[k] = data.webToolsState[k];
+          changed = true;
+        }
+      }
+    }
+    if (data.webToolsCollection) {
+      for (const k in data.webToolsCollection) {
+        if (JSON.stringify(store[k]) !== JSON.stringify(data.webToolsCollection[k])) {
+          store[k] = data.webToolsCollection[k];
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      localStorage.setItem("nudgeWebTools", JSON.stringify(store));
+      if (typeof window.renderSavedList === 'function') {
+        window.renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
+        window.renderSavedList("[data-encourage-list]", "encouragements", "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>");
+        window.renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
+      }
+    }
   });
 }
 
@@ -1953,10 +2074,11 @@ window.bindFirestoreMissions = function(tasks) {
   if (!list) return;
   
   list.innerHTML = "";
-  tasks.slice(0, 36).forEach((task) => {
+  tasks.slice(0, 36).forEach((task, index) => {
     const title = task.title || task.name || "自律任務";
     const done = task.isDone || task.done || false;
     const taskId = task.id || "";
+    const sId = "s" + (index + 1);
     
     let taskType = "general";
     if (/(專案|期末|大考|挑戰)/.test(title)) {
@@ -1970,7 +2092,7 @@ window.bindFirestoreMissions = function(tasks) {
     list.innerHTML += `
       <li class="mission-item" data-task-id="${taskId}">
         <label>
-          <input type="checkbox" class="mission-check" data-task-id="${taskId}" data-task-type="${taskType}" ${done ? 'checked' : ''} />
+          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-index="${index}" data-task-id="${taskId}" data-task-type="${taskType}" ${done ? 'checked' : ''} />
           <span>${title}</span>
         </label>
         <div class="mission-meta">
@@ -1986,6 +2108,35 @@ window.bindFirestoreMissions = function(tasks) {
         </div>
       </li>
     `;
+
+    // Toggle active class on satellites in real-time
+    const sat = document.querySelector("." + sId);
+    const plot = document.querySelector("." + sId.replace("s", "p"));
+    const gal = document.querySelector(".g" + (index + 1));
+    const uni = document.querySelector(".u" + (index - 23));
+
+    if (done) {
+      if (sat) sat.classList.add("active");
+      if (gal) gal.classList.add("active");
+      if (uni && index >= 24) uni.classList.add("active");
+      if (plot) {
+        plot.classList.add("built");
+        plot.classList.add("built-" + taskType);
+      }
+    } else {
+      if (sat) {
+        sat.classList.remove("active", "hidden-comet", "hidden-moon", "hidden-blackhole");
+      }
+      if (gal) {
+        gal.classList.remove("active", "hidden-comet", "hidden-moon", "hidden-blackhole");
+      }
+      if (uni) {
+        uni.classList.remove("active", "hidden-explosion");
+      }
+      if (plot) {
+        plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
+      }
+    }
   });
 
   const checks = list.querySelectorAll(".mission-check");
