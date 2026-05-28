@@ -909,13 +909,33 @@ function injectAINavigator() {
     body.innerHTML += `<div class="ai-msg" id="${loadingId}">[ 系統讀取中... 與中樞神經連線中 ]</div>`;
     body.scrollTop = body.scrollHeight;
 
+    const tasksContext = (currentUserTasks && currentUserTasks.length > 0)
+      ? `目前艦長（使用者）的自律任務列表如下：\n` + currentUserTasks.map(t => `- 任務名稱: "${t.title}" (ID: ${t.id}, 狀態: ${t.isDone || t.done ? '已完成' : '未完成'})`).join('\n')
+      : `目前無活躍任務。`;
+
+    const summariesContext = (currentUserDailySummaries && currentUserDailySummaries.length > 0)
+      ? `近期每日自律數據摘要如下：\n` + currentUserDailySummaries.slice(-5).map(s => `- 日期: ${s.date}, 步數: ${s.steps}, 睡眠: ${s.sleepHours}小時, 專注: ${s.focusMinutes}分鐘, 完成任務: ${s.completedTasks}/${s.totalTasks}`).join('\n')
+      : `無近期數據。`;
+
+    const systemText = `你是一個名為 Nudge 的科幻太空船艦載 AI 助手，同時也是溫和且專業的「Nudge 自律導師」。你負責協助艦長（使用者）進行時間管理與自律任務。你的語氣要像科幻電影中的 AI（冷靜、聰明、帶點科技感），稱呼使用者為艦長。回答要簡潔有力，不要給出落落長的文章。
+如果使用者要求開始專注、倒數計時，請加上：[ACTION:START_FOCUS:分鐘數]
+如果使用者要求新增任務，請加上：[ACTION:ADD_TASK:任務名稱]
+如果使用者要求前往某個頁面(例如總覽、家長中心、營運後台等)，請加上：[ACTION:NAVIGATE:該頁面網址.html] (頁面包含: index.html, personal.html, guardian.html, groups.html, operations.html, planet.html, friend.html)。
+如果使用者說他完成了某個任務，或者要求你幫他完成（例如「我完成了準備期中報告的任務」、「我剛剛去跑步了」，或者「幫我完成看書任務」），請在回覆中包含：[ACTION:COMPLETE_TASK:任務ID]。請務必使用對應任務的 ID。
+
+${tasksContext}
+
+${summariesContext}
+
+如果使用者問你怎麼用，請以繁體中文簡要介紹：左側是導航面板，中間是數據儀表板，下方是專屬星球，每天完成任務可以發射衛星環繞星球，右下角可以點擊小球召喚我為您導航。`;
+
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: "你是一個名為 Nudge 的科幻太空船艦載 AI 助手，負責協助艦長（使用者）進行時間管理與自律任務。你的語氣要像科幻電影中的 AI（冷靜、聰明、帶點科技感），稱呼使用者為艦長。回答要簡潔有力，不要給出落落長的文章。\n如果使用者要求開始專注、倒數計時，請加上：[ACTION:START_FOCUS:分鐘數]\n如果使用者要求新增任務，請加上：[ACTION:ADD_TASK:任務名稱]\n如果使用者要求前往某個頁面(例如總覽、家長中心、營運後台等)，請加上：[ACTION:NAVIGATE:該頁面網址.html] (頁面包含: index.html, personal.html, guardian.html, groups.html, operations.html, planet.html)。\n如果使用者要求導覽或問系統怎麼用，請直接以文字簡單回覆介紹：左側是導航面板，中間是數據儀表板，下方是專屬星球，每天完成任務可以發射衛星環繞星球。" }]
+            parts: [{ text: systemText }]
           },
           contents: [{ parts: [{ text: text }] }]
         })
@@ -953,6 +973,15 @@ function injectAINavigator() {
         }
       }
 
+      const completeMatch = reply.match(/\[ACTION:COMPLETE_TASK:(.+)\]/);
+      if (completeMatch) {
+        reply = reply.replace(completeMatch[0], '');
+        const taskId = completeMatch[1].trim();
+        if (typeof db !== 'undefined' && db) {
+          completeFirestoreTask(taskId);
+        }
+      }
+
       const navMatch = reply.match(/\[ACTION:NAVIGATE:([a-zA-Z0-9_-]+\.html)\]/);
       if (navMatch) {
         reply = reply.replace(navMatch[0], '');
@@ -961,8 +990,6 @@ function injectAINavigator() {
         }, 1500);
       }
 
-
-      
       if (loadingMsg) {
         loadingMsg.innerHTML = reply.trim().replace(/\n/g, '<br/>');
         loadingMsg.removeAttribute('id');
@@ -1530,6 +1557,7 @@ function bindExamTemplates() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  try { injectSidebarControls(); } catch(e){}
   try { injectModuleMenu(); } catch(e){}
   try { injectDisplayModeControls(); } catch(e){}
   try { injectAINavigator(); } catch(e){}
@@ -1545,6 +1573,70 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 window.addEventListener("resize", bootCharts);
+
+function injectSidebarControls() {
+  const sidebar = document.querySelector(".sidebar");
+  if (!sidebar) return;
+
+  // 1. Inject Floating Toggle Button & Backdrop
+  if (!document.getElementById("sidebarToggleBtn")) {
+    const toggleBtn = document.createElement("button");
+    toggleBtn.id = "sidebarToggleBtn";
+    toggleBtn.className = "sidebar-toggle";
+    toggleBtn.setAttribute("aria-label", "Toggle Sidebar");
+    toggleBtn.innerHTML = `
+      <span></span>
+      <span></span>
+      <span></span>
+    `;
+    document.body.appendChild(toggleBtn);
+
+    const backdrop = document.createElement("div");
+    backdrop.id = "sidebarBackdrop";
+    backdrop.className = "sidebar-backdrop";
+    document.body.appendChild(backdrop);
+
+    toggleBtn.addEventListener("click", () => {
+      if (window.innerWidth <= 980) {
+        document.body.classList.toggle("sidebar-open");
+      } else {
+        document.body.classList.toggle("sidebar-collapsed");
+        const collapsed = document.body.classList.contains("sidebar-collapsed");
+        localStorage.setItem("nudgeSidebarCollapsed", collapsed ? "true" : "false");
+      }
+    });
+
+    backdrop.addEventListener("click", () => {
+      document.body.classList.remove("sidebar-open");
+    });
+  }
+
+  // 2. Inject Desktop Close Button (Inner Collapse) next to brand logo
+  const brand = sidebar.querySelector(".brand");
+  if (brand && !sidebar.querySelector(".sidebar-close-inner")) {
+    const headerRow = document.createElement("div");
+    headerRow.className = "sidebar-header-row";
+    brand.parentNode.insertBefore(headerRow, brand);
+    headerRow.appendChild(brand);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "sidebar-close-inner";
+    closeBtn.title = "收折選單";
+    closeBtn.innerHTML = "◀";
+    headerRow.appendChild(closeBtn);
+
+    closeBtn.addEventListener("click", () => {
+      document.body.classList.add("sidebar-collapsed");
+      localStorage.setItem("nudgeSidebarCollapsed", "true");
+    });
+  }
+
+  // 3. Restore saved layout preference
+  const savedCollapsed = localStorage.getItem("nudgeSidebarCollapsed");
+  if (savedCollapsed === "true" && window.innerWidth > 980) {
+    document.body.classList.add("sidebar-collapsed");
+  }
+}
 
 
 
@@ -1950,6 +2042,8 @@ function syncToFlaskServer(data, dailySummaries, tasks) {
 }
 
 let previousTasksState = null;
+let currentUserTasks = [];
+let currentUserDailySummaries = [];
 
 function listenToUser(userId) {
   if (!db) return;
@@ -1961,6 +2055,8 @@ function listenToUser(userId) {
     
     const dailySummaries = data.dailySummaries || [];
     const tasks = data.tasks || [];
+    currentUserTasks = tasks;
+    currentUserDailySummaries = dailySummaries;
     
     // 如果任務為空，自動在 Firestore 初始化預設自律任務，以達成雙端靜態任務同步
     if (tasks.length === 0) {
@@ -2266,6 +2362,47 @@ function addFirestoreTask(taskTitle) {
       docRef.update({ tasks: currentTasks }).then(() => {
         toast(`已成功新增任務：${taskTitle}`);
       });
+    }
+  });
+}
+
+function completeFirestoreTask(taskId) {
+  const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
+  if (!activeUserId || !db) {
+    console.warn("Firebase not initialized or user missing");
+    return;
+  }
+  const docRef = db.collection("users").doc(activeUserId);
+  docRef.get().then((docSnap) => {
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      const currentTasks = data.tasks || [];
+      
+      // Try finding by exact ID first
+      let taskIndex = currentTasks.findIndex(t => t.id === taskId);
+      
+      // If not found, try fuzzy matching by title
+      if (taskIndex === -1) {
+        taskIndex = currentTasks.findIndex(t => t.title === taskId || t.title.includes(taskId) || taskId.includes(t.title));
+      }
+      
+      if (taskIndex !== -1) {
+        if (currentTasks[taskIndex].isDone || currentTasks[taskIndex].done) {
+          toast(`📡 星艦回報：任務【${currentTasks[taskIndex].title}】早已是完成狀態！`);
+          return;
+        }
+        
+        currentTasks[taskIndex].isDone = true;
+        currentTasks[taskIndex].done = true;
+        currentTasks[taskIndex].completedAt = new Date().toISOString();
+        currentTasks[taskIndex].updatedAt = new Date().toISOString();
+        
+        docRef.update({ tasks: currentTasks }).then(() => {
+          toast(`📡 星艦回報：AI 成功為您標記完成任務【${currentTasks[taskIndex].title}】！`);
+        });
+      } else {
+        toast(`📡 星艦警告：找不到與「${taskId}」匹配的任務。`);
+      }
     }
   });
 }
