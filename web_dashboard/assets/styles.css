@@ -17,7 +17,7 @@
   --red: #ff3333;
   --shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.1);
   --radius: 8px;
-  --sidebar: 286px;
+  --sidebar: 250px;
   --page-accent: var(--accent);
   --page-accent-2: var(--accent-2);
   --page-wash: rgba(0, 240, 255, 0.08);
@@ -288,7 +288,8 @@ p {
 
 .main {
   width: min(1240px, 100%);
-  padding: 34px;
+  padding: 20px;
+  margin-inline: auto;
 }
 
 h1,
@@ -299,23 +300,23 @@ p {
 }
 
 h1 {
-  font-size: clamp(38px, 6vw, 78px);
-  line-height: 1.02;
-  letter-spacing: 2px;
-  margin-bottom: 18px;
+  font-size: clamp(22px, 3.5vw, 38px);
+  line-height: 1.1;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
   text-transform: uppercase;
-  text-shadow: 0 0 15px color-mix(in srgb, var(--page-accent) 50%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--page-accent) 40%, transparent);
 }
 
 h2 {
-  font-size: clamp(26px, 3vw, 42px);
-  line-height: 1.12;
-  margin-bottom: 12px;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.2;
+  margin-bottom: 10px;
 }
 
 h3 {
-  font-size: 22px;
-  margin-bottom: 10px;
+  font-size: 16px;
+  margin-bottom: 8px;
 }
 
 p {
@@ -337,7 +338,7 @@ p {
   background: rgba(7, 10, 20, 0.6);
   backdrop-filter: blur(8px);
   box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05), var(--shadow);
-  padding: clamp(26px, 4vw, 54px);
+  padding: clamp(20px, 3vw, 40px);
   overflow: hidden;
 }
 
@@ -376,8 +377,8 @@ p {
 .button {
   border: 0;
   border-radius: 999px;
-  min-height: 44px;
-  padding: 12px 18px;
+  min-height: 38px;
+  padding: 8px 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -385,11 +386,12 @@ p {
   text-decoration: none;
   font-weight: 900;
   cursor: pointer;
+  font-size: 13.5px;
   transition: 180ms ease;
 }
 
 .button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1.5px);
 }
 
 .button.primary {
@@ -492,8 +494,8 @@ p {
 }
 
 .feature-card {
-  min-height: 208px;
-  padding: 22px;
+  min-height: 160px;
+  padding: 16px;
   text-decoration: none;
   transition: 200ms ease;
 }
@@ -543,14 +545,14 @@ p {
 }
 
 .icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   color: var(--page-accent);
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 950;
   background: color-mix(in srgb, var(--page-accent) 14%, transparent);
 }
@@ -563,11 +565,11 @@ p {
 }
 
 .panel {
-  padding: 24px;
+  padding: 18px;
 }
 
 .panel.tight {
-  padding: 18px;
+  padding: 12px;
 }
 
 .metric-grid {
@@ -1125,8 +1127,8 @@ body[data-page="home"] .feature-card:nth-child(5) {
 
 .hero-orbit {
   position: relative;
-  width: min(430px, 100%);
-  min-height: 430px;
+  width: min(310px, 100%);
+  min-height: 310px;
   margin-inline: auto;
   transform-style: preserve-3d;
   transition: transform 240ms ease;
@@ -1134,17 +1136,18 @@ body[data-page="home"] .feature-card:nth-child(5) {
 
 .holo-planet {
   position: absolute;
-  inset: 58px;
+  inset: 78px;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 30% 24%, rgba(0, 240, 255, 0.8), transparent 30%),
-    linear-gradient(145deg, #0a0f25, #162152);
+    radial-gradient(circle at 30% 24%, rgba(0, 240, 255, 0.85), transparent 35%),
+    linear-gradient(145deg, #070b1e, #10193f);
   box-shadow:
-    inset -10px -10px 40px #0b1021,
-    inset 0 0 30px #00f0ff,
-    0 0 50px rgba(0, 240, 255, 0.3);
-  transform: rotateX(58deg) rotateZ(-18deg) translateZ(54px);
+    inset -8px -8px 30px #040714,
+    inset 0 0 25px rgba(0, 240, 255, 0.8),
+    0 0 35px rgba(0, 240, 255, 0.25);
+  transform: rotateX(58deg) rotateZ(-18deg) translateZ(40px);
   animation: planetPulse 5.8s ease-in-out infinite;
+  border: 1px solid rgba(0, 240, 255, 0.2);
 }
 
 .holo-planet::before,
@@ -1173,37 +1176,60 @@ body[data-page="home"] .feature-card:nth-child(5) {
 
 .orbit-ring {
   position: absolute;
-  inset: 38px;
+  inset: 24px;
   border-radius: 50%;
-  border: 1px dashed rgba(0, 240, 255, 0.3);
+  border: 1px dashed rgba(0, 240, 255, 0.16);
   transform: rotateX(68deg) rotateZ(0deg);
 }
 
 .ring-a {
   animation: orbitSpin 12s linear infinite;
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.08);
 }
 
 .ring-b {
-  inset: 8px;
-  border-color: rgba(123, 44, 191, 0.4);
+  inset: 4px;
+  border-color: rgba(123, 44, 191, 0.2);
   animation: orbitSpin 18s linear infinite reverse;
 }
 
+.ring-c {
+  inset: -16px;
+  border-color: rgba(0, 240, 255, 0.1);
+  animation: orbitSpin 25s linear infinite;
+}
+
+.planet-node,
 .city-node {
   position: absolute;
   z-index: 2;
-  min-width: 58px;
-  min-height: 34px;
+  min-width: 36px;
+  min-height: 20px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 99px;
   color: #00f0ff;
-  background: #0b1021;
-  border: 1px solid #00f0ff;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+  background: rgba(11, 16, 33, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  font-size: 9.5px;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2), inset 0 0 6px rgba(0, 240, 255, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  animation: nodePulse 3s ease-in-out infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
+  50% { box-shadow: 0 0 16px rgba(0, 240, 255, 0.45); }
+}
+
+.planet-node:hover,
+.city-node:hover {
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.6), inset 0 0 10px rgba(0, 240, 255, 0.3);
+  transform: scale(1.05);
 }
 
 .n1 { left: 22%; top: 24%; }
@@ -2956,6 +2982,10 @@ body[data-page="planet"] .building {
 }
 
 @media (max-width: 620px) {
+  .main {
+    padding: 60px 12px 12px !important;
+  }
+
   .nav,
   .weather-grid,
   .skill-grid,
@@ -2966,6 +2996,7 @@ body[data-page="planet"] .building {
   .center-hub,
   .card-grid-3 {
     grid-template-columns: 1fr;
+    gap: 12px !important;
   }
 
   .presentation-rail {
@@ -2980,37 +3011,151 @@ body[data-page="planet"] .building {
     min-height: auto;
   }
 
+  /* Homepage Cinematic Planet Mobile Overrides */
   .hero-orbit {
-    min-height: 300px;
+    width: 230px !important;
+    min-height: 230px !important;
   }
 
   .holo-planet {
-    inset: 54px;
+    inset: 58px !important;
   }
 
   .floating-chip {
-    min-width: 112px;
-    padding: 12px;
+    min-width: 100px !important;
+    padding: 10px !important;
+    font-size: 11px !important;
   }
 
   .chip-a {
-    left: 0;
-    top: 28px;
+    left: -10px !important;
+    top: 18px !important;
   }
 
   .chip-b {
-    right: 0;
-    bottom: 38px;
+    right: -10px !important;
+    bottom: 24px !important;
   }
 
+  /* Personal Hub Cards Mobile overrides */
+  .hub-card {
+    min-height: 180px !important;
+    padding: 16px !important;
+  }
+  .hub-card strong {
+    font-size: 20px !important;
+  }
+  .hub-card span {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 16px !important;
+    margin-bottom: 12px !important;
+  }
+  .subnav a {
+    min-height: 34px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Interactive Planet Page Mobile Overrides */
   body[data-page="planet"] .planet-stage {
     min-height: 520px;
   }
 
+  body[data-page="planet"] .planet {
+    width: min(260px, 70vw) !important;
+    height: min(260px, 70vw) !important;
+  }
+
+  body[data-page="planet"] .planet-shadow {
+    width: min(200px, 58vw) !important;
+    height: 24px !important;
+    top: 68% !important;
+  }
+
+  /* Orbit lines scaling on mobile */
+  .orbit-line {
+    width: min(260px, 75vw) !important;
+    height: min(260px, 75vw) !important;
+  }
+  .orbit-two {
+    width: min(220px, 65vw) !important;
+    height: min(220px, 65vw) !important;
+  }
+  .orbit-three {
+    width: min(300px, 85vw) !important;
+    height: min(300px, 85vw) !important;
+  }
+  .orbit-four {
+    width: min(180px, 55vw) !important;
+    height: min(180px, 55vw) !important;
+  }
+  .orbit-five {
+    width: min(340px, 95vw) !important;
+    height: min(340px, 95vw) !important;
+  }
+
+  /* Completed Satellite scales on mobile to prevent clipping */
+  .s1.active { width: 32px !important; height: 32px !important; }
+  .s2.active { width: 26px !important; height: 26px !important; }
+  .s3.active { width: 40px !important; height: 40px !important; }
+  .s4.active { width: 36px !important; height: 36px !important; }
+  .s5.active { width: 28px !important; height: 28px !important; }
+  .s6.active { width: 30px !important; height: 30px !important; }
+  .s7.active { width: 34px !important; height: 34px !important; }
+  .s8.active { width: 24px !important; height: 24px !important; }
+  .s9.active { width: 42px !important; height: 42px !important; }
+  .s10.active { width: 28px !important; height: 28px !important; }
+  .s11.active { width: 32px !important; height: 32px !important; }
+  .s12.active { width: 38px !important; height: 38px !important; }
+
+  /* HUD overlay panel refinement on mobile */
+  .stage-hud {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    min-width: auto !important;
+    padding: 10px !important;
+  }
+  .stage-hud strong {
+    font-size: 16px !important;
+    margin: 4px 0 2px !important;
+  }
+  .stage-hud span {
+    font-size: 11px !important;
+  }
+  .stage-nav {
+    margin-top: 8px !important;
+  }
+
+  /* Mission Log Panel overrides for mobile to prevent left-overflow clipping */
+  .mission-log-panel {
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    bottom: 80px !important;
+    padding: 14px !important;
+  }
+
+  /* Floating UI buttons/orbs overrides */
+  .ai-orb,
+  #missionOrbBtn {
+    width: 48px !important;
+    height: 48px !important;
+    bottom: 20px !important;
+  }
+  .ai-orb {
+    right: 20px !important;
+  }
+  #missionOrbBtn {
+    right: 80px !important;
+  }
+
   body[data-page="planet"] .building {
-    min-width: 76px;
-    min-height: 76px;
-    font-size: 13px;
+    min-width: 58px !important;
+    min-height: 58px !important;
+    font-size: 11px !important;
+    padding: 4px !important;
   }
 
   .section-head {
@@ -4665,11 +4810,11 @@ body[data-page="planet"] .building {
 /* Sidebar Toggle Button */
 .sidebar-toggle {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: 12px;
+  left: 12px;
   z-index: 10001; /* Above sidebar backdrop */
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: rgba(11, 16, 33, 0.85);
   backdrop-filter: blur(10px);
@@ -4678,7 +4823,7 @@ body[data-page="planet"] .building {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(0, 240, 255, 0.15);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4692,7 +4837,7 @@ body[data-page="planet"] .building {
 
 .sidebar-toggle span {
   display: block;
-  width: 20px;
+  width: 18px;
   height: 2px;
   background: var(--text);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4701,14 +4846,14 @@ body[data-page="planet"] .building {
 
 /* Animated Hamburger to X */
 body.sidebar-open .sidebar-toggle span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
+  transform: translateY(6px) rotate(45deg);
 }
 body.sidebar-open .sidebar-toggle span:nth-child(2) {
   opacity: 0;
   transform: scale(0);
 }
 body.sidebar-open .sidebar-toggle span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 /* Sidebar Backdrop */
@@ -4770,6 +4915,9 @@ body.sidebar-open .sidebar-backdrop {
     border-right-width: 0;
     pointer-events: none;
   }
+  body.sidebar-collapsed .main {
+    padding-left: clamp(24px, 8vw, 80px);
+  }
   /* Floating Toggle is hidden on desktop by default unless sidebar is collapsed */
   .sidebar-toggle {
     opacity: 0;
@@ -4787,7 +4935,7 @@ body.sidebar-open .sidebar-backdrop {
 @media (max-width: 980px) {
   /* Make sure main has padding to clear the floating hamburger button */
   .main {
-    padding-top: 80px !important;
+    padding: 60px 16px 16px !important;
   }
   /* Always show floating toggle button on mobile */
   .sidebar-toggle {

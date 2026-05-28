@@ -202,6 +202,9 @@
               const displayPlanets = unlockedList.filter(p => p !== "新手星球");
               
               if(displayPlanets.length > 0) {
+                 const isMobile = window.innerWidth <= 620;
+                 const radius = isMobile ? 110 : 250;
+
                  displayPlanets.forEach((pName, index) => {
                     const angle = (360 / displayPlanets.length) * index;
                     const color = colors[pName] || "#ffffff";
@@ -217,27 +220,28 @@
                         box-shadow: 0 0 20px ${color}, 0 0 40px ${color}88;
                         top: 50%;
                         left: 50%;
-                        transform: translate(-50%, -50%) rotate(${angle}deg) translateX(250px) rotate(-${angle}deg);
+                        transform: translate(-50%, -50%) rotate(${angle}deg) translateX(${radius}px) rotate(-${angle}deg);
                         animation: counter-rotate 40s linear infinite;
                     `;
                     orbitContainer.appendChild(planetDiv);
                  });
                  
-                 // Add the CSS for counter-rotation if not present
-                 if(!document.getElementById('unlockedPlanetStyles')) {
-                     const style = document.createElement('style');
+                 // Add/update the CSS for counter-rotation with computed radius
+                 let style = document.getElementById('unlockedPlanetStyles');
+                 if(!style) {
+                     style = document.createElement('style');
                      style.id = 'unlockedPlanetStyles';
-                     style.innerHTML = `
-                        @keyframes counter-rotate {
-                            from { transform: translate(-50%, -50%) rotate(0deg) translateX(250px) rotate(0deg); }
-                            to { transform: translate(-50%, -50%) rotate(360deg) translateX(250px) rotate(-360deg); }
-                        }
-                        .orbit-unlocked {
-                            border: 1px dashed rgba(255,255,255,0.1);
-                        }
-                     `;
                      document.head.appendChild(style);
                  }
+                 style.innerHTML = `
+                    @keyframes counter-rotate {
+                        from { transform: translate(-50%, -50%) rotate(0deg) translateX(${radius}px) rotate(0deg); }
+                        to { transform: translate(-50%, -50%) rotate(360deg) translateX(${radius}px) rotate(-360deg); }
+                    }
+                    .orbit-unlocked {
+                        border: 1px dashed rgba(255,255,255,0.1);
+                    }
+                 `;
               }
             }
           }
