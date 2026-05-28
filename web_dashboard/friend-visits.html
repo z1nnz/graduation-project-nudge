@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 好友參訪紀錄</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="friend">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>好友參訪</small></span>
+        </a>
+        <nav class="nav">
+          <!-- Dynamically populated by app.js -->
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Friend Visits Log</span>
+            <h1>好友參訪與動態紀錄</h1>
+            <p>這裡記錄了好友拜訪您的自律星球、給您的鼓勵留言、以及共同專注的歷史互動紀錄。</p>
+            <div class="subnav">
+              <a href="friend.html">好友列表與動態</a>
+              <a class="active" href="friend-visits.html">好友參訪記錄</a>
+              <a href="planet.html">返回我的星球</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>今日參訪次數</span>
+            <strong data-count="5">5</strong>
+            <p>本週新增 2 個新的好友鼓勵。</p>
+          </div>
+        </header>
+
+        <section class="planet-depth page-section">
+          <article class="event-feed">
+            <span class="eyebrow">參訪鼓勵留言</span>
+            <ul class="timeline compact">
+              <li>
+                <strong>小安 拜訪了你的自律星球</strong>
+                <span>留下鼓勵留言：今天也很穩，繼續加油！🧑‍🚀</span>
+              </li>
+              <li>
+                <strong>小華 送出睡眠貼圖</strong>
+                <span>貼圖提醒：今晚早點休息，別熬夜！🌙</span>
+              </li>
+              <li>
+                <strong>小安 拜訪了你的圖書館</strong>
+                <span>留下足跡，並增加城市 2% 繁榮度。</span>
+              </li>
+            </ul>
+          </article>
+          <article class="event-feed">
+            <span class="eyebrow">共同專注與挑戰</span>
+            <ul class="timeline compact">
+              <li>
+                <strong>老闆 加入了你的共讀廣場</strong>
+                <span>一起完成了 25 分鐘專注，獲得 5 自律幣。</span>
+              </li>
+              <li>
+                <strong>小安 加入了你的自律房</strong>
+                <span>完成共同挑戰：期末考衝刺！</span>
+              </li>
+              <li>
+                <strong>小華 拜訪了你的專注花園</strong>
+                <span>留言：這花園布置得太好看了吧！✨</span>
+              </li>
+            </ul>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js?v=2"></script>
+  </body>
+</html>

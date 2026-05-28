@@ -832,19 +832,12 @@ function injectAINavigator() {
       <div class="ai-chat-header">
         <div class="ai-header-title">艦載 AI 導航助手</div>
         <div>
-          <button class="ai-close-btn" id="aiSettingsBtn" title="設定API Key" style="margin-right: 8px;">⚙️</button>
           <button class="ai-close-btn" id="aiCloseBtn">✕</button>
         </div>
       </div>
-      
-      <div class="ai-settings-panel" id="aiSettingsPanel" style="display: none; padding: 16px; background: rgba(0, 240, 255, 0.05); border-bottom: 1px solid rgba(0, 240, 255, 0.2);">
-        <label style="color: #00f0ff; font-size: 12px; display: block; margin-bottom: 8px;">設定 Gemini API Key</label>
-        <input type="password" id="aiApiKeyInput" placeholder="輸入 API Key..." style="width: 100%; background: rgba(3, 5, 10, 0.6); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 6px; padding: 6px 10px; color: #fff; outline: none; margin-bottom: 8px; box-sizing: border-box;" />
-        <button id="aiSaveKeyBtn" style="background: #00f0ff; color: #03050a; border: none; border-radius: 6px; padding: 4px 12px; font-weight: 700; cursor: pointer; font-size: 12px;">儲存</button>
-      </div>
 
       <div class="ai-chat-body" id="aiChatBody">
-        <div class="ai-msg">您好！艦長。請在上方齒輪設定您的 Gemini API Key，即可與真實星艦主機連線。</div>
+        <div class="ai-msg">您好！艦長。我是您的自律宇宙導航助手，已成功連線至中樞神經，有什麼我可以幫您的嗎？</div>
       </div>
       <div class="ai-chat-input">
         <input type="text" placeholder="輸入指令..." id="aiInput" />
@@ -860,27 +853,9 @@ function injectAINavigator() {
   const orb = $("#aiOrb", container);
   const panel = $("#aiChatPanel", container);
   const closeBtn = $("#aiCloseBtn", container);
-  const settingsBtn = $("#aiSettingsBtn", container);
-  const settingsPanel = $("#aiSettingsPanel", container);
-  const apiKeyInput = $("#aiApiKeyInput", container);
-  const saveKeyBtn = $("#aiSaveKeyBtn", container);
   const input = $("#aiInput", container);
   const send = $("#aiSend", container);
   const body = $("#aiChatBody", container);
-
-  const savedKey = localStorage.getItem("gemini_api_key");
-  if (savedKey) apiKeyInput.value = savedKey;
-
-  settingsBtn.addEventListener("click", () => {
-    settingsPanel.style.display = settingsPanel.style.display === "none" ? "block" : "none";
-  });
-
-  saveKeyBtn.addEventListener("click", () => {
-    localStorage.setItem("gemini_api_key", apiKeyInput.value.trim());
-    settingsPanel.style.display = "none";
-    body.innerHTML += `<div class="ai-msg">API 金鑰已儲存。系統已重新啟動。</div>`;
-    body.scrollTop = body.scrollHeight;
-  });
 
   orb.addEventListener("click", () => {
     panel.classList.toggle("open");
@@ -893,13 +868,6 @@ function injectAINavigator() {
   const sendMsg = async () => {
     const text = input.value.trim();
     if (!text) return;
-    
-    const apiKey = localStorage.getItem("gemini_api_key");
-    if (!apiKey) {
-      body.innerHTML += `<div class="ai-msg">警告：尚未偵測到核心金鑰。請點擊上方齒輪圖示輸入 Gemini API Key。</div>`;
-      body.scrollTop = body.scrollHeight;
-      return;
-    }
 
     body.innerHTML += `<div class="ai-msg user">${text}</div>`;
     input.value = "";
@@ -930,7 +898,8 @@ ${summariesContext}
 如果使用者問你怎麼用，請以繁體中文簡要介紹：左側是導航面板，中間是數據儀表板，下方是專屬星球，每天完成任務可以發射衛星環繞星球，右下角可以點擊小球召喚我為您導航。`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const apiHost = window.location.protocol === 'file:' ? 'http://127.0.0.1:5001' : '';
+      const response = await fetch(`${apiHost}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -943,7 +912,8 @@ ${summariesContext}
 
       const loadingMsg = document.getElementById(loadingId);
       if (!response.ok) {
-        throw new Error("API 請求失敗：" + response.status);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "API 請求失敗：" + response.status);
       }
 
       const data = await response.json();

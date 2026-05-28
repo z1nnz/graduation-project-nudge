@@ -287,6 +287,39 @@ def sync_focus():
 def get_user_api(user_id):
     user = get_user(user_id)
     return jsonify({"success": True, "user": user})
+
+@app.route('/api/chat', methods=['POST'])
+def chat_proxy():
+    import urllib.request
+    import urllib.error
+    import json
+    
+    gemini_key = os.environ.get('GEMINI_API_KEY')
+    if not gemini_key:
+        return jsonify({
+            "error": "伺服器未設定 Gemini API 金鑰。請在環境變數中設定 GEMINI_API_KEY。"
+        }), 500
+        
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+    
+    try:
+        req = urllib.request.Request(
+            url,
+            data=request.data,  # Direct forward of JSON payload from frontend
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        with urllib.request.urlopen(req) as response:
+            res_data = response.read().decode('utf-8')
+            return jsonify(json.loads(res_data))
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode('utf-8')
+        try:
+            return jsonify(json.loads(err_msg)), e.code
+        except Exception:
+            return jsonify({"error": f"HTTP Error {e.code}: {err_msg}"}), e.code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 
 if __name__ == '__main__':
