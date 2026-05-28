@@ -1892,12 +1892,20 @@ function updateSidebarProfile(data) {
   }
 }
 
+// ====================================================
+// 🔧 同步伺服器設定
+// 本機開發：http://127.0.0.1:5001
+// 部署到 Render 後：改成你的 Render URL，例如：
+//   https://nudge-sync-server.onrender.com
+// ====================================================
+const SYNC_SERVER_URL = "http://127.0.0.1:5001";
+
 function syncToFlaskServer(data, dailySummaries, tasks) {
   const latestSummary = dailySummaries[dailySummaries.length - 1] || {};
   const completedCount = tasks.filter(t => t.isDone || t.done).length;
   
   // 1. Sync User Profile
-  fetch("http://127.0.0.1:5001/api/sync/user", {
+  fetch(`${SYNC_SERVER_URL}/api/sync/user`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1909,7 +1917,7 @@ function syncToFlaskServer(data, dailySummaries, tasks) {
   }).catch(err => console.log("Flask User Sync Error: ", err));
 
   // 2. Sync Health
-  fetch("http://127.0.0.1:5001/api/sync/health", {
+  fetch(`${SYNC_SERVER_URL}/api/sync/health`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1921,7 +1929,7 @@ function syncToFlaskServer(data, dailySummaries, tasks) {
   }).catch(err => console.log("Flask Health Sync Error: ", err));
 
   // 3. Sync Focus & Planet Unlock
-  fetch("http://127.0.0.1:5001/api/sync/focus", {
+  fetch(`${SYNC_SERVER_URL}/api/sync/focus`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

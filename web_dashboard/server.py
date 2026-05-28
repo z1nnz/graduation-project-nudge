@@ -1,13 +1,23 @@
 import os
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-# 取得目前 web_dashboard 目錄的路徑
-BASE_DIR = os.path.dirname(os.path.abspath(__name__))
-# 設定 assets/shop/ 路徑 (在 Flutter 專案根目錄下的 assets/shop/)
-UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'assets', 'shop'))
+# 允許跨網域請求（GitHub Pages → Render）
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# 判斷是否在雲端環境（Render 會設定 RENDER 環境變數）
+IS_CLOUD = os.environ.get('RENDER', False)
+
+# 雲端用 /tmp，本機用 ../assets/shop/
+if IS_CLOUD:
+    BASE_DIR = '/tmp'
+    UPLOAD_FOLDER = '/tmp/shop'
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'assets', 'shop'))
 
 # 如果目錄不存在，則建立
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -280,6 +290,9 @@ def get_user_api(user_id):
     
 
 if __name__ == '__main__':
-    print(f"Server is running on http://127.0.0.1:5001")
+    port = int(os.environ.get('PORT', 5001))
+    debug = not IS_CLOUD  # 雲端不開 debug 模式
+    print(f"Server is running on port {port}")
     print(f"Uploading images to: {UPLOAD_FOLDER}")
-    app.run(debug=True, port=5001)
+    print(f"Cloud mode: {IS_CLOUD}")
+    app.run(debug=debug, host='0.0.0.0', port=port)

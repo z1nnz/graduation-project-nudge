@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: nudge-sync-server
+    runtime: python
+    rootDir: web_dashboard
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app
+    envVars:
+      - key: RENDER
+        value: "true"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
