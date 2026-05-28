@@ -105,169 +105,220 @@
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         const ratio = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * ratio;
-        canvas.height = rect.height * ratio;
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        canvas.width = w * ratio;
+        canvas.height = h * ratio;
         ctx.scale(ratio, ratio);
-        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.clearRect(0, 0, w, h);
 
-        const pad = 30;
-        const max = Math.max(...values) * 1.3; // increase max slightly to leave room for text
-        const step = (rect.width - pad * 2) / values.length;
-        const barWidth = step * 0.5;
-        
+        const pad = { top: 28, bottom: 30, left: 10, right: 10 };
+        const maxVal = Math.max(...values, 1);
+        const chartH = h - pad.top - pad.bottom;
+        const chartW = w - pad.left - pad.right;
+        const step = chartW / values.length;
+        const barW = step * 0.55;
+
         values.forEach((value, i) => {
-          const x = pad + i * step + (step - barWidth) / 2;
-          const h = (value / max) * (rect.height - pad * 2);
-          const y = rect.height - pad - h;
-          
-          // Draw Bar
+          const x = pad.left + i * step + (step - barW) / 2;
+          const barH = value > 0 ? (value / (maxVal * 1.25)) * chartH : 0;
+          const y = pad.top + chartH - barH;
+
+          // Glow bar
           ctx.fillStyle = color;
           ctx.shadowColor = color;
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 14;
           ctx.beginPath();
-          ctx.roundRect(x, y, barWidth, h, [6, 6, 0, 0]);
-          ctx.fill();
+          if (barH > 0) {
+            ctx.roundRect(x, y, barW, barH, [5, 5, 0, 0]);
+            ctx.fill();
+          }
           ctx.shadowBlur = 0;
-          
-          // Draw Label (X-axis)
-          ctx.fillStyle = "#9ca3af";
-          ctx.font = "12px system-ui";
+
+          // Value on top
+          ctx.fillStyle = value > 0 ? "#fff" : "#555";
+          ctx.font = "bold 11px system-ui";
           ctx.textAlign = "center";
-          ctx.fillText(labels[i], x + barWidth/2, rect.height - 10);
-          
-          // Draw Value (Top of bar)
-          ctx.fillStyle = "#fff";
-          ctx.font = "bold 12px system-ui";
-          ctx.fillText(value, x + barWidth/2, y - 8);
+          ctx.fillText(value, x + barW / 2, value > 0 ? y - 6 : pad.top + chartH - 6);
+
+          // X-axis label
+          ctx.fillStyle = "#9ca3af";
+          ctx.font = "11px system-ui";
+          ctx.fillText(labels[i], x + barW / 2, h - 8);
         });
       }
 
-      function drawCustomDonut(canvas, data, colors, labels) {
+      function drawCustomDonut(canvas, data, colors) {
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         const ratio = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * ratio;
-        canvas.height = rect.height * ratio;
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        canvas.width = w * ratio;
+        canvas.height = h * ratio;
         ctx.scale(ratio, ratio);
-        
-        const cx = rect.width / 2;
-        const cy = rect.height / 2;
-        const r = Math.min(cx, cy) - 25;
+
+        const cx = w / 2;
+        const cy = h / 2;
+        const r = Math.min(cx, cy) - 30;
         const total = data.reduce((a, b) => a + b, 0);
-        
+        const percentages = ["20%", "55%", "25%"];
+
         let startAngle = -Math.PI / 2;
         data.forEach((val, i) => {
-          const sliceAngle = (val / total) * 2 * Math.PI;
-          
-          // Draw Slice
+          const slice = (val / total) * 2 * Math.PI;
           ctx.beginPath();
-          ctx.arc(cx, cy, r, startAngle, startAngle + sliceAngle);
-          ctx.lineWidth = 18;
+          ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+          ctx.lineWidth = 22;
           ctx.strokeStyle = colors[i];
           ctx.shadowColor = colors[i];
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = 18;
           ctx.stroke();
-          
-          // Draw Value text near the slice
-          const textAngle = startAngle + sliceAngle / 2;
-          const textR = r + 20; // push text outside the donut
-          const tx = cx + textR * Math.cos(textAngle);
-          const ty = cy + textR * Math.sin(textAngle);
-          
           ctx.shadowBlur = 0;
-          ctx.fillStyle = "#fff";
-          ctx.font = "bold 12px system-ui";
+
+          // Percentage label outside the ring
+          const mid = startAngle + slice / 2;
+          const labelR = r + 28;
+          const tx = cx + labelR * Math.cos(mid);
+          const ty = cy + labelR * Math.sin(mid);
+          ctx.fillStyle = "#ddd";
+          ctx.font = "bold 11px system-ui";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(val + "%", tx, ty);
-          
-          startAngle += sliceAngle;
+          ctx.fillText(percentages[i], tx, ty);
+
+          startAngle += slice;
         });
 
-        // Center Text
+        // Center text
+        ctx.textBaseline = "middle";
         ctx.fillStyle = "#fff";
-        ctx.font = "bold 24px system-ui";
-        ctx.fillText("6.8h", cx, cy - 5);
+        ctx.font = "bold 26px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("6.8h", cx, cy - 8);
         ctx.fillStyle = "#9ca3af";
-        ctx.font = "12px system-ui";
-        ctx.fillText("平均", cx, cy + 15);
+        ctx.font = "13px system-ui";
+        ctx.fillText("平均睡眠", cx, cy + 14);
       }
-      
-      // Custom Line Chart for Research with Values displayed
+
       function drawValueLineChart(canvas, values, labels, color) {
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         const ratio = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * ratio;
-        canvas.height = rect.height * ratio;
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        canvas.width = w * ratio;
+        canvas.height = h * ratio;
         ctx.scale(ratio, ratio);
-        ctx.clearRect(0, 0, rect.width, rect.height);
-        
-        const pad = 30;
-        const max = Math.max(...values) * 1.2;
-        const min = Math.min(...values) * 0.8;
-        const range = max - min;
-        const step = (rect.width - pad * 2) / (values.length - 1);
-        
-        // Draw Line
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = { top: 28, bottom: 28, left: 16, right: 16 };
+        const maxVal = Math.max(...values, 1);
+        const minVal = Math.min(...values);
+        const range = maxVal - minVal || 1;
+        const chartH = h - pad.top - pad.bottom;
+        const chartW = w - pad.left - pad.right;
+        const stepX = chartW / (values.length - 1);
+
+        // Area fill under line
+        ctx.beginPath();
+        values.forEach((v, i) => {
+          const x = pad.left + i * stepX;
+          const y = pad.top + chartH - ((v - minVal) / range) * chartH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        const lastX = pad.left + (values.length - 1) * stepX;
+        ctx.lineTo(lastX, pad.top + chartH);
+        ctx.lineTo(pad.left, pad.top + chartH);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+        grad.addColorStop(0, color + "44");
+        grad.addColorStop(1, color + "00");
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Line
         ctx.beginPath();
         ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2.5;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 15;
-        
-        const points = [];
-        values.forEach((value, i) => {
-          const x = pad + i * step;
-          const y = rect.height - pad - ((value - min) / range) * (rect.height - pad * 2);
-          points.push({x, y, value, label: labels[i]});
+        ctx.shadowBlur = 14;
+        ctx.lineJoin = "round";
+        values.forEach((v, i) => {
+          const x = pad.left + i * stepX;
+          const y = pad.top + chartH - ((v - minVal) / range) * chartH;
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         });
         ctx.stroke();
         ctx.shadowBlur = 0;
-        
-        // Draw points, values, and labels
-        points.forEach(p => {
-          // Circle point
+
+        // Points + labels
+        values.forEach((v, i) => {
+          const x = pad.left + i * stepX;
+          const y = pad.top + chartH - ((v - minVal) / range) * chartH;
+
           ctx.beginPath();
-          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
           ctx.fillStyle = "#fff";
           ctx.fill();
           ctx.strokeStyle = color;
           ctx.lineWidth = 2;
           ctx.stroke();
-          
-          // X-axis label
-          ctx.fillStyle = "#9ca3af";
-          ctx.font = "12px system-ui";
-          ctx.textAlign = "center";
-          ctx.fillText(p.label, p.x, rect.height - 10);
-          
-          // Value text above point
+
           ctx.fillStyle = "#fff";
-          ctx.font = "bold 11px system-ui";
-          ctx.fillText(p.value, p.x, p.y - 12);
+          ctx.font = "bold 10px system-ui";
+          ctx.textAlign = "center";
+          ctx.fillText(v.toLocaleString(), x, y - 10);
+
+          ctx.fillStyle = "#9ca3af";
+          ctx.font = "11px system-ui";
+          ctx.fillText(labels[i], x, h - 6);
         });
       }
 
-      window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-          // 1. Donut for Sleep (Added percentages next to slices)
-          drawCustomDonut(document.getElementById("researchSleepChart"), [20, 55, 25], ["#f472b6", "#a78bfa", "#60a5fa"], ["不足6h", "6-8h", "超過8h"]);
-          
-          // 2. Bar for Focus (Values displayed on top of bars)
-          drawBarChart(document.getElementById("researchFocusChart"), [30, 45, 20, 60, 50, 80, 45], ["一", "二", "三", "四", "五", "六", "日"], "#60a5fa");
-          
-          // 3. Line for Steps (Customized to show points and values)
-          drawValueLineChart(document.getElementById("researchStepsChart"), [4000, 5200, 4800, 6000, 7500, 5500, 6250], ["一", "二", "三", "四", "五", "六", "日"], "#34d399");
-          
-          // 4. Bar for Exercise (Values displayed on top of bars)
-          drawBarChart(document.getElementById("researchExerciseChart"), [10, 15, 0, 30, 45, 20, 25], ["一", "二", "三", "四", "五", "六", "日"], "#f472b6");
-        }, 150);
+      function renderAllCharts() {
+        drawCustomDonut(
+          document.getElementById("researchSleepChart"),
+          [20, 55, 25],
+          ["#f472b6", "#a78bfa", "#60a5fa"]
+        );
+        drawBarChart(
+          document.getElementById("researchFocusChart"),
+          [30, 45, 20, 60, 50, 80, 45],
+          ["一", "二", "三", "四", "五", "六", "日"],
+          "#60a5fa"
+        );
+        drawValueLineChart(
+          document.getElementById("researchStepsChart"),
+          [4000, 5200, 4800, 6000, 7500, 5500, 6250],
+          ["一", "二", "三", "四", "五", "六", "日"],
+          "#34d399"
+        );
+        drawBarChart(
+          document.getElementById("researchExerciseChart"),
+          [10, 15, 0, 30, 45, 20, 25],
+          ["一", "二", "三", "四", "五", "六", "日"],
+          "#f472b6"
+        );
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        // Use ResizeObserver to render once the canvas containers have real dimensions
+        const firstCanvas = document.getElementById("researchSleepChart");
+        if (!firstCanvas) return;
+
+        const ro = new ResizeObserver((entries) => {
+          if (entries[0].contentRect.width > 0) {
+            ro.disconnect();
+            renderAllCharts();
+          }
+        });
+        ro.observe(firstCanvas.parentElement);
+
+        // Fallback in case ResizeObserver fires too early
+        setTimeout(renderAllCharts, 300);
       });
     </script>
   </body>

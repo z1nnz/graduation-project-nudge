@@ -7,7 +7,7 @@ import 'account_page.dart';
 import 'onboarding_page.dart';
 import 'privacy_data_page.dart';
 import 'reminder_center_page.dart';
-
+import '../widgets/role_pill.dart';
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -256,6 +256,54 @@ class SettingsPage extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const ReminderCenterPage()),
                 );
               },
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          _sectionCard(
+            context: context,
+            title: '切換自律角色身份',
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    RolePill(
+                      label: '個人模式',
+                      role: 'personal',
+                      activeRole: appState.userRole,
+                      accentColor: accentColor,
+                      onTap: () => appState.setUserRole('personal'),
+                    ),
+                    const SizedBox(width: 8),
+                    RolePill(
+                      label: '學生/孩子',
+                      role: 'child',
+                      activeRole: appState.userRole,
+                      accentColor: accentColor,
+                      onTap: () => appState.setUserRole('child'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    RolePill(
+                      label: '家長端',
+                      role: 'parent',
+                      activeRole: appState.userRole,
+                      accentColor: accentColor,
+                      onTap: () => appState.setUserRole('parent'),
+                    ),
+                    const SizedBox(width: 8),
+                    RolePill(
+                      label: '團體/企業',
+                      role: 'group',
+                      activeRole: appState.userRole,
+                      accentColor: accentColor,
+                      onTap: () => appState.setUserRole('group'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppUI.cardGap),
