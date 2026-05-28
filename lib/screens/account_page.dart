@@ -550,7 +550,7 @@ class _AccountPageState extends State<AccountPage>
               ),
               const SizedBox(height: 16),
 
-              // Social sign-in buttons
+              // Social sign-in buttons — Row 1: Google + Facebook
               Row(
                 children: [
                   Expanded(
@@ -567,16 +567,31 @@ class _AccountPageState extends State<AccountPage>
                   const SizedBox(width: 12),
                   Expanded(
                     child: _SocialButton(
-                      id: 'apple_signin_btn',
-                      label: 'Apple',
-                      icon: Icons.apple_rounded,
+                      id: 'facebook_signin_btn',
+                      label: 'Facebook',
+                      icon: Icons.facebook_rounded,
+                      color: const Color(0xFF1877F2),
                       onPressed: _busy
                           ? null
                           : () => _socialSignIn(
-                              context.read<AppState>().signInWithApple),
+                              context.read<AppState>().signInWithFacebook),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              // Row 2: Apple (full width)
+              SizedBox(
+                width: double.infinity,
+                child: _SocialButton(
+                  id: 'apple_signin_btn',
+                  label: 'Apple',
+                  icon: Icons.apple_rounded,
+                  onPressed: _busy
+                      ? null
+                      : () => _socialSignIn(
+                          context.read<AppState>().signInWithApple),
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -739,25 +754,28 @@ class _SocialButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
+  final Color? color;
 
   const _SocialButton({
     required this.id,
     required this.label,
     required this.icon,
     this.onPressed,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final btnColor = color;
     return OutlinedButton.icon(
       key: ValueKey(id),
       onPressed: onPressed,
-      icon: Icon(icon, size: 22),
-      label: Text(label),
+      icon: Icon(icon, size: 22, color: btnColor),
+      label: Text(label, style: btnColor != null ? TextStyle(color: btnColor, fontWeight: FontWeight.w700) : null),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 13),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        side: btnColor != null ? BorderSide(color: btnColor.withValues(alpha: 0.5)) : null,
       ),
     );
   }
