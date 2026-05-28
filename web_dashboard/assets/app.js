@@ -1445,9 +1445,32 @@ window.bindMissions = function() {
     if (viewGalaxy) viewGalaxy.style.display = 'none';
     if (viewUniverse) viewUniverse.style.display = 'none';
     
-    if (stage === 'solar' && viewSolar) viewSolar.style.display = 'block';
-    if (stage === 'galaxy' && viewGalaxy) viewGalaxy.style.display = 'flex';
-    if (stage === 'universe' && viewUniverse) viewUniverse.style.display = 'block';
+    let targetView = null;
+    let displayStyle = 'block';
+    
+    if (stage === 'solar') {
+      targetView = viewSolar;
+      displayStyle = 'block';
+    } else if (stage === 'galaxy') {
+      targetView = viewGalaxy;
+      displayStyle = 'flex';
+    } else if (stage === 'universe') {
+      targetView = viewUniverse;
+      displayStyle = 'block';
+    }
+    
+    if (targetView) {
+      targetView.style.display = displayStyle;
+      
+      // Force browser reflow to restart CSS animations (prevents Safari/Chrome 3D transform display:none freeze bug)
+      const animatedEls = targetView.querySelectorAll('.starfield, .orbit-line, .mission-satellite, .asteroid, .galaxy-orbit-line, .galaxy-planet, .universe-orbit-line, .universe-planet, .unlocked-planet-node');
+      animatedEls.forEach(el => {
+        const originalStyle = el.style.animation;
+        el.style.animation = 'none';
+        void el.offsetHeight; // Force reflow
+        el.style.animation = originalStyle;
+      });
+    }
   }
 
   if (btnSolar) btnSolar.addEventListener('click', () => switchStage('solar'));
