@@ -288,7 +288,7 @@ p {
 
 .main {
   width: min(1240px, 100%);
-  padding: 20px;
+  padding: 20px 20px 100px 20px;
   margin-inline: auto;
 }
 
@@ -300,23 +300,23 @@ p {
 }
 
 h1 {
-  font-size: clamp(22px, 3.5vw, 38px);
-  line-height: 1.1;
-  letter-spacing: 1px;
-  margin-bottom: 14px;
+  font-size: clamp(38px, 6vw, 78px);
+  line-height: 1.02;
+  letter-spacing: 2px;
+  margin-bottom: 18px;
   text-transform: uppercase;
   text-shadow: 0 0 10px color-mix(in srgb, var(--page-accent) 40%, transparent);
 }
 
 h2 {
-  font-size: clamp(18px, 2vw, 24px);
-  line-height: 1.2;
-  margin-bottom: 10px;
+  font-size: clamp(26px, 3vw, 42px);
+  line-height: 1.12;
+  margin-bottom: 12px;
 }
 
 h3 {
-  font-size: 16px;
-  margin-bottom: 8px;
+  font-size: 22px;
+  margin-bottom: 10px;
 }
 
 p {
@@ -377,8 +377,8 @@ p {
 .button {
   border: 0;
   border-radius: 999px;
-  min-height: 38px;
-  padding: 8px 16px;
+  min-height: 44px;
+  padding: 12px 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -386,7 +386,6 @@ p {
   text-decoration: none;
   font-weight: 900;
   cursor: pointer;
-  font-size: 13.5px;
   transition: 180ms ease;
 }
 
@@ -490,14 +489,17 @@ p {
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .feature-card {
-  min-height: 160px;
-  padding: 16px;
+  min-height: 140px;
+  padding: 20px;
   text-decoration: none;
   transition: 200ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .feature-card:hover {
@@ -545,14 +547,14 @@ p {
 }
 
 .icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   color: var(--page-accent);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 950;
   background: color-mix(in srgb, var(--page-accent) 14%, transparent);
 }
@@ -579,7 +581,7 @@ p {
 }
 
 .metric-card {
-  padding: 18px;
+  padding: 18px 20px;
 }
 
 .metric-card small,
@@ -1087,18 +1089,24 @@ body[data-page="home"] .feature-grid {
 }
 
 body[data-page="home"] .feature-card {
-  min-height: 240px;
+  min-height: 160px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 10px;
 }
 
-body[data-page="home"] .feature-card:nth-child(1),
-body[data-page="home"] .feature-card:nth-child(5) {
-  grid-column: span 2;
+body[data-page="home"] .feature-card.highlight {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--page-accent) 24%, transparent), rgba(255, 255, 255, 0.055)),
     var(--surface);
+}
+
+body[data-page="home"] .feature-card p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  opacity: 0.85;
 }
 
 .cinematic {
@@ -1127,8 +1135,8 @@ body[data-page="home"] .feature-card:nth-child(5) {
 
 .hero-orbit {
   position: relative;
-  width: min(310px, 100%);
-  min-height: 310px;
+  width: min(340px, 100%);
+  min-height: 340px;
   margin-inline: auto;
   transform-style: preserve-3d;
   transition: transform 240ms ease;
@@ -1136,7 +1144,7 @@ body[data-page="home"] .feature-card:nth-child(5) {
 
 .holo-planet {
   position: absolute;
-  inset: 78px;
+  inset: 70px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 30% 24%, rgba(0, 240, 255, 0.85), transparent 35%),
@@ -1203,25 +1211,25 @@ body[data-page="home"] .feature-card:nth-child(5) {
 .city-node {
   position: absolute;
   z-index: 2;
-  min-width: 36px;
-  min-height: 20px;
+  min-width: 58px;
+  min-height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 99px;
+  border-radius: 50%;
   color: #00f0ff;
-  background: rgba(11, 16, 33, 0.85);
-  border: 1px solid rgba(0, 240, 255, 0.4);
-  font-size: 9.5px;
-  font-weight: 800;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2), inset 0 0 6px rgba(0, 240, 255, 0.1);
+  background: #0b1021;
+  border: 1px solid #00f0ff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
   transition: all 0.2s ease;
   cursor: pointer;
   animation: nodePulse 3s ease-in-out infinite;
 }
 
 @keyframes nodePulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
-  50% { box-shadow: 0 0 16px rgba(0, 240, 255, 0.45); }
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2); }
+  50% { box-shadow: 0 0 22px rgba(0, 240, 255, 0.65), inset 0 0 14px rgba(0, 240, 255, 0.35); }
 }
 
 .planet-node:hover,
@@ -1290,7 +1298,7 @@ body[data-page="home"] .feature-card:nth-child(5) {
 
 .tool-launch-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -1346,11 +1354,13 @@ body[data-page="home"] .feature-card:nth-child(5) {
 }
 
 .hub-card {
-  min-height: 238px;
+  min-height: 180px;
   padding: 22px;
   border: 1px solid var(--line);
   border-radius: 26px;
   text-decoration: none;
+  display: flex;
+  flex-direction: column;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--page-accent) 16%, transparent), color-mix(in srgb, var(--page-accent-2) 7%, transparent)),
     rgba(13, 21, 39, 0.9);
@@ -1371,25 +1381,26 @@ body[data-page="home"] .feature-card:nth-child(5) {
 }
 
 .hub-card span {
-  width: 50px;
-  height: 50px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
-  margin-bottom: 18px;
-  border-radius: 18px;
+  margin-bottom: 14px;
+  border-radius: 16px;
   color: #071018;
   background: linear-gradient(135deg, var(--page-accent), var(--page-accent-2));
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 950;
 }
 
 .hub-card strong {
-  margin-bottom: 10px;
-  font-size: 25px;
+  margin-bottom: 8px;
+  font-size: 22px;
 }
 
 .hub-card small {
-  margin-top: 18px;
+  margin-top: auto;
+  padding-top: 12px;
   color: var(--page-accent);
   font-weight: 900;
 }
@@ -1609,8 +1620,11 @@ aside.panel {
 }
 
 .showcase-strip div {
-  min-height: 118px;
-  padding: 18px;
+  min-height: 100px;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   border: 1px solid var(--line);
   border-radius: 22px;
   background:
@@ -1630,8 +1644,8 @@ aside.panel {
 }
 
 .showcase-strip strong {
-  margin-top: 10px;
-  font-size: 22px;
+  margin-top: 6px;
+  font-size: 20px;
 }
 
 .story-flow,
@@ -1654,8 +1668,8 @@ aside.panel {
 }
 
 .story-flow article {
-  min-height: 220px;
-  padding: 20px;
+  min-height: 160px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 26px;
   background:
@@ -1665,12 +1679,12 @@ aside.panel {
 }
 
 .story-flow span {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  margin-bottom: 18px;
-  border-radius: 18px;
+  margin-bottom: 14px;
+  border-radius: 16px;
   color: #071018;
   background: linear-gradient(135deg, var(--page-accent), var(--page-accent-2));
   font-weight: 950;
@@ -1709,8 +1723,8 @@ aside.panel {
 .coach-stack article,
 .economy-grid > div,
 .research-pipeline article {
-  min-height: 132px;
-  padding: 16px;
+  min-height: 100px;
+  padding: 16px 18px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.06);
@@ -2881,6 +2895,7 @@ body[data-page="planet"] .building {
 @media (max-width: 980px) {
   .shell {
     grid-template-columns: 1fr;
+    z-index: auto !important;
   }
 
   .sidebar {
@@ -2954,6 +2969,12 @@ body[data-page="planet"] .building {
     grid-column: auto;
   }
 
+  body[data-page="home"] .feature-card {
+    min-height: 130px !important;
+    height: auto !important;
+    padding: 16px !important;
+  }
+
   body[data-page="operations"] .shop-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2977,13 +2998,26 @@ body[data-page="planet"] .building {
   }
 
   .main {
-    padding: 22px;
+    padding: 22px 22px 100px 22px;
   }
 }
 
 @media (max-width: 620px) {
+  h1 {
+    font-size: 24px !important;
+  }
+  h2 {
+    font-size: 19px !important;
+  }
+  h3 {
+    font-size: 16px !important;
+  }
+  p {
+    font-size: 13.5px !important;
+  }
+
   .main {
-    padding: 60px 12px 12px !important;
+    padding: 60px 12px 100px 12px !important;
   }
 
   .nav,
@@ -3013,12 +3047,20 @@ body[data-page="planet"] .building {
 
   /* Homepage Cinematic Planet Mobile Overrides */
   .hero-orbit {
-    width: 230px !important;
-    min-height: 230px !important;
+    width: min(300px, 90vw) !important;
+    min-height: min(300px, 90vw) !important;
   }
 
   .holo-planet {
-    inset: 58px !important;
+    inset: 62px !important;
+  }
+
+  .planet-node,
+  .city-node {
+    min-width: 44px !important;
+    min-height: 26px !important;
+    border-radius: 50% !important;
+    font-size: 11px !important;
   }
 
   .floating-chip {
@@ -3039,11 +3081,11 @@ body[data-page="planet"] .building {
 
   /* Personal Hub Cards Mobile overrides */
   .hub-card {
-    min-height: 180px !important;
+    min-height: 140px !important;
     padding: 16px !important;
   }
   .hub-card strong {
-    font-size: 20px !important;
+    font-size: 19px !important;
   }
   .hub-card span {
     width: 38px !important;
@@ -3055,6 +3097,15 @@ body[data-page="planet"] .building {
     min-height: 34px !important;
     padding: 6px 12px !important;
     font-size: 12px !important;
+  }
+
+  /* Feature card overrides on mobile to balance text/card sizes */
+  .feature-card h3 {
+    font-size: 16px !important;
+  }
+  .feature-card p {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
   }
 
   /* Interactive Planet Page Mobile Overrides */
