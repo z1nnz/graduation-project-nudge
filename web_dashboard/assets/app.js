@@ -1898,7 +1898,7 @@ function updateSidebarProfile(data) {
 // 部署到 Render 後：改成你的 Render URL，例如：
 //   https://nudge-sync-server.onrender.com
 // ====================================================
-const SYNC_SERVER_URL = "http://127.0.0.1:5001";
+const SYNC_SERVER_URL = "https://graduation-project-nudge.onrender.com";
 
 function syncToFlaskServer(data, dailySummaries, tasks) {
   const latestSummary = dailySummaries[dailySummaries.length - 1] || {};
