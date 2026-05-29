@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 親屬帳號連結</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="guardian">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>家長陪伴</small></span>
+        </a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a class="active" href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">商城頁</a>
+          <a href="research.html">研究 / 展示中心</a>
+          <a href="planet.html">自律城市 / 星球</a>
+          <a href="profile.html">個人名片</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Account Binding</span>
+            <h1>連結親屬帳號，開啟陪伴之旅。</h1>
+            <p>與家人的自律帳號進行雙向連結，安全、隱私地同步專注、睡眠與健康指標。</p>
+            <div class="subnav">
+              <a href="guardian.html">中心總覽</a>
+              <a href="guardian-report.html">孩子週報</a>
+              <a href="guardian-encouragement.html">鼓勵卡</a>
+              <a href="guardian-goals.html">共同目標</a>
+              <a href="guardian-permissions.html">權限設定</a>
+              <a class="active" href="guardian-link.html">連結親屬</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>帳號綁定狀態</span>
+            <strong id="guardianBindStatusText">未連結</strong>
+            <p>安全同意機制已啟用。</p>
+          </div>
+        </header>
+
+        <section class="page-section" style="max-width: 600px; margin: 34px auto 0;">
+          <div id="webBindingGatedCard" class="panel" style="padding: 30px;">
+            <span class="eyebrow">Relative Binding</span>
+            <h2>🛡️ 親屬帳號連結</h2>
+            <p id="webBindingDesc" style="margin-bottom: 24px;">您還未與家人進行親屬綁定。請在下方輸入對方的 Nudge ID 發送申請，或在列表處理待同意的申請。連結後即可查看對方專注、睡眠與健康數據。</p>
+            
+            <div id="webRequestsContainer" style="margin-bottom: 24px;"></div>
+
+            <div id="webBindingForm" class="web-binding-form" style="display: flex; flex-direction: column; gap: 14px;">
+              <input type="text" id="webRelativeIdInput" class="module-select" style="background: rgba(255,255,255,0.05); color: #fff; text-align: left; font-family: inherit;" placeholder="輸入對方的 Nudge ID (例如: NDG_XXXXXX)">
+              <button id="webRelativeBindBtn" class="button primary" style="width: 100%; border-radius: 12px; font-weight: 700;">發送綁定申請</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js?v=2"></script>
+  </body>
+</html>

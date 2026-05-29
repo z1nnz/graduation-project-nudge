@@ -1909,32 +1909,44 @@ function initializeFirebaseWeb() {
 
 function startListeningToFirestoreData() {
   if (!db) return;
+
+  // Always listen to the logged-in user first to prevent page load hangs
+  const currentUser = firebase.auth().currentUser;
+  const loggedInUid = currentUser ? currentUser.uid : null;
+  let activeUserId = loggedInUid || localStorage.getItem("nudgeActiveDemoUserId");
+
+  if (activeUserId) {
+    listenToUser(activeUserId);
+  }
+
   db.collection("users").get().then((querySnapshot) => {
     const users = [];
     querySnapshot.forEach((doc) => {
       users.push({ id: doc.id, ...doc.data() });
     });
-    
-    if (users.length === 0) {
-      console.log("No users found in Firestore.");
-      return;
-    }
-    
-    let activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || users[0].id;
-    if (!users.some(u => u.id === activeUserId)) {
-      activeUserId = users[0].id;
-    }
-    localStorage.setItem("nudgeActiveDemoUserId", activeUserId);
-    
-    // Clear static demo panel status
-    const panel = getOrCreateSidePanel();
-    if (panel) {
-      if (!$(".demo-user-select").length) {
-        injectUserSwitcher(users, activeUserId);
+
+    let finalActiveUserId = activeUserId;
+    if (users.length > 0) {
+      if (!finalActiveUserId || !users.some(u => u.id === finalActiveUserId)) {
+        if (!loggedInUid) {
+          finalActiveUserId = users[0].id;
+        }
       }
     }
-    
-    listenToUser(activeUserId);
+
+    if (finalActiveUserId) {
+      localStorage.setItem("nudgeActiveDemoUserId", finalActiveUserId);
+      
+      // Inject user switcher only if there are multiple users to switch between
+      if (users.length > 0) {
+        const panel = getOrCreateSidePanel();
+        if (panel && !$(".demo-user-select").length) {
+          injectUserSwitcher(users, finalActiveUserId);
+        }
+      }
+
+      listenToUser(finalActiveUserId);
+    }
   }).catch(e => {
     console.warn("Firestore access error: ", e);
   });
@@ -1999,11 +2011,44 @@ function updateSidebarProfile(data) {
   checkPagePermissions(data);
 }
 
+function showRelativeRequiredBanner() {
+  if (document.getElementById("guardianLinkRequiredBanner")) return;
+  const main = document.querySelector(".main");
+  if (!main) return;
+  const banner = document.createElement("div");
+  banner.id = "guardianLinkRequiredBanner";
+  banner.style.cssText = "background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; font-weight: 700; color: #f59e0b;";
+  banner.innerHTML = `🔒 家長陪伴功能目前未啟用。請前往「<a href="guardian-link.html" style="color: #ff9e00; text-decoration: underline;">連結親屬</a>」完成親屬帳號綁定，以啟用週報、鼓勵卡與共同目標！`;
+  const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
+  if (firstSection) {
+    firstSection.insertAdjacentElement("beforebegin", banner);
+  } else {
+    main.insertAdjacentElement("afterbegin", banner);
+  }
+}
+
+function showGroupRequiredBanner() {
+  if (document.getElementById("groupLinkRequiredBanner")) return;
+  const main = document.querySelector(".main");
+  if (!main) return;
+  const banner = document.createElement("div");
+  banner.id = "groupLinkRequiredBanner";
+  banner.style.cssText = "background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; font-weight: 700; color: #3b82f6;";
+  banner.innerHTML = `🔒 團體管理功能目前未啟用。請前往「<a href="groups-link.html" style="color: #3b82f6; text-decoration: underline;">連結組織</a>」完成組織加入或創建，以解鎖團隊管理與專注挑戰功能！`;
+  const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
+  if (firstSection) {
+    firstSection.insertAdjacentElement("beforebegin", banner);
+  } else {
+    main.insertAdjacentElement("afterbegin", banner);
+  }
+}
+
 function checkPagePermissions(data) {
   const userRole = data.userRole || "personal";
   const path = window.location.pathname;
   const isGuardianPage = path.includes("guardian") || document.body.getAttribute("data-page") === "guardian";
   const isGroupsPage = path.includes("groups") || document.body.getAttribute("data-page") === "groups";
+  const isLinkPage = path.includes("guardian-link.html") || path.includes("groups-link.html");
 
   // 1. 導覽列發光推薦與引導橫幅
   updateNavigationRecommendation(userRole);
@@ -2014,10 +2059,12 @@ function checkPagePermissions(data) {
     existingOverlay.remove();
   }
 
-  // 3. 移除網頁端舊的綁定卡片並恢復主體顯示
-  const existingBindingCard = document.getElementById("webBindingGatedCard");
-  if (existingBindingCard) {
-    existingBindingCard.remove();
+  // 3. 移除網頁端舊的綁定卡片並恢復主體顯示（非連結頁面時才移除）
+  if (!isLinkPage) {
+    const existingBindingCard = document.getElementById("webBindingGatedCard");
+    if (existingBindingCard) {
+      existingBindingCard.remove();
+    }
   }
   const existingGroupInfo = document.getElementById("webGroupInfoCard");
   if (existingGroupInfo) {
@@ -2030,21 +2077,55 @@ function checkPagePermissions(data) {
   });
 
   // For guardian and groups pages, always allow access.
-  // Show setup card at top if not connected, allow preview of features.
   if (isGuardianPage) {
     const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
+    const isGuardianLinkPage = window.location.pathname.includes("guardian-link.html");
+    
+    // Add subnav link dynamically if not present
+    const subnav = document.querySelector(".subnav");
+    if (subnav && !document.getElementById("guardianLinkTab")) {
+      subnav.insertAdjacentHTML("beforeend", `<a id="guardianLinkTab" href="guardian-link.html" class="${isGuardianLinkPage ? 'active' : ''}">連結親屬</a>`);
+    }
+
+    // Set side stats text in hero-card
+    const bindStatusTextNode = document.getElementById("guardianBindStatusText");
+    if (bindStatusTextNode) {
+      bindStatusTextNode.textContent = isLinked ? "已連結" : "未連結";
+      bindStatusTextNode.style.color = isLinked ? "#10b981" : "#ef4444";
+    }
+
     if (!isLinked) {
-      // Show binding card at the top without hiding main content
-      if (!document.getElementById("webBindingGatedCard")) {
-        showWebRelativeBindingCard(true);
+      // Remove linked banner if any
+      const existingBanner = document.getElementById("webGuardianLinkedBanner");
+      if (existingBanner) existingBanner.remove();
+
+      if (isGuardianLinkPage) {
+        if (!document.getElementById("webBindingGatedCard")) {
+          showWebRelativeBindingCard(false);
+        }
+      } else {
+        showRelativeRequiredBanner();
+        // Remove binding card if any on home page
+        const existingCard = document.getElementById("webBindingGatedCard");
+        if (existingCard) existingCard.remove();
       }
     } else {
-      // Remove the binding card if now linked
+      const existingRequired = document.getElementById("guardianLinkRequiredBanner");
+      if (existingRequired) existingRequired.remove();
       const existingCard = document.getElementById("webBindingGatedCard");
       if (existingCard) existingCard.remove();
-      // Show linked status banner
-      if (!document.getElementById("webGuardianLinkedBanner")) {
-        showGuardianLinkedBanner(data);
+
+      if (!isGuardianLinkPage) {
+        if (!document.getElementById("webGuardianLinkedBanner")) {
+          showGuardianLinkedBanner(data);
+        }
+      } else {
+        const descNode = document.getElementById("webBindingDesc");
+        if (descNode) {
+          descNode.innerHTML = `🛡️ 您已成功與家人 <strong>${data.webToolsState?.guardianInvite?.relativeId || ''}</strong> 進行親屬綁定！您可以前往「<a href="guardian.html" style="color: #ff9e00; text-decoration: underline;">中心總覽</a>」開始查看自律數據。`;
+        }
+        const formNode = document.getElementById("webBindingForm");
+        if (formNode) formNode.style.display = "none";
       }
     }
     return;
@@ -2052,20 +2133,65 @@ function checkPagePermissions(data) {
   
   if (isGroupsPage) {
     const hasGroup = !!data.groupId;
+    const isGroupsLinkPage = window.location.pathname.includes("groups-link.html");
+
+    // Add subnav link dynamically if not present
+    const subnav = document.querySelector(".subnav");
+    if (subnav && !document.getElementById("groupsLinkTab")) {
+      subnav.insertAdjacentHTML("beforeend", `<a id="groupsLinkTab" href="groups-link.html" class="${isGroupsLinkPage ? 'active' : ''}">連結組織</a>`);
+    }
+
+    const groupsStatusTextNode = document.getElementById("groupsBindStatusText");
+    if (groupsStatusTextNode) {
+      groupsStatusTextNode.textContent = hasGroup ? "已連結" : "未連結";
+      groupsStatusTextNode.style.color = hasGroup ? "#10b981" : "#ef4444";
+    }
+
     if (window.location.pathname.includes("groups-creation.html")) {
-      renderWebGroupCreationPage(data);
+      if (hasGroup) {
+        renderWebGroupCreationPage(data);
+      } else {
+        showGroupRequiredBanner();
+        const container = document.getElementById("groupsCreationContainer");
+        if (container) {
+          container.innerHTML = `
+            <div class="panel" style="padding: 30px;">
+              <h2>🔒 尚未加入團體</h2>
+              <p>請先前往「<a href="groups-link.html" style="color: #3b82f6; text-decoration: underline;">連結組織</a>」頁面建立新團體或輸入 ID 加入，以解鎖團隊建立與成員管理功能！</p>
+            </div>
+          `;
+        }
+      }
       return;
     }
+
     if (!hasGroup) {
-      // Show binding card at top without hiding content
-      if (!document.getElementById("webBindingGatedCard")) {
-        showWebGroupBindingCard(true);
+      if (isGroupsLinkPage) {
+        if (!document.getElementById("webBindingGatedCard")) {
+          showWebGroupBindingCard(false);
+        }
+      } else {
+        showGroupRequiredBanner();
+        const existingCard = document.getElementById("webBindingGatedCard");
+        if (existingCard) existingCard.remove();
       }
     } else {
-      // Remove binding card if now in group
+      const existingRequired = document.getElementById("groupLinkRequiredBanner");
+      if (existingRequired) existingRequired.remove();
       const existingCard = document.getElementById("webBindingGatedCard");
       if (existingCard) existingCard.remove();
-      renderWebGroupInfo(data);
+
+      if (isGroupsLinkPage) {
+        const bindingCard = document.getElementById("webBindingGatedCard");
+        if (bindingCard) {
+          bindingCard.innerHTML = `
+            <h2>👥 已連結團體組織</h2>
+            <p>您已加入團體 <strong>${data.groupName || ''}</strong> (ID: <strong>${data.groupId}</strong>)！您可以前往「<a href="groups.html" style="color: #3b82f6; text-decoration: underline;">中心總覽</a>」或「<a href="groups-creation.html" style="color: #3b82f6; text-decoration: underline;">團隊建立</a>」進行管理。</p>
+          `;
+        }
+      } else {
+        renderWebGroupInfo(data);
+      }
     }
     return;
   }
@@ -3113,7 +3239,33 @@ function listenToUser(userId) {
     }
   }
   db.collection("users").doc(userId).onSnapshot((docSnap) => {
-    if (!docSnap.exists) return;
+    if (!docSnap.exists) {
+      // Create a default user document in Firestore!
+      const defaultData = {
+        id: userId,
+        nickname: "新自律使用者",
+        myNudgeId: 'NDG_' + userId.substring(0, 6).toUpperCase(),
+        username: 'NDG_' + userId.substring(0, 6).toUpperCase(),
+        disciplineCoins: 100,
+        planetCount: 0,
+        weeklyPlanetEarned: false,
+        tasks: [],
+        dailySummaries: [],
+        accentColor: "purple",
+        signature: "今天也在穩定前進",
+        profileTitleBadgeKey: "",
+        userRole: "personal",
+        isStudying: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.collection("users").doc(userId).set(defaultData).then(() => {
+        console.log("Default user document created for newly signed-in user:", userId);
+      }).catch(err => {
+        console.error("Failed to create default user document:", err);
+      });
+      return;
+    }
     const data = docSnap.data();
     
     updateSidebarProfile(data);
