@@ -4999,3 +4999,273 @@ body.sidebar-open .sidebar-backdrop {
     display: none;
   }
 }
+
+/* ==========================================================================
+   角色安全防護與毛玻璃遮罩系統
+   ========================================================================== */
+
+.role-gatekeeper-overlay {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar, 250px);
+  right: 0;
+  bottom: 0;
+  background: rgba(3, 5, 10, 0.72);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9990;
+  padding: 24px;
+  color: #fff;
+  text-align: center;
+  animation: fadeInGate 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.sidebar-collapsed .role-gatekeeper-overlay {
+  left: 0;
+}
+
+@keyframes fadeInGate {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.role-gatekeeper-content {
+  max-width: 480px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  border-radius: 24px;
+  padding: 38px;
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.6), 
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 30px rgba(0, 240, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.role-gatekeeper-content::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.role-gatekeeper-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.role-gatekeeper-icon {
+  font-size: 54px;
+  margin-bottom: 20px;
+  display: inline-block;
+  animation: pulseIcon 2.4s infinite ease-in-out;
+}
+
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.4)); }
+}
+
+.role-gatekeeper-title {
+  font-size: 22px;
+  font-weight: 850;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #00f0ff, #7b2cbf);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.5px;
+}
+
+.role-gatekeeper-desc {
+  font-size: 13px;
+  color: #a0aec0;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.role-gatekeeper-btn {
+  background: linear-gradient(135deg, #00f0ff, #7b2cbf);
+  border: none;
+  color: #03050a;
+  padding: 13px 26px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 240, 255, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-gatekeeper-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 240, 255, 0.35);
+  color: #fff;
+}
+
+.role-gatekeeper-btn:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 980px) {
+  .role-gatekeeper-overlay {
+    left: 0 !important;
+    padding-top: 80px;
+  }
+}
+
+/* ==========================================================================
+   動態發光推薦、橫幅與綁定卡片樣式
+   ========================================================================== */
+
+.nav a.recommend-glow {
+  color: var(--text) !important;
+  background: rgba(0, 240, 255, 0.14) !important;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.22), inset 0 0 8px rgba(0, 240, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav a.recommend-glow::after {
+  content: "推薦";
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: linear-gradient(135deg, #00f0ff, #7b2cbf);
+  color: #03050a;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  animation: glowTagPulse 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes glowTagPulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(1.05); filter: brightness(1.2); }
+}
+
+.recommend-banner {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(0, 240, 255, 0.24);
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.06), rgba(123, 44, 191, 0.06));
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--shadow);
+  animation: slideDownBanner 0.4s ease-out;
+}
+
+@keyframes slideDownBanner {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.recommend-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.recommend-banner-icon {
+  font-size: 24px;
+}
+
+.recommend-banner-text strong {
+  display: block;
+  font-size: 15px;
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.recommend-banner-text p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.recommend-banner-btn {
+  background: var(--page-accent);
+  border: none;
+  color: #03050a;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.recommend-banner-btn:hover {
+  transform: translateY(-1px);
+  background: #fff;
+}
+
+.web-binding-gated-wrapper {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 30px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.web-binding-gated-wrapper h2 {
+  font-size: 22px;
+  margin-bottom: 12px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.web-binding-gated-wrapper p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.web-binding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.web-binding-input {
+  width: 100%;
+  padding: 12px;
+  background: #070a14;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.web-binding-input:focus {
+  border-color: var(--page-accent);
+}
+

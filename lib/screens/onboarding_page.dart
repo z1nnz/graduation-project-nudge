@@ -776,18 +776,18 @@ class _RoleGrid extends StatelessWidget {
       },
       {
         'key': 'child',
-        'title': '學生/孩子模式',
+        'title': '孩子端',
         'subtitle': '接收家長陪伴邀請與鼓勵卡，匯入學校任務模板。',
         'icon': Icons.face_outlined,
       },
       {
-        'key': 'parent',
+        'key': 'guardian',
         'title': '家長陪伴端',
         'subtitle': '送鼓勵卡、建立共同目標，即時查看孩子的自律數據。',
         'icon': Icons.family_restroom_outlined,
       },
       {
-        'key': 'group_manager',
+        'key': 'group',
         'title': '教育/團體管理端',
         'subtitle': '班級、補習班或企業自律大考挑戰發佈端。',
         'icon': Icons.business_center_outlined,

@@ -9,6 +9,7 @@ import 'avatar_codex_page.dart';
 import 'avatar_evolution_page.dart';
 import 'avatar_experience_page.dart';
 import 'avatar_shop_page.dart';
+import 'avatar_wardrobe_page.dart';
 
 class CharacterPage extends StatelessWidget {
   const CharacterPage({super.key});
@@ -151,51 +152,60 @@ class _CharacterHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 314,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  bottom: 22,
-                  child: Container(
-                    width: 186,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(
-                        alpha: AppUI.isDark(context) ? 0.28 : 0.10,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AvatarWardrobePage()),
+              );
+            },
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox(
+              height: 314,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    bottom: 22,
+                    child: Container(
+                      width: 186,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(
+                          alpha: AppUI.isDark(context) ? 0.28 : 0.10,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 0,
-                  child: AvatarPreview(
-                    profile: appState.avatarProfile,
-                    size: 258,
-                    showBackgroundRing: false,
+                  Positioned(
+                    top: 0,
+                    child: AvatarPreview(
+                      profile: appState.avatarProfile,
+                      size: 258,
+                      showBackgroundRing: false,
+                    ),
                   ),
-                ),
-                Positioned(
-                  left: 8,
-                  bottom: 38,
-                  child: _HeroStatPill(
-                    icon: Icons.bolt_rounded,
-                    label: '${appState.avatarExperience} EXP',
-                    color: accentColor,
+                  Positioned(
+                    left: 8,
+                    bottom: 38,
+                    child: _HeroStatPill(
+                      icon: Icons.bolt_rounded,
+                      label: '${appState.avatarExperience} EXP',
+                      color: accentColor,
+                    ),
                   ),
-                ),
-                Positioned(
-                  right: 8,
-                  bottom: 38,
-                  child: _HeroStatPill(
-                    icon: Icons.auto_awesome_rounded,
-                    label: stage.stageLabel,
-                    color: AppUI.orange,
+                  Positioned(
+                    right: 8,
+                    bottom: 38,
+                    child: _HeroStatPill(
+                      icon: Icons.auto_awesome_rounded,
+                      label: stage.stageLabel,
+                      color: AppUI.orange,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           _CharacterProgressPanel(

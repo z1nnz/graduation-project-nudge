@@ -370,6 +370,13 @@ function saveDemoState(key, payload) {
     db.collection("users").doc(activeUserId).update({
       [`webToolsState.${key}`]: current[key]
     }).catch(e => console.warn("Firestore update error:", e));
+
+    // Guardian mode: write to child's document too
+    if (window.linkedChildUid) {
+      db.collection("users").doc(window.linkedChildUid).update({
+        [`webToolsState.${key}`]: current[key]
+      }).catch(e => console.warn("Child Firestore update error:", e));
+    }
   }
 }
 
@@ -572,6 +579,14 @@ function bindExtensionTools() {
         [`webToolsCollection.${key}`]: items,
         [`webToolsCollection.${key}UpdatedAt`]: current[`${key}UpdatedAt`]
       }).catch(e => console.warn("Firestore update error:", e));
+
+      // Guardian mode: write to child's document too
+      if (window.linkedChildUid) {
+        db.collection("users").doc(window.linkedChildUid).update({
+          [`webToolsCollection.${key}`]: items,
+          [`webToolsCollection.${key}UpdatedAt`]: current[`${key}UpdatedAt`]
+        }).catch(e => console.warn("Child Firestore update error:", e));
+      }
     }
   };
   
@@ -1896,7 +1911,7 @@ function startListeningToFirestoreData() {
     localStorage.setItem("nudgeActiveDemoUserId", activeUserId);
     
     // Clear static demo panel status
-    const panel = $(".side-panel");
+    const panel = getOrCreateSidePanel();
     if (panel) {
       if (!$(".demo-user-select").length) {
         injectUserSwitcher(users, activeUserId);
@@ -1909,8 +1924,20 @@ function startListeningToFirestoreData() {
   });
 }
 
+function getOrCreateSidePanel() {
+  let panel = $(".side-panel");
+  if (!panel) {
+    const sidebar = $(".sidebar");
+    if (sidebar) {
+      sidebar.insertAdjacentHTML('beforeend', '<section class="side-panel"></section>');
+      panel = $(".side-panel");
+    }
+  }
+  return panel;
+}
+
 function injectUserSwitcher(users, activeUserId) {
-  const panel = $(".side-panel");
+  const panel = getOrCreateSidePanel();
   if (!panel || $(".demo-user-select").length) return;
   
   const selectHtml = `
@@ -1932,13 +1959,14 @@ function injectUserSwitcher(users, activeUserId) {
 }
 
 function updateSidebarProfile(data) {
-  const panel = $(".side-panel");
+  const panel = getOrCreateSidePanel();
   if (!panel) return;
   
   const nickname = data.nickname || "未知使用者";
   const nudgeId = data.myNudgeId || data.username || "NDG-Guest";
   const coins = typeof data.disciplineCoins === 'number' ? data.disciplineCoins : 0;
   const planets = typeof data.planetCount === 'number' ? data.planetCount : 0;
+  const userRole = data.userRole || "personal";
   
   let accentColor = "#7c6ae6";
   if (data.accentColor) {
@@ -1953,7 +1981,12 @@ function updateSidebarProfile(data) {
   let profileContainer = $(".sidebar-profile-container");
   const cardHtml = `
     <div class="sidebar-profile-container" style="text-align: left;">
-      <span class="eyebrow">同步使用者資料</span>
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span class="eyebrow">同步使用者資料</span>
+        <a href="javascript:void(0);" id="editWebProfileBtn" style="font-size: 11px; color: var(--c-primary); font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px; transition: opacity 0.2s;">
+          <span>⚙️ 編輯資料</span>
+        </a>
+      </div>
       <div class="user-profile-card" style="margin-top: 8px; margin-bottom: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: ${accentColor}; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 16px; box-shadow: 0 4px 12px ${accentColor}40; flex-shrink: 0;">
           ${nickname.substring(0, 1).toUpperCase()}
@@ -1967,6 +2000,17 @@ function updateSidebarProfile(data) {
           <div style="font-weight: 800; color: #a855f7; font-size: 12px;">🪐${planets}</div>
         </div>
       </div>
+      <div class="sidebar-role-select-wrapper" style="margin-bottom: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+        <span class="eyebrow" style="display: block; margin-bottom: 5px;">切換自律身分</span>
+        <select id="sidebarRoleSelect" class="module-select" style="width: 100%; background: #1a1d24; color: #fff; border: 1px solid rgba(255,255,255,0.12); padding: 8px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+          <option value="personal" ${userRole === 'personal' ? 'selected' : ''}>🧑‍💻 個人/小孩模式</option>
+          <option value="guardian" ${userRole === 'guardian' ? 'selected' : ''}>🛡️ 家長模式</option>
+          <option value="group" ${userRole === 'group' ? 'selected' : ''}>👥 團體挑戰模式</option>
+          <option value="enterprise" ${userRole === 'enterprise' ? 'selected' : ''}>🏢 企業管理模式</option>
+          <option value="tutor" ${userRole === 'tutor' ? 'selected' : ''}>🎒 補習班管理模式</option>
+          <option value="school" ${userRole === 'school' ? 'selected' : ''}>🏫 學校班級模式</option>
+        </select>
+      </div>
     </div>
   `;
 
@@ -1974,6 +2018,908 @@ function updateSidebarProfile(data) {
     profileContainer.outerHTML = cardHtml;
   } else {
     panel.insertAdjacentHTML('afterbegin', cardHtml);
+  }
+
+  // 掛載事件監聽
+  const roleSelect = document.getElementById("sidebarRoleSelect");
+  if (roleSelect) {
+    roleSelect.addEventListener("change", (e) => {
+      const newRole = e.target.value;
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+      if (activeUserId && typeof db !== "undefined") {
+        db.collection("users").doc(activeUserId).update({
+          userRole: newRole,
+          updatedAt: new Date().toISOString()
+        }).then(() => {
+          let roleName = "個人/小孩";
+          if (newRole === "guardian") roleName = "家長陪伴";
+          if (newRole === "group") roleName = "團體挑戰";
+          if (newRole === "enterprise") roleName = "企業管理";
+          if (newRole === "tutor") roleName = "補習班管理";
+          if (newRole === "school") roleName = "學校班級";
+          toast(`自律身份已成功切換為：【${roleName}】`);
+        }).catch(err => {
+          console.error("更新角色失敗：", err);
+          toast("切換失敗，請稍後再試");
+        });
+      }
+    });
+  }
+
+  const editProfileBtn = document.getElementById("editWebProfileBtn");
+  if (editProfileBtn) {
+    editProfileBtn.addEventListener("click", () => {
+      showWebProfileEditModal(data);
+    });
+  }
+
+  // 門禁安全保護判斷
+  checkPagePermissions(data);
+}
+
+function checkPagePermissions(data) {
+  const userRole = data.userRole || "personal";
+  const path = window.location.pathname;
+  const isGuardianPage = path.includes("guardian") || document.body.getAttribute("data-page") === "guardian";
+  const isGroupsPage = path.includes("groups") || document.body.getAttribute("data-page") === "groups";
+
+  // 1. 導覽列發光推薦與引導橫幅
+  updateNavigationRecommendation(userRole);
+
+  // 2. 移除舊的防護遮罩
+  const existingOverlay = document.getElementById("roleGatekeeperOverlay");
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+
+  // 3. 移除網頁端舊的綁定卡片並恢復主體顯示
+  const existingBindingCard = document.getElementById("webBindingGatedCard");
+  if (existingBindingCard) {
+    existingBindingCard.remove();
+  }
+  const existingGroupInfo = document.getElementById("webGroupInfoCard");
+  if (existingGroupInfo) {
+    existingGroupInfo.remove();
+  }
+  document.querySelectorAll(".main > section, .main > div:not(.hero), .main > a").forEach(el => {
+    if (el.id !== "webBindingGatedCard" && el.id !== "webGroupInfoCard") {
+      el.style.display = ""; // 恢復預設
+    }
+  });
+
+  if (isGuardianPage && userRole !== "guardian") {
+    // 角色不符：跳出毛玻璃遮罩
+    showGatekeeperOverlay(
+      "🛡️",
+      "家長陪伴中心專屬",
+      `您目前的自律身分是【${getRoleLabel(userRole)}】，本頁面僅供家長身分存取。請點擊下方按鈕或透過側邊欄切換為「家長模式」以啟用共同目標、每週報告與鼓勵系統。`,
+      "guardian"
+    );
+  } else if (isGroupsPage && !["group", "enterprise", "tutor", "school"].includes(userRole)) {
+    if (window.location.pathname.includes("groups-creation.html")) {
+      renderWebGroupCreationPage(data);
+    } else {
+      // 角色不符：跳出毛玻璃遮罩
+      showGatekeeperOverlay(
+        "👥",
+        "團體與教育管理端專屬",
+        `您目前的自律身分是【${getRoleLabel(userRole)}】，本頁面僅供團體、學校、企業或補習班管理人員存取。請切換為對應模式以建立挑戰、規劃讀書時段或發佈學業大考任務模板。`,
+        "group"
+      );
+    }
+  } else {
+    // 角色符合：檢查是否完成前置綁定
+    if (isGuardianPage && userRole === "guardian") {
+      const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
+      if (!isLinked) {
+        // 隱藏主體內容，插入親屬綁定卡片
+        document.querySelectorAll(".main > section, .main > div:not(.hero), .main > a").forEach(el => {
+          el.style.display = "none";
+        });
+        showWebRelativeBindingCard();
+      }
+    } else if (isGroupsPage && ["group", "enterprise", "tutor", "school"].includes(userRole)) {
+      const hasGroup = !!data.groupId;
+      if (window.location.pathname.includes("groups-creation.html")) {
+        renderWebGroupCreationPage(data);
+      } else if (!hasGroup) {
+        // 隱藏主體內容，插入團體綁定卡片
+        document.querySelectorAll(".main > section, .main > div:not(.hero), .main > a").forEach(el => {
+          el.style.display = "none";
+        });
+        showWebGroupBindingCard();
+      } else {
+        renderWebGroupInfo(data);
+      }
+    }
+  }
+}
+
+function updateNavigationRecommendation(userRole) {
+  // 清除舊的發光
+  document.querySelectorAll(".nav a").forEach(a => a.classList.remove("recommend-glow"));
+
+  const isHome = document.body.getAttribute("data-page") === "home" || window.location.pathname.includes("index");
+  const main = document.querySelector(".main");
+
+  // 移除舊橫幅
+  const oldBanner = document.getElementById("recommendBanner");
+  if (oldBanner) {
+    oldBanner.remove();
+  }
+
+  if (userRole === "guardian") {
+    // 家長發光推薦
+    document.querySelectorAll(".nav a").forEach(a => {
+      if (a.getAttribute("href") === "guardian.html") {
+        a.classList.add("recommend-glow");
+      }
+    });
+    // 首頁橫幅引導
+    if (isHome && main) {
+      const bannerHtml = `
+        <div id="recommendBanner" class="recommend-banner">
+          <div class="recommend-banner-content">
+            <span class="recommend-banner-icon">🛡️</span>
+            <div class="recommend-banner-text">
+              <strong>您當前處於家長陪伴身分</strong>
+              <p>系統已為您推薦專屬【家長陪伴中心】，點擊右側按鈕快速進入以進行管理。</p>
+            </div>
+          </div>
+          <button class="recommend-banner-btn" onclick="window.location.href='guardian.html'">前往家長中心</button>
+        </div>
+      `;
+      main.insertAdjacentHTML("afterbegin", bannerHtml);
+    }
+  } else if (["group", "enterprise", "tutor", "school"].includes(userRole)) {
+    // 團體發光推薦
+    document.querySelectorAll(".nav a").forEach(a => {
+      if (a.getAttribute("href") === "groups.html") {
+        a.classList.add("recommend-glow");
+      }
+    });
+    // 首頁橫幅引導
+    if (isHome && main) {
+      const bannerHtml = `
+        <div id="recommendBanner" class="recommend-banner">
+          <div class="recommend-banner-content">
+            <span class="recommend-banner-icon">👥</span>
+            <div class="recommend-banner-text">
+              <strong>您當前處於團體/教育管理身分</strong>
+              <p>系統已為您推薦專屬【團體與教育管理端】，點擊右側按鈕快速進入管理挑戰與排程。</p>
+            </div>
+          </div>
+          <button class="recommend-banner-btn" onclick="window.location.href='groups.html'">前往團體中心</button>
+        </div>
+      `;
+      main.insertAdjacentHTML("afterbegin", bannerHtml);
+    }
+  }
+}
+
+let currentIncomingRequests = [];
+let currentOutgoingRequests = [];
+let incomingRequestsSub = null;
+let outgoingRequestsSub = null;
+
+function listenToRequests(userId) {
+  if (!db) return;
+  if (incomingRequestsSub) incomingRequestsSub();
+  if (outgoingRequestsSub) outgoingRequestsSub();
+
+  incomingRequestsSub = db.collection("guardian_requests")
+    .where("receiverId", "==", userId)
+    .onSnapshot(snapshot => {
+      const docs = [];
+      snapshot.forEach(doc => {
+        docs.push({ id: doc.id, ...doc.data() });
+      });
+      currentIncomingRequests = docs.filter(d => d.status === 'pending');
+      
+      const accepted = docs.filter(d => d.status === 'accepted');
+      if (accepted.length > 0) {
+        const relativeNudgeId = accepted[0].senderNudgeId;
+        autoUpdateWebLinkage(userId, relativeNudgeId);
+      } else {
+        checkAndAutoClearWebLinkage(userId);
+      }
+      refreshWebBindingCardUI();
+    }, err => console.error("Incoming requests listen error: ", err));
+
+  outgoingRequestsSub = db.collection("guardian_requests")
+    .where("senderId", "==", userId)
+    .onSnapshot(snapshot => {
+      const docs = [];
+      snapshot.forEach(doc => {
+        docs.push({ id: doc.id, ...doc.data() });
+      });
+      currentOutgoingRequests = docs.filter(d => d.status === 'pending');
+
+      const accepted = docs.filter(d => d.status === 'accepted');
+      if (accepted.length > 0) {
+        const relativeNudgeId = accepted[0].receiverNudgeId;
+        autoUpdateWebLinkage(userId, relativeNudgeId);
+      } else {
+        checkAndAutoClearWebLinkage(userId);
+      }
+      refreshWebBindingCardUI();
+    }, err => console.error("Outgoing requests listen error: ", err));
+}
+
+function autoUpdateWebLinkage(userId, relativeNudgeId) {
+  const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  const isAlreadyLinked = store.guardianInviteStatus?.status === 'linked' && store.guardianInvite?.relativeId === relativeNudgeId;
+  if (isAlreadyLinked) return;
+
+  db.collection("users").doc(userId).update({
+    "webToolsState.guardianInvite": {
+      "goal": "共同健康與專注",
+      "permission": "完整資料",
+      "message": "親屬帳號已連結。",
+      "relativeId": relativeNudgeId
+    },
+    "webToolsState.guardianInviteStatus": {
+      "status": "linked",
+      "updatedAt": new Date().toISOString()
+    }
+  }).then(() => {
+    console.log("Web linkage auto-updated successfully.");
+  }).catch(err => {
+    console.error("Failed to auto-update web linkage: ", err);
+  });
+}
+
+function checkAndAutoClearWebLinkage(userId) {
+  const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  const isLinked = store.guardianInviteStatus?.status === 'linked';
+  if (!isLinked) return;
+
+  db.collection("guardian_requests")
+    .where("receiverId", "==", userId)
+    .where("status", "==", "accepted")
+    .get()
+    .then(incomingSnap => {
+      if (incomingSnap.size > 0) return;
+      db.collection("guardian_requests")
+        .where("senderId", "==", userId)
+        .where("status", "==", "accepted")
+        .get()
+        .then(outgoingSnap => {
+          if (outgoingSnap.size > 0) return;
+          
+          db.collection("users").doc(userId).update({
+            "webToolsState.guardianInvite": firebase.firestore.FieldValue.delete(),
+            "webToolsState.guardianInviteStatus": firebase.firestore.FieldValue.delete()
+          }).then(() => {
+            console.log("Web linkage auto-cleared successfully.");
+          }).catch(err => {
+            console.error("Failed to auto-clear web linkage: ", err);
+          });
+        });
+    });
+}
+
+function refreshWebBindingCardUI() {
+  if (document.getElementById("webBindingGatedCard")) {
+    renderRequestsList();
+  }
+}
+
+function sendWebGuardianRequest(targetNudgeId) {
+  const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+  if (!activeUserId || !db) return;
+
+  const targetNudgeIdUpper = targetNudgeId.trim().toUpperCase();
+  if (!targetNudgeIdUpper) {
+    toast("Nudge ID 不能為空");
+    return;
+  }
+
+  db.collection("users").doc(activeUserId).get().then(mySnap => {
+    if (!mySnap.exists) return;
+    const myData = mySnap.data();
+    const myNudgeId = myData.myNudgeId || myData.username || "";
+    const myNickname = myData.nickname || "使用者";
+    const myRole = myData.userRole || "personal";
+
+    if (targetNudgeIdUpper === myNudgeId.toUpperCase()) {
+      toast("不能與自己進行親屬綁定");
+      return;
+    }
+
+    db.collection("users").where("username", "==", targetNudgeIdUpper).limit(1).get().then(querySnap => {
+      if (querySnap.empty) {
+        toast("找不到該 Nudge ID 的使用者");
+        return;
+      }
+      const receiverSnap = querySnap.docs[0];
+      const receiverId = receiverSnap.id;
+      const receiverNudgeId = receiverSnap.data().username || "";
+
+      const isLinked = myData.webToolsState?.guardianInviteStatus?.status === 'linked';
+      if (isLinked && myData.webToolsState?.guardianInvite?.relativeId === receiverNudgeId) {
+        toast("雙方已處於綁定狀態");
+        return;
+      }
+
+      db.collection("guardian_requests")
+        .where("senderId", "==", activeUserId)
+        .where("receiverId", "==", receiverId)
+        .where("status", "==", "pending")
+        .get()
+        .then(outgoingCheck => {
+          if (!outgoingCheck.empty) {
+            toast("已發送過綁定申請，請耐心等待對方同意");
+            return;
+          }
+
+          db.collection("guardian_requests")
+            .where("senderId", "==", receiverId)
+            .where("receiverId", "==", activeUserId)
+            .where("status", "==", "pending")
+            .get()
+            .then(incomingCheck => {
+              if (!incomingCheck.empty) {
+                approveWebGuardianRequest(incomingCheck.docs[0].id);
+                toast("偵測到對方已發送過申請，已自動為您同意並綁定！ 🎉");
+                return;
+              }
+
+              db.collection("guardian_requests").add({
+                senderId: activeUserId,
+                senderNudgeId: myNudgeId,
+                senderNickname: myNickname,
+                senderRole: myRole,
+                receiverId: receiverId,
+                receiverNudgeId: receiverNudgeId,
+                status: "pending",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }).then(() => {
+                toast(`已成功向 ${receiverNudgeId} 發送綁定申請！`);
+              }).catch(err => {
+                console.error(err);
+                toast("發送申請失敗");
+              });
+            });
+        });
+    });
+  }).catch(err => console.error(err));
+}
+
+function approveWebGuardianRequest(requestId) {
+  if (!db) return;
+  db.collection("guardian_requests").doc(requestId).update({
+    status: "accepted",
+    updatedAt: new Date().toISOString()
+  }).then(() => {
+    toast("已成功同意親屬綁定！ 🎉");
+  }).catch(err => {
+    console.error(err);
+    toast("同意失敗");
+  });
+}
+
+function declineWebGuardianRequest(requestId) {
+  if (!db) return;
+  db.collection("guardian_requests").doc(requestId).update({
+    status: "declined",
+    updatedAt: new Date().toISOString()
+  }).then(() => {
+    toast("已拒絕該綁定申請");
+  }).catch(err => {
+    console.error(err);
+    toast("操作失敗");
+  });
+}
+
+function cancelWebGuardianRequest(requestId) {
+  if (!db) return;
+  db.collection("guardian_requests").doc(requestId).update({
+    status: "declined",
+    updatedAt: new Date().toISOString()
+  }).then(() => {
+    toast("已取消綁定申請");
+  }).catch(err => {
+    console.error(err);
+    toast("取消失敗");
+  });
+}
+
+// Expose these methods globally so inline html onclick can access them
+window.approveWebGuardianRequest = approveWebGuardianRequest;
+window.declineWebGuardianRequest = declineWebGuardianRequest;
+window.cancelWebGuardianRequest = cancelWebGuardianRequest;
+
+function renderRequestsList() {
+  const container = document.getElementById("webRequestsContainer");
+  if (!container) return;
+
+  let html = "";
+
+  if (currentIncomingRequests.length > 0) {
+    html += `
+      <div class="web-pending-section" style="margin-top: 15px; text-align: left;">
+        <h4 style="font-size: 13px; color: #fff; margin-bottom: 8px; font-weight: 700;">待處理的親屬綁定申請：</h4>
+    `;
+    currentIncomingRequests.forEach(req => {
+      const senderName = req.senderNickname || "使用者";
+      const senderNudge = req.senderNudgeId || "";
+      html += `
+        <div class="web-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; color: #fff;">${senderName} (${senderNudge})</span>
+          <div style="display: flex; gap: 8px;">
+            <button onclick="approveWebGuardianRequest('${req.id}')" style="background: #10b981; border: none; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">同意</button>
+            <button onclick="declineWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">拒絕</button>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  if (currentOutgoingRequests.length > 0) {
+    html += `
+      <div class="web-pending-section" style="margin-top: 15px; text-align: left;">
+    `;
+    currentOutgoingRequests.forEach(req => {
+      html += `
+        <div class="web-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; color: rgba(255, 255, 255, 0.7); display: flex; align-items: center; gap: 6px;">
+            <span style="color: #f59e0b;">⏳</span> 已向 ${req.receiverNudgeId} 發送申請，等待同意中...
+          </span>
+          <button onclick="cancelWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: rgba(255,255,255,0.6); padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">取消</button>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
+
+  const form = document.getElementById("webBindingForm");
+  if (form) {
+    if (currentOutgoingRequests.length > 0) {
+      form.style.display = "none";
+    } else {
+      form.style.display = "flex";
+    }
+  }
+}
+
+function showWebRelativeBindingCard() {
+  const main = document.querySelector(".main");
+  if (!main || document.getElementById("webBindingGatedCard")) return;
+
+  const cardHtml = `
+    <div id="webBindingGatedCard" class="web-binding-gated-wrapper">
+      <h2>🛡️ 親屬帳號連結</h2>
+      <p id="webBindingDesc">為了查閱對方的專注、睡眠與健康數據牆，請先與對方進行親屬綁定。請在下方輸入您對方的 Nudge ID 發送申請，或在列表處理待同意的申請：</p>
+      
+      <div id="webRequestsContainer" style="margin-bottom: 20px;"></div>
+
+      <div id="webBindingForm" class="web-binding-form">
+        <input type="text" id="webRelativeIdInput" class="web-binding-input" placeholder="輸入對方的 Nudge ID (例如: child_123)">
+        <button id="webRelativeBindBtn" class="role-gatekeeper-btn" style="width: 100%;">發送綁定申請</button>
+      </div>
+    </div>
+  `;
+  main.insertAdjacentHTML("beforeend", cardHtml);
+
+  document.getElementById("webRelativeBindBtn")?.addEventListener("click", () => {
+    const relativeInput = document.getElementById("webRelativeIdInput");
+    const relativeId = relativeInput ? relativeInput.value.trim() : "";
+    if (!relativeId) {
+      toast("請輸入有效的 Nudge ID");
+      return;
+    }
+    sendWebGuardianRequest(relativeId);
+  });
+
+  renderRequestsList();
+}
+
+function showWebGroupBindingCard() {
+  const main = document.querySelector(".main");
+  if (!main || document.getElementById("webBindingGatedCard")) return;
+
+  const cardHtml = `
+    <div id="webBindingGatedCard" class="web-binding-gated-wrapper">
+      <h2>👥 團體自律組織關聯</h2>
+      <p>請先創建新的自律團體（獲取最高房主權限並生成團體 ID），或輸入已有組織 ID 加入，以解鎖後續功能：</p>
+      <div class="web-binding-form" style="margin-bottom: 24px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 24px;">
+        <input type="text" id="webGroupNameInput" class="web-binding-input" placeholder="輸入要創建的團體名稱 (例如: 皇家自律班)">
+        <button id="webGroupCreateBtn" class="role-gatekeeper-btn" style="width: 100%;">創建新團體並獲取房主權限</button>
+      </div>
+      <div class="web-binding-form">
+        <input type="text" id="webGroupIdInput" class="web-binding-input" placeholder="輸入已有團體組織 ID (格式如: GRP-88921)">
+        <button id="webGroupJoinBtn" class="role-gatekeeper-btn" style="width: 100%; background: transparent; border: 1px solid var(--page-accent); color: var(--page-accent);">輸入 ID 連結並加入</button>
+      </div>
+    </div>
+  `;
+  main.insertAdjacentHTML("beforeend", cardHtml);
+
+  document.getElementById("webGroupCreateBtn")?.addEventListener("click", () => {
+    const nameInput = document.getElementById("webGroupNameInput");
+    const name = nameInput ? nameInput.value.trim() : "";
+    if (!name) {
+      toast("請輸入有效的團體名稱");
+      return;
+    }
+    const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+    const randomId = 'GRP-' + Math.floor(Math.random() * 100000);
+    if (activeUserId && typeof db !== "undefined") {
+      db.collection("users").doc(activeUserId).update({
+        groupId: randomId,
+        groupName: name,
+        isGroupOwner: true,
+        updatedAt: new Date().toISOString()
+      }).then(() => {
+        toast(`成功創建「${name}」團體，ID：${randomId}！ 🚀`);
+      }).catch(err => {
+        console.error("創建團體失敗：", err);
+        toast("操作失敗，請稍後再試");
+      });
+    }
+  });
+
+  document.getElementById("webGroupJoinBtn")?.addEventListener("click", () => {
+    const groupInput = document.getElementById("webGroupIdInput");
+    const groupId = groupInput ? groupInput.value.trim() : "";
+    if (!groupId) {
+      toast("請輸入有效的團體 ID");
+      return;
+    }
+    const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+    if (activeUserId && typeof db !== "undefined") {
+      db.collection("users").doc(activeUserId).update({
+        groupId: groupId,
+        groupName: "自律小組",
+        isGroupOwner: false,
+        updatedAt: new Date().toISOString()
+      }).then(() => {
+        toast(`已成功加入團體 ID：${groupId}！ 🎯`);
+      }).catch(err => {
+        console.error("加入團體失敗：", err);
+        toast("操作失敗，請稍後再試");
+      });
+    }
+  });
+}
+
+function renderWebGroupInfo(data) {
+  const main = document.querySelector(".main");
+  if (!main) return;
+
+  const existingCard = document.getElementById("webGroupInfoCard");
+  if (existingCard) {
+    existingCard.remove();
+  }
+
+  const path = window.location.pathname;
+  const isMainGroupsPage = path.includes("groups.html") || path.endsWith("/groups") || (document.body.getAttribute("data-page") === "groups" && !path.includes("groups-"));
+  if (!isMainGroupsPage) return;
+
+  const isOwner = data.isGroupOwner;
+  const groupName = data.groupName || "自律小組";
+  const groupId = data.groupId || "";
+
+  const cardHtml = `
+    <div id="webGroupInfoCard" class="web-binding-gated-wrapper" style="text-align: left; max-width: 800px; margin-top: 10px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.25); box-shadow: var(--shadow); border-radius: 16px; padding: 20px 24px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span style="background: rgba(20, 184, 166, 0.2); color: #14b8a6; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid rgba(20, 184, 166, 0.3);">
+            ${isOwner ? '👑 團體建立者 (房主)' : '👥 團體成員'}
+          </span>
+          <span style="font-family: monospace; font-size: 11px; color: var(--muted);">ID: ${groupId}</span>
+        </div>
+        <h3 style="margin: 0; font-size: 18px; color: #fff; font-weight: 800;">當前關聯團體：${groupName}</h3>
+      </div>
+      <button id="webGroupLeaveBtn" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+        ${isOwner ? '解散此團體' : '退出此小組'}
+      </button>
+    </div>
+  `;
+
+  const header = main.querySelector("header");
+  if (header) {
+    header.insertAdjacentHTML("afterend", cardHtml);
+  } else {
+    main.insertAdjacentHTML("afterbegin", cardHtml);
+  }
+
+  document.getElementById("webGroupLeaveBtn")?.addEventListener("click", () => {
+    if (confirm(`確定要${isOwner ? '解散' : '退出'}當前團體【${groupName}】嗎？`)) {
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+      if (activeUserId && typeof db !== "undefined") {
+        db.collection("users").doc(activeUserId).update({
+          groupId: firebase.firestore.FieldValue.delete(),
+          groupName: firebase.firestore.FieldValue.delete(),
+          isGroupOwner: firebase.firestore.FieldValue.delete(),
+          updatedAt: new Date().toISOString()
+        }).then(() => {
+          toast("已退出當前團體");
+        }).catch(err => {
+          console.error("退出團體失敗：", err);
+          toast("操作失敗，請稍後再試");
+        });
+      }
+    }
+  });
+}
+
+function renderWebGroupCreationPage(data) {
+  const container = document.getElementById("groupsCreationContainer");
+  if (!container) return;
+
+  const isOwner = data.isGroupOwner;
+  const groupName = data.groupName || "自律小組";
+  const groupId = data.groupId || "";
+
+  if (!groupId) {
+    // Member has no group yet. Render the binding form beautifully inside the page!
+    container.innerHTML = `
+      <div class="workspace-layout">
+        <div class="panel">
+          <span class="eyebrow">Create Team</span>
+          <h2>👥 創建您的自律組織</h2>
+          <p>輸入要建立的團隊名稱。系統將為您生成唯一的團隊 ID。您可以在手機 App 端輸入該 ID 加入此團隊並進行同步。</p>
+          <div class="web-binding-form" style="margin-top: 20px;">
+            <input type="text" id="webGroupNameInputPage" class="web-binding-input" placeholder="例如: 皇家自律班" style="margin-bottom: 12px; width: 100%; max-width: 400px; display: block;">
+            <button id="webGroupCreateBtnPage" class="button primary" style="padding: 10px 20px; font-weight: 700; cursor: pointer;">創建新團體並獲取房主權限</button>
+          </div>
+        </div>
+        <aside class="panel">
+          <span class="eyebrow">Join Team</span>
+          <h2>🔗 加入已有團隊</h2>
+          <p>輸入其他房主建立的組織 ID，加入其組織並進行同步。</p>
+          <div class="web-binding-form" style="margin-top: 20px;">
+            <input type="text" id="webGroupIdInputPage" class="web-binding-input" placeholder="格式如: GRP-88921" style="margin-bottom: 12px; width: 100%; max-width: 400px; display: block;">
+            <button id="webGroupJoinBtnPage" class="button ghost" style="padding: 10px 20px; font-weight: 700; cursor: pointer;">輸入 ID 連結並加入</button>
+          </div>
+        </aside>
+      </div>
+    `;
+
+    document.getElementById("webGroupCreateBtnPage")?.addEventListener("click", () => {
+      const nameInput = document.getElementById("webGroupNameInputPage");
+      const name = nameInput ? nameInput.value.trim() : "";
+      if (!name) {
+        toast("請輸入有效的團體名稱");
+        return;
+      }
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+      const randomId = 'GRP-' + Math.floor(Math.random() * 100000);
+      if (activeUserId && typeof db !== "undefined") {
+        db.collection("users").doc(activeUserId).update({
+          groupId: randomId,
+          groupName: name,
+          isGroupOwner: true,
+          userRole: "group",
+          updatedAt: new Date().toISOString()
+        }).then(() => {
+          toast(`成功創建「${name}」團體，ID：${randomId}！ 🚀`);
+          window.location.reload();
+        }).catch(err => {
+          console.error("創建團體失敗：", err);
+          toast("操作失敗，請稍後再試");
+        });
+      }
+    });
+
+    document.getElementById("webGroupJoinBtnPage")?.addEventListener("click", () => {
+      const groupInput = document.getElementById("webGroupIdInputPage");
+      const groupId = groupInput ? groupInput.value.trim() : "";
+      if (!groupId) {
+        toast("請輸入有效的團體 ID");
+        return;
+      }
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+      if (activeUserId && typeof db !== "undefined") {
+        db.collection("users").doc(activeUserId).update({
+          groupId: groupId,
+          groupName: "自律小組",
+          isGroupOwner: false,
+          userRole: "group",
+          updatedAt: new Date().toISOString()
+        }).then(() => {
+          toast(`已成功加入團體 ID：${groupId}！ 🎯`);
+          window.location.reload();
+        }).catch(err => {
+          console.error("加入團體失敗：", err);
+          toast("操作失敗，請稍後再試");
+        });
+      }
+    });
+
+    return;
+  }
+
+  // Already has a group. Render the management interface with real-time member listing!
+  container.innerHTML = `
+    <div class="workspace-layout">
+      <div class="panel" style="flex: 2;">
+        <span class="eyebrow">Team Information</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <h2 style="margin: 0; color: #fff; font-size: 24px; font-weight: 800;">${groupName}</h2>
+            <p style="margin: 4px 0 0 0; color: var(--muted); font-size: 14px; font-family: monospace;">團體組織 ID: ${groupId}</p>
+          </div>
+          <span style="background: rgba(20, 184, 166, 0.15); color: #14b8a6; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; border: 1px solid rgba(20, 184, 166, 0.3);">
+            ${isOwner ? '👑 房主 (Owner)' : '👥 成員 (Member)'}
+          </span>
+        </div>
+
+        <span class="eyebrow">Group Members</span>
+        <div class="table-responsive" style="margin-top: 14px;">
+          <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--muted); font-size: 12px; text-transform: uppercase;">
+                <th style="padding: 12px 8px;">成員暱稱 (Nudge ID)</th>
+                <th style="padding: 12px 8px;">身分</th>
+                <th style="padding: 12px 8px; text-align: center;">今日專注 (分)</th>
+                <th style="padding: 12px 8px; text-align: center;">今日步數</th>
+                <th style="padding: 12px 8px; text-align: center;">今日睡眠 (時)</th>
+                <th style="padding: 12px 8px; text-align: center;">任務完成度</th>
+              </tr>
+            </thead>
+            <tbody id="webGroupMembersListTable" style="font-size: 14px; color: rgba(255,255,255,0.85);">
+              <tr>
+                <td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">正在加載團體成員資料...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <aside class="panel" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <span class="eyebrow">Settings</span>
+          <h2>團隊管理選項</h2>
+          <p style="margin-top: 8px; color: var(--muted); font-size: 14px;">
+            ${isOwner ? '身為團隊建立者，您可以解散該團隊或修改團隊名稱。解散後所有成員將自動移出該組織。' : '您可以退出此小組，退出後將無法同步小組的挑戰與任務模板。'}
+          </p>
+        </div>
+        <div style="margin-top: 24px;">
+          <button id="webGroupLeaveBtnPage" class="button" style="width: 100%; background: #ef4444; border: none; color: #fff; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+            ${isOwner ? '🚨 解散此自律團體' : '🚪 退出此自律小組'}
+          </button>
+        </div>
+      </aside>
+    </div>
+  `;
+
+  // Bind Leave / Disband action
+  document.getElementById("webGroupLeaveBtnPage")?.addEventListener("click", () => {
+    if (confirm(`確定要${isOwner ? '解散' : '退出'}當前團體【${groupName}】嗎？`)) {
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+      if (activeUserId && typeof db !== "undefined") {
+        db.collection("users").doc(activeUserId).update({
+          groupId: firebase.firestore.FieldValue.delete(),
+          groupName: firebase.firestore.FieldValue.delete(),
+          isGroupOwner: firebase.firestore.FieldValue.delete(),
+          userRole: "personal",
+          updatedAt: new Date().toISOString()
+        }).then(() => {
+          toast("已成功解除團體關聯");
+          window.location.reload();
+        }).catch(err => {
+          console.error("退出團體失敗：", err);
+          toast("操作失敗，請稍後再試");
+        });
+      }
+    }
+  });
+
+  // Query and list all members of the group in real-time
+  db.collection("users").where("groupId", "==", groupId).get().then(snap => {
+    const listTable = document.getElementById("webGroupMembersListTable");
+    if (!listTable) return;
+    listTable.innerHTML = "";
+
+    let totalMembers = snap.size;
+    const memberCountEl = document.getElementById("webGroupMemberCount");
+    if (memberCountEl) {
+      memberCountEl.dataset.count = totalMembers;
+      memberCountEl.textContent = totalMembers;
+    }
+
+    if (snap.empty) {
+      listTable.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">無任何成員資料</td></tr>`;
+      return;
+    }
+
+    snap.forEach(doc => {
+      const mData = doc.data();
+      const mNickname = mData.nickname || "未知使用者";
+      const mNudgeId = mData.username || doc.id;
+      const mIsOwner = mData.isGroupOwner || false;
+
+      // Extract stats
+      const dailySummaries = mData.dailySummaries || [];
+      const mTodaySummary = dailySummaries[dailySummaries.length - 1] || {};
+      const mSleepHours = mTodaySummary.sleepHours || (mData.sleepHours || 0);
+      const mSteps = mTodaySummary.steps || (mData.steps || 0);
+      const mFocusMinutes = mTodaySummary.focusMinutes || (mData.focusSeconds ? Math.floor(mData.focusSeconds / 60) : 0);
+
+      // Task completion
+      const mTasks = mData.tasks || [];
+      const completedTasksCount = mTasks.filter(t => t.isDone || t.done).length;
+      const completionRate = mTasks.length > 0 ? Math.round((completedTasksCount / mTasks.length) * 100) : 0;
+
+      listTable.innerHTML += `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s;">
+          <td style="padding: 14px 8px;">
+            <div style="font-weight: 700; color: #fff;">${mNickname}</div>
+            <div style="font-size: 11px; color: var(--muted); font-family: monospace;">${mNudgeId}</div>
+          </td>
+          <td style="padding: 14px 8px;">
+            <span style="font-size: 12px; color: ${mIsOwner ? '#f59e0b' : 'rgba(255,255,255,0.5)'}; font-weight: 600;">
+              ${mIsOwner ? '👑 房主' : '👥 成員'}
+            </span>
+          </td>
+          <td style="padding: 14px 8px; text-align: center; font-weight: 600;">${mFocusMinutes}</td>
+          <td style="padding: 14px 8px; text-align: center; font-weight: 600; color: #22c7bb;">${mSteps}</td>
+          <td style="padding: 14px 8px; text-align: center; font-weight: 600; color: #8d7aff;">${mSleepHours.toFixed(1)}</td>
+          <td style="padding: 14px 8px; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <span style="font-weight: 700; color: #00ffcc; font-size: 13px;">${completionRate}%</span>
+              <div style="width: 50px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; display: inline-block;">
+                <div style="width: ${completionRate}%; height: 100%; background: #00ffcc; border-radius: 3px;"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+  }).catch(err => {
+    console.error("Error loading group members: ", err);
+  });
+}
+
+function getRoleLabel(role) {
+  switch (role) {
+    case "personal": return "個人/小孩";
+    case "guardian": return "家長";
+    case "group": return "團體挑戰";
+    case "enterprise": return "企業管理";
+    case "tutor": return "補習班管理";
+    case "school": return "學校班級";
+    default: return "未設定";
+  }
+}
+
+function showGatekeeperOverlay(icon, title, desc, targetRole) {
+  const overlayHtml = `
+    <div id="roleGatekeeperOverlay" class="role-gatekeeper-overlay">
+      <div class="role-gatekeeper-content">
+        <div class="role-gatekeeper-inner">
+          <div class="role-gatekeeper-icon">${icon}</div>
+          <div class="role-gatekeeper-title">${title}</div>
+          <div class="role-gatekeeper-desc">${desc}</div>
+          <button id="roleGatekeeperBtn" class="role-gatekeeper-btn">一鍵切換為【${getRoleLabel(targetRole)}】身分</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", overlayHtml);
+
+  // 綁定按鈕點擊事件
+  const btn = document.getElementById("roleGatekeeperBtn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+      if (activeUserId && typeof db !== "undefined") {
+        db.collection("users").doc(activeUserId).update({
+          userRole: targetRole,
+          updatedAt: new Date().toISOString()
+        }).then(() => {
+          toast(`自律身份已成功切換為：【${getRoleLabel(targetRole)}】`);
+        }).catch(err => {
+          console.error("更新角色失敗：", err);
+          toast("切換失敗，請稍後再試");
+        });
+      }
+    });
   }
 }
 
@@ -2037,14 +2983,198 @@ function syncToFlaskServer(data, dailySummaries, tasks) {
 let previousTasksState = null;
 let currentUserTasks = [];
 let currentUserDailySummaries = [];
+let childDocSub = null;
+let currentChildNudgeId = null;
+let groupOwnerSub = null;
+let currentGroupIdListener = null;
+
+function updateParentDashboardWithChildData(childData) {
+  const tasks = childData.tasks || [];
+  const dailySummaries = childData.dailySummaries || [];
+  
+  const completedTasksCount = tasks.filter(t => t.isDone || t.done).length;
+  const completionRate = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : 0;
+  
+  const todaySummary = dailySummaries[dailySummaries.length - 1] || {};
+  const sleepHours = todaySummary.sleepHours || (childData.sleepHours || 0);
+  const steps = todaySummary.steps || (childData.steps || 0);
+  const focusMinutes = todaySummary.focusMinutes || (childData.focusSeconds ? Math.floor(childData.focusSeconds / 60) : 0);
+  
+  const childTasksCountEl = document.getElementById("childTasksCount");
+  if (childTasksCountEl) {
+    childTasksCountEl.dataset.count = completedTasksCount;
+    childTasksCountEl.textContent = `${completedTasksCount} 個`;
+  }
+  
+  const childTasksRingEl = document.getElementById("childTasksRing");
+  if (childTasksRingEl) {
+    childTasksRingEl.style.setProperty("--p", `${completionRate}%`);
+    const ringText = childTasksRingEl.querySelector("strong");
+    if (ringText) ringText.textContent = `${completionRate}%`;
+  }
+  
+  const childFocusValEl = document.getElementById("childFocusVal");
+  if (childFocusValEl) {
+    childFocusValEl.dataset.count = focusMinutes;
+    childFocusValEl.textContent = `${focusMinutes} 分`;
+  }
+  
+  const childFocusRingEl = document.getElementById("childFocusRing");
+  if (childFocusRingEl) {
+    const focusRate = Math.min(Math.round((focusMinutes / 60) * 100), 100);
+    childFocusRingEl.style.setProperty("--p", `${focusRate}%`);
+    const ringText = childFocusRingEl.querySelector("strong");
+    if (ringText) ringText.textContent = `${focusRate}%`;
+  }
+  
+  const childSleepValEl = document.getElementById("childSleepVal");
+  if (childSleepValEl) {
+    childSleepValEl.textContent = `${sleepHours.toFixed(1)} 小時`;
+  }
+  
+  const childSleepRingEl = document.getElementById("childSleepRing");
+  if (childSleepRingEl) {
+    const sleepRate = Math.min(Math.round((sleepHours / 8) * 100), 100);
+    childSleepRingEl.style.setProperty("--p", `${sleepRate}%`);
+    const ringText = childSleepRingEl.querySelector("strong");
+    if (ringText) ringText.textContent = `${sleepRate}%`;
+  }
+  
+  const childStepsValEl = document.getElementById("childStepsVal");
+  if (childStepsValEl) {
+    childStepsValEl.dataset.count = steps;
+    childStepsValEl.textContent = `${steps}`;
+  }
+  
+  const childStepsRingEl = document.getElementById("childStepsRing");
+  if (childStepsRingEl) {
+    const stepsRate = Math.min(Math.round((steps / 10000) * 100), 100);
+    childStepsRingEl.style.setProperty("--p", `${stepsRate}%`);
+    const ringText = childStepsRingEl.querySelector("strong");
+    if (ringText) ringText.textContent = `${stepsRate}%`;
+  }
+  
+  if (dailySummaries.length > 0) {
+    const scoresList = dailySummaries.map(s => s.disciplineScore || 0);
+    const sleepList = dailySummaries.map(s => s.sleepHours || 0);
+    
+    const trendChart = document.getElementById("trendChart");
+    if (trendChart && scoresList.length > 0) {
+      drawLineChart(trendChart, scoresList.slice(-12));
+    }
+    
+    const sleepChart = document.getElementById("sleepChart");
+    if (sleepChart && sleepList.length > 0) {
+      drawLineChart(sleepChart, sleepList.slice(-7), "#8d7aff");
+    }
+  }
+  
+  const weeklyRateEl = document.querySelector(".hero-card strong");
+  if (weeklyRateEl) {
+    weeklyRateEl.dataset.count = completionRate;
+    weeklyRateEl.textContent = `${completionRate}%`;
+  }
+  
+  const chipA = document.querySelector(".chip-a strong");
+  if (chipA) {
+    chipA.dataset.count = completionRate;
+    chipA.textContent = `${completionRate}%`;
+  }
+}
+
+function syncGroupOwnerDataToLocal(ownerData) {
+  const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  let changed = false;
+  if (ownerData.webToolsState) {
+    for (const k of ["challenge", "template"]) {
+      if (ownerData.webToolsState[k] && JSON.stringify(store[k]) !== JSON.stringify(ownerData.webToolsState[k])) {
+        store[k] = ownerData.webToolsState[k];
+        changed = true;
+      }
+    }
+  }
+  if (ownerData.webToolsCollection) {
+    for (const k of ["studySchedules"]) {
+      if (ownerData.webToolsCollection[k] && JSON.stringify(store[k]) !== JSON.stringify(ownerData.webToolsCollection[k])) {
+        store[k] = ownerData.webToolsCollection[k];
+        changed = true;
+      }
+    }
+  }
+  if (changed) {
+    localStorage.setItem("nudgeWebTools", JSON.stringify(store));
+    if (typeof window.renderSavedList === 'function') {
+      window.renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
+    }
+  }
+}
 
 function listenToUser(userId) {
   if (!db) return;
+  listenToRequests(userId);
   db.collection("users").doc(userId).onSnapshot((docSnap) => {
     if (!docSnap.exists) return;
     const data = docSnap.data();
     
     updateSidebarProfile(data);
+
+    // Guardian-child sync
+    const isGuardian = data.userRole === "guardian";
+    const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
+    const childNudgeId = data.webToolsState?.guardianInvite?.relativeId;
+    
+    if (isGuardian && isLinked && childNudgeId) {
+      const childNudgeIdUpper = childNudgeId.trim().toUpperCase();
+      if (currentChildNudgeId !== childNudgeIdUpper) {
+        currentChildNudgeId = childNudgeIdUpper;
+        if (childDocSub) childDocSub();
+        childDocSub = db.collection("users")
+          .where("username", "==", childNudgeIdUpper)
+          .limit(1)
+          .onSnapshot((childQuerySnap) => {
+            if (!childQuerySnap.empty) {
+              const childDoc = childQuerySnap.docs[0];
+              const childData = childDoc.data();
+              window.linkedChildUid = childDoc.id;
+              updateParentDashboardWithChildData(childData);
+            }
+          }, (err) => console.error("Child doc sub error:", err));
+      }
+    } else {
+      currentChildNudgeId = null;
+      window.linkedChildUid = null;
+      if (childDocSub) {
+        childDocSub();
+        childDocSub = null;
+      }
+    }
+
+    // Group member sync
+    const isGroupMember = ["group", "enterprise", "tutor", "school"].includes(data.userRole) && !data.isGroupOwner;
+    const groupId = data.groupId;
+    if (isGroupMember && groupId) {
+      if (currentGroupIdListener !== groupId) {
+        currentGroupIdListener = groupId;
+        if (groupOwnerSub) groupOwnerSub();
+        groupOwnerSub = db.collection("users")
+          .where("groupId", "==", groupId)
+          .where("isGroupOwner", "==", true)
+          .limit(1)
+          .onSnapshot((ownerQuerySnap) => {
+            if (!ownerQuerySnap.empty) {
+              const ownerDoc = ownerQuerySnap.docs[0];
+              const ownerData = ownerDoc.data();
+              syncGroupOwnerDataToLocal(ownerData);
+            }
+          }, (err) => console.error("Group owner sub error:", err));
+      }
+    } else {
+      currentGroupIdListener = null;
+      if (groupOwnerSub) {
+        groupOwnerSub();
+        groupOwnerSub = null;
+      }
+    }
     
     const dailySummaries = data.dailySummaries || [];
     const tasks = data.tasks || [];
@@ -2482,4 +3612,285 @@ function initializeDefaultTasksInFirestore(userId) {
       }
     }
   });
+}
+
+function showWebProfileEditModal(data) {
+  let overlay = document.getElementById("globalProfileEditModal");
+  if (!overlay) {
+    // Inject styles
+    if (!document.getElementById("globalProfileEditStyles")) {
+      const style = document.createElement("style");
+      style.id = "globalProfileEditStyles";
+      style.textContent = `
+        .global-profile-edit-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(10, 15, 30, 0.6);
+          backdrop-filter: blur(12px) saturate(180%);
+          -webkit-backdrop-filter: blur(12px) saturate(180%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+          opacity: 0;
+          pointer-events: none;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .global-profile-edit-overlay.active {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .global-profile-edit-modal {
+          background: rgba(22, 28, 45, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 2rem;
+          border-radius: 24px;
+          width: 100%;
+          max-width: 440px;
+          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          transform: scale(0.9) translateY(20px);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          color: #fff;
+          font-family: inherit;
+        }
+        .global-profile-edit-overlay.active .global-profile-edit-modal {
+          transform: scale(1) translateY(0);
+        }
+        .global-profile-edit-modal h2 {
+          margin-top: 0;
+          margin-bottom: 1.5rem;
+          font-size: 1.5rem;
+          font-weight: 800;
+          background: linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.6) 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        .global-form-group {
+          margin-bottom: 1.25rem;
+          text-align: left;
+        }
+        .global-form-group label {
+          display: block;
+          font-size: 0.85rem;
+          margin-bottom: 0.5rem;
+          color: rgba(255, 255, 255, 0.6);
+          font-weight: 600;
+        }
+        .global-form-group input, .global-form-group select {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.05);
+          color: #fff;
+          box-sizing: border-box;
+          font-size: 0.95rem;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .global-form-group input:focus, .global-form-group select:focus {
+          border-color: var(--c-primary, #7c6ae6);
+        }
+        .color-swatch-group {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 8px;
+        }
+        .color-swatch {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          cursor: pointer;
+          border: 2px solid transparent;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+        .color-swatch:hover {
+          transform: scale(1.15);
+        }
+        .color-swatch.active {
+          border-color: #fff;
+          box-shadow: 0 0 10px var(--swatch-color);
+        }
+        .global-profile-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 1rem;
+          margin-top: 2rem;
+        }
+        .global-profile-btn-cancel {
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: rgba(255, 255, 255, 0.8);
+          padding: 0.6rem 1.4rem;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .global-profile-btn-cancel:hover {
+          background: rgba(255, 255, 255, 0.05);
+          color: #fff;
+        }
+        .global-profile-btn-submit {
+          background: var(--c-primary, #7c6ae6);
+          border: none;
+          color: white;
+          padding: 0.6rem 1.4rem;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: 700;
+          transition: all 0.2s;
+        }
+        .global-profile-btn-submit:hover {
+          opacity: 0.9;
+          transform: translateY(-1px);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const badgeDefinitions = [
+      { key: 'task_starter', name: '任務起步者' },
+      { key: 'focus_beginner', name: '專注新手' },
+      { key: 'focus_streak', name: '專注連續者' },
+      { key: 'task_streak', name: '任務連續者' },
+      { key: 'sleep_guard', name: '睡眠守護者' },
+      { key: 'step_master', name: '步數達人' },
+      { key: 'steady_progress', name: '穩定前進' },
+      { key: 'score_keeper', name: '高分維持' },
+      { key: 'coin_earner', name: '門檻達人' },
+      { key: 'auto_tracker', name: '自動追蹤者' },
+      { key: 'health_sync', name: '健康同步者' },
+      { key: 'health_task', name: '健康任務實踐者' }
+    ];
+
+    const unlockedKeys = data.unlockedBadgeDates ? Object.keys(data.unlockedBadgeDates) : [];
+    const unlockedBadges = badgeDefinitions.filter(b => unlockedKeys.includes(b.key));
+    const currentTitleKey = data.profileTitleBadgeKey || "";
+
+    const colorOptions = [
+      { name: 'purple', hex: '#7C6AE6', label: '紫色' },
+      { name: 'blue', hex: '#4F8CFF', label: '藍色' },
+      { name: 'teal', hex: '#14B8A6', label: '青色' },
+      { name: 'green', hex: '#10B981', label: '綠色' },
+      { name: 'orange', hex: '#F59E0B', label: '橘色' },
+      { name: 'pink', hex: '#EC4899', label: '粉色' },
+      { name: 'red', hex: '#EF4444', label: '紅色' },
+      { name: 'indigo', hex: '#6366F1', label: '靛藍' }
+    ];
+
+    const currentAccent = data.accentColor || 'purple';
+
+    let badgesSelectHtml = `<option value="">不使用稱號</option>`;
+    unlockedBadges.forEach(b => {
+      badgesSelectHtml += `<option value="${b.key}" ${currentTitleKey === b.key ? 'selected' : ''}>${b.name}</option>`;
+    });
+
+    let swatchesHtml = '';
+    colorOptions.forEach(opt => {
+      swatchesHtml += `
+        <div class="color-swatch ${currentAccent === opt.name ? 'active' : ''}" 
+             data-color="${opt.name}" 
+             style="background: ${opt.hex}; --swatch-color: ${opt.hex};" 
+             title="${opt.label}"></div>
+      `;
+    });
+
+    const modalHtml = `
+      <div class="global-profile-edit-overlay" id="globalProfileEditModal">
+        <div class="global-profile-edit-modal">
+          <h2>⚙️ 編輯個人名片</h2>
+          <div class="global-form-group">
+            <label>暱稱</label>
+            <input type="text" id="editProfileNickname" value="${data.nickname || ''}" placeholder="請輸入自律暱稱" maxLength="12"/>
+          </div>
+          <div class="global-form-group">
+            <label>個性簽名</label>
+            <input type="text" id="editProfileSignature" value="${data.signature || ''}" placeholder="今天也在穩定前進" maxLength="40"/>
+          </div>
+          <div class="global-form-group">
+            <label>專屬頭像主題色</label>
+            <div class="color-swatch-group" id="editProfileColors">
+              ${swatchesHtml}
+            </div>
+            <input type="hidden" id="editProfileSelectedColor" value="${currentAccent}"/>
+          </div>
+          <div class="global-form-group">
+            <label>名片稱號（僅能選用已解鎖徽章）</label>
+            <select id="editProfileTitle">
+              ${badgesSelectHtml}
+            </select>
+          </div>
+          <div class="global-profile-actions">
+            <button class="global-profile-btn-cancel" onclick="document.getElementById('globalProfileEditModal').classList.remove('active')">取消</button>
+            <button class="global-profile-btn-submit" id="saveProfileEditBtn">儲存名片</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Setup color swatch click events
+    const swatches = document.querySelectorAll("#editProfileColors .color-swatch");
+    swatches.forEach(sw => {
+      sw.addEventListener("click", function() {
+        swatches.forEach(s => s.classList.remove("active"));
+        this.classList.add("active");
+        document.getElementById("editProfileSelectedColor").value = this.getAttribute("data-color");
+      });
+    });
+
+    document.getElementById("saveProfileEditBtn").addEventListener("click", function() {
+      const nickname = document.getElementById("editProfileNickname").value.trim();
+      const signature = document.getElementById("editProfileSignature").value.trim();
+      const accentColor = document.getElementById("editProfileSelectedColor").value;
+      const titleBadgeKey = document.getElementById("editProfileTitle").value;
+
+      if (!nickname) {
+        toast("請填寫有效的暱稱");
+        return;
+      }
+
+      const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+      if (activeUserId && typeof db !== "undefined") {
+        db.collection("users").doc(activeUserId).update({
+          nickname: nickname,
+          signature: signature || "今天也在穩定前進",
+          accentColor: accentColor,
+          profileTitleBadgeKey: titleBadgeKey,
+          updatedAt: new Date().toISOString()
+        }).then(() => {
+          toast("個人名片更新成功！ ✨");
+          document.getElementById('globalProfileEditModal').classList.remove('active');
+          window.location.reload();
+        }).catch(err => {
+          console.error("更新名片失敗：", err);
+          toast("更新失敗，請稍後再試");
+        });
+      }
+    });
+  }
+
+  // Display modal
+  overlay = document.getElementById("globalProfileEditModal");
+  // Update form inputs to current state in case they were updated
+  document.getElementById("editProfileNickname").value = data.nickname || '';
+  document.getElementById("editProfileSignature").value = data.signature || '';
+  document.getElementById("editProfileSelectedColor").value = data.accentColor || 'purple';
+  
+  const swatchesEl = document.querySelectorAll("#editProfileColors .color-swatch");
+  swatchesEl.forEach(sw => {
+    if (sw.getAttribute("data-color") === (data.accentColor || 'purple')) {
+      sw.classList.add("active");
+    } else {
+      sw.classList.remove("active");
+    }
+  });
+
+  const selectEl = document.getElementById("editProfileTitle");
+  if (selectEl) selectEl.value = data.profileTitleBadgeKey || "";
+
+  overlay.classList.add("active");
 }

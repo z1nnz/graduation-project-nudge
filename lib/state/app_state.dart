@@ -97,6 +97,9 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _outgoingRequestsSubscription;
   StreamSubscription? _roomsSubscription;
   StreamSubscription? _shopSubscription;
+  StreamSubscription? _incomingGuardianRequestsSubscription;
+  StreamSubscription? _outgoingGuardianRequestsSubscription;
+  StreamSubscription? _groupOwnerSubscription;
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -122,6 +125,12 @@ class AppState extends ChangeNotifier {
 
   List<FriendRequest> _incomingRequestsList = [];
   List<FriendRequest> _outgoingRequestsList = [];
+
+  List<Map<String, dynamic>> _incomingGuardianRequests = [];
+  List<Map<String, dynamic>> get incomingGuardianRequests => _incomingGuardianRequests;
+
+  List<Map<String, dynamic>> _outgoingGuardianRequests = [];
+  List<Map<String, dynamic>> get outgoingGuardianRequests => _outgoingGuardianRequests;
 
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
@@ -171,6 +180,17 @@ class AppState extends ChangeNotifier {
           _webToolsCollection = null;
         }
         _userRole = data['userRole'] as String? ?? _userRole;
+        _groupId = data['groupId'] as String?;
+        _groupName = data['groupName'] as String?;
+        _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
+        _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? '';
+        
+        if (_groupId != null && !_isGroupOwner) {
+          _setupGroupOwnerListener(user.uid, _groupId!);
+        } else {
+          _groupOwnerSubscription?.cancel();
+          _groupOwnerSubscription = null;
+        }
         notifyListeners();
       }
     });
@@ -276,6 +296,44 @@ class AppState extends ChangeNotifier {
       }
       notifyListeners();
     });
+
+    // Incoming guardian requests listener
+    _incomingGuardianRequestsSubscription = FirebaseFirestore.instance
+        .collection('guardian_requests')
+        .where('receiverId', isEqualTo: user.uid)
+        .snapshots()
+        .listen((snapshot) {
+      final docs = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      _incomingGuardianRequests = docs.where((d) => d['status'] == 'pending').toList();
+      
+      // Check for accepted request to trigger local profile linkage update
+      final accepted = docs.where((d) => d['status'] == 'accepted').toList();
+      if (accepted.isNotEmpty && !isGuardianLinked) {
+        _autoUpdateLinkage(accepted.first, user.uid);
+      } else if (accepted.isEmpty && isGuardianLinked) {
+        _checkAndAutoClearLinkage(user.uid);
+      }
+      notifyListeners();
+    });
+
+    // Outgoing guardian requests listener
+    _outgoingGuardianRequestsSubscription = FirebaseFirestore.instance
+        .collection('guardian_requests')
+        .where('senderId', isEqualTo: user.uid)
+        .snapshots()
+        .listen((snapshot) {
+      final docs = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      _outgoingGuardianRequests = docs.where((d) => d['status'] == 'pending').toList();
+      
+      // Check for accepted request to trigger local profile linkage update
+      final accepted = docs.where((d) => d['status'] == 'accepted').toList();
+      if (accepted.isNotEmpty && !isGuardianLinked) {
+        _autoUpdateLinkage(accepted.first, user.uid);
+      } else if (accepted.isEmpty && isGuardianLinked) {
+        _checkAndAutoClearLinkage(user.uid);
+      }
+      notifyListeners();
+    });
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
@@ -310,12 +368,81 @@ class AppState extends ChangeNotifier {
     _outgoingRequestsSubscription?.cancel();
     _roomsSubscription?.cancel();
     _shopSubscription?.cancel();
+    _incomingGuardianRequestsSubscription?.cancel();
+    _outgoingGuardianRequestsSubscription?.cancel();
+    _groupOwnerSubscription?.cancel();
+
     _userSubscription = null;
     _friendsSubscription = null;
     _incomingRequestsSubscription = null;
     _outgoingRequestsSubscription = null;
     _roomsSubscription = null;
     _shopSubscription = null;
+    _incomingGuardianRequestsSubscription = null;
+    _outgoingGuardianRequestsSubscription = null;
+    _groupOwnerSubscription = null;
+  }
+
+  Future<void> _autoUpdateLinkage(Map<String, dynamic> requestData, String myUid) async {
+    final senderId = requestData['senderId'] as String;
+    final senderNudgeId = requestData['senderNudgeId'] as String;
+    final receiverNudgeId = requestData['receiverNudgeId'] as String;
+    final targetNudgeId = (myUid == senderId) ? receiverNudgeId : senderNudgeId;
+
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(myUid);
+      await docRef.update({
+        'webToolsState.guardianInvite': {
+          'relativeId': targetNudgeId,
+          'goal': '共同健康與專注',
+          'permission': '完整資料',
+          'message': '親屬帳號已連結。',
+        },
+        'webToolsState.guardianInviteStatus': {
+          'status': 'linked',
+          'updatedAt': DateTime.now().toIso8601String(),
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to auto-update relative linkage: $e');
+    }
+  }
+
+  Future<void> _autoClearLinkage(String myUid) async {
+    try {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(myUid);
+      await docRef.update({
+        'webToolsState.guardianInvite': FieldValue.delete(),
+        'webToolsState.guardianInviteStatus': FieldValue.delete(),
+      });
+    } catch (e) {
+      debugPrint('Failed to auto-clear relative linkage: $e');
+    }
+  }
+
+  Future<void> _checkAndAutoClearLinkage(String myUid) async {
+    if (!isGuardianLinked) return;
+    try {
+      final incomingAccepted = await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .where('receiverId', isEqualTo: myUid)
+          .where('status', isEqualTo: 'accepted')
+          .limit(1)
+          .get();
+      if (incomingAccepted.docs.isNotEmpty) return;
+
+      final outgoingAccepted = await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .where('senderId', isEqualTo: myUid)
+          .where('status', isEqualTo: 'accepted')
+          .limit(1)
+          .get();
+      if (outgoingAccepted.docs.isNotEmpty) return;
+
+      await _autoClearLinkage(myUid);
+    } catch (e) {
+      debugPrint('Failed to check and clear linkage: $e');
+    }
   }
 
   Future<void> _syncProfileFromFirebaseUser(fb_auth.User user) async {
@@ -369,6 +496,7 @@ class AppState extends ChangeNotifier {
         'myNudgeId': _myNudgeId,
         'themeMode': _themeModeSetting,
         'accentColor': _iconColorSetting,
+        'profileTitleBadgeKey': _profileTitleBadgeKey,
         'disciplineCoins': _disciplineCoins,
         'planetCount': _planetCount,
         'weeklyPlanetEarned': _weeklyPlanetEarned,
@@ -429,6 +557,7 @@ class AppState extends ChangeNotifier {
         _myNudgeId = data['myNudgeId'] as String? ?? _myNudgeId;
         _themeModeSetting = data['themeMode'] as String? ?? _themeModeSetting;
         _iconColorSetting = data['accentColor'] as String? ?? _iconColorSetting;
+        _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? _profileTitleBadgeKey;
         _userRole = data['userRole'] as String? ?? _userRole;
         notifyListeners();
 
@@ -629,11 +758,18 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? _webToolsState;
   Map<String, dynamic>? _webToolsCollection;
   String _userRole = 'personal';
+  String? _groupId;
+  String? _groupName;
+  bool _isGroupOwner = false;
 
   List<Map<String, dynamic>> get tasks => _tasks;
   Map<String, dynamic>? get webToolsState => _webToolsState;
   Map<String, dynamic>? get webToolsCollection => _webToolsCollection;
   String get userRole => _userRole;
+  String? get groupId => _groupId;
+  String? get groupName => _groupName;
+  bool get isGroupOwner => _isGroupOwner;
+  bool get isGuardianLinked => guardianInvite != null && guardianInvite!['status'] == 'linked';
 
   Map<String, dynamic>? get guardianInvite {
     if (_webToolsState == null) return null;
@@ -1671,6 +1807,15 @@ class AppState extends ChangeNotifier {
   }
 
   Color get currentIconColor {
+    if (_userRole == 'guardian') {
+      return const Color(0xFFF59E0B); // 家長模式：暖橘色
+    } else if (_userRole == 'group' ||
+               _userRole == 'enterprise' ||
+               _userRole == 'tutor' ||
+               _userRole == 'school') {
+      return const Color(0xFF10B981); // 團體班級模式：活力綠色
+    }
+
     switch (_iconColorSetting) {
       case 'blue':
         return const Color(0xFF4F8CFF);
@@ -2269,6 +2414,9 @@ class AppState extends ChangeNotifier {
 
       final prefs = await SharedPreferences.getInstance();
       _userRole = prefs.getString('user_role_setting') ?? 'personal';
+      _groupId = prefs.getString('group_id_setting');
+      _groupName = prefs.getString('group_name_setting');
+      _isGroupOwner = prefs.getBool('is_group_owner_setting') ?? false;
       if (prefs.containsKey(_focusSecondsKey)) {
         _focusSeconds = prefs.getInt(_focusSecondsKey) ?? 0;
       } else {
@@ -4654,6 +4802,29 @@ class AppState extends ChangeNotifier {
     _saveStudyRooms();
   }
 
+  void updateRoomRules({
+    required String roomId,
+    required String rules,
+    required bool nicknameRuleEnabled,
+    required String nicknameRuleText,
+    required bool joinQuestionsEnabled,
+    required List<String> joinQuestions,
+  }) {
+    _studyRooms = _studyRooms.map((room) {
+      if (room.id != roomId) return room;
+      return room.copyWith(
+        roomRules: rules,
+        nicknameRuleEnabled: nicknameRuleEnabled,
+        nicknameRuleText: nicknameRuleText,
+        joinQuestionsEnabled: joinQuestionsEnabled,
+        joinQuestions: joinQuestions,
+      );
+    }).toList();
+
+    notifyListeners();
+    _saveStudyRooms();
+  }
+
   void removeMemberFromRoom({
     required String roomId,
     required String memberName,
@@ -5517,6 +5688,41 @@ ${summaryBuf.toString()}
     }
   }
 
+  /// 接受家長共同目標後，自動將目標名稱匯入為每日任務
+  Future<void> acceptParentGoalAsTask() async {
+    final invite = guardianInvite;
+    if (invite == null) return;
+    final goal = invite['goal']?.toString() ?? '';
+    if (goal.isEmpty) return;
+    await acceptGuardianInvite();
+    addTask(
+      '【家長陪伴目標】$goal',
+      '學習',
+      taskType: 'flexible',
+      priority: '高',
+    );
+  }
+
+  /// 加入團體挑戰後，自動匯入每日挑戰任務
+  Future<void> joinGroupChallengeAsTask() async {
+    final challenge = groupChallenge;
+    if (challenge == null) return;
+    final group = challenge['group']?.toString() ?? '自律團體';
+    final type = challenge['type']?.toString() ?? '自律挑戰';
+    final days = (challenge['days'] as num?)?.toInt() ?? 7;
+    for (int d = 1; d <= days; d++) {
+      String title;
+      if (d == 1) {
+        title = '【$group】$type — 第$d天（啟動）';
+      } else if (d == days) {
+        title = '【$group】$type — 第$d天（完成衝刺）';
+      } else {
+        title = '【$group】$type — 第$d天';
+      }
+      addTask(title, '學習', taskType: 'flexible', priority: '中');
+    }
+  }
+
   Future<void> declineGuardianInvite() async {
     final user = _currentUser;
     if (user == null) return;
@@ -5542,6 +5748,23 @@ ${summaryBuf.toString()}
         'webToolsState.guardianInvite': FieldValue.delete(),
         'webToolsState.guardianInviteStatus': FieldValue.delete(),
       });
+
+      // Clean up any pending/accepted requests in the collection
+      final reqs1 = await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .where('senderId', isEqualTo: user.id)
+          .get();
+      for (final doc in reqs1.docs) {
+        await doc.reference.delete();
+      }
+      final reqs2 = await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .where('receiverId', isEqualTo: user.id)
+          .get();
+      for (final doc in reqs2.docs) {
+        await doc.reference.delete();
+      }
+      notifyListeners();
     } catch (e) {
       debugPrint('Failed to remove guardian: $e');
     }
@@ -5742,5 +5965,237 @@ ${summaryBuf.toString()}
     } catch (e) {
       debugPrint('Failed to publish exam template: $e');
     }
+  }
+
+  /// 進行家長/小孩帳號雙向連結綁定
+  Future<void> bindRelative(String relativeId) async {
+    await sendGuardianRequest(relativeId);
+  }
+
+  /// 發送親屬綁定申請
+  Future<void> sendGuardianRequest(String targetNudgeId) async {
+    final user = _currentUser;
+    if (user == null) return;
+    final targetNudgeIdUpper = targetNudgeId.trim().toUpperCase();
+    if (targetNudgeIdUpper.isEmpty) {
+      throw Exception('Nudge ID 不能為空');
+    }
+    if (targetNudgeIdUpper == _myNudgeId.toUpperCase()) {
+      throw Exception('不能與自己進行親屬綁定');
+    }
+    try {
+      // Find the user by username
+      final querySnap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: targetNudgeIdUpper)
+          .limit(1)
+          .get();
+      if (querySnap.docs.isEmpty) {
+        throw Exception('找不到該 Nudge ID 的使用者');
+      }
+      final receiverId = querySnap.docs.first.id;
+      final receiverNudgeId = querySnap.docs.first.data()['username'] as String? ?? '';
+
+      // Check if they are already linked with us
+      if (isGuardianLinked && guardianInvite?['relativeId'] == receiverNudgeId) {
+        throw Exception('雙方已處於綁定狀態');
+      }
+
+      // Check if there is already a pending request between us (outgoing)
+      final outgoingCheck = await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .where('senderId', isEqualTo: user.id)
+          .where('receiverId', isEqualTo: receiverId)
+          .where('status', isEqualTo: 'pending')
+          .get();
+      if (outgoingCheck.docs.isNotEmpty) {
+        throw Exception('已發送過綁定申請，請耐心等待對方同意');
+      }
+
+      // Check if there is a pending request from them to us (incoming)
+      final incomingCheck = await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .where('senderId', isEqualTo: receiverId)
+          .where('receiverId', isEqualTo: user.id)
+          .where('status', isEqualTo: 'pending')
+          .get();
+      if (incomingCheck.docs.isNotEmpty) {
+        // Auto-approve!
+        await approveGuardianRequest(incomingCheck.docs.first.id);
+        return;
+      }
+
+      // Create request doc
+      await FirebaseFirestore.instance.collection('guardian_requests').add({
+        'senderId': user.id,
+        'senderNudgeId': _myNudgeId,
+        'senderNickname': user.nickname,
+        'senderRole': _userRole,
+        'receiverId': receiverId,
+        'receiverNudgeId': receiverNudgeId,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Failed to send guardian request: $e');
+      rethrow;
+    }
+  }
+
+  /// 同意綁定申請
+  Future<void> approveGuardianRequest(String requestId) async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      await FirebaseFirestore.instance.collection('guardian_requests').doc(requestId).update({
+        'status': 'accepted',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to approve guardian request: $e');
+      rethrow;
+    }
+  }
+
+  /// 拒絕綁定申請
+  Future<void> declineGuardianRequest(String requestId) async {
+    try {
+      await FirebaseFirestore.instance.collection('guardian_requests').doc(requestId).update({
+        'status': 'declined',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to decline guardian request: $e');
+      rethrow;
+    }
+  }
+
+  /// 創建新團體 (房主身份，生成唯一團體 ID)
+  Future<void> createGroup(String name) async {
+    final randomId = 'GRP-${DateTime.now().millisecondsSinceEpoch % 100000}';
+    _groupId = randomId;
+    _groupName = name;
+    _isGroupOwner = true;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('group_id_setting', randomId);
+    await prefs.setString('group_name_setting', name);
+    await prefs.setBool('is_group_owner_setting', true);
+
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        await docRef.update({
+          'groupId': randomId,
+          'groupName': name,
+          'isGroupOwner': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Failed to sync created group to firestore: $e');
+      }
+    }
+  }
+
+  /// 加入已有的團體 (成員身份)
+  Future<void> joinGroup(String groupIdInput) async {
+    _groupId = groupIdInput;
+    _groupName = '自律小組';
+    _isGroupOwner = false;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('group_id_setting', groupIdInput);
+    await prefs.setString('group_name_setting', '自律小組');
+    await prefs.setBool('is_group_owner_setting', false);
+
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        await docRef.update({
+          'groupId': groupIdInput,
+          'groupName': '自律小組',
+          'isGroupOwner': false,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Failed to sync joined group to firestore: $e');
+      }
+    }
+  }
+
+  /// 退出或解散當前團體
+  Future<void> leaveGroup() async {
+    _groupId = null;
+    _groupName = null;
+    _isGroupOwner = false;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('group_id_setting');
+    await prefs.remove('group_name_setting');
+    await prefs.remove('is_group_owner_setting');
+
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        await docRef.update({
+          'groupId': FieldValue.delete(),
+          'groupName': FieldValue.delete(),
+          'isGroupOwner': FieldValue.delete(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Failed to sync leave group to firestore: $e');
+      }
+    }
+  }
+
+  void _setupGroupOwnerListener(String myUid, String groupId) {
+    if (_groupOwnerSubscription != null) return;
+    _groupOwnerSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .where('groupId', isEqualTo: groupId)
+        .where('isGroupOwner', isEqualTo: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final ownerData = snapshot.docs.first.data();
+        bool changed = false;
+        if (ownerData['webToolsState'] != null) {
+          final ownerState = Map<String, dynamic>.from(ownerData['webToolsState'] as Map);
+          _webToolsState ??= {};
+          if (ownerState['challenge'] != null) {
+            _webToolsState!['challenge'] = ownerState['challenge'];
+            changed = true;
+          }
+          if (ownerState['template'] != null) {
+            _webToolsState!['template'] = ownerState['template'];
+            changed = true;
+          }
+        }
+        if (ownerData['webToolsCollection'] != null) {
+          final ownerCollection = Map<String, dynamic>.from(ownerData['webToolsCollection'] as Map);
+          _webToolsCollection ??= {};
+          if (ownerCollection['studySchedules'] != null) {
+            _webToolsCollection!['studySchedules'] = ownerCollection['studySchedules'];
+            changed = true;
+          }
+        }
+        if (changed) {
+          notifyListeners();
+        }
+      }
+    }, onError: (e) {
+      debugPrint('Error listening to group owner: $e');
+    });
   }
 }

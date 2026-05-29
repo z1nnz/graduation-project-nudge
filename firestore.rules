@@ -48,6 +48,23 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ─── /guardian_requests/{requestId} ────────────────────────────────
+    match /guardian_requests/{requestId} {
+      allow read: if isAuth() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid
+      );
+      allow create: if isAuth()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isAuth()
+        && (
+          (resource.data.receiverId == request.auth.uid && request.resource.data.status in ['accepted', 'declined']) ||
+          (resource.data.senderId == request.auth.uid && request.resource.data.status == 'declined')
+        );
+      allow delete: if false;
+    }
+
     // ─── /rooms/{roomId} ─────────────────────────────────────────────
     // Study rooms: authenticated members can read rooms they belong to.
     // The 'memberIds' array field is used for efficient array-contains queries.

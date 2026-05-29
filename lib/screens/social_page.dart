@@ -15,10 +15,7 @@ import 'friends_page.dart';
 import 'leaderboard_page.dart';
 import 'my_profile_page.dart';
 import 'study_room_list_page.dart';
-import 'guardian_center_page.dart';
-import 'group_management_page.dart';
-import 'guardian_parent_page.dart';
-import 'group_manager_page.dart';
+
 
 class SocialPage extends StatelessWidget {
   const SocialPage({super.key});
@@ -151,33 +148,7 @@ class SocialPage extends StatelessWidget {
     );
   }
 
-  void _openGuardianCenter(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GuardianCenterPage()),
-    );
-  }
 
-  void _openGroupManagement(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GroupManagementPage()),
-    );
-  }
-
-  void _openGuardianParent(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GuardianParentPage()),
-    );
-  }
-
-  void _openGroupManager(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GroupManagerPage()),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -387,34 +358,7 @@ class SocialPage extends StatelessWidget {
                 color: accentColor,
                 onTap: () => _openEncouragement(context),
               ),
-              if (appState.userRole == 'parent')
-                _QuickActionCard(
-                  icon: Icons.family_restroom_outlined,
-                  title: '家長陪伴(管理端)',
-                  color: accentColor,
-                  onTap: () => _openGuardianParent(context),
-                )
-              else if (appState.userRole == 'group_manager')
-                _QuickActionCard(
-                  icon: Icons.business_center_outlined,
-                  title: '團體與教育(管理端)',
-                  color: accentColor,
-                  onTap: () => _openGroupManager(context),
-                )
-              else ...[
-                _QuickActionCard(
-                  icon: Icons.family_restroom_outlined,
-                  title: '家長陪伴中心',
-                  color: accentColor,
-                  onTap: () => _openGuardianCenter(context),
-                ),
-                _QuickActionCard(
-                  icon: Icons.business_center_outlined,
-                  title: '團體與教育',
-                  color: accentColor,
-                  onTap: () => _openGroupManagement(context),
-                ),
-              ],
+
             ],
           ),
 
@@ -655,33 +599,7 @@ class _SocialActivityPage extends StatelessWidget {
     );
   }
 
-  void _openGuardianCenter(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GuardianCenterPage()),
-    );
-  }
 
-  void _openGroupManagement(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GroupManagementPage()),
-    );
-  }
-
-  void _openGuardianParent(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GuardianParentPage()),
-    );
-  }
-
-  void _openGroupManager(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const GroupManagerPage()),
-    );
-  }
 
   void _openPublicProfile(BuildContext context, FriendData data) {
     Navigator.push(
@@ -708,7 +626,6 @@ class _SocialActivityPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
     final primaryText = AppUI.textPrimaryOf(context);
 
     return Scaffold(
@@ -831,38 +748,7 @@ class _SocialActivityPage extends StatelessWidget {
                 color: AppUI.purple,
                 onTap: () => _openEncouragement(context),
               ),
-              if (appState.userRole == 'parent')
-                _ActivityMetricCard(
-                  icon: Icons.family_restroom_outlined,
-                  label: '家長陪伴',
-                  value: '管理端',
-                  color: accentColor,
-                  onTap: () => _openGuardianParent(context),
-                )
-              else
-                _ActivityMetricCard(
-                  icon: Icons.family_restroom_outlined,
-                  label: '家長陪伴',
-                  value: '陪伴中心',
-                  color: accentColor,
-                  onTap: () => _openGuardianCenter(context),
-                ),
-              if (appState.userRole == 'group_manager')
-                _ActivityMetricCard(
-                  icon: Icons.business_center_outlined,
-                  label: '團體/教育',
-                  value: '管理端',
-                  color: accentColor,
-                  onTap: () => _openGroupManager(context),
-                )
-              else
-                _ActivityMetricCard(
-                  icon: Icons.business_center_outlined,
-                  label: '團體/教育',
-                  value: '教育管理',
-                  color: accentColor,
-                  onTap: () => _openGroupManagement(context),
-                ),
+
             ],
           ),
           const SizedBox(height: AppUI.sectionGap),

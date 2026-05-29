@@ -10,13 +10,13 @@ class RolePill extends StatelessWidget {
   final VoidCallback onTap;
 
   const RolePill({
+    super.key,
     required this.label,
     required this.role,
     required this.activeRole,
     required this.accentColor,
     required this.onTap,
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

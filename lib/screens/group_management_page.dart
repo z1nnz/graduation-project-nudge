@@ -260,16 +260,22 @@ class GroupManagementPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      final appState = context.read<AppState>();
+                      await appState.joinGroupChallengeAsTask();
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('已成功參與 $group 的「$days日$type」！')),
+                        SnackBar(
+                          content: Text('已成功參與挑戰，$days 天任務已匯入清單 🎯'),
+                          duration: const Duration(seconds: 3),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accentColor,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('參與挑戰'),
+                    child: const Text('參與挑戰並匯入任務'),
                   ),
                 ),
               ],

@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import 'my_profile_page.dart';
+import '../widgets/avatar_icon_preview.dart';
 
 /// The Account tab — shows sign-in / sign-up UI when not logged in,
 /// and account management when logged in.
@@ -173,48 +175,93 @@ class _AccountPageState extends State<AccountPage>
     return ListView(
       padding: const EdgeInsets.all(AppUI.pagePadding),
       children: [
-        // Hero card
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: AppUI.heroGradient(accent),
-          child: Row(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.verified_user_rounded,
-                    color: Colors.white, size: 30),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('已登入',
-                        style: TextStyle(
+        // Hero card (Edit profile card)
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          shape: AppUI.cardShape(),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyProfilePage()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: AppUI.heroGradient(accent),
+              child: Row(
+                children: [
+                  AvatarIconPreview(
+                    index: appState.avatarProfile.avatarIconIndex,
+                    size: 64,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                appState.profileNickname,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white70,
+                              size: 24,
+                            ),
+                          ],
+                        ),
+                        if (appState.profileTitle.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                            ),
+                            child: Text(
+                              appState.profileTitle,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 6),
+                        Text(
+                          appState.profileSignature.isEmpty
+                              ? '今天也在穩定前進'
+                              : appState.profileSignature,
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Text(appState.profileNickname,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 4),
-                    Text(appState.accountProviderLabel,
-                        style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
-                  ],
-                ),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
         const SizedBox(height: AppUI.cardGap),
@@ -238,7 +285,7 @@ class _AccountPageState extends State<AccountPage>
                   ),
                   const SizedBox(width: 8),
                   _RolePill(
-                    label: '學生/孩子',
+                    label: '孩子端',
                     role: 'child',
                     activeRole: appState.userRole,
                     accentColor: accent,
@@ -251,18 +298,18 @@ class _AccountPageState extends State<AccountPage>
                 children: [
                   _RolePill(
                     label: '家長端',
-                    role: 'parent',
+                    role: 'guardian',
                     activeRole: appState.userRole,
                     accentColor: accent,
-                    onTap: () => appState.setUserRole('parent'),
+                    onTap: () => appState.setUserRole('guardian'),
                   ),
                   const SizedBox(width: 8),
                   _RolePill(
-                    label: '團體管理',
-                    role: 'group_manager',
+                    label: '團體/企業',
+                    role: 'group',
                     activeRole: appState.userRole,
                     accentColor: accent,
-                    onTap: () => appState.setUserRole('group_manager'),
+                    onTap: () => appState.setUserRole('group'),
                   ),
                 ],
               ),

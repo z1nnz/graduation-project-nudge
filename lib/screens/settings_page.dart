@@ -275,7 +275,7 @@ class SettingsPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     RolePill(
-                      label: '學生/孩子',
+                      label: '孩子端',
                       role: 'child',
                       activeRole: appState.userRole,
                       accentColor: accentColor,
@@ -288,10 +288,10 @@ class SettingsPage extends StatelessWidget {
                   children: [
                     RolePill(
                       label: '家長端',
-                      role: 'parent',
+                      role: 'guardian',
                       activeRole: appState.userRole,
                       accentColor: accentColor,
-                      onTap: () => appState.setUserRole('parent'),
+                      onTap: () => appState.setUserRole('guardian'),
                     ),
                     const SizedBox(width: 8),
                     RolePill(

@@ -279,17 +279,21 @@ class GuardianCenterPage extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      appState.acceptGuardianInvite();
+                    onPressed: () async {
+                      await appState.acceptParentGoalAsTask();
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('已成功接受家長陪伴連結！')),
+                        const SnackBar(
+                          content: Text('已接受陪伴連結，共同目標已匯入任務清單 ✅'),
+                          duration: Duration(seconds: 3),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accentColor,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('同意連結'),
+                    child: const Text('同意並匯入目標'),
                   ),
                 ),
               ],
