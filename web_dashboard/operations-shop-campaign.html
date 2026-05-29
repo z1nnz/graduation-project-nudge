@@ -14,7 +14,15 @@
         <section class="tool-panel page-section" style="margin-top: 2rem;">
           <div class="tool-copy">
             <span class="eyebrow">Live Operations</span>
-            <h2>目前上架中商品 (自動過濾過期)    </div><script src="assets/app.js?v=2"></script>
+            <h2>目前上架中商品 (自動過濾過期)</h2>
+          </div>
+          <div id="active-items-list" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;">
+            <p>正在載入商品...</p>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js?v=2"></script>
     <script>
       function toggleDays() {
         const type = document.getElementById('shop-item-type').value;
@@ -242,6 +250,7 @@
           alert('伺服器錯誤，請確認後端已啟動。');
           console.error(error);
         }
+      });
     </script>
   </body>
 </html>
