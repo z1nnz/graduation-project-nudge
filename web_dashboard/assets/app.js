@@ -3,7 +3,7 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 
 const modules = [
   ["home", "總覽入口", "index.html"],
-  ["personal", "個人頁面", "personal.html"],
+  ["personal", "個人進階分析", "personal.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
   ["operations", "商城頁", "operations.html"],
@@ -1944,7 +1944,12 @@ function getOrCreateSidePanel() {
   if (!panel) {
     const sidebar = $(".sidebar");
     if (sidebar) {
-      sidebar.insertAdjacentHTML('beforeend', '<section class="side-panel"></section>');
+      const brandHeader = sidebar.querySelector(".sidebar-header-row") || sidebar.querySelector(".brand");
+      if (brandHeader) {
+        brandHeader.insertAdjacentHTML('afterend', '<section class="side-panel" style="margin-top: 14px; margin-bottom: 14px;"></section>');
+      } else {
+        sidebar.insertAdjacentHTML('afterbegin', '<section class="side-panel" style="margin-top: 14px; margin-bottom: 14px;"></section>');
+      }
       panel = $(".side-panel");
     }
   }
