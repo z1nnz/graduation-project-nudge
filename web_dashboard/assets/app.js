@@ -4,7 +4,6 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 const modules = [
   ["home", "總覽入口", "index.html"],
   ["personal", "個人進階分析", "personal.html"],
-  ["profile", "個人名片", "profile.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
   ["operations", "商城頁", "operations.html"],
@@ -12,6 +11,7 @@ const modules = [
   ["friend", "好友功能", "friend.html"],
   ["planet", "自律星球", "planet.html"],
   ["presentation", "專題發表流程", "presentation.html"],
+  ["profile", "個人名片", "profile.html"],
 ];
 
 // Authentication Check
@@ -2029,51 +2029,45 @@ function checkPagePermissions(data) {
     }
   });
 
-  if (isGuardianPage && userRole !== "guardian") {
-    // 角色不符：跳出毛玻璃遮罩
-    showGatekeeperOverlay(
-      "🛡️",
-      "家長陪伴中心專屬",
-      `您目前的自律身分是【${getRoleLabel(userRole)}】，本頁面僅供家長身分存取。請點擊下方按鈕或透過側邊欄切換為「家長模式」以啟用共同目標、每週報告與鼓勵系統。`,
-      "guardian"
-    );
-  } else if (isGroupsPage && !["group", "enterprise", "tutor", "school"].includes(userRole)) {
+  // For guardian and groups pages, always allow access.
+  // Show setup card at top if not connected, allow preview of features.
+  if (isGuardianPage) {
+    const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
+    if (!isLinked) {
+      // Show binding card at the top without hiding main content
+      if (!document.getElementById("webBindingGatedCard")) {
+        showWebRelativeBindingCard(true);
+      }
+    } else {
+      // Remove the binding card if now linked
+      const existingCard = document.getElementById("webBindingGatedCard");
+      if (existingCard) existingCard.remove();
+      // Show linked status banner
+      if (!document.getElementById("webGuardianLinkedBanner")) {
+        showGuardianLinkedBanner(data);
+      }
+    }
+    return;
+  }
+  
+  if (isGroupsPage) {
+    const hasGroup = !!data.groupId;
     if (window.location.pathname.includes("groups-creation.html")) {
       renderWebGroupCreationPage(data);
+      return;
+    }
+    if (!hasGroup) {
+      // Show binding card at top without hiding content
+      if (!document.getElementById("webBindingGatedCard")) {
+        showWebGroupBindingCard(true);
+      }
     } else {
-      // 角色不符：跳出毛玻璃遮罩
-      showGatekeeperOverlay(
-        "👥",
-        "團體與教育管理端專屬",
-        `您目前的自律身分是【${getRoleLabel(userRole)}】，本頁面僅供團體、學校、企業或補習班管理人員存取。請切換為對應模式以建立挑戰、規劃讀書時段或發佈學業大考任務模板。`,
-        "group"
-      );
+      // Remove binding card if now in group
+      const existingCard = document.getElementById("webBindingGatedCard");
+      if (existingCard) existingCard.remove();
+      renderWebGroupInfo(data);
     }
-  } else {
-    // 角色符合：檢查是否完成前置綁定
-    if (isGuardianPage && userRole === "guardian") {
-      const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
-      if (!isLinked) {
-        // 隱藏主體內容，插入親屬綁定卡片
-        document.querySelectorAll(".main > section, .main > div:not(.hero), .main > a").forEach(el => {
-          el.style.display = "none";
-        });
-        showWebRelativeBindingCard();
-      }
-    } else if (isGroupsPage && ["group", "enterprise", "tutor", "school"].includes(userRole)) {
-      const hasGroup = !!data.groupId;
-      if (window.location.pathname.includes("groups-creation.html")) {
-        renderWebGroupCreationPage(data);
-      } else if (!hasGroup) {
-        // 隱藏主體內容，插入團體綁定卡片
-        document.querySelectorAll(".main > section, .main > div:not(.hero), .main > a").forEach(el => {
-          el.style.display = "none";
-        });
-        showWebGroupBindingCard();
-      } else {
-        renderWebGroupInfo(data);
-      }
-    }
+    return;
   }
 }
 
@@ -2429,24 +2423,35 @@ function renderRequestsList() {
   }
 }
 
-function showWebRelativeBindingCard() {
+function showWebRelativeBindingCard(atTop) {
   const main = document.querySelector(".main");
   if (!main || document.getElementById("webBindingGatedCard")) return;
 
   const cardHtml = `
-    <div id="webBindingGatedCard" class="web-binding-gated-wrapper">
+    <div id="webBindingGatedCard" class="web-binding-gated-wrapper" style="margin-bottom: 24px;">
       <h2>🛡️ 親屬帳號連結</h2>
-      <p id="webBindingDesc">為了查閱對方的專注、睡眠與健康數據牆，請先與對方進行親屬綁定。請在下方輸入您對方的 Nudge ID 發送申請，或在列表處理待同意的申請：</p>
+      <p id="webBindingDesc">您還未與家人進行親屬綁定。請在下方輸入對方的 Nudge ID 發送申請，或在列表處理待同意的申請。連結後即可查看對方專注、睡眠與健康數據。</p>
       
       <div id="webRequestsContainer" style="margin-bottom: 20px;"></div>
 
       <div id="webBindingForm" class="web-binding-form">
-        <input type="text" id="webRelativeIdInput" class="web-binding-input" placeholder="輸入對方的 Nudge ID (例如: child_123)">
+        <input type="text" id="webRelativeIdInput" class="web-binding-input" placeholder="輸入對方的 Nudge ID (例如: NDG_XXXXXX)">
         <button id="webRelativeBindBtn" class="role-gatekeeper-btn" style="width: 100%;">發送綁定申請</button>
       </div>
     </div>
   `;
-  main.insertAdjacentHTML("beforeend", cardHtml);
+  
+  if (atTop) {
+    // Insert at the very top of main, before any existing sections
+    const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
+    if (firstSection) {
+      firstSection.insertAdjacentHTML("beforebegin", cardHtml);
+    } else {
+      main.insertAdjacentHTML("afterbegin", cardHtml);
+    }
+  } else {
+    main.insertAdjacentHTML("beforeend", cardHtml);
+  }
 
   document.getElementById("webRelativeBindBtn")?.addEventListener("click", () => {
     const relativeInput = document.getElementById("webRelativeIdInput");
@@ -2461,14 +2466,33 @@ function showWebRelativeBindingCard() {
   renderRequestsList();
 }
 
-function showWebGroupBindingCard() {
+function showGuardianLinkedBanner(data) {
+  const main = document.querySelector(".main");
+  if (!main) return;
+  const relativeId = data.webToolsState?.guardianInvite?.relativeId || "";
+  const banner = document.createElement("div");
+  banner.id = "webGuardianLinkedBanner";
+  banner.style.cssText = "background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; justify-content: space-between;";
+  banner.innerHTML = `
+    <div><span style="font-size: 18px; margin-right: 10px;">✅</span><strong style="color: #10b981;">已與 ${relativeId} 連結</strong><span style="color: var(--muted); font-size: 13px; margin-left: 12px;">家長共同目標、每週報告與鼓勵功能均已啟用</span></div>
+    <button onclick="toast('解除連結功能請在 App 端操作')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 10px; padding: 6px 14px; font-weight: 700; cursor: pointer; font-size: 13px;">解除親屬連結</button>
+  `;
+  const firstSection = main.querySelector("section, .page-section");
+  if (firstSection) {
+    firstSection.insertAdjacentElement("beforebegin", banner);
+  } else {
+    main.insertAdjacentElement("afterbegin", banner);
+  }
+}
+
+function showWebGroupBindingCard(atTop) {
   const main = document.querySelector(".main");
   if (!main || document.getElementById("webBindingGatedCard")) return;
 
   const cardHtml = `
-    <div id="webBindingGatedCard" class="web-binding-gated-wrapper">
-      <h2>👥 團體自律組織關聯</h2>
-      <p>請先創建新的自律團體（獲取最高房主權限並生成團體 ID），或輸入已有組織 ID 加入，以解鎖後續功能：</p>
+    <div id="webBindingGatedCard" class="web-binding-gated-wrapper" style="margin-bottom: 24px;">
+      <h2>👥 團體自律組織連結</h2>
+      <p>請先創建新的自律團體（獲取最高房主權限並生成團體 ID），或輸入已有組織 ID 加入，以解鎖專注挑戰、共同目標等功能：</p>
       <div class="web-binding-form" style="margin-bottom: 24px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 24px;">
         <input type="text" id="webGroupNameInput" class="web-binding-input" placeholder="輸入要創建的團體名稱 (例如: 皇家自律班)">
         <button id="webGroupCreateBtn" class="role-gatekeeper-btn" style="width: 100%;">創建新團體並獲取房主權限</button>
@@ -2479,7 +2503,17 @@ function showWebGroupBindingCard() {
       </div>
     </div>
   `;
-  main.insertAdjacentHTML("beforeend", cardHtml);
+  
+  if (atTop) {
+    const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
+    if (firstSection) {
+      firstSection.insertAdjacentHTML("beforebegin", cardHtml);
+    } else {
+      main.insertAdjacentHTML("afterbegin", cardHtml);
+    }
+  } else {
+    main.insertAdjacentHTML("beforeend", cardHtml);
+  }
 
   document.getElementById("webGroupCreateBtn")?.addEventListener("click", () => {
     const nameInput = document.getElementById("webGroupNameInput");
@@ -3054,6 +3088,30 @@ function syncGroupOwnerDataToLocal(ownerData) {
 function listenToUser(userId) {
   if (!db) return;
   listenToRequests(userId);
+  
+  // Check if profile page is viewing a friend's profile
+  if (document.body.dataset.page === "profile") {
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewUserId = urlParams.get('userId');
+    const viewNudgeId = urlParams.get('nudgeId');
+    
+    if (viewUserId && viewUserId !== userId) {
+      // Load friend profile by UID
+      db.collection("users").doc(viewUserId).get().then(snap => {
+        if (snap.exists) {
+          try { renderWebProfilePage(snap.data(), true); } catch(e) { console.error("Friend profile render error:", e); }
+        }
+      });
+    } else if (viewNudgeId) {
+      // Load friend profile by Nudge ID
+      db.collection("users").where("myNudgeId", "==", viewNudgeId.toUpperCase()).limit(1).get().then(snap => {
+        if (!snap.empty) {
+          const friendDoc = snap.docs[0];
+          try { renderWebProfilePage(friendDoc.data(), true, friendDoc.id); } catch(e) { console.error("Friend profile render error:", e); }
+        }
+      });
+    }
+  }
   db.collection("users").doc(userId).onSnapshot((docSnap) => {
     if (!docSnap.exists) return;
     const data = docSnap.data();
@@ -3061,7 +3119,17 @@ function listenToUser(userId) {
     updateSidebarProfile(data);
 
     if (document.body.dataset.page === "profile") {
-      try { renderWebProfilePage(data); } catch(e) { console.error("Profile page render error:", e); }
+      // Check if we're viewing own profile or a friend's profile via query params
+      const urlParams = new URLSearchParams(window.location.search);
+      const viewUserId = urlParams.get('userId');
+      const viewNudgeId = urlParams.get('nudgeId');
+      
+      if ((viewUserId && viewUserId !== userId) || viewNudgeId) {
+        // Visitor mode: load friend's profile from Firestore (handled separately below)
+        // Don't overwrite own data into profile page
+      } else {
+        try { renderWebProfilePage(data, false); } catch(e) { console.error("Profile page render error:", e); }
+      }
     }
 
     // Guardian-child sync
@@ -3841,7 +3909,7 @@ function showWebProfileEditModal(data) {
   overlay.classList.add("active");
 }
 
-function renderWebProfilePage(data) {
+function renderWebProfilePage(data, isFriend, friendUid) {
   const nickname = data.nickname || "自律使用者";
   const signature = data.signature || "今天也在穩定前進";
   const nudgeId = data.myNudgeId || data.username || "NDG-Guest";
@@ -3988,11 +4056,49 @@ function renderWebProfilePage(data) {
     badgesGrid.innerHTML = html;
   }
 
-  // Edit card button
+  // Edit card button and planet jump button
   const editBtn = document.getElementById("profileEditCardBtn");
-  if (editBtn) {
-    // Rebind listener safely
-    editBtn.onclick = () => showWebProfileEditModal(data);
+  const likeBtn = document.getElementById("profileLikeBtn");
+  const jumpPlanetBtn = document.getElementById("profileJumpPlanetBtn");
+  const visitorBanner = document.getElementById("profileVisitorBanner");
+  const createPostCard = document.querySelector(".fb-create-post-card");
+
+  if (isFriend) {
+    // Visitor mode: hide edit, show like, show visitor banner
+    if (editBtn) editBtn.style.display = "none";
+    if (likeBtn) {
+      likeBtn.style.display = "inline-flex";
+      likeBtn.onclick = function() {
+        this.textContent = "✅ 已按讚";
+        this.disabled = true;
+        this.style.opacity = "0.6";
+        toast("👍 已給 " + (data.nickname || "這位使用者") + " 按讚！");
+      };
+    }
+    if (createPostCard) createPostCard.style.display = "none";
+    if (visitorBanner) {
+      visitorBanner.style.display = "block";
+      const visitorName = document.getElementById("profileVisitorName");
+      if (visitorName) visitorName.textContent = data.nickname || "自律使用者";
+    }
+    if (jumpPlanetBtn) {
+      jumpPlanetBtn.onclick = () => {
+        const uid = friendUid || (new URLSearchParams(window.location.search)).get('userId') || '';
+        window.location.href = uid ? `planet.html?userId=${uid}` : 'planet.html';
+      };
+    }
+  } else {
+    // Own profile mode: show edit, hide like, hide visitor banner
+    if (editBtn) {
+      editBtn.style.display = "inline-flex";
+      editBtn.onclick = () => showWebProfileEditModal(data);
+    }
+    if (likeBtn) likeBtn.style.display = "none";
+    if (createPostCard) createPostCard.style.display = "flex";
+    if (visitorBanner) visitorBanner.style.display = "none";
+    if (jumpPlanetBtn) {
+      jumpPlanetBtn.onclick = () => { window.location.href = 'planet.html'; };
+    }
   }
 
   // Dynamic Timeline Feed

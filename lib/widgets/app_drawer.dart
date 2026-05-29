@@ -3,10 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
-import '../screens/statistics_page.dart';
-import '../screens/today_advice_page.dart';
+import '../screens/personal_analysis_page.dart';
 import '../screens/daily_records_page.dart';
-import '../screens/weekly_report_page.dart';
 import '../screens/badges_page.dart';
 import '../screens/settings_page.dart';
 import '../screens/about_page.dart';
@@ -223,16 +221,6 @@ class AppDrawer extends StatelessWidget {
                   _drawerSectionLabel(context, '今天行動'),
                   _drawerItem(
                     context: context,
-                    icon: Icons.tips_and_updates_outlined,
-                    title: '今日建議',
-                    onTap: () => _openPage(
-                      context,
-                      TodayAdvicePage(onOpenTasks: onOpenTasks),
-                    ),
-                    accentColor: accentColor,
-                  ),
-                  _drawerItem(
-                    context: context,
                     icon: Icons.notifications_active_outlined,
                     title: '提醒中心',
                     onTap: () => _openPage(context, const ReminderCenterPage()),
@@ -256,16 +244,9 @@ class AppDrawer extends StatelessWidget {
                   _drawerSectionLabel(context, '回顧分析'),
                   _drawerItem(
                     context: context,
-                    icon: Icons.bar_chart_rounded,
-                    title: '統計分析',
-                    onTap: () => _openPage(context, const StatisticsPage()),
-                    accentColor: accentColor,
-                  ),
-                  _drawerItem(
-                    context: context,
-                    icon: Icons.assessment_outlined,
-                    title: '每週報告',
-                    onTap: () => _openPage(context, const WeeklyReportPage()),
+                    icon: Icons.analytics_outlined,
+                    title: '個人進階分析',
+                    onTap: () => _openPage(context, const PersonalAnalysisPage()),
                     accentColor: accentColor,
                   ),
                   _drawerItem(

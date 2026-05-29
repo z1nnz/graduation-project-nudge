@@ -29,12 +29,11 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
-    final nickname = _nicknameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (nickname.isEmpty || email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       setState(() {
         _errorMessage = '請填寫所有必要欄位';
       });
@@ -62,7 +61,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     try {
       final appState = context.read<AppState>();
-      await appState.signUpWithEmailAndPassword(email, password, nickname);
+      await appState.signUpWithEmailAndPassword(email, password, "自律使用者");
       // Success will pop this page and navigate to main shell in AppRoot
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -158,17 +157,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                  // Nickname Field
-                  TextField(
-                    controller: _nicknameController,
-                    keyboardType: TextInputType.text,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: '自律暱稱',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   // Email Field
                   TextField(
                     controller: _emailController,

@@ -431,7 +431,7 @@
         
         container.innerHTML = friends.map(f => {
           return `
-            <div class="friend-list-item" onclick="showFriendDetail('${f.id}')">
+            <div class="friend-list-item" onclick="window.location.href='profile.html?userId=${f.id}'" style="cursor: pointer;">
               <div class="friend-avatar" style="background: ${f.avatarColor}22; color: ${f.avatarColor};">
                 <div class="friend-lv-badge">Lv.${Math.floor(f.prosperity/10) + 1}</div>
                 ${f.avatar}
@@ -449,7 +449,7 @@
               </div>
               <div class="friend-meta">
                 <span class="friend-last-login">${f.isStudying ? "🟢 線上專注中" : "⚪ 離線"}</span>
-                <button class="button primary" style="padding: 6px 16px; font-size: 13px; min-height: auto;">參觀星球</button>
+                <button class="button primary" style="padding: 6px 16px; font-size: 13px; min-height: auto;" onclick="event.stopPropagation(); window.location.href='planet.html?userId=${f.id}'">參觀星球</button>
               </div>
             </div>
           `;
@@ -594,7 +594,7 @@
 
           let actionHtml = '';
           if (isFriend) {
-            actionHtml = `<span style="color: #10b981; font-weight: 800;">✓ 已是好友</span>`;
+            actionHtml = `<span style="color: #10b981; font-weight: 800;">✓ 已是好友</span><button class="button" onclick="window.location.href='profile.html?userId=${targetId}'" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           } else if (isRequestSent) {
             actionHtml = `<span style="color: #60a5fa; font-weight: 800;">⏱ 已發送好友申請</span>`;
           } else if (isIncomingPending) {
@@ -604,7 +604,7 @@
           }
 
           resultsContainer.innerHTML = `
-            <div class="friend-list-item" style="cursor: default; margin-top: 15px;">
+            <div class="friend-list-item" style="cursor: default; margin-top: 15px;" onclick="window.location.href='profile.html?userId=${targetId}'" style="cursor:pointer;">
               <div class="friend-avatar" style="background: ${avatarColor}22; color: ${avatarColor};">
                 ${avatar}
               </div>
@@ -622,6 +622,8 @@
               </div>
             </div>
           `;
+
+
 
         } catch (err) {
           console.error("Search failed:", err);

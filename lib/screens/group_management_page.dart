@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import 'study_room_list_page.dart';
+import 'group_manager_page.dart';
 
 class GroupManagementPage extends StatelessWidget {
   const GroupManagementPage({super.key});
@@ -65,7 +66,45 @@ class GroupManagementPage extends StatelessWidget {
           ),
           const SizedBox(height: AppUI.sectionGap),
 
-          // ─── 團體挑戰 ──────────────────────────────────────────────
+          // ─── 房主控制台入口（僅房主可見）───────────────────────────────
+          if (appState.isGroupOwner) ...[            
+            InkWell(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GroupManagerPage())),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [accentColor.withValues(alpha: 0.25), accentColor.withValues(alpha: 0.10)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.admin_panel_settings_outlined, color: accentColor, size: 26),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('管理者控制台', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: accentColor)),
+                          const SizedBox(height: 2),
+                          Text('發布挑戰、讀書時段與考試模板', style: TextStyle(fontSize: 12, color: primaryText.withValues(alpha: 0.6))),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: 16, color: accentColor.withValues(alpha: 0.7)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppUI.sectionGap),
+          ],
+
+
           Row(
             children: [
               const Icon(Icons.emoji_events_outlined, color: AppUI.orange),

@@ -225,8 +225,8 @@ class HomePage extends StatelessWidget {
                           isDark: isDark,
                         ),
                         _QuickActionCard(
-                          icon: Icons.analytics_outlined,
-                          title: '孩子週報',
+                          icon: Icons.favorite_outline,
+                          title: '鼓勵發送',
                           onTap: () {
                             Navigator.push(
                               context,

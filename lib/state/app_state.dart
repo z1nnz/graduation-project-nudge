@@ -184,6 +184,18 @@ class AppState extends ChangeNotifier {
         _groupName = data['groupName'] as String?;
         _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
         _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? '';
+        if (data['backgroundTheme'] != null) {
+          final bt = data['backgroundTheme'] as String;
+          if (AppUI.backgroundThemeKeys.contains(bt)) {
+            _backgroundThemeSetting = bt;
+          }
+        }
+        if (data['focusSeconds'] != null) {
+          final cloudFocusSeconds = data['focusSeconds'] as int;
+          if (cloudFocusSeconds > _focusSeconds) {
+            _focusSeconds = cloudFocusSeconds;
+          }
+        }
         
         if (_groupId != null && !_isGroupOwner) {
           _setupGroupOwnerListener(user.uid, _groupId!);
@@ -496,15 +508,23 @@ class AppState extends ChangeNotifier {
         'myNudgeId': _myNudgeId,
         'themeMode': _themeModeSetting,
         'accentColor': _iconColorSetting,
+        'backgroundTheme': _backgroundThemeSetting,
         'profileTitleBadgeKey': _profileTitleBadgeKey,
         'disciplineCoins': _disciplineCoins,
         'planetCount': _planetCount,
         'weeklyPlanetEarned': _weeklyPlanetEarned,
+        'focusSeconds': _focusSeconds, // ← synced for web dashboard real-time stats
         'avatarProfile': _avatarProfile.toJson(),
         'unlockedAvatarItems': _unlockedAvatarItemKeys.toList(),
         'tasks': _tasks,
         'dailySummaries': _dailySummaries.map((s) => s.toJson()).toList(),
         'unlockedBadgeDates': _unlockedBadgeDates,
+        'userRole': _userRole,
+        'groupId': _groupId,
+        'groupName': _groupName,
+        'isGroupOwner': _isGroupOwner,
+        'webToolsState': _webToolsState,
+        'webToolsCollection': _webToolsCollection,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -559,6 +579,21 @@ class AppState extends ChangeNotifier {
         _iconColorSetting = data['accentColor'] as String? ?? _iconColorSetting;
         _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? _profileTitleBadgeKey;
         _userRole = data['userRole'] as String? ?? _userRole;
+        // Restore background theme across devices
+        if (data['backgroundTheme'] != null) {
+          final bt = data['backgroundTheme'] as String;
+          if (AppUI.backgroundThemeKeys.contains(bt)) {
+            _backgroundThemeSetting = bt;
+          }
+        }
+        // Restore today's focus seconds
+        if (data['focusSeconds'] != null) {
+          final cloudFocusSeconds = data['focusSeconds'] as int;
+          // Only restore if cloud data is more recent (higher value) — avoids overwriting fresh session
+          if (cloudFocusSeconds > _focusSeconds) {
+            _focusSeconds = cloudFocusSeconds;
+          }
+        }
         notifyListeners();
 
         // Also save locally so that it matches
@@ -3735,6 +3770,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await _saveAppearanceSettings();
     await _saveCurrentUser();
+    await syncDataToFirestore();
   }
 
   Future<void> signInWithEmailAndPassword(String email, String password) async {
@@ -3874,6 +3910,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await _saveAppearanceSettings();
     await _saveStudyRooms();
+    await syncDataToFirestore();
   }
 
   Future<void> updateAvatarIconIndex(int index) async {
@@ -3882,6 +3919,7 @@ class AppState extends ChangeNotifier {
     _normalizeAvatarProfileForCatalog();
     notifyListeners();
     await _saveAppearanceSettings();
+    await syncDataToFirestore();
   }
 
   SocialFriendProfile? getSocialFriendById(String id) {

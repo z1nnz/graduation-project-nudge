@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import 'my_profile_page.dart';
+import 'settings_page.dart';
 import '../widgets/avatar_icon_preview.dart';
 
 /// The Account tab — shows sign-in / sign-up UI when not logged in,
@@ -77,12 +78,7 @@ class _AccountPageState extends State<AccountPage>
     }
 
     if (_mode == _AuthMode.signUp) {
-      final nickname = _nicknameCtrl.text.trim();
       final confirm = _confirmCtrl.text.trim();
-      if (nickname.isEmpty) {
-        setState(() => _error = '請填寫自律暱稱');
-        return;
-      }
       if (password != confirm) {
         setState(() => _error = '兩次密碼輸入不一致');
         return;
@@ -103,7 +99,7 @@ class _AccountPageState extends State<AccountPage>
         await appState.signInWithEmailAndPassword(email, password);
       } else {
         await appState.signUpWithEmailAndPassword(
-            email, password, _nicknameCtrl.text.trim());
+            email, password, "自律使用者");
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -385,52 +381,32 @@ class _AccountPageState extends State<AccountPage>
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
-              // Role Switcher Card
+              // Current Role Display (read-only; switch roles in Settings)
               _InfoCard(
-                title: '切換自律角色身份',
-                subtitle: '切換不同的模式以使用對應的自律中心或控制台',
+                title: '目前自律角色身份',
+                subtitle: '如需切換模式，請前往「設定」頁面進行更改',
                 icon: Icons.swap_horizontal_circle_outlined,
                 accentColor: accent,
-                child: Column(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        _RolePill(
-                          label: '個人模式',
-                          role: 'personal',
-                          activeRole: appState.userRole,
-                          accentColor: accent,
-                          onTap: () => appState.setUserRole('personal'),
-                        ),
-                        const SizedBox(width: 8),
-                        _RolePill(
-                          label: '孩子端',
-                          role: 'child',
-                          activeRole: appState.userRole,
-                          accentColor: accent,
-                          onTap: () => appState.setUserRole('child'),
-                        ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: accent.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        _getRoleLabel(appState.userRole),
+                        style: TextStyle(color: accent, fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _RolePill(
-                          label: '家長端',
-                          role: 'guardian',
-                          activeRole: appState.userRole,
-                          accentColor: accent,
-                          onTap: () => appState.setUserRole('guardian'),
-                        ),
-                        const SizedBox(width: 8),
-                        _RolePill(
-                          label: '團體/企業',
-                          role: 'group',
-                          activeRole: appState.userRole,
-                          accentColor: accent,
-                          onTap: () => appState.setUserRole('group'),
-                        ),
-                      ],
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())),
+                      icon: const Icon(Icons.settings_outlined, size: 16),
+                      label: const Text('前往設定'),
+                      style: TextButton.styleFrom(foregroundColor: accent),
                     ),
                   ],
                 ),
@@ -629,17 +605,6 @@ class _AccountPageState extends State<AccountPage>
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Nickname (sign up only)
-              if (_mode == _AuthMode.signUp) ...[
-                _Field(
-                  controller: _nicknameCtrl,
-                  label: '自律暱稱',
-                  icon: Icons.person_outline_rounded,
-                  action: TextInputAction.next,
-                ),
-                const SizedBox(height: 14),
-              ],
 
               // Email
               _Field(
@@ -1060,52 +1025,15 @@ class _SyncChip extends StatelessWidget {
   }
 }
 
-class _RolePill extends StatelessWidget {
-  final String label;
-  final String role;
-  final String activeRole;
-  final Color accentColor;
-  final VoidCallback onTap;
-
-  const _RolePill({
-    required this.label,
-    required this.role,
-    required this.activeRole,
-    required this.accentColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = role == activeRole;
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected
-                ? accentColor.withValues(alpha: 0.12)
-                : AppUI.surfaceVariantOf(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? accentColor : Theme.of(context).dividerColor,
-              width: selected ? 1.6 : 1,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? accentColor : AppUI.textSecondaryOf(context),
-              fontSize: 13,
-              fontWeight: selected ? FontWeight.bold : FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
+String _getRoleLabel(String role) {
+  switch (role) {
+    case 'guardian': return '家長端';
+    case 'child': return '孩子端';
+    case 'group': return '團體/企業';
+    case 'tutor': return '補習班';
+    case 'school': return '學校';
+    case 'enterprise': return '企業';
+    default: return '個人模式';
   }
 }
+

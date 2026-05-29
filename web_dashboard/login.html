@@ -196,10 +196,7 @@
         </div>
 
         <form id="loginForm">
-          <div class="input-group" id="groupNickname">
-            <span>👤</span>
-            <input type="text" placeholder="自律暱稱" required />
-          </div>
+          <!-- Nickname is set after login in profile settings, not during registration -->
           <div class="input-group">
             <span>✉️</span>
             <input type="email" placeholder="電子郵件" required />
@@ -307,7 +304,7 @@
             return userRef.set({
               id: user.uid,
               email: user.email,
-              nickname: nickname || user.displayName || user.email.split('@')[0],
+              nickname: nickname || "自律使用者",
               myNudgeId: 'NDG_' + user.uid.substring(0, 6).toUpperCase(),
               username: 'NDG_' + user.uid.substring(0, 6).toUpperCase(),
               disciplineCoins: 0,
@@ -346,13 +343,11 @@
       // Tab switching logic
       const tabLogin = document.getElementById('tabLogin');
       const tabRegister = document.getElementById('tabRegister');
-      const groupNickname = document.getElementById('groupNickname');
       const groupConfirm = document.getElementById('groupConfirm');
       const loginTitle = document.getElementById('loginTitle');
       const loginSubtitle = document.getElementById('loginSubtitle');
       const submitBtn = document.getElementById('submitBtn');
       
-      const nicknameInput = groupNickname.querySelector('input');
       const confirmInput = groupConfirm.querySelector('input');
 
       let isLoginMode = false; // Default is register mode (tabRegister active)
@@ -362,9 +357,7 @@
         tabLogin.classList.add('active');
         tabRegister.classList.remove('active');
         
-        groupNickname.style.display = 'none';
         groupConfirm.style.display = 'none';
-        nicknameInput.required = false;
         confirmInput.required = false;
         
         loginTitle.textContent = '歡迎回來';
@@ -378,9 +371,7 @@
         tabRegister.classList.add('active');
         tabLogin.classList.remove('active');
         
-        groupNickname.style.display = 'flex';
         groupConfirm.style.display = 'flex';
-        nicknameInput.required = true;
         confirmInput.required = true;
         
         loginTitle.textContent = '建立你的自律身分';
@@ -411,8 +402,8 @@
               showError("登入失敗：" + err.message);
             });
         } else {
-          // Register
-          const nickname = nicknameInput.value.trim();
+          // Register — nickname defaults to "自律使用者" and can be changed in profile settings
+          const nickname = "自律使用者";
           const confirmPassword = confirmInput.value;
 
           if (password !== confirmPassword) {
