@@ -3,7 +3,7 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 
 const modules = [
   ["home", "總覽入口", "index.html"],
-  ["personal", "個人進階分析", "personal.html"],
+  ["personal", "個人頁面", "personal.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
   ["operations", "商城頁", "operations.html"],
