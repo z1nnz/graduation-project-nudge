@@ -1807,6 +1807,21 @@ function injectAdminSwitch() {
 
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(injectAdminSwitch, 100);
+    
+    // Render initial sidebar profile card from cache immediately
+    const cachedData = {
+      nickname: localStorage.getItem("nudgeNicknameCache") || "自律使用者",
+      myNudgeId: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
+      username: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
+      signature: localStorage.getItem("nudgeSignatureCache") || "今天也在穩定前進",
+      accentColor: localStorage.getItem("nudgeAccentColorCache") || "purple",
+      profileTitleBadgeKey: localStorage.getItem("nudgeTitleBadgeCache") || "",
+      disciplineCoins: parseInt(localStorage.getItem("nudgeCoinsCache") || "100"),
+      planetCount: parseInt(localStorage.getItem("nudgePlanetsCache") || "1"),
+      userRole: localStorage.getItem("nudgeRoleCache") || "personal"
+    };
+    try { updateSidebarProfile(cachedData); } catch(e){}
+
     try { initializeFirebaseWeb(); } catch(e){}
 });
 
@@ -1959,6 +1974,16 @@ function injectUserSwitcher(users, activeUserId) {
 }
 
 function updateSidebarProfile(data) {
+  if (data) {
+    if (data.nickname) localStorage.setItem("nudgeNicknameCache", data.nickname);
+    if (data.signature) localStorage.setItem("nudgeSignatureCache", data.signature);
+    if (data.accentColor) localStorage.setItem("nudgeAccentColorCache", data.accentColor);
+    if (data.profileTitleBadgeKey) localStorage.setItem("nudgeTitleBadgeCache", data.profileTitleBadgeKey);
+    if (typeof data.disciplineCoins === 'number') localStorage.setItem("nudgeCoinsCache", data.disciplineCoins);
+    if (typeof data.planetCount === 'number') localStorage.setItem("nudgePlanetsCache", data.planetCount);
+    if (data.userRole) localStorage.setItem("nudgeRoleCache", data.userRole);
+  }
+
   const panel = getOrCreateSidePanel();
   if (!panel) return;
   
