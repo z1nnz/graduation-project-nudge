@@ -1,3 +1,5 @@
+import 'date_parser.dart';
+
 enum FriendRequestDirection { incoming, outgoing }
 
 enum FriendRequestStatus { pending, accepted, declined }
@@ -67,9 +69,7 @@ class FriendRequest {
         (item) => item.name == json['status'],
         orElse: () => FriendRequestStatus.pending,
       ),
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
 }

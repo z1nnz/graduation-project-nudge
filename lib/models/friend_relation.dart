@@ -1,3 +1,5 @@
+import 'date_parser.dart';
+
 enum FriendRelationStatus {
   pending,
   accepted,
@@ -67,10 +69,8 @@ class FriendRelation {
         orElse: () => FriendRelationStatus.pending,
       ),
       isFollowing: json['isFollowing'] as bool? ?? false,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
+      updatedAt: parseDateTime(json['updatedAt']) ?? DateTime.now(),
     );
   }
 }

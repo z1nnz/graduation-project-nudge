@@ -111,5 +111,11 @@ service cloud.firestore {
         }
       }
     }
+
+    // ─── /shop_items/{itemId} ──────────────────────────────────────────
+    match /shop_items/{itemId} {
+      allow read: if isAuth();
+      allow write: if false; // Only manageable via Firebase console / admin SDK
+    }
   }
 }

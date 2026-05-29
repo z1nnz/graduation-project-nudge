@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'date_parser.dart';
 import 'avatar_profile.dart';
 import 'task_model.dart';
 
@@ -184,9 +185,7 @@ class StudyRoomMessage {
       senderName: json['senderName'] as String? ?? '',
       text: json['text'] as String? ?? '',
       type: type,
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
 }
@@ -232,9 +231,7 @@ class StudyRoomEvent {
       actorName: json['actorName'] as String? ?? '',
       text: json['text'] as String? ?? '',
       type: type,
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
 }

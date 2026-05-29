@@ -1,3 +1,5 @@
+import 'date_parser.dart';
+
 class BadgeRecord {
   final String id;
   final String userId;
@@ -72,13 +74,10 @@ class BadgeRecord {
       badgeKey: json['badgeKey'] as String? ?? '',
       badgeName: json['badgeName'] as String? ?? '',
       isUnlocked: json['isUnlocked'] as bool? ?? false,
-      unlockedAt: json['unlockedAt'] == null
-          ? null
-          : DateTime.tryParse(json['unlockedAt'] as String),
+      unlockedAt: parseDateTime(json['unlockedAt']),
       progress: json['progress'] as int? ?? 0,
       target: json['target'] as int? ?? 1,
-      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
-          DateTime.now(),
+      updatedAt: parseDateTime(json['updatedAt']) ?? DateTime.now(),
     );
   }
 }

@@ -970,15 +970,17 @@ class AppState extends ChangeNotifier {
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   bool get isHydrated => _isHydrated;
   String get accountProviderLabel {
+    if (_currentUser == null) return '尚未登入';
     switch (_currentUser?.authProvider) {
       case 'email':
+      case 'local':
         return 'Email';
       case 'google':
         return 'Google';
       case 'apple':
         return 'Apple';
       default:
-        return '尚未登入';
+        return '已登入';
     }
   }
 

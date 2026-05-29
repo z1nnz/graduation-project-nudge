@@ -5269,3 +5269,13 @@ body.sidebar-collapsed .role-gatekeeper-overlay {
   border-color: var(--page-accent);
 }
 
+.center-hub-full {
+  grid-column: span 2;
+  min-height: auto !important;
+}
+@media (max-width: 960px) {
+  .center-hub-full {
+    grid-column: auto;
+  }
+}
+

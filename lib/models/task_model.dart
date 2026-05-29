@@ -1,3 +1,5 @@
+import 'date_parser.dart';
+
 enum TaskType { fixed, deadline }
 
 enum TaskPriority { high, medium, low }
@@ -142,9 +144,7 @@ class TaskModel {
         (e) => e.name == priorityRaw,
         orElse: () => TaskPriority.medium,
       ),
-      dueDate: json['dueDate'] == null
-          ? null
-          : DateTime.tryParse(json['dueDate'] as String),
+      dueDate: parseDateTime(json['dueDate']),
       isDone: json['isDone'] as bool? ?? false,
       isSystemTask: json['isSystemTask'] as bool? ?? false,
       isAutoTracked: json['isAutoTracked'] as bool? ?? false,
@@ -158,15 +158,9 @@ class TaskModel {
       unitLabel: json['unitLabel'] as String?,
       sourceId: json['sourceId'] as String?,
       resetDaily: json['resetDaily'] as bool? ?? false,
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
-      updatedAt:
-          DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
-          DateTime.now(),
-      completedAt: json['completedAt'] == null
-          ? null
-          : DateTime.tryParse(json['completedAt'] as String),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
+      updatedAt: parseDateTime(json['updatedAt']) ?? DateTime.now(),
+      completedAt: parseDateTime(json['completedAt']),
     );
   }
 

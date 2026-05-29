@@ -1,3 +1,5 @@
+import 'date_parser.dart';
+
 enum StudySessionType {
   focus,
   rest,
@@ -88,14 +90,10 @@ class StudySession {
         (e) => e.name == statusRaw,
         orElse: () => StudySessionStatus.running,
       ),
-      startAt: DateTime.tryParse(json['startAt'] as String? ?? '') ??
-          DateTime.now(),
-      endAt: json['endAt'] == null
-          ? null
-          : DateTime.tryParse(json['endAt'] as String),
+      startAt: parseDateTime(json['startAt']) ?? DateTime.now(),
+      endAt: parseDateTime(json['endAt']),
       durationSeconds: json['durationSeconds'] as int? ?? 0,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
 }

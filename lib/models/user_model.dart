@@ -1,3 +1,5 @@
+import 'date_parser.dart';
+
 class UserModel {
   final String id;
   final String? email;
@@ -103,15 +105,9 @@ class UserModel {
       accentColor: json['accentColor'] as String? ?? 'purple',
       timezone: json['timezone'] as String?,
       isActive: json['isActive'] as bool? ?? true,
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
-          DateTime.now(),
-      updatedAt:
-          DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
-          DateTime.now(),
-      lastLoginAt: json['lastLoginAt'] == null
-          ? null
-          : DateTime.tryParse(json['lastLoginAt'] as String),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
+      updatedAt: parseDateTime(json['updatedAt']) ?? DateTime.now(),
+      lastLoginAt: parseDateTime(json['lastLoginAt']),
     );
   }
 }

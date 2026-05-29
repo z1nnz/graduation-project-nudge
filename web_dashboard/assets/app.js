@@ -2104,7 +2104,21 @@ function checkPagePermissions(data) {
           showWebRelativeBindingCard(false);
         }
       } else {
-        showRelativeRequiredBanner();
+        const isOverviewPage = window.location.pathname.endsWith("guardian.html") || window.location.pathname.endsWith("guardian");
+        if (isOverviewPage) {
+          const card = document.getElementById("guardianLinkCard");
+          if (card) {
+            card.innerHTML = `
+              <div style="color: #f59e0b; font-weight: 700; text-align: center; font-size: 15px; line-height: 1.6; width: 100%; display: flex; align-items: center; justify-content: center; height: 100%;">
+                <span>🔒 家長陪伴功能目前未啟用。請前往「<span style="color: #ff9e00; text-decoration: underline;">連結親屬</span>」完成親屬帳號綁定，以啟用週報、鼓勵卡與共同目標！</span>
+              </div>
+            `;
+          }
+          const existingRequired = document.getElementById("guardianLinkRequiredBanner");
+          if (existingRequired) existingRequired.remove();
+        } else {
+          showRelativeRequiredBanner();
+        }
         // Remove binding card if any on home page
         const existingCard = document.getElementById("webBindingGatedCard");
         if (existingCard) existingCard.remove();
@@ -2171,7 +2185,21 @@ function checkPagePermissions(data) {
           showWebGroupBindingCard(false);
         }
       } else {
-        showGroupRequiredBanner();
+        const isOverviewPage = window.location.pathname.endsWith("groups.html") || window.location.pathname.endsWith("groups");
+        if (isOverviewPage) {
+          const card = document.getElementById("groupLinkCard");
+          if (card) {
+            card.innerHTML = `
+              <div style="color: #3b82f6; font-weight: 700; text-align: center; font-size: 15px; line-height: 1.6; width: 100%; display: flex; align-items: center; justify-content: center; height: 100%;">
+                <span>🔒 團體管理功能目前未啟用。請前往「<span style="color: #3b82f6; text-decoration: underline;">連結組織</span>」完成組織加入或創建，以解鎖團隊管理與專注挑戰功能！</span>
+              </div>
+            `;
+          }
+          const existingRequired = document.getElementById("groupLinkRequiredBanner");
+          if (existingRequired) existingRequired.remove();
+        } else {
+          showGroupRequiredBanner();
+        }
         const existingCard = document.getElementById("webBindingGatedCard");
         if (existingCard) existingCard.remove();
       }
