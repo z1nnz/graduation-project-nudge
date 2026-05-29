@@ -1823,6 +1823,15 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     try { updateSidebarProfile(cachedData); } catch(e){}
 
+    if (document.body.dataset.page === "operations") {
+      const prosperityElement = document.querySelector(".hero-card strong");
+      if (prosperityElement) {
+        const coins = localStorage.getItem("nudgeCoinsCache") || "0";
+        prosperityElement.dataset.count = coins;
+        prosperityElement.textContent = coins;
+      }
+    }
+
     try { initializeFirebaseWeb(); } catch(e){}
 });
 
@@ -3438,27 +3447,20 @@ function listenToUser(userId) {
       
       const prosperityElement = document.querySelector(".hero-card strong");
       if (prosperityElement) {
-        prosperityElement.dataset.count = completionRate;
-        prosperityElement.textContent = `${completionRate}`;
+        if (document.body.dataset.page === "operations") {
+          const coins = typeof data.disciplineCoins === 'number' ? data.disciplineCoins : 0;
+          prosperityElement.dataset.count = coins;
+          prosperityElement.textContent = `${coins}`;
+        } else if (document.body.dataset.page === "planet") {
+          prosperityElement.dataset.count = completionRate;
+          prosperityElement.textContent = `${completionRate}`;
+        }
       }
       
       if (document.body.dataset.page === "planet") {
         if (typeof window.bindFirestoreMissions === 'function') {
           window.bindFirestoreMissions(tasks);
         }
-      }
-    }
-
-    if (completionRate >= 60) {
-      const currentPlanetEarned = data.weeklyPlanetEarned || false;
-      if (!currentPlanetEarned) {
-        const currentPlanetCount = typeof data.planetCount === 'number' ? data.planetCount : 0;
-        db.collection("users").doc(userId).update({
-          weeklyPlanetEarned: true,
-          planetCount: currentPlanetCount + 1
-        }).then(() => {
-          toast("🎉 太棒了！您本週自律完成度達到 60%，獲得了一顆新星 🪐！已同步至手機 App");
-        });
       }
     }
     

@@ -151,6 +151,20 @@ class AppState extends ChangeNotifier {
           _themeModeSetting = _currentUser!.themeMode;
           _iconColorSetting = _currentUser!.accentColor;
           _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
+          _planetCount = (data['planetCount'] as num?)?.toInt() ?? _planetCount;
+          _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
+          _lastSettledWeekMonday = data['lastSettledWeekMonday'] as String? ?? _lastSettledWeekMonday;
+          if (data['rewardedTaskKeys'] != null) {
+            _rewardedTaskKeys = Set<String>.from(List<String>.from(data['rewardedTaskKeys']));
+          }
+          if (data['dailyCoinEarned'] != null) {
+            final Map decoded = data['dailyCoinEarned'] as Map;
+            _dailyCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+          }
+          if (data['monthlyDeadlineCoinEarned'] != null) {
+            final Map decoded = data['monthlyDeadlineCoinEarned'] as Map;
+            _monthlyDeadlineCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+          }
           if (data['avatarProfile'] != null) {
             _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile'] as Map));
           }
@@ -203,6 +217,8 @@ class AppState extends ChangeNotifier {
             _groupOwnerSubscription?.cancel();
             _groupOwnerSubscription = null;
           }
+          _syncTaskRewards();
+          checkWeeklyPlanetSettlement();
           notifyListeners();
         }
       } catch (e, stack) {
@@ -517,6 +533,10 @@ class AppState extends ChangeNotifier {
         'disciplineCoins': _disciplineCoins,
         'planetCount': _planetCount,
         'weeklyPlanetEarned': _weeklyPlanetEarned,
+        'lastSettledWeekMonday': _lastSettledWeekMonday,
+        'rewardedTaskKeys': _rewardedTaskKeys.toList(),
+        'dailyCoinEarned': _dailyCoinEarned,
+        'monthlyDeadlineCoinEarned': _monthlyDeadlineCoinEarned,
         'focusSeconds': _focusSeconds, // ← synced for web dashboard real-time stats
         'avatarProfile': _avatarProfile.toJson(),
         'unlockedAvatarItems': _unlockedAvatarItemKeys.toList(),
@@ -552,6 +572,18 @@ class AppState extends ChangeNotifier {
         _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
         _planetCount = (data['planetCount'] as num?)?.toInt() ?? _planetCount;
         _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
+        _lastSettledWeekMonday = data['lastSettledWeekMonday'] as String? ?? _lastSettledWeekMonday;
+        if (data['rewardedTaskKeys'] != null) {
+          _rewardedTaskKeys = Set<String>.from(List<String>.from(data['rewardedTaskKeys']));
+        }
+        if (data['dailyCoinEarned'] != null) {
+          final Map decoded = data['dailyCoinEarned'] as Map;
+          _dailyCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+        }
+        if (data['monthlyDeadlineCoinEarned'] != null) {
+          final Map decoded = data['monthlyDeadlineCoinEarned'] as Map;
+          _monthlyDeadlineCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+        }
         if (data['avatarProfile'] != null) {
           _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile']));
         }
@@ -598,6 +630,8 @@ class AppState extends ChangeNotifier {
             _focusSeconds = cloudFocusSeconds;
           }
         }
+        _syncTaskRewards();
+        await checkWeeklyPlanetSettlement();
         notifyListeners();
 
         // Also save locally so that it matches
@@ -719,6 +753,7 @@ class AppState extends ChangeNotifier {
   static const String _disciplineCoinsKey = 'discipline_coins_setting';
   static const String _planetCountKey = 'planet_count_setting';
   static const String _weeklyPlanetEarnedKey = 'weekly_planet_earned_setting';
+  static const String _lastSettledWeekMondayKey = 'last_settled_week_monday_setting';
   static const String _rewardedTaskKeysKey = 'rewarded_task_keys_setting';
   static const String _dailyCoinEarnedKey = 'daily_coin_earned_setting';
   static const String _monthlyDeadlineCoinEarnedKey =
@@ -762,6 +797,7 @@ class AppState extends ChangeNotifier {
   int _disciplineCoins = 0;
   int _planetCount = 0;
   bool _weeklyPlanetEarned = false;
+  String? _lastSettledWeekMonday;
   Set<String> _rewardedTaskKeys = <String>{};
   Map<String, int> _dailyCoinEarned = <String, int>{};
   Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
@@ -867,6 +903,7 @@ class AppState extends ChangeNotifier {
   int get disciplineCoins => _disciplineCoins;
   int get planetCount => _planetCount;
   bool get weeklyPlanetEarned => _weeklyPlanetEarned;
+  String? get lastSettledWeekMonday => _lastSettledWeekMonday;
   int get unlockedAvatarItemCount => _unlockedAvatarItemKeys.length;
   int get todayCoinEarned => _dailyCoinEarned[_todayKey()] ?? 0;
   int get todayCoinRemaining {
@@ -2491,6 +2528,7 @@ class AppState extends ChangeNotifier {
         _markCompletedTasksAsRewardedForToday();
         await _saveRewardState();
       }
+      await checkWeeklyPlanetSettlement();
       _unlockCurrentAvatarProfile();
       _unlockAllAvatarItemsForPreview();
       await _saveAvatarUnlockState();
@@ -2530,6 +2568,7 @@ class AppState extends ChangeNotifier {
         _markCompletedTasksAsRewardedForToday();
         await _saveRewardState();
       }
+      await checkWeeklyPlanetSettlement();
       _unlockCurrentAvatarProfile();
       _unlockAllAvatarItemsForPreview();
       await _saveAvatarUnlockState();
@@ -2714,6 +2753,7 @@ class AppState extends ChangeNotifier {
     _disciplineCoins = prefs.getInt(_disciplineCoinsKey) ?? 0;
     _planetCount = prefs.getInt(_planetCountKey) ?? 0;
     _weeklyPlanetEarned = prefs.getBool(_weeklyPlanetEarnedKey) ?? false;
+    _lastSettledWeekMonday = prefs.getString(_lastSettledWeekMondayKey);
     _rewardedTaskKeys =
         (prefs.getStringList(_rewardedTaskKeysKey) ?? const <String>[]).toSet();
     final dailyEarnedRaw = prefs.getString(_dailyCoinEarnedKey);
@@ -2744,6 +2784,7 @@ class AppState extends ChangeNotifier {
     await prefs.setInt(_disciplineCoinsKey, _disciplineCoins);
     await prefs.setInt(_planetCountKey, _planetCount);
     await prefs.setBool(_weeklyPlanetEarnedKey, _weeklyPlanetEarned);
+    await prefs.setString(_lastSettledWeekMondayKey, _lastSettledWeekMonday ?? '');
     await prefs.setStringList(_rewardedTaskKeysKey, _rewardedTaskKeys.toList());
     await prefs.setString(_dailyCoinEarnedKey, jsonEncode(_dailyCoinEarned));
     await prefs.setString(
@@ -3441,6 +3482,84 @@ class AppState extends ChangeNotifier {
     return _formatDate(DateTime.now());
   }
 
+  DateTime getMonday5AMOfThisWeek(DateTime time) {
+    final daysToSubtract = time.weekday - 1;
+    final monday = DateTime(time.year, time.month, time.day).subtract(Duration(days: daysToSubtract));
+    return DateTime(monday.year, monday.month, monday.day, 5, 0, 0);
+  }
+
+  double calculateWeeklyAverageScore(DateTime weekStartMonday) {
+    int totalScore = 0;
+    for (int i = 0; i < 7; i++) {
+      final date = weekStartMonday.add(Duration(days: i));
+      final dateStr = _formatDate(date);
+      final summary = _dailySummaries.firstWhere(
+        (s) => s.date == dateStr,
+        orElse: () => DailySummary(
+          date: dateStr,
+          completedTasks: 0,
+          totalTasks: 0,
+          focusMinutes: 0,
+          sleepHours: 0.0,
+          steps: 0,
+          exerciseMinutes: 0,
+          disciplineScore: 0,
+        ),
+      );
+      totalScore += summary.disciplineScore;
+    }
+    return totalScore / 7.0;
+  }
+
+  Future<void> checkWeeklyPlanetSettlement() async {
+    final now = DateTime.now();
+    final currentMonday5AM = getMonday5AMOfThisWeek(now);
+    
+    // The target completed settlement Monday is the last Monday 5:00 AM before now
+    final targetSettlementMonday = now.isBefore(currentMonday5AM)
+        ? currentMonday5AM.subtract(const Duration(days: 7))
+        : currentMonday5AM;
+
+    DateTime nextWeekStartMonday;
+    if (_lastSettledWeekMonday == null || _lastSettledWeekMonday!.isEmpty) {
+      if (_dailySummaries.isNotEmpty) {
+        final sortedSummaries = List<DailySummary>.from(_dailySummaries)
+          ..sort((a, b) => a.date.compareTo(b.date));
+        final firstDate = DateTime.tryParse(sortedSummaries.first.date) ?? now;
+        nextWeekStartMonday = getMonday5AMOfThisWeek(firstDate);
+      } else {
+        nextWeekStartMonday = getMonday5AMOfThisWeek(now).subtract(const Duration(days: 7));
+      }
+    } else {
+      final lastSettled = DateTime.tryParse(_lastSettledWeekMonday!);
+      if (lastSettled == null) {
+        nextWeekStartMonday = getMonday5AMOfThisWeek(now).subtract(const Duration(days: 7));
+      } else {
+        nextWeekStartMonday = lastSettled.add(const Duration(days: 7));
+      }
+    }
+
+    bool changed = false;
+    while (nextWeekStartMonday.isBefore(targetSettlementMonday) || 
+           nextWeekStartMonday.isAtSameMomentAs(targetSettlementMonday)) {
+      final avg = calculateWeeklyAverageScore(nextWeekStartMonday);
+      if (avg >= 70.0) {
+        _planetCount += 1;
+        _weeklyPlanetEarned = true;
+      } else {
+        _weeklyPlanetEarned = false;
+      }
+      _lastSettledWeekMonday = _formatDate(nextWeekStartMonday);
+      changed = true;
+      
+      nextWeekStartMonday = nextWeekStartMonday.add(const Duration(days: 7));
+    }
+
+    if (changed) {
+      await _saveRewardState();
+    }
+  }
+
   DateTime _currentWeekStart() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -3489,6 +3608,7 @@ class AppState extends ChangeNotifier {
     _syncAutoTrackedTasks();
     _syncTaskRewards();
     _syncTodaySummary();
+    await checkWeeklyPlanetSettlement();
 
     await _saveTasks();
     await _saveFocusTime();
@@ -4364,6 +4484,7 @@ class AppState extends ChangeNotifier {
     }
     _syncTaskRewards();
     _syncTodaySummary();
+    checkWeeklyPlanetSettlement();
     notifyListeners();
     _saveTasks();
   }
