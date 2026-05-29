@@ -581,6 +581,30 @@
         display: block;
         opacity: 0.6;
       }
+
+      /* Inline Color Swatches for Profile Editing */
+      .color-swatch-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .color-swatch {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+        box-sizing: border-box;
+      }
+      .color-swatch:hover {
+        transform: scale(1.15);
+      }
+      .color-swatch.active {
+        border-color: #fff;
+        box-shadow: 0 0 8px var(--swatch-color);
+      }
     </style>
   </head>
   <body data-page="profile">
@@ -622,12 +646,28 @@
               <div class="fb-profile-avatar-wrapper">
                 <div class="fb-avatar" id="profileMainAvatar">—</div>
               </div>
-              <div class="fb-profile-info">
-                <div class="fb-profile-name-row">
+              <div class="fb-profile-info" style="position: relative;">
+                <div class="fb-profile-name-row" style="display: flex; align-items: center; gap: 8px;">
                   <h1 class="fb-profile-name" id="profileMainName">讀取中...</h1>
+                  <!-- Inline Nickname input -->
+                  <input type="text" id="editProfileNicknameInline" style="display: none; font-size: 28px; font-weight: 800; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 4px 10px; width: 220px; outline: none;" maxLength="12" />
+                  
                   <span class="fb-profile-badge" id="profileMainBadge" style="display: none;">🏆 稱號</span>
+                  <!-- Inline Badge Dropdown -->
+                  <select id="editProfileTitleInline" style="display: none; background: #161c2d; color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 4px 8px; font-size: 13px; cursor: pointer;"></select>
                 </div>
                 <p class="fb-profile-signature" id="profileMainSignature">"讀取自律簽名中..."</p>
+                <!-- Inline Signature input -->
+                <input type="text" id="editProfileSignatureInline" style="display: none; font-size: 14px; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 4px 10px; width: 320px; margin-top: 6px; outline: none;" maxLength="40" />
+
+                <!-- Inline color picker swatches -->
+                <div id="inlineColorPickerContainer" style="display: none; margin-top: 8px; align-items: center; gap: 8px;">
+                  <span style="font-size: 12px; color: var(--muted); font-weight: 600;">主題色:</span>
+                  <div class="color-swatch-group" id="inlineColorPickerSwatches">
+                    <!-- Swatches dynamically generated in JS -->
+                  </div>
+                  <input type="hidden" id="editProfileSelectedColorInline" value="" />
+                </div>
               </div>
               <div class="fb-profile-actions">
                 <div class="fb-stat-tag coins">
@@ -638,6 +678,8 @@
                 </div>
                 <button class="button primary" id="profileJumpPlanetBtn" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: linear-gradient(135deg, #a855f7, #7c6ae6);">🪐 進入自律星球</button>
                 <button class="button primary" id="profileEditCardBtn" style="font-weight: 700; border-radius: 12px; padding: 10px 18px;">✏️ 編輯名片</button>
+                <button class="button success" id="profileSaveCardBtn" style="display: none; font-weight: 700; border-radius: 12px; padding: 10px 18px; background: #10b981; color: #fff; border: none; cursor: pointer;">💾 儲存名片</button>
+                <button class="button" id="profileCancelEditBtn" style="display: none; font-weight: 700; border-radius: 12px; padding: 10px 18px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; cursor: pointer;">❌ 取消</button>
                 <button class="button" id="profileLikeBtn" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; display: none; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #10b981;">👍 給他按讚</button>
               </div>
             </div>
@@ -669,16 +711,12 @@
                     <span>Nudge ID: <strong id="profileNudgeId">NDG-Guest</strong> <button class="copy-btn" onclick="copyNudgeId()">複製</button></span>
                   </li>
                   <li class="intro-item">
-                    <span class="icon">👤</span>
-                    <span>自律角色身份: <strong id="profileUserRole">個人模式</strong></span>
-                  </li>
-                  <li class="intro-item">
                     <span class="icon">📅</span>
                     <span>加入自律星系: <strong>2026年5月</strong></span>
                   </li>
                   <li class="intro-item">
                     <span class="icon">📱</span>
-                    <span>裝置狀態: <strong style="color: #00ff88;">同步中 Live</strong></span>
+                    <span>上線狀態: <strong id="profileOnlineStatus" style="color: #64748b;">離線</strong></span>
                   </li>
                 </ul>
               </article>

@@ -80,6 +80,23 @@
 				<string>com.googleusercontent.apps.497972469632-sc736letfspts3h3g75ppeh5rsedltl3</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb2211402563022278</string>
+			</array>
+		</dict>
+	</array>
+	<key>FacebookAppID</key>
+	<string>2211402563022278</string>
+	<key>FacebookClientToken</key>
+	<string>f90f469c36c60108adbe2bd766fa3ab7</string>
+	<key>FacebookDisplayName</key>
+	<string>Nudge</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
 	</array>
 </dict>
 </plist>

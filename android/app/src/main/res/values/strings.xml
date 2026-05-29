@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Nudge</string>
+
+    <!-- Facebook App ID -->
+    <string name="facebook_app_id">2211402563022278</string>
+    
+    <!-- fb + Facebook App ID -->
+    <string name="fb_login_protocol_scheme">fb2211402563022278</string>
+    
+    <!-- Facebook Client Token -->
+    <string name="facebook_client_token">f90f469c36c60108adbe2bd766fa3ab7</string>
+</resources>

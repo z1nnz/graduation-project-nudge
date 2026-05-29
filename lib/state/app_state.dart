@@ -141,69 +141,73 @@ class AppState extends ChangeNotifier {
         .doc(user.uid)
         .snapshots()
         .listen((docSnap) {
-      if (docSnap.exists) {
-        final data = docSnap.data()!;
-        _currentUser = UserModel.fromJson(data);
-        _profileNickname = _currentUser!.nickname;
-        _profileSignature = _currentUser!.signature;
-        _myNudgeId = _currentUser!.username;
-        _themeModeSetting = _currentUser!.themeMode;
-        _iconColorSetting = _currentUser!.accentColor;
-        _disciplineCoins = data['disciplineCoins'] as int? ?? _disciplineCoins;
-        if (data['avatarProfile'] != null) {
-          _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile'] as Map));
-        }
-        if (data['unlockedAvatarItems'] != null) {
-          _unlockedAvatarItemKeys = Set<String>.from(List<String>.from(data['unlockedAvatarItems']));
-        }
-        if (data['unlockedBadgeDates'] != null) {
-          _unlockedBadgeDates = Map<String, String>.from(data['unlockedBadgeDates'] as Map);
-        }
-        if (data['tasks'] != null) {
-          _tasks = List<Map<String, dynamic>>.from(
-            (data['tasks'] as List).map((t) => Map<String, dynamic>.from(t as Map)),
-          );
-        }
-        if (data['dailySummaries'] != null) {
-          _dailySummaries = List<DailySummary>.from(
-            (data['dailySummaries'] as List).map((s) => DailySummary.fromJson(Map<String, dynamic>.from(s as Map))),
-          );
-        }
-        if (data['webToolsState'] != null) {
-          _webToolsState = Map<String, dynamic>.from(data['webToolsState'] as Map);
-        } else {
-          _webToolsState = null;
-        }
-        if (data['webToolsCollection'] != null) {
-          _webToolsCollection = Map<String, dynamic>.from(data['webToolsCollection'] as Map);
-        } else {
-          _webToolsCollection = null;
-        }
-        _userRole = data['userRole'] as String? ?? _userRole;
-        _groupId = data['groupId'] as String?;
-        _groupName = data['groupName'] as String?;
-        _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
-        _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? '';
-        if (data['backgroundTheme'] != null) {
-          final bt = data['backgroundTheme'] as String;
-          if (AppUI.backgroundThemeKeys.contains(bt)) {
-            _backgroundThemeSetting = bt;
+      try {
+        if (docSnap.exists) {
+          final data = docSnap.data()!;
+          _currentUser = UserModel.fromJson(data);
+          _profileNickname = _currentUser!.nickname;
+          _profileSignature = _currentUser!.signature;
+          _myNudgeId = _currentUser!.username;
+          _themeModeSetting = _currentUser!.themeMode;
+          _iconColorSetting = _currentUser!.accentColor;
+          _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
+          if (data['avatarProfile'] != null) {
+            _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile'] as Map));
           }
-        }
-        if (data['focusSeconds'] != null) {
-          final cloudFocusSeconds = data['focusSeconds'] as int;
-          if (cloudFocusSeconds > _focusSeconds) {
-            _focusSeconds = cloudFocusSeconds;
+          if (data['unlockedAvatarItems'] != null) {
+            _unlockedAvatarItemKeys = Set<String>.from(List<String>.from(data['unlockedAvatarItems']));
           }
+          if (data['unlockedBadgeDates'] != null) {
+            _unlockedBadgeDates = Map<String, String>.from(data['unlockedBadgeDates'] as Map);
+          }
+          if (data['tasks'] != null) {
+            _tasks = List<Map<String, dynamic>>.from(
+              (data['tasks'] as List).map((t) => Map<String, dynamic>.from(t as Map)),
+            );
+          }
+          if (data['dailySummaries'] != null) {
+            _dailySummaries = List<DailySummary>.from(
+              (data['dailySummaries'] as List).map((s) => DailySummary.fromJson(Map<String, dynamic>.from(s as Map))),
+            );
+          }
+          if (data['webToolsState'] != null) {
+            _webToolsState = Map<String, dynamic>.from(data['webToolsState'] as Map);
+          } else {
+            _webToolsState = null;
+          }
+          if (data['webToolsCollection'] != null) {
+            _webToolsCollection = Map<String, dynamic>.from(data['webToolsCollection'] as Map);
+          } else {
+            _webToolsCollection = null;
+          }
+          _userRole = data['userRole'] as String? ?? _userRole;
+          _groupId = data['groupId'] as String?;
+          _groupName = data['groupName'] as String?;
+          _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
+          _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? '';
+          if (data['backgroundTheme'] != null) {
+            final bt = data['backgroundTheme'] as String;
+            if (AppUI.backgroundThemeKeys.contains(bt)) {
+              _backgroundThemeSetting = bt;
+            }
+          }
+          if (data['focusSeconds'] != null) {
+            final cloudFocusSeconds = (data['focusSeconds'] as num?)?.toInt() ?? 0;
+            if (cloudFocusSeconds > _focusSeconds) {
+              _focusSeconds = cloudFocusSeconds;
+            }
+          }
+          if (_groupId != null && !_isGroupOwner) {
+            _setupGroupOwnerListener(user.uid, _groupId!);
+          } else {
+            _groupOwnerSubscription?.cancel();
+            _groupOwnerSubscription = null;
+          }
+          notifyListeners();
         }
-        
-        if (_groupId != null && !_isGroupOwner) {
-          _setupGroupOwnerListener(user.uid, _groupId!);
-        } else {
-          _groupOwnerSubscription?.cancel();
-          _groupOwnerSubscription = null;
-        }
-        notifyListeners();
+      } catch (e, stack) {
+        debugPrint('Error inside Firestore user snapshot listener: $e');
+        debugPrint('Stacktrace: $stack');
       }
     });
 
@@ -545,8 +549,8 @@ class AppState extends ChangeNotifier {
             (data['tasks'] as List).map((t) => Map<String, dynamic>.from(t)),
           );
         }
-        _disciplineCoins = data['disciplineCoins'] as int? ?? _disciplineCoins;
-        _planetCount = data['planetCount'] as int? ?? _planetCount;
+        _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
+        _planetCount = (data['planetCount'] as num?)?.toInt() ?? _planetCount;
         _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
         if (data['avatarProfile'] != null) {
           _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile']));
@@ -588,7 +592,7 @@ class AppState extends ChangeNotifier {
         }
         // Restore today's focus seconds
         if (data['focusSeconds'] != null) {
-          final cloudFocusSeconds = data['focusSeconds'] as int;
+          final cloudFocusSeconds = (data['focusSeconds'] as num?)?.toInt() ?? 0;
           // Only restore if cloud data is more recent (higher value) — avoids overwriting fresh session
           if (cloudFocusSeconds > _focusSeconds) {
             _focusSeconds = cloudFocusSeconds;
@@ -3955,7 +3959,7 @@ class AppState extends ChangeNotifier {
           nudgeId: userModel.username,
           name: userModel.nickname,
           signature: userModel.signature,
-          todayFocusSeconds: data['focusSeconds'] as int? ?? 0,
+          todayFocusSeconds: (data['focusSeconds'] as num?)?.toInt() ?? 0,
           isStudying: data['isStudying'] as bool? ?? false,
           avatarColor: const Color(0xFF7C6AE6),
           avatarProfile: avatarProfile,

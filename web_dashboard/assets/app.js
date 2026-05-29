@@ -1941,17 +1941,17 @@ function startListeningToFirestoreData() {
 }
 
 function getOrCreateSidePanel() {
-  let panel = $(".side-panel");
+  let panel = $(".demo-user-container");
   if (!panel) {
     const sidebar = $(".sidebar");
     if (sidebar) {
       const brandHeader = sidebar.querySelector(".sidebar-header-row") || sidebar.querySelector(".brand");
       if (brandHeader) {
-        brandHeader.insertAdjacentHTML('afterend', '<section class="side-panel" style="margin-top: 14px; margin-bottom: 14px;"></section>');
+        brandHeader.insertAdjacentHTML('afterend', '<section class="demo-user-container" style="margin-top: 14px; margin-bottom: 14px; padding: 0 16px;"></section>');
       } else {
-        sidebar.insertAdjacentHTML('afterbegin', '<section class="side-panel" style="margin-top: 14px; margin-bottom: 14px;"></section>');
+        sidebar.insertAdjacentHTML('afterbegin', '<section class="demo-user-container" style="margin-top: 14px; margin-bottom: 14px; padding: 0 16px;"></section>');
       }
-      panel = $(".side-panel");
+      panel = $(".demo-user-container");
     }
   }
   return panel;
@@ -3099,7 +3099,7 @@ function listenToUser(userId) {
       // Load friend profile by UID
       db.collection("users").doc(viewUserId).get().then(snap => {
         if (snap.exists) {
-          try { renderWebProfilePage(snap.data(), true); } catch(e) { console.error("Friend profile render error:", e); }
+          try { renderWebProfilePage(snap.data(), true, viewUserId); } catch(e) { console.error("Friend profile render error:", e); }
         }
       });
     } else if (viewNudgeId) {
@@ -3128,7 +3128,7 @@ function listenToUser(userId) {
         // Visitor mode: load friend's profile from Firestore (handled separately below)
         // Don't overwrite own data into profile page
       } else {
-        try { renderWebProfilePage(data, false); } catch(e) { console.error("Profile page render error:", e); }
+        try { renderWebProfilePage(data, false, userId); } catch(e) { console.error("Profile page render error:", e); }
       }
     }
 
@@ -3912,10 +3912,9 @@ function showWebProfileEditModal(data) {
 function renderWebProfilePage(data, isFriend, friendUid) {
   const nickname = data.nickname || "自律使用者";
   const signature = data.signature || "今天也在穩定前進";
-  const nudgeId = data.myNudgeId || data.username || "NDG-Guest";
+  const nudgeId = data.myNudgeId || data.username || (friendUid ? 'NDG_' + friendUid.substring(0, 6).toUpperCase() : "NDG-Guest");
   const coins = typeof data.disciplineCoins === 'number' ? data.disciplineCoins : 0;
   const planets = typeof data.planetCount === 'number' ? data.planetCount : 0;
-  const userRole = data.userRole || "personal";
   const profileTitleBadgeKey = data.profileTitleBadgeKey || "";
   const unlockedBadgeDates = data.unlockedBadgeDates || {};
 
@@ -3972,18 +3971,41 @@ function renderWebProfilePage(data, isFriend, friendUid) {
     coverBanner.style.background = `linear-gradient(135deg, ${accentColor} 0%, #1e144a 50%, #03050a 100%)`;
   }
 
-  // Active role translation
-  const roleNode = document.getElementById("profileUserRole");
-  if (roleNode) {
-    const roleLabels = {
-      'personal': '🧑‍💻 個人/小孩模式',
-      'guardian': '🛡️ 家長模式',
-      'group': '👥 團體挑戰模式',
-      'enterprise': '🏢 企業管理模式',
-      'tutor': '🎒 補習班管理模式',
-      'school': '🏫 學校班級模式'
-    };
-    roleNode.textContent = roleLabels[userRole] || `【${userRole}】`;
+  // Online status calculation
+  const onlineStatusNode = document.getElementById("profileOnlineStatus");
+  if (onlineStatusNode) {
+    let onlineStatus = "⚪ 離線";
+    let statusColor = "#64748b";
+    if (data.isStudying) {
+      onlineStatus = "🟢 正在專注中";
+      statusColor = "#10b981";
+    } else {
+      if (!isFriend) {
+        onlineStatus = "🟢 在線上";
+        statusColor = "#10b981";
+      } else {
+        let lastActive = null;
+        if (data.updatedAt) {
+          if (typeof data.updatedAt.toDate === 'function') {
+            lastActive = data.updatedAt.toDate();
+          } else if (data.updatedAt.seconds) {
+            lastActive = new Date(data.updatedAt.seconds * 1000);
+          } else {
+            lastActive = new Date(data.updatedAt);
+          }
+        }
+        const now = new Date();
+        if (lastActive && (now - lastActive < 5 * 60 * 1000)) { // 5 minutes
+          onlineStatus = "🟢 在線上";
+          statusColor = "#10b981";
+        } else {
+          onlineStatus = "⚪ 離線";
+          statusColor = "#64748b";
+        }
+      }
+    }
+    onlineStatusNode.textContent = onlineStatus;
+    onlineStatusNode.style.color = statusColor;
   }
 
   // Active badge/title
@@ -4058,14 +4080,18 @@ function renderWebProfilePage(data, isFriend, friendUid) {
 
   // Edit card button and planet jump button
   const editBtn = document.getElementById("profileEditCardBtn");
+  const saveBtn = document.getElementById("profileSaveCardBtn");
+  const cancelBtn = document.getElementById("profileCancelEditBtn");
   const likeBtn = document.getElementById("profileLikeBtn");
   const jumpPlanetBtn = document.getElementById("profileJumpPlanetBtn");
   const visitorBanner = document.getElementById("profileVisitorBanner");
   const createPostCard = document.querySelector(".fb-create-post-card");
 
   if (isFriend) {
-    // Visitor mode: hide edit, show like, show visitor banner
+    // Visitor mode: hide edit, show like, show visitor banner, show jump planet button
     if (editBtn) editBtn.style.display = "none";
+    if (saveBtn) saveBtn.style.display = "none";
+    if (cancelBtn) cancelBtn.style.display = "none";
     if (likeBtn) {
       likeBtn.style.display = "inline-flex";
       likeBtn.onclick = function() {
@@ -4082,22 +4108,166 @@ function renderWebProfilePage(data, isFriend, friendUid) {
       if (visitorName) visitorName.textContent = data.nickname || "自律使用者";
     }
     if (jumpPlanetBtn) {
+      jumpPlanetBtn.style.display = "inline-flex";
       jumpPlanetBtn.onclick = () => {
         const uid = friendUid || (new URLSearchParams(window.location.search)).get('userId') || '';
         window.location.href = uid ? `planet.html?userId=${uid}` : 'planet.html';
       };
     }
   } else {
-    // Own profile mode: show edit, hide like, hide visitor banner
-    if (editBtn) {
-      editBtn.style.display = "inline-flex";
-      editBtn.onclick = () => showWebProfileEditModal(data);
-    }
+    // Own profile mode: show edit, hide like, hide visitor banner, hide jump planet button
+    if (editBtn) editBtn.style.display = "inline-flex";
     if (likeBtn) likeBtn.style.display = "none";
     if (createPostCard) createPostCard.style.display = "flex";
     if (visitorBanner) visitorBanner.style.display = "none";
-    if (jumpPlanetBtn) {
-      jumpPlanetBtn.onclick = () => { window.location.href = 'planet.html'; };
+    if (jumpPlanetBtn) jumpPlanetBtn.style.display = "none";
+
+    // Setup Inline Edit Elements reference
+    const mainNameEl = document.getElementById("profileMainName");
+    const mainSigEl = document.getElementById("profileMainSignature");
+    const mainBadgeEl = document.getElementById("profileMainBadge");
+    
+    const nicknameInput = document.getElementById("editProfileNicknameInline");
+    const signatureInput = document.getElementById("editProfileSignatureInline");
+    const badgeSelect = document.getElementById("editProfileTitleInline");
+    const colorPickerContainer = document.getElementById("inlineColorPickerContainer");
+    const colorSwatchesEl = document.getElementById("inlineColorPickerSwatches");
+    const selectedColorInput = document.getElementById("editProfileSelectedColorInline");
+
+    const colorOptions = [
+      { name: 'purple', hex: '#7C6AE6', label: '紫色' },
+      { name: 'blue', hex: '#4F8CFF', label: '藍色' },
+      { name: 'teal', hex: '#14B8A6', label: '青色' },
+      { name: 'green', hex: '#10B981', label: '綠色' },
+      { name: 'orange', hex: '#F59E0B', label: '橘色' },
+      { name: 'pink', hex: '#EC4899', label: '粉色' },
+      { name: 'red', hex: '#EF4444', label: '紅色' },
+      { name: 'indigo', hex: '#6366F1', label: '靛藍' }
+    ];
+    const currentAccent = data.accentColor || 'purple';
+    if (selectedColorInput) selectedColorInput.value = currentAccent;
+
+    // Render Swatches
+    if (colorSwatchesEl) {
+      colorSwatchesEl.innerHTML = colorOptions.map(opt => `
+        <div class="color-swatch ${currentAccent === opt.name ? 'active' : ''}" 
+             data-color="${opt.name}" 
+             style="background: ${opt.hex}; --swatch-color: ${opt.hex};" 
+             title="${opt.label}"></div>
+      `).join('');
+
+      const swatches = colorSwatchesEl.querySelectorAll(".color-swatch");
+      swatches.forEach(sw => {
+        sw.addEventListener("click", function() {
+          swatches.forEach(s => s.classList.remove("active"));
+          this.classList.add("active");
+          if (selectedColorInput) selectedColorInput.value = this.getAttribute("data-color");
+        });
+      });
+    }
+
+    // Populate unlocked titles
+    if (badgeSelect) {
+      const badgeDefinitions = [
+        { key: 'task_starter', name: '任務起步者' },
+        { key: 'focus_beginner', name: '專注新手' },
+        { key: 'focus_streak', name: '專注連續者' },
+        { key: 'task_streak', name: '任務連續者' },
+        { key: 'sleep_guard', name: '睡眠守護者' },
+        { key: 'step_master', name: '步數達人' },
+        { key: 'steady_progress', name: '穩定前進' },
+        { key: 'score_keeper', name: '高分維持' },
+        { key: 'coin_earner', name: '門檻達人' },
+        { key: 'auto_tracker', name: '自動追蹤者' },
+        { key: 'health_sync', name: '健康同步者' },
+        { key: 'health_task', name: '健康任務實踐者' }
+      ];
+      const unlockedKeys = Object.keys(unlockedBadgeDates);
+      const unlockedBadges = badgeDefinitions.filter(b => unlockedKeys.includes(b.key));
+      
+      let badgesSelectHtml = `<option value="">不使用稱號</option>`;
+      unlockedBadges.forEach(b => {
+        badgesSelectHtml += `<option value="${b.key}" ${profileTitleBadgeKey === b.key ? 'selected' : ''}>${b.name}</option>`;
+      });
+      badgeSelect.innerHTML = badgesSelectHtml;
+    }
+
+    // Wire up inline edit toggle
+    if (editBtn) {
+      editBtn.onclick = () => {
+        if (mainNameEl) mainNameEl.style.display = "none";
+        if (mainSigEl) mainSigEl.style.display = "none";
+        if (mainBadgeEl) mainBadgeEl.style.display = "none";
+
+        if (nicknameInput) {
+          nicknameInput.value = nickname;
+          nicknameInput.style.display = "block";
+        }
+        if (signatureInput) {
+          signatureInput.value = signature;
+          signatureInput.style.display = "block";
+        }
+        if (badgeSelect) badgeSelect.style.display = "block";
+        if (colorPickerContainer) colorPickerContainer.style.display = "flex";
+
+        editBtn.style.display = "none";
+        if (saveBtn) saveBtn.style.display = "inline-flex";
+        if (cancelBtn) cancelBtn.style.display = "inline-flex";
+      };
+    }
+
+    // Cancel inline editing
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        if (mainNameEl) mainNameEl.style.display = "";
+        if (mainSigEl) mainSigEl.style.display = "";
+        if (badgeName && mainBadgeEl) mainBadgeEl.style.display = "inline-flex";
+
+        if (nicknameInput) nicknameInput.style.display = "none";
+        if (signatureInput) signatureInput.style.display = "none";
+        if (badgeSelect) badgeSelect.style.display = "none";
+        if (colorPickerContainer) colorPickerContainer.style.display = "none";
+
+        if (editBtn) editBtn.style.display = "inline-flex";
+        if (saveBtn) saveBtn.style.display = "none";
+        if (cancelBtn) cancelBtn.style.display = "none";
+      };
+    }
+
+    // Save inline editing
+    if (saveBtn) {
+      saveBtn.onclick = () => {
+        const newNickname = nicknameInput.value.trim();
+        const newSignature = signatureInput.value.trim();
+        const newAccentColor = selectedColorInput.value;
+        const newTitleBadgeKey = badgeSelect.value;
+
+        if (!newNickname) {
+          toast("請填寫有效的暱稱");
+          return;
+        }
+
+        const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+        if (activeUserId && typeof db !== "undefined") {
+          saveBtn.disabled = true;
+          saveBtn.textContent = "儲存中...";
+          db.collection("users").doc(activeUserId).update({
+            nickname: newNickname,
+            signature: newSignature || "今天也在穩定前進",
+            accentColor: newAccentColor,
+            profileTitleBadgeKey: newTitleBadgeKey,
+            updatedAt: new Date().toISOString()
+          }).then(() => {
+            toast("個人名片更新成功！ ✨");
+            window.location.reload();
+          }).catch(err => {
+             console.error("更新名片失敗：", err);
+             toast("更新失敗，請稍後再試");
+             saveBtn.disabled = false;
+             saveBtn.textContent = "💾 儲存名片";
+          });
+        }
+      };
     }
   }
 

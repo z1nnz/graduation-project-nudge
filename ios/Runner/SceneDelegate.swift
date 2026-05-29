@@ -4,6 +4,8 @@ import Flutter
 
 import HealthKit
 
+import FBSDKCoreKit
+
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
   var window: UIWindow?
@@ -50,6 +52,26 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     setupHealthChannel(on: controller)
 
+    if let url = connectionOptions.urlContexts.first?.url {
+      ApplicationDelegate.shared.application(
+        UIApplication.shared,
+        open: url,
+        sourceApplication: nil,
+        annotation: [UIApplication.OpenURLOptionsKey.annotation]
+      )
+    }
+
+  }
+
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    if let url = URLContexts.first?.url {
+      ApplicationDelegate.shared.application(
+        UIApplication.shared,
+        open: url,
+        sourceApplication: nil,
+        annotation: [UIApplication.OpenURLOptionsKey.annotation]
+      )
+    }
   }
 
   private func setupHealthChannel(on controller: FlutterViewController) {
