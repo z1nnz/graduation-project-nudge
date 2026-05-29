@@ -2106,12 +2106,15 @@ function checkPagePermissions(data) {
       } else {
         const isOverviewPage = window.location.pathname.endsWith("guardian.html") || window.location.pathname.endsWith("guardian");
         if (isOverviewPage) {
-          const card = document.getElementById("guardianLinkCard");
-          if (card) {
-            card.innerHTML = `
-              <div style="color: #f59e0b; font-weight: 700; text-align: center; font-size: 15px; line-height: 1.6; width: 100%; display: flex; align-items: center; justify-content: center; height: 100%;">
-                <span>🔒 家長陪伴功能目前未啟用。請前往「<span style="color: #ff9e00; text-decoration: underline;">連結親屬</span>」完成親屬帳號綁定，以啟用週報、鼓勵卡與共同目標！</span>
-              </div>
+          const careNote = document.getElementById("guardianCareNote");
+          if (careNote) {
+            careNote.style.display = "block";
+            careNote.style.textAlign = "center";
+            careNote.style.cursor = "pointer";
+            careNote.innerHTML = `
+              <a href="guardian-link.html" style="text-decoration: none; color: #f59e0b; font-weight: 700; font-size: 16px; line-height: 1.6; display: block; width: 100%;">
+                🔒 家長陪伴功能目前未啟用。請前往「<span style="color: #ff9e00; text-decoration: underline;">連結親屬</span>」完成親屬帳號綁定，以啟用週報、鼓勵卡與共同目標！
+              </a>
             `;
           }
           const existingRequired = document.getElementById("guardianLinkRequiredBanner");
@@ -2129,6 +2132,12 @@ function checkPagePermissions(data) {
       const existingCard = document.getElementById("webBindingGatedCard");
       if (existingCard) existingCard.remove();
 
+      const careNote = document.getElementById("guardianCareNote");
+      if (careNote) {
+        careNote.style.display = "";
+        careNote.style.textAlign = "";
+        careNote.style.cursor = "";
+      }
       if (!isGuardianLinkPage) {
         if (!document.getElementById("webGuardianLinkedBanner")) {
           showGuardianLinkedBanner(data);
@@ -2187,12 +2196,15 @@ function checkPagePermissions(data) {
       } else {
         const isOverviewPage = window.location.pathname.endsWith("groups.html") || window.location.pathname.endsWith("groups");
         if (isOverviewPage) {
-          const card = document.getElementById("groupLinkCard");
-          if (card) {
-            card.innerHTML = `
-              <div style="color: #3b82f6; font-weight: 700; text-align: center; font-size: 15px; line-height: 1.6; width: 100%; display: flex; align-items: center; justify-content: center; height: 100%;">
-                <span>🔒 團體管理功能目前未啟用。請前往「<span style="color: #3b82f6; text-decoration: underline;">連結組織</span>」完成組織加入或創建，以解鎖團隊管理與專注挑戰功能！</span>
-              </div>
+          const careNote = document.getElementById("groupCareNote");
+          if (careNote) {
+            careNote.style.display = "block";
+            careNote.style.textAlign = "center";
+            careNote.style.cursor = "pointer";
+            careNote.innerHTML = `
+              <a href="groups-link.html" style="text-decoration: none; color: #3b82f6; font-weight: 700; font-size: 16px; line-height: 1.6; display: block; width: 100%;">
+                🔒 團體管理功能目前未啟用。請前往「<span style="color: #3b82f6; text-decoration: underline;">連結組織</span>」完成組織加入或創建，以解鎖團隊管理與專注挑戰功能！
+              </a>
             `;
           }
           const existingRequired = document.getElementById("groupLinkRequiredBanner");
@@ -2208,6 +2220,13 @@ function checkPagePermissions(data) {
       if (existingRequired) existingRequired.remove();
       const existingCard = document.getElementById("webBindingGatedCard");
       if (existingCard) existingCard.remove();
+
+      const careNote = document.getElementById("groupCareNote");
+      if (careNote) {
+        careNote.style.display = "";
+        careNote.style.textAlign = "";
+        careNote.style.cursor = "";
+      }
 
       if (isGroupsLinkPage) {
         const bindingCard = document.getElementById("webBindingGatedCard");
