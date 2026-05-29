@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 個人名片</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <style>
+      /* Page specific HSL tokens and custom styles for Facebook-style profile page */
+      body[data-page="profile"] {
+        --page-accent: #7c6ae6;
+        --page-accent-2: #8d7aff;
+        --page-wash: rgba(124, 106, 230, 0.12);
+      }
+
+      /* Profile Layout styles */
+      .profile-container {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding-bottom: 50px;
+      }
+
+      /* FB Style Cover Photo */
+      .fb-cover-card {
+        background: rgba(11, 16, 33, 0.6);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        position: relative;
+      }
+
+      .fb-cover-banner {
+        height: 260px;
+        width: 100%;
+        position: relative;
+        background: linear-gradient(135deg, var(--page-accent) 0%, #1e144a 50%, #03050a 100%);
+        overflow: hidden;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      /* Cover abstract decorations */
+      .fb-cover-banner::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: 
+          radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+          linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 100% 100%, 24px 24px, 24px 24px;
+        opacity: 0.8;
+      }
+
+      .fb-cover-banner .glowing-orb {
+        position: absolute;
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        background: var(--page-accent);
+        filter: blur(100px);
+        opacity: 0.35;
+        top: -50px;
+        right: 10%;
+        animation: orb-float 8s ease-in-out infinite alternate;
+      }
+
+      @keyframes orb-float {
+        0% { transform: translateY(0px) scale(1); }
+        100% { transform: translateY(30px) scale(1.1); }
+      }
+
+      /* Overlapping Avatar & Metadata area */
+      .fb-profile-header-bar {
+        padding: 0 32px 24px;
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .fb-profile-avatar-wrapper {
+        margin-top: -80px;
+        position: relative;
+        z-index: 10;
+        flex-shrink: 0;
+      }
+
+      .fb-avatar {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: var(--page-accent);
+        border: 6px solid #070a14;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 54px;
+        font-weight: 900;
+        color: #fff;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        transition: transform 0.3s;
+      }
+
+      .fb-avatar:hover {
+        transform: scale(1.02);
+      }
+
+      .fb-profile-info {
+        flex: 1;
+        margin-bottom: 8px;
+        text-align: left;
+      }
+
+      .fb-profile-name-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .fb-profile-name {
+        font-size: 28px;
+        font-weight: 800;
+        color: #fff;
+        margin: 0;
+      }
+
+      .fb-profile-badge {
+        background: rgba(245, 158, 11, 0.12);
+        color: #f59e0b;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .fb-profile-signature {
+        color: var(--muted);
+        font-size: 14px;
+        font-style: italic;
+        margin: 6px 0 0 0;
+        line-height: 1.4;
+      }
+
+      .fb-profile-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .fb-stat-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 8px 16px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .fb-stat-tag.coins {
+        color: #f59e0b;
+      }
+
+      .fb-stat-tag.planets {
+        color: #a855f7;
+      }
+
+      /* Profile Sub Navigation Row */
+      .fb-profile-subnav {
+        display: flex;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0 24px;
+        background: rgba(7, 10, 20, 0.4);
+      }
+
+      .fb-profile-subnav a {
+        padding: 16px 20px;
+        text-decoration: none;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 14px;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+      }
+
+      .fb-profile-subnav a:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .fb-profile-subnav a.active {
+        color: var(--page-accent);
+        border-bottom-color: var(--page-accent);
+      }
+
+      /* Two Column Layout */
+      .fb-profile-body {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 24px;
+        align-items: start;
+      }
+
+      @media (max-width: 900px) {
+        .fb-profile-header-bar {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding-bottom: 24px;
+        }
+        .fb-profile-avatar-wrapper {
+          margin-top: -70px;
+        }
+        .fb-profile-info {
+          text-align: center;
+          margin-bottom: 0;
+        }
+        .fb-profile-name-row {
+          justify-content: center;
+        }
+        .fb-profile-actions {
+          justify-content: center;
+          width: 100%;
+        }
+        .fb-profile-body {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Left Column: Intro Details & Achievements */
+      .fb-left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .fb-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .fb-card-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #fff;
+        margin: 0 0 16px 0;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 10px;
+      }
+
+      .intro-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        text-align: left;
+      }
+
+      .intro-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      .intro-item span.icon {
+        font-size: 18px;
+        width: 24px;
+        text-align: center;
+      }
+
+      .intro-item strong {
+        color: #fff;
+      }
+
+      /* Copy Button for Nudge ID */
+      .copy-btn {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--muted);
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-left: 6px;
+      }
+
+      .copy-btn:hover {
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+      }
+
+      /* Badges Grid style */
+      .badges-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .badge-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 10px 4px;
+        transition: transform 0.2s;
+        cursor: pointer;
+      }
+
+      .badge-item:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .badge-icon {
+        font-size: 22px;
+      }
+
+      .badge-name {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+      }
+
+      /* Right Column: Timeline Feed */
+      .fb-right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      /* Create post mimic */
+      .fb-create-post-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: var(--shadow);
+      }
+
+      .fb-create-post-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .fb-mini-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--page-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: #fff;
+        font-size: 16px;
+      }
+
+      .fb-create-post-input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 10px 16px;
+        color: var(--muted);
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .fb-create-post-input:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .fb-create-post-actions {
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        padding-top: 10px;
+        display: flex;
+        justify-content: space-around;
+        gap: 10px;
+      }
+
+      .fb-post-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .fb-post-action-btn:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: #fff;
+      }
+
+      /* Feed Post Card */
+      .fb-post-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .fb-post-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .fb-post-author-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+      }
+
+      .fb-post-author-name {
+        font-weight: 800;
+        color: #fff;
+        font-size: 15px;
+      }
+
+      .fb-post-time {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+        display: block;
+      }
+
+      .fb-post-content {
+        font-size: 15px;
+        color: #fff;
+        text-align: left;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      /* Metrics dashboard in post */
+      .fb-post-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 4px;
+      }
+
+      .fb-metric-pill {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 14px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+      }
+
+      .fb-metric-pill .icon {
+        font-size: 22px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .fb-metric-pill.focus .icon {
+        background: rgba(124, 106, 230, 0.15);
+        color: #7c6ae6;
+      }
+
+      .fb-metric-pill.sleep .icon {
+        background: rgba(141, 122, 255, 0.15);
+        color: #8d7aff;
+      }
+
+      .fb-metric-pill.steps .icon {
+        background: rgba(20, 184, 166, 0.15);
+        color: #14b8a6;
+      }
+
+      .fb-metric-pill.tasks .icon {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+      }
+
+      .fb-metric-details {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .fb-metric-label {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .fb-metric-val {
+        font-size: 16px;
+        font-weight: 900;
+        color: #fff;
+        margin-top: 2px;
+      }
+
+      /* Feedback row */
+      .fb-post-feedback-summary {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--muted);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 12px;
+      }
+
+      .fb-post-feedback-actions {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 4px;
+        display: flex;
+        justify-content: space-around;
+      }
+
+      /* Empty feed status */
+      .fb-empty-feed {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--muted);
+      }
+
+      .fb-empty-feed .icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+        display: block;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body data-page="profile">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">N</span>
+          <span>
+            <strong>Nudge</strong>
+            <small>自律名片</small>
+          </span>
+        </a>
+        <nav class="nav">
+          <!-- Dynamically populated by app.js with local navigation entries -->
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a class="active" href="profile.html">個人名片</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">商城頁</a>
+          <a href="research.html">研究中心</a>
+          <a href="friend.html">好友功能</a>
+          <a href="planet.html">自律星球</a>
+          <a href="presentation.html">專題發表流程</a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <div class="profile-container">
+          <!-- Facebook Style Profile Layout Block -->
+          <section class="fb-cover-card">
+            <!-- 1. Cover Photo Banner -->
+            <div class="fb-cover-banner" id="profileCoverBanner">
+              <div class="glowing-orb"></div>
+            </div>
+            
+            <!-- 2. Overlapping Avatar & Name Header -->
+            <div class="fb-profile-header-bar">
+              <div class="fb-profile-avatar-wrapper">
+                <div class="fb-avatar" id="profileMainAvatar">—</div>
+              </div>
+              <div class="fb-profile-info">
+                <div class="fb-profile-name-row">
+                  <h1 class="fb-profile-name" id="profileMainName">讀取中...</h1>
+                  <span class="fb-profile-badge" id="profileMainBadge" style="display: none;">🏆 稱號</span>
+                </div>
+                <p class="fb-profile-signature" id="profileMainSignature">"讀取自律簽名中..."</p>
+              </div>
+              <div class="fb-profile-actions">
+                <div class="fb-stat-tag coins">
+                  <span>🪙</span> <span id="profileCoinsVal">0</span>
+                </div>
+                <div class="fb-stat-tag planets">
+                  <span>🪐</span> <span id="profilePlanetsVal">0</span>
+                </div>
+                <button class="button primary" id="profileEditCardBtn" style="font-weight: 700; border-radius: 12px; padding: 10px 18px;">✏️ 編輯名片</button>
+              </div>
+            </div>
+
+            <!-- 3. Sub Nav Row -->
+            <div class="fb-profile-subnav">
+              <a class="active" href="javascript:void(0);" onclick="switchProfileTab('timeline')">動態牆 (Timeline)</a>
+              <a href="javascript:void(0);" onclick="switchProfileTab('about')">關於我 (About)</a>
+              <a href="javascript:void(0);" onclick="switchProfileTab('progress')">自律進度 (Progress)</a>
+            </div>
+          </section>
+
+          <!-- Two Column Profile Content Grid -->
+          <div class="fb-profile-body">
+            <!-- Left Column: Intro card & Achievements grid -->
+            <div class="fb-left-column">
+              <!-- Intro details card -->
+              <article class="fb-card">
+                <h3 class="fb-card-title">自律介紹</h3>
+                <ul class="intro-list">
+                  <li class="intro-item">
+                    <span class="icon">🆔</span>
+                    <span>Nudge ID: <strong id="profileNudgeId">NDG-Guest</strong> <button class="copy-btn" onclick="copyNudgeId()">複製</button></span>
+                  </li>
+                  <li class="intro-item">
+                    <span class="icon">👤</span>
+                    <span>自律角色身份: <strong id="profileUserRole">個人模式</strong></span>
+                  </li>
+                  <li class="intro-item">
+                    <span class="icon">📅</span>
+                    <span>加入自律星系: <strong>2026年5月</strong></span>
+                  </li>
+                  <li class="intro-item">
+                    <span class="icon">📱</span>
+                    <span>裝置狀態: <strong style="color: #00ff88;">同步中 Live</strong></span>
+                  </li>
+                </ul>
+              </article>
+
+              <!-- Achievements badges grid card -->
+              <article class="fb-card">
+                <h3 class="fb-card-title">解鎖成就徽章</h3>
+                <div class="badges-grid" id="profileUnlockedBadges">
+                  <!-- Dynamically rendered -->
+                  <div class="fb-empty-feed" style="grid-column: span 3; padding: 10px 0;">
+                    <span style="font-size: 12px;">尚無解鎖成就</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <!-- Right Column: Timeline / Dynamic Posts -->
+            <div class="fb-right-column">
+              <!-- Facebook Style What's On Your Mind input card -->
+              <div class="fb-create-post-card">
+                <div class="fb-create-post-top">
+                  <div class="fb-mini-avatar" id="profileMiniAvatar">—</div>
+                  <div class="fb-create-post-input" onclick="toast('這是唯讀動態牆。您的日常自律行動（專注、睡眠、運動）在手機 App 完成後，會在此處自動生成動態更新貼文！ ✨')">
+                    分享你的自律故事與進度...
+                  </div>
+                </div>
+                <div class="fb-create-post-actions">
+                  <button class="fb-post-action-btn" onclick="toast('已同步手機端最新的自律資料！')">
+                    <span style="color: #7c6ae6;">🔄</span> 同步資料
+                  </button>
+                  <button class="fb-post-action-btn" onclick="toast('正在分享自律名片連結到社交媒體...')">
+                    <span style="color: #10b981;">🔗</span> 分享名片
+                  </button>
+                  <button class="fb-post-action-btn" onclick="document.getElementById('profileEditCardBtn').click()">
+                    <span style="color: #f59e0b;">⚙️</span> 編輯名片
+                  </button>
+                </div>
+              </div>
+
+              <!-- Main feed container -->
+              <div class="fb-feed-list" id="profileTimelineFeed">
+                <!-- Dynamically rendered daily status posts -->
+                <div class="fb-empty-feed">
+                  <span class="icon">📭</span>
+                  <strong>沒有近期的自律動態貼文</strong>
+                  <p>請在手機 App 進行專注或完成自律任務，系統會在此同步產生社交動態！</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="assets/app.js?v=2"></script>
+    <script>
+      // Switch Mock Sub Tabs
+      function switchProfileTab(tab) {
+        const links = document.querySelectorAll(".fb-profile-subnav a");
+        links.forEach(link => link.classList.remove("active"));
+        
+        // Mark target active
+        event.currentTarget.classList.add("active");
+        
+        if (tab === 'timeline') {
+          toast("已切換至「動態牆」");
+        } else if (tab === 'about') {
+          toast("「關於我」分頁：我是 Nudge 自律星球的一員，以自律為翼，遨遊於星系控制台！ 🌌");
+        } else if (tab === 'progress') {
+          toast("「自律進度」分頁：累計獲得了自律新星 🪐！");
+        }
+      }
+
+      // Copy Nudge ID function
+      function copyNudgeId() {
+        const idText = document.getElementById("profileNudgeId").textContent;
+        navigator.clipboard.writeText(idText).then(() => {
+          toast("已複製 Nudge ID: " + idText);
+        }).catch(err => {
+          toast("複製失敗");
+        });
+      }
+    </script>
+  </body>
+</html>

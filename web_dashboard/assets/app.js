@@ -4,6 +4,7 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 const modules = [
   ["home", "總覽入口", "index.html"],
   ["personal", "個人進階分析", "personal.html"],
+  ["profile", "個人名片", "profile.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
   ["operations", "商城頁", "operations.html"],
@@ -3182,6 +3183,10 @@ function listenToUser(userId) {
     
     updateSidebarProfile(data);
 
+    if (document.body.dataset.page === "profile") {
+      try { renderWebProfilePage(data); } catch(e) { console.error("Profile page render error:", e); }
+    }
+
     // Guardian-child sync
     const isGuardian = data.userRole === "guardian";
     const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
@@ -3957,4 +3962,276 @@ function showWebProfileEditModal(data) {
   if (selectEl) selectEl.value = data.profileTitleBadgeKey || "";
 
   overlay.classList.add("active");
+}
+
+function renderWebProfilePage(data) {
+  const nickname = data.nickname || "自律使用者";
+  const signature = data.signature || "今天也在穩定前進";
+  const nudgeId = data.myNudgeId || data.username || "NDG-Guest";
+  const coins = typeof data.disciplineCoins === 'number' ? data.disciplineCoins : 0;
+  const planets = typeof data.planetCount === 'number' ? data.planetCount : 0;
+  const userRole = data.userRole || "personal";
+  const profileTitleBadgeKey = data.profileTitleBadgeKey || "";
+  const unlockedBadgeDates = data.unlockedBadgeDates || {};
+
+  let accentColor = "#7c6ae6";
+  if (data.accentColor) {
+    if (typeof data.accentColor === 'number') {
+      const hex = (data.accentColor & 0x00FFFFFF).toString(16).padStart(6, '0');
+      accentColor = `#${hex}`;
+    } else {
+      const colorMap = {
+        'purple': '#7C6AE6',
+        'blue': '#4F8CFF',
+        'teal': '#14B8A6',
+        'green': '#10B981',
+        'orange': '#F59E0B',
+        'pink': '#EC4899',
+        'red': '#EF4444',
+        'indigo': '#6366F1'
+      };
+      accentColor = colorMap[data.accentColor] || data.accentColor;
+    }
+  }
+
+  // Update DOM components
+  const mainAvatar = document.getElementById("profileMainAvatar");
+  if (mainAvatar) {
+    mainAvatar.textContent = nickname.substring(0, 1).toUpperCase();
+    mainAvatar.style.background = accentColor;
+    mainAvatar.style.boxShadow = `0 10px 25px ${accentColor}40`;
+  }
+  const miniAvatar = document.getElementById("profileMiniAvatar");
+  if (miniAvatar) {
+    miniAvatar.textContent = nickname.substring(0, 1).toUpperCase();
+    miniAvatar.style.background = accentColor;
+  }
+  const mainName = document.getElementById("profileMainName");
+  if (mainName) mainName.textContent = nickname;
+
+  const mainSignature = document.getElementById("profileMainSignature");
+  if (mainSignature) mainSignature.textContent = `"${signature}"`;
+
+  const nodeNudgeId = document.getElementById("profileNudgeId");
+  if (nodeNudgeId) nodeNudgeId.textContent = nudgeId;
+
+  const coinsVal = document.getElementById("profileCoinsVal");
+  if (coinsVal) coinsVal.textContent = coins;
+
+  const planetsVal = document.getElementById("profilePlanetsVal");
+  if (planetsVal) planetsVal.textContent = planets;
+
+  // Cover photo banner gradient
+  const coverBanner = document.getElementById("profileCoverBanner");
+  if (coverBanner) {
+    coverBanner.style.background = `linear-gradient(135deg, ${accentColor} 0%, #1e144a 50%, #03050a 100%)`;
+  }
+
+  // Active role translation
+  const roleNode = document.getElementById("profileUserRole");
+  if (roleNode) {
+    const roleLabels = {
+      'personal': '🧑‍💻 個人/小孩模式',
+      'guardian': '🛡️ 家長模式',
+      'group': '👥 團體挑戰模式',
+      'enterprise': '🏢 企業管理模式',
+      'tutor': '🎒 補習班管理模式',
+      'school': '🏫 學校班級模式'
+    };
+    roleNode.textContent = roleLabels[userRole] || `【${userRole}】`;
+  }
+
+  // Active badge/title
+  const badgeNames = {
+    'task_starter': '任務起步者',
+    'focus_beginner': '專注新手',
+    'focus_streak': '專注連續者',
+    'task_streak': '任務連續者',
+    'sleep_guard': '睡眠守護者',
+    'step_master': '步數達人',
+    'steady_progress': '穩定前進',
+    'score_keeper': '高分維持',
+    'coin_earner': '門檻達人',
+    'auto_tracker': '自動追蹤者',
+    'health_sync': '健康同步者',
+    'health_task': '健康任務實踐者'
+  };
+  const badgeName = badgeNames[profileTitleBadgeKey] || "";
+  const mainBadge = document.getElementById("profileMainBadge");
+  if (mainBadge) {
+    if (badgeName) {
+      mainBadge.textContent = `🏆 ${badgeName}`;
+      mainBadge.style.display = "inline-flex";
+    } else {
+      mainBadge.style.display = "none";
+    }
+  }
+
+  // Badges grid
+  const badgesGrid = document.getElementById("profileUnlockedBadges");
+  if (badgesGrid) {
+    const badgeIcons = {
+      'task_starter': '🚀',
+      'focus_beginner': '🎯',
+      'focus_streak': '🔥',
+      'task_streak': '⚡',
+      'sleep_guard': '🌙',
+      'step_master': '👟',
+      'steady_progress': '📈',
+      'score_keeper': '🎖️',
+      'coin_earner': '🪙',
+      'auto_tracker': '📡',
+      'health_sync': '❤️',
+      'health_task': '💪'
+    };
+    const badgeDefinitions = [
+      { key: 'task_starter', name: '任務起步者' },
+      { key: 'focus_beginner', name: '專注新手' },
+      { key: 'focus_streak', name: '專注連續者' },
+      { key: 'task_streak', name: '任務連續者' },
+      { key: 'sleep_guard', name: '睡眠守護者' },
+      { key: 'step_master', name: '步數達人' },
+      { key: 'steady_progress', name: '穩定前進' },
+      { key: 'score_keeper', name: '高分維持' },
+      { key: 'coin_earner', name: '門檻達人' },
+      { key: 'auto_tracker', name: '自動追蹤者' },
+      { key: 'health_sync', name: '健康同步者' },
+      { key: 'health_task', name: '健康任務實踐者' }
+    ];
+    const unlockedKeys = Object.keys(unlockedBadgeDates);
+    const html = badgeDefinitions.map(b => {
+      const isUnlocked = unlockedKeys.includes(b.key);
+      return `
+        <div class="badge-item" style="opacity: ${isUnlocked ? 1 : 0.25}; cursor: ${isUnlocked ? 'pointer' : 'default'};" title="${isUnlocked ? '已解鎖' : '未解鎖'}">
+          <span class="badge-icon">${badgeIcons[b.key] || '🏆'}</span>
+          <span class="badge-name" style="color: ${isUnlocked ? '#fff' : 'var(--muted)'};">${b.name}</span>
+        </div>
+      `;
+    }).join('');
+    badgesGrid.innerHTML = html;
+  }
+
+  // Edit card button
+  const editBtn = document.getElementById("profileEditCardBtn");
+  if (editBtn) {
+    // Rebind listener safely
+    editBtn.onclick = () => showWebProfileEditModal(data);
+  }
+
+  // Dynamic Timeline Feed
+  const feedContainer = document.getElementById("profileTimelineFeed");
+  if (feedContainer) {
+    const dailySummaries = data.dailySummaries || [];
+    const tasks = data.tasks || [];
+    const completedCount = tasks.filter(t => t.isDone || t.done).length;
+    
+    let postsHtml = '';
+
+    if (dailySummaries.length > 0) {
+      const sortedSummaries = [...dailySummaries].reverse();
+      sortedSummaries.forEach((summary, idx) => {
+        const dateStr = summary.date || `第 ${dailySummaries.length - idx} 天`;
+        const score = summary.disciplineScore || 0;
+        const focusMin = summary.focusMinutes || 0;
+        const sleepHr = summary.sleepHours || 0;
+        const stepCount = summary.steps || 0;
+        
+        let statusText = '';
+        if (score >= 90) {
+          statusText = `今天自律狀態爆表！達成了 ${score} 的高分！特別是完成了所有核心挑戰，感覺充滿能量！ 🚀✨`;
+        } else if (score >= 75) {
+          statusText = `今天的自律進度很穩定，得分為 ${score}。番茄鐘專注與健康運動都有乖乖執行，繼續保持這個節奏！ 💪`;
+        } else {
+          statusText = `今天自律得分為 ${score}。雖然有些項目稍微落後，但沒關係，自律是個長跑，明天再接再厲！ 🌟`;
+        }
+
+        postsHtml += `
+          <article class="fb-post-card">
+            <div class="fb-post-header">
+              <div class="fb-post-author-info">
+                <div class="fb-mini-avatar" style="background: ${accentColor};">${nickname.substring(0, 1).toUpperCase()}</div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="fb-post-author-name">${nickname}</span>
+                    ${badgeName ? `<span class="fb-profile-badge" style="font-size: 10px; padding: 2px 8px;">🏆 ${badgeName}</span>` : ''}
+                  </div>
+                  <span class="fb-post-time">${dateStr}</span>
+                </div>
+              </div>
+              <div style="color: var(--muted); font-size: 18px; cursor: pointer;">•••</div>
+            </div>
+            <div class="fb-post-content">${statusText}</div>
+            <div class="fb-post-metrics-grid">
+              <div class="fb-metric-pill focus">
+                <span class="icon">⏱️</span>
+                <div class="fb-metric-details">
+                  <span class="fb-metric-label">專注時間</span>
+                  <span class="fb-metric-val">${focusMin} 分鐘</span>
+                </div>
+              </div>
+              <div class="fb-metric-pill sleep">
+                <span class="icon">🌙</span>
+                <div class="fb-metric-details">
+                  <span class="fb-metric-label">睡眠時數</span>
+                  <span class="fb-metric-val">${sleepHr} 小時</span>
+                </div>
+              </div>
+              <div class="fb-metric-pill steps">
+                <span class="icon">👣</span>
+                <div class="fb-metric-details">
+                  <span class="fb-metric-label">今日步數</span>
+                  <span class="fb-metric-val">${stepCount} 步</span>
+                </div>
+              </div>
+              <div class="fb-metric-pill tasks">
+                <span class="icon">✅</span>
+                <div class="fb-metric-details">
+                  <span class="fb-metric-label">完成任務</span>
+                  <span class="fb-metric-val">${completedCount} 個任務</span>
+                </div>
+              </div>
+            </div>
+            <div class="fb-post-feedback-summary">
+              <span>👍 小安 與其他 12 人都說讚</span>
+              <span>4 則留言 • 2 次分享</span>
+            </div>
+            <div class="fb-post-feedback-actions">
+              <button class="fb-post-action-btn" onclick="toast('已按讚此動態！')">👍 讚</button>
+              <button class="fb-post-action-btn" onclick="toast('留言功能開發中...')">💬 留言</button>
+              <button class="fb-post-action-btn" onclick="toast('已複製動態連結！')">↪️ 分享</button>
+            </div>
+          </article>
+        `;
+      });
+    } else {
+      postsHtml = `
+        <article class="fb-post-card">
+          <div class="fb-post-header">
+            <div class="fb-post-author-info">
+              <div class="fb-mini-avatar" style="background: ${accentColor};">${nickname.substring(0, 1).toUpperCase()}</div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="fb-post-author-name">${nickname}</span>
+                  ${badgeName ? `<span class="fb-profile-badge" style="font-size: 10px; padding: 2px 8px;">🏆 ${badgeName}</span>` : ''}
+                </div>
+                <span class="fb-post-time">剛剛</span>
+              </div>
+            </div>
+            <div style="color: var(--muted); font-size: 18px; cursor: pointer;">•••</div>
+          </div>
+          <div class="fb-post-content">今天正式啟用了 Nudge 自律名片！目前已設定自律目標，並準備在手機 App 端同步專注、睡眠與步數進度，開啟自律宇宙的全新生活！ 🪐✨</div>
+          <div class="fb-post-feedback-summary">
+            <span>👍 0 人按讚</span>
+            <span>0 則留言 • 0 次分享</span>
+          </div>
+          <div class="fb-post-feedback-actions">
+            <button class="fb-post-action-btn" onclick="toast('已按讚此動態！')">👍 讚</button>
+            <button class="fb-post-action-btn" onclick="toast('留言功能開發中...')">💬 留言</button>
+            <button class="fb-post-action-btn" onclick="toast('已複製動態連結！')">↪️ 分享</button>
+          </div>
+        </article>
+      `;
+    }
+    feedContainer.innerHTML = postsHtml;
+  }
 }

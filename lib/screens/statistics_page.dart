@@ -7,7 +7,8 @@ import 'time_capsule_page.dart';
 import 'future_letter_page.dart';
 
 class StatisticsPage extends StatefulWidget {
-  const StatisticsPage({super.key});
+  final bool showAppBar;
+  const StatisticsPage({super.key, this.showAppBar = true});
 
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
@@ -399,9 +400,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('統計分析')),
-      body: ListView(
+    final listBody = ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
           Container(
@@ -669,7 +668,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    width: double.infinity,
+                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -948,7 +947,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
               ),
             ),
         ],
-      ),
+      );
+
+    if (!widget.showAppBar) return listBody;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('統計分析')),
+      body: listBody,
     );
   }
 }

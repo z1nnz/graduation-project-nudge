@@ -171,245 +171,367 @@ class _AccountPageState extends State<AccountPage>
   Widget _buildSignedInView(AppState appState) {
     final accent = appState.currentIconColor;
     final user = appState.currentUser;
+    final isDark = AppUI.isDark(context);
 
     return ListView(
-      padding: const EdgeInsets.all(AppUI.pagePadding),
+      padding: EdgeInsets.zero, // Make full width for cover photo!
       children: [
-        // Hero card (Edit profile card)
-        Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          shape: AppUI.cardShape(),
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const MyProfilePage()),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(22),
-              decoration: AppUI.heroGradient(accent),
-              child: Row(
+        // Facebook-style header block
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 1. Cover Photo Banner
+            Container(
+              height: 160,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accent,
+                    accent.withValues(alpha: 0.6),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Stack(
                 children: [
-                  AvatarIconPreview(
-                    index: appState.avatarProfile.avatarIconIndex,
-                    size: 64,
+                  // Decorative shapes on cover
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                appState.profileNickname,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Colors.white70,
-                              size: 24,
-                            ),
-                          ],
-                        ),
-                        if (appState.profileTitle.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(AppUI.radiusPill),
-                            ),
-                            child: Text(
-                              appState.profileTitle,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 6),
-                        Text(
-                          appState.profileSignature.isEmpty
-                              ? '今天也在穩定前進'
-                              : appState.profileSignature,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                  Positioned(
+                    left: 40,
+                    top: -40,
+                    child: Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: AppUI.cardGap),
-
-        // Role Switcher Card
-        _InfoCard(
-          title: '切換自律角色身份',
-          subtitle: '切換不同的模式以使用對應的自律中心或控制台',
-          icon: Icons.swap_horizontal_circle_outlined,
-          accentColor: accent,
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  _RolePill(
-                    label: '個人模式',
-                    role: 'personal',
-                    activeRole: appState.userRole,
-                    accentColor: accent,
-                    onTap: () => appState.setUserRole('personal'),
-                  ),
-                  const SizedBox(width: 8),
-                  _RolePill(
-                    label: '孩子端',
-                    role: 'child',
-                    activeRole: appState.userRole,
-                    accentColor: accent,
-                    onTap: () => appState.setUserRole('child'),
-                  ),
-                ],
+            // 2. Avatar Overlap
+            Positioned(
+              bottom: -44,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF11141A) : const Color(0xFFF3F4F6), // Background padding border
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: AvatarIconPreview(
+                  index: appState.avatarProfile.avatarIconIndex,
+                  size: 88,
+                ),
               ),
-              const SizedBox(height: 8),
+            ),
+          ],
+        ),
+        // Spacer for overlapping avatar
+        const SizedBox(height: 52),
+
+        // User info details (Name, Badge, Signature)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Nickname
+              Text(
+                appState.profileNickname,
+                style: TextStyle(
+                  color: AppUI.textPrimaryOf(context),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Title Badge Tag
+              if (appState.profileTitle.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                    border: Border.all(
+                      color: accent.withValues(alpha: 0.28),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.emoji_events_rounded, color: accent, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        appState.profileTitle,
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              // Personal Signature (Bio quote)
+              Text(
+                appState.profileSignature.isEmpty
+                    ? '今天也在穩定前進'
+                    : '"${appState.profileSignature}"',
+                style: TextStyle(
+                  color: AppUI.textSecondaryOf(context),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  fontStyle: FontStyle.italic,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Action Buttons row
               Row(
                 children: [
-                  _RolePill(
-                    label: '家長端',
-                    role: 'guardian',
-                    activeRole: appState.userRole,
-                    accentColor: accent,
-                    onTap: () => appState.setUserRole('guardian'),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MyProfilePage()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text(
+                        '編輯個人檔案',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  _RolePill(
-                    label: '團體/企業',
-                    role: 'group',
-                    activeRole: appState.userRole,
-                    accentColor: accent,
-                    onTap: () => appState.setUserRole('group'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('正在從雲端同步資料...')),
+                        );
+                        await appState.pullDataFromFirestore();
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('同步完成！ ✨')),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppUI.textPrimaryOf(context),
+                        side: BorderSide(color: AppUI.textSecondaryOf(context).withValues(alpha: 0.3)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.sync_rounded, size: 18),
+                      label: const Text(
+                        '同步資料',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: AppUI.cardGap),
 
-        // Nudge ID card
-        _InfoCard(
-          title: 'Nudge ID',
-          subtitle: '用這組 ID 讓好友搜尋並加你',
-          icon: Icons.badge_outlined,
-          accentColor: accent,
-          child: Row(
+        const SizedBox(height: 18),
+        const Divider(height: 1, thickness: 1, color: Colors.black12),
+        const SizedBox(height: 14),
+
+        // Rest of details (Cards)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
             children: [
-              Expanded(
-                child: SelectableText(
-                  appState.myNudgeId,
-                  style: TextStyle(
-                    color: AppUI.textPrimaryOf(context),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
+              // Role Switcher Card
+              _InfoCard(
+                title: '切換自律角色身份',
+                subtitle: '切換不同的模式以使用對應的自律中心或控制台',
+                icon: Icons.swap_horizontal_circle_outlined,
+                accentColor: accent,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _RolePill(
+                          label: '個人模式',
+                          role: 'personal',
+                          activeRole: appState.userRole,
+                          accentColor: accent,
+                          onTap: () => appState.setUserRole('personal'),
+                        ),
+                        const SizedBox(width: 8),
+                        _RolePill(
+                          label: '孩子端',
+                          role: 'child',
+                          activeRole: appState.userRole,
+                          accentColor: accent,
+                          onTap: () => appState.setUserRole('child'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _RolePill(
+                          label: '家長端',
+                          role: 'guardian',
+                          activeRole: appState.userRole,
+                          accentColor: accent,
+                          onTap: () => appState.setUserRole('guardian'),
+                        ),
+                        const SizedBox(width: 8),
+                        _RolePill(
+                          label: '團體/企業',
+                          role: 'group',
+                          activeRole: appState.userRole,
+                          accentColor: accent,
+                          onTap: () => appState.setUserRole('group'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppUI.cardGap),
+
+              // Nudge ID card
+              _InfoCard(
+                title: 'Nudge ID',
+                subtitle: '用這組 ID 讓好友搜尋並加你',
+                icon: Icons.badge_outlined,
+                accentColor: accent,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SelectableText(
+                        appState.myNudgeId,
+                        style: TextStyle(
+                          color: AppUI.textPrimaryOf(context),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    IconButton.filledTonal(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: appState.myNudgeId));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('已複製 ${appState.myNudgeId}')),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppUI.cardGap),
+
+              // Account info
+              _InfoCard(
+                title: '帳號資訊',
+                subtitle: user?.email ?? '—',
+                icon: Icons.account_circle_outlined,
+                accentColor: accent,
+                child: Column(
+                  children: [
+                    _InfoRow(label: '登入方式', value: appState.accountProviderLabel),
+                    const SizedBox(height: 6),
+                    _InfoRow(label: 'UID', value: user?.id ?? '—'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppUI.cardGap),
+
+              // Sync scope
+              _InfoCard(
+                title: '雲端同步範圍',
+                subtitle: '以下資料已和帳號綁定，換設備也不會遺失。',
+                icon: Icons.cloud_sync_outlined,
+                accentColor: accent,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _SyncChip(label: '個人名片', color: accent),
+                    _SyncChip(label: '自律房', color: const Color(0xFF14B8A6)),
+                    _SyncChip(label: '角色穿搭', color: AppUI.purple),
+                    _SyncChip(label: '好友邀請', color: AppUI.orange),
+                    _SyncChip(label: '每日紀錄', color: const Color(0xFFF59E0B)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppUI.cardGap),
+
+              // Sign out
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () async {
+                          setState(() => _busy = true);
+                          await appState.signOut();
+                          if (mounted) setState(() => _busy = false);
+                        },
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text('登出'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red, width: 1.2),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
               ),
-              IconButton.filledTonal(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: appState.myNudgeId));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('已複製 ${appState.myNudgeId}')),
-                  );
-                },
-                icon: const Icon(Icons.copy_rounded),
-              ),
+              const SizedBox(height: 36),
             ],
           ),
         ),
-        const SizedBox(height: AppUI.cardGap),
-
-        // Account info
-        _InfoCard(
-          title: '帳號資訊',
-          subtitle: user?.email ?? '—',
-          icon: Icons.account_circle_outlined,
-          accentColor: accent,
-          child: Column(
-            children: [
-              _InfoRow(label: '登入方式', value: appState.accountProviderLabel),
-              const SizedBox(height: 6),
-              _InfoRow(label: 'UID', value: user?.id ?? '—'),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppUI.cardGap),
-
-        // Sync scope
-        _InfoCard(
-          title: '雲端同步範圍',
-          subtitle: '以下資料已和帳號綁定，換設備也不會遺失。',
-          icon: Icons.cloud_sync_outlined,
-          accentColor: accent,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _SyncChip(label: '個人名片', color: accent),
-              _SyncChip(label: '自律房', color: const Color(0xFF14B8A6)),
-              _SyncChip(label: '角色穿搭', color: AppUI.purple),
-              _SyncChip(label: '好友邀請', color: AppUI.orange),
-              _SyncChip(label: '每日紀錄', color: const Color(0xFFF59E0B)),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppUI.cardGap),
-
-        // Sign out
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _busy
-                ? null
-                : () async {
-                    setState(() => _busy = true);
-                    await appState.signOut();
-                    if (mounted) setState(() => _busy = false);
-                  },
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('登出'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red, width: 1.2),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
       ],
     );
   }

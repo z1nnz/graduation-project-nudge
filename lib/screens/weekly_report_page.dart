@@ -5,7 +5,8 @@ import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
 class WeeklyReportPage extends StatelessWidget {
-  const WeeklyReportPage({super.key});
+  final bool showAppBar;
+  const WeeklyReportPage({super.key, this.showAppBar = true});
 
   List<DailySummary> _sortedSummaries(List<DailySummary> summaries) {
     final sorted = List<DailySummary>.from(summaries)
@@ -216,9 +217,7 @@ class WeeklyReportPage extends StatelessWidget {
     final weeklySummary = _weeklySummary(summaries);
     final nextGoal = _nextWeekGoal(summaries);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('每週報告')),
-      body: ListView(
+    final listBody = ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
           Container(
@@ -492,7 +491,7 @@ class WeeklyReportPage extends StatelessWidget {
                     padding: const EdgeInsets.all(14),
                     decoration: AppUI.softCardOf(context, accentColor),
                     child: Text(
-                      nextGoal,
+                       nextGoal,
                       style: TextStyle(
                         fontSize: 14,
                         color: primaryText,
@@ -505,7 +504,13 @@ class WeeklyReportPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      );
+
+    if (!showAppBar) return listBody;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('每週報告')),
+      body: listBody,
     );
   }
 }

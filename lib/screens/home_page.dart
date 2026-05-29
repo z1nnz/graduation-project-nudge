@@ -4,14 +4,17 @@ import '../state/app_state.dart';
 import '../widgets/app_drawer.dart';
 import '../theme/app_ui.dart';
 import 'coin_wallet_page.dart';
-import 'today_advice_page.dart';
 import 'badges_page.dart';
-import 'weekly_report_page.dart';
 import 'tasks_page.dart';
 import 'today_data_page.dart';
 import 'guardian_center_page.dart';
 import 'guardian_parent_page.dart';
 import 'group_management_page.dart';
+import 'personal_analysis_page.dart';
+import 'ai_assistant_page.dart';
+import 'time_capsule_page.dart';
+import 'future_letter_page.dart';
+import 'leaderboard_page.dart';
 
 class HomePage extends StatelessWidget {
   final void Function(int) onNavigate;
@@ -278,29 +281,65 @@ class HomePage extends StatelessWidget {
                       // Default personal tools
                       actionCards.addAll([
                         _QuickActionCard(
-                          icon: Icons.bar_chart_rounded,
-                          title: '統計分析',
-                          onTap: onOpenStatistics,
+                          icon: Icons.analytics_outlined,
+                          title: '個人進階分析',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PersonalAnalysisPage(),
+                              ),
+                            );
+                          },
                           accentColor: accentColor,
                           primaryText: primaryText,
                           secondaryText: secondaryText,
                           isDark: isDark,
                         ),
                         _QuickActionCard(
-                          icon: Icons.tips_and_updates_outlined,
-                          title: '今日建議',
+                          icon: Icons.psychology_alt_outlined,
+                          title: 'AI 自律助手',
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => TodayAdvicePage(
-                                  onOpenTasks: openTasksPage,
-                                  onNavigate: onNavigate,
-                                ),
+                                builder: (_) => const AIAssistantPage(),
                               ),
                             );
                           },
-                          accentColor: accentColor,
+                          accentColor: const Color(0xFFA855F7), // Purple accent
+                          primaryText: primaryText,
+                          secondaryText: secondaryText,
+                          isDark: isDark,
+                        ),
+                        _QuickActionCard(
+                          icon: Icons.hourglass_empty_rounded,
+                          title: '時間膠囊',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const TimeCapsulePage(),
+                              ),
+                            );
+                          },
+                          accentColor: const Color(0xFFF59E0B), // Orange accent
+                          primaryText: primaryText,
+                          secondaryText: secondaryText,
+                          isDark: isDark,
+                        ),
+                        _QuickActionCard(
+                          icon: Icons.mail_outline_rounded,
+                          title: '未來的信',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const FutureLetterPage(),
+                              ),
+                            );
+                          },
+                          accentColor: const Color(0xFFEC4899), // Pink accent
                           primaryText: primaryText,
                           secondaryText: secondaryText,
                           isDark: isDark,
@@ -311,24 +350,28 @@ class HomePage extends StatelessWidget {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const BadgesPage()),
+                              MaterialPageRoute(
+                                builder: (_) => const BadgesPage(),
+                              ),
                             );
                           },
-                          accentColor: accentColor,
+                          accentColor: const Color(0xFF10B981), // Green accent
                           primaryText: primaryText,
                           secondaryText: secondaryText,
                           isDark: isDark,
                         ),
                         _QuickActionCard(
-                          icon: Icons.calendar_month_outlined,
-                          title: '每週報告',
+                          icon: Icons.leaderboard_rounded,
+                          title: '自律排行榜',
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const WeeklyReportPage()),
+                              MaterialPageRoute(
+                                builder: (_) => const LeaderboardPage(),
+                              ),
                             );
                           },
-                          accentColor: accentColor,
+                          accentColor: const Color(0xFF3B82F6), // Blue accent
                           primaryText: primaryText,
                           secondaryText: secondaryText,
                           isDark: isDark,

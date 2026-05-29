@@ -12,8 +12,14 @@ import 'tasks_page.dart';
 class TodayAdvicePage extends StatelessWidget {
   final VoidCallback? onOpenTasks;
   final ValueChanged<int>? onNavigate;
+  final bool showAppBar;
 
-  const TodayAdvicePage({super.key, this.onOpenTasks, this.onNavigate});
+  const TodayAdvicePage({
+    super.key,
+    this.onOpenTasks,
+    this.onNavigate,
+    this.showAppBar = true,
+  });
 
   DateTime? _parseDate(String? value) {
     if (value == null || value.isEmpty) return null;
@@ -443,9 +449,7 @@ class TodayAdvicePage extends StatelessWidget {
               ? '先完成「${topTask['title']}」，這是一個中優先級的固定任務。'
               : '今天可以先新增一個明確任務，讓系統開始幫你建立節奏。');
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('今日建議')),
-      body: ListView(
+    final listBody = ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
           Container(
@@ -758,7 +762,13 @@ class TodayAdvicePage extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      );
+
+    if (!showAppBar) return listBody;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('今日建議')),
+      body: listBody,
     );
   }
 }

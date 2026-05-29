@@ -5827,6 +5827,77 @@ ${summaryBuf.toString()}
     }
   }
 
+  Future<String> chatWithAICoach(String userMessage, List<Map<String, dynamic>> chatHistory) async {
+    final user = _currentUser;
+    if (user == null) {
+      return '請先登入以使用 AI 智能自律導師。';
+    }
+
+    try {
+      // 1. Gather stats
+      final score = todayWeightedDisciplineScore;
+      final completed = todayActionableTaskCompleted;
+      final total = todayActionableTaskTotal;
+      final focusMin = focusMinutes;
+      final sleepHr = sleepHours;
+      final stepCount = steps;
+      final activeRole = userRole;
+
+      // 2. Format today's tasks
+      final taskListString = _tasks.map((t) {
+        final title = t['title'] ?? '無標題';
+        final category = t['category'] ?? '其他';
+        final type = t['taskType'] ?? 'fixed';
+        final isDone = t['done'] == true ? '已完成' : '未完成';
+        return '- [$isDone] $title ($category, $type)';
+      }).join('\n');
+
+      // 3. Format history
+      final historyBuffer = StringBuffer();
+      for (final msg in chatHistory) {
+        final roleName = msg['isUser'] == true ? '使用者' : 'AI導師';
+        historyBuffer.writeln('$roleName: ${msg['text']}');
+      }
+
+      // 4. Build prompt
+      final prompt = '''
+你是一位溫和、專業且極具同理心的「Nudge AI 自律導師」。使用者目前正在跟你對話，請根據以下提供的使用者「今日實時自律數據」與「對話歷史紀錄」，提供最合適的回覆。
+
+【使用者今日自律數據】
+- 目前角色身份模式: $activeRole
+- 加權自律分數: $score 分 / 100
+- 每日任務進度: $completed/$total (完成/總計)
+- 今日專注時數: $focusMin 分鐘
+- 今日健康數據: 睡眠 $sleepHr 小時, 步數 $stepCount 步
+- 今日任務列表:
+$taskListString
+
+【對話歷史紀錄】
+${historyBuffer.toString()}
+
+【使用者最新訊息】
+使用者: $userMessage
+
+【回覆指南】
+1. 請以繁體中文 (Traditional Chinese, zh-Hant) 回覆。
+2. 請維持 Nudge 自律導師的風格：溫柔堅定、溫馨陪伴、注重微調行動（Nudge）而非強加高壓計畫。
+3. 如果使用者要求「診斷我今天的自律數據」，請結合上面的分數、健康與任務完成情況，給出 2 句話的盲點剖析與一個極為具體的「微行動建議」。
+4. 回覆請盡量精煉，避免過長的冗長鋪陳，排版清晰美觀，合適地使用 Emoji。
+''';
+
+      final googleAI = FirebaseAI.googleAI(auth: fb_auth.FirebaseAuth.instance);
+      final model = googleAI.generativeModel(
+        model: 'gemini-flash-latest',
+      );
+
+      final response = await model.generateContent([Content.text(prompt)]);
+      return response.text ?? 'AI 導師目前無回應，請稍後再試。';
+    } catch (e) {
+      debugPrint('Error calling Gemini: $e');
+      return 'AI 導師連線失敗，請確認您的網路！\n詳細錯誤：$e';
+    }
+  }
+
   void importExamTemplate(String type, int days, String effort, String strategy) {
     for (int d = 1; d <= days; d++) {
       String title = '';
