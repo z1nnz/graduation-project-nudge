@@ -1979,25 +1979,59 @@ function updateSidebarProfile(data) {
   }
 
   let profileContainer = $(".sidebar-profile-container");
+  
+  const badgeNames = {
+    'task_starter': '任務起步者',
+    'focus_beginner': '專注新手',
+    'focus_streak': '專注連續者',
+    'task_streak': '任務連續者',
+    'sleep_guard': '睡眠守護者',
+    'step_master': '步數達人',
+    'steady_progress': '穩定前進',
+    'score_keeper': '高分維持',
+    'coin_earner': '門檻達人',
+    'auto_tracker': '自動追蹤者',
+    'health_sync': '健康同步者',
+    'health_task': '健康任務實踐者'
+  };
+
+  const titleBadgeKey = data.profileTitleBadgeKey || "";
+  const titleBadgeName = titleBadgeKey ? (badgeNames[titleBadgeKey] || "") : "";
+  const signature = data.signature || "今天也在穩定前進";
+
   const cardHtml = `
     <div class="sidebar-profile-container" style="text-align: left;">
       <div style="display: flex; align-items: center; justify-content: space-between;">
-        <span class="eyebrow">同步使用者資料</span>
+        <span class="eyebrow">自律個人名片</span>
         <a href="javascript:void(0);" id="editWebProfileBtn" style="font-size: 11px; color: var(--c-primary); font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px; transition: opacity 0.2s;">
-          <span>⚙️ 編輯資料</span>
+          <span>⚙️ 編輯名片</span>
         </a>
       </div>
-      <div class="user-profile-card" style="margin-top: 8px; margin-bottom: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: ${accentColor}; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 16px; box-shadow: 0 4px 12px ${accentColor}40; flex-shrink: 0;">
-          ${nickname.substring(0, 1).toUpperCase()}
+      <div class="user-profile-card" style="margin-top: 8px; margin-bottom: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: ${accentColor}; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 18px; box-shadow: 0 4px 12px ${accentColor}40; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1);">
+            ${nickname.substring(0, 1).toUpperCase()}
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 800; color: #fff; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nickname}</div>
+            <div style="font-size: 10px; color: rgba(255,255,255,0.4); font-family: monospace; margin-top: 1px;">ID: ${nudgeId}</div>
+          </div>
+          <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-weight: 800; color: #f59e0b; font-size: 13px;">🪙${coins}</div>
+            <div style="font-weight: 800; color: #a855f7; font-size: 12px;">🪐${planets}</div>
+          </div>
         </div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 700; color: #fff; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nickname}</div>
-          <div style="font-size: 11px; color: rgba(255,255,255,0.4); font-family: monospace;">ID: ${nudgeId}</div>
+        
+        ${titleBadgeName ? `
+        <div style="display: flex; align-items: center;">
+          <span style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.25);">
+            🏆 ${titleBadgeName}
+          </span>
         </div>
-        <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px;">
-          <div style="font-weight: 800; color: #f59e0b; font-size: 13px;">🪙${coins}</div>
-          <div style="font-weight: 800; color: #a855f7; font-size: 12px;">🪐${planets}</div>
+        ` : ''}
+
+        <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; font-size: 12px; color: rgba(255,255,255,0.65); font-style: italic; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+          "${signature}"
         </div>
       </div>
       <div class="sidebar-role-select-wrapper" style="margin-bottom: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
