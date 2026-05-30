@@ -50,7 +50,7 @@
                   <span style="color:#60a5fa; font-size:12px; margin-left:8px;">>8h</span>
                 </div>
               </div>
-              <div class="chart-container" style="height: 220px; position: relative;">
+              <div class="chart-container" style="height: 250px; position: relative;">
                 <canvas id="researchSleepChart"></canvas>
               </div>
             </article>
@@ -60,7 +60,7 @@
                 <strong>平均專注時間 (長條圖)</strong>
                 <div class="panel-actions"><span style="color:#60a5fa; font-weight:bold;">本週趨勢</span></div>
               </div>
-              <div class="chart-container" style="height: 220px;">
+              <div class="chart-container" style="height: 250px;">
                 <canvas id="researchFocusChart"></canvas>
               </div>
             </article>
@@ -70,7 +70,7 @@
                 <strong>平均步數 (折線圖)</strong>
                 <div class="panel-actions"><span style="color:#34d399; font-weight:bold;">今日 6,250 步</span></div>
               </div>
-              <div class="chart-container" style="height: 220px;">
+              <div class="chart-container" style="height: 250px;">
                 <canvas id="researchStepsChart"></canvas>
               </div>
             </article>
@@ -80,7 +80,7 @@
                 <strong>平均運動時間 (長條圖)</strong>
                 <div class="panel-actions"><span style="color:#f472b6; font-weight:bold;">今日 25 分鐘</span></div>
               </div>
-              <div class="chart-container" style="height: 220px;">
+              <div class="chart-container" style="height: 250px;">
                 <canvas id="researchExerciseChart"></canvas>
               </div>
             </article>
@@ -112,7 +112,7 @@
         ctx.scale(ratio, ratio);
         ctx.clearRect(0, 0, w, h);
 
-        const pad = { top: 28, bottom: 30, left: 10, right: 10 };
+        const pad = { top: 28, bottom: 34, left: 10, right: 10 };
         const maxVal = Math.max(...values, 1);
         const chartH = h - pad.top - pad.bottom;
         const chartW = w - pad.left - pad.right;
@@ -144,7 +144,7 @@
           // X-axis label
           ctx.fillStyle = "#9ca3af";
           ctx.font = "11px system-ui";
-          ctx.fillText(labels[i], x + barW / 2, h - 8);
+          ctx.fillText(labels[i], x + barW / 2, h - 12);
         });
       }
 
@@ -160,7 +160,7 @@
 
         const cx = w / 2;
         const cy = h / 2;
-        const r = Math.min(cx, cy) - 30;
+        const r = Math.min(cx, cy) - 38;
         const total = data.reduce((a, b) => a + b, 0);
         const percentages = ["20%", "55%", "25%"];
 
@@ -178,7 +178,7 @@
 
           // Percentage label outside the ring
           const mid = startAngle + slice / 2;
-          const labelR = r + 28;
+          const labelR = r + 24;
           const tx = cx + labelR * Math.cos(mid);
           const ty = cy + labelR * Math.sin(mid);
           ctx.fillStyle = "#ddd";
@@ -212,7 +212,7 @@
         ctx.scale(ratio, ratio);
         ctx.clearRect(0, 0, w, h);
 
-        const pad = { top: 28, bottom: 28, left: 16, right: 16 };
+        const pad = { top: 28, bottom: 34, left: 16, right: 16 };
         const maxVal = Math.max(...values, 1);
         const minVal = Math.min(...values);
         const range = maxVal - minVal || 1;
@@ -274,7 +274,7 @@
 
           ctx.fillStyle = "#9ca3af";
           ctx.font = "11px system-ui";
-          ctx.fillText(labels[i], x, h - 6);
+          ctx.fillText(labels[i], x, h - 12);
         });
       }
 
