@@ -387,8 +387,53 @@ class _CandidateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
+
+    final isFriend = appState.socialFriends.any((f) => f.id == candidate.id);
+    final incoming = appState.incomingFriendRequests.where(
+      (req) => req.id.contains(candidate.id) || req.nudgeId.toUpperCase() == candidate.nudgeId.toUpperCase()
+    ).toList();
+    final hasIncoming = incoming.isNotEmpty;
+    final outgoing = appState.outgoingFriendRequests.where(
+      (req) => req.id.contains(candidate.id) || req.nudgeId.toUpperCase() == candidate.nudgeId.toUpperCase()
+    ).toList();
+    final hasOutgoing = outgoing.isNotEmpty;
+
+    Widget actionWidget;
+    if (isFriend) {
+      actionWidget = const Text(
+        '已是好友',
+        style: TextStyle(
+          color: Colors.green,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      );
+    } else if (hasOutgoing) {
+      actionWidget = Text(
+        '已邀請',
+        style: TextStyle(
+          color: appState.currentIconColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      );
+    } else if (hasIncoming) {
+      actionWidget = FilledButton(
+        onPressed: () => appState.acceptFriendRequest(incoming.first.id),
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.green,
+        ),
+        child: const Text('接受'),
+      );
+    } else {
+      actionWidget = FilledButton(
+        onPressed: onSendRequest,
+        child: const Text('邀請'),
+      );
+    }
 
     return Material(
       color: Colors.transparent,
@@ -461,7 +506,8 @@ class _CandidateCard extends StatelessWidget {
                   ],
                 ),
               ),
-              FilledButton(onPressed: onSendRequest, child: const Text('邀請')),
+              const SizedBox(width: 8),
+              actionWidget,
             ],
           ),
         ),

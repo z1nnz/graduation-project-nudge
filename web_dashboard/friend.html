@@ -825,7 +825,12 @@
 
       async function acceptFriendRequest(requestId) {
         const req = pendingRequestsList.find(r => r.id === requestId) || 
-                    (selectedFriendData ? { senderId: selectedFriendData.id, senderName: selectedFriendData.name, senderNudgeId: selectedFriendData.nudgeId } : null);
+                    (selectedFriendData ? { 
+                      senderId: selectedFriendData.id, 
+                      senderName: selectedFriendData.name, 
+                      senderNudgeId: selectedFriendData.nudgeId,
+                      senderSignature: selectedFriendData.signature 
+                    } : null);
         if (!req || !myProfile) return;
 
         try {

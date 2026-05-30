@@ -24,59 +24,6 @@ class SocialPage extends StatelessWidget {
     return appState.todayWeightedDisciplineScore;
   }
 
-  List<FriendData> _buildFriendsFromRooms(
-    List<StudyRoomData> rooms,
-    AppState appState,
-  ) {
-    final Map<String, FriendData> merged = {};
-
-    for (final room in rooms) {
-      for (final member in room.members) {
-        if (member.memberId == 'local_user' || member.name == '老闆') continue;
-
-        final existing = merged[member.name];
-        final derivedScore = (40 + (member.todayFocusSeconds / 60 / 2))
-            .clamp(0, 100)
-            .round();
-
-        final title = switch (member.status) {
-          StudyMemberStatus.studying => '正在專注中',
-          StudyMemberStatus.resting => '剛休息一下',
-          StudyMemberStatus.offline => '今天慢慢前進',
-        };
-
-        final roomName = room.name;
-
-        final data = FriendData(
-          id: member.memberId.isEmpty ? member.name : member.memberId,
-          name: member.name,
-          title: title,
-          score: derivedScore,
-          todayFocusSeconds: member.todayFocusSeconds,
-          isStudying: member.status == StudyMemberStatus.studying,
-          avatarColor: member.avatarColor,
-          avatarProfile:
-              member.avatarProfile ??
-              appState.avatarVariantForSeed(member.memberId.hashCode),
-          roomId: room.id,
-          roomName: roomName,
-          roomNickname: member.roomNickname.isEmpty
-              ? member.name
-              : member.roomNickname,
-          memberStatus: member.status,
-        );
-
-        if (existing == null) {
-          merged[member.name] = data;
-        } else if (data.todayFocusSeconds > existing.todayFocusSeconds) {
-          merged[member.name] = data;
-        }
-      }
-    }
-
-    return merged.values.toList();
-  }
-
   List<FriendData> _buildManualFriends(
     List<SocialFriendProfile> friends,
     AppState appState,
@@ -168,14 +115,7 @@ class SocialPage extends StatelessWidget {
     final myAvatar = appState.avatarProfile;
     final myAvatarIconIndex = appState.currentAvatarIconIndex;
 
-    final roomFriends = _buildFriendsFromRooms(appState.studyRooms, appState);
-    final manualFriends = _buildManualFriends(appState.socialFriends, appState);
-
-    final allFriendsMap = <String, FriendData>{};
-    for (final friend in [...roomFriends, ...manualFriends]) {
-      allFriendsMap[friend.id] = friend;
-    }
-    final friends = allFriendsMap.values.toList();
+    final friends = _buildManualFriends(appState.socialFriends, appState);
 
     final studyingFriends = friends.where((f) => f.isStudying).toList()
       ..sort((a, b) => b.todayFocusSeconds.compareTo(a.todayFocusSeconds));
