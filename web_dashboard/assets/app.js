@@ -2009,7 +2009,7 @@ function checkPagePermissions(data) {
     
     // Add subnav link dynamically if not present
     const subnav = document.querySelector(".subnav");
-    if (subnav && !document.getElementById("guardianLinkTab")) {
+    if (subnav && !document.getElementById("guardianLinkTab") && !subnav.querySelector('a[href*="guardian-link"]')) {
       subnav.insertAdjacentHTML("beforeend", `<a id="guardianLinkTab" href="guardian-link.html" class="${isGuardianLinkPage ? 'active' : ''}">連結親屬</a>`);
     }
 
@@ -2087,7 +2087,7 @@ function checkPagePermissions(data) {
 
     // Add subnav link dynamically if not present
     const subnav = document.querySelector(".subnav");
-    if (subnav && !document.getElementById("groupsLinkTab")) {
+    if (subnav && !document.getElementById("groupsLinkTab") && !subnav.querySelector('a[href*="groups-link"]')) {
       subnav.insertAdjacentHTML("beforeend", `<a id="groupsLinkTab" href="groups-link.html" class="${isGroupsLinkPage ? 'active' : ''}">連結組織</a>`);
     }
 
