@@ -1328,92 +1328,19 @@ window.bindMissions = function() {
     check.addEventListener("change", (e) => {
       const satClass = e.target.dataset.satellite;
       const taskType = e.target.dataset.taskType || "general";
-      const sat = satClass ? $("." + satClass) : null;
       const plot = satClass ? $("." + satClass.replace("s", "p")) : null; // for city view
-      const gal = $(".g" + (index + 1)); // galaxy planet (up to 24)
-      const uni = $(".u" + (index - 23)); // universe planet (1 to 12)
       
       if (e.target.checked) {
-        let isSpecial = false;
-        let rareType = planetStates[index];
-        
-        // Generate RNG state if first time
-        if (!rareType) {
-          const rng = Math.random();
-          if (index < 12) {
-            if (rng < 0.1) rareType = 'hidden-comet';
-            else if (rng < 0.2) rareType = 'hidden-moon';
-            else rareType = 'standard';
-          } else if (index < 24) {
-            if (rng < 0.1) rareType = 'hidden-blackhole';
-            else rareType = 'standard';
-          } else {
-            if (rng < 0.15) rareType = 'hidden-explosion';
-            else rareType = 'standard';
-          }
-          
-          planetStates[index] = rareType;
-          localStorage.setItem('nudge_planet_states', JSON.stringify(planetStates));
-        }
-
-        // Apply to Solar System (s1-s12)
-        if (sat && index < 12) {
-          sat.classList.add("active");
-          if (rareType !== 'standard') {
-            sat.classList.add(rareType);
-            isSpecial = true;
-            triggerMeteorShower();
-          }
-        }
-        
-        // Apply to Galaxy (g1-g24)
-        if (gal && index < 24) {
-          gal.classList.add("active");
-          if (rareType !== 'standard') {
-            gal.classList.add(rareType);
-            isSpecial = true;
-            if (index >= 12 && rareType === 'hidden-blackhole') triggerBlackHoleSuction();
-          }
-        }
-
-        // Apply to Universe (u1-u12)
-        if (uni && index >= 24) {
-          uni.classList.add("active");
-          if (rareType !== 'standard') {
-            uni.classList.add(rareType);
-            isSpecial = true;
-            if (rareType === 'hidden-explosion') triggerUniverseExplosion();
-          }
-        }
-
         if (plot) {
           plot.classList.add("built");
           plot.classList.add("built-" + taskType);
         }
-        
-        showCombo(isSpecial);
-        checkEvolution();
+        showCombo(false);
       } else {
-        // Solar System
-        if (sat) {
-          sat.classList.remove("active");
-          sat.classList.remove("hidden-comet", "hidden-moon", "hidden-blackhole");
-        }
-        // Galaxy
-        if (gal) {
-          gal.classList.remove("active");
-          gal.classList.remove("hidden-comet", "hidden-moon", "hidden-blackhole");
-        }
-        // Universe
-        if (uni) {
-          uni.classList.remove("active");
-          uni.classList.remove("hidden-explosion");
-        }
         if (plot) {
           plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
         }
         currentCombo = 0;
-        // Historical array preserves the unlocked RNG state
       }
     });
   });
@@ -2026,14 +1953,9 @@ function showRelativeRequiredBanner() {
   if (!main) return;
   const banner = document.createElement("div");
   banner.id = "guardianLinkRequiredBanner";
-  banner.style.cssText = "background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; font-weight: 700; color: #f59e0b;";
+  banner.style.cssText = "background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 16px; padding: 16px 24px; margin-top: 34px; font-weight: 700; color: #f59e0b; text-align: center;";
   banner.innerHTML = `🔒 家長陪伴功能目前未啟用。請前往「<a href="guardian-link.html" style="color: #ff9e00; text-decoration: underline;">連結親屬</a>」完成親屬帳號綁定，以啟用週報、鼓勵卡與共同目標！`;
-  const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
-  if (firstSection) {
-    firstSection.insertAdjacentElement("beforebegin", banner);
-  } else {
-    main.insertAdjacentElement("afterbegin", banner);
-  }
+  main.insertAdjacentElement("beforeend", banner);
 }
 
 function showGroupRequiredBanner() {
@@ -2042,14 +1964,9 @@ function showGroupRequiredBanner() {
   if (!main) return;
   const banner = document.createElement("div");
   banner.id = "groupLinkRequiredBanner";
-  banner.style.cssText = "background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; font-weight: 700; color: #3b82f6;";
+  banner.style.cssText = "background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 16px; padding: 16px 24px; margin-top: 34px; font-weight: 700; color: #3b82f6; text-align: center;";
   banner.innerHTML = `🔒 團體管理功能目前未啟用。請前往「<a href="groups-link.html" style="color: #3b82f6; text-decoration: underline;">連結組織</a>」完成組織加入或創建，以解鎖團隊管理與專注挑戰功能！`;
-  const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
-  if (firstSection) {
-    firstSection.insertAdjacentElement("beforebegin", banner);
-  } else {
-    main.insertAdjacentElement("afterbegin", banner);
-  }
+  main.insertAdjacentElement("beforeend", banner);
 }
 
 function checkPagePermissions(data) {
@@ -2112,6 +2029,7 @@ function checkPagePermissions(data) {
         if (!document.getElementById("webBindingGatedCard")) {
           showWebRelativeBindingCard(false);
         }
+        showRelativeRequiredBanner();
       } else {
         const isOverviewPage = window.location.pathname.endsWith("guardian.html") || window.location.pathname.endsWith("guardian");
         if (isOverviewPage) {
@@ -2202,6 +2120,7 @@ function checkPagePermissions(data) {
         if (!document.getElementById("webBindingGatedCard")) {
           showWebGroupBindingCard(false);
         }
+        showGroupRequiredBanner();
       } else {
         const isOverviewPage = window.location.pathname.endsWith("groups.html") || window.location.pathname.endsWith("groups");
         if (isOverviewPage) {
@@ -3782,23 +3701,14 @@ window.bindFirestoreMissions = function(tasks) {
   checks.forEach((check, index) => {
     const taskType = check.dataset.taskType || "general";
     const sId = "s" + (index + 1);
-    const sat = $("." + sId);
     const plot = $("." + sId.replace("s", "p"));
-    const gal = $(".g" + (index + 1));
-    const uni = $(".u" + (index - 23));
 
     if (check.checked) {
-      if (sat && index < 12) sat.classList.add("active");
-      if (gal && index < 24) gal.classList.add("active");
-      if (uni && index >= 24) uni.classList.add("active");
       if (plot) {
         plot.classList.add("built");
         plot.classList.add("built-" + taskType);
       }
     } else {
-      if (sat) sat.classList.remove("active");
-      if (gal) gal.classList.remove("active");
-      if (uni) uni.classList.remove("active");
       if (plot) plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
     }
   });
