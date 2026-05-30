@@ -1541,12 +1541,9 @@
               <div class="fb-mini-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--page-accent, #7c6ae6); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 16px;">${activeUserName.charAt(0)}</div>
               <input type="text" id="friendMsgInput" placeholder="給 ${friendData.name} 留句打氣語..." style="flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; transition: background 0.2s;" onkeypress="if(event.key === 'Enter') sendFriendMessage('${friendData.id}', 'text', this.value)"/>
             </div>
-            <div class="fb-create-post-actions" style="border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 10px; display: flex; justify-content: space-around; gap: 10px; margin-top: 12px;">
+            <div class="fb-create-post-actions" style="border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 10px; display: flex; justify-content: flex-start; gap: 16px; margin-top: 12px; padding-left: 8px;">
               <button class="fb-post-action-btn" onclick="sendFriendMessage('${friendData.id}', 'cheer', '你的自律星球太閃耀了！繼續加油！✨')" style="display: flex; align-items: center; gap: 8px; background: transparent; border: none; color: var(--muted); font-weight: 700; font-size: 13px; cursor: pointer; padding: 8px 12px; border-radius: 8px;">
                 <span style="color: #7c6ae6;">👏</span> 發送打氣
-              </button>
-              <button class="fb-post-action-btn" onclick="sendFriendMessage('${friendData.id}', 'gift', '贈送了 10 個自律幣！🪙')" style="display: flex; align-items: center; gap: 8px; background: transparent; border: none; color: var(--muted); font-weight: 700; font-size: 13px; cursor: pointer; padding: 8px 12px; border-radius: 8px;">
-                <span style="color: #f59e0b;">🎁</span> 贈送自律幣
               </button>
             </div>
           </div>
@@ -1581,8 +1578,8 @@
               </div>
             `;
           } else {
-            // message / gift
-            const icon = item.msgType === 'gift' ? '🎁' : (item.msgType === 'cheer' ? '👏' : '💬');
+            // message / cheer
+            const icon = item.msgType === 'cheer' ? '👏' : '💬';
             return `
               <div class="fb-post-card" style="margin-bottom: 16px; background: rgba(124,106,230,0.05); border: 1px solid rgba(124,106,230,0.15);">
                 <div class="fb-post-header">
@@ -1613,9 +1610,7 @@
         const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
         const activeUserName = localStorage.getItem("nudgeActiveDemoUserName") || "我";
         
-        if (type === 'gift') {
-           if (!confirm("確定要花費 10 個自律幣贈送給好友嗎？")) return;
-        }
+
 
         try {
           // Record message
@@ -1629,7 +1624,7 @@
             createdAt: new Date().toISOString()
           });
           
-          toast(type === 'gift' ? "已成功送出 10 個自律幣！🎁" : "打氣留言已送出！✨");
+          toast("打氣留言已送出！✨");
           if (inputEl) inputEl.value = '';
           
           // Refresh the detail view softly
