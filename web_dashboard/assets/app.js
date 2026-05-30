@@ -2146,8 +2146,6 @@ function checkPagePermissions(data) {
     } else {
       const existingRequired = document.getElementById("groupLinkRequiredBanner");
       if (existingRequired) existingRequired.remove();
-      const existingCard = document.getElementById("webBindingGatedCard");
-      if (existingCard) existingCard.remove();
 
       const careNote = document.getElementById("groupCareNote");
       if (careNote) {
@@ -2157,14 +2155,14 @@ function checkPagePermissions(data) {
       }
 
       if (isGroupsLinkPage) {
-        const bindingCard = document.getElementById("webBindingGatedCard");
-        if (bindingCard) {
-          bindingCard.innerHTML = `
-            <h2>👥 已連結團體組織</h2>
-            <p>您已加入團體 <strong>${data.groupName || ''}</strong> (ID: <strong>${data.groupId}</strong>)！您可以前往「<a href="groups.html" style="color: #3b82f6; text-decoration: underline;">中心總覽</a>」或「<a href="groups-creation.html" style="color: #3b82f6; text-decoration: underline;">團隊建立</a>」進行管理。</p>
-          `;
+        const linkContainer = document.getElementById("groupsLinkContainer");
+        if (linkContainer) {
+          linkContainer.style.maxWidth = "none";
         }
+        renderWebGroupCreationPage(data);
       } else {
+        const existingCard = document.getElementById("webBindingGatedCard");
+        if (existingCard) existingCard.remove();
         renderWebGroupInfo(data);
       }
     }
@@ -2726,7 +2724,7 @@ function renderWebGroupInfo(data) {
 }
 
 function renderWebGroupCreationPage(data) {
-  const container = document.getElementById("groupsCreationContainer");
+  const container = document.getElementById("groupsCreationContainer") || document.getElementById("groupsLinkContainer");
   if (!container) return;
 
   const isOwner = data.isGroupOwner;
