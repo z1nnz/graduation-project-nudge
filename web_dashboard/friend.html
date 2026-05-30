@@ -286,6 +286,43 @@
         #friendDetailView .fb-profile-actions { justify-content: center; }
         #friendDetailView .fb-profile-body { grid-template-columns: 1fr; }
       }
+      .fb-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+      .fb-card-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #fff;
+        margin: 0 0 16px 0;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 10px;
+      }
+      .intro-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        text-align: left;
+      }
+      .intro-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        color: var(--text);
+      }
+      .badges-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
       .intro-item span.icon {
         font-size: 18px;
         width: 24px;
@@ -634,8 +671,7 @@
               <!-- Premium Cover Card Design -->
               <div class="fb-cover-card">
                 <!-- 1. Cover Photo Banner -->
-                <div class="fb-cover-banner" id="friendCoverBanner" style="height: 200px;">
-                  <!-- 1. Cover Photo Banner -->
+                <!-- 1. Cover Photo Banner -->
                 <div class="fb-cover-banner" id="friendCoverBanner">
                   <div class="glowing-orb"></div>
                 </div>
