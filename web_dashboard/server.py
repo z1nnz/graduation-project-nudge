@@ -241,7 +241,7 @@ def sync_focus():
     
     if tasks_total > 0:
         completion_rate = tasks_completed / tasks_total
-        if completion_rate >= 0.6:
+        if completion_rate >= 0.7:
             planets_pool = ["綠洲星球", "熔岩星球", "冰雪星球", "沙漠星球", "水晶星球", "暗物質星球"]
             current_unlocked = set(user.get("planet", {}).get("unlocked", []))
             

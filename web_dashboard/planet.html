@@ -116,7 +116,7 @@
           <div class="stage-hud">
             <small id="hudTitle">COSMIC EVOLUTION</small>
             <strong id="planetHud">太陽系</strong>
-            <span id="hudDesc">任務完成會累積行星數量</span>
+            <span id="hudDesc">每週一早上五點結算，任務完成率達 70% 即可解鎖新行星</span>
             <div class="stage-nav">
               <button class="cyber-btn micro-split-btn" id="navSolar">太陽系</button>
               <button class="cyber-btn micro-split-btn" id="navGalaxy">銀河系</button>
@@ -178,85 +178,107 @@
     <script src="assets/app.js?v=3"></script>
   
     <script>
-      // Fetch unlocked planets from backend and render them
-      async function fetchUnlockedPlanets() {
-        try {
-          // In a real app, this ID comes from login session. We use an_nudge for demo.
-          const res = await fetch('http://127.0.0.1:5001/api/user/an_nudge');
-          const data = await res.json();
-          if (data.success && data.user && data.user.planet && data.user.planet.unlocked) {
-            const unlockedList = data.user.planet.unlocked;
-            const orbitContainer = document.getElementById('unlockedPlanetsOrbit');
-            if (orbitContainer) {
-              orbitContainer.innerHTML = ''; // clear
-              
-              const colors = {
-                  "新手星球": "#9ca3af",
-                  "綠洲星球": "#34d399", 
-                  "熔岩星球": "#ef4444", 
-                  "冰雪星球": "#60a5fa", 
-                  "沙漠星球": "#fbbf24", 
-                  "水晶星球": "#a78bfa", 
-                  "暗物質星球": "#8b5cf6"
-              };
-              
-              // Only render if we have unlocked planets other than the base one
-              const displayPlanets = unlockedList.filter(p => p !== "新手星球");
-              
-              if(displayPlanets.length > 0) {
-                 const isMobile = window.innerWidth <= 620;
-                 const radius = isMobile ? 110 : 250;
+      // Fetch unlocked planets from Firestore and render them
+      let unlockedPlanetsListener = null;
 
-                 displayPlanets.forEach((pName, index) => {
-                    const angle = (360 / displayPlanets.length) * index;
-                    const color = colors[pName] || "#ffffff";
-                    
-                    const planetDiv = document.createElement('div');
-                    planetDiv.className = 'unlocked-planet-node';
-                    planetDiv.style.cssText = `
-                        position: absolute;
-                        width: 24px;
-                        height: 24px;
-                        border-radius: 50%;
-                        background: radial-gradient(circle at 30% 30%, #fff, ${color});
-                        box-shadow: 0 0 20px ${color}, 0 0 40px ${color}88;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%) rotate(${angle}deg) translateX(${radius}px) rotate(-${angle}deg);
-                        animation: counter-rotate 40s linear infinite;
-                    `;
-                    orbitContainer.appendChild(planetDiv);
-                 });
-                 
-                 // Add/update the CSS for counter-rotation with computed radius
-                 let style = document.getElementById('unlockedPlanetStyles');
-                 if(!style) {
-                     style = document.createElement('style');
-                     style.id = 'unlockedPlanetStyles';
-                     document.head.appendChild(style);
-                 }
-                 style.innerHTML = `
-                    @keyframes counter-rotate {
-                        from { transform: translate(-50%, -50%) rotate(0deg) translateX(${radius}px) rotate(0deg); }
-                        to { transform: translate(-50%, -50%) rotate(360deg) translateX(${radius}px) rotate(-360deg); }
-                    }
-                    .orbit-unlocked {
-                        border: 1px dashed rgba(255,255,255,0.1);
-                    }
-                 `;
+      function listenToUnlockedPlanets() {
+        if (unlockedPlanetsListener) {
+          unlockedPlanetsListener();
+          unlockedPlanetsListener = null;
+        }
+
+        const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+        if (typeof db !== 'undefined' && db) {
+          unlockedPlanetsListener = db.collection("users").doc(activeUserId).onSnapshot((docSnap) => {
+            if (docSnap.exists) {
+              const data = docSnap.data();
+              let unlockedList = data.unlockedPlanets;
+              
+              if (!unlockedList && typeof data.planetCount === 'number') {
+                // Migration: generate planets if unlockedPlanets doesn't exist yet
+                unlockedList = ["新手星球"];
+                const planetsPool = ["綠洲星球", "熔岩星球", "冰雪星球", "沙漠星球", "水晶星球", "暗物質星球"];
+                for (let i = 0; i < data.planetCount; i++) {
+                  unlockedList.push(planetsPool[i % planetsPool.length]);
+                }
+              }
+              unlockedList = unlockedList || ["新手星球"];
+
+              const orbitContainer = document.getElementById('unlockedPlanetsOrbit');
+              if (orbitContainer) {
+                orbitContainer.innerHTML = ''; // clear
+                
+                const colors = {
+                    "新手星球": "#9ca3af",
+                    "綠洲星球": "#34d399", 
+                    "熔岩星球": "#ef4444", 
+                    "冰雪星球": "#60a5fa", 
+                    "沙漠星球": "#fbbf24", 
+                    "水晶星球": "#a78bfa", 
+                    "暗物質星球": "#8b5cf6"
+                };
+                
+                // Only render if we have unlocked planets other than the base one
+                const displayPlanets = unlockedList.filter(p => p !== "新手星球");
+                
+                if (displayPlanets.length > 0) {
+                   const isMobile = window.innerWidth <= 620;
+                   const radius = isMobile ? 110 : 250;
+
+                   displayPlanets.forEach((pName, index) => {
+                      const angle = (360 / displayPlanets.length) * index;
+                      const color = colors[pName] || "#ffffff";
+                      
+                      const planetDiv = document.createElement('div');
+                      planetDiv.className = 'unlocked-planet-node';
+                      planetDiv.style.cssText = `
+                          position: absolute;
+                          width: 24px;
+                          height: 24px;
+                          border-radius: 50%;
+                          background: radial-gradient(circle at 30% 30%, #fff, ${color});
+                          box-shadow: 0 0 20px ${color}, 0 0 40px ${color}88;
+                          top: 50%;
+                          left: 50%;
+                          transform: translate(-50%, -50%) rotate(${angle}deg) translateX(${radius}px) rotate(-${angle}deg);
+                          animation: counter-rotate 40s linear infinite;
+                      `;
+                      orbitContainer.appendChild(planetDiv);
+                   });
+                   
+                   // Add/update the CSS for counter-rotation with computed radius
+                   let style = document.getElementById('unlockedPlanetStyles');
+                   if (!style) {
+                       style = document.createElement('style');
+                       style.id = 'unlockedPlanetStyles';
+                       document.head.appendChild(style);
+                   }
+                   style.innerHTML = `
+                      @keyframes counter-rotate {
+                          from { transform: translate(-50%, -50%) rotate(0deg) translateX(${radius}px) rotate(0deg); }
+                          to { transform: translate(-50%, -50%) rotate(360deg) translateX(${radius}px) rotate(-360deg); }
+                      }
+                      .orbit-unlocked {
+                          border: 1px dashed rgba(255,255,255,0.1);
+                      }
+                   `;
+                }
               }
             }
-          }
-        } catch (e) {
-          console.warn("Backend not running or user not found, skipping planet fetch.", e);
+          });
         }
       }
 
       window.addEventListener('DOMContentLoaded', () => {
-        // Fetch initially
-        fetchUnlockedPlanets();
-        // Poll every 5 seconds to see if a new planet was unlocked!
-        setInterval(fetchUnlockedPlanets, 5000);
+        // Start listening when firebase is ready
+        document.addEventListener('firebase-ready', () => {
+          listenToUnlockedPlanets();
+        });
+        
+        // Fallback in case the event already fired before we bound it
+        if (typeof db !== 'undefined' && db) {
+          listenToUnlockedPlanets();
+        }
       });
     </script>
 

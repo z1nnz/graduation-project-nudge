@@ -15,7 +15,7 @@ class DailyRecordsPage extends StatelessWidget {
   }
 
   List<DailySummary> _thisMonthSummaries(List<DailySummary> summaries) {
-    final now = DateTime.now();
+    final now = DateTime.now().subtract(const Duration(hours: 5));
     return summaries.where((item) {
       final date = DateTime.tryParse(item.date);
       if (date == null) return false;

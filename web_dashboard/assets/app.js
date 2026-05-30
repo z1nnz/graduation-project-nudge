@@ -3267,6 +3267,146 @@ function syncGroupOwnerDataToLocal(ownerData) {
   }
 }
 
+function formatDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getMonday5AMOfThisWeek(date) {
+  const day = date.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
+  const weekday = day === 0 ? 7 : day;
+  const daysToSubtract = weekday - 1;
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  monday.setDate(monday.getDate() - daysToSubtract);
+  return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 5, 0, 0);
+}
+
+function calculateWeeklyTaskCompletionRateWeb(weekStartMonday, dailySummaries) {
+  let completed = 0;
+  let total = 0;
+  for (let i = 0; i < 7; i++) {
+    const curDate = new Date(weekStartMonday.getTime());
+    curDate.setDate(curDate.getDate() + i);
+    const dateStr = formatDate(curDate);
+    const summary = dailySummaries.find(s => s.date === dateStr);
+    if (summary) {
+      completed += (summary.completedTasks || 0);
+      total += (summary.totalTasks || 0);
+    }
+  }
+  if (total === 0) return 0.0;
+  return (completed / total) * 100.0;
+}
+
+function checkWeeklyPlanetSettlementWeb(data, activeUserId) {
+  if (!db || !activeUserId) return;
+  const now = new Date();
+  const currentMonday5AM = getMonday5AMOfThisWeek(now);
+  
+  // The target completed settlement Monday is the last Monday 5:00 AM before now
+  const targetSettlementMonday = now < currentMonday5AM
+      ? new Date(currentMonday5AM.getTime() - 7 * 24 * 60 * 60 * 1000)
+      : currentMonday5AM;
+
+  let nextWeekStartMonday;
+  const lastSettledStr = data.lastSettledWeekMonday;
+  const dailySummaries = data.dailySummaries || [];
+  
+  if (!lastSettledStr) {
+    if (dailySummaries.length > 0) {
+      const sorted = [...dailySummaries].sort((a, b) => a.date.localeCompare(b.date));
+      const firstParts = sorted[0].date.split('-');
+      const firstDate = new Date(parseInt(firstParts[0]), parseInt(firstParts[1]) - 1, parseInt(firstParts[2]));
+      nextWeekStartMonday = getMonday5AMOfThisWeek(firstDate);
+    } else {
+      nextWeekStartMonday = new Date(getMonday5AMOfThisWeek(now).getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+  } else {
+    const lastParts = lastSettledStr.split('-');
+    const lastSettled = new Date(parseInt(lastParts[0]), parseInt(lastParts[1]) - 1, parseInt(lastParts[2]), 5, 0, 0);
+    nextWeekStartMonday = new Date(lastSettled.getTime() + 7 * 24 * 60 * 60 * 1000);
+  }
+
+  let changed = false;
+  let planetCount = typeof data.planetCount === 'number' ? data.planetCount : 0;
+  let unlockedPlanets = data.unlockedPlanets || ["新手星球"];
+  let weeklyPlanetEarned = data.weeklyPlanetEarned || false;
+  let lastSettledWeekMonday = lastSettledStr || "";
+  
+  while (nextWeekStartMonday < targetSettlementMonday || nextWeekStartMonday.getTime() === targetSettlementMonday.getTime()) {
+    const weeklyRate = calculateWeeklyTaskCompletionRateWeb(nextWeekStartMonday, dailySummaries);
+    if (weeklyRate >= 70.0) {
+      planetCount += 1;
+      weeklyPlanetEarned = true;
+      
+      const planetsPool = ["綠洲星球", "熔岩星球", "冰雪星球", "沙漠星球", "水晶星球", "暗物質星球"];
+      const available = planetsPool.filter(p => !unlockedPlanets.includes(p));
+      if (available.length > 0) {
+        const randomPlanet = available[Math.floor(Math.random() * available.length)];
+        unlockedPlanets.push(randomPlanet);
+      }
+    } else {
+      weeklyPlanetEarned = false;
+    }
+    
+    lastSettledWeekMonday = formatDate(nextWeekStartMonday);
+    changed = true;
+    
+    nextWeekStartMonday.setDate(nextWeekStartMonday.getDate() + 7);
+  }
+  
+  if (changed) {
+    db.collection("users").doc(activeUserId).update({
+      planetCount: planetCount,
+      unlockedPlanets: unlockedPlanets,
+      weeklyPlanetEarned: weeklyPlanetEarned,
+      lastSettledWeekMonday: lastSettledWeekMonday,
+      updatedAt: new Date().toISOString()
+    }).then(() => {
+      console.log("Weekly settlement executed on web successfully.");
+    }).catch(err => {
+      console.error("Failed to update settlement on web:", err);
+    });
+  }
+}
+
+function updateLitPlanets(planetCount) {
+  for (let i = 1; i <= 12; i++) {
+    const sat = document.querySelector(".mission-satellite.s" + i);
+    if (sat) {
+      if (i <= planetCount) {
+        sat.classList.add("active");
+      } else {
+        sat.classList.remove("active", "hidden-comet", "hidden-moon", "hidden-blackhole");
+      }
+    }
+  }
+
+  for (let i = 1; i <= 24; i++) {
+    const gal = document.querySelector(".galaxy-planet.g" + i);
+    if (gal) {
+      if (i <= planetCount) {
+        gal.classList.add("active");
+      } else {
+        gal.classList.remove("active", "hidden-comet", "hidden-moon", "hidden-blackhole");
+      }
+    }
+  }
+
+  for (let i = 1; i <= 12; i++) {
+    const uni = document.querySelector(".universe-planet.u" + i);
+    if (uni) {
+      if (i <= planetCount - 24) {
+        uni.classList.add("active");
+      } else {
+        uni.classList.remove("active", "hidden-explosion");
+      }
+    }
+  }
+}
+
 function listenToUser(userId) {
   if (!db) return;
   listenToRequests(userId);
@@ -3402,6 +3542,19 @@ function listenToUser(userId) {
     const tasks = data.tasks || [];
     currentUserTasks = tasks;
     currentUserDailySummaries = dailySummaries;
+    
+    // Settle weekly planets and update lit visual planet orbits
+    try {
+      checkWeeklyPlanetSettlementWeb(data, userId);
+    } catch (e) {
+      console.error("Weekly settlement run error on web:", e);
+    }
+    
+    try {
+      updateLitPlanets(data.planetCount || 0);
+    } catch (e) {
+      console.error("Failed to update lit planets from count:", e);
+    }
     
     // 如果任務為空，自動在 Firestore 初始化預設自律任務，以達成雙端靜態任務同步
     if (tasks.length === 0) {
@@ -3558,23 +3711,11 @@ window.bindFirestoreMissions = function(tasks) {
     const uni = document.querySelector(".u" + (index - 23));
 
     if (done) {
-      if (sat) sat.classList.add("active");
-      if (gal) gal.classList.add("active");
-      if (uni && index >= 24) uni.classList.add("active");
       if (plot) {
         plot.classList.add("built");
         plot.classList.add("built-" + taskType);
       }
     } else {
-      if (sat) {
-        sat.classList.remove("active", "hidden-comet", "hidden-moon", "hidden-blackhole");
-      }
-      if (gal) {
-        gal.classList.remove("active", "hidden-comet", "hidden-moon", "hidden-blackhole");
-      }
-      if (uni) {
-        uni.classList.remove("active", "hidden-explosion");
-      }
       if (plot) {
         plot.classList.remove("built", "built-study", "built-health", "built-general", "built-skyscraper");
       }

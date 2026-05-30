@@ -611,6 +611,17 @@ canvas {
   display: block;
 }
 
+.chart-container {
+  position: relative;
+  width: 100%;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+
 .pill-row {
   display: flex;
   flex-wrap: wrap;

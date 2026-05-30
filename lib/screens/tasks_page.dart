@@ -161,7 +161,7 @@ class _TasksPageState extends State<TasksPage> {
 
   int _daysUntil(DateTime? dueDate) {
     if (dueDate == null) return 999999;
-    final now = DateTime.now();
+    final now = DateTime.now().subtract(const Duration(hours: 5));
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
     return target.difference(today).inDays;
@@ -291,7 +291,7 @@ class _TasksPageState extends State<TasksPage> {
   String _displayDueDate(DateTime? dueDate) {
     if (dueDate == null) return '未設定截止日';
 
-    final now = DateTime.now();
+    final now = DateTime.now().subtract(const Duration(hours: 5));
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
     final diff = target.difference(today).inDays;

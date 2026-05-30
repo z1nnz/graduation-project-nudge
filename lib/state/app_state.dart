@@ -151,7 +151,8 @@ class AppState extends ChangeNotifier {
           _themeModeSetting = _currentUser!.themeMode;
           _iconColorSetting = _currentUser!.accentColor;
           _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
-          _planetCount = (data['planetCount'] as num?)?.toInt() ?? _planetCount;
+          _unlockedPlanets = _parseUnlockedPlanets(data);
+          _planetCount = _unlockedPlanets.length - 1;
           _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
           _lastSettledWeekMonday = data['lastSettledWeekMonday'] as String? ?? _lastSettledWeekMonday;
           if (data['rewardedTaskKeys'] != null) {
@@ -532,6 +533,7 @@ class AppState extends ChangeNotifier {
         'profileTitleBadgeKey': _profileTitleBadgeKey,
         'disciplineCoins': _disciplineCoins,
         'planetCount': _planetCount,
+        'unlockedPlanets': _unlockedPlanets,
         'weeklyPlanetEarned': _weeklyPlanetEarned,
         'lastSettledWeekMonday': _lastSettledWeekMonday,
         'rewardedTaskKeys': _rewardedTaskKeys.toList(),
@@ -570,7 +572,8 @@ class AppState extends ChangeNotifier {
           );
         }
         _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
-        _planetCount = (data['planetCount'] as num?)?.toInt() ?? _planetCount;
+        _unlockedPlanets = _parseUnlockedPlanets(data);
+        _planetCount = _unlockedPlanets.length - 1;
         _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
         _lastSettledWeekMonday = data['lastSettledWeekMonday'] as String? ?? _lastSettledWeekMonday;
         if (data['rewardedTaskKeys'] != null) {
@@ -752,6 +755,7 @@ class AppState extends ChangeNotifier {
   static const String _lastDailyResetDateKey = 'last_daily_reset_date';
   static const String _disciplineCoinsKey = 'discipline_coins_setting';
   static const String _planetCountKey = 'planet_count_setting';
+  static const String _unlockedPlanetsKey = 'unlocked_planets_setting';
   static const String _weeklyPlanetEarnedKey = 'weekly_planet_earned_setting';
   static const String _lastSettledWeekMondayKey = 'last_settled_week_monday_setting';
   static const String _rewardedTaskKeysKey = 'rewarded_task_keys_setting';
@@ -797,7 +801,10 @@ class AppState extends ChangeNotifier {
   int _disciplineCoins = 0;
   int _planetCount = 0;
   bool _weeklyPlanetEarned = false;
+  List<String> _unlockedPlanets = ['新手星球'];
+  List<String> get unlockedPlanets => _unlockedPlanets;
   String? _lastSettledWeekMonday;
+  String? _lastResetDateInMemory;
   Set<String> _rewardedTaskKeys = <String>{};
   Map<String, int> _dailyCoinEarned = <String, int>{};
   Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
@@ -900,6 +907,7 @@ class AppState extends ChangeNotifier {
   bool get isHealthConnected => _isHealthConnected;
   List<DailySummary> get dailySummaries => _dailySummaries;
   DailySummary get todaySummary => _buildTodayExperienceSummary();
+  String get todayKey => _todayKey();
   int get disciplineCoins => _disciplineCoins;
   int get planetCount => _planetCount;
   bool get weeklyPlanetEarned => _weeklyPlanetEarned;
@@ -2751,7 +2759,8 @@ class AppState extends ChangeNotifier {
         prefs.containsKey(_monthlyDeadlineCoinEarnedKey);
 
     _disciplineCoins = prefs.getInt(_disciplineCoinsKey) ?? 0;
-    _planetCount = prefs.getInt(_planetCountKey) ?? 0;
+    _unlockedPlanets = prefs.getStringList(_unlockedPlanetsKey) ?? ['新手星球'];
+    _planetCount = _unlockedPlanets.length - 1;
     _weeklyPlanetEarned = prefs.getBool(_weeklyPlanetEarnedKey) ?? false;
     _lastSettledWeekMonday = prefs.getString(_lastSettledWeekMondayKey);
     _rewardedTaskKeys =
@@ -2783,6 +2792,7 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_disciplineCoinsKey, _disciplineCoins);
     await prefs.setInt(_planetCountKey, _planetCount);
+    await prefs.setStringList(_unlockedPlanetsKey, _unlockedPlanets);
     await prefs.setBool(_weeklyPlanetEarnedKey, _weeklyPlanetEarned);
     await prefs.setString(_lastSettledWeekMondayKey, _lastSettledWeekMonday ?? '');
     await prefs.setStringList(_rewardedTaskKeysKey, _rewardedTaskKeys.toList());
@@ -2791,6 +2801,7 @@ class AppState extends ChangeNotifier {
       _monthlyDeadlineCoinEarnedKey,
       jsonEncode(_monthlyDeadlineCoinEarned),
     );
+    notifyListeners();
     await syncDataToFirestore();
   }
 
@@ -3479,7 +3490,7 @@ class AppState extends ChangeNotifier {
   }
 
   String _todayKey() {
-    return _formatDate(DateTime.now());
+    return _formatDate(DateTime.now().subtract(const Duration(hours: 5)));
   }
 
   DateTime getMonday5AMOfThisWeek(DateTime time) {
@@ -3509,6 +3520,48 @@ class AppState extends ChangeNotifier {
       totalScore += summary.disciplineScore;
     }
     return totalScore / 7.0;
+  }
+
+  double calculateWeeklyTaskCompletionRate(DateTime weekStartMonday) {
+    int completed = 0;
+    int total = 0;
+    for (int i = 0; i < 7; i++) {
+      final date = weekStartMonday.add(Duration(days: i));
+      final dateStr = _formatDate(date);
+      final summary = _dailySummaries.firstWhere(
+        (s) => s.date == dateStr,
+        orElse: () => DailySummary(
+          date: dateStr,
+          completedTasks: 0,
+          totalTasks: 0,
+          focusMinutes: 0,
+          sleepHours: 0.0,
+          steps: 0,
+          exerciseMinutes: 0,
+          disciplineScore: 0,
+        ),
+      );
+      completed += summary.completedTasks;
+      total += summary.totalTasks;
+    }
+    if (total == 0) return 0.0;
+    return (completed / total) * 100.0;
+  }
+
+  List<String> _parseUnlockedPlanets(Map<String, dynamic> data) {
+    if (data['unlockedPlanets'] != null) {
+      return List<String>.from(data['unlockedPlanets']);
+    }
+    final count = (data['planetCount'] as num?)?.toInt() ?? 0;
+    final list = <String>['新手星球'];
+    final planetsPool = ["綠洲星球", "熔岩星球", "冰雪星球", "沙漠星球", "水晶星球", "暗物質星球"];
+    for (int i = 0; i < count; i++) {
+      final available = planetsPool.where((p) => !list.contains(p)).toList();
+      if (available.isNotEmpty) {
+        list.add(available[i % available.length]);
+      }
+    }
+    return list;
   }
 
   Future<void> checkWeeklyPlanetSettlement() async {
@@ -3542,9 +3595,15 @@ class AppState extends ChangeNotifier {
     bool changed = false;
     while (nextWeekStartMonday.isBefore(targetSettlementMonday) || 
            nextWeekStartMonday.isAtSameMomentAs(targetSettlementMonday)) {
-      final avg = calculateWeeklyAverageScore(nextWeekStartMonday);
-      if (avg >= 70.0) {
-        _planetCount += 1;
+      final rate = calculateWeeklyTaskCompletionRate(nextWeekStartMonday);
+      if (rate >= 70.0) {
+        final planetsPool = ["綠洲星球", "熔岩星球", "冰雪星球", "沙漠星球", "水晶星球", "暗物質星球"];
+        final available = planetsPool.where((p) => !_unlockedPlanets.contains(p)).toList();
+        if (available.isNotEmpty) {
+          final randomPlanet = (available..shuffle()).first;
+          _unlockedPlanets.add(randomPlanet);
+        }
+        _planetCount = _unlockedPlanets.length - 1;
         _weeklyPlanetEarned = true;
       } else {
         _weeklyPlanetEarned = false;
@@ -3588,10 +3647,97 @@ class AppState extends ChangeNotifier {
     return '$y-$m';
   }
 
+  void _syncSummaryForDate(String date) {
+    final todayTasks = _tasks.where(_isTodayActionableTask).toList();
+    final completedCount = todayTasks
+        .where((task) => task['done'] == true)
+        .length;
+    final autoTrackedTasks = todayTasks.where((task) {
+      final isAutoTracked = task['isAutoTracked'] as bool? ?? false;
+      final isSystemTask = task['isSystemTask'] as bool? ?? false;
+      return isAutoTracked || isSystemTask;
+    }).toList();
+    final healthSources = {
+      TaskSourceType.sleepHours,
+      TaskSourceType.steps,
+      TaskSourceType.exerciseMinutes,
+    };
+    final focusSources = {TaskSourceType.focusMinutes};
+    final roomSources = {TaskSourceType.studyRoom};
+
+    final summary = DailySummary(
+      date: date,
+      completedTasks: completedCount,
+      totalTasks: todayTasks.length,
+      focusMinutes: focusMinutes,
+      sleepHours: _sleepHours,
+      steps: _steps,
+      exerciseMinutes: _exerciseMinutes,
+      disciplineScore: _weightedTaskScore(),
+      coinsEarned: _dailyCoinEarned[date] ?? 0,
+      autoTrackedCompleted: autoTrackedTasks
+          .where((task) => task['done'] as bool? ?? false)
+          .length,
+      autoTrackedTotal: autoTrackedTasks.length,
+      healthCompleted: _countTasksBySource(healthSources, completed: true),
+      healthTotal: _countTasksBySource(healthSources),
+      roomCompleted: _countTasksBySource(roomSources, completed: true),
+      roomTotal: _countTasksBySource(roomSources),
+      focusCompleted: _countTasksBySource(focusSources, completed: true),
+      focusTotal: _countTasksBySource(focusSources),
+      autoTrackedSources: _autoTrackedSourceLabels(),
+    );
+
+    final index = _dailySummaries.indexWhere((item) => item.date == date);
+
+    if (index >= 0) {
+      _dailySummaries[index] = summary;
+    } else {
+      _dailySummaries.add(summary);
+    }
+
+    _saveDailySummaries();
+    _syncAvatarExperienceLedgerForSummary(summary);
+  }
+
+  void _checkDailyResetSync() {
+    final today = _todayKey();
+    if (_lastResetDateInMemory != null && _lastResetDateInMemory != today) {
+      final lastResetDate = _lastResetDateInMemory!;
+      _syncSummaryForDate(lastResetDate);
+
+      _resetDailyTasks();
+      _resetDailyFocusAndStudyRooms();
+      _syncStudyGoalTaskCompletion();
+      _syncAutoTrackedTasks();
+      _syncTaskRewards();
+      _syncTodaySummary();
+
+      _lastResetDateInMemory = today;
+      notifyListeners();
+
+      _saveAfterReset(today);
+    }
+  }
+
+  Future<void> _saveAfterReset(String today) async {
+    await checkWeeklyPlanetSettlement();
+    await _saveRewardState();
+    await _saveTasks();
+    await _saveFocusTime();
+    await _saveHealthData();
+    await _saveStudyRooms();
+    await _saveDailySummaries();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastDailyResetDateKey, today);
+  }
+
   Future<void> _checkAndPerformDailyResetIfNeeded() async {
     final prefs = await SharedPreferences.getInstance();
     final today = _todayKey();
     final lastResetDate = prefs.getString(_lastDailyResetDateKey);
+
+    _lastResetDateInMemory = lastResetDate ?? today;
 
     if (lastResetDate == null) {
       await prefs.setString(_lastDailyResetDateKey, today);
@@ -3602,20 +3748,17 @@ class AppState extends ChangeNotifier {
       return;
     }
 
+    _syncSummaryForDate(lastResetDate);
     _resetDailyTasks();
     _resetDailyFocusAndStudyRooms();
     _syncStudyGoalTaskCompletion();
     _syncAutoTrackedTasks();
     _syncTaskRewards();
     _syncTodaySummary();
-    await checkWeeklyPlanetSettlement();
 
-    await _saveTasks();
-    await _saveFocusTime();
-    await _saveHealthData();
-    await _saveStudyRooms();
-    await _saveDailySummaries();
-    await prefs.setString(_lastDailyResetDateKey, today);
+    _lastResetDateInMemory = today;
+
+    await _saveAfterReset(today);
   }
 
   void _resetDailyTasks() {
@@ -4464,6 +4607,7 @@ class AppState extends ChangeNotifier {
   }
 
   void toggleTask(int index, bool value) {
+    _checkDailyResetSync();
     if (index < 0 || index >= _tasks.length) return;
     final task = _tasks[index];
     final isDeadlineTask = task['taskType'] == 'deadline';
@@ -4650,6 +4794,7 @@ class AppState extends ChangeNotifier {
 
   void addFocusSeconds(int seconds) {
     if (seconds <= 0) return;
+    _checkDailyResetSync();
     _focusSeconds += seconds;
     _syncMyFocusSecondsAcrossRooms();
     _syncStudyGoalTaskCompletion();
@@ -4668,6 +4813,7 @@ class AppState extends ChangeNotifier {
     required int steps,
     required int exerciseMinutes,
   }) {
+    _checkDailyResetSync();
     final now = DateTime.now();
     if (_lastHealthSyncTime != null && steps > _lastStepsCount) {
       final deltaSteps = steps - _lastStepsCount;
