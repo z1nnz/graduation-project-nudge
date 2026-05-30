@@ -1391,9 +1391,15 @@
           // Render basic cover elements
           document.getElementById('friendMainName').textContent = name;
           document.getElementById('friendMainSignature').textContent = `"${signature}"`;
-          document.getElementById('friendMainAvatar').textContent = avatar;
-          document.getElementById('friendMainAvatar').style.background = avatarColor + "22";
-          document.getElementById('friendMainAvatar').style.color = avatarColor;
+          const friendMainAvatarEl = document.getElementById('friendMainAvatar');
+          if (userData.avatarProfile && typeof userData.avatarProfile.avatarIconIndex === 'number') {
+            friendMainAvatarEl.innerHTML = `<img src="assets/avatar/icons/icon_${userData.avatarProfile.avatarIconIndex}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />`;
+            friendMainAvatarEl.style.background = avatarColor + "22";
+          } else {
+            friendMainAvatarEl.textContent = avatar;
+            friendMainAvatarEl.style.background = avatarColor + "22";
+            friendMainAvatarEl.style.color = avatarColor;
+          }
           document.getElementById('friendNudgeId').textContent = nudgeId;
           document.getElementById('friendOnlineStatus').textContent = selectedFriendData.isStudying ? "🟢 線上專注中" : "⚪ 離線";
           document.getElementById('friendOnlineStatus').style.color = selectedFriendData.isStudying ? "#10b981" : "#64748b";
@@ -1571,10 +1577,15 @@
         // Facebook Style What's On Your Mind input card for friends
         const activeUserName = localStorage.getItem("nudgeActiveDemoUserName") || "我";
         
+        let activeUserAvatarHtml = `<div class="fb-mini-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--page-accent, #7c6ae6); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 16px;">${activeUserName.charAt(0)}</div>`;
+        if (myProfile && myProfile.avatarProfile && typeof myProfile.avatarProfile.avatarIconIndex === 'number') {
+          activeUserAvatarHtml = `<div class="fb-mini-avatar" style="width: 40px; height: 40px; border-radius: 50%;"><img src="assets/avatar/icons/icon_${myProfile.avatarProfile.avatarIconIndex}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" /></div>`;
+        }
+        
         let headerHtml = `
           <div class="fb-create-post-card" style="margin-bottom: 20px;">
             <div class="fb-create-post-top" style="display: flex; align-items: center; gap: 12px;">
-              <div class="fb-mini-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--page-accent, #7c6ae6); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 16px;">${activeUserName.charAt(0)}</div>
+              ${activeUserAvatarHtml}
               <input type="text" id="friendMsgInput" placeholder="給 ${friendData.name} 留句打氣語..." style="flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; transition: background 0.2s;" onkeypress="if(event.key === 'Enter') sendFriendMessage('${friendData.id}', 'text', this.value)"/>
             </div>
             <div class="fb-create-post-actions" style="border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 10px; display: flex; justify-content: flex-start; gap: 16px; margin-top: 12px; padding-left: 8px;">

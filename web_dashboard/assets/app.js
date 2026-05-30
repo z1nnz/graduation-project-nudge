@@ -4547,13 +4547,21 @@ function renderWebProfilePage(data, isFriend, friendUid) {
   // Update DOM components
   const mainAvatar = document.getElementById("profileMainAvatar");
   if (mainAvatar) {
-    mainAvatar.textContent = nickname.substring(0, 1).toUpperCase();
+    if (data.avatarProfile && typeof data.avatarProfile.avatarIconIndex === 'number') {
+      mainAvatar.innerHTML = `<img src="assets/avatar/icons/icon_${data.avatarProfile.avatarIconIndex}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />`;
+    } else {
+      mainAvatar.textContent = nickname.substring(0, 1).toUpperCase();
+    }
     mainAvatar.style.background = accentColor;
     mainAvatar.style.boxShadow = `0 10px 25px ${accentColor}40`;
   }
   const miniAvatar = document.getElementById("profileMiniAvatar");
   if (miniAvatar) {
-    miniAvatar.textContent = nickname.substring(0, 1).toUpperCase();
+    if (data.avatarProfile && typeof data.avatarProfile.avatarIconIndex === 'number') {
+      miniAvatar.innerHTML = `<img src="assets/avatar/icons/icon_${data.avatarProfile.avatarIconIndex}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />`;
+    } else {
+      miniAvatar.textContent = nickname.substring(0, 1).toUpperCase();
+    }
     miniAvatar.style.background = accentColor;
   }
   const mainName = document.getElementById("profileMainName");
