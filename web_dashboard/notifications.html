@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 通知與邀請中心</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body data-page="notifications">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>通知中心</small></span>
+        </a>
+        <nav class="nav">
+          <a href="index.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a href="guardian.html">家長陪伴中心</a>
+          <a href="groups.html">團體 / 教育管理</a>
+          <a href="operations.html">商城頁</a>
+          <a href="research.html">研究中心</a>
+          <a href="friend.html">好友功能</a>
+          <a href="planet.html">自律城市 / 星球</a>
+          <a href="presentation.html">專題發表流程</a>
+          <a href="profile.html">個人名片</a>
+          <a class="active" href="notifications.html">🔔 通知中心</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Notification Center</span>
+            <h1>通知與邀請中心</h1>
+            <p>統一管理所有的帳號連結邀請，包含親屬綁定、團隊加入以及未來的各種社交通知。</p>
+          </div>
+          <div class="hero-card">
+            <span>待處理邀請</span>
+            <strong id="totalPendingCount">0</strong>
+            <p>點擊下方列表進行確認。</p>
+          </div>
+        </header>
+
+        <section class="page-section" style="max-width: 800px; margin: 34px auto 0;">
+          <div class="panel" style="padding: 30px;">
+            <span class="eyebrow">Pending Requests</span>
+            <h2>📬 待處理邀請列表</h2>
+            <p style="margin-bottom: 24px; color: var(--muted);">您收到的所有雙向同步邀請（如家長陪伴、團體組織）都會顯示在這裡。您可以在此統一進行同意或拒絕。</p>
+            
+            <div id="notificationsPageContainer">
+              <div style="text-align: center; padding: 40px; color: var(--muted);">
+                <span style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.5;">📭</span>
+                正在載入您的邀請...
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js?v=4"></script>
+    <script>
+      // The actual rendering logic will be hooked into app.js
+    </script>
+  </body>
+</html>

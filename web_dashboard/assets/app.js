@@ -12,6 +12,7 @@ const modules = [
   ["planet", "自律星球", "planet.html"],
   ["presentation", "專題發表流程", "presentation.html"],
   ["profile", "個人名片", "profile.html"],
+  ["notifications", "🔔 通知與邀請", "notifications.html"],
 ];
 
 // Authentication Check
@@ -2030,6 +2031,11 @@ function checkPagePermissions(data) {
           showWebRelativeBindingCard(false);
         }
         showRelativeRequiredBanner();
+        // Update descriptions to show role
+        const descNode = document.getElementById("webBindingDesc");
+        if (descNode) {
+          descNode.innerHTML = `🛡️ 當前身分：<strong style="color: #10b981;">${getRoleLabel(userRole)}</strong><br><br>您還未與家人進行親屬綁定。請在下方輸入對方的 Nudge ID 發送申請，或在列表處理待同意的申請。連結後即可查看對方專注、睡眠與健康數據。`;
+        }
       } else {
         const isOverviewPage = window.location.pathname.endsWith("guardian.html") || window.location.pathname.endsWith("guardian");
         if (isOverviewPage) {
@@ -2237,10 +2243,14 @@ let currentOutgoingRequests = [];
 let incomingRequestsSub = null;
 let outgoingRequestsSub = null;
 
+let currentIncomingGroupRequests = [];
+let incomingGroupRequestsSub = null;
+
 function listenToRequests(userId) {
   if (!db) return;
   if (incomingRequestsSub) incomingRequestsSub();
   if (outgoingRequestsSub) outgoingRequestsSub();
+  if (incomingGroupRequestsSub) incomingGroupRequestsSub();
 
   incomingRequestsSub = db.collection("guardian_requests")
     .where("receiverId", "==", userId)
@@ -2279,6 +2289,18 @@ function listenToRequests(userId) {
       }
       refreshWebBindingCardUI();
     }, err => console.error("Outgoing requests listen error: ", err));
+
+  incomingGroupRequestsSub = db.collection("group_requests")
+    .where("receiverId", "==", userId)
+    .where("status", "==", "pending")
+    .onSnapshot(snapshot => {
+      const docs = [];
+      snapshot.forEach(doc => {
+        docs.push({ id: doc.id, ...doc.data() });
+      });
+      currentIncomingGroupRequests = docs;
+      refreshWebBindingCardUI();
+    }, err => console.error("Incoming group requests listen error: ", err));
 }
 
 function autoUpdateWebLinkage(userId, relativeNudgeId) {
@@ -2338,6 +2360,318 @@ function refreshWebBindingCardUI() {
   if (document.getElementById("webBindingGatedCard")) {
     renderRequestsList();
   }
+  
+  if (document.getElementById("notificationsPageContainer")) {
+    renderNotificationsPage();
+  }
+
+  // 顯示全域的親屬綁定邀請通知橫幅
+  const main = document.querySelector(".main");
+  if (!main) return;
+  
+  let banner = document.getElementById("globalGuardianRequestBanner");
+  if (currentIncomingRequests.length > 0) {
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "globalGuardianRequestBanner";
+      banner.style.cssText = "background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 12px 20px; margin: 16px 0 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;";
+      
+      const firstSection = main.querySelector("header.hero, section, .page-section, div:not(#globalGuardianRequestBanner)");
+      if (firstSection) {
+        firstSection.insertAdjacentElement("beforebegin", banner);
+      } else {
+        main.insertAdjacentElement("afterbegin", banner);
+      }
+    }
+    
+    const req = currentIncomingRequests[0];
+    const senderName = req.senderNickname || "使用者";
+    const senderNudge = req.senderNudgeId || "";
+    const senderRole = getRoleLabel(req.senderRole || "personal");
+    
+    banner.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">🔔</span>
+        <div>
+          <strong style="color: #f59e0b; display: block; margin-bottom: 4px;">收到親屬綁定邀請</strong>
+          <span style="color: rgba(255,255,255,0.85); font-size: 14px;">${senderName} (${senderNudge}) [身分：${senderRole}] 邀請與您建立親屬連結。接收邀請後將開始雙向數據同步。</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="approveWebGuardianRequest('${req.id}')" style="background: #10b981; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">同意</button>
+        <button onclick="declineWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">拒絕</button>
+      </div>
+    `;
+  } else {
+    if (banner) banner.remove();
+  }
+
+  // 顯示全域的團體綁定邀請通知橫幅
+  let groupBanner = document.getElementById("globalGroupRequestBanner");
+  if (currentIncomingGroupRequests.length > 0) {
+    if (document.getElementById("webGroupRequestsContainer")) {
+      renderGroupRequestsList();
+    }
+
+    if (!groupBanner) {
+      groupBanner = document.createElement("div");
+      groupBanner.id = "globalGroupRequestBanner";
+      groupBanner.style.cssText = "background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.3); border-radius: 12px; padding: 12px 20px; margin: 16px 0 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;";
+      
+      const firstSection = main.querySelector("header.hero, section, .page-section, div:not(#globalGuardianRequestBanner):not(#globalGroupRequestBanner)");
+      if (firstSection) {
+        firstSection.insertAdjacentElement("beforebegin", groupBanner);
+      } else {
+        main.insertAdjacentElement("afterbegin", groupBanner);
+      }
+    }
+    
+    const req = currentIncomingGroupRequests[0];
+    const senderName = req.senderNickname || "使用者";
+    const senderNudge = req.senderNudgeId || "";
+    const groupName = req.groupName || "自律團體";
+    const groupId = req.groupId || "";
+    
+    groupBanner.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">👥</span>
+        <div>
+          <strong style="color: #14b8a6; display: block; margin-bottom: 4px;">收到團體邀請</strong>
+          <span style="color: rgba(255,255,255,0.85); font-size: 14px;">${senderName} (${senderNudge}) 邀請您加入團隊【${groupName}】(ID: ${groupId})。同意後將會與團隊同步您的挑戰進度！</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="approveWebGroupRequest('${req.id}', '${groupId}', '${groupName}')" style="background: #14b8a6; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">同意加入</button>
+        <button onclick="declineWebGroupRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">拒絕</button>
+      </div>
+    `;
+  } else {
+    if (groupBanner) groupBanner.remove();
+  }
+}
+
+function sendWebGroupRequest(targetNudgeId, groupId, groupName) {
+  const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+  if (!activeUserId || !db) return;
+
+  const targetNudgeIdUpper = targetNudgeId.trim().toUpperCase();
+  if (!targetNudgeIdUpper) {
+    toast("Nudge ID 不能為空");
+    return;
+  }
+
+  db.collection("users").doc(activeUserId).get().then(mySnap => {
+    if (!mySnap.exists) return;
+    const myData = mySnap.data();
+    const myNudgeId = myData.myNudgeId || myData.username || "";
+    const myNickname = myData.nickname || "使用者";
+
+    if (targetNudgeIdUpper === myNudgeId.toUpperCase()) {
+      toast("不能邀請自己");
+      return;
+    }
+
+    db.collection("users").where("username", "==", targetNudgeIdUpper).limit(1).get().then(querySnap => {
+      if (querySnap.empty) {
+        toast("找不到該 Nudge ID 的使用者");
+        return;
+      }
+      const receiverSnap = querySnap.docs[0];
+      const receiverId = receiverSnap.id;
+
+      if (receiverSnap.data().groupId === groupId) {
+        toast("對方已在該團體中");
+        return;
+      }
+
+      db.collection("group_requests")
+        .where("senderId", "==", activeUserId)
+        .where("receiverId", "==", receiverId)
+        .where("status", "==", "pending")
+        .get()
+        .then(outgoingCheck => {
+          if (!outgoingCheck.empty) {
+            toast("已發送過邀請，請耐心等待對方同意");
+            return;
+          }
+
+          db.collection("group_requests").add({
+            senderId: activeUserId,
+            senderNudgeId: myNudgeId,
+            senderNickname: myNickname,
+            receiverId: receiverId,
+            groupId: groupId,
+            groupName: groupName,
+            status: "pending",
+            createdAt: new Date().toISOString()
+          }).then(() => {
+            toast(`已成功向 ${targetNudgeIdUpper} 發送團隊邀請！`);
+            document.getElementById("webGroupInviteInput").value = "";
+          }).catch(err => {
+            console.error(err);
+            toast("發送邀請失敗");
+          });
+        });
+    });
+  }).catch(err => console.error(err));
+}
+
+function approveWebGroupRequest(requestId, groupId, groupName) {
+  const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+  if (!db || !activeUserId) return;
+  
+  db.collection("users").doc(activeUserId).update({
+    groupId: groupId,
+    groupName: groupName || "自律小組",
+    isGroupOwner: false,
+    userRole: "group",
+    updatedAt: new Date().toISOString()
+  }).then(() => {
+    db.collection("group_requests").doc(requestId).update({
+      status: "accepted",
+      updatedAt: new Date().toISOString()
+    }).then(() => {
+      toast("已成功加入團隊！ 🎉");
+      window.location.reload();
+    });
+  }).catch(err => {
+    console.error(err);
+    toast("同意失敗");
+  });
+}
+
+function declineWebGroupRequest(requestId) {
+  if (!db) return;
+  db.collection("group_requests").doc(requestId).update({
+    status: "declined",
+    updatedAt: new Date().toISOString()
+  }).then(() => {
+    toast("已拒絕該邀請");
+  }).catch(err => {
+    console.error(err);
+    toast("操作失敗");
+  });
+}
+
+window.approveWebGroupRequest = approveWebGroupRequest;
+window.declineWebGroupRequest = declineWebGroupRequest;
+
+function renderGroupRequestsList() {
+  const container = document.getElementById("webGroupRequestsContainer");
+  if (!container) return;
+
+  let html = "";
+  if (currentIncomingGroupRequests.length > 0) {
+    html += `
+      <div class="web-pending-section" style="margin-top: 24px; text-align: left; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <h4 style="font-size: 13px; color: #14b8a6; margin-bottom: 12px; font-weight: 700;">待處理的團體邀請：</h4>
+    `;
+    currentIncomingGroupRequests.forEach(req => {
+      const senderName = req.senderNickname || "使用者";
+      const senderNudge = req.senderNudgeId || "";
+      const groupName = req.groupName || "自律小組";
+      const groupId = req.groupId || "";
+      html += `
+        <div class="web-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.2); border-radius: 8px; margin-bottom: 8px;">
+          <div>
+            <div style="font-size: 14px; color: #fff; font-weight: 700; margin-bottom: 4px;">團隊：${groupName}</div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.6);">邀請人：${senderName} (${senderNudge})</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button onclick="approveWebGroupRequest('${req.id}', '${groupId}', '${groupName}')" style="background: #14b8a6; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700;">同意</button>
+            <button onclick="declineWebGroupRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700;">拒絕</button>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  } else {
+    html = `
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 13px; color: var(--muted);">
+        目前沒有待處理的團體邀請。
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+}
+
+function renderNotificationsPage() {
+  const container = document.getElementById("notificationsPageContainer");
+  if (!container) return;
+
+  const totalPending = currentIncomingRequests.length + currentIncomingGroupRequests.length;
+  const countEl = document.getElementById("totalPendingCount");
+  if (countEl) countEl.textContent = totalPending;
+
+  if (totalPending === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--muted);">
+        <span style="font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.5;">📭</span>
+        <strong style="font-size: 16px;">目前沒有任何待處理的邀請</strong>
+        <p style="margin-top: 8px;">當您收到親屬綁定或團隊邀請時，會顯示在這裡。</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = "";
+  
+  if (currentIncomingRequests.length > 0) {
+    html += `
+      <div style="margin-bottom: 32px;">
+        <h3 style="color: #f59e0b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">🛡️</span> 親屬綁定邀請
+        </h3>
+    `;
+    currentIncomingRequests.forEach(req => {
+      const senderName = req.senderNickname || "使用者";
+      const senderNudge = req.senderNudgeId || "";
+      const senderRole = getRoleLabel(req.senderRole || "personal");
+      html += `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 4px;">邀請人：${senderName} (${senderNudge})</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.7);">對方目前身分：<strong style="color: #f59e0b;">${senderRole}</strong></div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button onclick="approveWebGuardianRequest('${req.id}')" style="background: #10b981; border: none; color: #fff; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">同意</button>
+            <button onclick="declineWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">拒絕</button>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  if (currentIncomingGroupRequests.length > 0) {
+    html += `
+      <div style="margin-bottom: 32px;">
+        <h3 style="color: #14b8a6; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">👥</span> 團隊組織邀請
+        </h3>
+    `;
+    currentIncomingGroupRequests.forEach(req => {
+      const senderName = req.senderNickname || "使用者";
+      const senderNudge = req.senderNudgeId || "";
+      const groupName = req.groupName || "自律小組";
+      const groupId = req.groupId || "";
+      html += `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.2); border-radius: 12px; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 4px;">團隊：${groupName} (ID: ${groupId})</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.7);">邀請人：${senderName} (${senderNudge})</div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button onclick="approveWebGroupRequest('${req.id}', '${groupId}', '${groupName}')" style="background: #14b8a6; border: none; color: #fff; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">加入</button>
+            <button onclick="declineWebGroupRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">拒絕</button>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
 }
 
 function sendWebGuardianRequest(targetNudgeId) {
@@ -2752,6 +3086,7 @@ function renderWebGroupCreationPage(data) {
             <input type="text" id="webGroupIdInputPage" class="web-binding-input" placeholder="格式如: GRP-88921" style="margin-bottom: 12px; width: 100%; max-width: 400px; display: block;">
             <button id="webGroupJoinBtnPage" class="button ghost" style="padding: 10px 20px; font-weight: 700; cursor: pointer;">輸入 ID 連結並加入</button>
           </div>
+          <div id="webGroupRequestsContainer"></div>
         </aside>
       </div>
     `;
@@ -2807,6 +3142,7 @@ function renderWebGroupCreationPage(data) {
       }
     });
 
+    renderGroupRequestsList();
     return;
   }
 
@@ -2853,6 +3189,16 @@ function renderWebGroupCreationPage(data) {
           <p style="margin-top: 8px; color: var(--muted); font-size: 14px;">
             ${isOwner ? '身為團隊建立者，您可以解散該團隊或修改團隊名稱。解散後所有成員將自動移出該組織。' : '您可以退出此小組，退出後將無法同步小組的挑戰與任務模板。'}
           </p>
+          ${isOwner ? `
+            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px dashed rgba(255,255,255,0.1);">
+              <span class="eyebrow">Invite Member</span>
+              <h3 style="font-size: 16px; margin-bottom: 8px;">邀請新成員加入</h3>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="text" id="webGroupInviteInput" class="web-binding-input" placeholder="輸入要邀請的 Nudge ID" style="width: 100%;">
+                <button id="webGroupInviteBtn" class="button primary" style="width: 100%; font-weight: 700;">發送團隊邀請</button>
+              </div>
+            </div>
+          ` : ''}
         </div>
         <div style="margin-top: 24px;">
           <button id="webGroupLeaveBtnPage" class="button" style="width: 100%; background: #ef4444; border: none; color: #fff; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
@@ -2883,6 +3229,16 @@ function renderWebGroupCreationPage(data) {
         });
       }
     }
+  });
+
+  document.getElementById("webGroupInviteBtn")?.addEventListener("click", () => {
+    const inviteInput = document.getElementById("webGroupInviteInput");
+    const targetId = inviteInput ? inviteInput.value.trim() : "";
+    if (!targetId) {
+      toast("請輸入有效的 Nudge ID");
+      return;
+    }
+    sendWebGroupRequest(targetId, groupId, groupName);
   });
 
   // Query and list all members of the group in real-time

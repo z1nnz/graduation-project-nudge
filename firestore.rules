@@ -23,7 +23,7 @@ service cloud.firestore {
       match /friends/{friendId} {
         allow read: if isOwner(userId) || (isAuth() && request.auth.uid == friendId);
         allow write: if isAuth() && request.resource.data.id == friendId;
-        allow delete: if isOwner(userId);
+        allow delete: if isOwner(userId) || (isAuth() && request.auth.uid == friendId);
       }
     }
 
@@ -41,11 +41,27 @@ service cloud.firestore {
           'receiverId', 'receiverNudgeId', 'receiverName',
           'status', 'createdAt'
         ]);
-      allow update: if isAuth()
-        && resource.data.receiverId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-        && request.resource.data.status in ['accepted', 'declined'];
+      allow update: if isAuth() && (
+        // Receiver can accept or decline
+        (resource.data.receiverId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['accepted', 'declined'])
+        ||
+        // Sender can cancel their own pending request
+        (resource.data.senderId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'cancelled')
+      );
       allow delete: if false;
+    }
+
+    // ─── /friend_messages/{messageId} ────────────────────────────────
+    match /friend_messages/{messageId} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.keys().hasAll(['receiverId', 'senderId', 'senderName', 'content', 'type', 'createdAt']);
+      allow update, delete: if isAuth() && resource.data.senderId == request.auth.uid;
     }
 
     // ─── /guardian_requests/{requestId} ────────────────────────────────

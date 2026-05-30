@@ -203,12 +203,12 @@
           </div>
           <div class="input-group">
             <span>🔒</span>
-            <input type="password" placeholder="密碼" required />
+            <input type="password" id="inputPassword" placeholder="密碼" required />
             <span class="toggle-pwd">👁️</span>
           </div>
           <div class="input-group" id="groupConfirm">
             <span>🔒</span>
-            <input type="password" placeholder="確認密碼" required />
+            <input type="password" id="inputConfirmPassword" placeholder="確認密碼" required />
             <span class="toggle-pwd">👁️</span>
           </div>
 
@@ -348,7 +348,7 @@
       const loginSubtitle = document.getElementById('loginSubtitle');
       const submitBtn = document.getElementById('submitBtn');
       
-      const confirmInput = groupConfirm.querySelector('input');
+      const confirmInput = document.getElementById('inputConfirmPassword');
 
       let isLoginMode = false; // Default is register mode (tabRegister active)
 
@@ -386,7 +386,7 @@
         showError("");
 
         const email = e.target.querySelector('input[type="email"]').value.trim();
-        const password = e.target.querySelector('input[type="password"]').value;
+        const password = document.getElementById('inputPassword').value;
 
         if (isLoginMode) {
           // Log In
