@@ -1257,12 +1257,12 @@
           const reqId = `req_${activeUserId}_${targetId}`;
           await db.collection("friend_requests").doc(reqId).set({
             senderId: activeUserId,
-            senderNudgeId: myProfile.myNudgeId,
-            senderName: myProfile.nickname,
+            senderNudgeId: myProfile.myNudgeId || myProfile.username || myProfile.nudgeId || `NDG_${activeUserId.substring(0,6)}`,
+            senderName: myProfile.nickname || myProfile.name || activeUserId,
             senderSignature: myProfile.signature || "今天慢慢前進",
             receiverId: targetId,
-            receiverNudgeId: targetNudgeId,
-            receiverName: targetName,
+            receiverNudgeId: targetNudgeId || "",
+            receiverName: targetName || targetId,
             receiverSignature: "",
             status: "pending",
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
