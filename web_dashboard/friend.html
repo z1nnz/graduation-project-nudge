@@ -1146,6 +1146,8 @@
           const subNav = document.getElementById('friendSubNav');
           const badge = document.getElementById('friendMainBadge');
           
+          const showDetails = isFriend || isIncomingPending;
+          
           if (isFriend) {
             badge.textContent = "🏆 好友";
             badge.style.background = "rgba(16, 185, 129, 0.12)";
@@ -1160,13 +1162,6 @@
               <button class="button success" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: #10b981; border: none; color: #fff;" onclick="encourageFriend('${friendId}', '${name}')">👍 給他按讚</button>
               <button class="button" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444;" onclick="deleteFriend('${friendId}', '${name}')">❌ 刪除好友</button>
             `;
-            
-            subNav.style.display = 'flex';
-            subNav.querySelectorAll("a").forEach(a => a.classList.remove("active"));
-            subNav.querySelector("a").classList.add("active");
-            
-            detailActiveTab = 'timeline';
-            rightColumn.innerHTML = renderFriendTimeline(selectedFriendData);
           } else {
             badge.textContent = "🛸 未加好友";
             badge.style.background = "rgba(245, 158, 11, 0.12)";
@@ -1188,7 +1183,16 @@
                 <button class="button primary" style="font-weight: 700; border-radius: 12px; padding: 10px 18px;" onclick="sendFriendRequest('${friendId}', '${nudgeId}', '${name}')">➕ 加為好友</button>
               `;
             }
+          }
+          
+          if (showDetails) {
+            subNav.style.display = 'flex';
+            subNav.querySelectorAll("a").forEach(a => a.classList.remove("active"));
+            subNav.querySelector("a").classList.add("active");
             
+            detailActiveTab = 'timeline';
+            rightColumn.innerHTML = renderFriendTimeline(selectedFriendData);
+          } else {
             subNav.style.display = 'none';
             rightColumn.innerHTML = `
               <div class="fb-card" style="text-align: center; padding: 60px 40px; display: flex; flex-direction: column; align-items: center; gap: 16px;">

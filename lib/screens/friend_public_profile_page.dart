@@ -157,6 +157,10 @@ class FriendPublicProfilePage extends StatelessWidget {
 
           final currentScore = (35 + (currentFocusSeconds / 60 / 2)).clamp(0, 100).round();
           final isFriend = friend != null;
+          final incomingReqs = appState.incomingFriendRequests.where(
+            (req) => (currentNudgeId.isNotEmpty && req.nudgeId == currentNudgeId) || req.id.contains(friendId)
+          ).toList();
+          final canViewDetails = isCurrentUser || isFriend || incomingReqs.isNotEmpty;
 
           return ListView(
             padding: const EdgeInsets.all(AppUI.pagePadding),
@@ -177,7 +181,7 @@ class FriendPublicProfilePage extends StatelessWidget {
 
               const SizedBox(height: AppUI.sectionGap),
 
-              if (isCurrentUser || isFriend) ...[
+              if (canViewDetails) ...[
                 Card(
                   shape: AppUI.cardShape(),
                   child: Padding(
