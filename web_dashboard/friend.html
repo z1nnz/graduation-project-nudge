@@ -125,6 +125,310 @@
       #friendDetailView .back-button:hover {
         background: rgba(255,255,255,0.05);
       }
+
+      /* Profile tokens and card styles copied from profile.html */
+      #friendDetailView {
+        --page-accent: #7c6ae6;
+        --page-accent-2: #8d7aff;
+        --page-wash: rgba(124, 106, 230, 0.12);
+      }
+      .fb-avatar {
+        transition: transform 0.3s;
+      }
+      .fb-avatar:hover {
+        transform: scale(1.02);
+      }
+      .fb-profile-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .fb-profile-body {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 24px;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .fb-profile-body {
+          grid-template-columns: 1fr;
+        }
+      }
+      .intro-item span.icon {
+        font-size: 18px;
+        width: 24px;
+        text-align: center;
+      }
+      .intro-item strong {
+        color: #fff;
+      }
+      .badge-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 10px 4px;
+        transition: transform 0.2s;
+      }
+      .badge-item:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+      .badge-icon {
+        font-size: 22px;
+      }
+      .badge-name {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+      }
+      .fb-post-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .fb-post-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .fb-post-author-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+      }
+      .fb-post-author-name {
+        font-weight: 800;
+        color: #fff;
+        font-size: 15px;
+      }
+      .fb-post-time {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+        display: block;
+      }
+      .fb-post-content {
+        font-size: 15px;
+        color: #fff;
+        text-align: left;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+      .fb-post-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 4px;
+      }
+      .fb-metric-pill {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 14px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+      }
+      .fb-metric-pill .icon {
+        font-size: 22px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .fb-metric-pill.focus .icon {
+        background: rgba(124, 106, 230, 0.15);
+        color: #7c6ae6;
+      }
+      .fb-metric-pill.sleep .icon {
+        background: rgba(141, 122, 255, 0.15);
+        color: #8d7aff;
+      }
+      .fb-metric-pill.steps .icon {
+        background: rgba(20, 184, 166, 0.15);
+        color: #14b8a6;
+      }
+      .fb-metric-pill.tasks .icon {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+      }
+      .fb-metric-details {
+        display: flex;
+        flex-direction: column;
+      }
+      .fb-metric-label {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .fb-metric-val {
+        font-size: 16px;
+        font-weight: 900;
+        color: #fff;
+        margin-top: 2px;
+      }
+      .fb-post-feedback-summary {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--muted);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 12px;
+      }
+      .fb-post-feedback-actions {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 4px;
+        display: flex;
+        justify-content: space-around;
+      }
+      .fb-post-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: background 0.2s, color 0.2s;
+      }
+      .fb-post-action-btn:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: #fff;
+      }
+      .fb-empty-feed {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--muted);
+      }
+      .fb-empty-feed .icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+        display: block;
+        opacity: 0.6;
+      }
+      
+      /* Inline Planet Modal Styles */
+      .friend-planet-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 5, 10, 0.85);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      .friend-planet-modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .friend-planet-modal {
+        background: linear-gradient(180deg, #111322 0%, #070913 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 28px;
+        width: 90%;
+        max-width: 600px;
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+      }
+      .friend-planet-modal-overlay.active .friend-planet-modal {
+        transform: translateY(0);
+      }
+      .friend-planet-stage {
+        flex: 1;
+        position: relative;
+        background: radial-gradient(circle at center, #1b143a 0%, #05060b 100%);
+        overflow: hidden;
+      }
+      .friend-planet-sun {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 80px;
+        height: 80px;
+        background: radial-gradient(circle at 30% 30%, #ffd700 0%, #ff8c00 100%);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 40px #ff8c00, 0 0 80px rgba(255, 140, 0, 0.5);
+        z-index: 5;
+      }
+      .friend-planet-orbit {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        border: 1px dashed rgba(255,255,255,0.08);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: spin-clockwise linear infinite;
+      }
+      .friend-planet-node {
+        position: absolute;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+      }
+      .friend-planet-node:hover {
+        transform: translate(-50%, -50%) scale(1.15);
+      }
+      @keyframes spin-clockwise {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+      
+      .friend-planet-close-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-weight: bold;
+        z-index: 100;
+        transition: all 0.2s;
+      }
+      .friend-planet-close-btn:hover {
+        background: rgba(255,255,255,0.16);
+      }
     </style>
   </head>
   <body data-page="friend">
@@ -187,81 +491,103 @@
         <section id="friendDetailView" class="page-section" style="display: none;">
           <button class="back-button" onclick="showFriendList()">◀ 返回好友列表</button>
           
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Friend Showcase</span>
-              <h2>參觀好友資料與星球</h2>
+          <div class="profile-container">
+            <!-- Premium Cover Card Design -->
+            <div class="fb-cover-card">
+              <!-- 1. Cover Photo Banner -->
+              <div class="fb-cover-banner" id="friendCoverBanner" style="height: 200px;">
+                <div class="glowing-orb"></div>
+              </div>
+              
+              <!-- 2. Overlapping Avatar & Name Header -->
+              <div class="fb-profile-header-bar">
+                <div class="fb-profile-avatar-wrapper">
+                  <div class="fb-avatar" id="friendMainAvatar" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid #070a14; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 48px; color: #fff;">—</div>
+                </div>
+                <div class="fb-profile-info" style="position: relative; margin-top: 10px;">
+                  <div class="fb-profile-name-row" style="display: flex; align-items: center; gap: 8px;">
+                    <h1 class="fb-profile-name" id="friendMainName" style="font-size: 24px; font-weight: 800; color: #fff; margin: 0;">讀取中...</h1>
+                    <span class="fb-profile-badge" id="friendMainBadge" style="padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid var(--border);">好友</span>
+                  </div>
+                  <p class="fb-profile-signature" id="friendMainSignature" style="color: var(--muted); font-size: 13px; margin: 4px 0 0 0;">"讀取自律簽名中..."</p>
+                </div>
+                <div class="fb-profile-actions" id="friendProfileActions" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <!-- Dynamically populated buttons -->
+                </div>
+              </div>
+
+              <!-- Visitor mode banner -->
+              <div id="friendVisitorBanner" style="background: rgba(124,106,230,0.08); border-top: 1px solid rgba(124,106,230,0.15); padding: 8px 32px; font-size: 12px; color: var(--muted); text-align: center;">
+                🔭 您正在瀏覽 <strong id="friendVisitorName"></strong> 的個人名片
+              </div>
+
+              <!-- 3. Sub Nav Row -->
+              <div class="fb-profile-subnav" id="friendSubNav" style="display: none;">
+                <a class="active" href="javascript:void(0);" onclick="switchFriendDetailTab('timeline', this)">動態牆 (Timeline)</a>
+                <a href="javascript:void(0);" onclick="switchFriendDetailTab('about', this)">關於我 (About)</a>
+                <a href="javascript:void(0);" onclick="switchFriendDetailTab('progress', this)">自律進度 (Progress)</a>
+              </div>
             </div>
-            <p>目前展示好友：<strong id="detailId">小安 (ID: an_nudge)</strong></p>
-          </div>
-          
-          <div class="two-col">
-            <article class="panel" style="text-align: center; background: linear-gradient(135deg, #1e1e2d 0%, #2a2a40 100%); position: relative; overflow: hidden;">
-              <span class="eyebrow" style="position: absolute; top: 20px; left: 20px;">好友角色與星球</span>
-              <div style="height: 250px; display: flex; align-items: center; justify-content: center; margin-top: 30px;">
-                <div class="planet" id="detailPlanetColor" style="width: 150px; height: 150px; background: radial-gradient(circle at 30% 30%, #34d399 0%, #059669 100%); box-shadow: 0 0 30px rgba(52, 211, 153, 0.4);">
-                  <div id="detailAvatar" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-size: 50px;">🧑‍🚀</div>
-                </div>
-              </div>
-              <h3 id="detailPlanetName">小安的綠洲星球</h3>
-              <p>星球繁榮度：<span id="detailLevel">LV. 12</span></p>
-              <button class="button primary" style="margin-top: 15px;">給他一個鼓勵</button>
-            </article>
 
-            <article class="panel">
-              <span class="eyebrow">好友狀態總覽</span>
-              <div class="feature-grid" style="grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-                <div class="feature-card" style="padding: 15px;">
-                  <span class="icon" style="font-size: 20px;">⏱️</span>
-                  <small>本週專注時間</small>
-                  <strong style="display: block; font-size: 20px; color: #60a5fa; margin-top: 5px;" id="detailFocus">320 分鐘</strong>
-                </div>
-                <div class="feature-card" style="padding: 15px;">
-                  <span class="icon" style="font-size: 20px;">👟</span>
-                  <small>今日步數</small>
-                  <strong style="display: block; font-size: 20px; color: #34d399; margin-top: 5px;" id="detailSteps">8,420 步</strong>
-                </div>
-                <div class="feature-card" style="padding: 15px;">
-                  <span class="icon" style="font-size: 20px;">🏃</span>
-                  <small>本週運動時間</small>
-                  <strong style="display: block; font-size: 20px; color: #f472b6; margin-top: 5px;" id="detailExercise">90 分鐘</strong>
-                </div>
-                <div class="feature-card" style="padding: 15px;">
-                  <span class="icon" style="font-size: 20px;">🌙</span>
-                  <small>昨晚睡眠狀況</small>
-                  <strong style="display: block; font-size: 20px; color: #a78bfa; margin-top: 5px;" id="detailSleep">7.2 小時</strong>
-                </div>
-              </div>
-            </article>
-          </div>
+            <!-- Two Column Profile Content Grid -->
+            <div class="fb-profile-body" style="margin-top: 24px;">
+              <!-- Left Column: Intro card & Achievements grid -->
+              <div class="fb-left-column">
+                <!-- Intro details card -->
+                <article class="fb-card">
+                  <h3 class="fb-card-title">自律介紹</h3>
+                  <ul class="intro-list">
+                    <li class="intro-item">
+                      <span class="icon">🆔</span>
+                      <span>Nudge ID: <strong id="friendNudgeId">NDG-Guest</strong></span>
+                    </li>
+                    <li class="intro-item">
+                      <span class="icon">📅</span>
+                      <span>加入自律星系: <strong>2026年5月</strong></span>
+                    </li>
+                    <li class="intro-item">
+                      <span class="icon">📱</span>
+                      <span>上線狀態: <strong id="friendOnlineStatus">離線</strong></span>
+                    </li>
+                  </ul>
+                </article>
 
-          <div class="two-col" style="margin-top: 24px;">
-            <article class="panel">
-              <span class="eyebrow">近期表現</span>
-              <h3>近期完成任務狀況</h3>
-              <ul class="timeline">
-                <li><strong>英文單字複習 (50字)</strong><span>今天 14:30 完成，獲得 10 枚自律幣。</span></li>
-                <li><strong>早晨慢跑 3 公里</strong><span>今天 07:15 完成，達成步數與運動時間雙目標。</span></li>
-                <li><strong>演算法專題報告進度</strong><span>昨天 21:00 完成，專注房內堅持了 45 分鐘。</span></li>
-              </ul>
-            </article>
-            <article class="panel">
-              <span class="eyebrow">角色能力與成就</span>
-              <h3>擁有技能與壓力狀況</h3>
-              <ul class="timeline compact">
-                <li><strong>🏅 成就徽章：晨型人、專注大師</strong><span>已連續 7 天在早上 8 點前完成第一項任務。</span></li>
-                <li><strong>🧠 人生技能樹：時間管理 Lv.3</strong><span>番茄鐘使用效率極高，任務拖延率低於 5%。</span></li>
-                <li><strong>⚠️ 壓力狀況：輕度疲勞</strong><span>近期連續熬夜天數為 0，整體壓力值在健康範圍 (20/100)。</span></li>
-              </ul>
-            </article>
+                <!-- Achievements badges grid card -->
+                <article class="fb-card">
+                  <h3 class="fb-card-title">解鎖成就徽章</h3>
+                  <div class="badges-grid" id="friendUnlockedBadges">
+                    <!-- Dynamically rendered -->
+                  </div>
+                </article>
+              </div>
+
+              <!-- Right Column: Conditional Feed or Lock Notice -->
+              <div class="fb-right-column" id="friendRightColumn">
+                <!-- Will be dynamically loaded based on friend status and active tab -->
+              </div>
+            </div>
           </div>
         </section>
 
       </main>
     </div>
+
+    <!-- Inline Planet Viewer Modal -->
+    <div id="friendPlanetModal" class="friend-planet-modal-overlay" onclick="if(event.target===this) closeFriendPlanetModal()">
+      <div class="friend-planet-modal">
+        <button class="friend-planet-close-btn" onclick="closeFriendPlanetModal()">✕</button>
+        <div style="padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left;">
+          <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff;" id="modalPlanetTitle">好友的自律星系</h3>
+          <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--muted);" id="modalPlanetSub">自律行星環繞中</p>
+        </div>
+        <div class="friend-planet-stage" id="modalPlanetStage">
+          <div class="friend-planet-sun"></div>
+          <!-- Orbits and planet nodes will be dynamically generated here -->
+        </div>
+      </div>
+    </div>
     
     <script>
-      
       let currentTab = '列表';
       function switchFriendTab(tabName, btnElement) {
         document.querySelectorAll('.friend-tab').forEach(b => b.classList.remove('active'));
@@ -289,6 +615,8 @@
       let myProfile = null;
       let friendsList = [];
       let pendingRequestsList = [];
+      let selectedFriendData = null;
+      let detailActiveTab = 'timeline';
 
       function initFirestoreFriendSystem() {
         activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
@@ -319,7 +647,7 @@
           if (friendDocs.length === 0) {
             document.getElementById("friendsListContainer").innerHTML = `
               <div style="text-align:center; padding: 40px; color:#9ca3af;">
-                尚未添加任何好友。點擊「好友搜尋」開始建立你的自律社交圈！
+                尚未添加 any 好友。點擊「好友搜尋」開始建立你的自律社交圈！
               </div>
             `;
             return;
@@ -366,7 +694,9 @@
                   todayFocusSeconds: friendData.focusSeconds || friendRel.todayFocusSeconds || 0,
                   isStudying: friendData.isStudying || friendRel.isStudying || false,
                   tasks: friendTasks,
-                  dailySummaries: friendData.dailySummaries || []
+                  dailySummaries: friendData.dailySummaries || [],
+                  unlockedPlanets: friendData.unlockedPlanets || [],
+                  unlockedBadges: friendData.unlockedBadges || []
                 };
               }
             } catch (err) {
@@ -390,7 +720,9 @@
               todayFocusSeconds: friendRel.todayFocusSeconds || 0,
               isStudying: friendRel.isStudying || false,
               tasks: [],
-              dailySummaries: []
+              dailySummaries: [],
+              unlockedPlanets: [],
+              unlockedBadges: []
             };
           });
 
@@ -431,7 +763,7 @@
         
         container.innerHTML = friends.map(f => {
           return `
-            <div class="friend-list-item" onclick="window.location.href='profile.html?userId=${f.id}'" style="cursor: pointer;">
+            <div class="friend-list-item" onclick="showFriendDetail('${f.id}')" style="cursor: pointer;">
               <div class="friend-avatar" style="background: ${f.avatarColor}22; color: ${f.avatarColor};">
                 <div class="friend-lv-badge">Lv.${Math.floor(f.prosperity/10) + 1}</div>
                 ${f.avatar}
@@ -449,7 +781,7 @@
               </div>
               <div class="friend-meta">
                 <span class="friend-last-login">${f.isStudying ? "🟢 線上專注中" : "⚪ 離線"}</span>
-                <button class="button primary" style="padding: 6px 16px; font-size: 13px; min-height: auto;" onclick="event.stopPropagation(); window.location.href='planet.html?userId=${f.id}'">參觀星球</button>
+                <button class="button primary" style="padding: 6px 16px; font-size: 13px; min-height: auto;" onclick="event.stopPropagation(); showFriendDetail('${f.id}')">查看名片</button>
               </div>
             </div>
           `;
@@ -469,7 +801,7 @@
 
         container.innerHTML = requests.map(r => {
           return `
-            <div class="friend-list-item" style="cursor: default;">
+            <div class="friend-list-item" style="cursor: pointer;" onclick="showFriendDetail('${r.senderId}')">
               <div class="friend-avatar" style="background: rgba(255, 255, 255, 0.05);">
                 🧑‍🚀
               </div>
@@ -482,7 +814,7 @@
                   <span>個性簽名：${r.senderSignature || "今天慢慢前進"}</span>
                 </div>
               </div>
-              <div class="friend-meta" style="flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px;">
+              <div class="friend-meta" style="flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px;" onclick="event.stopPropagation();">
                 <button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981;" onclick="acceptFriendRequest('${r.id}')">接受</button>
                 <button class="button secondary" style="padding: 8px 16px; font-size: 13px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="declineFriendRequest('${r.id}')">拒絕</button>
               </div>
@@ -492,7 +824,8 @@
       }
 
       async function acceptFriendRequest(requestId) {
-        const req = pendingRequestsList.find(r => r.id === requestId);
+        const req = pendingRequestsList.find(r => r.id === requestId) || 
+                    (selectedFriendData ? { senderId: selectedFriendData.id, senderName: selectedFriendData.name, senderNudgeId: selectedFriendData.nudgeId } : null);
         if (!req || !myProfile) return;
 
         try {
@@ -525,6 +858,10 @@
           });
 
           toast(`已接受好友申請，成功與 ${req.senderName} 成為好友！`);
+          
+          if (selectedFriendData && selectedFriendData.id === req.senderId) {
+            showFriendDetail(req.senderId);
+          }
         } catch (err) {
           console.error("Error accepting request:", err);
           toast("接受好友申請失敗：" + err.message);
@@ -535,6 +872,16 @@
         try {
           await db.collection("friend_requests").doc(requestId).update({ status: "declined" });
           toast("已拒絕好友申請。");
+          
+          if (selectedFriendData) {
+            const doc = await db.collection("friend_requests").doc(requestId).get();
+            if (doc.exists) {
+              const data = doc.data();
+              if (selectedFriendData.id === data.senderId) {
+                showFriendDetail(data.senderId);
+              }
+            }
+          }
         } catch (err) {
           console.error("Error declining request:", err);
           toast("拒絕好友申請失敗");
@@ -594,17 +941,17 @@
 
           let actionHtml = '';
           if (isFriend) {
-            actionHtml = `<span style="color: #10b981; font-weight: 800;">✓ 已是好友</span><button class="button" onclick="window.location.href='profile.html?userId=${targetId}'" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
+            actionHtml = `<span style="color: #10b981; font-weight: 800;">✓ 已是好友</span><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           } else if (isRequestSent) {
-            actionHtml = `<span style="color: #60a5fa; font-weight: 800;">⏱ 已發送好友申請</span>`;
+            actionHtml = `<span style="color: #60a5fa; font-weight: 800;">⏱ 已發送好友申請</span><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           } else if (isIncomingPending) {
-            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981;" onclick="acceptFriendRequest('${incomingCheck.docs[0].id}')">接受他的申請</button>`;
+            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981;" onclick="acceptFriendRequest('${incomingCheck.docs[0].id}')">接受他的申請</button><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           } else {
-            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto;" onclick="sendFriendRequest('${targetId}', '${query}', '${userData.nickname}')">加為好友</button>`;
+            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto;" onclick="sendFriendRequest('${targetId}', '${query}', '${userData.nickname}')">加為好友</button><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           }
 
           resultsContainer.innerHTML = `
-            <div class="friend-list-item" style="cursor: default; margin-top: 15px;" onclick="window.location.href='profile.html?userId=${targetId}'" style="cursor:pointer;">
+            <div class="friend-list-item" style="cursor: pointer; margin-top: 15px;" onclick="showFriendDetail('${targetId}')">
               <div class="friend-avatar" style="background: ${avatarColor}22; color: ${avatarColor};">
                 ${avatar}
               </div>
@@ -617,14 +964,11 @@
                   <span>個性簽名：${userData.signature || "今天慢慢前進"}</span>
                 </div>
               </div>
-              <div class="friend-meta" style="align-items: flex-end; justify-content: center; padding: 12px 16px;">
+              <div class="friend-meta" style="align-items: flex-end; justify-content: center; padding: 12px 16px;" onclick="event.stopPropagation();">
                 ${actionHtml}
               </div>
             </div>
           `;
-
-
-
         } catch (err) {
           console.error("Search failed:", err);
           resultsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color:#ef4444;">搜尋出錯：${err.message}</div>`;
@@ -650,61 +994,423 @@
           });
 
           toast("好友申請已發送！");
-          handleSearch(); // Refresh search view
+          
+          if (selectedFriendData && selectedFriendData.id === targetId) {
+            showFriendDetail(targetId);
+          } else {
+            handleSearch();
+          }
         } catch (err) {
           console.error("Failed to send request:", err);
           toast("發送好友申請失敗：" + err.message);
         }
       }
 
+      async function encourageFriend(friendId, friendName) {
+        toast("👍 已給 " + friendName + " 按讚！");
+        try {
+          const friendRef = db.collection("users").doc(activeUserId).collection("friends").doc(friendId);
+          const friendSnap = await friendRef.get();
+          if (friendSnap.exists) {
+            const currentCount = friendSnap.data().encouragementCount || 0;
+            await friendRef.update({
+              encouragementCount: currentCount + 1
+            });
+          }
+          const likeBtn = document.querySelector("#friendProfileActions .button.success");
+          if (likeBtn) {
+            likeBtn.textContent = "✅ 已按讚";
+            likeBtn.disabled = true;
+            likeBtn.style.opacity = "0.6";
+            likeBtn.style.pointerEvents = "none";
+          }
+        } catch (err) {
+          console.warn("Failed to increment encouragement count in Firestore:", err);
+        }
+      }
+
+      async function deleteFriend(friendId, friendName) {
+        if (!confirm(`確定要刪除好友 ${friendName} 嗎？`)) return;
+        try {
+          await db.collection("users").doc(activeUserId).collection("friends").doc(friendId).delete();
+          await db.collection("users").doc(friendId).collection("friends").doc(activeUserId).delete();
+          toast(`已刪除好友 ${friendName}。`);
+          showFriendList();
+        } catch (err) {
+          console.error("Failed to delete friend:", err);
+          toast("刪除好友失敗：" + err.message);
+        }
+      }
+
       // Details view binding
       function showFriendDetail(friendId) {
-        const f = friendsList.find(item => item.id === friendId);
-        if (!f) return;
-
-        document.getElementById('detailId').textContent = `${f.name} (ID: ${f.nudgeId})`;
-        document.getElementById('detailPlanetName').textContent = `${f.name}的自律星球`;
-        document.getElementById('detailLevel').textContent = `LV. ${Math.floor(f.prosperity/10) + 1}`;
-        document.getElementById('detailAvatar').textContent = f.avatar;
-        
-        const planetEl = document.getElementById('detailPlanetColor');
-        planetEl.style.background = `radial-gradient(circle at 30% 30%, ${f.avatarColor} 0%, rgba(0,0,0,0.7) 100%)`;
-        planetEl.style.boxShadow = `0 0 30px ${f.avatarColor}99`;
-
-        document.getElementById('detailFocus').textContent = Math.round(f.todayFocusSeconds / 60) + ' 分鐘';
-        document.getElementById('detailSteps').textContent = f.steps.toLocaleString() + ' 步';
-        document.getElementById('detailExercise').textContent = f.exerciseMinutes + ' 分鐘';
-        document.getElementById('detailSleep').textContent = f.sleepHours + ' 小時';
-
-        // Render recent missions of the friend
-        const friendMissionsList = document.querySelector("#friendDetailView .timeline");
-        if (friendMissionsList) {
-          const completedMissions = f.tasks.filter(t => t.isDone || t.done).slice(0, 3);
-          if (completedMissions.length === 0) {
-            friendMissionsList.innerHTML = `<li style="list-style:none; padding-left:0;"><span style="color:#9ca3af;">好友今日尚未完成任何任務。</span></li>`;
-          } else {
-            friendMissionsList.innerHTML = completedMissions.map(m => {
-              const compDate = m.completedAt ? new Date(m.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '今天';
-              return `
-                <li>
-                  <strong>${m.title}</strong>
-                  <span>於 ${compDate} 完成，獲得自律點數。</span>
-                </li>
-              `;
-            }).join('');
-          }
-        }
-
-        // Switch view
+        // Show loading state
         document.getElementById('friendListView').style.display = 'none';
         document.getElementById('friendDetailView').style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('friendMainName').textContent = "讀取中...";
+        document.getElementById('friendMainSignature').textContent = "讀取資料中，請稍候...";
+        document.getElementById('friendProfileActions').innerHTML = "";
+        document.getElementById('friendSubNav').style.display = "none";
+        document.getElementById('friendRightColumn').innerHTML = `<div style="text-align:center; padding: 40px; color:#9ca3af;">正在載入好友名片...</div>`;
+
+        db.collection("users").doc(friendId).get().then(async (docSnap) => {
+          if (!docSnap.exists) {
+            toast("找不到該使用者的資料！");
+            showFriendList();
+            return;
+          }
+          const userData = docSnap.data();
+          
+          const avatar = (userData.avatarProfile && userData.avatarProfile.icon) ? userData.avatarProfile.icon : "🧑‍🚀";
+          const avatarColor = (userData.avatarProfile && userData.avatarProfile.color) ? userData.avatarProfile.color : "#7C6AE6";
+          const name = userData.nickname || friendId;
+          const nudgeId = userData.myNudgeId || "NDG-USER";
+          const signature = userData.signature || "今天慢慢前進";
+          const planetCount = userData.planetCount || (userData.unlockedPlanets ? userData.unlockedPlanets.length : 3);
+          const unlockedPlanets = userData.unlockedPlanets || [];
+          const friendTasks = userData.tasks || [];
+          const completedTasks = friendTasks.filter(t => t.isDone || t.done).length;
+          const totalTasks = friendTasks.length;
+          const prosperity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          
+          let sleepHours = 8.0;
+          let steps = 0;
+          let exerciseMinutes = 0;
+          if (userData.dailySummaries && userData.dailySummaries.length > 0) {
+            const latest = userData.dailySummaries[userData.dailySummaries.length - 1];
+            sleepHours = latest.sleepHours || sleepHours;
+            steps = latest.steps || steps;
+            exerciseMinutes = latest.exerciseMinutes || exerciseMinutes;
+          }
+          
+          selectedFriendData = {
+            id: friendId,
+            name: name,
+            nudgeId: nudgeId,
+            signature: signature,
+            avatar: avatar,
+            avatarColor: avatarColor,
+            prosperity: prosperity,
+            completedTasks: completedTasks,
+            totalTasks: totalTasks,
+            sleepHours: sleepHours,
+            steps: steps,
+            exerciseMinutes: exerciseMinutes,
+            todayFocusSeconds: userData.focusSeconds || 0,
+            tasks: friendTasks,
+            planetCount: planetCount,
+            unlockedPlanets: unlockedPlanets,
+            isStudying: userData.isStudying || false,
+            unlockedBadges: userData.unlockedBadges || []
+          };
+
+          // Render basic cover elements
+          document.getElementById('friendMainName').textContent = name;
+          document.getElementById('friendMainSignature').textContent = `"${signature}"`;
+          document.getElementById('friendMainAvatar').textContent = avatar;
+          document.getElementById('friendMainAvatar').style.background = avatarColor + "22";
+          document.getElementById('friendMainAvatar').style.color = avatarColor;
+          document.getElementById('friendNudgeId').textContent = nudgeId;
+          document.getElementById('friendOnlineStatus').textContent = selectedFriendData.isStudying ? "🟢 線上專注中" : "⚪ 離線";
+          document.getElementById('friendOnlineStatus').style.color = selectedFriendData.isStudying ? "#10b981" : "#64748b";
+          document.getElementById('friendVisitorName').textContent = name;
+          
+          // Render Badges
+          document.getElementById('friendUnlockedBadges').innerHTML = renderFriendBadges(userData);
+          
+          const banner = document.getElementById('friendCoverBanner');
+          if (banner) {
+            banner.style.background = `linear-gradient(135deg, ${avatarColor} 0%, #1e144a 50%, #03050a 100%)`;
+          }
+          
+          // Determine relationship status
+          const friendCheck = await db.collection("users").doc(activeUserId).collection("friends").doc(friendId).get();
+          const isFriend = friendCheck.exists;
+          
+          let isRequestSent = false;
+          let outgoingReqId = `req_${activeUserId}_${friendId}`;
+          const outgoingDoc = await db.collection("friend_requests").doc(outgoingReqId).get();
+          if (outgoingDoc.exists && outgoingDoc.data().status === 'pending') {
+            isRequestSent = true;
+          }
+          
+          let isIncomingPending = false;
+          let incomingReqId = `req_${friendId}_${activeUserId}`;
+          const incomingDoc = await db.collection("friend_requests").doc(incomingReqId).get();
+          if (incomingDoc.exists && incomingDoc.data().status === 'pending') {
+            isIncomingPending = true;
+          }
+          
+          const actionsContainer = document.getElementById('friendProfileActions');
+          const rightColumn = document.getElementById('friendRightColumn');
+          const subNav = document.getElementById('friendSubNav');
+          const badge = document.getElementById('friendMainBadge');
+          
+          if (isFriend) {
+            badge.textContent = "🏆 好友";
+            badge.style.background = "rgba(16, 185, 129, 0.12)";
+            badge.style.borderColor = "rgba(16, 185, 129, 0.25)";
+            badge.style.color = "#10b981";
+            badge.style.display = "inline-flex";
+            
+            // Format planets array safely as parameter
+            const planetsParam = JSON.stringify(unlockedPlanets).replace(/"/g, '&quot;');
+            actionsContainer.innerHTML = `
+              <button class="button primary" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: linear-gradient(135deg, #a855f7, #7c6ae6);" onclick="showFriendPlanetModal('${name}', ${planetCount}, ${planetsParam})">🪐 進入自律星球</button>
+              <button class="button success" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: #10b981; border: none; color: #fff;" onclick="encourageFriend('${friendId}', '${name}')">👍 給他按讚</button>
+              <button class="button" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444;" onclick="deleteFriend('${friendId}', '${name}')">❌ 刪除好友</button>
+            `;
+            
+            subNav.style.display = 'flex';
+            subNav.querySelectorAll("a").forEach(a => a.classList.remove("active"));
+            subNav.querySelector("a").classList.add("active");
+            
+            detailActiveTab = 'timeline';
+            rightColumn.innerHTML = renderFriendTimeline(selectedFriendData);
+          } else {
+            badge.textContent = "🛸 未加好友";
+            badge.style.background = "rgba(245, 158, 11, 0.12)";
+            badge.style.borderColor = "rgba(245, 158, 11, 0.25)";
+            badge.style.color = "#f59e0b";
+            badge.style.display = "inline-flex";
+            
+            if (isRequestSent) {
+              actionsContainer.innerHTML = `
+                <button class="button secondary" style="font-weight: 700; border-radius: 12px; padding: 10px 18px;" disabled>⏱ 已發送好友申請</button>
+              `;
+            } else if (isIncomingPending) {
+              actionsContainer.innerHTML = `
+                <button class="button success" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: #10b981; border: none; color: #fff;" onclick="acceptFriendRequest('${incomingReqId}')">✓ 接受申請</button>
+                <button class="button" style="font-weight: 700; border-radius: 12px; padding: 10px 18px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444;" onclick="declineFriendRequest('${incomingReqId}')">拒絕</button>
+              `;
+            } else {
+              actionsContainer.innerHTML = `
+                <button class="button primary" style="font-weight: 700; border-radius: 12px; padding: 10px 18px;" onclick="sendFriendRequest('${friendId}', '${nudgeId}', '${name}')">➕ 加為好友</button>
+              `;
+            }
+            
+            subNav.style.display = 'none';
+            rightColumn.innerHTML = `
+              <div class="fb-card" style="text-align: center; padding: 60px 40px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                <div style="font-size: 54px;">🔒</div>
+                <h3 style="margin: 0; color: #fff; font-size: 18px;">內容已鎖定</h3>
+                <p style="color: var(--muted); font-size: 14px; max-width: 320px; margin: 0; line-height: 1.6;">
+                  加為好友後即可查看對方的自律行星與專注動態。
+                </p>
+              </div>
+            `;
+          }
+          
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }).catch(err => {
+          console.error("Error loading friend detail:", err);
+          toast("載入好友詳細名片出錯：" + err.message);
+        });
       }
 
       function showFriendList() {
         document.getElementById('friendDetailView').style.display = 'none';
         document.getElementById('friendListView').style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function switchFriendDetailTab(tab, element) {
+        if (!selectedFriendData) return;
+        detailActiveTab = tab;
+        
+        const subNav = document.getElementById("friendSubNav");
+        if (subNav) {
+          subNav.querySelectorAll("a").forEach(a => a.classList.remove("active"));
+        }
+        if (element) {
+          element.classList.add("active");
+        }
+        
+        const rightCol = document.getElementById("friendRightColumn");
+        if (rightCol) {
+          if (tab === 'timeline') {
+            rightCol.innerHTML = renderFriendTimeline(selectedFriendData);
+          } else if (tab === 'about') {
+            rightCol.innerHTML = renderFriendAbout(selectedFriendData);
+          } else if (tab === 'progress') {
+            rightCol.innerHTML = renderFriendProgress(selectedFriendData);
+          }
+        }
+      }
+
+      function renderFriendTimeline(friendData) {
+        const completedTasks = (friendData.tasks || []).filter(t => t.isDone || t.done);
+        if (completedTasks.length === 0) {
+          return `
+            <div class="fb-empty-feed" style="text-align: center; padding: 40px 20px; color: var(--muted);">
+              <span class="icon" style="font-size: 48px; margin-bottom: 12px; display: block; opacity: 0.6;">📭</span>
+              <strong>今日尚無自律動態</strong>
+              <p>好友今天尚未在 App 完成任何任務。</p>
+            </div>
+          `;
+        }
+        return completedTasks.map(t => {
+          const compTime = t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '今天';
+          return `
+            <div class="fb-post-card" style="margin-bottom: 16px;">
+              <div class="fb-post-header">
+                <div class="fb-post-author-info">
+                  <div class="fb-mini-avatar" style="background: ${friendData.avatarColor || '#7c6ae6'};">${friendData.avatar || '🧑‍🚀'}</div>
+                  <div>
+                    <span class="fb-post-author-name">${friendData.name}</span>
+                    <span class="fb-post-time">完成於 ${compTime}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="fb-post-content">我完成了一項自律任務：<strong>${t.title}</strong>！繼續加油，打造完美的自律星球。 ✨</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderFriendAbout(friendData) {
+        return `
+          <article class="fb-card">
+            <h3 class="fb-card-title">關於 ${friendData.name}</h3>
+            <p style="color: #fff; font-size: 14px; text-align: left; line-height: 1.6; margin: 0;">
+              <strong>自我介紹：</strong> ${friendData.signature || '這個人很懶，什麼都沒留下。'}<br><br>
+              <strong>自律宣言：</strong> 每天前進一點點，自律生活從今天開始！在 Nudge 星系中持續努力，點亮屬於自己的那一顆星球。 🪐
+            </p>
+          </article>
+        `;
+      }
+
+      function renderFriendProgress(friendData) {
+        const focusMin = Math.round((friendData.todayFocusSeconds || 0) / 60);
+        const steps = friendData.steps || 0;
+        const exerciseMin = friendData.exerciseMinutes || 0;
+        const sleepHours = friendData.sleepHours || 7.5;
+        
+        return `
+          <div class="fb-post-metrics-grid" style="grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div class="fb-metric-pill focus">
+              <div class="icon">⏱️</div>
+              <div class="fb-metric-details">
+                <span class="fb-metric-label">今日專注時間</span>
+                <span class="fb-metric-val">${focusMin} 分鐘</span>
+              </div>
+            </div>
+            <div class="fb-metric-pill steps">
+              <div class="icon">👟</div>
+              <div class="fb-metric-details">
+                <span class="fb-metric-label">今日步數</span>
+                <span class="fb-metric-val">${steps.toLocaleString()} 步</span>
+              </div>
+            </div>
+            <div class="fb-metric-pill sleep">
+              <div class="icon">🌙</div>
+              <div class="fb-metric-details">
+                <span class="fb-metric-label">昨晚睡眠狀況</span>
+                <span class="fb-metric-val">${sleepHours} 小時</span>
+              </div>
+            </div>
+            <div class="fb-metric-pill tasks">
+              <div class="icon">🏃</div>
+              <div class="fb-metric-details">
+                <span class="fb-metric-label">今日運動時間</span>
+                <span class="fb-metric-val">${exerciseMin} 分鐘</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderFriendBadges(userData) {
+        const badges = userData.unlockedBadges || [];
+        if (badges.length === 0) {
+          // Default mock badges if none
+          return `
+            <div class="badge-item">
+              <span class="badge-icon">🏅</span>
+              <span class="badge-name">專注新星</span>
+            </div>
+            <div class="badge-item">
+              <span class="badge-icon">🏃</span>
+              <span class="badge-name">活力慢跑</span>
+            </div>
+            <div class="badge-item">
+              <span class="badge-icon">🌙</span>
+              <span class="badge-name">早睡早起</span>
+            </div>
+          `;
+        }
+        return badges.map(b => `
+          <div class="badge-item">
+            <span class="badge-icon">${b.icon || '🏅'}</span>
+            <span class="badge-name">${b.name || '勳章'}</span>
+          </div>
+        `).join('');
+      }
+
+      // CSS animated orbits friend-planet-modal-overlay viewer
+      function showFriendPlanetModal(friendName, planetCount, unlockedPlanets) {
+        const modal = document.getElementById("friendPlanetModal");
+        document.getElementById("modalPlanetTitle").textContent = `${friendName} 的自律星系`;
+        
+        const count = planetCount || 3;
+        const list = unlockedPlanets && unlockedPlanets.length > 0 ? unlockedPlanets : Array.from({length: count}, (_, i) => ({
+          name: `自律子星 ${i + 1}`,
+          type: ["🌍", "🪐", "☄️", "🌕", "🛸", "⭐", "🔮"][i % 7],
+          level: Math.floor(Math.random() * 5) + 1
+        }));
+        
+        document.getElementById("modalPlanetSub").textContent = `繁榮度：LV. ${Math.floor(count*1.5) + 1} | 擁有 ${list.length} 顆自律行星環繞`;
+        
+        const stage = document.getElementById("modalPlanetStage");
+        // Keep the sun
+        stage.innerHTML = '<div class="friend-planet-sun"></div>';
+        
+        const planetGradients = [
+          'radial-gradient(circle at 30% 30%, #60a5fa 0%, #1d4ed8 100%)', // blue
+          'radial-gradient(circle at 30% 30%, #34d399 0%, #047857 100%)', // green
+          'radial-gradient(circle at 30% 30%, #fbbf24 0%, #b45309 100%)', // amber
+          'radial-gradient(circle at 30% 30%, #f472b6 0%, #be185d 100%)', // pink
+          'radial-gradient(circle at 30% 30%, #a78bfa 0%, #6d28d9 100%)', // violet
+          'radial-gradient(circle at 30% 30%, #f87171 0%, #b91c1c 100%)', // red
+          'radial-gradient(circle at 30% 30%, #22d3ee 0%, #0891b2 100%)', // cyan
+        ];
+
+        list.forEach((planet, index) => {
+          const orbitDiameter = 120 + index * 70; // 120px, 190px, 260px, etc.
+          const duration = 12 + index * 5; // 12s, 17s, 22s, etc.
+          
+          const orbit = document.createElement("div");
+          orbit.className = "friend-planet-orbit";
+          orbit.style.width = `${orbitDiameter}px`;
+          orbit.style.height = `${orbitDiameter}px`;
+          orbit.style.animationDuration = `${duration}s`;
+          
+          const node = document.createElement("div");
+          node.className = "friend-planet-node";
+          node.style.top = "0";
+          node.style.left = "50%";
+          
+          const size = 26 + (index % 3) * 4; // 26px, 30px, 34px
+          const gradient = planetGradients[index % planetGradients.length];
+          
+          node.innerHTML = `
+            <div style="width: ${size}px; height: ${size}px; background: ${gradient}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: ${size * 0.55}px; box-shadow: 0 0 15px rgba(255,255,255,0.15), inset -3px -3px 6px rgba(0,0,0,0.4); position: relative;">
+              <span style="position: absolute; pointer-events: none;">${planet.type || '🪐'}</span>
+              <div style="position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%) rotate(0deg); background: rgba(3, 5, 10, 0.9); color: #fff; padding: 2px 6px; border-radius: 6px; font-size: 9px; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                ${planet.name} (Lv.${planet.level || 1})
+              </div>
+            </div>
+          `;
+          
+          orbit.appendChild(node);
+          stage.appendChild(orbit);
+        });
+        
+        modal.classList.add("active");
+      }
+      
+      function closeFriendPlanetModal() {
+        document.getElementById("friendPlanetModal").classList.remove("active");
       }
 
       // Initialize trigger

@@ -321,6 +321,86 @@ class SocialPage extends StatelessWidget {
             ),
           ),
 
+          if (appState.incomingFriendRequests.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...appState.incomingFriendRequests.map((req) {
+              return Card(
+                color: accentColor.withValues(alpha: AppUI.isDark(context) ? 0.16 : 0.08),
+                shape: AppUI.cardShape(),
+                elevation: 0,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppUI.radiusCard),
+                  onTap: () {
+                    final parts = req.id.split('_');
+                    final targetUid = parts.length > 1 ? parts[1] : req.id;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FriendPublicProfilePage(
+                          friendId: targetUid,
+                          name: req.name,
+                          signature: req.signature,
+                          todayFocusSeconds: 0,
+                          score: 35,
+                          isStudying: false,
+                          avatarColor: accentColor,
+                          memberStatus: StudyMemberStatus.offline,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: accentColor.withValues(alpha: 0.18),
+                          child: Icon(Icons.person_rounded, color: accentColor),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '收到來自 ${req.name} 的好友邀請',
+                                style: TextStyle(
+                                  color: primaryText,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                req.signature.isEmpty ? '想和你一起自律前進' : req.signature,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: secondaryText,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => appState.declineFriendRequest(req.id),
+                          icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                          tooltip: '拒絕',
+                        ),
+                        IconButton(
+                          onPressed: () => appState.acceptFriendRequest(req.id),
+                          icon: const Icon(Icons.check_rounded, color: Colors.green),
+                          tooltip: '接受',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+
           const SizedBox(height: AppUI.sectionGap),
 
           const _SectionHeader(title: '快速入口'),

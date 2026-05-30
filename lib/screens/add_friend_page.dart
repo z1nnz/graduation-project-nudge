@@ -6,9 +6,11 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/avatar_profile.dart';
 import '../models/friend_request.dart';
 import '../models/social_friend_profile.dart';
+import '../models/study_room_models.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import 'friend_public_profile_page.dart';
 
 class AddFriendPage extends StatefulWidget {
   const AddFriendPage({super.key});
@@ -388,55 +390,81 @@ class _CandidateCard extends StatelessWidget {
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppUI.isDark(context)
-            ? Colors.white.withValues(alpha: 0.06)
-            : const Color(0xFFF8FAFC),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          AvatarPreview(
-            profile: candidate.avatarProfile ?? AvatarProfile.initial(),
-            size: 58,
-            showBackgroundRing: true,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  candidate.name,
-                  style: TextStyle(
-                    color: primaryText,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  candidate.nudgeId,
-                  style: TextStyle(
-                    color: secondaryText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  candidate.signature,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: secondaryText, fontSize: 12),
-                ),
-              ],
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FriendPublicProfilePage(
+                friendId: candidate.id,
+                name: candidate.name,
+                signature: candidate.signature,
+                todayFocusSeconds: candidate.todayFocusSeconds,
+                score: (35 + (candidate.todayFocusSeconds / 60 / 2)).clamp(0, 100).round(),
+                isStudying: candidate.isStudying,
+                avatarColor: candidate.avatarColor,
+                avatarProfile: candidate.avatarProfile,
+                memberStatus: candidate.isStudying
+                    ? StudyMemberStatus.studying
+                    : StudyMemberStatus.offline,
+              ),
             ),
+          );
+        },
+        child: Ink(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppUI.isDark(context)
+                ? Colors.white.withValues(alpha: 0.06)
+                : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(18),
           ),
-          FilledButton(onPressed: onSendRequest, child: const Text('邀請')),
-        ],
+          child: Row(
+            children: [
+              AvatarPreview(
+                profile: candidate.avatarProfile ?? AvatarProfile.initial(),
+                size: 58,
+                showBackgroundRing: true,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      candidate.name,
+                      style: TextStyle(
+                        color: primaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      candidate.nudgeId,
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      candidate.signature,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: secondaryText, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton(onPressed: onSendRequest, child: const Text('邀請')),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -522,55 +550,82 @@ class _RequestTile extends StatelessWidget {
     final secondaryText = AppUI.textSecondaryOf(context);
     final canRespond = onAccept != null && onDecline != null;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: accentColor.withValues(
-          alpha: AppUI.isDark(context) ? 0.14 : 0.08,
-        ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: accentColor.withValues(alpha: 0.18),
-            child: Icon(Icons.person_rounded, color: accentColor),
+        onTap: () {
+          final parts = request.id.split('_');
+          final targetUid = request.direction == FriendRequestDirection.incoming
+              ? (parts.length > 1 ? parts[1] : request.id)
+              : (parts.length > 2 ? parts[2] : request.id);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FriendPublicProfilePage(
+                friendId: targetUid,
+                name: request.name,
+                signature: request.signature,
+                todayFocusSeconds: 0,
+                score: 35,
+                isStudying: false,
+                avatarColor: accentColor,
+                memberStatus: StudyMemberStatus.offline,
+              ),
+            ),
+          );
+        },
+        child: Ink(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(
+              alpha: AppUI.isDark(context) ? 0.14 : 0.08,
+            ),
+            borderRadius: BorderRadius.circular(18),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  request.name,
-                  style: TextStyle(
-                    color: primaryText,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: accentColor.withValues(alpha: 0.18),
+                child: Icon(Icons.person_rounded, color: accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.name,
+                      style: TextStyle(
+                        color: primaryText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${request.nudgeId} · ${request.signature}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: secondaryText, fontSize: 12),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${request.nudgeId} · ${request.signature}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: secondaryText, fontSize: 12),
+              ),
+              if (canRespond) ...[
+                IconButton(
+                  onPressed: () => onDecline!(request.id),
+                  icon: const Icon(Icons.close_rounded),
                 ),
-              ],
-            ),
+                IconButton.filled(
+                  onPressed: () => onAccept!(request.id),
+                  icon: const Icon(Icons.check_rounded),
+                ),
+              ] else
+                _StatusPill(text: '等待回覆', color: accentColor),
+            ],
           ),
-          if (canRespond) ...[
-            IconButton(
-              onPressed: () => onDecline!(request.id),
-              icon: const Icon(Icons.close_rounded),
-            ),
-            IconButton.filled(
-              onPressed: () => onAccept!(request.id),
-              icon: const Icon(Icons.check_rounded),
-            ),
-          ] else
-            _StatusPill(text: '等待回覆', color: accentColor),
-        ],
+        ),
       ),
     );
   }
