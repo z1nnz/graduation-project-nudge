@@ -108,29 +108,59 @@
         color: #9ca3af;
       }
       
-      /* Detail View specific styles */
-      #friendDetailView .back-button {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text-primary);
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        margin-bottom: 20px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: bold;
-      }
-      #friendDetailView .back-button:hover {
-        background: rgba(255,255,255,0.05);
-      }
-
-      /* Profile tokens and card styles copied from profile.html */
+      /* Detail View — full main-area takeover */
       #friendDetailView {
         --page-accent: #7c6ae6;
         --page-accent-2: #8d7aff;
         --page-wash: rgba(124, 106, 230, 0.12);
+        display: none;
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        background: var(--bg, #03050a);
+        z-index: 200;
+        padding: 0;
+      }
+
+      /* Sticky back bar */
+      #friendDetailBackBar {
+        position: sticky;
+        top: 0;
+        z-index: 300;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 24px;
+        background: rgba(3, 5, 10, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      #friendDetailBackBar .back-button {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text-primary, #fff);
+        padding: 7px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      #friendDetailBackBar .back-button:hover {
+        background: rgba(255,255,255,0.1);
+      }
+      #friendDetailBackBar .back-title {
+        font-size: 14px;
+        color: var(--text-secondary, #9ca3af);
+        font-weight: 600;
+      }
+
+      /* The scrollable inner body of the detail view */
+      #friendDetailBody {
+        padding: 0 24px 48px;
       }
       .fb-avatar {
         transition: transform 0.3s;
@@ -440,8 +470,9 @@
         </nav>
       </aside>
 
-      <main class="main">
-        <header class="hero split">
+      <main class="main" style="position: relative;">
+        <!-- Hero header (hidden when detail view is open) -->
+        <header class="hero split" id="friendHeroHeader">
           <div>
             <span class="eyebrow">Friend Profile</span>
             <h1>好友列表與動態</h1>
@@ -487,87 +518,94 @@
           </div>
         </section>
 
-        <!-- DETAIL VIEW -->
-        <section id="friendDetailView" class="page-section" style="display: none;">
-          <button class="back-button" onclick="showFriendList()">◀ 返回好友列表</button>
-          
-          <div class="profile-container">
-            <!-- Premium Cover Card Design -->
-            <div class="fb-cover-card">
-              <!-- 1. Cover Photo Banner -->
-              <div class="fb-cover-banner" id="friendCoverBanner" style="height: 200px;">
-                <div class="glowing-orb"></div>
-              </div>
-              
-              <!-- 2. Overlapping Avatar & Name Header -->
-              <div class="fb-profile-header-bar">
-                <div class="fb-profile-avatar-wrapper">
-                  <div class="fb-avatar" id="friendMainAvatar" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid #070a14; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 48px; color: #fff;">—</div>
+        <!-- DETAIL VIEW — full-page overlay inside main -->
+        <div id="friendDetailView">
+          <!-- Sticky back bar -->
+          <div id="friendDetailBackBar">
+            <button class="back-button" onclick="showFriendList()">◀ 返回好友列表</button>
+            <span class="back-title" id="friendDetailBackTitle"></span>
+          </div>
+
+          <!-- Scrollable profile body -->
+          <div id="friendDetailBody">
+            <div class="profile-container">
+              <!-- Premium Cover Card Design -->
+              <div class="fb-cover-card">
+                <!-- 1. Cover Photo Banner -->
+                <div class="fb-cover-banner" id="friendCoverBanner" style="height: 200px;">
+                  <div class="glowing-orb"></div>
                 </div>
-                <div class="fb-profile-info" style="position: relative; margin-top: 10px;">
-                  <div class="fb-profile-name-row" style="display: flex; align-items: center; gap: 8px;">
-                    <h1 class="fb-profile-name" id="friendMainName" style="font-size: 24px; font-weight: 800; color: #fff; margin: 0;">讀取中...</h1>
-                    <span class="fb-profile-badge" id="friendMainBadge" style="padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid var(--border);">好友</span>
+
+                <!-- 2. Overlapping Avatar & Name Header -->
+                <div class="fb-profile-header-bar">
+                  <div class="fb-profile-avatar-wrapper">
+                    <div class="fb-avatar" id="friendMainAvatar" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid #070a14; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 48px; color: #fff;">—</div>
                   </div>
-                  <p class="fb-profile-signature" id="friendMainSignature" style="color: var(--muted); font-size: 13px; margin: 4px 0 0 0;">"讀取自律簽名中..."</p>
-                </div>
-                <div class="fb-profile-actions" id="friendProfileActions" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                  <!-- Dynamically populated buttons -->
-                </div>
-              </div>
-
-              <!-- Visitor mode banner -->
-              <div id="friendVisitorBanner" style="background: rgba(124,106,230,0.08); border-top: 1px solid rgba(124,106,230,0.15); padding: 8px 32px; font-size: 12px; color: var(--muted); text-align: center;">
-                🔭 您正在瀏覽 <strong id="friendVisitorName"></strong> 的個人名片
-              </div>
-
-              <!-- 3. Sub Nav Row -->
-              <div class="fb-profile-subnav" id="friendSubNav" style="display: none;">
-                <a class="active" href="javascript:void(0);" onclick="switchFriendDetailTab('timeline', this)">動態牆 (Timeline)</a>
-                <a href="javascript:void(0);" onclick="switchFriendDetailTab('about', this)">關於我 (About)</a>
-                <a href="javascript:void(0);" onclick="switchFriendDetailTab('progress', this)">自律進度 (Progress)</a>
-              </div>
-            </div>
-
-            <!-- Two Column Profile Content Grid -->
-            <div class="fb-profile-body" style="margin-top: 24px;">
-              <!-- Left Column: Intro card & Achievements grid -->
-              <div class="fb-left-column">
-                <!-- Intro details card -->
-                <article class="fb-card">
-                  <h3 class="fb-card-title">自律介紹</h3>
-                  <ul class="intro-list">
-                    <li class="intro-item">
-                      <span class="icon">🆔</span>
-                      <span>Nudge ID: <strong id="friendNudgeId">NDG-Guest</strong></span>
-                    </li>
-                    <li class="intro-item">
-                      <span class="icon">📅</span>
-                      <span>加入自律星系: <strong>2026年5月</strong></span>
-                    </li>
-                    <li class="intro-item">
-                      <span class="icon">📱</span>
-                      <span>上線狀態: <strong id="friendOnlineStatus">離線</strong></span>
-                    </li>
-                  </ul>
-                </article>
-
-                <!-- Achievements badges grid card -->
-                <article class="fb-card">
-                  <h3 class="fb-card-title">解鎖成就徽章</h3>
-                  <div class="badges-grid" id="friendUnlockedBadges">
-                    <!-- Dynamically rendered -->
+                  <div class="fb-profile-info" style="position: relative; margin-top: 10px;">
+                    <div class="fb-profile-name-row" style="display: flex; align-items: center; gap: 8px;">
+                      <h2 class="fb-profile-name" id="friendMainName" style="font-size: 24px; font-weight: 800; color: #fff; margin: 0;">讀取中...</h2>
+                      <span class="fb-profile-badge" id="friendMainBadge" style="padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid var(--border);">好友</span>
+                    </div>
+                    <p class="fb-profile-signature" id="friendMainSignature" style="color: var(--muted); font-size: 13px; margin: 4px 0 0 0;">"讀取自律簽名中..."</p>
                   </div>
-                </article>
+                  <div class="fb-profile-actions" id="friendProfileActions" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <!-- Dynamically populated buttons -->
+                  </div>
+                </div>
+
+                <!-- Visitor mode banner -->
+                <div id="friendVisitorBanner" style="background: rgba(124,106,230,0.08); border-top: 1px solid rgba(124,106,230,0.15); padding: 8px 32px; font-size: 12px; color: var(--muted); text-align: center;">
+                  🔭 您正在瀏覽 <strong id="friendVisitorName"></strong> 的個人名片
+                </div>
+
+                <!-- 3. Sub Nav Row -->
+                <div class="fb-profile-subnav" id="friendSubNav" style="display: none;">
+                  <a class="active" href="javascript:void(0);" onclick="switchFriendDetailTab('timeline', this)">動態牆 (Timeline)</a>
+                  <a href="javascript:void(0);" onclick="switchFriendDetailTab('about', this)">關於我 (About)</a>
+                  <a href="javascript:void(0);" onclick="switchFriendDetailTab('progress', this)">自律進度 (Progress)</a>
+                </div>
               </div>
 
-              <!-- Right Column: Conditional Feed or Lock Notice -->
-              <div class="fb-right-column" id="friendRightColumn">
-                <!-- Will be dynamically loaded based on friend status and active tab -->
+              <!-- Two Column Profile Content Grid -->
+              <div class="fb-profile-body" style="margin-top: 24px;">
+                <!-- Left Column: Intro card & Achievements grid -->
+                <div class="fb-left-column">
+                  <!-- Intro details card -->
+                  <article class="fb-card">
+                    <h3 class="fb-card-title">自律介紹</h3>
+                    <ul class="intro-list">
+                      <li class="intro-item">
+                        <span class="icon">🆔</span>
+                        <span>Nudge ID: <strong id="friendNudgeId">NDG-Guest</strong></span>
+                      </li>
+                      <li class="intro-item">
+                        <span class="icon">📅</span>
+                        <span>加入自律星系: <strong>2026年5月</strong></span>
+                      </li>
+                      <li class="intro-item">
+                        <span class="icon">📱</span>
+                        <span>上線狀態: <strong id="friendOnlineStatus">離線</strong></span>
+                      </li>
+                    </ul>
+                  </article>
+
+                  <!-- Achievements badges grid card -->
+                  <article class="fb-card">
+                    <h3 class="fb-card-title">解鎖成就徽章</h3>
+                    <div class="badges-grid" id="friendUnlockedBadges">
+                      <!-- Dynamically rendered -->
+                    </div>
+                  </article>
+                </div>
+
+                <!-- Right Column: Conditional Feed or Lock Notice -->
+                <div class="fb-right-column" id="friendRightColumn">
+                  <!-- Will be dynamically loaded based on friend status and active tab -->
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
       </main>
     </div>
@@ -614,7 +652,8 @@
       let activeUserId = null;
       let myProfile = null;
       let friendsList = [];
-      let pendingRequestsList = [];
+      let pendingRequestsList = [];   // incoming
+      let outgoingRequestsList = [];  // outgoing
       let selectedFriendData = null;
       let detailActiveTab = 'timeline';
 
@@ -732,7 +771,7 @@
           renderFriendsList(friendsList);
         });
 
-        // Listen to Friend Requests
+        // Listen to incoming Friend Requests (badge-worthy)
         db.collection("friend_requests")
           .where("receiverId", "==", activeUserId)
           .where("status", "==", "pending")
@@ -742,7 +781,7 @@
               pendingRequestsList.push({ id: doc.id, ...doc.data() });
             });
 
-            // Update badge on Requests tab
+            // Update badge on Requests tab (only incoming count)
             const badge = document.getElementById("reqBadge");
             if (badge) {
               if (pendingRequestsList.length > 0) {
@@ -753,7 +792,19 @@
               }
             }
 
-            renderRequestsList(pendingRequestsList);
+            renderRequestsList(pendingRequestsList, outgoingRequestsList);
+          });
+
+        // Listen to outgoing Friend Requests
+        db.collection("friend_requests")
+          .where("senderId", "==", activeUserId)
+          .where("status", "==", "pending")
+          .onSnapshot((snapshot) => {
+            outgoingRequestsList = [];
+            snapshot.forEach(doc => {
+              outgoingRequestsList.push({ id: doc.id, ...doc.data() });
+            });
+            renderRequestsList(pendingRequestsList, outgoingRequestsList);
           });
       }
 
@@ -788,72 +839,112 @@
         }).join('');
       }
 
-      function renderRequestsList(requests) {
+      function renderRequestsList(incoming, outgoing) {
+        incoming = incoming || [];
+        outgoing = outgoing || [];
         const container = document.getElementById("requestsListContainer");
-        if (requests.length === 0) {
+
+        if (incoming.length === 0 && outgoing.length === 0) {
           container.innerHTML = `
             <div style="text-align:center; padding: 40px; color:#9ca3af;">
-              目前沒有待確認的好友申請。
+              <div style="font-size:40px; margin-bottom:12px;">🤝</div>
+              <strong style="color:#fff;">目前沒有待確認的好友申請</strong>
+              <p style="margin: 8px 0 0; font-size:13px;">前往「好友搜尋」輸入 Nudge ID 發送邀請吧！</p>
             </div>
           `;
           return;
         }
 
-        container.innerHTML = requests.map(r => {
-          return `
-            <div class="friend-list-item" style="cursor: pointer;" onclick="showFriendDetail('${r.senderId}')">
-              <div class="friend-avatar" style="background: rgba(255, 255, 255, 0.05);">
+        let html = '';
+
+        // ── Section 1: Incoming ──
+        if (incoming.length > 0) {
+          html += `<div style="font-size:12px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; margin-top:4px;">📩 收到的邀請（${incoming.length}）</div>`;
+          html += incoming.map(r => `
+            <div class="friend-list-item" style="cursor: pointer; border-color: rgba(16,185,129,0.3);" onclick="showFriendDetail('${r.senderId}')">
+              <div class="friend-avatar" style="background: rgba(16,185,129,0.08); color:#10b981; font-size: 36px;">
                 🧑‍🚀
               </div>
               <div class="friend-info">
                 <div class="friend-name-row">
                   <span class="friend-name">${r.senderName}</span>
-                  <span class="friend-status">ID: ${r.senderNudgeId}</span>
+                  <span class="friend-status" style="background:rgba(16,185,129,0.1); color:#10b981;">想加你為好友</span>
                 </div>
                 <div class="friend-stats-row">
-                  <span>個性簽名：${r.senderSignature || "今天慢慢前進"}</span>
+                  <span>ID: ${r.senderNudgeId}</span>
+                  <span>${r.senderSignature || '今天慢慢前進'}</span>
                 </div>
               </div>
               <div class="friend-meta" style="flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px;" onclick="event.stopPropagation();">
-                <button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981;" onclick="acceptFriendRequest('${r.id}')">接受</button>
-                <button class="button secondary" style="padding: 8px 16px; font-size: 13px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="declineFriendRequest('${r.id}')">拒絕</button>
+                <button class="button primary" style="padding: 8px 18px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981; font-weight:800;" onclick="acceptFriendRequest('${r.id}')">✓ 接受</button>
+                <button class="button secondary" style="padding: 8px 14px; font-size: 13px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="declineFriendRequest('${r.id}')">✕</button>
               </div>
             </div>
-          `;
-        }).join('');
+          `).join('');
+        }
+
+        // ── Section 2: Outgoing ──
+        if (outgoing.length > 0) {
+          html += `<div style="font-size:12px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; margin-top:${incoming.length > 0 ? '24px' : '4px'};">📤 已送出的邀請（${outgoing.length}）</div>`;
+          html += outgoing.map(r => `
+            <div class="friend-list-item" style="cursor: pointer; border-color: rgba(96,165,250,0.25);" onclick="showFriendDetail('${r.receiverId}')">
+              <div class="friend-avatar" style="background: rgba(96,165,250,0.08); color:#60a5fa; font-size:36px;">
+                🧑‍🚀
+              </div>
+              <div class="friend-info">
+                <div class="friend-name-row">
+                  <span class="friend-name">${r.receiverName}</span>
+                  <span class="friend-status" style="background:rgba(96,165,250,0.1); color:#60a5fa;">⏱ 等待回應</span>
+                </div>
+                <div class="friend-stats-row">
+                  <span>ID: ${r.receiverNudgeId}</span>
+                </div>
+              </div>
+              <div class="friend-meta" style="flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px;" onclick="event.stopPropagation();">
+                <button class="button" style="padding: 7px 14px; font-size: 12px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="cancelFriendRequest('${r.id}', '${r.receiverName}')">取消申請</button>
+                <button class="button" style="padding: 7px 14px; font-size: 12px; min-height: auto; border-color: #7c6ae6; color: #7c6ae6;" onclick="showFriendDetail('${r.receiverId}')">查看名片</button>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        container.innerHTML = html;
       }
 
       async function acceptFriendRequest(requestId) {
-        const req = pendingRequestsList.find(r => r.id === requestId) || 
-                    (selectedFriendData ? { 
-                      senderId: selectedFriendData.id, 
-                      senderName: selectedFriendData.name, 
-                      senderNudgeId: selectedFriendData.nudgeId,
-                      senderSignature: selectedFriendData.signature 
-                    } : null);
-        if (!req || !myProfile) return;
+        if (!myProfile) return;
 
         try {
+          // Always fetch fresh from Firestore — works from any context
+          const reqDoc = await db.collection("friend_requests").doc(requestId).get();
+          if (!reqDoc.exists) { toast("找不到該好友申請。"); return; }
+          const req = reqDoc.data();
+
+          if (req.status !== 'pending') {
+            toast("此申請已處理過。");
+            if (selectedFriendData) showFriendDetail(selectedFriendData.id);
+            return;
+          }
+
           await db.collection("friend_requests").doc(requestId).update({ status: "accepted" });
 
-          // Write sender to my friends list
+          // ── Write SENDER into RECEIVER's (my) friends list ──
           await db.collection("users").doc(activeUserId).collection("friends").doc(req.senderId).set({
             id: req.senderId,
-            nudgeId: req.senderNudgeId,
-            name: req.senderName,
+            nudgeId: req.senderNudgeId || "",
+            name: req.senderName || req.senderId,
             signature: req.senderSignature || "今天慢慢前進",
             todayFocusSeconds: 0,
             isStudying: false,
-            avatarColor: 4286376678,
             isFollowing: true,
             encouragementCount: 0
           });
 
-          // Write me to sender's friends list
+          // ── Write RECEIVER (me) into SENDER's friends list ──
           await db.collection("users").doc(req.senderId).collection("friends").doc(activeUserId).set({
             id: activeUserId,
-            nudgeId: myProfile.myNudgeId,
-            name: myProfile.nickname,
+            nudgeId: myProfile.myNudgeId || "",
+            name: myProfile.nickname || activeUserId,
             signature: myProfile.signature || "今天慢慢前進",
             todayFocusSeconds: 0,
             isStudying: false,
@@ -877,19 +968,27 @@
         try {
           await db.collection("friend_requests").doc(requestId).update({ status: "declined" });
           toast("已拒絕好友申請。");
-          
           if (selectedFriendData) {
-            const doc = await db.collection("friend_requests").doc(requestId).get();
-            if (doc.exists) {
-              const data = doc.data();
-              if (selectedFriendData.id === data.senderId) {
-                showFriendDetail(data.senderId);
-              }
-            }
+            // Refresh detail view to reflect updated status
+            showFriendDetail(selectedFriendData.id);
           }
         } catch (err) {
           console.error("Error declining request:", err);
           toast("拒絕好友申請失敗");
+        }
+      }
+
+      async function cancelFriendRequest(requestId, receiverName) {
+        if (!confirm(`確定要取消發給 ${receiverName} 的好友申請嗎？`)) return;
+        try {
+          await db.collection("friend_requests").doc(requestId).update({ status: "cancelled" });
+          toast(`已取消發給 ${receiverName} 的好友申請。`);
+          if (selectedFriendData) {
+            showFriendDetail(selectedFriendData.id);
+          }
+        } catch (err) {
+          console.error("Error cancelling request:", err);
+          toast("取消好友申請失敗：" + err.message);
         }
       }
 
@@ -1049,9 +1148,12 @@
 
       // Details view binding
       function showFriendDetail(friendId) {
-        // Show loading state
+        // Show loading state — hide hero + list, reveal full-page detail overlay
+        document.getElementById('friendHeroHeader').style.display = 'none';
         document.getElementById('friendListView').style.display = 'none';
         document.getElementById('friendDetailView').style.display = 'block';
+        document.getElementById('friendDetailBackTitle').textContent = '好友名片';
+        document.getElementById('friendDetailView').scrollTop = 0;
         document.getElementById('friendMainName').textContent = "讀取中...";
         document.getElementById('friendMainSignature').textContent = "讀取資料中，請稍候...";
         document.getElementById('friendProfileActions').innerHTML = "";
@@ -1210,7 +1312,7 @@
             `;
           }
           
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          document.getElementById('friendDetailView').scrollTop = 0;
         }).catch(err => {
           console.error("Error loading friend detail:", err);
           toast("載入好友詳細名片出錯：" + err.message);
@@ -1219,6 +1321,7 @@
 
       function showFriendList() {
         document.getElementById('friendDetailView').style.display = 'none';
+        document.getElementById('friendHeroHeader').style.display = '';
         document.getElementById('friendListView').style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
