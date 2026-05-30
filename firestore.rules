@@ -30,6 +30,7 @@ service cloud.firestore {
     // ─── /friend_requests/{requestId} ────────────────────────────────
     match /friend_requests/{requestId} {
       allow read: if isAuth() && (
+        resource == null ||
         resource.data.senderId == request.auth.uid ||
         resource.data.receiverId == request.auth.uid
       );
