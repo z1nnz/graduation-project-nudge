@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 個人名片</title>
-    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/styles.css?v=2" />
     <style>
       /* Page specific HSL tokens and custom styles for Facebook-style profile page */
       body[data-page="profile"] {
@@ -739,7 +739,7 @@
               <div class="fb-create-post-card">
                 <div class="fb-create-post-top">
                   <div class="fb-mini-avatar" id="profileMiniAvatar">—</div>
-                  <div class="fb-create-post-input" onclick="toast('這是唯讀動態牆。您的日常自律行動（專注、睡眠、運動）在手機 App 完成後，會在此處自動生成動態更新貼文！ ✨')">
+                  <div class="fb-create-post-input" onclick="window.openCreatePostModal()">
                     分享你的自律故事與進度...
                   </div>
                 </div>
@@ -771,7 +771,7 @@
       </main>
     </div>
 
-    <script src="assets/app.js?v=3"></script>
+    <script src="js/post_logic.js?v=2"></script><script src="assets/app.js?v=9"></script>
     <script>
       // Switch Mock Sub Tabs
       function switchProfileTab(tab) {

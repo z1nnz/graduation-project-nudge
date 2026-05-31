@@ -302,6 +302,27 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
     });
   }
 
+  List<_ShopSet> _dynamicShopSets() {
+    final existingTitles = shopSets.map((set) => set.title).toSet();
+    return AvatarCatalog.series
+        .where((series) => !existingTitles.contains(series.name))
+        .where((series) => series.stages.isNotEmpty)
+        .map((series) {
+          final stages = [...series.stages]
+            ..sort((a, b) => a.stage.compareTo(b.stage));
+          final firstStage = stages.first;
+          return _ShopSet(
+            title: series.name,
+            description: stages.length >= 3
+                ? 'Web 上架角色，從${stages[0].name}一路進化到${stages[2].name}。'
+                : series.description,
+            icon: Icons.auto_awesome_outlined,
+            items: [MapEntry('faceShape', firstStage.index)],
+          );
+        })
+        .toList(growable: false);
+  }
+
   Future<void> _saveLook() async {
     final appState = context.read<AppState>();
     final totalPrice = _checkoutPrice(appState);
@@ -701,7 +722,7 @@ class _AvatarShopPageState extends State<AvatarShopPage> {
                               selectedRarity = value;
                             });
                           },
-                          shopSets: shopSets,
+                          shopSets: [...shopSets, ..._dynamicShopSets()],
                           onSetTap: _applySet,
                           selectedCategory: selectedCategory,
                           currentIndex: _currentIndexFor(selectedCategory.key),
@@ -1305,8 +1326,10 @@ class _ShopDrawer extends StatelessWidget {
           .map((stage) => stage.index)
           .toList();
     }
-    return List<int>.generate(category.itemCount, (index) => index)
-        .toList(growable: false);
+    return List<int>.generate(
+      category.itemCount,
+      (index) => index,
+    ).toList(growable: false);
   }
 
   int _setPrice(AppState appState, _ShopSet set) {

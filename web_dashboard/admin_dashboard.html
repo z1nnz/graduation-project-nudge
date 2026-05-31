@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 營運後台 - 管理總覽</title>
-    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/styles.css?v=2" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       /* Admin Specific Styles */
@@ -162,8 +162,49 @@
         max-height: 100%;
         object-fit: cover;
       }
+      .admin-auth-banner {
+        display: none;
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        border-radius: 8px;
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        font-size: 0.875rem;
+        font-weight: 700;
+      }
+      .stage-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+      .stage-upload-card {
+        border: 1px solid var(--c-border);
+        border-radius: 12px;
+        padding: 1rem;
+        background: rgba(255,255,255,0.03);
+      }
+      .stage-upload-card h3 {
+        margin: 0 0 0.75rem;
+        font-size: 1rem;
+      }
+      .stage-preview-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+      .stage-preview-row .image-preview-container {
+        height: 120px;
+      }
+      @media (max-width: 900px) {
+        .admin-grid,
+        .stage-upload-grid {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
-  
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -172,7 +213,7 @@
     <div class="shell">
       <aside class="sidebar" style="border-right: 1px solid var(--c-primary-alpha);">
         <a class="brand" href="index.html">
-          <span class="brand-mark" style="background: #ef4444; color: white;">A</span>
+          <span class="brand-mark">N</span>
           <span><strong>Admin</strong><small>營運總覽中心</small></span>
         </a>
         <nav class="nav">
@@ -200,7 +241,7 @@
                 <div class="planet-shadow"></div>
                 <div class="planet planet-target active" id="adminPlanet" onclick="selectTarget(this, 'planet')">
                   </div>
-                
+
                 <div class="orbit-line orbit-one" id="orbit1">
                   <div class="mission-satellite s1" onclick="selectTarget(this, 'sat1')"></div>
                 </div>
@@ -217,14 +258,14 @@
             <div class="admin-panel" style="margin-bottom: 0;">
               <h2>星球元素操作 (CRUD)</h2>
               <p style="color: var(--c-text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">直接對左側的星球與軌道衛星進行新增、修改與刪除操作，所有變化將即時呈現並同步至前台。</p>
-              
+
               <div class="crud-action-group">
                 <strong style="width: 80px;">衛星管理</strong>
                 <button class="admin-btn" onclick="addSatellite()">＋ 新增衛星</button>
                 <button class="admin-btn danger" onclick="removeSatellite()">－ 刪除衛星</button>
               </div>
 
-              
+
 
               <div class="crud-action-group" style="margin-top: 1.5rem; align-items: flex-start;">
                 <strong style="width: 80px; padding-top: 0.5rem;">修改風格</strong>
@@ -267,6 +308,14 @@
               </div>
             </div>
           </div>
+
+          <!-- Purchase Chart -->
+          <div class="admin-panel" style="margin-top: 1.5rem;">
+            <h2>近期商品購買比例</h2>
+            <div class="chart-container" style="height: 250px;">
+              <canvas id="purchaseChart"></canvas>
+            </div>
+          </div>
         </div>
 
         <!-- Shop Management Section (Tab) -->
@@ -282,10 +331,11 @@
             <!-- Shop Form -->
             <div class="admin-panel">
               <h2>商城上架商品功能 (與後端同步)</h2>
+              <div class="admin-auth-banner" id="adminAuthBanner">後台需要開發者或營運者權限，請使用已授權的 Firebase 帳號登入。</div>
               <form onsubmit="handleShopUpload(event)">
                 <div class="admin-form-group">
-                  <label>商品名稱</label>
-                  <input type="text" id="shopItemName" placeholder="例如：夜精靈服裝" required />
+                  <label>商品 / 角色系列名稱</label>
+                  <input type="text" id="shopItemName" placeholder="例如：夜影學院" required />
                 </div>
                 <div class="admin-form-group">
                   <label>商品類型</label>
@@ -295,7 +345,7 @@
                     <option value="event_character">活動限定角色</option>
                   </select>
                 </div>
-                <div id="adminTimeGroup" style="display: none; display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <div id="adminTimeGroup" style="display: none; gap: 1rem; margin-bottom: 1rem;">
                   <div class="admin-form-group" style="flex: 1; margin-bottom: 0;">
                     <label>開始時間</label>
                     <input type="text" id="shopItemStart" placeholder="選擇開始時間..." />
@@ -313,12 +363,74 @@
                   <label>價格 (自律幣)</label>
                   <input type="number" id="shopItemPrice" placeholder="120" required />
                 </div>
-                <div class="admin-form-group">
+                <div class="admin-form-group" id="singleImageGroup">
                   <label>上傳商品圖片 (本地上傳)</label>
-                  <input type="file" accept="image/*" id="shopItemImage" onchange="previewImage(event)" required />
+                  <input type="file" accept="image/*" id="shopItemImage" onchange="previewImage(event)" />
                   <div class="image-preview-container">
                     <span id="previewPlaceholder" style="color: var(--c-text-muted); font-size: 0.875rem;">圖片預覽區</span>
                     <img id="imagePreview" style="display: none;" />
+                  </div>
+                </div>
+                <div class="admin-form-group" id="characterStagesGroup" style="display: none;">
+                  <label>角色三階段與 icon (活動限定角色必填)</label>
+                  <div class="stage-upload-grid">
+                    <div class="stage-upload-card">
+                      <h3>第 1 階｜購買初始型</h3>
+                      <div class="admin-form-group">
+                        <label>角色名稱</label>
+                        <input type="text" id="stage1Name" placeholder="例如：夜影見習生" />
+                      </div>
+                      <div class="admin-form-group">
+                        <label>角色全身圖</label>
+                        <input type="file" accept="image/*" id="stage1Character" onchange="previewStageImage(event, 'stage1CharacterPreview')" />
+                      </div>
+                      <div class="admin-form-group">
+                        <label>頭像 icon</label>
+                        <input type="file" accept="image/*" id="stage1Icon" onchange="previewStageImage(event, 'stage1IconPreview')" />
+                      </div>
+                      <div class="stage-preview-row">
+                        <div class="image-preview-container"><img id="stage1CharacterPreview" style="display:none;" /><span>全身圖</span></div>
+                        <div class="image-preview-container"><img id="stage1IconPreview" style="display:none;" /><span>icon</span></div>
+                      </div>
+                    </div>
+                    <div class="stage-upload-card">
+                      <h3>第 2 階｜Lv.30 解鎖</h3>
+                      <div class="admin-form-group">
+                        <label>角色名稱</label>
+                        <input type="text" id="stage2Name" placeholder="例如：夜輪行者" />
+                      </div>
+                      <div class="admin-form-group">
+                        <label>角色全身圖</label>
+                        <input type="file" accept="image/*" id="stage2Character" onchange="previewStageImage(event, 'stage2CharacterPreview')" />
+                      </div>
+                      <div class="admin-form-group">
+                        <label>頭像 icon</label>
+                        <input type="file" accept="image/*" id="stage2Icon" onchange="previewStageImage(event, 'stage2IconPreview')" />
+                      </div>
+                      <div class="stage-preview-row">
+                        <div class="image-preview-container"><img id="stage2CharacterPreview" style="display:none;" /><span>全身圖</span></div>
+                        <div class="image-preview-container"><img id="stage2IconPreview" style="display:none;" /><span>icon</span></div>
+                      </div>
+                    </div>
+                    <div class="stage-upload-card">
+                      <h3>第 3 階｜Lv.60 解鎖</h3>
+                      <div class="admin-form-group">
+                        <label>角色名稱</label>
+                        <input type="text" id="stage3Name" placeholder="例如：夜曜守護者" />
+                      </div>
+                      <div class="admin-form-group">
+                        <label>角色全身圖</label>
+                        <input type="file" accept="image/*" id="stage3Character" onchange="previewStageImage(event, 'stage3CharacterPreview')" />
+                      </div>
+                      <div class="admin-form-group">
+                        <label>頭像 icon</label>
+                        <input type="file" accept="image/*" id="stage3Icon" onchange="previewStageImage(event, 'stage3IconPreview')" />
+                      </div>
+                      <div class="stage-preview-row">
+                        <div class="image-preview-container"><img id="stage3CharacterPreview" style="display:none;" /><span>全身圖</span></div>
+                        <div class="image-preview-container"><img id="stage3IconPreview" style="display:none;" /><span>icon</span></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <button type="submit" class="admin-btn" style="width: 100%; margin-top: 1rem;">上架發佈商品</button>
@@ -347,48 +459,6 @@
                   </tbody>
                 </table>
               </div>
-            </div>
-
-            <!-- Purchase Table -->
-            <div class="admin-panel">
-              <h2>近期商品購買情況</h2>
-              <div style="overflow-x: auto;">
-                <table class="admin-table">
-                  <thead>
-                    <tr>
-                      <th>用戶 ID</th>
-                      <th>購買商品</th>
-                      <th>花費幣值</th>
-                      <th>狀態</th>
-                      <th>時間</th>
-                    </tr>
-                  </thead>
-                  <tbody id="purchaseTableBody">
-                    <tr>
-                      <td>#U9124</td>
-                      <td>月影見習忍</td>
-                      <td>120</td>
-                      <td><span class="status-badge">成功</span></td>
-                      <td>10 分鐘前</td>
-                    </tr>
-                    <tr>
-                      <td>#U8821</td>
-                      <td>森芽靈童</td>
-                      <td>120</td>
-                      <td><span class="status-badge">成功</span></td>
-                      <td>25 分鐘前</td>
-                    </tr>
-                    <tr>
-                      <td>#U7102</td>
-                      <td>月影見習忍</td>
-                      <td>120</td>
-                      <td><span class="status-badge">成功</span></td>
-                      <td>1 小時前</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
           <!-- Discount Settings Panel -->
@@ -436,7 +506,7 @@
         // Update sidebar active state
         document.querySelectorAll('.sidebar .nav a').forEach(a => a.classList.remove('active'));
         element.classList.add('active');
-        
+
         // Hide all tabs, show selected tab
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
@@ -444,7 +514,7 @@
 
       // The targeted color logic handles the initialization below.
 
-      
+
       // Targeted Color Selection Logic
       let currentTarget = document.getElementById('adminPlanet');
       let currentTargetId = 'planet';
@@ -454,7 +524,7 @@
         element.classList.add('active');
         currentTarget = element;
         currentTargetId = targetId;
-        
+
         const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
         if (colors[targetId]) {
           document.getElementById('planetColor').value = colors[targetId];
@@ -493,7 +563,7 @@
             }
           }
         });
-        
+
         // Initialize Flatpickr
         flatpickr("#discountStart", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
         flatpickr("#discountEnd", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
@@ -505,25 +575,25 @@
         const itemSelect = document.getElementById('discountItem');
         const percentInput = document.getElementById('discountPercent').value;
         const resultInput = document.getElementById('discountResult');
-        
+
         if (!itemSelect.value || !percentInput) {
           resultInput.value = '';
           return;
         }
-        
+
         let originalPrice = 120;
         if (itemSelect.value === '星際探險家') originalPrice = 150;
-        
+
         let percent = parseFloat(percentInput);
         if (percent > 10 && percent < 100) percent = percent / 100;
         else if (percent > 0 && percent <= 10) percent = percent / 10;
-        
+
         const finalPrice = Math.round(originalPrice * percent);
         resultInput.value = finalPrice + ' 幣';
       }
 
       // Planet CRUD Logic
-      
+
 
       let satCount = 3;
       function addSatellite() {
@@ -566,26 +636,179 @@
         }
       }
 
+      function previewStageImage(event, previewId) {
+        const file = event.target.files[0];
+        const preview = document.getElementById(previewId);
+        if (!file || !preview) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+          const placeholder = preview.parentElement.querySelector('span');
+          if (placeholder) placeholder.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function slugifySeriesName(name) {
+        return name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+          .replace(/^-+|-+$/g, '') || generateLocalUUID().slice(0, 8);
+      }
+
+      function generateLocalUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+
+      async function getDeveloperUserOrThrow() {
+        if (typeof firebase === 'undefined' || !firebase.auth || !db) {
+          throw new Error('Firebase 尚未初始化，無法驗證後台權限。');
+        }
+        const user = firebase.auth().currentUser;
+        if (!user || user.isAnonymous) {
+          throw new Error('請先使用開發者或營運者 Firebase 帳號登入。');
+        }
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        const profile = userDoc.exists ? userDoc.data() : {};
+        const staffRole = profile.staffRole;
+        const allowedRoles = ['developer', 'operator', 'admin'];
+        if (profile.developerAccess === true || allowedRoles.includes(staffRole)) {
+          return user;
+        }
+        throw new Error('此帳號沒有商城上架權限，請管理者在 users/' + user.uid + ' 設定 developerAccess: true。');
+      }
+
+      async function resolveNextCatalogIndexBase() {
+        const snap = await db.collection('shop_items').where('type', '==', 'event_character').get();
+        let nextIndex = 18;
+        snap.forEach((doc) => {
+          const item = doc.data();
+          const base = Number(item.catalog_index_base || 0);
+          const stages = Array.isArray(item.character_stages) ? item.character_stages : [];
+          const maxStageIndex = stages.reduce((max, stage) => {
+            const explicitIndex = Number(stage.catalog_index || 0);
+            return explicitIndex > max ? explicitIndex : max;
+          }, 0);
+          if (base > 0) {
+            nextIndex = Math.max(nextIndex, base + Math.max(stages.length, 1));
+          }
+          if (maxStageIndex > 0) {
+            nextIndex = Math.max(nextIndex, maxStageIndex + 1);
+          }
+        });
+        return nextIndex;
+      }
+
       function toggleAdminDays() {
         const type = document.getElementById('shopItemType').value;
         const timeContainer = document.getElementById('adminTimeGroup');
+        const singleImageGroup = document.getElementById('singleImageGroup');
+        const characterStagesGroup = document.getElementById('characterStagesGroup');
         if (type === 'limited' || type === 'event_character') {
           timeContainer.style.display = 'flex';
         } else {
           timeContainer.style.display = 'none';
         }
+        if (type === 'event_character') {
+          singleImageGroup.style.display = 'none';
+          characterStagesGroup.style.display = 'block';
+        } else {
+          singleImageGroup.style.display = 'block';
+          characterStagesGroup.style.display = 'none';
+        }
       }
 
       async function fetchAdminActiveItems() {
+        if (typeof db !== 'undefined' && db) {
+          try {
+            const querySnapshot = await db.collection("shop_items").get();
+            const items = [];
+            querySnapshot.forEach((doc) => {
+              items.push({ id: doc.id, ...doc.data() });
+            });
+            const tbody = document.getElementById('activeShopTableBody');
+            tbody.innerHTML = '';
+
+            const currentTime = Math.floor(Date.now() / 1000);
+            const activeItems = [];
+
+            items.forEach(item => {
+              if (item.type === 'permanent' || !item.expires_at) {
+                activeItems.push(item);
+              } else {
+                const startTs = item.start_time || 0;
+                const endTs = item.end_time || item.expires_at || 0;
+                if (startTs <= currentTime && currentTime <= endTs) {
+                  activeItems.push(item);
+                }
+              }
+            });
+
+            activeItems.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+            if (activeItems.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
+            } else {
+              activeItems.forEach(item => {
+                let expiresHTML = '';
+                if (item.end_time) {
+                  const startDate = new Date(item.start_time * 1000).toLocaleString('zh-TW');
+                  const endDate = new Date(item.end_time * 1000).toLocaleString('zh-TW');
+                  expiresHTML = `<div style="font-size: 0.75rem; color: #3b82f6;">起: ${startDate}</div><div style="font-size: 0.75rem; color: #ef4444;">迄: ${endDate}</div>`;
+                } else {
+                  expiresHTML = `<span style="color: #22c55e;">常駐</span>`;
+                }
+
+                let typeText = '常駐商品';
+                if (item.type === 'limited') typeText = '限時商品';
+                if (item.type === 'event_character') typeText = '活動限定角色';
+
+                const imagePath = item.image_path || item.icon_path || '';
+                const imgSrc = (imagePath.startsWith('data:') || imagePath.startsWith('http'))
+                  ? imagePath
+                  : '/' + imagePath;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td><img src="${imgSrc}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
+                  <td><strong>${item.name}</strong></td>
+                  <td>${typeText}</td>
+                  <td>${item.price}</td>
+                  <td>${expiresHTML}</td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+            return;
+          } catch (e) {
+            console.warn("無法從 Firestore 取得商品", e);
+          }
+        }
+
         try {
           const response = await fetch('/active-shop-items');
           const result = await response.json();
           const tbody = document.getElementById('activeShopTableBody');
           tbody.innerHTML = '';
-          
+
           if (result.success && result.items) {
             if (result.items.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
             } else {
               result.items.forEach(item => {
                 let expiresHTML = '';
@@ -596,11 +819,11 @@
                 } else {
                   expiresHTML = `<span style="color: #22c55e;">常駐</span>`;
                 }
-                
+
                 let typeText = '常駐商品';
                 if (item.type === 'limited') typeText = '限時商品';
                 if (item.type === 'event_character') typeText = '活動限定角色';
-                
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                   <td><img src="/${item.image_path}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
@@ -623,67 +846,146 @@
 
       async function handleShopUpload(event) {
         event.preventDefault();
-        
-        const fileInput = document.getElementById('shopItemImage');
-        if (fileInput.files.length === 0) {
-          alert('請先選擇圖片！');
-          return;
-        }
 
-        const formData = new FormData();
-        formData.append('image', fileInput.files[0]);
-        formData.append('name', document.getElementById('shopItemName').value);
+        const name = document.getElementById('shopItemName').value;
         const type = document.getElementById('shopItemType').value;
-        formData.append('type', type);
-        formData.append('price', document.getElementById('shopItemPrice').value);
-        
+        const price = parseInt(document.getElementById('shopItemPrice').value) || 60;
+        const description = document.getElementById('shopItemDesc').value || '';
+
+        let startTimeTs = null;
+        let endTimeTs = null;
+        let startTime = '';
+        let endTime = '';
+
         if (type !== 'permanent') {
-          const startTime = document.getElementById('shopItemStart').value;
-          const endTime = document.getElementById('shopItemEnd').value;
+          startTime = document.getElementById('shopItemStart').value;
+          endTime = document.getElementById('shopItemEnd').value;
           if (!startTime || !endTime) {
             alert('限時商品請務必選擇開始與結束時間！');
             return;
           }
-          formData.append('start_time', startTime);
-          formData.append('end_time', endTime);
+          startTimeTs = Math.floor(new Date(startTime).getTime() / 1000);
+          endTimeTs = Math.floor(new Date(endTime).getTime() / 1000);
         }
 
         try {
-          const response = await fetch('/upload-shop-item', {
-            method: 'POST',
-            body: formData
-          });
-          const result = await response.json();
-          
-          if (result.success) {
-            alert(`商品「${result.item.name}」已成功上架！`);
-            
-            // Mock add to purchase table just for UI effect
-            const tbody = document.getElementById('purchaseTableBody');
+          const developerUser = await getDeveloperUserOrThrow();
+          const createdAt = Math.floor(Date.now() / 1000);
+          let payload = {
+            id: generateLocalUUID(),
+            type: type,
+            name: name,
+            price: price,
+            description: description,
+            created_at: createdAt,
+            created_by: developerUser.uid,
+            created_by_email: developerUser.email || '',
+            start_time: startTimeTs,
+            end_time: endTimeTs,
+            expires_at: endTimeTs,
+            status: 'published'
+          };
+
+          if (type === 'event_character') {
+            const stageFiles = [
+              {
+                stage: 1,
+                name: document.getElementById('stage1Name').value || `${name} 初始型`,
+                character: document.getElementById('stage1Character').files[0],
+                icon: document.getElementById('stage1Icon').files[0],
+                requiredLevel: 1,
+                requiredExperience: 0,
+              },
+              {
+                stage: 2,
+                name: document.getElementById('stage2Name').value || `${name} 進化型`,
+                character: document.getElementById('stage2Character').files[0],
+                icon: document.getElementById('stage2Icon').files[0],
+                requiredLevel: 30,
+                requiredExperience: 10000,
+              },
+              {
+                stage: 3,
+                name: document.getElementById('stage3Name').value || `${name} 最終型`,
+                character: document.getElementById('stage3Character').files[0],
+                icon: document.getElementById('stage3Icon').files[0],
+                requiredLevel: 60,
+                requiredExperience: 30000,
+              },
+            ];
+
+            if (stageFiles.some(stage => !stage.character || !stage.icon)) {
+              alert('活動限定角色需要一次上傳 3 階段角色圖與 3 個頭像 icon。');
+              return;
+            }
+
+            const catalogIndexBase = await resolveNextCatalogIndexBase();
+            const characterStages = [];
+            for (const stage of stageFiles) {
+              const characterAsset = await fileToBase64(stage.character);
+              const iconAsset = await fileToBase64(stage.icon);
+              characterStages.push({
+                stage: stage.stage,
+                catalog_index: catalogIndexBase + stage.stage - 1,
+                name: stage.name,
+                required_level: stage.requiredLevel,
+                required_experience: stage.requiredExperience,
+                description: description,
+                character_asset: characterAsset,
+                icon_asset: iconAsset,
+                coin_price: stage.stage === 1 ? price : 0
+              });
+            }
+
+            payload = {
+              ...payload,
+              series_key: slugifySeriesName(name),
+              series_name: name,
+              catalog_index_base: catalogIndexBase,
+              image_path: characterStages[0].character_asset,
+              icon_path: characterStages[0].icon_asset,
+              character_stages: characterStages
+            };
+          } else {
+            const fileInput = document.getElementById('shopItemImage');
+            if (fileInput.files.length === 0) {
+              alert('請先選擇圖片！');
+              return;
+            }
+            const base64Data = await fileToBase64(fileInput.files[0]);
+            payload.image_path = base64Data;
+          }
+
+          await db.collection("shop_items").add(payload);
+          alert(`「${name}」已成功同步至 Firestore，上架資料會同步到 App 商城。`);
+
+          const tbody = document.getElementById('purchaseTableBody');
+          if (tbody) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
               <td>#UAdmin</td>
-              <td>${result.item.name} (測試上架)</td>
-              <td>${result.item.price}</td>
+              <td>${name} (上架)</td>
+              <td>${price}</td>
               <td><span class="status-badge" style="background: rgba(59,130,246,0.1); color: #3b82f6;">上架</span></td>
               <td>剛剛</td>
             `;
             tbody.prepend(tr);
-            
-            // Refresh active items
-            fetchAdminActiveItems();
-            
-            // Reset form
-            event.target.reset();
-            document.getElementById('imagePreview').style.display = 'none';
-            document.getElementById('previewPlaceholder').style.display = 'block';
-            currentBase64Image = null;
-            toggleAdminDays(); // Reset days field visibility
-          } else {
-            alert('上傳失敗：' + result.error);
           }
+
+          fetchAdminActiveItems();
+          event.target.reset();
+          document.querySelectorAll('.stage-preview-row img').forEach(img => {
+            img.removeAttribute('src');
+            img.style.display = 'none';
+            const placeholder = img.parentElement.querySelector('span');
+            if (placeholder) placeholder.style.display = 'inline';
+          });
+          document.getElementById('imagePreview').style.display = 'none';
+          document.getElementById('previewPlaceholder').style.display = 'block';
+          currentBase64Image = null;
+          toggleAdminDays();
         } catch (error) {
-          alert('伺服器錯誤，請確認後端已啟動。');
+          alert('上架失敗：' + error.message);
           console.error(error);
         }
       }
@@ -694,7 +996,7 @@
         const price = document.getElementById('discountResult').value.replace(' 幣', '');
         const start = document.getElementById('discountStart').value;
         const end = document.getElementById('discountEnd').value;
-        
+
         // Mock save to localStorage
         const discountEvent = {
           item: item,
@@ -703,7 +1005,7 @@
           endTime: end
         };
         localStorage.setItem('nudgeActiveDiscount', JSON.stringify(discountEvent));
-        
+
         alert(`成功設定！「${item}」將於 ${start.replace('T', ' ')} 開始特價 ${price} 自律幣，期限至 ${end.replace('T', ' ')}。`);
         event.target.reset();
       }
@@ -715,7 +1017,7 @@
       new Chart(ctxUsage, {
         type: 'bar',
         data: {
-          labels: ['自律房', '每日任務', '健康同步', '專題發表', '社群互動'],
+          labels: ['自律房', '每日任務', '健康同步', '專注時間', '社群互動'],
           datasets: [{
             label: '本週活躍次數',
             data: [4500, 8200, 3100, 1200, 5600],
@@ -763,7 +1065,74 @@
           }
         }
       });
+
+      // Purchase Pie Chart
+      const ctxPurchase = document.getElementById('purchaseChart').getContext('2d');
+      new Chart(ctxPurchase, {
+        type: 'doughnut',
+        data: {
+          labels: ['月影見習忍', '森芽靈童', '星際探險家'],
+          datasets: [{
+            data: [65, 25, 10],
+            backgroundColor: [
+              'rgba(124, 106, 230, 0.8)',
+              'rgba(34, 197, 94, 0.8)',
+              'rgba(245, 158, 11, 0.8)'
+            ],
+            borderColor: [
+              'rgba(124, 106, 230, 1)',
+              'rgba(34, 197, 94, 1)',
+              'rgba(245, 158, 11, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: '#a1a1aa' }
+            }
+          }
+        }
+      });
     </script>
-    <script src="assets/app.js?v=3"></script>
+    <script src="assets/app.js?v=9"></script>
+    <script>
+      async function enforceAdminAccess() {
+        const banner = document.getElementById('adminAuthBanner');
+        if (typeof firebase === 'undefined' || !firebase.auth || !db) return;
+        const user = firebase.auth().currentUser;
+        if (!user || user.isAnonymous) {
+          localStorage.setItem('nudgePostLoginRedirect', 'admin_dashboard.html');
+          if (banner) banner.style.display = 'block';
+          window.location.href = 'login.html';
+          return;
+        }
+        try {
+          const doc = await db.collection('users').doc(user.uid).get();
+          const data = doc.exists ? doc.data() : {};
+          const staffRole = data.staffRole;
+          const allowedRoles = ['developer', 'operator', 'admin'];
+          if (data.developerAccess === true || allowedRoles.includes(staffRole)) {
+            if (banner) banner.style.display = 'none';
+            return;
+          }
+          if (banner) {
+            banner.textContent = '此帳號尚未開通後台權限。請在 Firestore users/' + user.uid + ' 設定 developerAccess: true。';
+            banner.style.display = 'block';
+          }
+        } catch (error) {
+          if (banner) {
+            banner.textContent = '後台權限檢查失敗：' + error.message;
+            banner.style.display = 'block';
+          }
+        }
+      }
+      document.addEventListener('firebase-ready', enforceAdminAccess);
+      setTimeout(enforceAdminAccess, 1600);
+    </script>
   </body>
 </html>

@@ -12,17 +12,48 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == userId;
     }
 
+    function userDocPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function isStaff() {
+      return isAuth()
+        && exists(userDocPath())
+        && (
+          get(userDocPath()).data.developerAccess == true
+          || get(userDocPath()).data.staffRole in ['developer', 'operator', 'admin']
+        );
+    }
+
+    function hasProtectedStaffFields() {
+      return request.resource.data.keys().hasAny([
+        'developerAccess',
+        'staffRole',
+        'staffPermissions'
+      ]);
+    }
+
+    function changesProtectedStaffFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'developerAccess',
+        'staffRole',
+        'staffPermissions'
+      ]);
+    }
+
     // ─── /users/{userId} ──────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isAuth();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow create: if isOwner(userId) && !hasProtectedStaffFields();
+      allow update: if isOwner(userId) && !changesProtectedStaffFields();
       allow delete: if false;
 
       // ─── /users/{userId}/friends/{friendId} ───────────────────────
       match /friends/{friendId} {
         allow read: if isOwner(userId) || (isAuth() && request.auth.uid == friendId);
-        allow write: if isAuth() && request.resource.data.id == friendId;
+        allow write: if isAuth()
+          && request.resource.data.id == friendId
+          && (isOwner(userId) || request.auth.uid == friendId);
         allow delete: if isOwner(userId) || (isAuth() && request.auth.uid == friendId);
       }
     }
@@ -52,6 +83,12 @@ service cloud.firestore {
         (resource.data.senderId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
           && request.resource.data.status == 'cancelled')
+        ||
+        // Sender can resend a request (update all fields, but must keep sender/receiver IDs)
+        (resource.data.senderId == request.auth.uid
+          && request.resource.data.senderId == resource.data.senderId
+          && request.resource.data.receiverId == resource.data.receiverId
+          && request.resource.data.status == 'pending')
       );
       allow delete: if false;
     }
@@ -132,7 +169,7 @@ service cloud.firestore {
     // ─── /shop_items/{itemId} ──────────────────────────────────────────
     match /shop_items/{itemId} {
       allow read: if isAuth();
-      allow write: if false; // Only manageable via Firebase console / admin SDK
+      allow create, update, delete: if isStaff();
     }
   }
 }

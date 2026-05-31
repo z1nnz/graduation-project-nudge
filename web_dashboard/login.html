@@ -70,10 +70,25 @@
         border-color: var(--page-accent);
         box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
       }
-      .input-group span {
+      .field-icon {
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         color: var(--muted);
         margin-right: 12px;
-        font-size: 20px;
+        flex: 0 0 auto;
+      }
+      .field-icon svg,
+      .toggle-pwd svg {
+        width: 20px;
+        height: 20px;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
       }
       .input-group input {
         flex: 1;
@@ -85,8 +100,23 @@
         outline: none;
       }
       .input-group .toggle-pwd {
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 -8px 0 8px;
+        padding: 0;
         cursor: pointer;
         color: var(--muted);
+        transition: 180ms ease;
+      }
+      .input-group .toggle-pwd:hover {
+        color: var(--page-accent);
+        background: rgba(255, 255, 255, 0.06);
       }
       .submit-btn {
         width: 100%;
@@ -142,43 +172,6 @@
       .skip-link:hover {
         color: var(--text);
       }
-      /* Mobile bottom nav style to match user request */
-      .mobile-nav {
-        display: none;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: rgba(3, 5, 10, 0.95);
-        border-top: 1px solid var(--line);
-        padding: 12px 20px 24px;
-        justify-content: space-between;
-        z-index: 100;
-        backdrop-filter: blur(10px);
-      }
-      .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 800;
-      }
-      .nav-item.active {
-        color: var(--page-accent);
-      }
-      .nav-item span {
-        font-size: 24px;
-      }
-      @media (max-width: 600px) {
-        .mobile-nav {
-          display: flex;
-        }
-        .login-page {
-          padding-bottom: 90px;
-        }
-      }
     </style>
   </head>
   <body data-page="home">
@@ -198,18 +191,28 @@
         <form id="loginForm">
           <!-- Nickname is set after login in profile settings, not during registration -->
           <div class="input-group">
-            <span>✉️</span>
+            <span class="field-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z" /><path d="m4 7 8 6 8-6" /></svg>
+            </span>
             <input type="email" placeholder="電子郵件" required />
           </div>
           <div class="input-group">
-            <span>🔒</span>
+            <span class="field-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+            </span>
             <input type="password" id="inputPassword" placeholder="密碼" required />
-            <span class="toggle-pwd">👁️</span>
+            <button class="toggle-pwd" type="button" aria-label="顯示密碼" aria-pressed="false" data-visible="false">
+              <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="3" /></svg>
+            </button>
           </div>
           <div class="input-group" id="groupConfirm">
-            <span>🔒</span>
+            <span class="field-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+            </span>
             <input type="password" id="inputConfirmPassword" placeholder="確認密碼" required />
-            <span class="toggle-pwd">👁️</span>
+            <button class="toggle-pwd" type="button" aria-label="顯示確認密碼" aria-pressed="false" data-visible="false">
+              <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="3" /></svg>
+            </button>
           </div>
 
           <button type="submit" class="button primary submit-btn" id="submitBtn">建立帳號並登入</button>
@@ -236,35 +239,6 @@
         <a href="index.html" class="skip-link">稍後再說，先體驗功能</a>
       </div>
     </div>
-
-    <!-- Mobile Nav Bar (Visible on small screens) -->
-    <div class="mobile-nav">
-      <div class="nav-item">
-        <span>🏠</span>
-        首頁
-      </div>
-      <div class="nav-item">
-        <span>✨</span>
-        角色
-      </div>
-      <div class="nav-item">
-        <span>⏱️</span>
-        專注
-      </div>
-      <div class="nav-item">
-        <span>👥</span>
-        社交
-      </div>
-      <div class="nav-item">
-        <span>❤️</span>
-        健康
-      </div>
-      <div class="nav-item active">
-        <span>👤</span>
-        帳號
-      </div>
-    </div>
-
     <script>
       // Firebase Config
       const firebaseConfig = {
@@ -281,6 +255,9 @@
         firebase.initializeApp(firebaseConfig);
       }
       const auth = firebase.auth();
+      const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+        console.warn("Auth persistence setup failed:", err);
+      });
       const db = firebase.firestore();
 
       // Show/Hide Error Helper
@@ -319,7 +296,9 @@
         }).then(() => {
           localStorage.setItem('nudgeWebLoggedIn', 'true');
           localStorage.setItem('nudgeActiveDemoUserId', user.uid);
-          window.location.href = 'index.html';
+          const redirectTarget = localStorage.getItem('nudgePostLoginRedirect') || 'index.html';
+          localStorage.removeItem('nudgePostLoginRedirect');
+          window.location.href = redirectTarget;
         }).catch((err) => {
           console.error("Firestore sync error:", err);
           showError("同步使用者資料失敗：" + err.message);
@@ -327,16 +306,17 @@
       }
 
       // Password visibility toggler
+      const eyeIcon = '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="3" /></svg>';
+      const eyeOffIcon = '<svg viewBox="0 0 24 24"><path d="m3 3 18 18" /><path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" /><path d="M9.8 5.3A9.7 9.7 0 0 1 12 5c6 0 9.5 7 9.5 7a16.3 16.3 0 0 1-3.2 4.1" /><path d="M6.6 6.7C3.9 8.5 2.5 12 2.5 12s3.5 7 9.5 7a9.8 9.8 0 0 0 4.4-1" /></svg>';
       document.querySelectorAll('.toggle-pwd').forEach(toggle => {
-        toggle.addEventListener('click', (e) => {
-          const input = e.target.previousElementSibling;
-          if (input.type === 'password') {
-            input.type = 'text';
-            e.target.textContent = '🙈';
-          } else {
-            input.type = 'password';
-            e.target.textContent = '👁️';
-          }
+        toggle.addEventListener('click', () => {
+          const input = toggle.previousElementSibling;
+          const shouldShow = input.type === 'password';
+          input.type = shouldShow ? 'text' : 'password';
+          toggle.dataset.visible = String(shouldShow);
+          toggle.setAttribute('aria-pressed', String(shouldShow));
+          toggle.setAttribute('aria-label', shouldShow ? '隱藏密碼' : '顯示密碼');
+          toggle.innerHTML = shouldShow ? eyeOffIcon : eyeIcon;
         });
       });
 
@@ -392,7 +372,7 @@
           // Log In
           submitBtn.disabled = true;
           submitBtn.textContent = "登入中...";
-          auth.signInWithEmailAndPassword(email, password)
+          authReady.then(() => auth.signInWithEmailAndPassword(email, password))
             .then((result) => {
               syncUserProfile(result.user);
             })
@@ -413,7 +393,7 @@
 
           submitBtn.disabled = true;
           submitBtn.textContent = "建立帳號中...";
-          auth.createUserWithEmailAndPassword(email, password)
+          authReady.then(() => auth.createUserWithEmailAndPassword(email, password))
             .then((result) => {
               // Send verification email in background
               result.user.sendEmailVerification().then(() => {

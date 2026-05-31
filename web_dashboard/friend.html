@@ -554,15 +554,14 @@
         box-shadow: 0 0 40px #ff8c00, 0 0 80px rgba(255, 140, 0, 0.5);
         z-index: 5;
       }
-      .friend-planet-orbit {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        border: 1px dashed rgba(255,255,255,0.08);
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        animation: spin-clockwise linear infinite;
-      }
+	      .friend-planet-orbit {
+	        position: absolute;
+	        top: 50%;
+	        left: 50%;
+	        border: 1px dashed rgba(255,255,255,0.08);
+	        border-radius: 50%;
+	        transform: translate(-50%, -50%);
+	      }
       .friend-planet-node {
         position: absolute;
         border-radius: 50%;
@@ -622,11 +621,11 @@
               <a href="planet.html">返回我的星球</a>
             </div>
           </div>
-          <div class="hero-card">
-            <span>好友人數</span>
-            <strong>24 / 50</strong>
-            <p>有 5 位好友正在線上自律。</p>
-          </div>
+	          <div class="hero-card">
+	            <span>好友人數</span>
+	            <strong id="friendCountValue">0 / 50</strong>
+	            <p id="friendHeroHint">正在同步好友資料...</p>
+	          </div>
         </header>
 
         <!-- LIST VIEW -->
@@ -644,7 +643,11 @@
 
           <!-- 好友申請容器 -->
           <div class="friend-list" id="requestsListContainer" style="display: none;">
-            <div style="text-align:center; padding: 40px; color:#9ca3af;">正在載入好友申請...</div>
+            <div style="text-align:center; padding: 40px; color:#9ca3af;">
+              <div style="font-size:13px; font-weight:800; letter-spacing:1px; margin-bottom:12px; color:#9ca3af;">REQUESTS</div>
+              <strong style="color:#fff;">目前沒有待確認的好友申請</strong>
+              <p style="margin: 8px 0 0; font-size:13px;">前往「好友搜尋」輸入 Nudge ID 發送邀請吧！</p>
+            </div>
           </div>
 
           <!-- 好友搜尋容器 -->
@@ -783,6 +786,21 @@
         
         if (tabName === '申請') {
           reqContainer.style.display = 'block';
+          if (reqContainer.textContent.includes("正在載入好友申請")) {
+            if (friendSystemInitializedFor || localStorage.getItem("nudgeWebLoggedIn") === "true") {
+              renderRequestsList(pendingRequestsList, outgoingRequestsList);
+            } else {
+              renderFriendLoginRequired();
+            }
+          }
+          setTimeout(() => {
+            if (!reqContainer.textContent.includes("正在載入好友申請")) return;
+            if (friendSystemInitializedFor) {
+              renderRequestsList(pendingRequestsList, outgoingRequestsList);
+            } else {
+              renderFriendLoginRequired();
+            }
+          }, 800);
         } else if (tabName === '搜尋') {
           searchContainer.style.display = 'block';
         } else {
@@ -797,14 +815,51 @@
       let outgoingRequestsList = [];  // outgoing
       let selectedFriendData = null;
       let detailActiveTab = 'timeline';
+      let friendSystemInitializedFor = null;
+      let friendSystemUnsubscribers = [];
+
+      function clearFriendSystemListeners() {
+        friendSystemUnsubscribers.forEach((unsubscribe) => {
+          try { unsubscribe(); } catch (err) { console.warn("Friend listener cleanup failed:", err); }
+        });
+        friendSystemUnsubscribers = [];
+      }
+
+      function renderFriendLoginRequired() {
+        const loginHtml = `
+          <div style="text-align:center; padding: 40px; color:#9ca3af;">
+            <div style="font-size:40px; margin-bottom:12px;">🔐</div>
+            <strong style="color:#fff;">請先登入網站帳號</strong>
+            <p style="margin: 8px 0 18px; font-size:13px;">好友搜尋與好友申請需要使用真實登入身分，才能和 App 端資料一致。</p>
+            <a class="button primary" href="login.html" style="display:inline-flex; padding:10px 18px; min-height:auto;">前往登入</a>
+          </div>
+        `;
+        const friendsContainer = document.getElementById("friendsListContainer");
+        const requestsContainer = document.getElementById("requestsListContainer");
+        const resultsContainer = document.getElementById("searchResultsContainer");
+        if (friendsContainer) friendsContainer.innerHTML = loginHtml;
+        if (requestsContainer) requestsContainer.innerHTML = loginHtml;
+        if (resultsContainer) resultsContainer.innerHTML = '';
+      }
 
       function initFirestoreFriendSystem() {
-        activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
-        if (!db || !activeUserId) {
-          console.warn("Database or active user not found for friend system.");
+        const authUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+        if (!db || !authUser || authUser.isAnonymous) {
+          console.warn("Database or authenticated user not found for friend system.");
+          renderFriendLoginRequired();
           return;
         }
 
+        activeUserId = authUser.uid;
+        localStorage.setItem("nudgeActiveDemoUserId", activeUserId);
+        localStorage.setItem("nudgeWebLoggedIn", "true");
+
+        if (friendSystemInitializedFor === activeUserId) {
+          return;
+        }
+
+        clearFriendSystemListeners();
+        friendSystemInitializedFor = activeUserId;
         console.log("Friend System Initializing for User:", activeUserId);
 
         // Fetch my profile to get nudgeId for outgoing requests
@@ -820,19 +875,25 @@
         });
 
         // Listen to Friends list
-        db.collection("users").doc(activeUserId).collection("friends").onSnapshot(async (snapshot) => {
+        const friendsUnsubscribe = db.collection("users").doc(activeUserId).collection("friends").onSnapshot(async (snapshot) => {
           const friendDocs = snapshot.docs;
           
-          // Update Friend Count Card
-          const countCard = document.querySelector(".hero-card strong");
-          if (countCard) {
-            countCard.textContent = `${friendDocs.length} / 50`;
-          }
+	          // Update Friend Count Card
+	          const countCard = document.getElementById("friendCountValue");
+	          if (countCard) {
+	            countCard.textContent = `${friendDocs.length} / 50`;
+	          }
+	          const hint = document.getElementById("friendHeroHint");
+	          if (hint) {
+	            hint.textContent = friendDocs.length === 0
+	              ? "尚未加入好友，從搜尋 ID 開始建立自律社交圈。"
+	              : `目前已加入 ${friendDocs.length} 位好友。`;
+	          }
 
           if (friendDocs.length === 0) {
             document.getElementById("friendsListContainer").innerHTML = `
               <div style="text-align:center; padding: 40px; color:#9ca3af;">
-                尚未添加 any 好友。點擊「好友搜尋」開始建立你的自律社交圈！
+                尚未加入任何好友。點擊「好友搜尋」開始建立你的自律社交圈！
               </div>
             `;
             return;
@@ -916,15 +977,18 @@
           // Re-render friends UI
           renderFriendsList(friendsList);
         });
+        friendSystemUnsubscribers.push(friendsUnsubscribe);
 
         // Listen to incoming Friend Requests (badge-worthy)
-        db.collection("friend_requests")
+        const incomingUnsubscribe = db.collection("friend_requests")
           .where("receiverId", "==", activeUserId)
-          .where("status", "==", "pending")
           .onSnapshot((snapshot) => {
             pendingRequestsList = [];
             snapshot.forEach(doc => {
-              pendingRequestsList.push({ id: doc.id, ...doc.data() });
+              const request = { id: doc.id, ...doc.data() };
+              if (request.status === "pending") {
+                pendingRequestsList.push(request);
+              }
             });
             // Client-side sort to avoid index requirements
             pendingRequestsList.sort((a, b) => {
@@ -947,17 +1011,21 @@
             renderRequestsList(pendingRequestsList, outgoingRequestsList);
           }, (err) => {
             console.error("Incoming requests listener error:", err);
+            renderRequestsList(pendingRequestsList, outgoingRequestsList);
             toast("無法讀取收到的申請：" + err.message);
           });
+        friendSystemUnsubscribers.push(incomingUnsubscribe);
 
         // Listen to outgoing Friend Requests
-        db.collection("friend_requests")
+        const outgoingUnsubscribe = db.collection("friend_requests")
           .where("senderId", "==", activeUserId)
-          .where("status", "==", "pending")
           .onSnapshot((snapshot) => {
             outgoingRequestsList = [];
             snapshot.forEach(doc => {
-              outgoingRequestsList.push({ id: doc.id, ...doc.data() });
+              const request = { id: doc.id, ...doc.data() };
+              if (request.status === "pending") {
+                outgoingRequestsList.push(request);
+              }
             });
             // Client-side sort
             outgoingRequestsList.sort((a, b) => {
@@ -968,8 +1036,10 @@
             renderRequestsList(pendingRequestsList, outgoingRequestsList);
           }, (err) => {
             console.error("Outgoing requests listener error:", err);
+            renderRequestsList(pendingRequestsList, outgoingRequestsList);
             toast("無法讀取已送出的申請：" + err.message);
           });
+        friendSystemUnsubscribers.push(outgoingUnsubscribe);
       }
 
       function renderFriendsList(friends) {
@@ -1094,10 +1164,13 @@
             return;
           }
 
-          await db.collection("friend_requests").doc(requestId).update({ status: "accepted" });
+          const batch = db.batch();
+          const requestRef = db.collection("friend_requests").doc(requestId);
+          batch.update(requestRef, { status: "accepted" });
 
           // ── Write SENDER into RECEIVER's (my) friends list ──
-          await db.collection("users").doc(activeUserId).collection("friends").doc(req.senderId).set({
+          const myFriendRef = db.collection("users").doc(activeUserId).collection("friends").doc(req.senderId);
+          batch.set(myFriendRef, {
             id: req.senderId,
             nudgeId: req.senderNudgeId || "",
             name: req.senderName || req.senderId,
@@ -1109,7 +1182,8 @@
           });
 
           // ── Write RECEIVER (me) into SENDER's friends list ──
-          await db.collection("users").doc(req.senderId).collection("friends").doc(activeUserId).set({
+          const otherFriendRef = db.collection("users").doc(req.senderId).collection("friends").doc(activeUserId);
+          batch.set(otherFriendRef, {
             id: activeUserId,
             nudgeId: myProfile.myNudgeId || "",
             name: myProfile.nickname || activeUserId,
@@ -1120,6 +1194,8 @@
             isFollowing: true,
             encouragementCount: 0
           });
+
+          await batch.commit();
 
           toast(`已接受好友申請，成功與 ${req.senderName} 成為好友！`);
           
@@ -1790,15 +1866,13 @@
           'radial-gradient(circle at 30% 30%, #22d3ee 0%, #0891b2 100%)', // cyan
         ];
 
-        list.forEach((planet, index) => {
-          const orbitDiameter = 120 + index * 70; // 120px, 190px, 260px, etc.
-          const duration = 12 + index * 5; // 12s, 17s, 22s, etc.
-          
-          const orbit = document.createElement("div");
-          orbit.className = "friend-planet-orbit";
-          orbit.style.width = `${orbitDiameter}px`;
-          orbit.style.height = `${orbitDiameter}px`;
-          orbit.style.animationDuration = `${duration}s`;
+	        list.forEach((planet, index) => {
+	          const orbitDiameter = 120 + index * 70; // 120px, 190px, 260px, etc.
+
+	          const orbit = document.createElement("div");
+	          orbit.className = "friend-planet-orbit";
+	          orbit.style.width = `${orbitDiameter}px`;
+	          orbit.style.height = `${orbitDiameter}px`;
           
           const node = document.createElement("div");
           node.className = "friend-planet-node";
@@ -1834,7 +1908,7 @@
       });
 
       // Bind search event listeners
-      document.addEventListener("DOMContentLoaded", () => {
+      function bootFriendPage() {
         const btn = document.getElementById("friendSearchBtn");
         const input = document.getElementById("friendSearchInput");
         if (btn) btn.addEventListener("click", handleSearch);
@@ -1846,8 +1920,29 @@
         if (typeof db !== 'undefined' && db && localStorage.getItem("nudgeActiveDemoUserId")) {
           initFirestoreFriendSystem();
         }
-      });
+
+        setTimeout(() => {
+          const list = document.getElementById("friendsListContainer");
+          const requests = document.getElementById("requestsListContainer");
+          const listStillLoading = list && list.textContent.includes("正在載入好友清單");
+          const requestsStillLoading = requests && requests.textContent.includes("正在載入好友申請");
+          if (!listStillLoading && !requestsStillLoading) return;
+
+          if (friendSystemInitializedFor) {
+            if (listStillLoading) renderFriendsList(friendsList);
+            if (requestsStillLoading) renderRequestsList(pendingRequestsList, outgoingRequestsList);
+          } else {
+            renderFriendLoginRequired();
+          }
+        }, 6000);
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bootFriendPage);
+      } else {
+        bootFriendPage();
+      }
     </script>
-    <script src="assets/app.js?v=3"></script>
+    <script src="assets/app.js?v=9"></script>
   </body>
 </html>

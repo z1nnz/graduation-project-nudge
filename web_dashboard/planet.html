@@ -11,7 +11,7 @@
           <a href="profile.html">個人名片</a>
         </nav><section class="side-panel"><span class="eyebrow">視覺模式切換</span><div class="view-toggle"><button data-view="solar-system" class="active">🪐 太陽系視角</button></div><p style="margin-top: 15px;">切換不同視角來觀看你的自律成果。</p></section></aside>
       <main class="main">
-        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>只展示自律星球，將你的努力轉為動態宇宙。</h1><p>看著你的行星系逐漸繁榮，享受自律的成就感。</p></div><div class="hero-card"><span>星球繁榮度</span><strong data-count="73">0</strong><p>本週新增 5 個星球，2 位好友到訪。</p></div></header>
+        <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>自律星球把每天的努力變成可視化成果。</h1><p>任務、健康與專注資料會累積成你的個人星系。</p></div><div class="hero-card"><span>星球繁榮度</span><strong>待同步</strong><p>完成任務後會逐步解鎖新的星球成果。</p></div></header>
         <section class="planet-stage page-section immersive-stage" data-tilt>
           
           <!-- Solar System View -->
@@ -131,14 +131,9 @@
 
           <!-- Mission Log Panel -->
           <div class="mission-log-panel" id="missionLogPanel">
-            <div class="mission-log-header" style="display: flex; justify-content: space-between; align-items: center;" id="missionToggleBtn">
-              <span>今日軌道任務</span>
-              <div>
-                <button id="btnForceExplosion" class="cyber-btn bypass" style="font-size: 10px; padding: 2px 5px; margin-right: 5px; border-color: #ff8c00; color: #ff8c00;">炸</button>
-                <button id="btnForceBlackhole" class="cyber-btn bypass" style="font-size: 10px; padding: 2px 5px; margin-right: 5px; border-color: #f0f; color: #f0f;">吸</button>
-                <button id="devCheatBtn" class="cyber-btn bypass" style="font-size: 10px; padding: 2px 5px; margin-right: 5px; border-color: #0ff; color: #0ff;">滿</button>
-              </div>
-            </div>
+	            <div class="mission-log-header" style="display: flex; justify-content: space-between; align-items: center;" id="missionToggleBtn">
+	              <span>今日軌道任務</span>
+	            </div>
             <ul class="mission-list" id="dynamicMissionList">
               <!-- Dynamically populated by JS -->
             </ul>
@@ -175,7 +170,7 @@
         });
       });
     </script>
-    <script src="assets/app.js?v=3"></script>
+    <script src="assets/app.js?v=9"></script>
   
     <script>
       // Fetch unlocked planets from Firestore and render them

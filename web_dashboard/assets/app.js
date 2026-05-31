@@ -1,4 +1,4 @@
-const $ = (selector, root = document) => root.querySelector(selector);
+﻿const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
 const modules = [
@@ -12,14 +12,14 @@ const modules = [
   ["planet", "自律星球", "planet.html"],
   ["presentation", "專題發表流程", "presentation.html"],
   ["profile", "個人名片", "profile.html"],
-  ["notifications", "🔔 通知與邀請", "notifications.html"],
+  ["notifications", "通知與邀請", "notifications.html"],
 ];
 
 // Authentication Check
 const pathName = window.location.pathname;
 const isPublicPage = pathName.endsWith("/") || pathName.endsWith("index.html") || pathName.endsWith("login.html") || pathName.includes("admin_dashboard.html");
 if (!isPublicPage && localStorage.getItem("nudgeWebLoggedIn") !== "true") {
-  window.location.href = "login.html";
+  localStorage.setItem("nudgePostLoginRedirect", pathName.split("/").pop() || "index.html");
 }
 
 
@@ -54,7 +54,7 @@ function injectModuleMenu() {
     logoutBtn.href = "#";
     logoutBtn.style.marginTop = "16px";
     logoutBtn.style.color = "var(--red)"; // 使用現有的紅色彩色變數
-    logoutBtn.innerHTML = "<span>🚪</span> 登出帳號";
+    logoutBtn.textContent = "登出帳號";
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
       localStorage.removeItem("nudgeWebLoggedIn");
@@ -78,7 +78,7 @@ function injectModuleMenu() {
     loginBtn.href = "login.html";
     loginBtn.style.marginTop = "16px";
     loginBtn.style.color = "var(--page-accent)";
-    loginBtn.innerHTML = "<span>👤</span> 登入 / 註冊";
+    loginBtn.textContent = "登入 / 註冊";
     nav.appendChild(loginBtn);
   }
 
@@ -123,6 +123,10 @@ function animateCounters() {
   $$("[data-count]").forEach((node) => {
     const target = Number(node.dataset.count || 0);
     const suffix = node.dataset.suffix || "";
+    if (node.dataset.animateCount !== "true") {
+      node.textContent = `${target}${suffix}`;
+      return;
+    }
     const duration = 900;
     const start = performance.now();
     const tick = (now) => {
@@ -847,14 +851,14 @@ function injectAINavigator() {
   container.innerHTML = `
     <div class="ai-chat-panel" id="aiChatPanel">
       <div class="ai-chat-header">
-        <div class="ai-header-title">艦載 AI 導航助手</div>
+        <div class="ai-header-title">Nudge 智慧助理</div>
         <div>
           <button class="ai-close-btn" id="aiCloseBtn">✕</button>
         </div>
       </div>
 
       <div class="ai-chat-body" id="aiChatBody">
-        <div class="ai-msg">您好！艦長。我是您的自律宇宙導航助手，已成功連線至中樞神經，有什麼我可以幫您的嗎？</div>
+        <div class="ai-msg">你好，我可以協助整理頁面重點、說明資料狀態，或建議下一步自律行動。</div>
       </div>
       <div class="ai-chat-input">
         <input type="text" placeholder="輸入指令..." id="aiInput" />
@@ -895,14 +899,14 @@ function injectAINavigator() {
     body.scrollTop = body.scrollHeight;
 
     const tasksContext = (currentUserTasks && currentUserTasks.length > 0)
-      ? `目前艦長（使用者）的自律任務列表如下：\n` + currentUserTasks.map(t => `- 任務名稱: "${t.title}" (ID: ${t.id}, 狀態: ${t.isDone || t.done ? '已完成' : '未完成'})`).join('\n')
+      ? `目前使用者的自律任務列表如下：\n` + currentUserTasks.map(t => `- 任務名稱: "${t.title}" (ID: ${t.id}, 狀態: ${t.isDone || t.done ? '已完成' : '未完成'})`).join('\n')
       : `目前無活躍任務。`;
 
     const summariesContext = (currentUserDailySummaries && currentUserDailySummaries.length > 0)
       ? `近期每日自律數據摘要如下：\n` + currentUserDailySummaries.slice(-5).map(s => `- 日期: ${s.date}, 步數: ${s.steps}, 睡眠: ${s.sleepHours}小時, 專注: ${s.focusMinutes}分鐘, 完成任務: ${s.completedTasks}/${s.totalTasks}`).join('\n')
       : `無近期數據。`;
 
-    const systemText = `你是一個名為 Nudge 的科幻太空船艦載 AI 助手，同時也是溫和且專業的「Nudge 自律導師」。你負責協助艦長（使用者）進行時間管理與自律任務。你的語氣要像科幻電影中的 AI（冷靜、聰明、帶點科技感），稱呼使用者為艦長。回答要簡潔有力，不要給出落落長的文章。
+    const systemText = `你是一個名為 Nudge 的智慧助理，同時也是溫和且專業的「Nudge 自律導師」。你負責協助使用者理解目前頁面、整理自律資料，並提供下一步時間管理與自律任務建議。回答要簡潔、有操作性，不要給出落落長的文章。
 如果使用者要求開始專注、倒數計時，請加上：[ACTION:START_FOCUS:分鐘數]
 如果使用者要求新增任務，請加上：[ACTION:ADD_TASK:任務名稱]
 如果使用者要求前往某個頁面(例如總覽、家長中心、營運後台等)，請加上：[ACTION:NAVIGATE:該頁面網址.html] (頁面包含: index.html, personal.html, guardian.html, groups.html, operations.html, planet.html, friend.html)。
@@ -1673,13 +1677,13 @@ function injectAdminSwitch() {
               <h2>後台登入</h2>
               <div class="global-form-group">
                 <label>帳號</label>
-                <input type="text" id="gAdminUsername" placeholder="請輸入 admin" />
+                <input type="text" id="gAdminUsername" placeholder="請使用 Firebase 帳號登入" />
               </div>
               <div class="global-form-group">
                 <label>密碼</label>
-                <input type="password" id="gAdminPassword" placeholder="請輸入 admin" />
+                <input type="password" id="gAdminPassword" placeholder="將前往正式登入頁" />
               </div>
-              <div class="global-error-msg" id="gLoginError">帳號或密碼錯誤！預設請使用 admin / admin。</div>
+              <div class="global-error-msg" id="gLoginError">請輸入帳號與密碼後前往正式登入頁。</div>
               <div class="global-login-actions">
                 <button class="global-btn-cancel" onclick="document.getElementById('globalLoginModal').classList.remove('active')">取消</button>
                 <button class="global-btn-submit" onclick="gAttemptLogin()">登入</button>
@@ -1702,8 +1706,9 @@ function injectAdminSwitch() {
     window.gAttemptLogin = function() {
       const user = document.getElementById('gAdminUsername').value;
       const pass = document.getElementById('gAdminPassword').value;
-      if (user === 'admin' && pass === 'admin') {
-        window.location.href = 'admin_dashboard.html';
+      if (user && pass) {
+        localStorage.setItem('nudgePostLoginRedirect', 'admin_dashboard.html');
+        window.location.href = 'login.html';
       } else {
         document.getElementById('gLoginError').style.display = 'block';
       }
@@ -1734,34 +1739,40 @@ function injectAdminSwitch() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(injectAdminSwitch, 100);
-    
-    // Render initial sidebar profile card from cache immediately
-    const cachedData = {
-      nickname: localStorage.getItem("nudgeNicknameCache") || "自律使用者",
-      myNudgeId: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
-      username: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
-      signature: localStorage.getItem("nudgeSignatureCache") || "今天也在穩定前進",
-      accentColor: localStorage.getItem("nudgeAccentColorCache") || "purple",
-      profileTitleBadgeKey: localStorage.getItem("nudgeTitleBadgeCache") || "",
-      disciplineCoins: parseInt(localStorage.getItem("nudgeCoinsCache") || "100"),
-      planetCount: parseInt(localStorage.getItem("nudgePlanetsCache") || "1"),
-      userRole: localStorage.getItem("nudgeRoleCache") || "personal"
-    };
-    try { updateSidebarProfile(cachedData); } catch(e){}
+function bootFirebaseBackedData() {
+  setTimeout(injectAdminSwitch, 100);
 
-    if (document.body.dataset.page === "operations") {
-      const prosperityElement = document.querySelector(".hero-card strong");
-      if (prosperityElement) {
-        const coins = localStorage.getItem("nudgeCoinsCache") || "0";
-        prosperityElement.dataset.count = coins;
-        prosperityElement.textContent = coins;
-      }
+  // Render initial sidebar profile card from cache immediately
+  const cachedData = {
+    nickname: localStorage.getItem("nudgeNicknameCache") || "自律使用者",
+    myNudgeId: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
+    username: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
+    signature: localStorage.getItem("nudgeSignatureCache") || "今天也在穩定前進",
+    accentColor: localStorage.getItem("nudgeAccentColorCache") || "purple",
+    profileTitleBadgeKey: localStorage.getItem("nudgeTitleBadgeCache") || "",
+    disciplineCoins: parseInt(localStorage.getItem("nudgeCoinsCache") || "100"),
+    planetCount: parseInt(localStorage.getItem("nudgePlanetsCache") || "1"),
+    userRole: localStorage.getItem("nudgeRoleCache") || "personal"
+  };
+  try { updateSidebarProfile(cachedData); } catch(e){}
+
+  if (document.body.dataset.page === "operations") {
+    const prosperityElement = document.querySelector(".hero-card strong");
+    if (prosperityElement) {
+      const coins = localStorage.getItem("nudgeCoinsCache") || "0";
+      prosperityElement.dataset.count = coins;
+      prosperityElement.textContent = coins;
     }
+  }
 
-    try { initializeFirebaseWeb(); } catch(e){}
-});
+  try { initializeFirebaseWeb(); } catch(e){}
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bootFirebaseBackedData);
+} else {
+  bootFirebaseBackedData();
+}
 
 // ─── Firebase / Firestore Real-time Sync Integration ──────────────────────────
 
@@ -1776,8 +1787,17 @@ const firebaseConfig = {
 
 function loadFirebaseSDKs() {
   return new Promise((resolve) => {
-    if (window.firebase && window.firebase.auth && window.firebase.firestore) {
+    let settled = false;
+    const resolveOnce = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
       resolve();
+    };
+    const timeoutId = setTimeout(resolveOnce, 4000);
+
+    if (window.firebase && window.firebase.auth && window.firebase.firestore) {
+      resolveOnce();
       return;
     }
     const coreScript = document.createElement('script');
@@ -1789,15 +1809,15 @@ function loadFirebaseSDKs() {
         const dbScript = document.createElement('script');
         dbScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js";
         dbScript.onload = () => {
-          resolve();
+          resolveOnce();
         };
-        dbScript.onerror = () => resolve();
+        dbScript.onerror = () => resolveOnce();
         document.head.appendChild(dbScript);
       };
-      authScript.onerror = () => resolve();
+      authScript.onerror = () => resolveOnce();
       document.head.appendChild(authScript);
     };
-    coreScript.onerror = () => resolve();
+    coreScript.onerror = () => resolveOnce();
     document.head.appendChild(coreScript);
   });
 }
@@ -1813,25 +1833,56 @@ function initializeFirebaseWeb() {
         }
         db = firebase.firestore();
         console.log("Firebase initialized successfully on Web Center");
-        
-        // Listen to Auth State
-        firebase.auth().onAuthStateChanged((user) => {
+
+        const auth = firebase.auth();
+        const isPublic = () => {
+          const currentPath = window.location.pathname;
+          return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
+        };
+        const clearWebSession = () => {
+          localStorage.removeItem("nudgeWebLoggedIn");
+          localStorage.removeItem("nudgeActiveDemoUserId");
+        };
+        const redirectToLogin = () => {
+          const currentPath = window.location.pathname;
+          localStorage.setItem("nudgePostLoginRedirect", currentPath.split("/").pop() || "index.html");
+          window.location.href = "login.html";
+        };
+        const handleUser = (user) => {
           if (user) {
             console.log("Authenticated user detected:", user.uid);
             if (!user.isAnonymous) {
               localStorage.setItem("nudgeWebLoggedIn", "true");
               localStorage.setItem("nudgeActiveDemoUserId", user.uid);
             }
-          } else {
-            console.log("No authenticated user. Attempting anonymous sign in...");
-            // Sign in anonymously if not logged in, to allow reading the users list and data!
-            firebase.auth().signInAnonymously().catch(err => {
-              console.warn("Anonymous sign in failed: ", err);
-            });
+            startListeningToFirestoreData();
+            document.dispatchEvent(new Event('firebase-ready'));
+            return;
           }
-          startListeningToFirestoreData();
+
+          console.log("No authenticated user detected.");
+          clearWebSession();
+          if (!isPublic()) {
+            redirectToLogin();
+            return;
+          }
           document.dispatchEvent(new Event('firebase-ready'));
-        });
+        };
+
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+          .catch(err => {
+            console.warn("Auth persistence setup failed:", err);
+          })
+          .then(() => {
+            auth.onAuthStateChanged((user) => {
+              if (user || localStorage.getItem("nudgeWebLoggedIn") !== "true") {
+                handleUser(user);
+                return;
+              }
+
+              setTimeout(() => handleUser(auth.currentUser), 800);
+            });
+          });
       } catch (e) {
         console.warn("Firebase initialization failed, falling back to mock data: ", e);
         startListeningToFirestoreData();
@@ -1840,6 +1891,7 @@ function initializeFirebaseWeb() {
     } else {
       console.log("Firebase SDK not loaded, using local demo data");
       startListeningToFirestoreData();
+      document.dispatchEvent(new Event('firebase-ready'));
     }
   });
 }
@@ -1847,10 +1899,13 @@ function initializeFirebaseWeb() {
 function startListeningToFirestoreData() {
   if (!db) return;
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const viewUserId = urlParams.get('userId');
+
   // Always listen to the logged-in user first to prevent page load hangs
   const currentUser = firebase.auth().currentUser;
   const loggedInUid = currentUser ? currentUser.uid : null;
-  let activeUserId = loggedInUid || localStorage.getItem("nudgeActiveDemoUserId");
+  let activeUserId = viewUserId || loggedInUid || localStorage.getItem("nudgeActiveDemoUserId");
 
   if (activeUserId) {
     listenToUser(activeUserId);
@@ -1865,17 +1920,19 @@ function startListeningToFirestoreData() {
     let finalActiveUserId = activeUserId;
     if (users.length > 0) {
       if (!finalActiveUserId || !users.some(u => u.id === finalActiveUserId)) {
-        if (!loggedInUid) {
+        if (!loggedInUid && !viewUserId) {
           finalActiveUserId = users[0].id;
         }
       }
     }
 
     if (finalActiveUserId) {
-      localStorage.setItem("nudgeActiveDemoUserId", finalActiveUserId);
+      if (!viewUserId) {
+        localStorage.setItem("nudgeActiveDemoUserId", finalActiveUserId);
+      }
       
       // Inject user switcher only if there are multiple users to switch between
-      if (users.length > 0) {
+      if (users.length > 0 && !viewUserId) {
         const panel = getOrCreateSidePanel();
         if (panel && !$(".demo-user-select").length) {
           injectUserSwitcher(users, finalActiveUserId);
@@ -4889,28 +4946,134 @@ function renderWebProfilePage(data, isFriend, friendUid) {
   const feedContainer = document.getElementById("profileTimelineFeed");
   if (feedContainer) {
     const dailySummaries = data.dailySummaries || [];
+    const welcomePost = data.welcomePost || {};
+    const customPosts = data.customPosts || [];
     const tasks = data.tasks || [];
     const completedCount = tasks.filter(t => t.isDone || t.done).length;
     
+    // Check if the current user viewing the profile is the owner
+    const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+    const profileUserId = new URLSearchParams(window.location.search).get('userId') || new URLSearchParams(window.location.search).get('id') || activeUserId;
+    const isOwner = (activeUserId === profileUserId);
+
+    let allPosts = [];
+
+    dailySummaries.forEach((summary, idx) => {
+      if (summary.isDeleted) return;
+      allPosts.push({
+        id: summary.date,
+        isWelcome: false,
+        timestamp: new Date(summary.date).getTime() || 0,
+        dateStr: summary.date || `第 ${dailySummaries.length - idx} 天`,
+        content: summary.customText || getSummaryText(summary),
+        likes: summary.likes || 0,
+        likedBy: summary.likedBy || [],
+        comments: summary.comments || [],
+        metrics: {
+          focusMin: summary.focusMinutes || 0,
+          sleepHr: summary.sleepHours || 0,
+          stepCount: summary.steps || 0,
+          completedCount: summary.completedTasks || 0
+        }
+      });
+    });
+
+    customPosts.forEach(cp => {
+      if (cp.isDeleted) return;
+      const d = new Date(cp.timestamp);
+      const dateStr = d.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+      allPosts.push({
+        id: cp.id,
+        isWelcome: false,
+        isCustom: true,
+        timestamp: cp.timestamp,
+        dateStr: dateStr,
+        content: cp.content,
+        likes: cp.likes || 0,
+        likedBy: cp.likedBy || [],
+        comments: cp.comments || [],
+        metrics: null
+      });
+    });
+
+    if (!welcomePost.isDeleted) {
+      allPosts.push({
+        id: 'welcome',
+        isWelcome: true,
+        timestamp: 0, // Always oldest
+        dateStr: '剛剛',
+        content: welcomePost.customText || '今天正式啟用了 Nudge 自律名片！目前已設定自律目標，並準備在手機 App 端同步專注、睡眠與步數進度，開啟自律宇宙的全新生活！ 🪐✨',
+        likes: welcomePost.likes || 0,
+        likedBy: welcomePost.likedBy || [],
+        comments: welcomePost.comments || [],
+        metrics: null
+      });
+    }
+
+    allPosts.sort((a, b) => b.timestamp - a.timestamp);
     let postsHtml = '';
 
-    if (dailySummaries.length > 0) {
-      const sortedSummaries = [...dailySummaries].reverse();
-      sortedSummaries.forEach((summary, idx) => {
-        const dateStr = summary.date || `第 ${dailySummaries.length - idx} 天`;
-        const score = summary.disciplineScore || 0;
-        const focusMin = summary.focusMinutes || 0;
-        const sleepHr = summary.sleepHours || 0;
-        const stepCount = summary.steps || 0;
-        
-        let statusText = '';
-        if (score >= 90) {
-          statusText = `今天自律狀態爆表！達成了 ${score} 的高分！特別是完成了所有核心挑戰，感覺充滿能量！ 🚀✨`;
-        } else if (score >= 75) {
-          statusText = `今天的自律進度很穩定，得分為 ${score}。番茄鐘專注與健康運動都有乖乖執行，繼續保持這個節奏！ 💪`;
-        } else {
-          statusText = `今天自律得分為 ${score}。雖然有些項目稍微落後，但沒關係，自律是個長跑，明天再接再厲！ 🌟`;
+    function getSummaryText(summary) {
+      const score = summary.disciplineScore || 0;
+      if (score >= 90) return `今天自律狀態爆表！達成了 ${score} 的高分！特別是完成了所有核心挑戰，感覺充滿能量！ 🚀✨`;
+      if (score >= 75) return `今天的自律進度很穩定，得分為 ${score}。番茄鐘專注與健康運動都有乖乖執行，繼續保持這個節奏！ 💪`;
+      return `今天自律得分為 ${score}。雖然有些項目稍微落後，但沒關係，自律是個長跑，明天再接再厲！ 🌟`;
+    }
+
+    if (allPosts.length > 0) {
+      allPosts.forEach(post => {
+        let metricsHtml = '';
+        if (post.metrics) {
+          metricsHtml = `
+            <div class="fb-post-metrics-grid">
+              <div class="fb-metric-pill focus"><span class="icon">⏱️</span><div class="fb-metric-details"><span class="fb-metric-label">專注時間</span><span class="fb-metric-val">${post.metrics.focusMin} 分鐘</span></div></div>
+              <div class="fb-metric-pill sleep"><span class="icon">🌙</span><div class="fb-metric-details"><span class="fb-metric-label">睡眠時數</span><span class="fb-metric-val">${post.metrics.sleepHr} 小時</span></div></div>
+              <div class="fb-metric-pill steps"><span class="icon">👣</span><div class="fb-metric-details"><span class="fb-metric-label">今日步數</span><span class="fb-metric-val">${post.metrics.stepCount} 步</span></div></div>
+              <div class="fb-metric-pill tasks"><span class="icon">✅</span><div class="fb-metric-details"><span class="fb-metric-label">完成任務</span><span class="fb-metric-val">${post.metrics.completedCount} 個任務</span></div></div>
+            </div>
+          `;
         }
+
+        let commentsHtml = '';
+        if (post.comments.length > 0) {
+          commentsHtml = `<div class="fb-post-comments-section">`;
+          post.comments.forEach((c, cIndex) => {
+            const avatarChar = c.author ? c.author.substring(0, 1).toUpperCase() : '👤';
+            const activeUserName = localStorage.getItem("nudgeActiveDemoUserName") || "訪客";
+            const canDeleteComment = isOwner || c.author === activeUserName;
+            const deleteBtnHtml = canDeleteComment ? `<div style="font-size: 12px; color: var(--muted); cursor: pointer; margin-left: auto; align-self: flex-start; padding: 4px;" onclick="window.deleteComment('${post.id}', ${post.isWelcome}, ${post.isCustom}, ${cIndex})">✕</div>` : '';
+
+            commentsHtml += `
+              <div class="fb-post-comment-item">
+                <div class="fb-post-comment-avatar" style="background: var(--page-accent, #7c6ae6)">${avatarChar}</div>
+                <div class="fb-post-comment-content" style="display: flex; gap: 8px;">
+                  <div style="flex-grow: 1;">
+                    <div class="fb-post-comment-author">${c.author}</div>
+                    <div class="fb-post-comment-text">${c.text}</div>
+                  </div>
+                  ${deleteBtnHtml}
+                </div>
+              </div>
+            `;
+          });
+          commentsHtml += `</div>`;
+        }
+
+        const dropdownHtml = isOwner ? `
+          <div class="fb-post-dropdown-container">
+            <div style="color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 8px;" onclick="window.togglePostMenu('${post.id}')">•••</div>
+            <div class="fb-post-dropdown-menu" id="post-menu-${post.id}">
+              <div class="fb-post-dropdown-item" onclick="window.editPost('${post.id}', ${post.isWelcome}, ${post.isCustom})">✏️ 修改貼文</div>
+              <div class="fb-post-dropdown-item delete" onclick="window.deletePost('${post.id}', ${post.isWelcome}, ${post.isCustom})">🗑️ 刪除貼文</div>
+            </div>
+          </div>
+        ` : ``;
+
+        const hasLiked = post.likedBy.includes(activeUserId === profileUserId ? (localStorage.getItem("nudgeActiveDemoUserName") || "訪客") : "訪客"); // Wait, activeUserName is what's used
+        const activeUserName = localStorage.getItem("nudgeActiveDemoUserName") || "訪客";
+        const isLiked = post.likedBy.includes(activeUserName);
+        const likeBtnStyle = isLiked ? 'color: var(--page-accent, #a855f7); font-weight: bold; background: rgba(168, 85, 247, 0.1);' : '';
+        const likeBtnText = isLiked ? '👍 已讚' : '👍 讚';
 
         postsHtml += `
           <article class="fb-post-card">
@@ -4922,83 +5085,30 @@ function renderWebProfilePage(data, isFriend, friendUid) {
                     <span class="fb-post-author-name">${nickname}</span>
                     ${badgeName ? `<span class="fb-profile-badge" style="font-size: 10px; padding: 2px 8px;">🏆 ${badgeName}</span>` : ''}
                   </div>
-                  <span class="fb-post-time">${dateStr}</span>
+                  <span class="fb-post-time">${post.dateStr}</span>
                 </div>
               </div>
-              <div style="color: var(--muted); font-size: 18px; cursor: pointer;">•••</div>
+              ${dropdownHtml}
             </div>
-            <div class="fb-post-content">${statusText}</div>
-            <div class="fb-post-metrics-grid">
-              <div class="fb-metric-pill focus">
-                <span class="icon">⏱️</span>
-                <div class="fb-metric-details">
-                  <span class="fb-metric-label">專注時間</span>
-                  <span class="fb-metric-val">${focusMin} 分鐘</span>
-                </div>
-              </div>
-              <div class="fb-metric-pill sleep">
-                <span class="icon">🌙</span>
-                <div class="fb-metric-details">
-                  <span class="fb-metric-label">睡眠時數</span>
-                  <span class="fb-metric-val">${sleepHr} 小時</span>
-                </div>
-              </div>
-              <div class="fb-metric-pill steps">
-                <span class="icon">👣</span>
-                <div class="fb-metric-details">
-                  <span class="fb-metric-label">今日步數</span>
-                  <span class="fb-metric-val">${stepCount} 步</span>
-                </div>
-              </div>
-              <div class="fb-metric-pill tasks">
-                <span class="icon">✅</span>
-                <div class="fb-metric-details">
-                  <span class="fb-metric-label">完成任務</span>
-                  <span class="fb-metric-val">${completedCount} 個任務</span>
-                </div>
-              </div>
-            </div>
+            <div class="fb-post-content" id="post-content-${post.id}">${post.content}</div>
+            ${metricsHtml}
             <div class="fb-post-feedback-summary">
-              <span>👍 小安 與其他 12 人都說讚</span>
-              <span>4 則留言 • 2 次分享</span>
+              <span>👍 ${post.likes} 人按讚</span>
+              <span>${post.comments.length} 則留言 • 0 次分享</span>
             </div>
             <div class="fb-post-feedback-actions">
-              <button class="fb-post-action-btn" onclick="toast('已按讚此動態！')">👍 讚</button>
-              <button class="fb-post-action-btn" onclick="toast('留言功能開發中...')">💬 留言</button>
-              <button class="fb-post-action-btn" onclick="toast('已複製動態連結！')">↪️ 分享</button>
+              <button class="fb-post-action-btn" style="${likeBtnStyle}" onclick="window.toggleLikePost('${post.id}', ${post.isWelcome}, ${post.isCustom})">${likeBtnText}</button>
+              <button class="fb-post-action-btn" onclick="window.addCommentToPost('${post.id}', ${post.isWelcome}, ${post.isCustom})">💬 留言</button>
+              <button class="fb-post-action-btn" onclick="window.sharePost('${post.id}')">↪️ 分享</button>
             </div>
+            ${commentsHtml}
           </article>
         `;
       });
     } else {
-      postsHtml = `
-        <article class="fb-post-card">
-          <div class="fb-post-header">
-            <div class="fb-post-author-info">
-              <div class="fb-mini-avatar" style="background: ${accentColor};">${nickname.substring(0, 1).toUpperCase()}</div>
-              <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="fb-post-author-name">${nickname}</span>
-                  ${badgeName ? `<span class="fb-profile-badge" style="font-size: 10px; padding: 2px 8px;">🏆 ${badgeName}</span>` : ''}
-                </div>
-                <span class="fb-post-time">剛剛</span>
-              </div>
-            </div>
-            <div style="color: var(--muted); font-size: 18px; cursor: pointer;">•••</div>
-          </div>
-          <div class="fb-post-content">今天正式啟用了 Nudge 自律名片！目前已設定自律目標，並準備在手機 App 端同步專注、睡眠與步數進度，開啟自律宇宙的全新生活！ 🪐✨</div>
-          <div class="fb-post-feedback-summary">
-            <span>👍 0 人按讚</span>
-            <span>0 則留言 • 0 次分享</span>
-          </div>
-          <div class="fb-post-feedback-actions">
-            <button class="fb-post-action-btn" onclick="toast('已按讚此動態！')">👍 讚</button>
-            <button class="fb-post-action-btn" onclick="toast('留言功能開發中...')">💬 留言</button>
-            <button class="fb-post-action-btn" onclick="toast('已複製動態連結！')">↪️ 分享</button>
-          </div>
-        </article>
-      `;
+      postsHtml = `<div style="text-align: center; color: var(--muted); padding: 40px;">目前沒有任何動態。</div>`;
     }
+
     feedContainer.innerHTML = postsHtml;
   }
 }

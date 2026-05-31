@@ -107,7 +107,9 @@ class AppState extends ChangeNotifier {
 
   void _listenToAuthChanges() {
     try {
-      fb_auth.FirebaseAuth.instance.authStateChanges().listen((fb_auth.User? user) async {
+      fb_auth.FirebaseAuth.instance.authStateChanges().listen((
+        fb_auth.User? user,
+      ) async {
         if (user != null) {
           _isGuestMode = false;
           await _syncProfileFromFirebaseUser(user);
@@ -127,10 +129,12 @@ class AppState extends ChangeNotifier {
   List<FriendRequest> _outgoingRequestsList = [];
 
   List<Map<String, dynamic>> _incomingGuardianRequests = [];
-  List<Map<String, dynamic>> get incomingGuardianRequests => _incomingGuardianRequests;
+  List<Map<String, dynamic>> get incomingGuardianRequests =>
+      _incomingGuardianRequests;
 
   List<Map<String, dynamic>> _outgoingGuardianRequests = [];
-  List<Map<String, dynamic>> get outgoingGuardianRequests => _outgoingGuardianRequests;
+  List<Map<String, dynamic>> get outgoingGuardianRequests =>
+      _outgoingGuardianRequests;
 
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
@@ -141,92 +145,121 @@ class AppState extends ChangeNotifier {
         .doc(user.uid)
         .snapshots()
         .listen((docSnap) {
-      try {
-        if (docSnap.exists) {
-          final data = docSnap.data()!;
-          _currentUser = UserModel.fromJson(data);
-          _profileNickname = _currentUser!.nickname;
-          _profileSignature = _currentUser!.signature;
-          _myNudgeId = _currentUser!.username;
-          _themeModeSetting = _currentUser!.themeMode;
-          _iconColorSetting = _currentUser!.accentColor;
-          _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
-          _unlockedPlanets = _parseUnlockedPlanets(data);
-          _planetCount = _unlockedPlanets.length - 1;
-          _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
-          _lastSettledWeekMonday = data['lastSettledWeekMonday'] as String? ?? _lastSettledWeekMonday;
-          if (data['rewardedTaskKeys'] != null) {
-            _rewardedTaskKeys = Set<String>.from(List<String>.from(data['rewardedTaskKeys']));
-          }
-          if (data['dailyCoinEarned'] != null) {
-            final Map decoded = data['dailyCoinEarned'] as Map;
-            _dailyCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
-          }
-          if (data['monthlyDeadlineCoinEarned'] != null) {
-            final Map decoded = data['monthlyDeadlineCoinEarned'] as Map;
-            _monthlyDeadlineCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
-          }
-          if (data['avatarProfile'] != null) {
-            _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile'] as Map));
-          }
-          if (data['unlockedAvatarItems'] != null) {
-            _unlockedAvatarItemKeys = Set<String>.from(List<String>.from(data['unlockedAvatarItems']));
-          }
-          if (data['unlockedBadgeDates'] != null) {
-            _unlockedBadgeDates = Map<String, String>.from(data['unlockedBadgeDates'] as Map);
-          }
-          if (data['tasks'] != null) {
-            _tasks = List<Map<String, dynamic>>.from(
-              (data['tasks'] as List).map((t) => Map<String, dynamic>.from(t as Map)),
-            );
-          }
-          if (data['dailySummaries'] != null) {
-            _dailySummaries = List<DailySummary>.from(
-              (data['dailySummaries'] as List).map((s) => DailySummary.fromJson(Map<String, dynamic>.from(s as Map))),
-            );
-          }
-          if (data['webToolsState'] != null) {
-            _webToolsState = Map<String, dynamic>.from(data['webToolsState'] as Map);
-          } else {
-            _webToolsState = null;
-          }
-          if (data['webToolsCollection'] != null) {
-            _webToolsCollection = Map<String, dynamic>.from(data['webToolsCollection'] as Map);
-          } else {
-            _webToolsCollection = null;
-          }
-          _userRole = data['userRole'] as String? ?? _userRole;
-          _groupId = data['groupId'] as String?;
-          _groupName = data['groupName'] as String?;
-          _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
-          _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? '';
-          if (data['backgroundTheme'] != null) {
-            final bt = data['backgroundTheme'] as String;
-            if (AppUI.backgroundThemeKeys.contains(bt)) {
-              _backgroundThemeSetting = bt;
+          try {
+            if (docSnap.exists) {
+              final data = docSnap.data()!;
+              _currentUser = UserModel.fromJson(data);
+              _profileNickname = _currentUser!.nickname;
+              _profileSignature = _currentUser!.signature;
+              _myNudgeId = _currentUser!.username;
+              _themeModeSetting = _currentUser!.themeMode;
+              _iconColorSetting = _currentUser!.accentColor;
+              _disciplineCoins =
+                  (data['disciplineCoins'] as num?)?.toInt() ??
+                  _disciplineCoins;
+              _unlockedPlanets = _parseUnlockedPlanets(data);
+              _planetCount = _unlockedPlanets.length - 1;
+              _weeklyPlanetEarned =
+                  data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
+              _lastSettledWeekMonday =
+                  data['lastSettledWeekMonday'] as String? ??
+                  _lastSettledWeekMonday;
+              if (data['rewardedTaskKeys'] != null) {
+                _rewardedTaskKeys = Set<String>.from(
+                  List<String>.from(data['rewardedTaskKeys']),
+                );
+              }
+              if (data['dailyCoinEarned'] != null) {
+                final Map decoded = data['dailyCoinEarned'] as Map;
+                _dailyCoinEarned = decoded.map(
+                  (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+                );
+              }
+              if (data['monthlyDeadlineCoinEarned'] != null) {
+                final Map decoded = data['monthlyDeadlineCoinEarned'] as Map;
+                _monthlyDeadlineCoinEarned = decoded.map(
+                  (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+                );
+              }
+              if (data['avatarProfile'] != null) {
+                _avatarProfile = AvatarProfile.fromJson(
+                  Map<String, dynamic>.from(data['avatarProfile'] as Map),
+                );
+              }
+              if (data['unlockedAvatarItems'] != null) {
+                _unlockedAvatarItemKeys = Set<String>.from(
+                  List<String>.from(data['unlockedAvatarItems']),
+                );
+              }
+              if (data['unlockedBadgeDates'] != null) {
+                _unlockedBadgeDates = Map<String, String>.from(
+                  data['unlockedBadgeDates'] as Map,
+                );
+              }
+              if (data['tasks'] != null) {
+                _tasks = List<Map<String, dynamic>>.from(
+                  (data['tasks'] as List).map(
+                    (t) => Map<String, dynamic>.from(t as Map),
+                  ),
+                );
+              }
+              if (data['dailySummaries'] != null) {
+                _dailySummaries = List<DailySummary>.from(
+                  (data['dailySummaries'] as List).map(
+                    (s) => DailySummary.fromJson(
+                      Map<String, dynamic>.from(s as Map),
+                    ),
+                  ),
+                );
+              }
+              if (data['webToolsState'] != null) {
+                _webToolsState = Map<String, dynamic>.from(
+                  data['webToolsState'] as Map,
+                );
+              } else {
+                _webToolsState = null;
+              }
+              if (data['webToolsCollection'] != null) {
+                _webToolsCollection = Map<String, dynamic>.from(
+                  data['webToolsCollection'] as Map,
+                );
+              } else {
+                _webToolsCollection = null;
+              }
+              _userRole = data['userRole'] as String? ?? _userRole;
+              _groupId = data['groupId'] as String?;
+              _groupName = data['groupName'] as String?;
+              _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
+              _profileTitleBadgeKey =
+                  data['profileTitleBadgeKey'] as String? ?? '';
+              if (data['backgroundTheme'] != null) {
+                final bt = data['backgroundTheme'] as String;
+                if (AppUI.backgroundThemeKeys.contains(bt)) {
+                  _backgroundThemeSetting = bt;
+                }
+              }
+              if (data['focusSeconds'] != null) {
+                final cloudFocusSeconds =
+                    (data['focusSeconds'] as num?)?.toInt() ?? 0;
+                if (cloudFocusSeconds > _focusSeconds) {
+                  _focusSeconds = cloudFocusSeconds;
+                }
+              }
+              if (_groupId != null && !_isGroupOwner) {
+                _setupGroupOwnerListener(user.uid, _groupId!);
+              } else {
+                _groupOwnerSubscription?.cancel();
+                _groupOwnerSubscription = null;
+              }
+              _syncTaskRewards();
+              checkWeeklyPlanetSettlement();
+              notifyListeners();
             }
+          } catch (e, stack) {
+            debugPrint('Error inside Firestore user snapshot listener: $e');
+            debugPrint('Stacktrace: $stack');
           }
-          if (data['focusSeconds'] != null) {
-            final cloudFocusSeconds = (data['focusSeconds'] as num?)?.toInt() ?? 0;
-            if (cloudFocusSeconds > _focusSeconds) {
-              _focusSeconds = cloudFocusSeconds;
-            }
-          }
-          if (_groupId != null && !_isGroupOwner) {
-            _setupGroupOwnerListener(user.uid, _groupId!);
-          } else {
-            _groupOwnerSubscription?.cancel();
-            _groupOwnerSubscription = null;
-          }
-          _syncTaskRewards();
-          checkWeeklyPlanetSettlement();
-          notifyListeners();
-        }
-      } catch (e, stack) {
-        debugPrint('Error inside Firestore user snapshot listener: $e');
-        debugPrint('Stacktrace: $stack');
-      }
-    });
+        });
 
     // Friends listener
     _friendsSubscription = FirebaseFirestore.instance
@@ -235,9 +268,11 @@ class AppState extends ChangeNotifier {
         .collection('friends')
         .snapshots()
         .listen((snapshot) {
-      _socialFriends = snapshot.docs.map((doc) => SocialFriendProfile.fromJson(doc.data())).toList();
-      notifyListeners();
-    });
+          _socialFriends = snapshot.docs
+              .map((doc) => SocialFriendProfile.fromJson(doc.data()))
+              .toList();
+          notifyListeners();
+        });
 
     // Incoming requests listener
     _incomingRequestsSubscription = FirebaseFirestore.instance
@@ -246,22 +281,23 @@ class AppState extends ChangeNotifier {
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .listen((snapshot) {
-      _incomingRequestsList = snapshot.docs.map((doc) {
-        final data = doc.data();
-        final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-        return FriendRequest(
-          id: doc.id,
-          nudgeId: data['senderNudgeId'] as String? ?? '',
-          name: data['senderName'] as String? ?? '',
-          signature: data['senderSignature'] as String? ?? '',
-          direction: FriendRequestDirection.incoming,
-          status: FriendRequestStatus.pending,
-          createdAt: createdAt,
-        );
-      }).toList();
-      _friendRequests = _incomingRequestsList + _outgoingRequestsList;
-      notifyListeners();
-    });
+          _incomingRequestsList = snapshot.docs.map((doc) {
+            final data = doc.data();
+            final createdAt =
+                (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+            return FriendRequest(
+              id: doc.id,
+              nudgeId: data['senderNudgeId'] as String? ?? '',
+              name: data['senderName'] as String? ?? '',
+              signature: data['senderSignature'] as String? ?? '',
+              direction: FriendRequestDirection.incoming,
+              status: FriendRequestStatus.pending,
+              createdAt: createdAt,
+            );
+          }).toList();
+          _friendRequests = _incomingRequestsList + _outgoingRequestsList;
+          notifyListeners();
+        });
 
     // Outgoing requests listener
     _outgoingRequestsSubscription = FirebaseFirestore.instance
@@ -270,22 +306,23 @@ class AppState extends ChangeNotifier {
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .listen((snapshot) {
-      _outgoingRequestsList = snapshot.docs.map((doc) {
-        final data = doc.data();
-        final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-        return FriendRequest(
-          id: doc.id,
-          nudgeId: data['receiverNudgeId'] as String? ?? '',
-          name: data['receiverName'] as String? ?? '',
-          signature: data['receiverSignature'] as String? ?? '',
-          direction: FriendRequestDirection.outgoing,
-          status: FriendRequestStatus.pending,
-          createdAt: createdAt,
-        );
-      }).toList();
-      _friendRequests = _incomingRequestsList + _outgoingRequestsList;
-      notifyListeners();
-    });
+          _outgoingRequestsList = snapshot.docs.map((doc) {
+            final data = doc.data();
+            final createdAt =
+                (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+            return FriendRequest(
+              id: doc.id,
+              nudgeId: data['receiverNudgeId'] as String? ?? '',
+              name: data['receiverName'] as String? ?? '',
+              signature: data['receiverSignature'] as String? ?? '',
+              direction: FriendRequestDirection.outgoing,
+              status: FriendRequestStatus.pending,
+              createdAt: createdAt,
+            );
+          }).toList();
+          _friendRequests = _incomingRequestsList + _outgoingRequestsList;
+          notifyListeners();
+        });
 
     // Study rooms listener — watches every room where the user is a member
     // The room document's 'memberIds' array field tracks who's in the room.
@@ -294,41 +331,49 @@ class AppState extends ChangeNotifier {
         .where('memberIds', arrayContains: user.uid)
         .snapshots()
         .listen((snapshot) {
-      _mergeFirestoreRooms(snapshot.docs);
-    });
+          _mergeFirestoreRooms(snapshot.docs);
+        });
 
-    // Shop items listener (dynamic characters)
+    // Shop items listener (dynamic character series)
     _shopSubscription = FirebaseFirestore.instance
         .collection('shop_items')
         .snapshots()
         .listen((snapshot) {
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        if (data['type'] == 'event_character') {
-          final name = data['name'] as String? ?? '未命名角色';
-          final price = data['price'] as int? ?? 60;
-          final imagePath = data['image_path'] as String? ?? '';
-          
-          final dynamicIndex = 18 + (name.hashCode.abs() % 1000);
-          
-          final stage = AvatarEvolutionStage(
-            index: dynamicIndex,
-            series: '活動限定角色',
-            name: name,
-            stage: 1,
-            requiredLevel: 1,
-            requiredExperience: 0,
-            description: 'Web 端上架的活動限時角色。',
-            characterAsset: imagePath,
-            iconAsset: imagePath,
-            coinPrice: price,
-          );
-          
-          AvatarCatalog.addDynamicStage(stage);
-        }
-      }
-      notifyListeners();
-    });
+          final docs =
+              snapshot.docs
+                  .where((doc) => _isActiveShopItem(doc.data()))
+                  .toList()
+                ..sort((a, b) {
+                  final aCreated = _shopTimestampSeconds(
+                    a.data()['created_at'],
+                  );
+                  final bCreated = _shopTimestampSeconds(
+                    b.data()['created_at'],
+                  );
+                  final createdComparison = aCreated.compareTo(bCreated);
+                  if (createdComparison != 0) return createdComparison;
+                  return a.id.compareTo(b.id);
+                });
+
+          final dynamicStages = <AvatarEvolutionStage>[];
+          var fallbackIndex = 18;
+          for (final doc in docs) {
+            final data = doc.data();
+            if (data['type'] != 'event_character') continue;
+            final parsedStages = _dynamicStagesFromShopItem(
+              doc.id,
+              data,
+              fallbackIndex,
+            );
+            if (parsedStages.isEmpty) continue;
+            dynamicStages.addAll(parsedStages);
+            fallbackIndex =
+                parsedStages.map((stage) => stage.index).reduce(math.max) + 1;
+          }
+          AvatarCatalog.replaceDynamicStages(dynamicStages);
+          _normalizeAvatarProfileForCatalog();
+          notifyListeners();
+        });
 
     // Incoming guardian requests listener
     _incomingGuardianRequestsSubscription = FirebaseFirestore.instance
@@ -336,18 +381,24 @@ class AppState extends ChangeNotifier {
         .where('receiverId', isEqualTo: user.uid)
         .snapshots()
         .listen((snapshot) {
-      final docs = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-      _incomingGuardianRequests = docs.where((d) => d['status'] == 'pending').toList();
-      
-      // Check for accepted request to trigger local profile linkage update
-      final accepted = docs.where((d) => d['status'] == 'accepted').toList();
-      if (accepted.isNotEmpty && !isGuardianLinked) {
-        _autoUpdateLinkage(accepted.first, user.uid);
-      } else if (accepted.isEmpty && isGuardianLinked) {
-        _checkAndAutoClearLinkage(user.uid);
-      }
-      notifyListeners();
-    });
+          final docs = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+          _incomingGuardianRequests = docs
+              .where((d) => d['status'] == 'pending')
+              .toList();
+
+          // Check for accepted request to trigger local profile linkage update
+          final accepted = docs
+              .where((d) => d['status'] == 'accepted')
+              .toList();
+          if (accepted.isNotEmpty && !isGuardianLinked) {
+            _autoUpdateLinkage(accepted.first, user.uid);
+          } else if (accepted.isEmpty && isGuardianLinked) {
+            _checkAndAutoClearLinkage(user.uid);
+          }
+          notifyListeners();
+        });
 
     // Outgoing guardian requests listener
     _outgoingGuardianRequestsSubscription = FirebaseFirestore.instance
@@ -355,34 +406,150 @@ class AppState extends ChangeNotifier {
         .where('senderId', isEqualTo: user.uid)
         .snapshots()
         .listen((snapshot) {
-      final docs = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-      _outgoingGuardianRequests = docs.where((d) => d['status'] == 'pending').toList();
-      
-      // Check for accepted request to trigger local profile linkage update
-      final accepted = docs.where((d) => d['status'] == 'accepted').toList();
-      if (accepted.isNotEmpty && !isGuardianLinked) {
-        _autoUpdateLinkage(accepted.first, user.uid);
-      } else if (accepted.isEmpty && isGuardianLinked) {
-        _checkAndAutoClearLinkage(user.uid);
-      }
-      notifyListeners();
-    });
+          final docs = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+          _outgoingGuardianRequests = docs
+              .where((d) => d['status'] == 'pending')
+              .toList();
+
+          // Check for accepted request to trigger local profile linkage update
+          final accepted = docs
+              .where((d) => d['status'] == 'accepted')
+              .toList();
+          if (accepted.isNotEmpty && !isGuardianLinked) {
+            _autoUpdateLinkage(accepted.first, user.uid);
+          } else if (accepted.isEmpty && isGuardianLinked) {
+            _checkAndAutoClearLinkage(user.uid);
+          }
+          notifyListeners();
+        });
+  }
+
+  int _shopTimestampSeconds(dynamic value) {
+    if (value is Timestamp) return value.seconds;
+    if (value is DateTime) return value.millisecondsSinceEpoch ~/ 1000;
+    if (value is num) return value.toInt();
+    return 0;
+  }
+
+  bool _isActiveShopItem(Map<String, dynamic> data) {
+    final type = data['type'] as String? ?? 'permanent';
+    final expiresAt = _shopTimestampSeconds(data['expires_at']);
+    if (type == 'permanent' || expiresAt == 0) return true;
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final startAt = _shopTimestampSeconds(data['start_time']);
+    final endAt = _shopTimestampSeconds(data['end_time']) == 0
+        ? expiresAt
+        : _shopTimestampSeconds(data['end_time']);
+    return startAt <= now && now <= endAt;
+  }
+
+  List<AvatarEvolutionStage> _dynamicStagesFromShopItem(
+    String documentId,
+    Map<String, dynamic> data,
+    int fallbackIndex,
+  ) {
+    final seriesName =
+        data['series_name'] as String? ?? data['name'] as String? ?? '活動限定角色';
+    final description = data['description'] as String? ?? 'Web 端上架的活動限時角色。';
+    final price = (data['price'] as num?)?.toInt() ?? 60;
+    final baseIndex = (data['catalog_index_base'] as num?)?.toInt();
+    final rawStages = data['character_stages'];
+
+    if (rawStages is List && rawStages.isNotEmpty) {
+      return rawStages
+          .asMap()
+          .entries
+          .map((entry) {
+            final stageData = Map<String, dynamic>.from(entry.value as Map);
+            final stageNumber =
+                (stageData['stage'] as num?)?.toInt() ?? entry.key + 1;
+            final defaultRequirement = _defaultDynamicStageRequirement(
+              stageNumber,
+            );
+            final characterAsset =
+                stageData['character_asset'] as String? ??
+                stageData['image_path'] as String? ??
+                data['image_path'] as String? ??
+                '';
+            final iconAsset =
+                stageData['icon_asset'] as String? ??
+                stageData['icon_path'] as String? ??
+                characterAsset;
+            return AvatarEvolutionStage(
+              index:
+                  (stageData['catalog_index'] as num?)?.toInt() ??
+                  (baseIndex == null
+                      ? fallbackIndex + entry.key
+                      : baseIndex + stageNumber - 1),
+              series: seriesName,
+              name:
+                  stageData['name'] as String? ??
+                  '$seriesName 第 $stageNumber 階',
+              stage: stageNumber,
+              requiredLevel:
+                  (stageData['required_level'] as num?)?.toInt() ??
+                  defaultRequirement.$1,
+              requiredExperience:
+                  (stageData['required_experience'] as num?)?.toInt() ??
+                  defaultRequirement.$2,
+              description: stageData['description'] as String? ?? description,
+              characterAsset: characterAsset,
+              iconAsset: iconAsset,
+              coinPrice: stageNumber == 1
+                  ? ((stageData['coin_price'] as num?)?.toInt() ?? price)
+                  : 0,
+            );
+          })
+          .toList(growable: false);
+    }
+
+    final imagePath = data['image_path'] as String? ?? '';
+    return [
+      AvatarEvolutionStage(
+        index: baseIndex ?? fallbackIndex,
+        series: seriesName == '活動限定角色' ? '$seriesName $documentId' : seriesName,
+        name: data['name'] as String? ?? '未命名角色',
+        stage: 1,
+        requiredLevel: 1,
+        requiredExperience: 0,
+        description: description,
+        characterAsset: imagePath,
+        iconAsset: imagePath,
+        coinPrice: price,
+      ),
+    ];
+  }
+
+  (int, int) _defaultDynamicStageRequirement(int stage) {
+    if (stage <= 1) return (1, 0);
+    if (stage == 2) return (30, 10000);
+    return (60, 30000);
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
   /// Local-only rooms (id starts with 'room_demo_') are kept as-is.
-  void _mergeFirestoreRooms(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+  void _mergeFirestoreRooms(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
     final remoteRooms = docs.map((doc) {
       final data = doc.data();
       return StudyRoomData.fromJson(data);
     }).toList();
 
     // Keep any demo/local-only rooms that aren't in Firestore.
-    final demoRooms = _studyRooms.where((r) => r.id.startsWith('room_demo_')).toList();
+    final demoRooms = _studyRooms
+        .where((r) => r.id.startsWith('room_demo_'))
+        .toList();
 
     // Merge: remote rooms replace local copies (preserving local data for unlisted rooms).
     final remoteIds = remoteRooms.map((r) => r.id).toSet();
-    final localOnlyRooms = _studyRooms.where((r) => !remoteIds.contains(r.id) && !r.id.startsWith('room_demo_')).toList();
+    final localOnlyRooms = _studyRooms
+        .where(
+          (r) => !remoteIds.contains(r.id) && !r.id.startsWith('room_demo_'),
+        )
+        .toList();
 
     _studyRooms = [...remoteRooms, ...localOnlyRooms, ...demoRooms];
     _syncMyFocusSecondsAcrossRooms();
@@ -416,7 +583,10 @@ class AppState extends ChangeNotifier {
     _groupOwnerSubscription = null;
   }
 
-  Future<void> _autoUpdateLinkage(Map<String, dynamic> requestData, String myUid) async {
+  Future<void> _autoUpdateLinkage(
+    Map<String, dynamic> requestData,
+    String myUid,
+  ) async {
     final senderId = requestData['senderId'] as String;
     final senderNudgeId = requestData['senderNudgeId'] as String;
     final receiverNudgeId = requestData['receiverNudgeId'] as String;
@@ -434,7 +604,7 @@ class AppState extends ChangeNotifier {
         'webToolsState.guardianInviteStatus': {
           'status': 'linked',
           'updatedAt': DateTime.now().toIso8601String(),
-        }
+        },
       });
     } catch (e) {
       debugPrint('Failed to auto-update relative linkage: $e');
@@ -480,7 +650,9 @@ class AppState extends ChangeNotifier {
 
   Future<void> _syncProfileFromFirebaseUser(fb_auth.User user) async {
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid);
       final docSnap = await docRef.get();
 
       if (docSnap.exists) {
@@ -522,7 +694,9 @@ class AppState extends ChangeNotifier {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.set({
         'nickname': _profileNickname,
         'signature': _profileSignature,
@@ -539,7 +713,8 @@ class AppState extends ChangeNotifier {
         'rewardedTaskKeys': _rewardedTaskKeys.toList(),
         'dailyCoinEarned': _dailyCoinEarned,
         'monthlyDeadlineCoinEarned': _monthlyDeadlineCoinEarned,
-        'focusSeconds': _focusSeconds, // ← synced for web dashboard real-time stats
+        'focusSeconds':
+            _focusSeconds, // ← synced for web dashboard real-time stats
         'avatarProfile': _avatarProfile.toJson(),
         'unlockedAvatarItems': _unlockedAvatarItemKeys.toList(),
         'tasks': _tasks,
@@ -562,7 +737,9 @@ class AppState extends ChangeNotifier {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       final docSnap = await docRef.get();
       if (docSnap.exists) {
         final data = docSnap.data()!;
@@ -571,43 +748,64 @@ class AppState extends ChangeNotifier {
             (data['tasks'] as List).map((t) => Map<String, dynamic>.from(t)),
           );
         }
-        _disciplineCoins = (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
+        _disciplineCoins =
+            (data['disciplineCoins'] as num?)?.toInt() ?? _disciplineCoins;
         _unlockedPlanets = _parseUnlockedPlanets(data);
         _planetCount = _unlockedPlanets.length - 1;
-        _weeklyPlanetEarned = data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
-        _lastSettledWeekMonday = data['lastSettledWeekMonday'] as String? ?? _lastSettledWeekMonday;
+        _weeklyPlanetEarned =
+            data['weeklyPlanetEarned'] as bool? ?? _weeklyPlanetEarned;
+        _lastSettledWeekMonday =
+            data['lastSettledWeekMonday'] as String? ?? _lastSettledWeekMonday;
         if (data['rewardedTaskKeys'] != null) {
-          _rewardedTaskKeys = Set<String>.from(List<String>.from(data['rewardedTaskKeys']));
+          _rewardedTaskKeys = Set<String>.from(
+            List<String>.from(data['rewardedTaskKeys']),
+          );
         }
         if (data['dailyCoinEarned'] != null) {
           final Map decoded = data['dailyCoinEarned'] as Map;
-          _dailyCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+          _dailyCoinEarned = decoded.map(
+            (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+          );
         }
         if (data['monthlyDeadlineCoinEarned'] != null) {
           final Map decoded = data['monthlyDeadlineCoinEarned'] as Map;
-          _monthlyDeadlineCoinEarned = decoded.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+          _monthlyDeadlineCoinEarned = decoded.map(
+            (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+          );
         }
         if (data['avatarProfile'] != null) {
-          _avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile']));
+          _avatarProfile = AvatarProfile.fromJson(
+            Map<String, dynamic>.from(data['avatarProfile']),
+          );
         }
         if (data['unlockedAvatarItems'] != null) {
-          _unlockedAvatarItemKeys = Set<String>.from(List<String>.from(data['unlockedAvatarItems']));
+          _unlockedAvatarItemKeys = Set<String>.from(
+            List<String>.from(data['unlockedAvatarItems']),
+          );
         }
         if (data['unlockedBadgeDates'] != null) {
-          _unlockedBadgeDates = Map<String, String>.from(data['unlockedBadgeDates']);
+          _unlockedBadgeDates = Map<String, String>.from(
+            data['unlockedBadgeDates'],
+          );
         }
         if (data['dailySummaries'] != null) {
           _dailySummaries = List<DailySummary>.from(
-            (data['dailySummaries'] as List).map((s) => DailySummary.fromJson(Map<String, dynamic>.from(s))),
+            (data['dailySummaries'] as List).map(
+              (s) => DailySummary.fromJson(Map<String, dynamic>.from(s)),
+            ),
           );
         }
         if (data['webToolsState'] != null) {
-          _webToolsState = Map<String, dynamic>.from(data['webToolsState'] as Map);
+          _webToolsState = Map<String, dynamic>.from(
+            data['webToolsState'] as Map,
+          );
         } else {
           _webToolsState = null;
         }
         if (data['webToolsCollection'] != null) {
-          _webToolsCollection = Map<String, dynamic>.from(data['webToolsCollection'] as Map);
+          _webToolsCollection = Map<String, dynamic>.from(
+            data['webToolsCollection'] as Map,
+          );
         } else {
           _webToolsCollection = null;
         }
@@ -616,7 +814,8 @@ class AppState extends ChangeNotifier {
         _myNudgeId = data['myNudgeId'] as String? ?? _myNudgeId;
         _themeModeSetting = data['themeMode'] as String? ?? _themeModeSetting;
         _iconColorSetting = data['accentColor'] as String? ?? _iconColorSetting;
-        _profileTitleBadgeKey = data['profileTitleBadgeKey'] as String? ?? _profileTitleBadgeKey;
+        _profileTitleBadgeKey =
+            data['profileTitleBadgeKey'] as String? ?? _profileTitleBadgeKey;
         _userRole = data['userRole'] as String? ?? _userRole;
         // Restore background theme across devices
         if (data['backgroundTheme'] != null) {
@@ -627,7 +826,8 @@ class AppState extends ChangeNotifier {
         }
         // Restore today's focus seconds
         if (data['focusSeconds'] != null) {
-          final cloudFocusSeconds = (data['focusSeconds'] as num?)?.toInt() ?? 0;
+          final cloudFocusSeconds =
+              (data['focusSeconds'] as num?)?.toInt() ?? 0;
           // Only restore if cloud data is more recent (higher value) — avoids overwriting fresh session
           if (cloudFocusSeconds > _focusSeconds) {
             _focusSeconds = cloudFocusSeconds;
@@ -757,7 +957,8 @@ class AppState extends ChangeNotifier {
   static const String _planetCountKey = 'planet_count_setting';
   static const String _unlockedPlanetsKey = 'unlocked_planets_setting';
   static const String _weeklyPlanetEarnedKey = 'weekly_planet_earned_setting';
-  static const String _lastSettledWeekMondayKey = 'last_settled_week_monday_setting';
+  static const String _lastSettledWeekMondayKey =
+      'last_settled_week_monday_setting';
   static const String _rewardedTaskKeysKey = 'rewarded_task_keys_setting';
   static const String _dailyCoinEarnedKey = 'daily_coin_earned_setting';
   static const String _monthlyDeadlineCoinEarnedKey =
@@ -851,54 +1052,75 @@ class AppState extends ChangeNotifier {
   String? get groupId => _groupId;
   String? get groupName => _groupName;
   bool get isGroupOwner => _isGroupOwner;
-  bool get isGuardianLinked => guardianInvite != null && guardianInvite!['status'] == 'linked';
+  bool get isGuardianLinked =>
+      guardianInvite != null && guardianInvite!['status'] == 'linked';
 
   Map<String, dynamic>? get guardianInvite {
     if (_webToolsState == null) return null;
     final invite = _webToolsState!['guardianInvite'];
     if (invite == null) return null;
-    final status = _webToolsState!['guardianInviteStatus']?['status'] ?? 'pending_child_approval';
-    return {
-      ...Map<String, dynamic>.from(invite as Map),
-      'status': status,
-    };
+    final status =
+        _webToolsState!['guardianInviteStatus']?['status'] ??
+        'pending_child_approval';
+    return {...Map<String, dynamic>.from(invite as Map), 'status': status};
   }
 
   List<Map<String, dynamic>> get guardianEncouragements {
-    if (_webToolsCollection == null || _webToolsCollection!['encouragements'] == null) return [];
+    if (_webToolsCollection == null ||
+        _webToolsCollection!['encouragements'] == null) {
+      return [];
+    }
     return List<Map<String, dynamic>>.from(
-      (_webToolsCollection!['encouragements'] as List).map((x) => Map<String, dynamic>.from(x as Map)),
+      (_webToolsCollection!['encouragements'] as List).map(
+        (x) => Map<String, dynamic>.from(x as Map),
+      ),
     );
   }
 
   List<Map<String, dynamic>> get timeCapsules {
-    if (_webToolsCollection == null || _webToolsCollection!['capsules'] == null) return [];
+    if (_webToolsCollection == null || _webToolsCollection!['capsules'] == null) {
+      return [];
+    }
     return List<Map<String, dynamic>>.from(
-      (_webToolsCollection!['capsules'] as List).map((x) => Map<String, dynamic>.from(x as Map)),
+      (_webToolsCollection!['capsules'] as List).map(
+        (x) => Map<String, dynamic>.from(x as Map),
+      ),
     );
   }
 
   Map<String, dynamic>? get futureLetter {
-    if (_webToolsState == null || _webToolsState!['futureLetter'] == null) return null;
+    if (_webToolsState == null || _webToolsState!['futureLetter'] == null) {
+      return null;
+    }
     return Map<String, dynamic>.from(_webToolsState!['futureLetter'] as Map);
   }
 
   Map<String, dynamic>? get groupChallenge {
-    if (_webToolsState == null || _webToolsState!['challenge'] == null) return null;
+    if (_webToolsState == null || _webToolsState!['challenge'] == null) {
+      return null;
+    }
     return Map<String, dynamic>.from(_webToolsState!['challenge'] as Map);
   }
 
   List<Map<String, dynamic>> get studySchedules {
-    if (_webToolsCollection == null || _webToolsCollection!['studySchedules'] == null) return [];
+    if (_webToolsCollection == null ||
+        _webToolsCollection!['studySchedules'] == null) {
+      return [];
+    }
     return List<Map<String, dynamic>>.from(
-      (_webToolsCollection!['studySchedules'] as List).map((x) => Map<String, dynamic>.from(x as Map)),
+      (_webToolsCollection!['studySchedules'] as List).map(
+        (x) => Map<String, dynamic>.from(x as Map),
+      ),
     );
   }
 
   Map<String, dynamic>? get examTemplate {
-    if (_webToolsState == null || _webToolsState!['template'] == null) return null;
+    if (_webToolsState == null || _webToolsState!['template'] == null) {
+      return null;
+    }
     return Map<String, dynamic>.from(_webToolsState!['template'] as Map);
   }
+
   int get focusSeconds => _focusSeconds;
   int get focusMinutes => _focusSeconds ~/ 60;
   double get sleepHours => _sleepHours;
@@ -1896,9 +2118,9 @@ class AppState extends ChangeNotifier {
     if (_userRole == 'guardian') {
       return const Color(0xFFF59E0B); // 家長模式：暖橘色
     } else if (_userRole == 'group' ||
-               _userRole == 'enterprise' ||
-               _userRole == 'tutor' ||
-               _userRole == 'school') {
+        _userRole == 'enterprise' ||
+        _userRole == 'tutor' ||
+        _userRole == 'school') {
       return const Color(0xFF10B981); // 團體班級模式：活力綠色
     }
 
@@ -2004,7 +2226,9 @@ class AppState extends ChangeNotifier {
     if (sourceId != null && sourceId.isNotEmpty) {
       final room = getStudyRoomById(sourceId);
       if (room != null) {
-        final me = room.members.where((m) => m.memberId == _myId || m.memberId == 'local_user');
+        final me = room.members.where(
+          (m) => m.memberId == _myId || m.memberId == 'local_user',
+        );
         if (me.isNotEmpty) {
           final member = me.first;
           if (!member.isApproved) return 0;
@@ -2167,7 +2391,9 @@ class AppState extends ChangeNotifier {
 
       final value = _currentMetricValueForSource(room.goalSourceType);
       final members = List<StudyMemberData>.from(room.members);
-      final meIndex = members.indexWhere((m) => m.memberId == _myId || m.memberId == 'local_user');
+      final meIndex = members.indexWhere(
+        (m) => m.memberId == _myId || m.memberId == 'local_user',
+      );
       final reached = value >= room.dailyGoalValue;
 
       if (meIndex == -1) {
@@ -2630,10 +2856,7 @@ class AppState extends ChangeNotifier {
         _avatarProfile.skinToneIndex,
         AvatarProfile.skinTones.length,
       ),
-      faceShapeIndex: _clampAvatarIndex(
-        _avatarProfile.faceShapeIndex,
-        AvatarCatalog.faceShapeLabels.length,
-      ),
+      faceShapeIndex: _normalizeAvatarStageIndex(_avatarProfile.faceShapeIndex),
       hairStyleIndex: _clampAvatarIndex(
         _avatarProfile.hairStyleIndex,
         AvatarCatalog.hairStyleLabels.length,
@@ -2670,9 +2893,8 @@ class AppState extends ChangeNotifier {
         _avatarProfile.backgroundColorIndex,
         AvatarProfile.backgroundColors.length,
       ),
-      avatarIconIndex: _clampAvatarIndex(
+      avatarIconIndex: _normalizeAvatarStageIndex(
         _avatarProfile.avatarIconIndex,
-        AvatarCatalog.evolutionStages.length,
       ),
     );
     if (!enforceUnlocks) return;
@@ -2692,6 +2914,14 @@ class AppState extends ChangeNotifier {
         avatarIconIndex: _highestUnlockedAvatarStageIndex(series: series),
       );
     }
+  }
+
+  int _normalizeAvatarStageIndex(int index) {
+    final exists = AvatarCatalog.evolutionStages.any(
+      (stage) => stage.index == index,
+    );
+    if (exists) return index;
+    return AvatarCatalog.evolutionStages.first.index;
   }
 
   int _highestUnlockedAvatarStageIndex({String? series}) {
@@ -2794,7 +3024,10 @@ class AppState extends ChangeNotifier {
     await prefs.setInt(_planetCountKey, _planetCount);
     await prefs.setStringList(_unlockedPlanetsKey, _unlockedPlanets);
     await prefs.setBool(_weeklyPlanetEarnedKey, _weeklyPlanetEarned);
-    await prefs.setString(_lastSettledWeekMondayKey, _lastSettledWeekMonday ?? '');
+    await prefs.setString(
+      _lastSettledWeekMondayKey,
+      _lastSettledWeekMonday ?? '',
+    );
     await prefs.setStringList(_rewardedTaskKeysKey, _rewardedTaskKeys.toList());
     await prefs.setString(_dailyCoinEarnedKey, jsonEncode(_dailyCoinEarned));
     await prefs.setString(
@@ -2889,7 +3122,11 @@ class AppState extends ChangeNotifier {
       // Add the memberIds array so we can query rooms by member
       final memberIds = room.members
           .where((m) => m.isApproved)
-          .map((m) => (m.memberId == _myId || m.memberId == 'local_user') ? user.id : m.memberId)
+          .map(
+            (m) => (m.memberId == _myId || m.memberId == 'local_user')
+                ? user.id
+                : m.memberId,
+          )
           .where((id) => id.isNotEmpty && id != 'local_user')
           .toSet()
           .toList();
@@ -2898,7 +3135,9 @@ class AppState extends ChangeNotifier {
       data['memberIds'] = memberIds;
       data['updatedAt'] = FieldValue.serverTimestamp();
 
-      final docRef = FirebaseFirestore.instance.collection('rooms').doc(room.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(room.id);
       batch.set(docRef, data, SetOptions(merge: true));
     }
     try {
@@ -3084,7 +3323,9 @@ class AppState extends ChangeNotifier {
           return;
         }
       } catch (e) {
-        debugPrint('Failed to load rooms from Firestore, falling back to local: $e');
+        debugPrint(
+          'Failed to load rooms from Firestore, falling back to local: $e',
+        );
       }
     }
 
@@ -3495,7 +3736,11 @@ class AppState extends ChangeNotifier {
 
   DateTime getMonday5AMOfThisWeek(DateTime time) {
     final daysToSubtract = time.weekday - 1;
-    final monday = DateTime(time.year, time.month, time.day).subtract(Duration(days: daysToSubtract));
+    final monday = DateTime(
+      time.year,
+      time.month,
+      time.day,
+    ).subtract(Duration(days: daysToSubtract));
     return DateTime(monday.year, monday.month, monday.day, 5, 0, 0);
   }
 
@@ -3567,7 +3812,7 @@ class AppState extends ChangeNotifier {
   Future<void> checkWeeklyPlanetSettlement() async {
     final now = DateTime.now();
     final currentMonday5AM = getMonday5AMOfThisWeek(now);
-    
+
     // The target completed settlement Monday is the last Monday 5:00 AM before now
     final targetSettlementMonday = now.isBefore(currentMonday5AM)
         ? currentMonday5AM.subtract(const Duration(days: 7))
@@ -3581,24 +3826,30 @@ class AppState extends ChangeNotifier {
         final firstDate = DateTime.tryParse(sortedSummaries.first.date) ?? now;
         nextWeekStartMonday = getMonday5AMOfThisWeek(firstDate);
       } else {
-        nextWeekStartMonday = getMonday5AMOfThisWeek(now).subtract(const Duration(days: 7));
+        nextWeekStartMonday = getMonday5AMOfThisWeek(
+          now,
+        ).subtract(const Duration(days: 7));
       }
     } else {
       final lastSettled = DateTime.tryParse(_lastSettledWeekMonday!);
       if (lastSettled == null) {
-        nextWeekStartMonday = getMonday5AMOfThisWeek(now).subtract(const Duration(days: 7));
+        nextWeekStartMonday = getMonday5AMOfThisWeek(
+          now,
+        ).subtract(const Duration(days: 7));
       } else {
         nextWeekStartMonday = lastSettled.add(const Duration(days: 7));
       }
     }
 
     bool changed = false;
-    while (nextWeekStartMonday.isBefore(targetSettlementMonday) || 
-           nextWeekStartMonday.isAtSameMomentAs(targetSettlementMonday)) {
+    while (nextWeekStartMonday.isBefore(targetSettlementMonday) ||
+        nextWeekStartMonday.isAtSameMomentAs(targetSettlementMonday)) {
       final rate = calculateWeeklyTaskCompletionRate(nextWeekStartMonday);
       if (rate >= 70.0) {
         final planetsPool = ["綠洲星球", "熔岩星球", "冰雪星球", "沙漠星球", "水晶星球", "暗物質星球"];
-        final available = planetsPool.where((p) => !_unlockedPlanets.contains(p)).toList();
+        final available = planetsPool
+            .where((p) => !_unlockedPlanets.contains(p))
+            .toList();
         if (available.isNotEmpty) {
           final randomPlanet = (available..shuffle()).first;
           _unlockedPlanets.add(randomPlanet);
@@ -3610,7 +3861,7 @@ class AppState extends ChangeNotifier {
       }
       _lastSettledWeekMonday = _formatDate(nextWeekStartMonday);
       changed = true;
-      
+
       nextWeekStartMonday = nextWeekStartMonday.add(const Duration(days: 7));
     }
 
@@ -4043,20 +4294,26 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> signInWithEmailAndPassword(String email, String password) async {
-    final credential = await fb_auth.FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
-    );
+    final credential = await fb_auth.FirebaseAuth.instance
+        .signInWithEmailAndPassword(
+          email: email.trim(),
+          password: password.trim(),
+        );
     if (credential.user != null) {
       await _syncProfileFromFirebaseUser(credential.user!);
     }
   }
 
-  Future<void> signUpWithEmailAndPassword(String email, String password, String nickname) async {
-    final credential = await fb_auth.FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
-    );
+  Future<void> signUpWithEmailAndPassword(
+    String email,
+    String password,
+    String nickname,
+  ) async {
+    final credential = await fb_auth.FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+          email: email.trim(),
+          password: password.trim(),
+        );
     if (credential.user != null) {
       try {
         await credential.user!.sendEmailVerification();
@@ -4080,8 +4337,8 @@ class AppState extends ChangeNotifier {
         idToken: googleAuth.idToken,
         // accessToken is no longer in authentication getter in v7
       );
-      final userCredential =
-          await fb_auth.FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await fb_auth.FirebaseAuth.instance
+          .signInWithCredential(credential);
       if (userCredential.user != null) {
         await _syncProfileFromFirebaseUser(userCredential.user!);
       }
@@ -4105,12 +4362,13 @@ class AppState extends ChangeNotifier {
         idToken: appleCredential.identityToken,
         accessToken: appleCredential.authorizationCode,
       );
-      final userCredential =
-          await fb_auth.FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await fb_auth.FirebaseAuth.instance
+          .signInWithCredential(credential);
 
       // Apple only provides name on first sign-in
       final displayName =
-          '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
+          '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'
+              .trim();
       if (displayName.isNotEmpty) {
         _profileNickname = displayName;
       }
@@ -4132,10 +4390,10 @@ class AppState extends ChangeNotifier {
       if (result.status != LoginStatus.success) {
         throw Exception('Facebook 登入被取消或失敗：${result.message}');
       }
-      final fb_auth.OAuthCredential credential =
-          fb_auth.FacebookAuthProvider.credential(result.accessToken!.tokenString);
-      final userCredential =
-          await fb_auth.FirebaseAuth.instance.signInWithCredential(credential);
+      final fb_auth.OAuthCredential credential = fb_auth
+          .FacebookAuthProvider.credential(result.accessToken!.tokenString);
+      final userCredential = await fb_auth.FirebaseAuth.instance
+          .signInWithCredential(credential);
       if (userCredential.user != null) {
         await _syncProfileFromFirebaseUser(userCredential.user!);
       }
@@ -4149,8 +4407,8 @@ class AppState extends ChangeNotifier {
     try {
       final provider = fb_auth.OAuthProvider('microsoft.com')
         ..setCustomParameters({'prompt': 'select_account'});
-      final userCredential =
-          await fb_auth.FirebaseAuth.instance.signInWithProvider(provider);
+      final userCredential = await fb_auth.FirebaseAuth.instance
+          .signInWithProvider(provider);
       if (userCredential.user != null) {
         await _syncProfileFromFirebaseUser(userCredential.user!);
       }
@@ -4216,7 +4474,9 @@ class AppState extends ChangeNotifier {
 
         AvatarProfile? avatarProfile;
         if (data['avatarProfile'] != null) {
-          avatarProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile'] as Map));
+          avatarProfile = AvatarProfile.fromJson(
+            Map<String, dynamic>.from(data['avatarProfile'] as Map),
+          );
         }
 
         return SocialFriendProfile(
@@ -4385,7 +4645,9 @@ class AppState extends ChangeNotifier {
     if (user == null) return;
 
     final reqId = 'req_${user.id}_${candidate.id}';
-    final docRef = FirebaseFirestore.instance.collection('friend_requests').doc(reqId);
+    final docRef = FirebaseFirestore.instance
+        .collection('friend_requests')
+        .doc(reqId);
 
     await docRef.set({
       'senderId': user.id,
@@ -4406,7 +4668,9 @@ class AppState extends ChangeNotifier {
     if (user == null) return;
 
     try {
-      final docRef = FirebaseFirestore.instance.collection('friend_requests').doc(requestId);
+      final docRef = FirebaseFirestore.instance
+          .collection('friend_requests')
+          .doc(requestId);
       final docSnap = await docRef.get();
       if (docSnap.exists) {
         final data = docSnap.data()!;
@@ -4818,9 +5082,13 @@ class AppState extends ChangeNotifier {
     if (_lastHealthSyncTime != null && steps > _lastStepsCount) {
       final deltaSteps = steps - _lastStepsCount;
       final deltaTime = now.difference(_lastHealthSyncTime!);
-      if (!validateActivityLegitimacy('steps', deltaSteps.toDouble(), deltaTime)) {
+      if (!validateActivityLegitimacy(
+        'steps',
+        deltaSteps.toDouble(),
+        deltaTime,
+      )) {
         debugPrint('Steps synchronization rejected due to velocity check.');
-        return; 
+        return;
       }
     }
     _lastHealthSyncTime = now;
@@ -4998,7 +5266,9 @@ class AppState extends ChangeNotifier {
   void _syncMyFocusSecondsAcrossRooms() {
     _studyRooms = _studyRooms.map((room) {
       final members = List<StudyMemberData>.from(room.members);
-      final meIndex = members.indexWhere((m) => m.memberId == _myId || m.memberId == 'local_user');
+      final meIndex = members.indexWhere(
+        (m) => m.memberId == _myId || m.memberId == 'local_user',
+      );
 
       if (meIndex == -1) {
         members.insert(
@@ -5169,7 +5439,10 @@ class AppState extends ChangeNotifier {
     StudyMemberData? approvedMember;
 
     _studyRooms = _studyRooms.map((room) {
-      if (room.id != roomId || (room.ownerId != _myId && room.ownerId != 'local_user')) return room;
+      if (room.id != roomId ||
+          (room.ownerId != _myId && room.ownerId != 'local_user')) {
+        return room;
+      }
       final approvedCount = room.members
           .where((member) => member.isApproved)
           .length;
@@ -5219,7 +5492,10 @@ class AppState extends ChangeNotifier {
     StudyMemberData? rejectedMember;
 
     _studyRooms = _studyRooms.map((room) {
-      if (room.id != roomId || (room.ownerId != _myId && room.ownerId != 'local_user')) return room;
+      if (room.id != roomId ||
+          (room.ownerId != _myId && room.ownerId != 'local_user')) {
+        return room;
+      }
 
       for (final member in room.members) {
         if (member.memberId == memberId && !member.isApproved) {
@@ -5326,10 +5602,16 @@ class AppState extends ChangeNotifier {
     if (room == null) return;
 
     final remainingMembers = room.members
-        .where((member) => member.memberId != _myId && member.memberId != 'local_user' && member.isApproved)
+        .where(
+          (member) =>
+              member.memberId != _myId &&
+              member.memberId != 'local_user' &&
+              member.isApproved,
+        )
         .toList();
 
-    if ((room.ownerId == _myId || room.ownerId == 'local_user') && remainingMembers.isEmpty) {
+    if ((room.ownerId == _myId || room.ownerId == 'local_user') &&
+        remainingMembers.isEmpty) {
       _studyRooms = _studyRooms.where((item) => item.id != roomId).toList();
     } else {
       final nextOwner = (room.ownerId == _myId || room.ownerId == 'local_user')
@@ -5639,7 +5921,9 @@ class AppState extends ChangeNotifier {
   }) {
     _studyRooms = _studyRooms.map((room) {
       final members = List<StudyMemberData>.from(room.members);
-      final meIndex = members.indexWhere((m) => m.memberId == _myId || m.memberId == 'local_user');
+      final meIndex = members.indexWhere(
+        (m) => m.memberId == _myId || m.memberId == 'local_user',
+      );
       if (room.id == roomId && meIndex != -1 && !members[meIndex].isApproved) {
         return room;
       }
@@ -5766,7 +6050,9 @@ class AppState extends ChangeNotifier {
       if (room.id != roomId) return room;
 
       final members = List<StudyMemberData>.from(room.members);
-      final meIndex = members.indexWhere((m) => m.memberId == _myId || m.memberId == 'local_user');
+      final meIndex = members.indexWhere(
+        (m) => m.memberId == _myId || m.memberId == 'local_user',
+      );
 
       if (meIndex != -1) {
         final current = members[meIndex];
@@ -5834,11 +6120,12 @@ class AppState extends ChangeNotifier {
       final summaryBuf = StringBuffer();
       for (final s in recentSummaries) {
         summaryBuf.writeln(
-          '- 日期: ${s.date}, 分數: ${s.disciplineScore}/100, 步數: ${s.steps}, 睡眠: ${s.sleepHours}小時, 專注時間: ${s.focusMinutes}分鐘, 運動: ${s.exerciseMinutes}分鐘, 完成任務數: ${s.completedTasks}/${s.totalTasks}'
+          '- 日期: ${s.date}, 分數: ${s.disciplineScore}/100, 步數: ${s.steps}, 睡眠: ${s.sleepHours}小時, 專注時間: ${s.focusMinutes}分鐘, 運動: ${s.exerciseMinutes}分鐘, 完成任務數: ${s.completedTasks}/${s.totalTasks}',
         );
       }
 
-      final prompt = '''
+      final prompt =
+          '''
 你是一位溫和且專業的「Nudge 自律導師」。請分析以下使用者過去 7 天的真實自律數據，尋找「行為盲點」與「數據關聯性」（例如：步數偏低是否影響了睡眠？專注時間和睡眠時間是否有負相關？任務完成率跟哪些因素有關？）。
 
 使用者過去 7 天的每日自律數據：
@@ -5859,9 +6146,7 @@ ${summaryBuf.toString()}
 ''';
 
       final googleAI = FirebaseAI.googleAI(auth: fb_auth.FirebaseAuth.instance);
-      final model = googleAI.generativeModel(
-        model: 'gemini-flash-latest',
-      );
+      final model = googleAI.generativeModel(model: 'gemini-flash-latest');
 
       final response = await model.generateContent([Content.text(prompt)]);
       return response.text ?? 'AI 導師目前無回應，請稍後再試。';
@@ -5871,31 +6156,49 @@ ${summaryBuf.toString()}
     }
   }
 
-  bool validateActivityLegitimacy(String type, double deltaValue, Duration deltaTime) {
-    if (deltaTime.inSeconds <= 0) return true; // prevent division by zero or errors
-    
+  bool validateActivityLegitimacy(
+    String type,
+    double deltaValue,
+    Duration deltaTime,
+  ) {
+    if (deltaTime.inSeconds <= 0) {
+      return true; // prevent division by zero or errors
+    }
+
     if (type == 'steps') {
       final stepsPerSecond = deltaValue / deltaTime.inSeconds;
       if (stepsPerSecond > 6.0) {
-        debugPrint('Security warning: Step count velocity of $stepsPerSecond steps/sec exceeds human limits.');
+        debugPrint(
+          'Security warning: Step count velocity of $stepsPerSecond steps/sec exceeds human limits.',
+        );
         return false;
       }
     }
-    
+
     if (type == 'focus') {
       final elapsedSeconds = deltaValue;
       if (elapsedSeconds > deltaTime.inSeconds + 10) {
-        debugPrint('Security warning: Focus session elapsed seconds ($elapsedSeconds) exceeds actual elapsed time (${deltaTime.inSeconds} sec).');
+        debugPrint(
+          'Security warning: Focus session elapsed seconds ($elapsedSeconds) exceeds actual elapsed time (${deltaTime.inSeconds} sec).',
+        );
         return false;
       }
     }
-    
+
     return true;
   }
 
-  bool addSecureFocusSeconds(int seconds, DateTime startTime, DateTime endTime) {
+  bool addSecureFocusSeconds(
+    int seconds,
+    DateTime startTime,
+    DateTime endTime,
+  ) {
     final realDuration = endTime.difference(startTime);
-    if (!validateActivityLegitimacy('focus', seconds.toDouble(), realDuration)) {
+    if (!validateActivityLegitimacy(
+      'focus',
+      seconds.toDouble(),
+      realDuration,
+    )) {
       return false;
     }
     addFocusSeconds(seconds);
@@ -5913,11 +6216,11 @@ ${summaryBuf.toString()}
           .collection('calls')
           .doc(user.id)
           .set({
-        'memberId': user.id,
-        'name': _profileNickname,
-        'isVoiceActive': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'memberId': user.id,
+            'name': _profileNickname,
+            'isVoiceActive': true,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
       debugPrint('Failed to join voice room: $e');
     }
@@ -5939,7 +6242,12 @@ ${summaryBuf.toString()}
     }
   }
 
-  Future<void> sendVoiceSdp(String roomId, String targetMemberId, String sdpType, String sdpDescription) async {
+  Future<void> sendVoiceSdp(
+    String roomId,
+    String targetMemberId,
+    String sdpType,
+    String sdpDescription,
+  ) async {
     final user = _currentUser;
     if (user == null) return;
 
@@ -5952,17 +6260,21 @@ ${summaryBuf.toString()}
           .collection('sdpExchange')
           .doc(user.id)
           .set({
-        'senderId': user.id,
-        'type': sdpType,
-        'sdp': sdpDescription,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+            'senderId': user.id,
+            'type': sdpType,
+            'sdp': sdpDescription,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
       debugPrint('Failed to send voice SDP: $e');
     }
   }
 
-  Future<void> sendVoiceIceCandidate(String roomId, String targetMemberId, Map<String, dynamic> candidate) async {
+  Future<void> sendVoiceIceCandidate(
+    String roomId,
+    String targetMemberId,
+    Map<String, dynamic> candidate,
+  ) async {
     final user = _currentUser;
     if (user == null) return;
 
@@ -5974,10 +6286,10 @@ ${summaryBuf.toString()}
           .doc(targetMemberId)
           .collection('candidates')
           .add({
-        'senderId': user.id,
-        'candidate': candidate,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+            'senderId': user.id,
+            'candidate': candidate,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
       debugPrint('Failed to send voice ICE Candidate: $e');
     }
@@ -5987,12 +6299,14 @@ ${summaryBuf.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.update({
         'webToolsState.guardianInviteStatus': {
           'status': 'linked',
           'updatedAt': DateTime.now().toIso8601String(),
-        }
+        },
       });
     } catch (e) {
       debugPrint('Failed to accept guardian invite: $e');
@@ -6006,12 +6320,7 @@ ${summaryBuf.toString()}
     final goal = invite['goal']?.toString() ?? '';
     if (goal.isEmpty) return;
     await acceptGuardianInvite();
-    addTask(
-      '【家長陪伴目標】$goal',
-      '學習',
-      taskType: 'flexible',
-      priority: '高',
-    );
+    addTask('【家長陪伴目標】$goal', '學習', taskType: 'flexible', priority: '高');
   }
 
   /// 加入團體挑戰後，自動匯入每日挑戰任務
@@ -6038,12 +6347,14 @@ ${summaryBuf.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.update({
         'webToolsState.guardianInviteStatus': {
           'status': 'declined',
           'updatedAt': DateTime.now().toIso8601String(),
-        }
+        },
       });
     } catch (e) {
       debugPrint('Failed to decline guardian invite: $e');
@@ -6054,7 +6365,9 @@ ${summaryBuf.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.update({
         'webToolsState.guardianInvite': FieldValue.delete(),
         'webToolsState.guardianInviteStatus': FieldValue.delete(),
@@ -6081,11 +6394,17 @@ ${summaryBuf.toString()}
     }
   }
 
-  Future<void> saveTimeCapsule(String title, String date, String message) async {
+  Future<void> saveTimeCapsule(
+    String title,
+    String date,
+    String message,
+  ) async {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       final newCapsule = {
         'title': title,
         'meta': '$date 解鎖',
@@ -6095,7 +6414,8 @@ ${summaryBuf.toString()}
       final updatedCapsules = [newCapsule, ...timeCapsules];
       await docRef.update({
         'webToolsCollection.capsules': updatedCapsules,
-        'webToolsCollection.capsulesUpdatedAt': DateTime.now().toIso8601String(),
+        'webToolsCollection.capsulesUpdatedAt': DateTime.now()
+            .toIso8601String(),
       });
     } catch (e) {
       debugPrint('Failed to save time capsule: $e');
@@ -6106,13 +6426,16 @@ ${summaryBuf.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       final list = [...timeCapsules];
       if (index >= 0 && index < list.length) {
         list.removeAt(index);
         await docRef.update({
           'webToolsCollection.capsules': list,
-          'webToolsCollection.capsulesUpdatedAt': DateTime.now().toIso8601String(),
+          'webToolsCollection.capsulesUpdatedAt': DateTime.now()
+              .toIso8601String(),
         });
       }
     } catch (e) {
@@ -6120,25 +6443,34 @@ ${summaryBuf.toString()}
     }
   }
 
-  Future<void> saveFutureLetter(String state, String action, String note) async {
+  Future<void> saveFutureLetter(
+    String state,
+    String action,
+    String note,
+  ) async {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.update({
         'webToolsState.futureLetter': {
           'state': state,
           'action': action,
           'note': note,
           'updatedAt': DateTime.now().toIso8601String(),
-        }
+        },
       });
     } catch (e) {
       debugPrint('Failed to save future letter: $e');
     }
   }
 
-  Future<String> chatWithAICoach(String userMessage, List<Map<String, dynamic>> chatHistory) async {
+  Future<String> chatWithAICoach(
+    String userMessage,
+    List<Map<String, dynamic>> chatHistory,
+  ) async {
     final user = _currentUser;
     if (user == null) {
       return '請先登入以使用 AI 智能自律導師。';
@@ -6155,13 +6487,15 @@ ${summaryBuf.toString()}
       final activeRole = userRole;
 
       // 2. Format today's tasks
-      final taskListString = _tasks.map((t) {
-        final title = t['title'] ?? '無標題';
-        final category = t['category'] ?? '其他';
-        final type = t['taskType'] ?? 'fixed';
-        final isDone = t['done'] == true ? '已完成' : '未完成';
-        return '- [$isDone] $title ($category, $type)';
-      }).join('\n');
+      final taskListString = _tasks
+          .map((t) {
+            final title = t['title'] ?? '無標題';
+            final category = t['category'] ?? '其他';
+            final type = t['taskType'] ?? 'fixed';
+            final isDone = t['done'] == true ? '已完成' : '未完成';
+            return '- [$isDone] $title ($category, $type)';
+          })
+          .join('\n');
 
       // 3. Format history
       final historyBuffer = StringBuffer();
@@ -6171,7 +6505,8 @@ ${summaryBuf.toString()}
       }
 
       // 4. Build prompt
-      final prompt = '''
+      final prompt =
+          '''
 你是一位溫和、專業且極具同理心的「Nudge AI 自律導師」。使用者目前正在跟你對話，請根據以下提供的使用者「今日實時自律數據」與「對話歷史紀錄」，提供最合適的回覆。
 
 【使用者今日自律數據】
@@ -6197,9 +6532,7 @@ ${historyBuffer.toString()}
 ''';
 
       final googleAI = FirebaseAI.googleAI(auth: fb_auth.FirebaseAuth.instance);
-      final model = googleAI.generativeModel(
-        model: 'gemini-flash-latest',
-      );
+      final model = googleAI.generativeModel(model: 'gemini-flash-latest');
 
       final response = await model.generateContent([Content.text(prompt)]);
       return response.text ?? 'AI 導師目前無回應，請稍後再試。';
@@ -6209,7 +6542,12 @@ ${historyBuffer.toString()}
     }
   }
 
-  void importExamTemplate(String type, int days, String effort, String strategy) {
+  void importExamTemplate(
+    String type,
+    int days,
+    String effort,
+    String strategy,
+  ) {
     for (int d = 1; d <= days; d++) {
       String title = '';
       if (d == 1) {
@@ -6221,12 +6559,7 @@ ${historyBuffer.toString()}
       } else {
         title = '[$type第$d天] 執行進度 ($strategy)';
       }
-      addTask(
-        title,
-        '讀書',
-        taskType: 'fixed',
-        priority: '高',
-      );
+      addTask(title, '讀書', taskType: 'fixed', priority: '高');
     }
   }
 
@@ -6238,7 +6571,9 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user != null) {
       try {
-        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        final docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.id);
         await docRef.update({
           'userRole': role,
           'updatedAt': FieldValue.serverTimestamp(),
@@ -6253,7 +6588,9 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       final newCard = {
         'title': title,
         'meta': '剛剛',
@@ -6263,18 +6600,25 @@ ${historyBuffer.toString()}
       final updated = [newCard, ...guardianEncouragements];
       await docRef.update({
         'webToolsCollection.encouragements': updated,
-        'webToolsCollection.encouragementsUpdatedAt': DateTime.now().toIso8601String(),
+        'webToolsCollection.encouragementsUpdatedAt': DateTime.now()
+            .toIso8601String(),
       });
     } catch (e) {
       debugPrint('Failed to send encouragement card: $e');
     }
   }
 
-  Future<void> sendParentSharedGoal(String goal, String permission, String message) async {
+  Future<void> sendParentSharedGoal(
+    String goal,
+    String permission,
+    String message,
+  ) async {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.update({
         'webToolsState.guardianInvite': {
           'goal': goal,
@@ -6284,18 +6628,25 @@ ${historyBuffer.toString()}
         'webToolsState.guardianInviteStatus': {
           'status': 'pending_child_approval',
           'updatedAt': DateTime.now().toIso8601String(),
-        }
+        },
       });
     } catch (e) {
       debugPrint('Failed to send shared goal: $e');
     }
   }
 
-  Future<void> publishGroupChallenge(String groupName, String type, int days, String reward) async {
+  Future<void> publishGroupChallenge(
+    String groupName,
+    String type,
+    int days,
+    String reward,
+  ) async {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.update({
         'webToolsState.challenge': {
           'group': groupName,
@@ -6303,7 +6654,7 @@ ${historyBuffer.toString()}
           'days': days,
           'reward': reward,
           'updatedAt': DateTime.now().toIso8601String(),
-        }
+        },
       });
     } catch (e) {
       debugPrint('Failed to publish group challenge: $e');
@@ -6314,7 +6665,9 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       final newSchedule = {
         'title': title,
         'meta': meta,
@@ -6323,18 +6676,26 @@ ${historyBuffer.toString()}
       final updated = [newSchedule, ...studySchedules];
       await docRef.update({
         'webToolsCollection.studySchedules': updated,
-        'webToolsCollection.studySchedulesUpdatedAt': DateTime.now().toIso8601String(),
+        'webToolsCollection.studySchedulesUpdatedAt': DateTime.now()
+            .toIso8601String(),
       });
     } catch (e) {
       debugPrint('Failed to publish study schedule: $e');
     }
   }
 
-  Future<void> publishExamTemplate(String type, int days, String effort, String strategy) async {
+  Future<void> publishExamTemplate(
+    String type,
+    int days,
+    String effort,
+    String strategy,
+  ) async {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id);
       await docRef.update({
         'webToolsState.template': {
           'type': type,
@@ -6342,7 +6703,7 @@ ${historyBuffer.toString()}
           'effort': effort,
           'pressure': strategy,
           'updatedAt': DateTime.now().toIso8601String(),
-        }
+        },
       });
     } catch (e) {
       debugPrint('Failed to publish exam template: $e');
@@ -6376,10 +6737,12 @@ ${historyBuffer.toString()}
         throw Exception('找不到該 Nudge ID 的使用者');
       }
       final receiverId = querySnap.docs.first.id;
-      final receiverNudgeId = querySnap.docs.first.data()['username'] as String? ?? '';
+      final receiverNudgeId =
+          querySnap.docs.first.data()['username'] as String? ?? '';
 
       // Check if they are already linked with us
-      if (isGuardianLinked && guardianInvite?['relativeId'] == receiverNudgeId) {
+      if (isGuardianLinked &&
+          guardianInvite?['relativeId'] == receiverNudgeId) {
         throw Exception('雙方已處於綁定狀態');
       }
 
@@ -6430,10 +6793,13 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      await FirebaseFirestore.instance.collection('guardian_requests').doc(requestId).update({
-        'status': 'accepted',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .doc(requestId)
+          .update({
+            'status': 'accepted',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to approve guardian request: $e');
@@ -6444,10 +6810,13 @@ ${historyBuffer.toString()}
   /// 拒絕綁定申請
   Future<void> declineGuardianRequest(String requestId) async {
     try {
-      await FirebaseFirestore.instance.collection('guardian_requests').doc(requestId).update({
-        'status': 'declined',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection('guardian_requests')
+          .doc(requestId)
+          .update({
+            'status': 'declined',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to decline guardian request: $e');
@@ -6471,7 +6840,9 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user != null) {
       try {
-        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        final docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.id);
         await docRef.update({
           'groupId': randomId,
           'groupName': name,
@@ -6499,7 +6870,9 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user != null) {
       try {
-        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        final docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.id);
         await docRef.update({
           'groupId': groupIdInput,
           'groupName': '自律小組',
@@ -6527,7 +6900,9 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user != null) {
       try {
-        final docRef = FirebaseFirestore.instance.collection('users').doc(user.id);
+        final docRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.id);
         await docRef.update({
           'groupId': FieldValue.delete(),
           'groupName': FieldValue.delete(),
@@ -6548,36 +6923,44 @@ ${historyBuffer.toString()}
         .where('isGroupOwner', isEqualTo: true)
         .limit(1)
         .snapshots()
-        .listen((snapshot) {
-      if (snapshot.docs.isNotEmpty) {
-        final ownerData = snapshot.docs.first.data();
-        bool changed = false;
-        if (ownerData['webToolsState'] != null) {
-          final ownerState = Map<String, dynamic>.from(ownerData['webToolsState'] as Map);
-          _webToolsState ??= {};
-          if (ownerState['challenge'] != null) {
-            _webToolsState!['challenge'] = ownerState['challenge'];
-            changed = true;
-          }
-          if (ownerState['template'] != null) {
-            _webToolsState!['template'] = ownerState['template'];
-            changed = true;
-          }
-        }
-        if (ownerData['webToolsCollection'] != null) {
-          final ownerCollection = Map<String, dynamic>.from(ownerData['webToolsCollection'] as Map);
-          _webToolsCollection ??= {};
-          if (ownerCollection['studySchedules'] != null) {
-            _webToolsCollection!['studySchedules'] = ownerCollection['studySchedules'];
-            changed = true;
-          }
-        }
-        if (changed) {
-          notifyListeners();
-        }
-      }
-    }, onError: (e) {
-      debugPrint('Error listening to group owner: $e');
-    });
+        .listen(
+          (snapshot) {
+            if (snapshot.docs.isNotEmpty) {
+              final ownerData = snapshot.docs.first.data();
+              bool changed = false;
+              if (ownerData['webToolsState'] != null) {
+                final ownerState = Map<String, dynamic>.from(
+                  ownerData['webToolsState'] as Map,
+                );
+                _webToolsState ??= {};
+                if (ownerState['challenge'] != null) {
+                  _webToolsState!['challenge'] = ownerState['challenge'];
+                  changed = true;
+                }
+                if (ownerState['template'] != null) {
+                  _webToolsState!['template'] = ownerState['template'];
+                  changed = true;
+                }
+              }
+              if (ownerData['webToolsCollection'] != null) {
+                final ownerCollection = Map<String, dynamic>.from(
+                  ownerData['webToolsCollection'] as Map,
+                );
+                _webToolsCollection ??= {};
+                if (ownerCollection['studySchedules'] != null) {
+                  _webToolsCollection!['studySchedules'] =
+                      ownerCollection['studySchedules'];
+                  changed = true;
+                }
+              }
+              if (changed) {
+                notifyListeners();
+              }
+            }
+          },
+          onError: (e) {
+            debugPrint('Error listening to group owner: $e');
+          },
+        );
   }
 }

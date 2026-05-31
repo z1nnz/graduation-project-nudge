@@ -346,18 +346,26 @@ class AvatarCatalog {
       '森語女神',
     };
 
-    final dynamicStages = evolutionStages
-        .where((stage) => !predefinedSeriesNames.contains(stage.series))
-        .toList();
+    final dynamicSeriesNames =
+        evolutionStages
+            .where((stage) => !predefinedSeriesNames.contains(stage.series))
+            .map((stage) => stage.series)
+            .toSet()
+            .toList()
+          ..sort();
 
-    for (final stage in dynamicStages) {
+    for (final seriesName in dynamicSeriesNames) {
+      final stages =
+          evolutionStages.where((stage) => stage.series == seriesName).toList()
+            ..sort((a, b) => a.stage.compareTo(b.stage));
+      final firstStage = stages.first;
       list.add(
         AvatarSeries(
-          key: 'dynamic-${stage.index}',
-          name: stage.name,
+          key: 'dynamic-${firstStage.index}',
+          name: seriesName,
           theme: '限時特展',
           description: '由 Web 端上架的活動限時角色。',
-          stages: [stage],
+          stages: stages,
         ),
       );
     }
@@ -385,6 +393,12 @@ class AvatarCatalog {
     '森語祝福者',
     '森律女神',
   ];
+
+  static final List<AvatarEvolutionStage> _builtInEvolutionStages =
+      List.unmodifiable(evolutionStages);
+  static final List<String> _builtInFaceShapeLabels = List.unmodifiable(
+    faceShapeLabels,
+  );
 
   // Future layered-avatar expansion. These labels stay here so older saved
   // profiles can still be normalized, but the current shop/editor only exposes
@@ -461,9 +475,20 @@ class AvatarCatalog {
         evolutionStages[idx] = stage;
       }
     }
-    
+
     if (!faceShapeLabels.contains(stage.name)) {
       faceShapeLabels.add(stage.name);
     }
+  }
+
+  static void replaceDynamicStages(List<AvatarEvolutionStage> stages) {
+    evolutionStages = [
+      ..._builtInEvolutionStages,
+      ...stages..sort((a, b) => a.index.compareTo(b.index)),
+    ];
+    faceShapeLabels = [
+      ..._builtInFaceShapeLabels,
+      ...stages.map((stage) => stage.name),
+    ];
   }
 }

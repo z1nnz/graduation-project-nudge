@@ -10,7 +10,7 @@
           <label class="field" style="flex: 1;"><span>開始時間</span><input type="datetime-local" id="shop-item-start" /></label>
           <label class="field" style="flex: 1;"><span>結束時間</span><input type="datetime-local" id="shop-item-end" /></label>
         </div></div><div class="generated-card amber with-icon" data-output="campaign-preview"><span class="card-icon">🎁</span><div class="card-content"><strong>夜讀專注套裝：稀有 / 60 枚</strong><p>以月上限 400 枚估算，穩定玩家約 5-7 天可兌換，價格健康。</p><img id="shop-image-preview" style="display: none; max-width: 100px; margin-top: 10px; border-radius: 8px;" /></div></div><div class="button-row"><button class="button primary" data-action="generate-campaign" type="button">檢查價格</button><button class="button ghost" data-action="save-campaign" type="button" id="upload-btn">排程上架 Demo & 儲存圖片</button></div></section>
-        
+
         <section class="tool-panel page-section" style="margin-top: 2rem;">
           <div class="tool-copy">
             <span class="eyebrow">Live Operations</span>
@@ -22,7 +22,7 @@
         </section>
       </main>
     </div>
-    <script src="assets/app.js?v=3"></script>
+    <script src="assets/app.js?v=9"></script>
     <script>
       function toggleDays() {
         const type = document.getElementById('shop-item-type').value;
@@ -43,7 +43,7 @@
 
       async function fetchActiveItems() {
         const listDiv = document.getElementById('active-items-list');
-        
+
         // 優先從 Firestore 讀取商品
         if (typeof db !== 'undefined' && db) {
           try {
@@ -52,11 +52,11 @@
             querySnapshot.forEach((doc) => {
               items.push({ id: doc.id, ...doc.data() });
             });
-            
+
             listDiv.innerHTML = '';
             const currentTime = Math.floor(Date.now() / 1000);
             const activeItems = [];
-            
+
             items.forEach(item => {
               if (item.type === 'permanent' || !item.expires_at) {
                 activeItems.push(item);
@@ -68,9 +68,9 @@
                 }
               }
             });
-            
+
             activeItems.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-            
+
             if (activeItems.length === 0) {
               listDiv.innerHTML = '<p>目前沒有上架中的商品。</p>';
             } else {
@@ -86,11 +86,12 @@
                 let typeText = '常駐商品';
                 if (item.type === 'limited') typeText = '限時商品';
                 if (item.type === 'event_character') typeText = '活動限定角色';
-                
-                const imgSrc = (item.image_path.startsWith('data:') || item.image_path.startsWith('http')) 
-                  ? item.image_path 
-                  : '/' + item.image_path;
-                  
+
+                const imagePath = item.image_path || item.icon_path || '';
+                const imgSrc = (imagePath.startsWith('data:') || imagePath.startsWith('http'))
+                  ? imagePath
+                  : '/' + imagePath;
+
                 const card = document.createElement('div');
                 card.className = 'generated-card amber';
                 card.style.cssText = 'flex: 1 1 200px; max-width: 250px; display: flex; flex-direction: column; gap: 0.5rem;';
@@ -114,7 +115,7 @@
           const response = await fetch('/active-shop-items');
           const result = await response.json();
           listDiv.innerHTML = '';
-          
+
           if (result.success && result.items) {
             if (result.items.length === 0) {
               listDiv.innerHTML = '<p>目前沒有上架中的商品。</p>';
@@ -131,7 +132,7 @@
                 let typeText = '常駐商品';
                 if (item.type === 'limited') typeText = '限時商品';
                 if (item.type === 'event_character') typeText = '活動限定角色';
-                
+
                 const card = document.createElement('div');
                 card.className = 'generated-card amber';
                 card.style.cssText = 'flex: 1 1 200px; max-width: 250px; display: flex; flex-direction: column; gap: 0.5rem;';
@@ -162,15 +163,15 @@
           alert('請先選擇圖片！');
           return;
         }
-        
+
         const file = fileInput.files[0];
         const type = document.getElementById('shop-item-type').value;
         const name = document.getElementById('shop-item-name').value;
         const price = parseInt(document.getElementById('shop-item-price').value) || 60;
-        
+
         let startTimeTs = null;
         let endTimeTs = null;
-        
+
         if (type !== 'permanent') {
           const startVal = document.getElementById('shop-item-start').value;
           const endVal = document.getElementById('shop-item-end').value;
@@ -188,7 +189,7 @@
             const reader = new FileReader();
             reader.onload = async function(e) {
               const base64Data = e.target.result;
-              
+
               await db.collection("shop_items").add({
                 id: generateLocalUUID(),
                 type: type,
@@ -200,12 +201,12 @@
                 end_time: endTimeTs,
                 expires_at: endTimeTs
               });
-              
+
               alert('上傳成功！商品已同步至 Firestore。');
               const preview = document.getElementById('shop-image-preview');
               preview.src = base64Data;
               preview.style.display = 'block';
-              
+
               fetchActiveItems();
             };
             reader.readAsDataURL(file);
@@ -221,27 +222,27 @@
         formData.append('type', type);
         formData.append('name', name);
         formData.append('price', price);
-        
+
         if (type !== 'permanent') {
           const startVal = document.getElementById('shop-item-start').value;
           const endVal = document.getElementById('shop-item-end').value;
           formData.append('start_time', startVal.replace('T', ' '));
           formData.append('end_time', endVal.replace('T', ' '));
         }
-        
+
         try {
           const response = await fetch('/upload-shop-item', {
             method: 'POST',
             body: formData
           });
           const result = await response.json();
-          
+
           if (result.success) {
             alert('本機上傳成功！商品已上架。');
             const preview = document.getElementById('shop-image-preview');
             preview.src = '/' + result.path;
             preview.style.display = 'block';
-            
+
             fetchActiveItems();
           } else {
             alert('本機上傳失敗：' + result.error);
@@ -254,4 +255,3 @@
     </script>
   </body>
 </html>
-
