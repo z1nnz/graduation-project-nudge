@@ -33,8 +33,7 @@ class _FocusPageState extends State<FocusPage> {
 
   int get phaseTotalSeconds => isFocusPhase ? focusSeconds : restSeconds;
 
-  Color phaseColor(Color accentColor) =>
-      isFocusPhase ? accentColor : const Color(0xFF20A994);
+  Color phaseColor(Color accentColor) => accentColor;
 
   @override
   void initState() {

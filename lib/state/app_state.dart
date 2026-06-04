@@ -100,6 +100,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
   StreamSubscription? _groupOwnerSubscription;
+  Timer? _dailyResetTimer;
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -581,6 +582,14 @@ class AppState extends ChangeNotifier {
     _incomingGuardianRequestsSubscription = null;
     _outgoingGuardianRequestsSubscription = null;
     _groupOwnerSubscription = null;
+  }
+
+  @override
+  void dispose() {
+    _dailyResetTimer?.cancel();
+    _dailyResetTimer = null;
+    _cancelFirestoreListeners();
+    super.dispose();
   }
 
   Future<void> _autoUpdateLinkage(
@@ -1078,7 +1087,8 @@ class AppState extends ChangeNotifier {
   }
 
   List<Map<String, dynamic>> get timeCapsules {
-    if (_webToolsCollection == null || _webToolsCollection!['capsules'] == null) {
+    if (_webToolsCollection == null ||
+        _webToolsCollection!['capsules'] == null) {
       return [];
     }
     return List<Map<String, dynamic>>.from(
@@ -2193,6 +2203,7 @@ class AppState extends ChangeNotifier {
 
     if (taskIndex != -1) {
       _tasks[taskIndex]['done'] = reached;
+      _tasks[taskIndex]['isDone'] = reached;
       _tasks[taskIndex]['updatedAt'] = DateTime.now().toIso8601String();
       _tasks[taskIndex]['completedAt'] = reached
           ? DateTime.now().toIso8601String()
@@ -2219,6 +2230,14 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  int _readTaskFocusStartSeconds(Map<String, dynamic> task) {
+    final rawValue = task['trackingStartFocusSeconds'];
+    if (rawValue is int) return rawValue;
+    if (rawValue is double) return rawValue.round();
+    if (rawValue is String) return int.tryParse(rawValue) ?? 0;
+    return 0;
+  }
+
   double _autoTrackedValueForTask(Map<String, dynamic> task) {
     final sourceType = _readTaskSourceType(task);
     final sourceId = task['sourceId'] as String?;
@@ -2242,6 +2261,12 @@ class AppState extends ChangeNotifier {
           };
         }
       }
+    }
+
+    if (sourceType == TaskSourceType.focusMinutes) {
+      final trackedSeconds = _focusSeconds - _readTaskFocusStartSeconds(task);
+      if (trackedSeconds <= 0) return 0;
+      return trackedSeconds / 60;
     }
 
     return _autoTrackedValueForSource(sourceType);
@@ -2516,12 +2541,14 @@ class AppState extends ChangeNotifier {
 
       final reached = _autoTrackedValueForTask(task) >= targetValue;
       final wasDone = task['done'] as bool? ?? false;
+      final wasIsDone = task['isDone'] as bool? ?? wasDone;
 
-      if (wasDone == reached) return task;
+      if (wasDone == reached && wasIsDone == reached) return task;
 
       return {
         ...task,
         'done': reached,
+        'isDone': reached,
         'updatedAt': now,
         'completedAt': reached ? now : null,
       };
@@ -2704,6 +2731,7 @@ class AppState extends ChangeNotifier {
               'sourceType': task['sourceType'],
               'targetValue': task['targetValue'],
               'unitLabel': task['unitLabel'],
+              'trackingStartFocusSeconds': task['trackingStartFocusSeconds'],
               'id': task['id'],
               'userId': task['userId'],
               'sourceId': task['sourceId'],
@@ -2770,6 +2798,7 @@ class AppState extends ChangeNotifier {
       _isHydrated = true;
       notifyListeners();
       await _rescheduleLocalReminders();
+      _scheduleNextDailyResetTimer();
     } catch (e) {
       debugPrint('load data error: $e');
       _tasks = List<Map<String, dynamic>>.from(_defaultTasks);
@@ -2810,6 +2839,7 @@ class AppState extends ChangeNotifier {
       _isHydrated = true;
       notifyListeners();
       await _rescheduleLocalReminders();
+      _scheduleNextDailyResetTimer();
     }
   }
 
@@ -3971,6 +4001,25 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  DateTime _nextDailyResetBoundary(DateTime now) {
+    final todayAtFive = DateTime(now.year, now.month, now.day, 5);
+    if (now.isBefore(todayAtFive)) return todayAtFive;
+    return todayAtFive.add(const Duration(days: 1));
+  }
+
+  void _scheduleNextDailyResetTimer() {
+    _dailyResetTimer?.cancel();
+
+    final now = DateTime.now();
+    final nextReset = _nextDailyResetBoundary(now);
+    final delay = nextReset.difference(now) + const Duration(seconds: 2);
+
+    _dailyResetTimer = Timer(delay, () {
+      _checkDailyResetSync();
+      _scheduleNextDailyResetTimer();
+    });
+  }
+
   Future<void> _saveAfterReset(String today) async {
     await checkWeeklyPlanetSettlement();
     await _saveRewardState();
@@ -4017,9 +4066,16 @@ class AppState extends ChangeNotifier {
       final taskType = (task['taskType'] ?? 'fixed') as String;
 
       if (taskType == 'fixed') {
+        final isFocusTask =
+            (task['isAutoTracked'] as bool? ?? false) &&
+            _readTaskSourceType(task) == TaskSourceType.focusMinutes &&
+            (task['sourceId'] as String? ?? '').isEmpty;
+
         return {
           ...task,
           'done': false,
+          'isDone': false,
+          if (isFocusTask) 'trackingStartFocusSeconds': 0,
           'updatedAt': DateTime.now().toIso8601String(),
           'completedAt': null,
         };
@@ -4908,6 +4964,7 @@ class AppState extends ChangeNotifier {
     double? targetValue,
     String? unitLabel,
   }) {
+    final now = DateTime.now().toIso8601String();
     if (taskType == 'deadline') {
       final parsedDueDate = DateTime.tryParse(dueDate ?? '');
       if (parsedDueDate != null &&
@@ -4931,9 +4988,11 @@ class AppState extends ChangeNotifier {
       'sourceType': sourceType?.name,
       'targetValue': targetValue,
       'unitLabel': unitLabel,
+      if (isAutoTracked && sourceType == TaskSourceType.focusMinutes)
+        'trackingStartFocusSeconds': _focusSeconds,
       'sourceId': null,
-      'createdAt': DateTime.now().toIso8601String(),
-      'updatedAt': DateTime.now().toIso8601String(),
+      'createdAt': now,
+      'updatedAt': now,
       'completedAt': null,
     });
     _syncAutoTrackedTasks();
@@ -5027,22 +5086,32 @@ class AppState extends ChangeNotifier {
       }
     }
 
-    final oldDone = _tasks[index]['done'] as bool? ?? false;
+    final nextIsAutoTracked =
+        isAutoTracked ?? (_tasks[index]['isAutoTracked'] as bool? ?? false);
+    final nextSourceType = sourceType ?? _readTaskSourceType(_tasks[index]);
+    final isFocusAutoTask =
+        nextIsAutoTracked && nextSourceType == TaskSourceType.focusMinutes;
+    final oldDone = isFocusAutoTask
+        ? false
+        : (_tasks[index]['done'] as bool? ?? false);
+    final now = DateTime.now().toIso8601String();
 
     _tasks[index] = {
       ..._tasks[index],
       'title': title,
       'done': oldDone,
+      'isDone': oldDone,
       'category': category,
       'taskType': taskType,
       'dueDate': taskType == 'fixed' ? null : dueDate,
       'priority': priority,
-      'isAutoTracked':
-          isAutoTracked ?? (_tasks[index]['isAutoTracked'] ?? false),
-      'sourceType': sourceType?.name ?? _tasks[index]['sourceType'],
+      'isAutoTracked': nextIsAutoTracked,
+      'sourceType': nextSourceType?.name ?? _tasks[index]['sourceType'],
       'targetValue': targetValue ?? _tasks[index]['targetValue'],
       'unitLabel': unitLabel ?? _tasks[index]['unitLabel'],
-      'updatedAt': DateTime.now().toIso8601String(),
+      if (isFocusAutoTask) 'trackingStartFocusSeconds': _focusSeconds,
+      'updatedAt': now,
+      'completedAt': oldDone ? (_tasks[index]['completedAt'] ?? now) : null,
     };
 
     _syncAutoTrackedTasks();

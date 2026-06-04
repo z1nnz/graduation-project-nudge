@@ -1500,6 +1500,7 @@ function bindExamTemplates() {
 window.addEventListener("DOMContentLoaded", () => {
   try { injectSidebarControls(); } catch(e){}
   try { injectModuleMenu(); } catch(e){}
+  try { injectAdminSwitch(); } catch(e){ console.warn("Admin switch init failed:", e); }
   try { injectDisplayModeControls(); } catch(e){}
   try { injectAINavigator(); } catch(e){}
   try { animateCounters(); } catch(e){}
@@ -1585,6 +1586,9 @@ function injectSidebarControls() {
 
 
 function injectAdminSwitch() {
+  if (window.__nudgeAdminSwitchInitialized) return;
+  window.__nudgeAdminSwitchInitialized = true;
+
   const existingBtn1 = document.querySelector('.admin-switch-btn');
   if (existingBtn1) existingBtn1.remove();
   const existingBtn2 = document.querySelector('.exit-admin-btn');
@@ -1592,8 +1596,10 @@ function injectAdminSwitch() {
 
   const isAdminPage = window.location.pathname.includes('admin_dashboard.html');
 
-  const style = document.createElement('style');
-  style.innerHTML = `
+  if (!document.getElementById('globalAdminSwitchStyle')) {
+    const style = document.createElement('style');
+    style.id = 'globalAdminSwitchStyle';
+    style.innerHTML = `
     .global-admin-switch-btn {
       position: fixed;
       top: 1.5rem;
@@ -1654,8 +1660,9 @@ function injectAdminSwitch() {
     .global-btn-cancel { background: transparent; border: 1px solid var(--c-border); color: var(--c-text); padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; }
     .global-btn-submit { background: var(--c-primary); border: none; color: white; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
     .global-error-msg { color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem; display: none; text-align: left; }
-  `;
-  document.head.appendChild(style);
+    `;
+    document.head.appendChild(style);
+  }
 
   const main = document.querySelector('.main');
   if (main) main.style.position = 'relative';
@@ -1681,12 +1688,12 @@ function injectAdminSwitch() {
               </div>
               <div class="global-form-group">
                 <label>密碼</label>
-                <input type="password" id="gAdminPassword" placeholder="將前往正式登入頁" />
+                <input type="password" id="gAdminPassword" placeholder="請輸入後台帳號密碼" />
               </div>
-              <div class="global-error-msg" id="gLoginError">請輸入帳號與密碼後前往正式登入頁。</div>
+              <div class="global-error-msg" id="gLoginError">請輸入帳號與密碼。</div>
               <div class="global-login-actions">
                 <button class="global-btn-cancel" onclick="document.getElementById('globalLoginModal').classList.remove('active')">取消</button>
-                <button class="global-btn-submit" onclick="gAttemptLogin()">登入</button>
+                <button class="global-btn-submit" id="gAdminSubmitBtn" onclick="gAttemptLogin()">登入</button>
               </div>
             </div>
           </div>
@@ -1703,14 +1710,42 @@ function injectAdminSwitch() {
       document.getElementById('gAdminUsername').focus();
     };
 
-    window.gAttemptLogin = function() {
-      const user = document.getElementById('gAdminUsername').value;
+    window.gAttemptLogin = async function() {
+      const user = document.getElementById('gAdminUsername').value.trim();
       const pass = document.getElementById('gAdminPassword').value;
-      if (user && pass) {
-        localStorage.setItem('nudgePostLoginRedirect', 'admin_dashboard.html');
-        window.location.href = 'login.html';
-      } else {
-        document.getElementById('gLoginError').style.display = 'block';
+      const errorNode = document.getElementById('gLoginError');
+      const submitBtn = document.getElementById('gAdminSubmitBtn');
+      if (!user || !pass) {
+        errorNode.textContent = '請輸入帳號與密碼。';
+        errorNode.style.display = 'block';
+        return;
+      }
+
+      try {
+        errorNode.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.textContent = '登入中...';
+
+        await loadFirebaseSDKs();
+        if (typeof firebase === 'undefined' || !firebase.auth) {
+          throw new Error('Firebase 尚未載入，請確認網路連線後重試。');
+        }
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+
+        const auth = firebase.auth();
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        const credential = await auth.signInWithEmailAndPassword(user, pass);
+        localStorage.setItem('nudgeWebLoggedIn', 'true');
+        localStorage.setItem('nudgeActiveDemoUserId', credential.user.uid);
+        localStorage.removeItem('nudgePostLoginRedirect');
+        window.location.href = 'admin_dashboard.html';
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '登入';
+        errorNode.textContent = '後台登入失敗：' + err.message;
+        errorNode.style.display = 'block';
       }
     };
 
@@ -1740,7 +1775,9 @@ function injectAdminSwitch() {
 }
 
 function bootFirebaseBackedData() {
-  setTimeout(injectAdminSwitch, 100);
+  setTimeout(() => {
+    try { injectAdminSwitch(); } catch(e){ console.warn("Admin switch init failed:", e); }
+  }, 100);
 
   // Render initial sidebar profile card from cache immediately
   const cachedData = {
@@ -3994,6 +4031,35 @@ function listenToUser(userId) {
   });
 }
 
+function parseTaskDueDateStart(dueDate) {
+  if (!dueDate) return null;
+  if (typeof dueDate.toDate === "function") {
+    const date = dueDate.toDate();
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+  if (typeof dueDate === "string") {
+    const match = dueDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
+  }
+  const parsed = new Date(dueDate);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function isDeadlineTaskReadyForWeb(task) {
+  const taskType = task.taskType || "fixed";
+  if (taskType !== "deadline") return true;
+
+  const due = parseTaskDueDateStart(task.dueDate);
+  if (!due) return false;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return today >= due;
+}
+
 window.bindFirestoreMissions = function(tasks) {
   const list = document.getElementById("dynamicMissionList");
   if (!list) return;
@@ -4002,6 +4068,9 @@ window.bindFirestoreMissions = function(tasks) {
   tasks.slice(0, 36).forEach((task, index) => {
     const title = task.title || task.name || "自律任務";
     const done = task.isDone || task.done || false;
+    const isDeadlineTask = (task.taskType || "fixed") === "deadline";
+    const deadlineReady = isDeadlineTaskReadyForWeb(task);
+    const canToggle = !isDeadlineTask || deadlineReady || done;
     const taskId = task.id || "";
     const sId = "s" + (index + 1);
     
@@ -4017,7 +4086,7 @@ window.bindFirestoreMissions = function(tasks) {
     list.innerHTML += `
       <li class="mission-item" data-task-id="${taskId}">
         <label>
-          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-index="${index}" data-task-id="${taskId}" data-task-type="${taskType}" ${done ? 'checked' : ''} />
+          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-index="${index}" data-task-id="${taskId}" data-task-type="${taskType}" ${done ? 'checked' : ''} ${canToggle ? '' : 'disabled'} />
           <span>${title}</span>
         </label>
         <div class="mission-meta">
@@ -4026,7 +4095,7 @@ window.bindFirestoreMissions = function(tasks) {
           </div>
           <div class="mission-actions" style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 11px; color: ${done ? '#00ffcc' : 'rgba(255,255,255,0.4)'}; font-weight: 700;">
-              ${done ? '✅ 已同步完成' : '⏳ 行動中'}
+              ${done ? '✅ 已同步完成' : isDeadlineTask && !deadlineReady ? '📅 尚未到驗收日' : '⏳ 行動中'}
             </span>
             <button class="cyber-btn delete-mission-btn" data-task-id="${taskId}" style="font-size: 10px; padding: 2px 6px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: transparent; cursor: pointer; border-radius: 4px; box-shadow: none;">刪除</button>
           </div>
@@ -4065,6 +4134,12 @@ window.bindFirestoreMissions = function(tasks) {
         if (!docSnap.exists) return;
         const data = docSnap.data();
         const currentTasks = data.tasks || [];
+        const selectedTask = currentTasks.find(t => t.id === taskId);
+        if (isChecked && selectedTask && !isDeadlineTaskReadyForWeb(selectedTask)) {
+          e.target.checked = false;
+          toast("截止日任務尚未到驗收日，暫時不能勾選完成");
+          return;
+        }
         const updatedTasks = currentTasks.map(t => {
           if (t.id === taskId) {
             return {
