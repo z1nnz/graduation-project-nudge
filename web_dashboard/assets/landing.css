@@ -80,7 +80,7 @@ body {
 
 /* Layout Utilities */
 .container {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -351,6 +351,8 @@ h1, h2, h3 {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(16px);
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .glass-table {
@@ -431,10 +433,18 @@ h1, h2, h3 {
   color: var(--secondary-color);
   font-size: 1.2rem;
   margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .feature-list li strong {
+  flex: 0 0 8.5em;
   color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.feature-list li span {
+  flex: 1;
+  text-wrap: pretty;
 }
 
 /* Footer */
