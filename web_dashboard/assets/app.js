@@ -2,7 +2,7 @@
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
 const modules = [
-  ["home", "總覽入口", "index.html"],
+  ["home", "總覽入口", "dashboard.html"],
   ["personal", "個人進階分析", "personal.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
@@ -17,9 +17,9 @@ const modules = [
 
 // Authentication Check
 const pathName = window.location.pathname;
-const isPublicPage = pathName.endsWith("/") || pathName.endsWith("index.html") || pathName.endsWith("login.html") || pathName.includes("admin_dashboard.html");
+const isPublicPage = pathName.endsWith("/") || pathName.endsWith("index.html") || pathName.endsWith("dashboard.html") || pathName.endsWith("login.html") || pathName.includes("admin_dashboard.html");
 if (!isPublicPage && localStorage.getItem("nudgeWebLoggedIn") !== "true") {
-  localStorage.setItem("nudgePostLoginRedirect", pathName.split("/").pop() || "index.html");
+  localStorage.setItem("nudgePostLoginRedirect", pathName.split("/").pop() || "dashboard.html");
 }
 
 
@@ -39,7 +39,7 @@ function injectModuleMenu() {
       activeKey = key;
     }
   }
-  if (path.endsWith("/") || path.includes("index.html")) {
+  if (path.includes("dashboard.html")) {
     activeKey = "home";
   }
 
@@ -62,13 +62,13 @@ function injectModuleMenu() {
       
       if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().signOut().then(() => {
-          window.location.href = "index.html"; // 登出後回到總覽頁面
+          window.location.href = "dashboard.html"; // 登出後回到總覽頁面
         }).catch(err => {
           console.error("Firebase sign out failed:", err);
-          window.location.href = "index.html";
+          window.location.href = "dashboard.html";
         });
       } else {
-        window.location.href = "index.html";
+        window.location.href = "dashboard.html";
       }
     });
     nav.appendChild(logoutBtn);
@@ -909,7 +909,7 @@ function injectAINavigator() {
     const systemText = `你是一個名為 Nudge 的智慧助理，同時也是溫和且專業的「Nudge 自律導師」。你負責協助使用者理解目前頁面、整理自律資料，並提供下一步時間管理與自律任務建議。回答要簡潔、有操作性，不要給出落落長的文章。
 如果使用者要求開始專注、倒數計時，請加上：[ACTION:START_FOCUS:分鐘數]
 如果使用者要求新增任務，請加上：[ACTION:ADD_TASK:任務名稱]
-如果使用者要求前往某個頁面(例如總覽、家長中心、營運後台等)，請加上：[ACTION:NAVIGATE:該頁面網址.html] (頁面包含: index.html, personal.html, guardian.html, groups.html, operations.html, planet.html, friend.html)。
+如果使用者要求前往某個頁面(例如總覽、家長中心、營運後台等)，請加上：[ACTION:NAVIGATE:該頁面網址.html] (頁面包含: dashboard.html, personal.html, guardian.html, groups.html, operations.html, planet.html, friend.html)。
 如果使用者說他完成了某個任務，或者要求你幫他完成（例如「我完成了準備期中報告的任務」、「我剛剛去跑步了」，或者「幫我完成看書任務」），請在回覆中包含：[ACTION:COMPLETE_TASK:任務ID]。請務必使用對應任務的 ID。
 
 ${tasksContext}
@@ -1672,7 +1672,7 @@ function injectAdminSwitch() {
     const btn = document.createElement('button');
     btn.className = 'global-admin-switch-btn';
     btn.innerHTML = '⚙ 切回前台';
-    btn.onclick = () => window.location.href = 'index.html';
+    btn.onclick = () => window.location.href = 'dashboard.html';
     btnContainer.appendChild(btn);
   } else {
     window.showAdminLoginModal = function() {
@@ -1874,7 +1874,7 @@ function initializeFirebaseWeb() {
         const auth = firebase.auth();
         const isPublic = () => {
           const currentPath = window.location.pathname;
-          return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
+          return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("dashboard.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
         };
         const clearWebSession = () => {
           localStorage.removeItem("nudgeWebLoggedIn");
@@ -1882,7 +1882,7 @@ function initializeFirebaseWeb() {
         };
         const redirectToLogin = () => {
           const currentPath = window.location.pathname;
-          localStorage.setItem("nudgePostLoginRedirect", currentPath.split("/").pop() || "index.html");
+          localStorage.setItem("nudgePostLoginRedirect", currentPath.split("/").pop() || "dashboard.html");
           window.location.href = "login.html";
         };
         const handleUser = (user) => {

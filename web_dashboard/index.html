@@ -1,221 +1,192 @@
-<!doctype html>
-<html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nudge Web Center</title>
-    <link rel="stylesheet" href="assets/styles.css" />
-  </head>
-  <body data-page="home">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="index.html">
-          <span class="brand-mark">N</span>
-          <span>
-            <strong>Nudge</strong>
-            <small>Web 延伸平台</small>
-          </span>
-        </a>
-        <nav class="nav">
-          <a class="active" href="index.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">商城頁</a>
-          <a href="research.html">研究中心</a>
-          <a href="friend.html">好友功能</a>
-          <a href="planet.html">自律星球</a>
-          <a href="presentation.html">專題發表流程</a>
-          <a href="profile.html">個人名片</a>
-        </nav>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nudge - 輕推式自律養成平台</title>
+    <meta name="description" content="Nudge 打造了一個「行動 -> 回饋 -> 成長」的自律閉環，從生活痛點到自律賦能，幫助現代人解決自律難題。">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="assets/landing.css">
+</head>
+<body>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
 
-      </aside>
-
-      <main class="main">
-        <header class="hero split hero-home cinematic">
-          <div>
-            <span class="eyebrow">Nudge Web Center</span>
-            <h1>Nudge Web 延伸平台：你的自律宇宙控制台。</h1>
-            <p>
-              這裡不只是手機 App 的數據大螢幕，更是你檢視「人生技能樹」、與好友互相拜訪星球、兌換商城專屬角色，以及掌握全站數據趨勢的專屬平台。
-            </p>
-            <div class="hero-actions">
-              <a class="button primary" href="presentation.html">開始發表流程</a>
-              <a class="button primary" href="planet.html">進入自律星球</a>
-              <a class="button ghost" href="guardian.html">查看家長陪伴</a>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="logo">
+                <i class="ph-fill ph-infinity"></i>
+                <span>Nudge</span>
             </div>
-          </div>
-          <div class="hero-orbit" data-tilt>
-            <div class="orbit-ring ring-a"></div>
-            <div class="orbit-ring ring-b"></div>
-            <div class="orbit-ring ring-c"></div>
-            <div class="holo-planet">
-              <span class="planet-node n1">任務</span>
-              <span class="planet-node n2">健康</span>
-              <span class="planet-node n3">專注</span>
-              <span class="planet-node n4">自律房</span>
+            <a href="dashboard.html" class="btn btn-primary">進入 Nudge</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="container hero-container">
+            <div class="hero-content reveal">
+                <div class="badge">Nudge：輕推式自律養成平台</div>
+                <h1 class="hero-title">為什麼我們需要 Nudge？<br><span class="text-gradient">從生活痛點到自律賦能</span></h1>
+                <p class="hero-subtitle">
+                    「自律」往往不是不知道該做什麼，而是很難持續做下去。台灣家戶連網率已達 93.4%，工具越來越多元，但自律問題並沒有因此消失。Nudge 為您打造專屬的自律閉環。
+                </p>
+                <div class="hero-cta">
+                    <a href="#solution" class="btn btn-primary btn-large">探索解決方案 <i class="ph ph-arrow-right"></i></a>
+                    <a href="#pain-points" class="btn btn-secondary btn-large">了解四大痛點</a>
+                </div>
             </div>
-            <div class="floating-chip chip-a">
-              <small>本週完整度</small>
-              <strong>待同步</strong>
+            <div class="hero-image reveal-delay">
+                <div class="image-wrapper glass-card">
+                    <img src="assets/landing/nudge_icon.png" alt="Nudge Icon" class="floating-img">
+                </div>
             </div>
-            <div class="floating-chip chip-b">
-              <small>健康同步</small>
-              <strong>Live</strong>
+        </div>
+    </header>
+
+    <!-- Pain Points Section -->
+    <section id="pain-points" class="pain-points section">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2 class="section-title">現代年輕族群的<span class="text-gradient">自律痛點</span></h2>
+                <p class="section-desc">現代人在落實自律時，經常面臨以下四大複合型痛點</p>
             </div>
-            <div class="scan-beam"></div>
-          </div>
-        </header>
+            <div class="grid grid-4">
+                <div class="glass-card pain-card reveal">
+                    <div class="card-icon"><i class="ph ph-stack"></i></div>
+                    <h3>1. 任務堆積，缺乏拆解</h3>
+                    <p>設定了宏大目標，卻因缺乏每日微行動的拆解與明確的截止日管理，導致計畫流於形式，任務不斷堆積。</p>
+                </div>
+                <div class="glass-card pain-card reveal reveal-delay-1">
+                    <div class="card-icon"><i class="ph ph-puzzle-piece"></i></div>
+                    <h3>2. 工具孤立，數據斷層</h3>
+                    <p>待辦清單缺乏動機，番茄鐘無法連結進度，健康資料流於「被動觀看」，無法有效驅動具體行動。</p>
+                </div>
+                <div class="glass-card pain-card reveal reveal-delay-2">
+                    <div class="card-icon"><i class="ph ph-trend-down"></i></div>
+                    <h3>3. 缺乏回饋，動機衰退</h3>
+                    <p>行為科學指出，缺乏即時正向回饋時，動機會快速衰退。傳統工具缺乏情感回饋，或操作過於繁重讓人失焦。</p>
+                </div>
+                <div class="glass-card pain-card reveal reveal-delay-3">
+                    <div class="card-icon"><i class="ph ph-users-three"></i></div>
+                    <h3>4. 過程孤單，反彈監控</h3>
+                    <p>單打獨鬥容易放棄。而家長想要介入關心時，傳統監控往往引發隱私疑慮，缺乏「保持自主性」的陪伴。</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        <section class="showcase-strip">
-          <div><small>3D 自律星球</small><strong>資料會長成星球</strong></div>
-          <div><small>發表腳本</small><strong>重點流程可快速切換</strong></div>
-          <div><small>跨角色 Web</small><strong>個人、家長、團體、營運</strong></div>
-        </section>
+    <!-- Solution Section -->
+    <section id="solution" class="solution section relative">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2 class="section-title">Nudge 的<span class="text-gradient">解法連動機制</span></h2>
+                <p class="section-desc">為了打破痛點，我們打造了一個「行動 &rarr; 回饋 &rarr; 成長」的自律閉環</p>
+            </div>
+            <div class="solution-table-wrapper reveal">
+                <table class="glass-table">
+                    <thead>
+                        <tr>
+                            <th>核心痛點</th>
+                            <th>Nudge 整合型解法</th>
+                            <th>前端核心功能支持</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge-sm badge-red">任務堆積</span></td>
+                            <td>任務分類與截止日精細管理</td>
+                            <td>固定/截止日任務、AI 今日行動建議</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge-sm badge-orange">工具孤立</span></td>
+                            <td>自動追蹤健康數據，健康任務化</td>
+                            <td>對接 iOS HealthKit 與 Android Health Connect</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge-sm badge-yellow">動機衰退</span></td>
+                            <td>抽象意志力轉化為直覺的量化獎勵</td>
+                            <td>權重演算法計算自律分數、自律幣、角色進化</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge-sm badge-purple">過程孤單</span></td>
+                            <td>同儕陪跑的社交拉力與權限分級陪伴</td>
+                            <td>多人同步番茄鐘自律房、家長中心 (保護隱私)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
 
-        <section class="section-head">
-          <div>
-            <span class="eyebrow">Extension Tools</span>
-            <h2>不是看板，是可以操作的 Web 工具箱。</h2>
-          </div>
-          <p>每個入口都連到一個 App 端不適合塞進手機的小型工作台。</p>
-        </section>
+    <!-- Expected Contributions Section -->
+    <section class="contributions section">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2 class="section-title">系統預期貢獻與<span class="text-gradient">社會價值</span></h2>
+                <p class="section-desc">Nudge 的核心優勢在於整合後形成的完整使用循環與多端場景延伸能力</p>
+            </div>
+            <div class="grid grid-3">
+                <div class="glass-card contribution-card reveal">
+                    <div class="card-header">
+                        <i class="ph-fill ph-rocket"></i>
+                        <h3>對個人使用者的貢獻</h3>
+                    </div>
+                    <ul class="feature-list">
+                        <li><i class="ph ph-check-circle"></i> <strong>降低認知負擔：</strong> 一站式工具免除反覆切換痛苦</li>
+                        <li><i class="ph ph-check-circle"></i> <strong>建立規律作息：</strong> 數據視覺化，培養運動與睡眠習慣</li>
+                        <li><i class="ph ph-check-circle"></i> <strong>精準微行動指引：</strong> 內建 Gemini AI 自律導師，提供個人化盲點診斷</li>
+                    </ul>
+                </div>
+                <div class="glass-card contribution-card reveal reveal-delay-1">
+                    <div class="card-header">
+                        <i class="ph-fill ph-student"></i>
+                        <h3>對教育與學習社群</h3>
+                    </div>
+                    <ul class="feature-list">
+                        <li><i class="ph ph-check-circle"></i> <strong>班級平台化：</strong> 適用補習班、讀書會管理的自律房</li>
+                        <li><i class="ph ph-check-circle"></i> <strong>量化學習歷程：</strong> 自動生成自律週報與趨勢作反思輔助</li>
+                        <li><i class="ph ph-check-circle"></i> <strong>激發榮譽感：</strong> 全站或好友圈排行，轉化群體動力</li>
+                    </ul>
+                </div>
+                <div class="glass-card contribution-card reveal reveal-delay-2">
+                    <div class="card-header">
+                        <i class="ph-fill ph-code"></i>
+                        <h3>對技術實踐與產業</h3>
+                    </div>
+                    <ul class="feature-list">
+                        <li><i class="ph ph-check-circle"></i> <strong>跨領域開發：</strong> Flutter + Web + Firebase + Gemini 架構</li>
+                        <li><i class="ph ph-check-circle"></i> <strong>行為科學結合：</strong> 將 Health 數據融入模型，創新 EdTech</li>
+                        <li><i class="ph ph-check-circle"></i> <strong>商業化潛力：</strong> 免費版搭配進階訂閱、商城與企業健康方案</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        <section class="tool-launch-grid page-section">
-          <a class="tool-launch-card" href="personal.html">
-            <span>01</span>
-            <strong>人生技能樹與天氣</strong>
-            <p>將自律習慣轉化為技能升級與專屬的自律天氣預報。</p>
-          </a>
-          <a class="tool-launch-card" href="friend.html">
-            <span>02</span>
-            <strong>互動式好友清單</strong>
-            <p>拜訪好友的專屬星球，並查看對方的專注與睡眠數據。</p>
-          </a>
-          <a class="tool-launch-card" href="operations.html">
-            <span>03</span>
-            <strong>自律商城兌換</strong>
-            <p>使用任務獲得的自律幣，兌換常駐與限時專屬角色夥伴。</p>
-          </a>
-          <a class="tool-launch-card" href="research.html">
-            <span>04</span>
-            <strong>全站數據研究中心</strong>
-            <p>透過多樣化圖表，分析全站用戶的平均睡眠、步數與專注趨勢。</p>
-          </a>
-        </section>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-cta reveal">
+                <h2>準備好開始你的自律旅程了嗎？</h2>
+                <a href="dashboard.html" class="btn btn-primary btn-large">進入 Nudge</a>
+            </div>
+            <div class="footer-bottom">
+                <div class="logo">
+                    <i class="ph-fill ph-infinity"></i>
+                    <span>Nudge</span>
+                </div>
+                <p>&copy; 2026 Nudge Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 
-        <section class="story-flow page-section">
-          <article>
-            <span>01</span>
-            <h3>手機日常行動</h3>
-            <p>任務、專注、健康追蹤先在 App 裡完成，累積自律點數與數據。</p>
-          </article>
-          <article>
-            <span>02</span>
-            <h3>網頁深度分析</h3>
-            <p>Web 端將數據轉化為「自律天氣」、「壓力雷達」與「人生技能樹」。</p>
-          </article>
-          <article>
-            <span>03</span>
-            <h3>好友互相拜訪</h3>
-            <p>透過 Web 端的互動好友列表，一鍵參觀好友努力養成的自律星球。</p>
-          </article>
-          <article>
-            <span>04</span>
-            <h3>成果可視化</h3>
-            <p>純粹的 3D 星球與全站圖表，把抽象的努力變成可看見的世界與數據。</p>
-          </article>
-        </section>
-
-        <section class="section-head">
-          <div>
-            <span class="eyebrow">入口總覽</span>
-            <h2>八大 Web 核心功能</h2>
-          </div>
-          <p>每一個中心都對應 App 以外才更有價值的使用情境。</p>
-        </section>
-
-        <section class="feature-grid">
-          <a class="feature-card" href="personal.html">
-            <span class="icon">↗</span>
-            <h3>個人進階分析中心</h3>
-            <p>人生技能樹、自律天氣、壓力雷達、時間膠囊與未來的信。</p>
-          </a>
-          <a class="feature-card highlight" href="friend.html">
-            <span class="icon">👥</span>
-            <h3>好友功能</h3>
-            <p>互動式好友清單，一鍵拜訪對方的自律星球、查看近期成就與詳細數值。</p>
-          </a>
-          <a class="feature-card" href="research.html">
-            <span class="icon">⌁</span>
-            <h3>研究中心</h3>
-            <p>全站用戶的平均睡眠、專注、步數與運動數據的多樣化圖表分析。</p>
-          </a>
-          <a class="feature-card" href="operations.html">
-            <span class="icon">◆</span>
-            <h3>商城頁</h3>
-            <p>使用自律幣兌換常駐、限時與活動專屬夥伴角色。</p>
-          </a>
-          <a class="feature-card highlight" href="planet.html">
-            <span class="icon">✦</span>
-            <h3>自律星球</h3>
-            <p>純粹、無干擾的星球展示空間，把任務完成率轉成可以被看見的成果。</p>
-          </a>
-          <a class="feature-card" href="guardian.html">
-            <span class="icon">♡</span>
-            <h3>家長陪伴中心</h3>
-            <p>看趨勢、送鼓勵、設共同目標。重點是陪伴，不是監控。</p>
-          </a>
-          <a class="feature-card" href="groups.html">
-            <span class="icon">◎</span>
-            <h3>團體 / 教育管理中心</h3>
-            <p>企業挑戰、補習班後台、讀書會挑戰、小組排行。</p>
-          </a>
-          <a class="feature-card" href="presentation.html">
-            <span class="icon">▶</span>
-            <h3>專題發表流程</h3>
-            <p>把 App 核心、Web 延伸、自律星球與研究價值整理成可展示故事線。</p>
-          </a>
-        </section>
-
-        <section class="capability-matrix page-section">
-          <div class="matrix-head">
-            <span class="eyebrow">System Depth</span>
-            <h2>不是一個網頁，而是一套 Web 端產品分工。</h2>
-          </div>
-          <div class="matrix-grid">
-            <div><small>個人</small><strong>深度洞察</strong><span>人生技能樹、自律天氣、壓力雷達</span></div>
-            <div><small>社交</small><strong>好友拜訪</strong><span>互動列表、參觀星球、分享數據</span></div>
-            <div><small>展示</small><strong>自律星球</strong><span>純粹 3D 展示、把努力轉成星球</span></div>
-            <div><small>家庭</small><strong>陪伴權限</strong><span>同意制、趨勢總覽、鼓勵卡、共同目標</span></div>
-            <div><small>教育</small><strong>群組管理</strong><span>考試倒數、排行、複習提醒</span></div>
-            <div><small>營運</small><strong>活動經濟</strong><span>商城上架、價格控管、活動房、審核</span></div>
-            <div><small>研究</small><strong>匿名分析</strong><span>健康同步、專注、任務完成率關聯</span></div>
-            <div><small>陪伴</small><strong>家長/教育</strong><span>共同目標、讀書會排行、鼓勵卡</span></div>
-            <div><small>展示</small><strong>成果星球</strong><span>把努力轉成星球、訪客、事件與故事</span></div>
-          </div>
-        </section>
-
-        <section class="two-col">
-          <article class="panel">
-            <span class="eyebrow">產品定位</span>
-            <h2>App 是每日操作，Web 是長期價值。</h2>
-            <p>
-              如果 Web 只複製 App 的任務列表和分數，那會很弱。這裡改成提供大螢幕才適合看的資料、
-              家長與團體角色、活動營運工具，以及發表時能一眼理解系統的展示面。
-            </p>
-          </article>
-          <article class="panel">
-            <span class="eyebrow">資料流</span>
-            <ul class="timeline compact">
-              <li><strong>App 完成任務</strong><span>產生分數、幣、健康與自律房資料</span></li>
-              <li><strong>Web 整合分析</strong><span>轉成趨勢、風險、週報、星球成長</span></li>
-              <li><strong>角色互動</strong><span>家長、老師、團隊、營運者依權限查看</span></li>
-            </ul>
-          </article>
-        </section>
-      </main>
-    </div>
-    <script src="assets/app.js?v=12"></script>
-  </body>
+    <script src="assets/landing.js"></script>
+</body>
 </html>

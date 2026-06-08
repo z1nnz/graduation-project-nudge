@@ -236,7 +236,7 @@
           </button>
         </div>
 
-        <a href="index.html" class="skip-link">稍後再說，先體驗功能</a>
+        <a href="dashboard.html" class="skip-link">稍後再說，先體驗功能</a>
       </div>
     </div>
     <script>
@@ -296,7 +296,7 @@
         }).then(() => {
           localStorage.setItem('nudgeWebLoggedIn', 'true');
           localStorage.setItem('nudgeActiveDemoUserId', user.uid);
-          const redirectTarget = localStorage.getItem('nudgePostLoginRedirect') || 'index.html';
+          const redirectTarget = localStorage.getItem('nudgePostLoginRedirect') || 'dashboard.html';
           localStorage.removeItem('nudgePostLoginRedirect');
           window.location.href = redirectTarget;
         }).catch((err) => {
