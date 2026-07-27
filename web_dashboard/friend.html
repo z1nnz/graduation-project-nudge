@@ -818,6 +818,36 @@
       let friendSystemInitializedFor = null;
       let friendSystemUnsubscribers = [];
 
+      function escapeFriendHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        })[character]);
+      }
+
+      function safeFriendColor(value) {
+        const colors = {
+          purple: "#7C6AE6",
+          blue: "#4F8CFF",
+          teal: "#14B8A6",
+          green: "#10B981",
+          orange: "#F59E0B",
+          pink: "#EC4899",
+          red: "#EF4444",
+          indigo: "#6366F1"
+        };
+        const normalized = String(value || "");
+        if (/^#[0-9a-fA-F]{6}$/.test(normalized)) return normalized;
+        return colors[normalized] || "#7C6AE6";
+      }
+
+      function inlineFriendArgument(value) {
+        return escapeFriendHtml(JSON.stringify(String(value ?? "")));
+      }
+
       function clearFriendSystemListeners() {
         friendSystemUnsubscribers.forEach((unsubscribe) => {
           try { unsubscribe(); } catch (err) { console.warn("Friend listener cleanup failed:", err); }
@@ -903,26 +933,18 @@
             const friendRel = doc.data();
             const friendId = doc.id;
             try {
-              const friendDocSnap = await db.collection("users").doc(friendId).get();
+              const friendDocSnap = await db.collection("public_profiles").doc(friendId).get();
               if (friendDocSnap.exists) {
                 const friendData = friendDocSnap.data();
-                const friendTasks = friendData.tasks || [];
-                const completedTasks = friendTasks.filter(t => t.isDone || t.done).length;
-                const totalTasks = friendTasks.length;
-                const prosperity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-                let sleepHours = 8.0;
-                let steps = 0;
-                let exerciseMinutes = 0;
-                if (friendData.dailySummaries && friendData.dailySummaries.length > 0) {
-                  const latest = friendData.dailySummaries[friendData.dailySummaries.length - 1];
-                  sleepHours = latest.sleepHours || sleepHours;
-                  steps = latest.steps || steps;
-                  exerciseMinutes = latest.exerciseMinutes || exerciseMinutes;
-                }
-
-                const avatar = (friendData.avatarProfile && friendData.avatarProfile.icon) ? friendData.avatarProfile.icon : "🧑‍🚀";
-                const avatarColor = (friendData.avatarProfile && friendData.avatarProfile.color) ? friendData.avatarProfile.color : "#7C6AE6";
+                const avatarIconIndex =
+                  friendData.avatarProfile &&
+                  Number.isInteger(friendData.avatarProfile.avatarIconIndex)
+                    ? friendData.avatarProfile.avatarIconIndex
+                    : null;
+                const avatar = avatarIconIndex === null
+                  ? "🧑‍🚀"
+                  : `<img src="assets/avatar/icons/icon_${avatarIconIndex}.png" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                const avatarColor = safeFriendColor(friendData.accentColor);
 
                 return {
                   id: friendId,
@@ -931,18 +953,11 @@
                   signature: friendData.signature || friendRel.signature || "今天慢慢前進",
                   avatar: avatar,
                   avatarColor: avatarColor,
-                  prosperity: prosperity,
-                  completedTasks: completedTasks,
-                  totalTasks: totalTasks,
-                  sleepHours: sleepHours,
-                  steps: steps,
-                  exerciseMinutes: exerciseMinutes,
-                  todayFocusSeconds: friendData.focusSeconds || friendRel.todayFocusSeconds || 0,
-                  isStudying: friendData.isStudying || friendRel.isStudying || false,
-                  tasks: friendTasks,
-                  dailySummaries: friendData.dailySummaries || [],
-                  unlockedPlanets: friendData.unlockedPlanets || [],
-                  unlockedBadges: friendData.unlockedBadges || []
+                  planetCount: friendData.planetCount || 0,
+                  todayFocusSeconds: friendRel.todayFocusSeconds || 0,
+                  isStudying: friendRel.isStudying || false,
+                  tasks: [],
+                  unlockedBadgeDates: friendData.unlockedBadgeDates || {}
                 };
               }
             } catch (err) {
@@ -957,18 +972,11 @@
               signature: friendRel.signature || "今天慢慢前進",
               avatar: "🧑‍🚀",
               avatarColor: "#7C6AE6",
-              prosperity: 0,
-              completedTasks: 0,
-              totalTasks: 0,
-              sleepHours: 7.5,
-              steps: 3000,
-              exerciseMinutes: 15,
+              planetCount: 0,
               todayFocusSeconds: friendRel.todayFocusSeconds || 0,
               isStudying: friendRel.isStudying || false,
               tasks: [],
-              dailySummaries: [],
-              unlockedPlanets: [],
-              unlockedBadges: []
+              unlockedBadgeDates: {}
             };
           });
 
@@ -1047,27 +1055,29 @@
         if (currentTab !== '列表') return; // Don't overwrite if tab switched
         
         container.innerHTML = friends.map(f => {
+          const friendIdArg = inlineFriendArgument(f.id);
+          const friendNameArg = inlineFriendArgument(f.name);
           return `
-            <div class="friend-list-item" onclick="showFriendDetail('${f.id}')" style="cursor: pointer;">
-              <div class="friend-avatar" style="background: ${f.avatarColor}22; color: ${f.avatarColor};">
-                <div class="friend-lv-badge">Lv.${Math.floor(f.prosperity/10) + 1}</div>
+            <div class="friend-list-item" onclick="showFriendDetail(${friendIdArg})" style="cursor: pointer;">
+              <div class="friend-avatar" style="background: ${safeFriendColor(f.avatarColor)}22; color: ${safeFriendColor(f.avatarColor)};">
+                <div class="friend-lv-badge">${f.planetCount || 0} 星</div>
                 ${f.avatar}
               </div>
               <div class="friend-info">
                 <div class="friend-name-row">
-                  <span class="friend-name">${f.name}</span>
-                  <span class="friend-status">狀態：${f.signature}</span>
+                  <span class="friend-name">${escapeFriendHtml(f.name)}</span>
+                  <span class="friend-status">狀態：${escapeFriendHtml(f.signature)}</span>
                 </div>
                 <div class="friend-stats-row">
-                  <span>🎯 星球繁榮度：${f.prosperity}%</span>
-                  <span>⏱️ 完成任務：${f.completedTasks}/${f.totalTasks}</span>
-                  <span>🏃 今日步數：${f.steps.toLocaleString()} 步</span>
+                  <span>🪐 已解鎖星球：${f.planetCount || 0}</span>
+                  <span>⏱️ 公開專注：${Math.round((f.todayFocusSeconds || 0) / 60)} 分鐘</span>
+                  <span>🔒 任務、步數與睡眠不從私人帳號讀取</span>
                 </div>
               </div>
               <div class="friend-meta" style="flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px;" onclick="event.stopPropagation();">
                 <span class="friend-last-login" style="margin-right: auto; padding-left: 10px;">${f.isStudying ? "🟢 線上專注中" : "⚪ 離線"}</span>
-                <button class="button secondary" style="padding: 6px 12px; font-size: 13px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="deleteFriend('${f.id}', '${f.name}')">❌ 刪除</button>
-                <button class="button primary" style="padding: 6px 16px; font-size: 13px; min-height: auto;" onclick="showFriendDetail('${f.id}')">查看名片</button>
+                <button class="button secondary" style="padding: 6px 12px; font-size: 13px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="deleteFriend(${friendIdArg}, ${friendNameArg})">❌ 刪除</button>
+                <button class="button primary" style="padding: 6px 16px; font-size: 13px; min-height: auto;" onclick="showFriendDetail(${friendIdArg})">查看名片</button>
               </div>
             </div>
           `;
@@ -1095,52 +1105,61 @@
         // ── Section 1: Incoming ──
         if (incoming.length > 0) {
           html += `<div style="font-size:12px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; margin-top:4px;">📩 收到的邀請（${incoming.length}）</div>`;
-          html += incoming.map(r => `
-            <div class="friend-list-item" style="cursor: pointer; border-color: rgba(16,185,129,0.3);" onclick="showFriendDetail('${r.senderId}')">
+          html += incoming.map(r => {
+            const senderIdArg = inlineFriendArgument(r.senderId);
+            const requestIdArg = inlineFriendArgument(r.id);
+            return `
+            <div class="friend-list-item" style="cursor: pointer; border-color: rgba(16,185,129,0.3);" onclick="showFriendDetail(${senderIdArg})">
               <div class="friend-avatar" style="background: rgba(16,185,129,0.08); color:#10b981; font-size: 36px;">
                 🧑‍🚀
               </div>
               <div class="friend-info">
                 <div class="friend-name-row">
-                  <span class="friend-name">${r.senderName}</span>
+                  <span class="friend-name">${escapeFriendHtml(r.senderName)}</span>
                   <span class="friend-status" style="background:rgba(16,185,129,0.1); color:#10b981;">想加你為好友</span>
                 </div>
                 <div class="friend-stats-row">
-                  <span>ID: ${r.senderNudgeId}</span>
-                  <span>${r.senderSignature || '今天慢慢前進'}</span>
+                  <span>ID: ${escapeFriendHtml(r.senderNudgeId)}</span>
+                  <span>${escapeFriendHtml(r.senderSignature || '今天慢慢前進')}</span>
                 </div>
               </div>
               <div class="friend-meta" style="flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px;" onclick="event.stopPropagation();">
-                <button class="button primary" style="padding: 8px 18px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981; font-weight:800;" onclick="acceptFriendRequest('${r.id}')">✓ 接受</button>
-                <button class="button secondary" style="padding: 8px 14px; font-size: 13px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="declineFriendRequest('${r.id}')">✕</button>
+                <button class="button primary" style="padding: 8px 18px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981; font-weight:800;" onclick="acceptFriendRequest(${requestIdArg})">✓ 接受</button>
+                <button class="button secondary" style="padding: 8px 14px; font-size: 13px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="declineFriendRequest(${requestIdArg})">✕</button>
               </div>
             </div>
-          `).join('');
+          `;
+          }).join('');
         }
 
         // ── Section 2: Outgoing ──
         if (outgoing.length > 0) {
           html += `<div style="font-size:12px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; margin-top:${incoming.length > 0 ? '24px' : '4px'};">📤 已送出的邀請（${outgoing.length}）</div>`;
-          html += outgoing.map(r => `
-            <div class="friend-list-item" style="cursor: pointer; border-color: rgba(96,165,250,0.25);" onclick="showFriendDetail('${r.receiverId}')">
+          html += outgoing.map(r => {
+            const receiverIdArg = inlineFriendArgument(r.receiverId);
+            const requestIdArg = inlineFriendArgument(r.id);
+            const receiverNameArg = inlineFriendArgument(r.receiverName);
+            return `
+            <div class="friend-list-item" style="cursor: pointer; border-color: rgba(96,165,250,0.25);" onclick="showFriendDetail(${receiverIdArg})">
               <div class="friend-avatar" style="background: rgba(96,165,250,0.08); color:#60a5fa; font-size:36px;">
                 🧑‍🚀
               </div>
               <div class="friend-info">
                 <div class="friend-name-row">
-                  <span class="friend-name">${r.receiverName}</span>
+                  <span class="friend-name">${escapeFriendHtml(r.receiverName)}</span>
                   <span class="friend-status" style="background:rgba(96,165,250,0.1); color:#60a5fa;">⏱ 等待回應</span>
                 </div>
                 <div class="friend-stats-row">
-                  <span>ID: ${r.receiverNudgeId}</span>
+                  <span>ID: ${escapeFriendHtml(r.receiverNudgeId)}</span>
                 </div>
               </div>
               <div class="friend-meta" style="flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; padding: 12px 16px;" onclick="event.stopPropagation();">
-                <button class="button" style="padding: 7px 14px; font-size: 12px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="cancelFriendRequest('${r.id}', '${r.receiverName}')">取消申請</button>
-                <button class="button" style="padding: 7px 14px; font-size: 12px; min-height: auto; border-color: #7c6ae6; color: #7c6ae6;" onclick="showFriendDetail('${r.receiverId}')">查看名片</button>
+                <button class="button" style="padding: 7px 14px; font-size: 12px; min-height: auto; border-color: #ef4444; color: #ef4444;" onclick="cancelFriendRequest(${requestIdArg}, ${receiverNameArg})">取消申請</button>
+                <button class="button" style="padding: 7px 14px; font-size: 12px; min-height: auto; border-color: #7c6ae6; color: #7c6ae6;" onclick="showFriendDetail(${receiverIdArg})">查看名片</button>
               </div>
             </div>
-          `).join('');
+          `;
+          }).join('');
         }
 
         container.innerHTML = html;
@@ -1253,7 +1272,7 @@
         resultsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color:#9ca3af;">搜尋中...</div>`;
 
         try {
-          const userSnap = await db.collection("users").where("myNudgeId", "==", query).limit(1).get();
+          const userSnap = await db.collection("public_profiles").where("myNudgeId", "==", query).limit(1).get();
           
           if (userSnap.docs.length === 0) {
             resultsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color:#9ca3af;">找不到該 Nudge ID 的使用者。</div>`;
@@ -1285,31 +1304,34 @@
           const isIncomingPending = incomingCheck.docs.length > 0;
 
           const avatar = (userData.avatarProfile && userData.avatarProfile.icon) ? userData.avatarProfile.icon : "🧑‍🚀";
-          const avatarColor = (userData.avatarProfile && userData.avatarProfile.color) ? userData.avatarProfile.color : "#7C6AE6";
+          const avatarColor = safeFriendColor(userData.accentColor);
+          const targetIdArg = inlineFriendArgument(targetId);
+          const queryArg = inlineFriendArgument(query);
+          const targetNameArg = inlineFriendArgument(userData.nickname);
 
           let actionHtml = '';
           if (isFriend) {
-            actionHtml = `<span style="color: #10b981; font-weight: 800;">✓ 已是好友</span><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
+            actionHtml = `<span style="color: #10b981; font-weight: 800;">✓ 已是好友</span><button class="button" onclick="showFriendDetail(${targetIdArg})" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           } else if (isRequestSent) {
-            actionHtml = `<span style="color: #60a5fa; font-weight: 800;">⏱ 已發送好友申請</span><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
+            actionHtml = `<span style="color: #60a5fa; font-weight: 800;">⏱ 已發送好友申請</span><button class="button" onclick="showFriendDetail(${targetIdArg})" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           } else if (isIncomingPending) {
-            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981;" onclick="acceptFriendRequest('${incomingCheck.docs[0].id}')">接受他的申請</button><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
+            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto; background: #10b981; border-color: #10b981;" onclick="acceptFriendRequest(${inlineFriendArgument(incomingCheck.docs[0].id)})">接受他的申請</button><button class="button" onclick="showFriendDetail(${targetIdArg})" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           } else {
-            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto;" onclick="sendFriendRequest('${targetId}', '${query}', '${userData.nickname}')">加為好友</button><button class="button" onclick="showFriendDetail('${targetId}')" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
+            actionHtml = `<button class="button primary" style="padding: 8px 16px; font-size: 13px; min-height: auto;" onclick="sendFriendRequest(${targetIdArg}, ${queryArg}, ${targetNameArg})">加為好友</button><button class="button" onclick="showFriendDetail(${targetIdArg})" style="padding: 6px 12px; font-size: 12px; min-height: auto; margin-left: 10px; border-color: #7c6ae6; color: #7c6ae6;">查看名片</button>`;
           }
 
           resultsContainer.innerHTML = `
-            <div class="friend-list-item" style="cursor: pointer; margin-top: 15px;" onclick="showFriendDetail('${targetId}')">
+            <div class="friend-list-item" style="cursor: pointer; margin-top: 15px;" onclick="showFriendDetail(${targetIdArg})">
               <div class="friend-avatar" style="background: ${avatarColor}22; color: ${avatarColor};">
                 ${avatar}
               </div>
               <div class="friend-info">
                 <div class="friend-name-row">
-                  <span class="friend-name">${userData.nickname}</span>
-                  <span class="friend-status">ID: ${query}</span>
+                  <span class="friend-name">${escapeFriendHtml(userData.nickname)}</span>
+                  <span class="friend-status">ID: ${escapeFriendHtml(query)}</span>
                 </div>
                 <div class="friend-stats-row">
-                  <span>個性簽名：${userData.signature || "今天慢慢前進"}</span>
+                  <span>個性簽名：${escapeFriendHtml(userData.signature || "今天慢慢前進")}</span>
                 </div>
               </div>
               <div class="friend-meta" style="align-items: flex-end; justify-content: center; padding: 12px 16px;" onclick="event.stopPropagation();">
@@ -1319,7 +1341,7 @@
           `;
         } catch (err) {
           console.error("Search failed:", err);
-          resultsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color:#ef4444;">搜尋出錯：${err.message}</div>`;
+          resultsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color:#ef4444;">搜尋出錯：${escapeFriendHtml(err.message)}</div>`;
         }
       }
 
@@ -1383,8 +1405,27 @@
       async function deleteFriend(friendId, friendName) {
         if (!confirm(`確定要刪除好友 ${friendName} 嗎？`)) return;
         try {
-          await db.collection("users").doc(activeUserId).collection("friends").doc(friendId).delete();
-          await db.collection("users").doc(friendId).collection("friends").doc(activeUserId).delete();
+          const forwardRequest = db.collection("friend_requests").doc(`req_${activeUserId}_${friendId}`);
+          const reverseRequest = db.collection("friend_requests").doc(`req_${friendId}_${activeUserId}`);
+          const [forwardSnap, reverseSnap] = await Promise.all([
+            forwardRequest.get(),
+            reverseRequest.get()
+          ]);
+          const acceptedRequest = forwardSnap.exists && forwardSnap.data().status === "accepted"
+            ? forwardRequest
+            : reverseSnap.exists && reverseSnap.data().status === "accepted"
+              ? reverseRequest
+              : null;
+          if (!acceptedRequest) {
+            toast("找不到已接受的好友關係，請重新整理後再試。");
+            return;
+          }
+
+          const batch = db.batch();
+          batch.update(acceptedRequest, { status: "removed" });
+          batch.delete(db.collection("users").doc(activeUserId).collection("friends").doc(friendId));
+          batch.delete(db.collection("users").doc(friendId).collection("friends").doc(activeUserId));
+          await batch.commit();
           toast(`已刪除好友 ${friendName}。`);
           
           if (document.getElementById('friendDetailView').style.display === 'block') {
@@ -1410,7 +1451,7 @@
         document.getElementById('friendSubNav').querySelectorAll('a').forEach((a,i) => { a.classList.toggle('active', i===0); });
         document.getElementById('friendRightColumn').innerHTML = `<div style="text-align:center; padding: 60px 20px; color:#9ca3af;">正在載入好友名片...</div>`;
 
-        db.collection("users").doc(friendId).get().then(async (docSnap) => {
+        db.collection("public_profiles").doc(friendId).get().then(async (docSnap) => {
           if (!docSnap.exists) {
             toast("找不到該使用者的資料！");
             showFriendList();
@@ -1418,27 +1459,14 @@
           }
           const userData = docSnap.data();
           
-          const avatar = (userData.avatarProfile && userData.avatarProfile.icon) ? userData.avatarProfile.icon : "🧑‍🚀";
-          const avatarColor = (userData.avatarProfile && userData.avatarProfile.color) ? userData.avatarProfile.color : "#7C6AE6";
+          const avatar = "🧑‍🚀";
+          const avatarColor = userData.accentColor || "#7C6AE6";
           const name = userData.nickname || friendId;
           const nudgeId = userData.myNudgeId || "NDG-USER";
           const signature = userData.signature || "今天慢慢前進";
-          const planetCount = userData.planetCount || (userData.unlockedPlanets ? userData.unlockedPlanets.length : 3);
-          const unlockedPlanets = userData.unlockedPlanets || [];
-          const friendTasks = userData.tasks || [];
-          const completedTasks = friendTasks.filter(t => t.isDone || t.done).length;
-          const totalTasks = friendTasks.length;
-          const prosperity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-          
-          let sleepHours = 8.0;
-          let steps = 0;
-          let exerciseMinutes = 0;
-          if (userData.dailySummaries && userData.dailySummaries.length > 0) {
-            const latest = userData.dailySummaries[userData.dailySummaries.length - 1];
-            sleepHours = latest.sleepHours || sleepHours;
-            steps = latest.steps || steps;
-            exerciseMinutes = latest.exerciseMinutes || exerciseMinutes;
-          }
+          const planetCount = userData.planetCount || 0;
+          const unlockedPlanets = [];
+          const friendRelation = friendsList.find(friend => friend.id === friendId);
           
           selectedFriendData = {
             id: friendId,
@@ -1447,18 +1475,13 @@
             signature: signature,
             avatar: avatar,
             avatarColor: avatarColor,
-            prosperity: prosperity,
-            completedTasks: completedTasks,
-            totalTasks: totalTasks,
-            sleepHours: sleepHours,
-            steps: steps,
-            exerciseMinutes: exerciseMinutes,
-            todayFocusSeconds: userData.focusSeconds || 0,
-            tasks: friendTasks,
+            prosperity: null,
+            todayFocusSeconds: friendRelation?.todayFocusSeconds || 0,
+            tasks: [],
             planetCount: planetCount,
             unlockedPlanets: unlockedPlanets,
-            isStudying: userData.isStudying || false,
-            unlockedBadges: userData.unlockedBadges || []
+            isStudying: friendRelation?.isStudying || false,
+            unlockedBadgeDates: userData.unlockedBadgeDates || {}
           };
 
           // Update back bar title with friend's name
@@ -1481,7 +1504,7 @@
           document.getElementById('friendOnlineStatus').style.color = selectedFriendData.isStudying ? "#10b981" : "#64748b";
           document.getElementById('friendVisitorName').textContent = name;
           const prosperityEl = document.getElementById('friendProsperityInfo');
-          if (prosperityEl) prosperityEl.textContent = prosperity + '%';
+          if (prosperityEl) prosperityEl.textContent = '私人資料未公開';
           
           // Render Badges
           document.getElementById('friendUnlockedBadges').innerHTML = renderFriendBadges(userData);
@@ -1512,12 +1535,16 @@
           const actionsContainer = document.getElementById('friendProfileActions');
           const rightColumn = document.getElementById('friendRightColumn');
           const badge = document.getElementById('friendMainBadge');
+          const friendIdArg = inlineFriendArgument(friendId);
+          const friendNameArg = inlineFriendArgument(name);
+          const nudgeIdArg = inlineFriendArgument(nudgeId);
+          const incomingReqIdArg = inlineFriendArgument(incomingReqId);
 
           // ── Stat tags (always shown like profile.html) ──
-          const planetsParam = JSON.stringify(unlockedPlanets).replace(/"/g, '&quot;');
+          const planetsParam = "[]";
           let statTagsHtml = `
             <div class="fb-stat-tag planets"><span>🪐</span> <span>${planetCount} 顆星球</span></div>
-            <div class="fb-stat-tag coins"><span>🌟</span> <span>${prosperity}% 繁榮</span></div>
+            <div class="fb-stat-tag coins"><span>⏱️</span> <span>${Math.round((selectedFriendData.todayFocusSeconds || 0) / 60)} 分公開專注</span></div>
           `;
           
           // ── Relation badge + action buttons ──
@@ -1527,9 +1554,9 @@
             badge.style.borderColor = "rgba(16,185,129,0.25)";
             badge.style.color = "#10b981";
             actionsContainer.innerHTML = statTagsHtml + `
-              <button class="button primary" style="font-weight:700; border-radius:12px; padding:10px 18px; background:linear-gradient(135deg,#a855f7,#7c6ae6);" onclick="showFriendPlanetModal('${name}', ${planetCount}, ${planetsParam})">🪐 進入自律星球</button>
-              <button class="button success" style="font-weight:700; border-radius:12px; padding:10px 18px; background:#10b981; border:none; color:#fff;" onclick="encourageFriend('${friendId}', '${name}')">👍 給他按讚</button>
-              <button class="button" style="font-weight:700; border-radius:12px; padding:10px 18px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444;" onclick="deleteFriend('${friendId}', '${name}')">❌ 刪除好友</button>
+              <button class="button primary" style="font-weight:700; border-radius:12px; padding:10px 18px; background:linear-gradient(135deg,#a855f7,#7c6ae6);" onclick="showFriendPlanetModal(${friendNameArg}, ${planetCount}, ${planetsParam})">🪐 進入自律星球</button>
+              <button class="button success" style="font-weight:700; border-radius:12px; padding:10px 18px; background:#10b981; border:none; color:#fff;" onclick="encourageFriend(${friendIdArg}, ${friendNameArg})">👍 給他按讚</button>
+              <button class="button" style="font-weight:700; border-radius:12px; padding:10px 18px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444;" onclick="deleteFriend(${friendIdArg}, ${friendNameArg})">❌ 刪除好友</button>
             `;
           } else {
             badge.innerHTML = "🛸 未加好友";
@@ -1542,18 +1569,18 @@
               `;
             } else if (isIncomingPending) {
               actionsContainer.innerHTML = statTagsHtml + `
-                <button class="button success" style="font-weight:700; border-radius:12px; padding:10px 18px; background:#10b981; border:none; color:#fff;" onclick="acceptFriendRequest('${incomingReqId}')">✓ 接受申請</button>
-                <button class="button" style="font-weight:700; border-radius:12px; padding:10px 18px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444;" onclick="declineFriendRequest('${incomingReqId}')">拒絕</button>
+                <button class="button success" style="font-weight:700; border-radius:12px; padding:10px 18px; background:#10b981; border:none; color:#fff;" onclick="acceptFriendRequest(${incomingReqIdArg})">✓ 接受申請</button>
+                <button class="button" style="font-weight:700; border-radius:12px; padding:10px 18px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#ef4444;" onclick="declineFriendRequest(${incomingReqIdArg})">拒絕</button>
               `;
             } else {
               actionsContainer.innerHTML = statTagsHtml + `
-                <button class="button primary" style="font-weight:700; border-radius:12px; padding:10px 18px;" onclick="sendFriendRequest('${friendId}', '${nudgeId}', '${name}')">➕ 加為好友</button>
+                <button class="button primary" style="font-weight:700; border-radius:12px; padding:10px 18px;" onclick="sendFriendRequest(${friendIdArg}, ${nudgeIdArg}, ${friendNameArg})">➕ 加為好友</button>
               `;
             }
           }
 
-          // ── Subnav: always visible; right column: unlocked for friends/pending, locked otherwise ──
-          const showDetails = isFriend || isIncomingPending;
+          // ── Subnav: only accepted friends can open the social detail area ──
+          const showDetails = isFriend;
           detailActiveTab = 'timeline';
           document.getElementById('friendSubNav').querySelectorAll('a').forEach((a,i) => { a.classList.toggle('active', i===0); });
 
@@ -1562,8 +1589,8 @@
             try {
               const msgsSnap = await db.collection("friend_messages")
                 .where("receiverId", "==", friendId)
-                .orderBy("createdAt", "desc")
-                .limit(20)
+                .where("senderId", "==", activeUserId)
+                .limit(50)
                 .get();
               selectedFriendData.messages = msgsSnap.docs.map(d => ({id: d.id, ...d.data()}));
             } catch (err) {
@@ -1579,7 +1606,7 @@
                 <p style="color:var(--muted); font-size:14px; max-width:320px; margin:0; line-height:1.6;">
                   加為好友後即可查看對方的自律行星與專注動態。
                 </p>
-                ${ !isRequestSent ? `<button class="button primary" style="font-weight:700; border-radius:12px; padding:10px 20px;" onclick="sendFriendRequest('${friendId}','${nudgeId}','${name}')">➕ 加為好友</button>` : '' }
+                ${ !isRequestSent ? `<button class="button primary" style="font-weight:700; border-radius:12px; padding:10px 20px;" onclick="sendFriendRequest(${friendIdArg}, ${nudgeIdArg}, ${friendNameArg})">➕ 加為好友</button>` : '' }
               </div>
             `;
           }
@@ -1625,6 +1652,7 @@
       function renderFriendTimeline(friendData) {
         const completedTasks = (friendData.tasks || []).filter(t => t.isDone || t.done);
         const messages = friendData.messages || [];
+        const friendIdArg = inlineFriendArgument(friendData.id);
         
         // Combine tasks and messages
         let feedItems = [];
@@ -1651,9 +1679,11 @@
         feedItems.sort((a, b) => b.timestamp - a.timestamp);
         
         // Facebook Style What's On Your Mind input card for friends
-        const activeUserName = localStorage.getItem("nudgeActiveDemoUserName") || "我";
+        const activeUserName = String(
+          myProfile?.nickname || myProfile?.name || "我",
+        );
         
-        let activeUserAvatarHtml = `<div class="fb-mini-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--page-accent, #7c6ae6); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 16px;">${activeUserName.charAt(0)}</div>`;
+        let activeUserAvatarHtml = `<div class="fb-mini-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--page-accent, #7c6ae6); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 16px;">${escapeFriendHtml(activeUserName.charAt(0))}</div>`;
         if (myProfile && myProfile.avatarProfile && typeof myProfile.avatarProfile.avatarIconIndex === 'number') {
           activeUserAvatarHtml = `<div class="fb-mini-avatar" style="width: 40px; height: 40px; border-radius: 50%;"><img src="assets/avatar/icons/icon_${myProfile.avatarProfile.avatarIconIndex}.png" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" /></div>`;
         }
@@ -1662,10 +1692,10 @@
           <div class="fb-create-post-card" style="margin-bottom: 20px;">
             <div class="fb-create-post-top" style="display: flex; align-items: center; gap: 12px;">
               ${activeUserAvatarHtml}
-              <input type="text" id="friendMsgInput" placeholder="給 ${friendData.name} 留句打氣語..." style="flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; transition: background 0.2s;" onkeypress="if(event.key === 'Enter') sendFriendMessage('${friendData.id}', 'text', this.value)"/>
+              <input type="text" id="friendMsgInput" placeholder="給 ${escapeFriendHtml(friendData.name)} 留句打氣語..." style="flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; transition: background 0.2s;" onkeypress="if(event.key === 'Enter') sendFriendMessage(${friendIdArg}, 'text', this.value)"/>
             </div>
             <div class="fb-create-post-actions" style="border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 10px; display: flex; justify-content: flex-start; gap: 16px; margin-top: 12px; padding-left: 8px;">
-              <button class="fb-post-action-btn" onclick="sendFriendMessage('${friendData.id}', 'cheer', '你的自律星球太閃耀了！繼續加油！✨')" style="display: flex; align-items: center; gap: 8px; background: transparent; border: none; color: var(--muted); font-weight: 700; font-size: 13px; cursor: pointer; padding: 8px 12px; border-radius: 8px;">
+              <button class="fb-post-action-btn" onclick="sendFriendMessage(${friendIdArg}, 'cheer', '你的自律星球太閃耀了！繼續加油！✨')" style="display: flex; align-items: center; gap: 8px; background: transparent; border: none; color: var(--muted); font-weight: 700; font-size: 13px; cursor: pointer; padding: 8px 12px; border-radius: 8px;">
                 <span style="color: #7c6ae6;">👏</span> 發送打氣
               </button>
             </div>
@@ -1690,14 +1720,14 @@
               <div class="fb-post-card" style="margin-bottom: 16px;">
                 <div class="fb-post-header">
                   <div class="fb-post-author-info">
-                    <div class="fb-mini-avatar" style="background: ${friendData.avatarColor || '#7c6ae6'};">${friendData.avatar || '🧑‍🚀'}</div>
+                    <div class="fb-mini-avatar" style="background: ${safeFriendColor(friendData.avatarColor)};">${friendData.avatar || '🧑‍🚀'}</div>
                     <div>
-                      <span class="fb-post-author-name">${friendData.name}</span>
+                      <span class="fb-post-author-name">${escapeFriendHtml(friendData.name)}</span>
                       <span class="fb-post-time">完成於 ${compTime}</span>
                     </div>
                   </div>
                 </div>
-                <div class="fb-post-content">我完成了一項自律任務：<strong>${item.title}</strong>！繼續加油，打造完美的自律星球。 ✨</div>
+                <div class="fb-post-content">我完成了一項自律任務：<strong>${escapeFriendHtml(item.title)}</strong>！繼續加油，打造完美的自律星球。 ✨</div>
               </div>
             `;
           } else {
@@ -1707,15 +1737,15 @@
               <div class="fb-post-card" style="margin-bottom: 16px; background: rgba(124,106,230,0.05); border: 1px solid rgba(124,106,230,0.15);">
                 <div class="fb-post-header">
                   <div class="fb-post-author-info">
-                    <div class="fb-mini-avatar" style="background: #1e144a;">${item.senderAvatar}</div>
+                    <div class="fb-mini-avatar" style="background: #1e144a;">${escapeFriendHtml(item.senderAvatar)}</div>
                     <div>
-                      <span class="fb-post-author-name">${item.senderName}</span>
+                      <span class="fb-post-author-name">${escapeFriendHtml(item.senderName)}</span>
                       <span class="fb-post-time">${compTime} 留下了打氣</span>
                     </div>
                   </div>
                   <div style="font-size: 24px;">${icon}</div>
                 </div>
-                <div class="fb-post-content" style="font-style: italic;">「${item.content}」</div>
+                <div class="fb-post-content" style="font-style: italic;">「${escapeFriendHtml(item.content)}」</div>
               </div>
             `;
           }
@@ -1729,11 +1759,26 @@
         const inputEl = document.getElementById('friendMsgInput');
         let content = type === 'text' ? inputEl.value.trim() : defaultContent;
         if (!content) return;
-        
-        const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
-        const activeUserName = localStorage.getItem("nudgeActiveDemoUserName") || "我";
-        
+        if (content.length > 500) {
+          toast("留言最多 500 個字。");
+          return;
+        }
 
+        const authUser =
+          typeof firebase !== 'undefined' && firebase.auth
+            ? firebase.auth().currentUser
+            : null;
+        if (!authUser || authUser.isAnonymous || authUser.uid !== activeUserId) {
+          toast("請先以正式帳號登入後再留言。");
+          return;
+        }
+        if (!['text', 'cheer'].includes(type)) {
+          toast("不支援的留言類型。");
+          return;
+        }
+        const activeUserName = String(
+          myProfile?.nickname || myProfile?.name || "我",
+        ).trim().slice(0, 40) || "我";
 
         try {
           // Record message
@@ -1762,9 +1807,9 @@
       function renderFriendAbout(friendData) {
         return `
           <article class="fb-card">
-            <h3 class="fb-card-title">關於 ${friendData.name}</h3>
+            <h3 class="fb-card-title">關於 ${escapeFriendHtml(friendData.name)}</h3>
             <p style="color: #fff; font-size: 14px; text-align: left; line-height: 1.6; margin: 0;">
-              <strong>自我介紹：</strong> ${friendData.signature || '這個人很懶，什麼都沒留下。'}<br><br>
+              <strong>自我介紹：</strong> ${escapeFriendHtml(friendData.signature || '這個人很懶，什麼都沒留下。')}<br><br>
               <strong>自律宣言：</strong> 每天前進一點點，自律生活從今天開始！在 Nudge 星系中持續努力，點亮屬於自己的那一顆星球。 🪐
             </p>
           </article>
@@ -1773,9 +1818,6 @@
 
       function renderFriendProgress(friendData) {
         const focusMin = Math.round((friendData.todayFocusSeconds || 0) / 60);
-        const steps = friendData.steps || 0;
-        const exerciseMin = friendData.exerciseMinutes || 0;
-        const sleepHours = friendData.sleepHours || 7.5;
         
         return `
           <div class="fb-post-metrics-grid" style="grid-template-columns: repeat(2, 1fr); gap: 16px;">
@@ -1787,24 +1829,24 @@
               </div>
             </div>
             <div class="fb-metric-pill steps">
-              <div class="icon">👟</div>
+              <div class="icon">🔒</div>
               <div class="fb-metric-details">
                 <span class="fb-metric-label">今日步數</span>
-                <span class="fb-metric-val">${steps.toLocaleString()} 步</span>
+                <span class="fb-metric-val">未公開</span>
               </div>
             </div>
             <div class="fb-metric-pill sleep">
-              <div class="icon">🌙</div>
+              <div class="icon">🔒</div>
               <div class="fb-metric-details">
                 <span class="fb-metric-label">昨晚睡眠狀況</span>
-                <span class="fb-metric-val">${sleepHours} 小時</span>
+                <span class="fb-metric-val">未公開</span>
               </div>
             </div>
             <div class="fb-metric-pill tasks">
-              <div class="icon">🏃</div>
+              <div class="icon">🔒</div>
               <div class="fb-metric-details">
                 <span class="fb-metric-label">今日運動時間</span>
-                <span class="fb-metric-val">${exerciseMin} 分鐘</span>
+                <span class="fb-metric-val">未公開</span>
               </div>
             </div>
           </div>
@@ -1812,28 +1854,38 @@
       }
 
       function renderFriendBadges(userData) {
-        const badges = userData.unlockedBadges || [];
+        const unlockedBadgeDates =
+          userData.unlockedBadgeDates &&
+          typeof userData.unlockedBadgeDates === "object"
+            ? userData.unlockedBadgeDates
+            : {};
+        const badgeLabels = {
+          task_starter: ["🚀", "任務起步者"],
+          focus_beginner: ["🎯", "專注新手"],
+          focus_streak: ["🔥", "專注連續者"],
+          task_streak: ["⚡", "任務連續者"],
+          sleep_guard: ["🌙", "睡眠守護者"],
+          step_master: ["👟", "步數達人"],
+          steady_progress: ["📈", "穩定前進"],
+          score_keeper: ["🎖️", "高分維持"],
+          coin_earner: ["🪙", "門檻達人"],
+          auto_tracker: ["🤖", "自動追蹤者"],
+          health_sync: ["💚", "健康同步者"],
+          health_task: ["🏃", "健康任務實踐者"]
+        };
+        const badges = Object.keys(unlockedBadgeDates)
+          .filter(key => badgeLabels[key])
+          .map(key => ({
+            icon: badgeLabels[key][0],
+            name: badgeLabels[key][1]
+          }));
         if (badges.length === 0) {
-          // Default mock badges if none
-          return `
-            <div class="badge-item">
-              <span class="badge-icon">🏅</span>
-              <span class="badge-name">專注新星</span>
-            </div>
-            <div class="badge-item">
-              <span class="badge-icon">🏃</span>
-              <span class="badge-name">活力慢跑</span>
-            </div>
-            <div class="badge-item">
-              <span class="badge-icon">🌙</span>
-              <span class="badge-name">早睡早起</span>
-            </div>
-          `;
+          return `<div style="color:var(--muted);font-size:13px;">尚未分享任何已解鎖徽章。</div>`;
         }
         return badges.map(b => `
           <div class="badge-item">
-            <span class="badge-icon">${b.icon || '🏅'}</span>
-            <span class="badge-name">${b.name || '勳章'}</span>
+            <span class="badge-icon">${escapeFriendHtml(b.icon || '🏅')}</span>
+            <span class="badge-name">${escapeFriendHtml(b.name || '勳章')}</span>
           </div>
         `).join('');
       }
@@ -1884,9 +1936,9 @@
           
           node.innerHTML = `
             <div style="width: ${size}px; height: ${size}px; background: ${gradient}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: ${size * 0.55}px; box-shadow: 0 0 15px rgba(255,255,255,0.15), inset -3px -3px 6px rgba(0,0,0,0.4); position: relative;">
-              <span style="position: absolute; pointer-events: none;">${planet.type || '🪐'}</span>
+              <span style="position: absolute; pointer-events: none;">${escapeFriendHtml(planet.type || '🪐')}</span>
               <div style="position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%) rotate(0deg); background: rgba(3, 5, 10, 0.9); color: #fff; padding: 2px 6px; border-radius: 6px; font-size: 9px; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-                ${planet.name} (Lv.${planet.level || 1})
+                ${escapeFriendHtml(planet.name)} (Lv.${Number.isFinite(planet.level) ? planet.level : 1})
               </div>
             </div>
           `;

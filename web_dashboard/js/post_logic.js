@@ -23,9 +23,23 @@ function getActiveUserName() {
   return localStorage.getItem('nudgeActiveDemoUserName') || '訪客';
 }
 
+function requireOwnProfileId() {
+  const profileId = getProfileUserId();
+  const activeUserId =
+    typeof firebase !== 'undefined' && firebase.auth
+      ? firebase.auth().currentUser?.uid
+      : null;
+  if (!activeUserId || profileId !== activeUserId) {
+    toast('私人動態目前只能由本人操作；好友互動不會寫入對方的私人帳號。');
+    return null;
+  }
+  return profileId;
+}
+
 window.editPost = function(id, isWelcome, isCustom) {
   window.togglePostMenu(id);
-  const profileId = getProfileUserId();
+  const profileId = requireOwnProfileId();
+  if (!profileId) return;
   
   // Custom Modal for editing
   let modal = document.getElementById('editPostModal');
@@ -97,7 +111,8 @@ window.deletePost = async function(id, isWelcome, isCustom) {
   window.togglePostMenu(id);
   if (!confirm('確定要刪除這篇貼文嗎？刪除後無法恢復。')) return;
   
-  const profileId = getProfileUserId();
+  const profileId = requireOwnProfileId();
+  if (!profileId) return;
   try {
     const dbRef = db.collection('users').doc(profileId);
     if (isWelcome) {
@@ -134,7 +149,8 @@ window.deletePost = async function(id, isWelcome, isCustom) {
 };
 
 window.toggleLikePost = async function(id, isWelcome, isCustom) {
-  const profileId = getProfileUserId();
+  const profileId = requireOwnProfileId();
+  if (!profileId) return;
   const activeUserName = getActiveUserName();
   try {
     const dbRef = db.collection('users').doc(profileId);
@@ -191,7 +207,8 @@ window.toggleLikePost = async function(id, isWelcome, isCustom) {
 };
 
 window.addCommentToPost = function(id, isWelcome, isCustom) {
-  const profileId = getProfileUserId();
+  const profileId = requireOwnProfileId();
+  if (!profileId) return;
   
   let modal = document.getElementById('commentPostModal');
   if (!modal) {
@@ -282,7 +299,8 @@ window.sharePost = function(id) {
 window.deleteComment = async function(postId, isWelcome, isCustom, commentIndex) {
   if (!confirm('確定要刪除這則留言嗎？')) return;
   
-  const profileId = getProfileUserId();
+  const profileId = requireOwnProfileId();
+  if (!profileId) return;
   try {
     const dbRef = db.collection('users').doc(profileId);
     if (isWelcome) {
@@ -327,7 +345,8 @@ window.deleteComment = async function(postId, isWelcome, isCustom, commentIndex)
 };
 
 window.openCreatePostModal = function() {
-  const profileId = getProfileUserId();
+  const profileId = requireOwnProfileId();
+  if (!profileId) return;
   
   let modal = document.getElementById('createPostModal');
   if (!modal) {
@@ -381,4 +400,3 @@ window.openCreatePostModal = function() {
   
   modal.classList.add('show');
 };
-

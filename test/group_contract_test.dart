@@ -50,5 +50,70 @@ void main() {
         throwsStateError,
       );
     });
+
+    test('builds atomic member removal and ownership transfer changes', () {
+      final removal = GroupMembershipContract.buildMemberRemoval(
+        group: group,
+        managerId: 'manager-1',
+        memberId: 'member-1',
+        now: DateTime.utc(2026, 7, 27),
+      );
+      expect(removal['memberIds'], ['manager-1']);
+      expect(
+        (removal['lastMembershipChange'] as Map)['type'],
+        'member_removed',
+      );
+
+      final transfer = GroupMembershipContract.buildOwnershipTransfer(
+        group: group,
+        managerId: 'manager-1',
+        nextManagerId: 'member-1',
+        now: DateTime.utc(2026, 7, 27),
+      );
+      expect(transfer['ownerId'], 'member-1');
+      expect(
+        (transfer['lastMembershipChange'] as Map)['type'],
+        'ownership_transferred',
+      );
+    });
+
+    test('member controls a validated group result summary', () {
+      final payload = GroupResultSummaryContract.buildPayload(
+        group: group,
+        memberId: 'member-1',
+        displayName: '小樹',
+        disciplineScore: 82,
+        completedTasks: 4,
+        totalTasks: 5,
+        focusMinutes: 60,
+        steps: 8000,
+        sleepHours: 7.5,
+        now: DateTime.utc(2026, 7, 27),
+      );
+      final parsed = GroupResultSummaryContract.fromMap(payload);
+
+      expect(payload['status'], 'shared');
+      expect(parsed.memberId, 'member-1');
+      expect(parsed.completionRate, 0.8);
+      expect(parsed.sleepHours, 7.5);
+    });
+
+    test('manager cannot publish a result summary for another member', () {
+      expect(
+        () => GroupResultSummaryContract.buildPayload(
+          group: group,
+          memberId: 'stranger',
+          displayName: '陌生人',
+          disciplineScore: 0,
+          completedTasks: 0,
+          totalTasks: 0,
+          focusMinutes: 0,
+          steps: 0,
+          sleepHours: 0,
+          now: DateTime.utc(2026, 7, 27),
+        ),
+        throwsStateError,
+      );
+    });
   });
 }

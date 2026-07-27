@@ -125,3 +125,159 @@ class GroupPublicationContract {
     return normalized;
   }
 }
+
+class GroupMembershipContract {
+  const GroupMembershipContract._();
+
+  static Map<String, dynamic> buildMemberRemoval({
+    required GroupContract group,
+    required String managerId,
+    required String memberId,
+    required DateTime now,
+  }) {
+    _requireManager(group, managerId);
+    if (memberId == group.ownerId) {
+      throw ArgumentError('團體管理者不可移除自己，請先轉移管理權');
+    }
+    if (!group.isMember(memberId)) {
+      throw ArgumentError('指定使用者不是目前團體成員');
+    }
+    return {
+      'memberIds': group.memberIds.where((id) => id != memberId).toList(),
+      'lastMembershipChange': {
+        'type': 'member_removed',
+        'memberId': memberId,
+        'by': managerId,
+        'at': now.toUtc().toIso8601String(),
+      },
+      'updatedAt': now.toUtc().toIso8601String(),
+    };
+  }
+
+  static Map<String, dynamic> buildOwnershipTransfer({
+    required GroupContract group,
+    required String managerId,
+    required String nextManagerId,
+    required DateTime now,
+  }) {
+    _requireManager(group, managerId);
+    if (nextManagerId == managerId) {
+      throw ArgumentError('指定成員已經是團體管理者');
+    }
+    if (!group.isMember(nextManagerId)) {
+      throw ArgumentError('管理權只能轉移給目前團體成員');
+    }
+    return {
+      'ownerId': nextManagerId,
+      'lastMembershipChange': {
+        'type': 'ownership_transferred',
+        'fromMemberId': managerId,
+        'toMemberId': nextManagerId,
+        'by': managerId,
+        'at': now.toUtc().toIso8601String(),
+      },
+      'updatedAt': now.toUtc().toIso8601String(),
+    };
+  }
+
+  static void _requireManager(GroupContract group, String managerId) {
+    if (!group.isManager(managerId)) {
+      throw StateError('只有目前團體的管理者可以異動成員資格');
+    }
+  }
+}
+
+class GroupResultSummaryContract {
+  const GroupResultSummaryContract({
+    required this.memberId,
+    required this.displayName,
+    required this.disciplineScore,
+    required this.completedTasks,
+    required this.totalTasks,
+    required this.focusMinutes,
+    required this.steps,
+    required this.sleepHours,
+    required this.updatedAt,
+  });
+
+  final String memberId;
+  final String displayName;
+  final int disciplineScore;
+  final int completedTasks;
+  final int totalTasks;
+  final int focusMinutes;
+  final int steps;
+  final double sleepHours;
+  final DateTime? updatedAt;
+
+  double get completionRate =>
+      totalTasks <= 0 ? 0 : completedTasks / totalTasks;
+
+  factory GroupResultSummaryContract.fromMap(Map<String, dynamic> map) {
+    final summary = Map<String, dynamic>.from(
+      map['summary'] as Map? ?? const <String, dynamic>{},
+    );
+    return GroupResultSummaryContract(
+      memberId: map['memberId'] as String? ?? '',
+      displayName: map['displayName'] as String? ?? '團體成員',
+      disciplineScore: (summary['disciplineScore'] as num?)?.toInt() ?? 0,
+      completedTasks: (summary['completedTasks'] as num?)?.toInt() ?? 0,
+      totalTasks: (summary['totalTasks'] as num?)?.toInt() ?? 0,
+      focusMinutes: (summary['focusMinutes'] as num?)?.toInt() ?? 0,
+      steps: (summary['steps'] as num?)?.toInt() ?? 0,
+      sleepHours: (summary['sleepHours'] as num?)?.toDouble() ?? 0,
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  static Map<String, dynamic> buildPayload({
+    required GroupContract group,
+    required String memberId,
+    required String displayName,
+    required int disciplineScore,
+    required int completedTasks,
+    required int totalTasks,
+    required int focusMinutes,
+    required int steps,
+    required double sleepHours,
+    required DateTime now,
+  }) {
+    if (!group.isMember(memberId)) {
+      throw StateError('只有目前團體成員可以分享成果摘要');
+    }
+    if (displayName.trim().isEmpty || displayName.trim().length > 40) {
+      throw ArgumentError('團體顯示名稱不可空白且不可超過 40 字');
+    }
+    if (disciplineScore < 0 ||
+        disciplineScore > 100 ||
+        completedTasks < 0 ||
+        totalTasks < 0 ||
+        completedTasks > totalTasks ||
+        totalTasks > 10000 ||
+        focusMinutes < 0 ||
+        focusMinutes > 1440 ||
+        steps < 0 ||
+        steps > 1000000 ||
+        !sleepHours.isFinite ||
+        sleepHours < 0 ||
+        sleepHours > 24) {
+      throw ArgumentError('團體成果摘要包含無效數值');
+    }
+    return {
+      'schemaVersion': 1,
+      'groupId': group.id,
+      'memberId': memberId,
+      'displayName': displayName.trim(),
+      'status': 'shared',
+      'summary': {
+        'disciplineScore': disciplineScore,
+        'completedTasks': completedTasks,
+        'totalTasks': totalTasks,
+        'focusMinutes': focusMinutes,
+        'steps': steps,
+        'sleepHours': sleepHours,
+      },
+      'updatedAt': now.toUtc().toIso8601String(),
+    };
+  }
+}

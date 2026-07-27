@@ -370,7 +370,7 @@ class _SearchByIdCard extends StatelessWidget {
             const SizedBox(height: 14),
             _EmptyNotice(
               icon: Icons.search_off_rounded,
-              text: '目前找不到這個 ID。你可以先試試 NDG-MINA01 或 NDG-RAY777。',
+              text: '目前找不到這個 ID。請確認對方已登入並完成公開名片同步。',
             ),
           ],
         ],

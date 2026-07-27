@@ -112,10 +112,12 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _groupChallengeSubscription;
   StreamSubscription? _groupSchedulesSubscription;
   StreamSubscription? _groupTemplateSubscription;
+  StreamSubscription? _groupMemberSummariesSubscription;
   String? _listeningGroupId;
   final Set<String> _checkedLegacyGroupIds = {};
   Timer? _dailyResetTimer;
   Timer? _familySummaryPublishTimer;
+  Timer? _groupResultSummaryPublishTimer;
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -614,7 +616,8 @@ class AppState extends ChangeNotifier {
   void _setupGroupPublicationListeners(String groupId) {
     if (_groupChallengeSubscription != null &&
         _groupSchedulesSubscription != null &&
-        _groupTemplateSubscription != null) {
+        _groupTemplateSubscription != null &&
+        _groupMemberSummariesSubscription != null) {
       return;
     }
     final groupRef = FirebaseFirestore.instance
@@ -650,18 +653,41 @@ class AppState extends ChangeNotifier {
               .toList(growable: false);
           notifyListeners();
         });
+    _groupMemberSummariesSubscription = groupRef
+        .collection('member_summaries')
+        .snapshots()
+        .listen((snapshot) {
+          _groupMemberSummaries =
+              snapshot.docs
+                  .map((doc) => GroupResultSummaryContract.fromMap(doc.data()))
+                  .where((summary) => summary.memberId.isNotEmpty)
+                  .toList(growable: false)
+                ..sort(
+                  (a, b) => b.disciplineScore.compareTo(a.disciplineScore),
+                );
+          _groupResultSharingEnabled = _groupMemberSummaries.any(
+            (summary) => summary.memberId == _currentUser?.id,
+          );
+          notifyListeners();
+        });
   }
 
   void _clearGroupPublicationListeners() {
     _groupChallengeSubscription?.cancel();
     _groupSchedulesSubscription?.cancel();
     _groupTemplateSubscription?.cancel();
+    _groupMemberSummariesSubscription?.cancel();
+    _groupResultSummaryPublishTimer?.cancel();
     _groupChallengeSubscription = null;
     _groupSchedulesSubscription = null;
     _groupTemplateSubscription = null;
+    _groupMemberSummariesSubscription = null;
+    _groupResultSummaryPublishTimer = null;
     _groupChallengePublication = null;
     _groupSchedulePublications = [];
     _groupTemplatePublications = [];
+    _groupMemberSummaries = [];
+    _groupResultSharingEnabled = false;
   }
 
   void _setupFamilyInteractionListeners(String linkId) {
@@ -746,6 +772,7 @@ class AppState extends ChangeNotifier {
     _familyBondEventSubscription?.cancel();
     _familySummarySubscription?.cancel();
     _familySummaryPublishTimer?.cancel();
+    _groupResultSummaryPublishTimer?.cancel();
     _incomingGroupRequestsSubscription?.cancel();
     _groupSubscription?.cancel();
     _clearGroupPublicationListeners();
@@ -764,6 +791,7 @@ class AppState extends ChangeNotifier {
     _familyBondEventSubscription = null;
     _familySummarySubscription = null;
     _familySummaryPublishTimer = null;
+    _groupResultSummaryPublishTimer = null;
     _listeningFamilyLinkId = null;
     _familyLink = null;
     _familyEncouragements = [];
@@ -870,6 +898,7 @@ class AppState extends ChangeNotifier {
         _profileSignature = _currentUser!.signature;
         _myNudgeId = _currentUser!.username;
         await pullDataFromFirestore();
+        await _syncPublicProfile();
       } else {
         final now = DateTime.now();
         _currentUser = UserModel(
@@ -895,6 +924,69 @@ class AppState extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error syncing user profile from Firebase: $e');
+    }
+  }
+
+  Map<String, dynamic> _buildPublicProfilePayload() {
+    final user = _currentUser!;
+    final avatar = _avatarProfile;
+    final familyRole = const {'guardian', 'child'}.contains(_userRole)
+        ? _userRole
+        : 'personal';
+    return {
+      'schemaVersion': 1,
+      'userId': user.id,
+      'username': user.username,
+      'myNudgeId': _myNudgeId.isEmpty ? user.username : _myNudgeId,
+      'nickname': _profileNickname.trim().isEmpty
+          ? '自律使用者'
+          : _profileNickname.trim(),
+      'signature': _profileSignature.trim(),
+      'avatarProfile': {
+        'skinToneIndex': avatar.skinToneIndex,
+        'faceShapeIndex': avatar.faceShapeIndex,
+        'hairStyleIndex': avatar.hairStyleIndex,
+        'hairColorIndex': avatar.hairColorIndex,
+        'eyeStyleIndex': avatar.eyeStyleIndex,
+        'eyebrowStyleIndex': avatar.eyebrowStyleIndex,
+        'mouthStyleIndex': avatar.mouthStyleIndex,
+        'outfitStyleIndex': avatar.outfitStyleIndex,
+        'outfitColorIndex': avatar.outfitColorIndex,
+        'accessoryIndex': avatar.accessoryIndex,
+        'backgroundColorIndex': avatar.backgroundColorIndex,
+        'avatarIconIndex': avatar.avatarIconIndex,
+      },
+      'accentColor':
+          const {
+            'purple',
+            'blue',
+            'teal',
+            'green',
+            'orange',
+            'pink',
+            'red',
+            'indigo',
+          }.contains(_iconColorSetting)
+          ? _iconColorSetting
+          : 'purple',
+      'planetCount': math.max(0, _planetCount),
+      'familyRole': familyRole,
+      'profileTitleBadgeKey': _profileTitleBadgeKey,
+      'unlockedBadgeDates': _unlockedBadgeDates,
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+  }
+
+  Future<void> _syncPublicProfile() async {
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('public_profiles')
+          .doc(user.id)
+          .set(_buildPublicProfilePayload());
+    } catch (error) {
+      debugPrint('Failed to sync public profile: $error');
     }
   }
 
@@ -936,6 +1028,7 @@ class AppState extends ChangeNotifier {
         'webToolsCollection': _webToolsCollection,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      await _syncPublicProfile();
     } catch (e) {
       debugPrint('Failed to sync to Firestore: $e');
     }
@@ -1256,6 +1349,8 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? _groupChallengePublication;
   List<Map<String, dynamic>> _groupSchedulePublications = [];
   List<Map<String, dynamic>> _groupTemplatePublications = [];
+  List<GroupResultSummaryContract> _groupMemberSummaries = [];
+  bool _groupResultSharingEnabled = false;
 
   List<Map<String, dynamic>> get tasks => _tasks;
   Map<String, dynamic>? get webToolsState => _webToolsState;
@@ -1268,6 +1363,9 @@ class AppState extends ChangeNotifier {
       _canonicalGroup?.isManager(_currentUser?.id ?? '') ?? false;
   bool get hasActiveGroupMembership =>
       _canonicalGroup?.isMember(_currentUser?.id ?? '') ?? false;
+  List<GroupResultSummaryContract> get groupMemberSummaries =>
+      List<GroupResultSummaryContract>.unmodifiable(_groupMemberSummaries);
+  bool get isGroupResultSharingEnabled => _groupResultSharingEnabled;
   bool get isGuardianLinked => _familyLink?.status == FamilyLinkStatus.active;
   FamilyLinkContract? get familyLink => _familyLink;
   bool get isCurrentFamilyGuardian =>
@@ -4456,6 +4554,7 @@ class AppState extends ChangeNotifier {
     _saveDailySummaries();
     _syncAvatarExperienceLedgerForSummary(summary);
     _scheduleFamilySummaryPublish();
+    _scheduleGroupResultSummaryPublish();
   }
 
   void _scheduleFamilySummaryPublish() {
@@ -4482,6 +4581,46 @@ class AppState extends ChangeNotifier {
         .doc(link.id)
         .collection('summaries')
         .doc('current')
+        .set(payload);
+  }
+
+  void _scheduleGroupResultSummaryPublish() {
+    if (!_groupResultSharingEnabled) return;
+    _groupResultSummaryPublishTimer?.cancel();
+    _groupResultSummaryPublishTimer = Timer(
+      const Duration(milliseconds: 800),
+      () {
+        unawaited(_publishGroupResultSummarySnapshot());
+      },
+    );
+  }
+
+  Future<void> _publishGroupResultSummarySnapshot() async {
+    final group = _canonicalGroup;
+    final user = _currentUser;
+    if (!_groupResultSharingEnabled ||
+        group == null ||
+        user == null ||
+        !group.isMember(user.id)) {
+      return;
+    }
+    final payload = GroupResultSummaryContract.buildPayload(
+      group: group,
+      memberId: user.id,
+      displayName: _profileNickname,
+      disciplineScore: todayWeightedDisciplineScore,
+      completedTasks: todayActionableTaskCompleted,
+      totalTasks: todayActionableTaskTotal,
+      focusMinutes: focusMinutes,
+      steps: steps,
+      sleepHours: sleepHours,
+      now: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(group.id)
+        .collection('member_summaries')
+        .doc(user.id)
         .set(payload);
   }
 
@@ -4823,14 +4962,13 @@ class AppState extends ChangeNotifier {
 
     try {
       final querySnap = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('public_profiles')
           .where('username', isEqualTo: queryId)
           .limit(1)
           .get();
 
       if (querySnap.docs.isNotEmpty) {
         final data = querySnap.docs.first.data();
-        final userModel = UserModel.fromJson(data);
 
         AvatarProfile? avatarProfile;
         if (data['avatarProfile'] != null) {
@@ -4840,12 +4978,13 @@ class AppState extends ChangeNotifier {
         }
 
         return SocialFriendProfile(
-          id: userModel.id,
-          nudgeId: userModel.username,
-          name: userModel.nickname,
-          signature: userModel.signature,
-          todayFocusSeconds: (data['focusSeconds'] as num?)?.toInt() ?? 0,
-          isStudying: data['isStudying'] as bool? ?? false,
+          id: data['userId'] as String? ?? querySnap.docs.first.id,
+          nudgeId:
+              data['myNudgeId'] as String? ?? data['username'] as String? ?? '',
+          name: data['nickname'] as String? ?? '自律使用者',
+          signature: data['signature'] as String? ?? '',
+          todayFocusSeconds: 0,
+          isStudying: false,
           avatarColor: const Color(0xFF7C6AE6),
           avatarProfile: avatarProfile,
           isFollowing: false,
@@ -4856,7 +4995,7 @@ class AppState extends ChangeNotifier {
       debugPrint('Failed to query user by Nudge ID: $e');
     }
 
-    return findFriendCandidateByNudgeId(queryId);
+    return null;
   }
 
   SocialFriendProfile? findFriendCandidateByNudgeId(String rawId) {
@@ -4868,37 +5007,7 @@ class AppState extends ChangeNotifier {
     );
     if (existing.isNotEmpty) return existing.first;
 
-    final mockCandidates = [
-      SocialFriendProfile(
-        id: 'candidate_mina',
-        nudgeId: 'NDG-MINA01',
-        name: '小米',
-        signature: '想找人一起讀書',
-        todayFocusSeconds: 0,
-        isStudying: false,
-        avatarColor: const Color(0xFF8B5CF6),
-        avatarProfile: avatarVariantForSeed(801),
-        isFollowing: false,
-        encouragementCount: 0,
-      ),
-      SocialFriendProfile(
-        id: 'candidate_ray',
-        nudgeId: 'NDG-RAY777',
-        name: '阿睿',
-        signature: '最近在挑戰每天運動',
-        todayFocusSeconds: 35 * 60,
-        isStudying: false,
-        avatarColor: const Color(0xFF10B981),
-        avatarProfile: avatarVariantForSeed(777),
-        isFollowing: false,
-        encouragementCount: 0,
-      ),
-    ];
-
-    final match = mockCandidates.where(
-      (candidate) => candidate.nudgeId.toUpperCase() == nudgeId,
-    );
-    return match.isEmpty ? null : match.first;
+    return null;
   }
 
   Future<SocialFriendProfile?> searchFriendFromInvite(String rawValue) async {
@@ -4942,21 +5051,7 @@ class AppState extends ChangeNotifier {
     final knownCandidate = findFriendCandidateByNudgeId(nudgeId);
     if (knownCandidate != null) return knownCandidate;
 
-    final name = (uri.queryParameters['name'] ?? '').trim();
-    final signature = (uri.queryParameters['signature'] ?? '').trim();
-
-    return SocialFriendProfile(
-      id: 'candidate_${nudgeId.toLowerCase().replaceAll('-', '_')}',
-      nudgeId: nudgeId,
-      name: name.isEmpty ? 'Nudge 好友' : name,
-      signature: signature.isEmpty ? '想和你一起自律前進' : signature,
-      todayFocusSeconds: 0,
-      isStudying: false,
-      avatarColor: const Color(0xFF4F8CFF),
-      avatarProfile: avatarVariantForSeed(nudgeId.hashCode),
-      isFollowing: false,
-      encouragementCount: 0,
-    );
+    return null;
   }
 
   Future<void> addSocialFriend({
@@ -5039,8 +5134,6 @@ class AppState extends ChangeNotifier {
         final senderName = data['senderName'] as String? ?? '';
         final senderSignature = data['senderSignature'] as String? ?? '';
 
-        await docRef.update({'status': 'accepted'});
-
         final myFriendProfile = SocialFriendProfile(
           id: senderId,
           nudgeId: senderNudgeId,
@@ -5052,13 +5145,6 @@ class AppState extends ChangeNotifier {
           isFollowing: true,
           encouragementCount: 0,
         );
-
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.id)
-            .collection('friends')
-            .doc(senderId)
-            .set(myFriendProfile.toJson());
 
         final otherFriendProfile = SocialFriendProfile(
           id: user.id,
@@ -5072,12 +5158,22 @@ class AppState extends ChangeNotifier {
           encouragementCount: 0,
         );
 
-        await FirebaseFirestore.instance
+        final firestore = FirebaseFirestore.instance;
+        final myFriendRef = firestore
+            .collection('users')
+            .doc(user.id)
+            .collection('friends')
+            .doc(senderId);
+        final otherFriendRef = firestore
             .collection('users')
             .doc(senderId)
             .collection('friends')
-            .doc(user.id)
-            .set(otherFriendProfile.toJson());
+            .doc(user.id);
+        final batch = firestore.batch();
+        batch.update(docRef, {'status': 'accepted'});
+        batch.set(myFriendRef, myFriendProfile.toJson());
+        batch.set(otherFriendRef, otherFriendProfile.toJson());
+        await batch.commit();
       }
     } catch (e) {
       debugPrint('Failed to accept friend request: $e');
@@ -5096,6 +5192,52 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> removeSocialFriend(String id) async {
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        final firestore = FirebaseFirestore.instance;
+        final forwardRequest = firestore
+            .collection('friend_requests')
+            .doc('req_${user.id}_$id');
+        final reverseRequest = firestore
+            .collection('friend_requests')
+            .doc('req_${id}_${user.id}');
+        final requestSnapshots = await Future.wait([
+          forwardRequest.get(),
+          reverseRequest.get(),
+        ]);
+        DocumentReference<Map<String, dynamic>>? acceptedRequest;
+        if (requestSnapshots[0].data()?['status'] == 'accepted') {
+          acceptedRequest = forwardRequest;
+        } else if (requestSnapshots[1].data()?['status'] == 'accepted') {
+          acceptedRequest = reverseRequest;
+        }
+        if (acceptedRequest == null) {
+          debugPrint('Failed to delete friend: accepted request not found');
+          return;
+        }
+
+        final myFriendRef = firestore
+            .collection('users')
+            .doc(user.id)
+            .collection('friends')
+            .doc(id);
+        final otherFriendRef = firestore
+            .collection('users')
+            .doc(id)
+            .collection('friends')
+            .doc(user.id);
+        final batch = firestore.batch();
+        batch.update(acceptedRequest, {'status': 'removed'});
+        batch.delete(myFriendRef);
+        batch.delete(otherFriendRef);
+        await batch.commit();
+      } catch (e) {
+        debugPrint('Failed to delete friend from Firestore: $e');
+        return;
+      }
+    }
+
     _socialFriends = _socialFriends.where((f) => f.id != id).toList();
     _socialEncouragementRecords = _socialEncouragementRecords
         .where((record) => record.toFriendId != id)
@@ -5104,26 +5246,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await _saveSocialFriends();
     await _saveSocialEncouragementRecords();
-
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.id)
-            .collection('friends')
-            .doc(id)
-            .delete();
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(id)
-            .collection('friends')
-            .doc(user.id)
-            .delete();
-      } catch (e) {
-        debugPrint('Failed to delete friend from Firestore: $e');
-      }
-    }
   }
 
   Future<void> toggleFollowFriend(String id) async {
@@ -7065,6 +7187,7 @@ ${historyBuffer.toString()}
           'userRole': role,
           'updatedAt': FieldValue.serverTimestamp(),
         });
+        await _syncPublicProfile();
       } catch (e) {
         debugPrint('Failed to update user role in Firestore: $e');
       }
@@ -7184,6 +7307,130 @@ ${historyBuffer.toString()}
         .add(payload);
   }
 
+  Future<void> setGroupResultSharing(bool enabled) async {
+    final group = _canonicalGroup;
+    final user = _currentUser;
+    if (group == null || user == null || !group.isMember(user.id)) {
+      throw StateError('請先加入有效團體');
+    }
+    final summaryRef = FirebaseFirestore.instance
+        .collection('groups')
+        .doc(group.id)
+        .collection('member_summaries')
+        .doc(user.id);
+    _groupResultSummaryPublishTimer?.cancel();
+    _groupResultSummaryPublishTimer = null;
+
+    if (!enabled) {
+      await summaryRef.delete();
+      _groupResultSharingEnabled = false;
+      _groupMemberSummaries = _groupMemberSummaries
+          .where((summary) => summary.memberId != user.id)
+          .toList(growable: false);
+      notifyListeners();
+      return;
+    }
+
+    final payload = GroupResultSummaryContract.buildPayload(
+      group: group,
+      memberId: user.id,
+      displayName: _profileNickname,
+      disciplineScore: todayWeightedDisciplineScore,
+      completedTasks: todayActionableTaskCompleted,
+      totalTasks: todayActionableTaskTotal,
+      focusMinutes: focusMinutes,
+      steps: steps,
+      sleepHours: sleepHours,
+      now: DateTime.now(),
+    );
+    await summaryRef.set(payload);
+    _groupResultSharingEnabled = true;
+    notifyListeners();
+  }
+
+  Future<void> refreshGroupResultSummary() async {
+    if (!_groupResultSharingEnabled) {
+      throw StateError('請先開啟團體成果分享');
+    }
+    await _publishGroupResultSummarySnapshot();
+  }
+
+  Future<void> removeGroupMember(String memberId) async {
+    final user = _currentUser;
+    final group = _canonicalGroup;
+    if (user == null || group == null || !group.isManager(user.id)) {
+      throw StateError('只有目前團體管理者可以移除成員');
+    }
+    final firestore = FirebaseFirestore.instance;
+    final groupRef = firestore.collection('groups').doc(group.id);
+    final targetUserRef = firestore.collection('users').doc(memberId);
+    final summaryRef = groupRef.collection('member_summaries').doc(memberId);
+    await firestore.runTransaction((transaction) async {
+      final groupSnapshot = await transaction.get(groupRef);
+      if (!groupSnapshot.exists) {
+        throw StateError('團體資料不存在');
+      }
+      final currentGroup = GroupContract.fromMap(
+        groupSnapshot.id,
+        groupSnapshot.data()!,
+      );
+      final update = GroupMembershipContract.buildMemberRemoval(
+        group: currentGroup,
+        managerId: user.id,
+        memberId: memberId,
+        now: DateTime.now(),
+      );
+      transaction.update(groupRef, update);
+      transaction.update(targetUserRef, {
+        'groupId': FieldValue.delete(),
+        'groupName': FieldValue.delete(),
+        'isGroupOwner': FieldValue.delete(),
+        'userRole': 'individual',
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+      transaction.delete(summaryRef);
+    });
+  }
+
+  Future<void> transferGroupOwnership(String nextManagerId) async {
+    final user = _currentUser;
+    final group = _canonicalGroup;
+    if (user == null || group == null || !group.isManager(user.id)) {
+      throw StateError('只有目前團體管理者可以轉移管理權');
+    }
+    final firestore = FirebaseFirestore.instance;
+    final groupRef = firestore.collection('groups').doc(group.id);
+    final currentUserRef = firestore.collection('users').doc(user.id);
+    final nextManagerRef = firestore.collection('users').doc(nextManagerId);
+    await firestore.runTransaction((transaction) async {
+      final groupSnapshot = await transaction.get(groupRef);
+      if (!groupSnapshot.exists) {
+        throw StateError('團體資料不存在');
+      }
+      final currentGroup = GroupContract.fromMap(
+        groupSnapshot.id,
+        groupSnapshot.data()!,
+      );
+      final update = GroupMembershipContract.buildOwnershipTransfer(
+        group: currentGroup,
+        managerId: user.id,
+        nextManagerId: nextManagerId,
+        now: DateTime.now(),
+      );
+      transaction.update(groupRef, update);
+      transaction.update(currentUserRef, {
+        'isGroupOwner': false,
+        'userRole': 'group',
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+      transaction.update(nextManagerRef, {
+        'isGroupOwner': true,
+        'userRole': 'group',
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+    });
+  }
+
   /// 進行家長/小孩帳號雙向連結綁定
   Future<void> bindRelative(String relativeId) async {
     await sendGuardianRequest(relativeId);
@@ -7203,7 +7450,7 @@ ${historyBuffer.toString()}
     try {
       // Find the user by username
       final querySnap = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('public_profiles')
           .where('username', isEqualTo: targetNudgeIdUpper)
           .limit(1)
           .get();
@@ -7213,7 +7460,7 @@ ${historyBuffer.toString()}
       final receiverId = querySnap.docs.first.id;
       final receiverData = querySnap.docs.first.data();
       final receiverNudgeId = receiverData['username'] as String? ?? '';
-      final receiverRole = receiverData['userRole'] as String? ?? 'personal';
+      final receiverRole = receiverData['familyRole'] as String? ?? 'personal';
 
       FamilyLinkContract.fromAcceptedRequest(
         linkId: 'validation',
@@ -7480,6 +7727,9 @@ ${historyBuffer.toString()}
             'memberIds': FieldValue.arrayRemove([user.id]),
             'updatedAt': FieldValue.serverTimestamp(),
           });
+          transaction.delete(
+            previousGroupRef.collection('member_summaries').doc(user.id),
+          );
         }
       }
       transaction.update(groupRef, {
@@ -7521,6 +7771,7 @@ ${historyBuffer.toString()}
     final firestore = FirebaseFirestore.instance;
     final groupRef = firestore.collection('groups').doc(currentGroupId);
     final userRef = firestore.collection('users').doc(user.id);
+    final summaryRef = groupRef.collection('member_summaries').doc(user.id);
     await firestore.runTransaction((transaction) async {
       final groupSnapshot = await transaction.get(groupRef);
       if (groupSnapshot.exists) {
@@ -7548,6 +7799,7 @@ ${historyBuffer.toString()}
         'userRole': 'individual',
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      transaction.delete(summaryRef);
     });
 
     final prefs = await SharedPreferences.getInstance();

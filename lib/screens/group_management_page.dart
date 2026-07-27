@@ -65,6 +65,71 @@ class GroupManagementPage extends StatelessWidget {
           ),
           const SizedBox(height: AppUI.sectionGap),
 
+          Card(
+            shape: AppUI.cardShape(),
+            child: Column(
+              children: [
+                SwitchListTile.adaptive(
+                  value: appState.isGroupResultSharingEnabled,
+                  title: const Text(
+                    '分享我的團體成果摘要',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text('只分享分數、任務完成數、專注、步數與睡眠摘要；關閉後會立即退出團體排行。'),
+                  secondary: const Icon(Icons.verified_user_outlined),
+                  onChanged: (enabled) async {
+                    try {
+                      await appState.setGroupResultSharing(enabled);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(enabled ? '已開啟團體成果分享' : '已撤回團體成果分享'),
+                        ),
+                      );
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(error.toString())));
+                    }
+                  },
+                ),
+                if (appState.isGroupResultSharingEnabled) ...[
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '目前摘要：${appState.todayWeightedDisciplineScore} 分・'
+                            '${appState.focusMinutes} 分鐘專注・${appState.steps} 步',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: secondaryText,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () async {
+                            await appState.refreshGroupResultSummary();
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('團體成果摘要已更新')),
+                            );
+                          },
+                          icon: const Icon(Icons.sync, size: 16),
+                          label: const Text('立即更新'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppUI.sectionGap),
+
           // ─── 房主控制台入口（僅房主可見）───────────────────────────────
           if (capabilities.canManageGroup) ...[
             InkWell(

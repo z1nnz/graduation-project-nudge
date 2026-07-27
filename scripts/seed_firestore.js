@@ -2,6 +2,7 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildPublicProfile } from './backfill_public_profiles.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +28,13 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
+
+async function syncSeedPublicProfile(userId) {
+  const userSnapshot = await db.collection('users').doc(userId).get();
+  await db.collection('public_profiles').doc(userId).set(
+    buildPublicProfile(userId, userSnapshot.data() || {}, new Date()),
+  );
+}
 
 // 預設的使用者 ID
 const previewUserId = 'NDG-PREVIEW-USER';
@@ -166,6 +174,7 @@ async function seedData() {
     },
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   });
+  await syncSeedPublicProfile(previewUserId);
   console.log('✔ 已寫入主測試帳號 (NDG-PREVIEW-USER)');
 
   // 2. 寫入好友帳號 1
@@ -193,6 +202,7 @@ async function seedData() {
     isStudying: true,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   });
+  await syncSeedPublicProfile(friendId1);
   console.log('✔ 已寫入好友 1 (NDG-FRIEND-ASHIN)');
 
   // 3. 寫入好友帳號 2
@@ -220,18 +230,55 @@ async function seedData() {
     isStudying: false,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   });
+  await syncSeedPublicProfile(friendId2);
   console.log('✔ 已寫入好友 2 (NDG-FRIEND-MAY)');
 
-  // 4. 將好友關係加入主帳號的子集合中
-  const userFriend1Ref = db.collection('users').doc(previewUserId).collection('friends').doc(friendId1);
-  await userFriend1Ref.set({
+  // 4. 以已接受邀請作為 canonical 關係，並原子建立雙向好友投影。
+  const friendRequestRef = db
+    .collection('friend_requests')
+    .doc(`req_${previewUserId}_${friendId1}`);
+  const userFriend1Ref = db
+    .collection('users')
+    .doc(previewUserId)
+    .collection('friends')
+    .doc(friendId1);
+  const friend1UserRef = db
+    .collection('users')
+    .doc(friendId1)
+    .collection('friends')
+    .doc(previewUserId);
+  const friendshipBatch = db.batch();
+  friendshipBatch.set(friendRequestRef, {
+    senderId: previewUserId,
+    senderNudgeId: 'NDG-PREVIEW',
+    senderName: '預覽使用者',
+    receiverId: friendId1,
+    receiverNudgeId: 'NDG-FRIEND-ASHIN',
+    receiverName: '阿信 (自律隊友)',
+    status: 'accepted',
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  friendshipBatch.set(userFriend1Ref, {
     id: friendId1,
     nudgeId: 'NDG-FRIEND-ASHIN',
     name: '阿信 (自律隊友)',
     signature: '晨跑與讀書是我熱愛的自律日常。',
     todayFocusSeconds: 7200,
-    isStudying: true
+    isStudying: true,
+    isFollowing: true,
+    encouragementCount: 0
   });
+  friendshipBatch.set(friend1UserRef, {
+    id: previewUserId,
+    nudgeId: 'NDG-PREVIEW',
+    name: '預覽使用者',
+    signature: '今天慢慢前進',
+    todayFocusSeconds: 0,
+    isStudying: false,
+    isFollowing: true,
+    encouragementCount: 0
+  });
+  await friendshipBatch.commit();
   console.log('✔ 已建立測試好友關係 (阿信)');
 
   // 5. 寫入三個預設自律房間 (Study Rooms)

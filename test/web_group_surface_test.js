@@ -45,3 +45,77 @@ test("group surfaces do not ship fabricated outcomes", () => {
   assert.doesNotMatch(schedule, /42 位學生/);
   assert.match(ranking, /尚未產生/);
 });
+
+test("group member management uses canonical membership and consent summaries", () => {
+  const app = read("web_dashboard/assets/app.js");
+  const ranking = read("web_dashboard/groups-ranking.html");
+
+  assert.match(app, /\.collection\("member_summaries"\)/);
+  assert.match(app, /function renderCanonicalWebGroupMembers/);
+  assert.match(app, /function renderCanonicalGroupRanking/);
+  assert.match(app, /removeCanonicalWebGroupMember/);
+  assert.match(app, /transferCanonicalWebGroupOwnership/);
+  assert.doesNotMatch(
+    app,
+    /collection\("users"\)\.where\("groupId",\s*"==",\s*groupId\)/,
+  );
+  assert.match(ranking, /data-group-ranking-list/);
+  assert.match(ranking, /只有成員主動分享/);
+});
+
+test("social lookup reads the explicit public profile projection", () => {
+  const app = read("web_dashboard/assets/app.js");
+  const state = read("lib/state/app_state.dart");
+  const friendPage = read("lib/screens/friend_public_profile_page.dart");
+  const friendWeb = read("web_dashboard/friend.html");
+  const postLogic = read("web_dashboard/js/post_logic.js");
+
+  assert.match(app, /function buildWebPublicProfile/);
+  assert.match(app, /collection\("public_profiles"\)/);
+  assert.doesNotMatch(
+    app,
+    /collection\("users"\)\.where\("(?:username|myNudgeId)"/,
+  );
+  assert.match(state, /\.collection\('public_profiles'\)/);
+  assert.doesNotMatch(state, /candidate_mina|NDG-MINA01|NDG-RAY777/);
+  assert.doesNotMatch(
+    state,
+    /\.collection\('users'\)\s*\.where\('username'/,
+  );
+  assert.match(friendPage, /\.collection\('public_profiles'\)/);
+  assert.match(friendWeb, /collection\("public_profiles"\)/);
+  assert.doesNotMatch(
+    friendWeb,
+    /collection\("users"\)\.(?:doc\(friendId\)\.get|where\("myNudgeId")/,
+  );
+  assert.doesNotMatch(friendWeb, /sleepHours:\s*7\.5|steps:\s*3000/);
+  assert.match(friendWeb, /function escapeFriendHtml/);
+  assert.match(friendWeb, /function inlineFriendArgument/);
+  assert.match(friendWeb, /escapeFriendHtml\(f\.name\)/);
+  assert.match(friendWeb, /escapeFriendHtml\(userData\.nickname\)/);
+  assert.doesNotMatch(friendWeb, /\$\{f\.(?:name|signature)\}/);
+  assert.match(postLogic, /function requireOwnProfileId/);
+  assert.match(
+    app,
+    /私人自律動態不會公開讀取/,
+  );
+});
+
+test("friend acceptance and removal stay atomic across App and Web", () => {
+  const rules = read("firestore.rules");
+  const state = read("lib/state/app_state.dart");
+  const friendWeb = read("web_dashboard/friend.html");
+
+  assert.match(rules, /function acceptedFriendshipAfterByReceiver/);
+  assert.match(rules, /function removedFriendshipAfter/);
+  assert.match(rules, /request\.resource\.data\.status == 'removed'/);
+  assert.match(state, /batch\.update\(docRef, \{'status': 'accepted'\}\)/);
+  assert.match(state, /batch\.set\(myFriendRef, myFriendProfile\.toJson\(\)\)/);
+  assert.match(
+    state,
+    /batch\.update\(acceptedRequest, \{'status': 'removed'\}\)/,
+  );
+  assert.match(friendWeb, /batch\.update\(requestRef, \{ status: "accepted" \}\)/);
+  assert.match(friendWeb, /batch\.update\(acceptedRequest, \{ status: "removed" \}\)/);
+  assert.match(friendWeb, /\.where\("senderId", "==", activeUserId\)/);
+});

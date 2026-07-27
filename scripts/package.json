@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Seeding scripts for Nudge project",
   "main": "seed_firestore.js",
+  "scripts": {
+    "backfill:public-profiles": "node backfill_public_profiles.js",
+    "backfill:public-profiles:apply": "node backfill_public_profiles.js --apply"
+  },
   "dependencies": {
     "firebase-admin": "^12.0.0"
   },

@@ -50,6 +50,18 @@
 - **Group Publication**: Manager-authored shared content stored under a Group,
   such as a challenge, suggested self-discipline schedule, or exam template.
   It is not stored in the Manager's private user document.
+- **Group Result Summary**: A Member-controlled, revocable snapshot of selected
+  self-discipline outcomes shared with their active Group. Its presence means
+  consent is active; deleting it withdraws consent and removes the Member from
+  Group rankings without exposing the Member's private user document.
+- **Group Membership Change**: A canonical Group audit marker for removing a
+  Member or transferring ownership. The Group record and affected user
+  projections change atomically so App and Web cannot disagree about roles.
+- **Friend Acceptance**: The canonical accepted Friend Request. Sending a
+  request does not create a friendship; only the receiver can accept.
+- **Friend Projection**: The materialized friend-list record under each
+  participant's user document. Both projections are created or deleted
+  atomically with the canonical acceptance state.
 - **Study Room**: A persistent peer self-discipline space centered on one
   activity type, shared goals, and shared rules. Members control their own
   activity and progress; a Study Room is not a host-controlled session or a

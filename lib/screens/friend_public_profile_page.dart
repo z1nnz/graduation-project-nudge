@@ -132,7 +132,10 @@ class FriendPublicProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('好友公開頁')),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').doc(friendId).snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('public_profiles')
+            .doc(friendId)
+            .snapshots(),
         builder: (context, snapshot) {
           int planetCount = 0;
           String currentName = name;
@@ -146,21 +149,36 @@ class FriendPublicProfilePage extends StatelessWidget {
             if (data != null) {
               planetCount = data['planetCount'] as int? ?? 0;
               currentName = data['nickname'] as String? ?? currentName;
-              currentSignature = data['signature'] as String? ?? currentSignature;
-              currentFocusSeconds = data['focusSeconds'] as int? ?? currentFocusSeconds;
-              currentNudgeId = data['username'] as String? ?? data['myNudgeId'] as String? ?? '';
+              currentSignature =
+                  data['signature'] as String? ?? currentSignature;
+              currentFocusSeconds =
+                  data['focusSeconds'] as int? ?? currentFocusSeconds;
+              currentNudgeId =
+                  data['username'] as String? ??
+                  data['myNudgeId'] as String? ??
+                  '';
               if (data['avatarProfile'] != null) {
-                currentProfile = AvatarProfile.fromJson(Map<String, dynamic>.from(data['avatarProfile'] as Map));
+                currentProfile = AvatarProfile.fromJson(
+                  Map<String, dynamic>.from(data['avatarProfile'] as Map),
+                );
               }
             }
           }
 
-          final currentScore = (35 + (currentFocusSeconds / 60 / 2)).clamp(0, 100).round();
+          final currentScore = (35 + (currentFocusSeconds / 60 / 2))
+              .clamp(0, 100)
+              .round();
           final isFriend = friend != null;
-          final incomingReqs = appState.incomingFriendRequests.where(
-            (req) => (currentNudgeId.isNotEmpty && req.nudgeId == currentNudgeId) || req.id.contains(friendId)
-          ).toList();
-          final canViewDetails = isCurrentUser || isFriend || incomingReqs.isNotEmpty;
+          final incomingReqs = appState.incomingFriendRequests
+              .where(
+                (req) =>
+                    (currentNudgeId.isNotEmpty &&
+                        req.nudgeId == currentNudgeId) ||
+                    req.id.contains(friendId),
+              )
+              .toList();
+          final canViewDetails =
+              isCurrentUser || isFriend || incomingReqs.isNotEmpty;
 
           return ListView(
             padding: const EdgeInsets.all(AppUI.pagePadding),
@@ -172,7 +190,9 @@ class FriendPublicProfilePage extends StatelessWidget {
                 avatarProfile: currentProfile,
                 fallbackText: roomNickname.isNotEmpty
                     ? roomNickname[0]
-                    : (currentName.isNotEmpty ? currentName.characters.first : '?'),
+                    : (currentName.isNotEmpty
+                          ? currentName.characters.first
+                          : '?'),
                 statusText: _statusText(),
                 focusText: '今日 ${_formatMMSS(currentFocusSeconds)}',
                 scoreText: '$currentScore 分',
@@ -301,18 +321,23 @@ class FriendPublicProfilePage extends StatelessWidget {
                             showDialog(
                               context: context,
                               builder: (context) => AlertDialog(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
                                 title: const Row(
                                   children: [
-                                    Icon(Icons.auto_awesome, color: Color(0xFFA855F7)),
+                                    Icon(
+                                      Icons.auto_awesome,
+                                      color: Color(0xFFA855F7),
+                                    ),
                                     SizedBox(width: 8),
                                     Text('自律星球參觀指引'),
                                   ],
                                 ),
                                 content: Text(
-                                  isCurrentUser 
-                                    ? '您總共解鎖了 $planetCount 顆自律星球！\n請登入網頁端控制台，點擊側邊欄「自律星球」或個人頁面，即可進入 3D 星球環繞畫面進行操作與養成。'
-                                    : '好友 $currentName 目前已解鎖 $planetCount 顆自律星球！\n請前往網頁版個人名片頁，點擊「🪐 進入自律星球」，即可進入並參觀他的自律星球唷！'
+                                  isCurrentUser
+                                      ? '您總共解鎖了 $planetCount 顆自律星球！\n請登入網頁端控制台，點擊側邊欄「自律星球」或個人頁面，即可進入 3D 星球環繞畫面進行操作與養成。'
+                                      : '好友 $currentName 目前已解鎖 $planetCount 顆自律星球！\n請前往網頁版個人名片頁，點擊「🪐 進入自律星球」，即可進入並參觀他的自律星球唷！',
                                 ),
                                 actions: [
                                   TextButton(
@@ -391,7 +416,11 @@ class FriendPublicProfilePage extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        Icon(Icons.lock_outline, size: 44, color: secondaryText),
+                        Icon(
+                          Icons.lock_outline,
+                          size: 44,
+                          color: secondaryText,
+                        ),
                         const SizedBox(height: 10),
                         Text(
                           '自律資訊已隱藏',
@@ -440,16 +469,18 @@ class FriendPublicProfilePage extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          await context.read<AppState>().setPublicProfileFollowing(
-                            id: friendId,
-                            name: currentName,
-                            signature: currentSignature,
-                            todayFocusSeconds: currentFocusSeconds,
-                            isStudying: isStudying,
-                            avatarColor: avatarColor,
-                            avatarProfile: currentProfile,
-                            isFollowing: !isFollowing,
-                          );
+                          await context
+                              .read<AppState>()
+                              .setPublicProfileFollowing(
+                                id: friendId,
+                                name: currentName,
+                                signature: currentSignature,
+                                todayFocusSeconds: currentFocusSeconds,
+                                isStudying: isStudying,
+                                avatarColor: avatarColor,
+                                avatarProfile: currentProfile,
+                                isFollowing: !isFollowing,
+                              );
                           if (context.mounted) {
                             final following =
                                 context
@@ -460,7 +491,9 @@ class FriendPublicProfilePage extends StatelessWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  following ? '已追蹤 $currentName' : '已取消追蹤 $currentName',
+                                  following
+                                      ? '已追蹤 $currentName'
+                                      : '已取消追蹤 $currentName',
                                 ),
                               ),
                             );
@@ -481,10 +514,9 @@ class FriendPublicProfilePage extends StatelessWidget {
                           final type = await _pickEncouragementType(context);
                           if (type == null || !context.mounted) return;
 
-                          await context.read<AppState>().sendEncouragementToFriend(
-                            friendId,
-                            type: type,
-                          );
+                          await context
+                              .read<AppState>()
+                              .sendEncouragementToFriend(friendId, type: type);
 
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -504,9 +536,9 @@ class FriendPublicProfilePage extends StatelessWidget {
                     await context.read<AppState>().removeSocialFriend(friendId);
                     if (context.mounted) {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text('已移除好友：$currentName')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('已移除好友：$currentName')),
+                      );
                     }
                   },
                   icon: const Icon(Icons.delete_outline),
@@ -518,100 +550,126 @@ class FriendPublicProfilePage extends StatelessWidget {
                 ),
               ] else ...[
                 // Friendship actions for non-friends
-                Builder(builder: (context) {
-                  final incomingReqs = appState.incomingFriendRequests.where(
-                    (req) => (currentNudgeId.isNotEmpty && req.nudgeId == currentNudgeId) || req.id.contains(friendId)
-                  ).toList();
-                  final outgoingReqs = appState.outgoingFriendRequests.where(
-                    (req) => (currentNudgeId.isNotEmpty && req.nudgeId == currentNudgeId) || req.id.contains(friendId)
-                  ).toList();
+                Builder(
+                  builder: (context) {
+                    final incomingReqs = appState.incomingFriendRequests
+                        .where(
+                          (req) =>
+                              (currentNudgeId.isNotEmpty &&
+                                  req.nudgeId == currentNudgeId) ||
+                              req.id.contains(friendId),
+                        )
+                        .toList();
+                    final outgoingReqs = appState.outgoingFriendRequests
+                        .where(
+                          (req) =>
+                              (currentNudgeId.isNotEmpty &&
+                                  req.nudgeId == currentNudgeId) ||
+                              req.id.contains(friendId),
+                        )
+                        .toList();
 
-                  if (incomingReqs.isNotEmpty) {
-                    final req = incomingReqs.first;
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              await appState.declineFriendRequest(req.id);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('已拒絕好友邀請')),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.close, color: Colors.redAccent),
-                            label: const Text('拒絕邀請', style: TextStyle(color: Colors.redAccent)),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.redAccent),
+                    if (incomingReqs.isNotEmpty) {
+                      final req = incomingReqs.first;
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                await appState.declineFriendRequest(req.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('已拒絕好友邀請')),
+                                  );
+                                }
+                              },
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.redAccent,
+                              ),
+                              label: const Text(
+                                '拒絕邀請',
+                                style: TextStyle(color: Colors.redAccent),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.redAccent),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              await appState.acceptFriendRequest(req.id);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('已成功與 $currentName 成為好友！ 🎉')),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.check),
-                            label: const Text('接受邀請'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                await appState.acceptFriendRequest(req.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '已成功與 $currentName 成為好友！ 🎉',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.check),
+                              label: const Text('接受邀請'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
                             ),
                           ),
+                        ],
+                      );
+                    } else if (outgoingReqs.isNotEmpty) {
+                      return SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: null, // Disabled
+                          icon: const Icon(Icons.hourglass_empty),
+                          label: const Text('已送出好友邀請，等待回覆中'),
                         ),
-                      ],
-                    );
-                  } else if (outgoingReqs.isNotEmpty) {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: null, // Disabled
-                        icon: const Icon(Icons.hourglass_empty),
-                        label: const Text('已送出好友邀請，等待回覆中'),
-                      ),
-                    );
-                  } else {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final candidate = SocialFriendProfile(
-                            id: friendId,
-                            nudgeId: currentNudgeId.isEmpty ? 'NDG_${friendId.substring(0, 6).toUpperCase()}' : currentNudgeId,
-                            name: currentName,
-                            signature: currentSignature,
-                            todayFocusSeconds: currentFocusSeconds,
-                            isStudying: isStudying,
-                            avatarColor: avatarColor,
-                            avatarProfile: currentProfile,
-                            isFollowing: false,
-                            encouragementCount: 0,
-                          );
-                          await appState.sendFriendRequest(candidate);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('已向 $currentName 送出好友邀請！')),
+                      );
+                    } else {
+                      return SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final candidate = SocialFriendProfile(
+                              id: friendId,
+                              nudgeId: currentNudgeId.isEmpty
+                                  ? 'NDG_${friendId.substring(0, 6).toUpperCase()}'
+                                  : currentNudgeId,
+                              name: currentName,
+                              signature: currentSignature,
+                              todayFocusSeconds: currentFocusSeconds,
+                              isStudying: isStudying,
+                              avatarColor: avatarColor,
+                              avatarProfile: currentProfile,
+                              isFollowing: false,
+                              encouragementCount: 0,
                             );
-                          }
-                        },
-                        icon: const Icon(Icons.person_add_alt_1),
-                        label: const Text('加為好友'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: avatarColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                            await appState.sendFriendRequest(candidate);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('已向 $currentName 送出好友邀請！'),
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.person_add_alt_1),
+                          label: const Text('加為好友'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: avatarColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                }),
+                      );
+                    }
+                  },
+                ),
               ],
 
               const SizedBox(height: 20),

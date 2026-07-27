@@ -34,7 +34,7 @@ function loadFamilyLinkContract() {
 function loadGroupContract() {
   return loadWindowModule(
     "NudgeGroupContract",
-    "assets/group_contract.js?v=1",
+    "assets/group_contract.js?v=2",
     "團體契約模組載入失敗",
   );
 }
@@ -1675,6 +1675,8 @@ window.addEventListener("DOMContentLoaded", () => {
   try { bindTilt(); } catch(e){}
   try { bindPresentation(); } catch(e){}
   try { bindExamTemplates(); } catch(e){}
+  try { renderCanonicalGroupRanking(); } catch(e){}
+  try { renderCanonicalWebGroupMembers(); } catch(e){}
   try { if (window.bindMissions) window.bindMissions(); } catch(e){}
 });
 
@@ -2051,6 +2053,7 @@ let currentFamilySummary = null;
 let currentWebUserData = null;
 let familyLinkLoaded = false;
 let activeWebGroup = null;
+let activeWebGroupSummaries = [];
 let groupLoaded = false;
 let familyLinkSub = null;
 let familyEncouragementSub = null;
@@ -2060,6 +2063,7 @@ let groupDocSub = null;
 let groupChallengeSub = null;
 let groupSchedulesSub = null;
 let groupTemplatesSub = null;
+let groupMemberSummariesSub = null;
 let listeningWebGroupId = undefined;
 
 function stopFamilyInteractionListeners() {
@@ -2170,9 +2174,12 @@ function stopGroupPublicationListeners() {
   if (groupChallengeSub) groupChallengeSub();
   if (groupSchedulesSub) groupSchedulesSub();
   if (groupTemplatesSub) groupTemplatesSub();
+  if (groupMemberSummariesSub) groupMemberSummariesSub();
   groupChallengeSub = null;
   groupSchedulesSub = null;
   groupTemplatesSub = null;
+  groupMemberSummariesSub = null;
+  activeWebGroupSummaries = [];
 }
 
 function effectiveWebGroupProfile() {
@@ -2221,6 +2228,8 @@ function refreshCanonicalGroupUi() {
     updateSidebarProfile(effectiveWebGroupProfile());
   }
   renderCanonicalGroupOverview();
+  renderCanonicalWebGroupMembers();
+  renderCanonicalGroupRanking();
 }
 
 function renderCanonicalGroupOverview() {
@@ -2342,6 +2351,19 @@ function listenToGroupPublications(groupId) {
       syncCanonicalGroupPublicationsToLocal({
         templates: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
       });
+    });
+  groupMemberSummariesSub = groupRef
+    .collection("member_summaries")
+    .onSnapshot(snapshot => {
+      activeWebGroupSummaries = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort(
+          (a, b) =>
+            Number(b.summary?.disciplineScore || 0) -
+            Number(a.summary?.disciplineScore || 0),
+        );
+      renderCanonicalWebGroupMembers();
+      renderCanonicalGroupRanking();
     });
 }
 
@@ -3358,18 +3380,13 @@ function sendWebGroupRequest(targetNudgeId, groupId, groupName) {
       return;
     }
 
-    db.collection("users").where("username", "==", targetNudgeIdUpper).limit(1).get().then(querySnap => {
+    db.collection("public_profiles").where("username", "==", targetNudgeIdUpper).limit(1).get().then(querySnap => {
       if (querySnap.empty) {
         toast("找不到該 Nudge ID 的使用者");
         return;
       }
       const receiverSnap = querySnap.docs[0];
       const receiverId = receiverSnap.id;
-
-      if (receiverSnap.data().groupId === groupId) {
-        toast("對方已在該團體中");
-        return;
-      }
 
       db.collection("group_requests")
         .where("senderId", "==", activeUserId)
@@ -3594,7 +3611,7 @@ function sendWebGuardianRequest(targetNudgeId) {
       return;
     }
 
-    db.collection("users").where("username", "==", targetNudgeIdUpper).limit(1).get().then(querySnap => {
+    db.collection("public_profiles").where("username", "==", targetNudgeIdUpper).limit(1).get().then(querySnap => {
       if (querySnap.empty) {
         toast("找不到該 Nudge ID 的使用者");
         return;
@@ -3603,7 +3620,7 @@ function sendWebGuardianRequest(targetNudgeId) {
       const receiverId = receiverSnap.id;
       const receiverData = receiverSnap.data();
       const receiverNudgeId = receiverData.username || "";
-      const receiverRole = receiverData.userRole || "personal";
+      const receiverRole = receiverData.familyRole || "personal";
 
       try {
         window.NudgeFamilyLinkContract.buildFamilyLinkPayload({
@@ -4046,6 +4063,9 @@ async function joinCanonicalWebGroup(userId, groupIdInput, requestId = null) {
           memberIds: firebase.firestore.FieldValue.arrayRemove(userId),
           updatedAt: new Date().toISOString()
         });
+        transaction.delete(
+          previousGroupRef.collection("member_summaries").doc(userId)
+        );
       }
     }
     transaction.update(groupRef, {
@@ -4073,6 +4093,7 @@ async function leaveCanonicalWebGroup(userId, groupId) {
   return db.runTransaction(async transaction => {
     const groupRef = db.collection("groups").doc(groupId);
     const userRef = db.collection("users").doc(userId);
+    const summaryRef = groupRef.collection("member_summaries").doc(userId);
     const groupSnapshot = await transaction.get(groupRef);
     if (groupSnapshot.exists) {
       const group = groupSnapshot.data();
@@ -4095,6 +4116,65 @@ async function leaveCanonicalWebGroup(userId, groupId) {
       isGroupOwner: firebase.firestore.FieldValue.delete(),
       userRole: "individual",
       updatedAt: new Date().toISOString()
+    });
+    transaction.delete(summaryRef);
+  });
+}
+
+async function removeCanonicalWebGroupMember(memberId) {
+  const { group, userId } = requireCanonicalWebGroupManager();
+  const groupRef = db.collection("groups").doc(group.id);
+  const memberRef = db.collection("users").doc(memberId);
+  const summaryRef = groupRef.collection("member_summaries").doc(memberId);
+  return db.runTransaction(async transaction => {
+    const groupSnapshot = await transaction.get(groupRef);
+    if (!groupSnapshot.exists) {
+      throw new Error("團體資料不存在");
+    }
+    const currentGroup = { id: groupSnapshot.id, ...groupSnapshot.data() };
+    const update = window.NudgeGroupContract.buildMemberRemoval({
+      group: currentGroup,
+      managerId: userId,
+      memberId,
+    });
+    transaction.update(groupRef, update);
+    transaction.update(memberRef, {
+      groupId: firebase.firestore.FieldValue.delete(),
+      groupName: firebase.firestore.FieldValue.delete(),
+      isGroupOwner: firebase.firestore.FieldValue.delete(),
+      userRole: "individual",
+      updatedAt: new Date().toISOString(),
+    });
+    transaction.delete(summaryRef);
+  });
+}
+
+async function transferCanonicalWebGroupOwnership(nextManagerId) {
+  const { group, userId } = requireCanonicalWebGroupManager();
+  const groupRef = db.collection("groups").doc(group.id);
+  const currentManagerRef = db.collection("users").doc(userId);
+  const nextManagerRef = db.collection("users").doc(nextManagerId);
+  return db.runTransaction(async transaction => {
+    const groupSnapshot = await transaction.get(groupRef);
+    if (!groupSnapshot.exists) {
+      throw new Error("團體資料不存在");
+    }
+    const currentGroup = { id: groupSnapshot.id, ...groupSnapshot.data() };
+    const update = window.NudgeGroupContract.buildOwnershipTransfer({
+      group: currentGroup,
+      managerId: userId,
+      nextManagerId,
+    });
+    transaction.update(groupRef, update);
+    transaction.update(currentManagerRef, {
+      isGroupOwner: false,
+      userRole: "group",
+      updatedAt: new Date().toISOString(),
+    });
+    transaction.update(nextManagerRef, {
+      isGroupOwner: true,
+      userRole: "group",
+      updatedAt: new Date().toISOString(),
     });
   });
 }
@@ -4256,9 +4336,16 @@ function renderWebGroupCreationPage(data) {
   const container = document.getElementById("groupsCreationContainer") || document.getElementById("groupsLinkContainer");
   if (!container) return;
 
-  const isOwner = data.isGroupOwner;
-  const groupName = data.groupName || "自律小組";
-  const groupId = data.groupId || "";
+  const activeUserId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const isOwner =
+    window.NudgeGroupContract?.isGroupManager(
+      activeWebGroup,
+      activeUserId,
+    ) === true ||
+    (isPreviewMode() && data.isGroupOwner === true);
+  const groupName = activeWebGroup?.name || data.groupName || "自律小組";
+  const groupId = activeWebGroup?.id || data.groupId || "";
 
   if (!groupId) {
     // Member has no group yet. Render the binding form beautifully inside the page!
@@ -4348,12 +4435,12 @@ function renderWebGroupCreationPage(data) {
           <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--muted); font-size: 12px; text-transform: uppercase;">
-                <th style="padding: 12px 8px;">成員暱稱 (Nudge ID)</th>
+                <th style="padding: 12px 8px;">正式成員</th>
                 <th style="padding: 12px 8px;">身分</th>
-                <th style="padding: 12px 8px; text-align: center;">今日專注 (分)</th>
-                <th style="padding: 12px 8px; text-align: center;">今日步數</th>
-                <th style="padding: 12px 8px; text-align: center;">今日睡眠 (時)</th>
-                <th style="padding: 12px 8px; text-align: center;">任務完成度</th>
+                <th style="padding: 12px 8px; text-align: center;">分享狀態</th>
+                <th style="padding: 12px 8px; text-align: center;">紀律分數</th>
+                <th style="padding: 12px 8px;">成果摘要</th>
+                <th style="padding: 12px 8px; text-align: right;">管理</th>
               </tr>
             </thead>
             <tbody id="webGroupMembersListTable" style="font-size: 14px; color: rgba(255,255,255,0.85);">
@@ -4369,7 +4456,7 @@ function renderWebGroupCreationPage(data) {
           <span class="eyebrow">Settings</span>
           <h2>團隊管理選項</h2>
           <p style="margin-top: 8px; color: var(--muted); font-size: 14px;">
-            ${isOwner ? '身為團隊建立者，您可以解散該團隊或修改團隊名稱。解散後所有成員將自動移出該組織。' : '您可以退出此小組，退出後將無法同步小組的挑戰與任務模板。'}
+            ${isOwner ? '你可以邀請、移除成員或轉移管理權；只有團體剩下你一人時才能解散，避免成員關係被意外清除。' : '您可以退出此小組，退出後將無法同步小組的挑戰與任務模板。'}
           </p>
           ${isOwner ? `
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px dashed rgba(255,255,255,0.1);">
@@ -4417,78 +4504,182 @@ function renderWebGroupCreationPage(data) {
     sendWebGroupRequest(targetId, groupId, groupName);
   });
 
-  // Query and list all members of the group in real-time
-  db.collection("users").where("groupId", "==", groupId).get().then(snap => {
-    const listTable = document.getElementById("webGroupMembersListTable");
-    if (!listTable) return;
-    listTable.innerHTML = "";
+  renderCanonicalWebGroupMembers();
+}
 
-    let totalMembers = snap.size;
-    const memberCountEl = document.getElementById("webGroupMemberCount");
-    if (memberCountEl) {
-      memberCountEl.dataset.count = totalMembers;
-      memberCountEl.textContent = totalMembers;
-    }
+function renderCanonicalWebGroupMembers() {
+  const listTable = document.getElementById("webGroupMembersListTable");
+  if (!listTable) return;
+  const group = activeWebGroup;
+  if (!group || !Array.isArray(group.memberIds)) {
+    listTable.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">等待正式團體成員名單同步。</td></tr>`;
+    return;
+  }
+  const currentUserId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const canManage =
+    window.NudgeGroupContract?.isGroupManager(group, currentUserId) === true;
+  const summariesByMember = new Map(
+    activeWebGroupSummaries.map(summary => [summary.memberId, summary]),
+  );
 
-    if (snap.empty) {
-      listTable.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">無任何成員資料</td></tr>`;
-      return;
-    }
-
-    snap.forEach(doc => {
-      const mData = doc.data();
-      const mNickname = mData.nickname || "未知使用者";
-      const mNudgeId = mData.username || doc.id;
-      const mIsOwner = mData.isGroupOwner || false;
-
-      // Extract stats
-      const dailySummaries = mData.dailySummaries || [];
-      const mTodaySummary = dailySummaries[dailySummaries.length - 1] || {};
-      const rawSleepHours = Number(mTodaySummary.sleepHours ?? mData.sleepHours ?? 0);
-      const rawSteps = Number(mTodaySummary.steps ?? mData.steps ?? 0);
-      const rawFocusMinutes = Number(
-        mTodaySummary.focusMinutes ??
-        (mData.focusSeconds ? Math.floor(Number(mData.focusSeconds) / 60) : 0)
-      );
-      const mSleepHours = Number.isFinite(rawSleepHours) ? Math.max(0, Math.min(24, rawSleepHours)) : 0;
-      const mSteps = Number.isFinite(rawSteps) ? Math.max(0, Math.trunc(rawSteps)) : 0;
-      const mFocusMinutes = Number.isFinite(rawFocusMinutes) ? Math.max(0, Math.trunc(rawFocusMinutes)) : 0;
-
-      // Task completion
-      const mTasks = mData.tasks || [];
-      const completedTasksCount = mTasks.filter(t => t.isDone || t.done).length;
-      const completionRate = mTasks.length > 0
-        ? Math.max(0, Math.min(100, Math.round((completedTasksCount / mTasks.length) * 100)))
-        : 0;
-
-      listTable.innerHTML += `
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s;">
-          <td style="padding: 14px 8px;">
-            <div style="font-weight: 700; color: #fff;">${escapeHtml(mNickname)}</div>
-            <div style="font-size: 11px; color: var(--muted); font-family: monospace;">${escapeHtml(mNudgeId)}</div>
+  listTable.innerHTML = group.memberIds
+    .map(memberId => {
+      const summaryDoc = summariesByMember.get(memberId);
+      const summary = summaryDoc?.summary || null;
+      const isOwner = memberId === group.ownerId;
+      const completed = Number(summary?.completedTasks || 0);
+      const total = Number(summary?.totalTasks || 0);
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const actions = canManage && !isOwner
+        ? `<div style="display:flex; gap:6px; justify-content:flex-end;">
+            <button type="button" class="button ghost" data-group-member-action="transfer" data-member-id="${escapeHtml(memberId)}">轉移管理權</button>
+            <button type="button" class="button ghost" data-group-member-action="remove" data-member-id="${escapeHtml(memberId)}">移除</button>
+          </div>`
+        : "—";
+      return `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+          <td style="padding:14px 8px;">
+            <div style="font-weight:700;color:#fff;">${escapeHtml(summaryDoc?.displayName || memberId)}</div>
+            <div style="font-size:11px;color:var(--muted);font-family:monospace;">${escapeHtml(memberId)}</div>
           </td>
-          <td style="padding: 14px 8px;">
-            <span style="font-size: 12px; color: ${mIsOwner ? '#f59e0b' : 'rgba(255,255,255,0.5)'}; font-weight: 600;">
-              ${mIsOwner ? '👑 房主' : '👥 成員'}
-            </span>
-          </td>
-          <td style="padding: 14px 8px; text-align: center; font-weight: 600;">${mFocusMinutes}</td>
-          <td style="padding: 14px 8px; text-align: center; font-weight: 600; color: #22c7bb;">${mSteps}</td>
-          <td style="padding: 14px 8px; text-align: center; font-weight: 600; color: #8d7aff;">${mSleepHours.toFixed(1)}</td>
-          <td style="padding: 14px 8px; text-align: center;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <span style="font-weight: 700; color: #00ffcc; font-size: 13px;">${completionRate}%</span>
-              <div style="width: 50px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; display: inline-block;">
-                <div style="width: ${completionRate}%; height: 100%; background: #00ffcc; border-radius: 3px;"></div>
-              </div>
-            </div>
-          </td>
-        </tr>
-      `;
+          <td style="padding:14px 8px;">${isOwner ? "👑 管理者" : "👥 成員"}</td>
+          <td style="padding:14px 8px;text-align:center;color:${summary ? "#10b981" : "var(--muted)"};">${summary ? "已同意" : "未分享"}</td>
+          <td style="padding:14px 8px;text-align:center;font-weight:800;">${summary ? escapeHtml(summary.disciplineScore || 0) : "—"}</td>
+          <td style="padding:14px 8px;color:var(--muted);">${summary ? `${escapeHtml(summary.focusMinutes || 0)} 分鐘專注・${escapeHtml(summary.steps || 0)} 步・任務 ${escapeHtml(rate)}%` : "不讀取私人使用者資料"}</td>
+          <td style="padding:14px 8px;text-align:right;">${actions}</td>
+        </tr>`;
+    })
+    .join("");
+
+  listTable
+    .querySelectorAll("[data-group-member-action]")
+    .forEach(button => {
+      button.addEventListener("click", async () => {
+        const memberId = button.dataset.memberId;
+        const action = button.dataset.groupMemberAction;
+        const prompt = action === "transfer"
+          ? `確定將團體管理權轉移給 ${memberId}？`
+          : `確定移除 ${memberId}？成果摘要也會一併撤除。`;
+        if (!confirm(prompt)) return;
+        try {
+          if (action === "transfer") {
+            await transferCanonicalWebGroupOwnership(memberId);
+            toast("團體管理權已轉移");
+          } else {
+            await removeCanonicalWebGroupMember(memberId);
+            toast("團體成員已移除");
+          }
+        } catch (error) {
+          console.error(error);
+          toast(error.message || "成員異動失敗");
+        }
+      });
     });
-  }).catch(err => {
-    console.error("Error loading group members: ", err);
-  });
+}
+
+function renderCanonicalGroupRanking() {
+  const rankingList = document.querySelector("[data-group-ranking-list]");
+  if (!rankingList) return;
+  const rankingName = document.querySelector("[data-group-ranking-name]");
+  const rankingCopy = document.querySelector("[data-group-ranking-copy]");
+  const summaryCopy = document.querySelector("[data-group-ranking-summary]");
+  const exportButton = document.getElementById("groupSummaryExportBtn");
+  const memberCount = activeWebGroup?.memberIds?.length || 0;
+  const summaries = activeWebGroup
+    ? activeWebGroupSummaries.filter(summary =>
+        activeWebGroup.memberIds.includes(summary.memberId),
+      )
+    : [];
+
+  if (!summaries.length) {
+    if (rankingName) rankingName.textContent = "尚未產生";
+    if (rankingCopy) {
+      rankingCopy.textContent = `0 / ${memberCount} 位成員已同意分享。`;
+    }
+    rankingList.innerHTML = `
+      <div class="center-node">
+        <div class="node-label">等待成員同意</div>
+      </div>`;
+    if (summaryCopy) {
+      summaryCopy.textContent =
+        "目前沒有可驗證的團體成果資料。未分享的成員不會以 0 分列入排行。";
+    }
+    if (exportButton) {
+      exportButton.disabled = true;
+      exportButton.textContent = "尚無可匯出摘要";
+      exportButton.onclick = null;
+    }
+    return;
+  }
+
+  const ranked = [...summaries].sort(
+    (a, b) =>
+      Number(b.summary?.disciplineScore || 0) -
+      Number(a.summary?.disciplineScore || 0),
+  );
+  const top = ranked[0];
+  if (rankingName) {
+    rankingName.textContent = top.displayName || top.memberId;
+  }
+  if (rankingCopy) {
+    rankingCopy.textContent =
+      `${top.summary?.disciplineScore || 0} 分・僅計入 ${ranked.length} 位已同意成員。`;
+  }
+  rankingList.innerHTML = `
+    <div class="saved-list" style="width:min(100%,680px);max-height:360px;">
+      ${ranked
+        .map((item, index) => {
+          const summary = item.summary || {};
+          const total = Number(summary.totalTasks || 0);
+          const completed = Number(summary.completedTasks || 0);
+          const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+          return `<article style="display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:12px;">
+            <strong style="font-size:20px;color:var(--page-accent);">#${index + 1}</strong>
+            <span><strong>${escapeHtml(item.displayName || item.memberId)}</strong><span>${escapeHtml(summary.focusMinutes || 0)} 分鐘專注・${escapeHtml(summary.steps || 0)} 步・任務 ${escapeHtml(rate)}%</span></span>
+            <strong>${escapeHtml(summary.disciplineScore || 0)} 分</strong>
+          </article>`;
+        })
+        .join("")}
+    </div>`;
+
+  const averageScore = Math.round(
+    ranked.reduce(
+      (sum, item) => sum + Number(item.summary?.disciplineScore || 0),
+      0,
+    ) / ranked.length,
+  );
+  if (summaryCopy) {
+    summaryCopy.textContent =
+      `${ranked.length} / ${memberCount} 位成員已同意分享，目前平均紀律分數 ${averageScore} 分。未分享者不列入分母或排行。`;
+  }
+  if (exportButton) {
+    exportButton.disabled = false;
+    exportButton.textContent = "匯出已同意成果摘要";
+    exportButton.onclick = () => {
+      const header =
+        "排名,顯示名稱,紀律分數,專注分鐘,步數,睡眠時數,完成任務,任務總數";
+      const rows = ranked.map((item, index) => {
+        const summary = item.summary || {};
+        const safeName = String(item.displayName || item.memberId)
+          .replaceAll('"', '""');
+        return [
+          index + 1,
+          `"${safeName}"`,
+          summary.disciplineScore || 0,
+          summary.focusMinutes || 0,
+          summary.steps || 0,
+          summary.sleepHours || 0,
+          summary.completedTasks || 0,
+          summary.totalTasks || 0,
+        ].join(",");
+      });
+      downloadTextFile(
+        "nudge-group-consented-results.csv",
+        `\uFEFF${[header, ...rows].join("\n")}`,
+      );
+    };
+  }
 }
 
 function getRoleLabel(role) {
@@ -4836,6 +5027,83 @@ function updateLitPlanets(planetCount) {
   }
 }
 
+function buildWebPublicAvatarProfile(rawAvatar) {
+  const avatar = rawAvatar && typeof rawAvatar === "object" ? rawAvatar : {};
+  const keys = [
+    "skinToneIndex",
+    "faceShapeIndex",
+    "hairStyleIndex",
+    "hairColorIndex",
+    "eyeStyleIndex",
+    "eyebrowStyleIndex",
+    "mouthStyleIndex",
+    "outfitStyleIndex",
+    "outfitColorIndex",
+    "accessoryIndex",
+    "backgroundColorIndex",
+    "avatarIconIndex",
+  ];
+  return Object.fromEntries(
+    keys.map(key => [key, Number.isInteger(avatar[key]) ? avatar[key] : 0]),
+  );
+}
+
+function buildWebPublicProfile(userId, data) {
+  const fallbackNudgeId = `NDG_${userId.substring(0, 6).toUpperCase()}`;
+  const username = String(data.username || data.myNudgeId || fallbackNudgeId)
+    .trim()
+    .slice(0, 40);
+  const myNudgeId = String(data.myNudgeId || username)
+    .trim()
+    .slice(0, 40);
+  const rawFamilyRole = data.userRole;
+  const familyRole = ["guardian", "child"].includes(rawFamilyRole)
+    ? rawFamilyRole
+    : "personal";
+  const rawPlanetCount = Number.isFinite(data.planetCount)
+    ? Math.floor(data.planetCount)
+    : 0;
+  const accentColor = [
+    "purple",
+    "blue",
+    "teal",
+    "green",
+    "orange",
+    "pink",
+    "red",
+    "indigo",
+  ].includes(data.accentColor)
+    ? data.accentColor
+    : "purple";
+  return {
+    schemaVersion: 1,
+    userId,
+    username: username || fallbackNudgeId,
+    myNudgeId: myNudgeId || fallbackNudgeId,
+    nickname: String(data.nickname || "自律使用者").trim().slice(0, 40) || "自律使用者",
+    signature: String(data.signature || "").trim().slice(0, 160),
+    avatarProfile: buildWebPublicAvatarProfile(data.avatarProfile),
+    accentColor,
+    planetCount: Math.max(0, rawPlanetCount),
+    familyRole,
+    profileTitleBadgeKey: String(data.profileTitleBadgeKey || "").slice(0, 80),
+    unlockedBadgeDates:
+      data.unlockedBadgeDates &&
+      typeof data.unlockedBadgeDates === "object" &&
+      !Array.isArray(data.unlockedBadgeDates)
+        ? data.unlockedBadgeDates
+        : {},
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+async function syncWebPublicProfile(userId, data) {
+  if (!db || !userId) return;
+  await db.collection("public_profiles")
+    .doc(userId)
+    .set(buildWebPublicProfile(userId, data));
+}
+
 function listenToUser(userId) {
   if (!db) return;
   listenToRequests(userId);
@@ -4852,14 +5120,14 @@ function listenToUser(userId) {
     
     if (viewUserId && viewUserId !== userId) {
       // Load friend profile by UID
-      db.collection("users").doc(viewUserId).get().then(snap => {
+      db.collection("public_profiles").doc(viewUserId).get().then(snap => {
         if (snap.exists) {
           try { renderWebProfilePage(snap.data(), true, viewUserId); } catch(e) { console.error("Friend profile render error:", e); }
         }
       });
     } else if (viewNudgeId) {
       // Load friend profile by Nudge ID
-      db.collection("users").where("myNudgeId", "==", viewNudgeId.toUpperCase()).limit(1).get().then(snap => {
+      db.collection("public_profiles").where("myNudgeId", "==", viewNudgeId.toUpperCase()).limit(1).get().then(snap => {
         if (!snap.empty) {
           const friendDoc = snap.docs[0];
           try { renderWebProfilePage(friendDoc.data(), true, friendDoc.id); } catch(e) { console.error("Friend profile render error:", e); }
@@ -4897,6 +5165,9 @@ function listenToUser(userId) {
     }
     const data = docSnap.data();
     currentWebUserData = data;
+    syncWebPublicProfile(userId, data).catch(error => {
+      console.warn("Public profile sync skipped:", error);
+    });
 
     migrateLegacyWebGroup(userId, data).catch(error => {
       console.warn("Legacy group migration skipped:", error);
@@ -5698,7 +5969,7 @@ function renderWebProfilePage(data, isFriend, friendUid) {
         'red': '#EF4444',
         'indigo': '#6366F1'
       };
-      accentColor = colorMap[data.accentColor] || data.accentColor;
+      accentColor = colorMap[data.accentColor] || colorMap.purple;
     }
   }
 
@@ -5864,15 +6135,7 @@ function renderWebProfilePage(data, isFriend, friendUid) {
     if (editBtn) editBtn.style.display = "none";
     if (saveBtn) saveBtn.style.display = "none";
     if (cancelBtn) cancelBtn.style.display = "none";
-    if (likeBtn) {
-      likeBtn.style.display = "inline-flex";
-      likeBtn.onclick = function() {
-        this.textContent = "✅ 已按讚";
-        this.disabled = true;
-        this.style.opacity = "0.6";
-        toast("👍 已給 " + (data.nickname || "這位使用者") + " 按讚！");
-      };
-    }
+    if (likeBtn) likeBtn.style.display = "none";
     if (createPostCard) createPostCard.style.display = "none";
     if (visitorBanner) {
       visitorBanner.style.display = "block";
@@ -6046,6 +6309,16 @@ function renderWebProfilePage(data, isFriend, friendUid) {
   // Dynamic Timeline Feed
   const feedContainer = document.getElementById("profileTimelineFeed");
   if (feedContainer) {
+    if (isFriend) {
+      feedContainer.innerHTML = `
+        <div class="fb-empty-feed" style="text-align:center;padding:40px 20px;color:var(--muted);">
+          <span class="icon" style="font-size:42px;display:block;margin-bottom:12px;">🔒</span>
+          <strong>私人自律動態不會公開讀取</strong>
+          <p>目前公開名片只顯示本人選定的基本資料；任務、睡眠、步數與動態仍留在私人帳號。</p>
+        </div>
+      `;
+      return;
+    }
     const dailySummaries = data.dailySummaries || [];
     const welcomePost = data.welcomePost || {};
     const customPosts = data.customPosts || [];

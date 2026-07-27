@@ -102,11 +102,127 @@
     };
   }
 
+  function buildMemberRemoval({
+    group,
+    managerId,
+    memberId,
+    now = new Date().toISOString(),
+  }) {
+    requireManager(group, managerId);
+    if (memberId === group.ownerId) {
+      throw new Error("團體管理者不可移除自己，請先轉移管理權");
+    }
+    if (!isGroupMember(group, memberId)) {
+      throw new Error("指定使用者不是目前團體成員");
+    }
+    return {
+      memberIds: group.memberIds.filter(id => id !== memberId),
+      lastMembershipChange: {
+        type: "member_removed",
+        memberId,
+        by: managerId,
+        at: now,
+      },
+      updatedAt: now,
+    };
+  }
+
+  function buildOwnershipTransfer({
+    group,
+    managerId,
+    nextManagerId,
+    now = new Date().toISOString(),
+  }) {
+    requireManager(group, managerId);
+    if (nextManagerId === managerId) {
+      throw new Error("指定成員已經是團體管理者");
+    }
+    if (!isGroupMember(group, nextManagerId)) {
+      throw new Error("管理權只能轉移給目前團體成員");
+    }
+    return {
+      ownerId: nextManagerId,
+      lastMembershipChange: {
+        type: "ownership_transferred",
+        fromMemberId: managerId,
+        toMemberId: nextManagerId,
+        by: managerId,
+        at: now,
+      },
+      updatedAt: now,
+    };
+  }
+
+  function buildGroupResultSummary({
+    group,
+    memberId,
+    displayName,
+    disciplineScore,
+    completedTasks,
+    totalTasks,
+    focusMinutes,
+    steps,
+    sleepHours,
+    now = new Date().toISOString(),
+  }) {
+    if (!isGroupMember(group, memberId)) {
+      throw new Error("只有目前團體成員可以分享成果摘要");
+    }
+    const normalizedDisplayName = requireText(
+      displayName,
+      "團體顯示名稱",
+    );
+    if (normalizedDisplayName.length > 40) {
+      throw new Error("團體顯示名稱不可超過 40 字");
+    }
+    const metrics = {
+      disciplineScore: Number(disciplineScore),
+      completedTasks: Number(completedTasks),
+      totalTasks: Number(totalTasks),
+      focusMinutes: Number(focusMinutes),
+      steps: Number(steps),
+      sleepHours: Number(sleepHours),
+    };
+    if (
+      !Number.isInteger(metrics.disciplineScore) ||
+      !Number.isInteger(metrics.completedTasks) ||
+      !Number.isInteger(metrics.totalTasks) ||
+      !Number.isInteger(metrics.focusMinutes) ||
+      !Number.isInteger(metrics.steps) ||
+      metrics.disciplineScore < 0 ||
+      metrics.disciplineScore > 100 ||
+      metrics.completedTasks < 0 ||
+      metrics.totalTasks < metrics.completedTasks ||
+      metrics.totalTasks > 10000 ||
+      metrics.focusMinutes < 0 ||
+      metrics.focusMinutes > 1440 ||
+      metrics.steps < 0 ||
+      metrics.steps > 1000000 ||
+      !Number.isFinite(metrics.sleepHours) ||
+      metrics.sleepHours < 0 ||
+      metrics.sleepHours > 24
+    ) {
+      throw new Error("團體成果摘要包含無效數值");
+    }
+    return {
+      schemaVersion: 1,
+      groupId: group.id,
+      memberId,
+      displayName: normalizedDisplayName,
+      status: "shared",
+      summary: metrics,
+      updatedAt: now,
+    };
+  }
+
   return {
     isGroupMember,
     isGroupManager,
     buildGroupChallenge,
     buildGroupStudySchedule,
     buildGroupTemplate,
+    buildMemberRemoval,
+    buildOwnershipTransfer,
+    buildGroupResultSummary,
   };
 });

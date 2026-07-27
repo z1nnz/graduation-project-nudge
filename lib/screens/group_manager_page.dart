@@ -119,6 +119,72 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
     }
   }
 
+  Future<void> _removeMember(AppState appState, String memberId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('移除團體成員'),
+        content: Text('確定要移除 $memberId？對方的團體連結與成果摘要會同時撤除。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('確認移除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await appState.removeGroupMember(memberId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('成員已移除')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _transferOwnership(AppState appState, String memberId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('轉移團體管理權'),
+        content: Text('確定將管理權轉移給 $memberId？完成後你會成為一般成員。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('確認轉移'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await appState.transferGroupOwnership(memberId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('管理權已轉移')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -189,6 +255,73 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: AppUI.sectionGap),
+
+          Text(
+            '正式成員與分享狀態',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: primaryText,
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          Card(
+            shape: AppUI.cardShape(),
+            child: Column(
+              children: appState.canonicalGroup!.memberIds
+                  .map((memberId) {
+                    final isOwner =
+                        memberId == appState.canonicalGroup!.ownerId;
+                    final summaries = appState.groupMemberSummaries.where(
+                      (summary) => summary.memberId == memberId,
+                    );
+                    final summary = summaries.isEmpty ? null : summaries.first;
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: accentColor.withValues(alpha: 0.15),
+                        child: Icon(
+                          isOwner
+                              ? Icons.admin_panel_settings
+                              : Icons.person_outline,
+                          color: accentColor,
+                        ),
+                      ),
+                      title: Text(
+                        summary?.displayName ?? memberId,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                  subtitle: Text(
+                    isOwner
+                        ? '團體管理者・${summary == null ? "未分享成果" : "已同意成果摘要・${summary.disciplineScore} 分"}'
+                        : '團體成員・${summary == null ? "未分享成果" : "已同意成果摘要・${summary.disciplineScore} 分"}',
+                      ),
+                      trailing: isOwner
+                          ? const Chip(label: Text('管理者'))
+                          : PopupMenuButton<String>(
+                              onSelected: (action) {
+                                if (action == 'transfer') {
+                                  _transferOwnership(appState, memberId);
+                                } else if (action == 'remove') {
+                                  _removeMember(appState, memberId);
+                                }
+                              },
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: 'transfer',
+                                  child: Text('轉移管理權'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'remove',
+                                  child: Text('移除成員'),
+                                ),
+                              ],
+                            ),
+                    );
+                  })
+                  .toList(growable: false),
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
