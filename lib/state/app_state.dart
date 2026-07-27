@@ -120,6 +120,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _groupTemplateSubscription;
   StreamSubscription? _groupMemberSummariesSubscription;
   String? _listeningGroupId;
+  String? _projectedGroupId;
   final Set<String> _checkedLegacyGroupIds = {};
   Timer? _dailyResetTimer;
   Timer? _familySummaryPublishTimer;
@@ -219,11 +220,7 @@ class AppState extends ChangeNotifier {
                   (k, v) => MapEntry(k.toString(), (v as num).toInt()),
                 );
               }
-              if (data['avatarProfile'] != null) {
-                _avatarProfile = AvatarProfile.fromJson(
-                  Map<String, dynamic>.from(data['avatarProfile'] as Map),
-                );
-              }
+              _applyAvatarExperienceData(data);
               if (data['unlockedAvatarItems'] != null) {
                 _unlockedAvatarItemKeys = Set<String>.from(
                   List<String>.from(data['unlockedAvatarItems']),
@@ -768,43 +765,48 @@ class AppState extends ChangeNotifier {
   }
 
   void _setupCanonicalGroupListener(String userId, String? groupId) {
-    if (groupId == null || groupId.isEmpty) {
-      _groupSubscription?.cancel();
-      _groupSubscription = null;
-      _clearGroupPublicationListeners();
-      _canonicalGroup = null;
-      _listeningGroupId = null;
-      return;
-    }
-    if (_listeningGroupId == groupId && _groupSubscription != null) return;
+    final normalizedGroupId = groupId?.trim();
+    _projectedGroupId = normalizedGroupId == null || normalizedGroupId.isEmpty
+        ? null
+        : normalizedGroupId;
+    if (_groupSubscription != null) return;
 
-    _groupSubscription?.cancel();
     _clearGroupPublicationListeners();
     _canonicalGroup = null;
-    _listeningGroupId = groupId;
+    _listeningGroupId = null;
     _groupSubscription = FirebaseFirestore.instance
         .collection('groups')
-        .doc(groupId)
+        .where('memberIds', arrayContains: userId)
         .snapshots()
         .listen(
           (snapshot) {
-            if (!snapshot.exists) {
+            final activeGroups = snapshot.docs
+                .map((doc) => GroupContract.fromMap(doc.id, doc.data()))
+                .where((group) => group.isMember(userId))
+                .toList(growable: false);
+            if (activeGroups.isEmpty) {
               _canonicalGroup = null;
+              _listeningGroupId = null;
               _clearGroupPublicationListeners();
               notifyListeners();
               return;
             }
-            final group = GroupContract.fromMap(snapshot.id, snapshot.data()!);
-            if (!group.isMember(userId)) {
-              _canonicalGroup = null;
+
+            final projectedGroupId = _projectedGroupId;
+            final group = projectedGroupId == null
+                ? activeGroups.first
+                : activeGroups.firstWhere(
+                    (candidate) => candidate.id == projectedGroupId,
+                    orElse: () => activeGroups.first,
+                  );
+            if (_listeningGroupId != group.id) {
               _clearGroupPublicationListeners();
-              notifyListeners();
-              return;
+              _listeningGroupId = group.id;
+              _setupGroupPublicationListeners(group.id);
             }
             _canonicalGroup = group;
             _groupName = group.name;
             _isGroupOwner = group.isManager(userId);
-            _setupGroupPublicationListeners(group.id);
             notifyListeners();
           },
           onError: (error) {
@@ -1023,6 +1025,7 @@ class AppState extends ChangeNotifier {
     _groupSubscription = null;
     _canonicalGroup = null;
     _listeningGroupId = null;
+    _projectedGroupId = null;
     _discoverableStudyRooms = [];
     _roomActivitySessions.clear();
     _roomActiveSessionIds.clear();
@@ -1240,6 +1243,10 @@ class AppState extends ChangeNotifier {
         'focusSeconds':
             _focusSeconds, // ← synced for web dashboard real-time stats
         'avatarProfile': _avatarProfile.toJson(),
+        'avatarExperienceLedger': _avatarExperienceLedger,
+        'avatarExperience': avatarExperience,
+        'avatarLevel': avatarLevel,
+        'avatarSeries': currentAvatarSeries,
         'unlockedAvatarItems': _unlockedAvatarItemKeys.toList(),
         'tasks': _tasks,
         'dailySummaries': _dailySummaries.map((s) => s.toJson()).toList(),
@@ -1298,11 +1305,7 @@ class AppState extends ChangeNotifier {
             (k, v) => MapEntry(k.toString(), (v as num).toInt()),
           );
         }
-        if (data['avatarProfile'] != null) {
-          _avatarProfile = AvatarProfile.fromJson(
-            Map<String, dynamic>.from(data['avatarProfile']),
-          );
-        }
+        _applyAvatarExperienceData(data);
         if (data['unlockedAvatarItems'] != null) {
           _unlockedAvatarItemKeys = Set<String>.from(
             List<String>.from(data['unlockedAvatarItems']),
@@ -1366,6 +1369,7 @@ class AppState extends ChangeNotifier {
         await _saveAppearanceSettings();
         await _saveTasks();
         await _saveDailySummaries();
+        await _saveAvatarExperienceLedger();
         await _saveAvatarUnlockState();
         await _saveRewardState();
       }
@@ -1621,6 +1625,8 @@ class AppState extends ChangeNotifier {
         isGroupOwner: isGroupOwner,
         hasGroup: hasActiveGroupMembership,
         isGuardianLinked: isGuardianLinked,
+        isFamilyGuardian: isCurrentFamilyGuardian,
+        isFamilyChild: isCurrentFamilyChild,
       );
 
   Map<String, dynamic>? get guardianInvite {
@@ -3627,19 +3633,39 @@ class AppState extends ChangeNotifier {
     }
 
     try {
-      final decoded = jsonDecode(raw) as Map;
-      _avatarExperienceLedger = decoded.map((date, value) {
-        final rawSeries = value is Map ? value : const <String, dynamic>{};
-        final seriesMap = rawSeries.map(
-          (series, experience) =>
-              MapEntry(series.toString(), (experience as num?)?.round() ?? 0),
-        )..removeWhere((_, experience) => experience <= 0);
-        return MapEntry(date.toString(), seriesMap);
-      })..removeWhere((_, seriesMap) => seriesMap.isEmpty);
+      _avatarExperienceLedger = _parseAvatarExperienceLedger(raw);
     } catch (_) {
       _avatarExperienceLedger = <String, Map<String, int>>{};
       _migrateLegacyAvatarExperienceLedger();
       await _saveAvatarExperienceLedger();
+    }
+  }
+
+  Map<String, Map<String, int>> _parseAvatarExperienceLedger(Object raw) {
+    final decoded = raw is String ? jsonDecode(raw) : raw;
+    if (decoded is! Map) {
+      throw const FormatException('Invalid avatar experience ledger');
+    }
+    return decoded.map((date, value) {
+      final rawSeries = value is Map ? value : const <String, dynamic>{};
+      final seriesMap = rawSeries.map(
+        (series, experience) =>
+            MapEntry(series.toString(), (experience as num?)?.round() ?? 0),
+      )..removeWhere((_, experience) => experience <= 0);
+      return MapEntry(date.toString(), seriesMap);
+    })..removeWhere((_, seriesMap) => seriesMap.isEmpty);
+  }
+
+  void _applyAvatarExperienceData(Map<String, dynamic> data) {
+    final profile = data['avatarProfile'];
+    if (profile is Map) {
+      _avatarProfile = AvatarProfile.fromJson(
+        Map<String, dynamic>.from(profile),
+      );
+    }
+    final ledger = data['avatarExperienceLedger'];
+    if (ledger != null) {
+      _avatarExperienceLedger = _parseAvatarExperienceLedger(ledger);
     }
   }
 

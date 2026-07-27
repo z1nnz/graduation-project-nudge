@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const {
   resolveRelationshipCapabilities,
@@ -42,6 +44,7 @@ test("group manager and member receive different management capabilities", () =>
   assert.equal(member.role, "groupMember");
   assert.equal(member.canManageGroup, false);
   assert.equal(member.canParticipateInGroup, true);
+  assert.equal(member.showsPersonalTools, true);
   assert.equal(member.groupSurfaceTitle, "團體任務與共同進度");
 });
 
@@ -104,4 +107,117 @@ test("group management pages require a manager capability", () => {
     }),
     null,
   );
+});
+
+test("canonical family identity overrides a stale profile role", () => {
+  const guardian = resolveRelationshipCapabilities({
+    rawRole: "personal",
+    familyLinked: true,
+    isFamilyGuardian: true,
+    isFamilyChild: false,
+  });
+  const child = resolveRelationshipCapabilities({
+    rawRole: "guardian",
+    familyLinked: true,
+    isFamilyGuardian: false,
+    isFamilyChild: true,
+  });
+
+  assert.equal(guardian.role, "guardian");
+  assert.equal(guardian.canViewGuardianHub, true);
+  assert.equal(child.role, "child");
+  assert.equal(child.canManageOwnFamilyLink, true);
+  assert.equal(child.canViewGuardianHub, false);
+});
+
+test("family and canonical group capabilities can coexist", () => {
+  const childMember = resolveRelationshipCapabilities({
+    rawRole: "child",
+    familyLinked: true,
+    isFamilyChild: true,
+    hasGroup: true,
+    isGroupOwner: false,
+  });
+  const personalManager = resolveRelationshipCapabilities({
+    rawRole: "personal",
+    hasGroup: true,
+    isGroupOwner: true,
+  });
+
+  assert.equal(childMember.isChild, true);
+  assert.equal(childMember.canManageOwnFamilyLink, true);
+  assert.equal(childMember.canParticipateInGroup, true);
+  assert.equal(childMember.canManageGroup, false);
+
+  assert.equal(personalManager.role, "groupManager");
+  assert.equal(personalManager.canManageGroup, true);
+  assert.equal(personalManager.showsPersonalTools, true);
+});
+
+test("App surfaces composable relationship tools and separates growth tracks", () => {
+  const projectRoot = path.resolve(__dirname, "..");
+  const homePage = fs.readFileSync(
+    path.join(projectRoot, "lib/screens/home_page.dart"),
+    "utf8",
+  );
+  const characterPage = fs.readFileSync(
+    path.join(projectRoot, "lib/screens/character_page.dart"),
+    "utf8",
+  );
+  const appState = fs.readFileSync(
+    path.join(projectRoot, "lib/state/app_state.dart"),
+    "utf8",
+  );
+  const webApp = fs.readFileSync(
+    path.join(projectRoot, "web_dashboard/assets/app.js"),
+    "utf8",
+  );
+  const webProfile = fs.readFileSync(
+    path.join(projectRoot, "web_dashboard/profile.html"),
+    "utf8",
+  );
+  const quickActions = homePage.slice(
+    homePage.indexOf("// Filter quick action cards based on active role"),
+    homePage.indexOf("return GridView.count"),
+  );
+
+  assert.match(quickActions, /if \(capabilities\.canParticipateInGroup\)/);
+  assert.doesNotMatch(
+    quickActions,
+    /else if \(capabilities\.isGroupExperience\)/,
+  );
+  assert.match(characterPage, /個人角色進化/);
+  assert.match(characterPage, /家庭羈絆/);
+  assert.match(characterPage, /團體貢獻/);
+  assert.match(characterPage, /不會直接增加角色 EXP/);
+  assert.match(webApp, /updateNavigationRecommendation\(capabilities\)/);
+  assert.doesNotMatch(
+    webApp,
+    /updateNavigationRecommendation\(userRole\)/,
+  );
+  assert.match(webApp, /團體成員身分/);
+  assert.match(
+    webApp,
+    /function buildRelationshipCapabilityInput\(data = \{\}\)/,
+  );
+  assert.equal(
+    (webApp.match(/buildRelationshipCapabilityInput\(data\)/g) || []).length,
+    2,
+  );
+  assert.match(
+    appState,
+    /\.where\(\s*'memberIds',\s*arrayContains: userId\s*\)/,
+  );
+  assert.match(
+    webApp,
+    /\.where\("memberIds", "array-contains", userId\)/,
+  );
+  assert.match(
+    appState,
+    /'avatarExperienceLedger': _avatarExperienceLedger/,
+  );
+  assert.match(webProfile, /id="profileGrowthTracks"/);
+  assert.match(webProfile, /個人角色進化/);
+  assert.match(webProfile, /家庭羈絆/);
+  assert.match(webProfile, /團體貢獻/);
 });

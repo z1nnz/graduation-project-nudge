@@ -71,7 +71,165 @@ class CharacterPage extends StatelessWidget {
                 _open(context, const AvatarExperiencePage()),
             onOpenShop: () => _open(context, const AvatarShopPage()),
           ),
+          const SizedBox(height: AppUI.sectionGap),
+          _GrowthRelationshipPanel(
+            appState: appState,
+            accentColor: accentColor,
+          ),
           const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+class _GrowthRelationshipPanel extends StatelessWidget {
+  final AppState appState;
+  final Color accentColor;
+
+  const _GrowthRelationshipPanel({
+    required this.appState,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+    final capabilities = appState.experienceCapabilities;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppUI.isDark(context)
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '成長關係',
+            style: TextStyle(
+              color: primaryText,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '角色、家庭與團體各自成長，避免他人代替你升級。',
+            style: TextStyle(
+              color: secondaryText,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _GrowthTrackRow(
+            icon: Icons.auto_awesome_rounded,
+            title: '個人角色進化',
+            value:
+                'Lv.${appState.avatarLevel} · ${appState.avatarExperience} EXP',
+            description: '只有本人完成並通過驗證的自律行動，才會推進角色等級與進化路線。',
+            color: accentColor,
+          ),
+          if (appState.isGuardianLinked) ...[
+            const SizedBox(height: 10),
+            _GrowthTrackRow(
+              icon: Icons.family_restroom_rounded,
+              title: '家庭羈絆',
+              value:
+                  '${capabilities.isGuardian ? '家長' : '孩子'} · 羈絆 Lv.${appState.familyBondLevel} · ${appState.familyBondXp} XP',
+              description: '陪伴回應與共同目標累積羈絆，不會直接增加角色 EXP。',
+              color: const Color(0xFFEC4899),
+            ),
+          ],
+          if (appState.hasActiveGroupMembership) ...[
+            const SizedBox(height: 10),
+            _GrowthTrackRow(
+              icon: capabilities.canManageGroup
+                  ? Icons.admin_panel_settings_rounded
+                  : Icons.groups_2_rounded,
+              title: '團體貢獻',
+              value:
+                  '${capabilities.canManageGroup ? '管理者' : '成員'} · ${appState.isGroupResultSharingEnabled ? '成果分享中' : '成果未分享'}',
+              description: '共同進度與團體貢獻分開計算，不會直接增加角色 EXP。',
+              color: const Color(0xFF3B82F6),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GrowthTrackRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String description;
+  final Color color;
+
+  const _GrowthTrackRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.description,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = AppUI.textPrimaryOf(context);
+    final secondaryText = AppUI.textSecondaryOf(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: AppUI.softCardOf(context, color),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: primaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: secondaryText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

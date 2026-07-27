@@ -5,11 +5,21 @@ class ExperienceCapabilities {
     required this.role,
     required this.isFamilyLinked,
     required this.hasGroup,
+    required this.isGuardian,
+    required this.isChild,
+    required this.isGroupOwner,
+    required this.hasDeclaredFamilyRole,
+    required this.hasDeclaredGroupRole,
   });
 
   final ExperienceRole role;
   final bool isFamilyLinked;
   final bool hasGroup;
+  final bool isGuardian;
+  final bool isChild;
+  final bool isGroupOwner;
+  final bool hasDeclaredFamilyRole;
+  final bool hasDeclaredGroupRole;
 
   static const Set<String> _groupRoles = {
     'group',
@@ -23,15 +33,28 @@ class ExperienceCapabilities {
     required bool isGroupOwner,
     required bool hasGroup,
     required bool isGuardianLinked,
+    bool isFamilyGuardian = false,
+    bool isFamilyChild = false,
   }) {
     final normalizedRole = rawRole.trim().toLowerCase();
+    final hasDeclaredFamilyRole =
+        normalizedRole == 'guardian' || normalizedRole == 'child';
+    final hasDeclaredGroupRole = _groupRoles.contains(normalizedRole);
+    final hasCanonicalFamilyRole =
+        isGuardianLinked && (isFamilyGuardian || isFamilyChild);
+    final effectiveGuardian = hasCanonicalFamilyRole
+        ? isFamilyGuardian
+        : normalizedRole == 'guardian';
+    final effectiveChild = hasCanonicalFamilyRole
+        ? isFamilyChild
+        : normalizedRole == 'child';
     final ExperienceRole role;
 
-    if (normalizedRole == 'guardian') {
+    if (effectiveGuardian) {
       role = ExperienceRole.guardian;
-    } else if (normalizedRole == 'child') {
+    } else if (effectiveChild) {
       role = ExperienceRole.child;
-    } else if (_groupRoles.contains(normalizedRole)) {
+    } else if (hasGroup || hasDeclaredGroupRole) {
       role = isGroupOwner
           ? ExperienceRole.groupManager
           : ExperienceRole.groupMember;
@@ -43,24 +66,25 @@ class ExperienceCapabilities {
       role: role,
       isFamilyLinked: isGuardianLinked,
       hasGroup: hasGroup,
+      isGuardian: effectiveGuardian,
+      isChild: effectiveChild,
+      isGroupOwner: hasGroup && isGroupOwner,
+      hasDeclaredFamilyRole: hasDeclaredFamilyRole,
+      hasDeclaredGroupRole: hasDeclaredGroupRole,
     );
   }
 
-  bool get isGuardian => role == ExperienceRole.guardian;
-  bool get isChild => role == ExperienceRole.child;
-  bool get isGroupExperience =>
-      role == ExperienceRole.groupMember || role == ExperienceRole.groupManager;
+  bool get isGroupExperience => hasGroup || hasDeclaredGroupRole;
 
-  bool get requiresFamilyBinding => (isGuardian || isChild) && !isFamilyLinked;
-  bool get requiresGroupBinding => isGroupExperience && !hasGroup;
+  bool get requiresFamilyBinding => hasDeclaredFamilyRole && !isFamilyLinked;
+  bool get requiresGroupBinding => hasDeclaredGroupRole && !hasGroup;
 
   bool get canSendFamilyEncouragement => isGuardian && isFamilyLinked;
   bool get canViewConsentedChildInsights => isGuardian && isFamilyLinked;
-  bool get canManageOwnFamilyLink => isChild;
-  bool get canManageGroup => role == ExperienceRole.groupManager && hasGroup;
-  bool get canParticipateInGroup => isGroupExperience && hasGroup;
-  bool get showsPersonalTools =>
-      role == ExperienceRole.personal || role == ExperienceRole.child;
+  bool get canManageOwnFamilyLink => isChild && isFamilyLinked;
+  bool get canManageGroup => isGroupOwner;
+  bool get canParticipateInGroup => hasGroup;
+  bool get showsPersonalTools => !isGuardian;
 
   String get homeTitle {
     switch (role) {

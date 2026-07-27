@@ -53,6 +53,7 @@ void main() {
       expect(member.groupSurfaceTitle, '團體任務與共同進度');
       expect(member.canManageGroup, isFalse);
       expect(member.canParticipateInGroup, isTrue);
+      expect(member.showsPersonalTools, isTrue);
     });
 
     test('recognizes every supported organization role as a group role', () {
@@ -71,6 +72,57 @@ void main() {
         );
         expect(capabilities.requiresGroupBinding, isTrue);
       }
+    });
+
+    test('canonical family identity overrides a stale profile role', () {
+      final guardian = ExperienceCapabilities.resolve(
+        rawRole: 'personal',
+        isGroupOwner: false,
+        hasGroup: false,
+        isGuardianLinked: true,
+        isFamilyGuardian: true,
+        isFamilyChild: false,
+      );
+      final child = ExperienceCapabilities.resolve(
+        rawRole: 'guardian',
+        isGroupOwner: false,
+        hasGroup: false,
+        isGuardianLinked: true,
+        isFamilyGuardian: false,
+        isFamilyChild: true,
+      );
+
+      expect(guardian.role, ExperienceRole.guardian);
+      expect(guardian.canSendFamilyEncouragement, isTrue);
+      expect(child.role, ExperienceRole.child);
+      expect(child.canManageOwnFamilyLink, isTrue);
+      expect(child.canSendFamilyEncouragement, isFalse);
+    });
+
+    test('family and canonical group capabilities can coexist', () {
+      final childMember = ExperienceCapabilities.resolve(
+        rawRole: 'child',
+        isGroupOwner: false,
+        hasGroup: true,
+        isGuardianLinked: true,
+        isFamilyGuardian: false,
+        isFamilyChild: true,
+      );
+      final personalManager = ExperienceCapabilities.resolve(
+        rawRole: 'personal',
+        isGroupOwner: true,
+        hasGroup: true,
+        isGuardianLinked: false,
+      );
+
+      expect(childMember.isChild, isTrue);
+      expect(childMember.canManageOwnFamilyLink, isTrue);
+      expect(childMember.canParticipateInGroup, isTrue);
+      expect(childMember.canManageGroup, isFalse);
+
+      expect(personalManager.role, ExperienceRole.groupManager);
+      expect(personalManager.canManageGroup, isTrue);
+      expect(personalManager.showsPersonalTools, isTrue);
     });
   });
 }

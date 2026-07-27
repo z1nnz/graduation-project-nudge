@@ -78,6 +78,38 @@ function buildPreviewProfile() {
   };
 }
 
+function buildRelationshipCapabilityInput(data = {}) {
+  const preview = isPreviewMode();
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const canonicalMember =
+    !preview &&
+    groupLoaded &&
+    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId);
+  const canonicalManager =
+    canonicalMember &&
+    window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId);
+
+  return {
+    rawRole: data.userRole,
+    familyLinked:
+      Boolean(activeFamilyLink) ||
+      (preview && ["guardian", "child"].includes(data.userRole)),
+    hasGroup: preview ? Boolean(data.groupId) : Boolean(canonicalMember),
+    isGroupOwner: preview
+      ? Boolean(data.isGroupOwner)
+      : Boolean(canonicalManager),
+    isFamilyGuardian: preview
+      ? data.userRole === "guardian"
+      : activeFamilyLink?.guardianId === userId,
+    isFamilyChild: preview
+      ? data.userRole === "child"
+      : activeFamilyLink?.childId === userId,
+    isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
+    isPreview: preview,
+  };
+}
+
 function resolveWebCapabilities(data = {}) {
   const resolver =
     window.NudgeRelationshipCapabilities?.resolveRelationshipCapabilities;
@@ -85,28 +117,7 @@ function resolveWebCapabilities(data = {}) {
     throw new Error("角色能力模組尚未就緒");
   }
 
-  const userId =
-    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
-  const canonicalMember =
-    !isPreviewMode() &&
-    groupLoaded &&
-    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId);
-  const canonicalManager =
-    canonicalMember &&
-    window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId);
-
-  return resolver({
-    rawRole: data.userRole,
-    familyLinked:
-      Boolean(activeFamilyLink) ||
-      (isPreviewMode() && ["guardian", "child"].includes(data.userRole)),
-    hasGroup: isPreviewMode() ? Boolean(data.groupId) : Boolean(canonicalMember),
-    isGroupOwner: isPreviewMode()
-      ? Boolean(data.isGroupOwner)
-      : Boolean(canonicalManager),
-    isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
-    isPreview: isPreviewMode(),
-  });
+  return resolver(buildRelationshipCapabilityInput(data));
 }
 
 function resolveWebRoleGateRedirect(path, data = {}) {
@@ -116,28 +127,7 @@ function resolveWebRoleGateRedirect(path, data = {}) {
     throw new Error("角色能力模組尚未就緒");
   }
 
-  const userId =
-    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
-  const canonicalMember =
-    !isPreviewMode() &&
-    groupLoaded &&
-    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId);
-  const canonicalManager =
-    canonicalMember &&
-    window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId);
-
-  return resolver(path, {
-    rawRole: data.userRole,
-    familyLinked:
-      Boolean(activeFamilyLink) ||
-      (isPreviewMode() && ["guardian", "child"].includes(data.userRole)),
-    hasGroup: isPreviewMode() ? Boolean(data.groupId) : Boolean(canonicalMember),
-    isGroupOwner: isPreviewMode()
-      ? Boolean(data.isGroupOwner)
-      : Boolean(canonicalManager),
-    isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
-    isPreview: isPreviewMode(),
-  });
+  return resolver(path, buildRelationshipCapabilityInput(data));
 }
 
 function escapeHtml(value) {
@@ -2795,6 +2785,7 @@ function refreshCanonicalGroupUi() {
   }
   if (currentWebUserData) {
     updateSidebarProfile(effectiveWebGroupProfile());
+    renderWebGrowthTracks(currentWebUserData, false);
   }
   renderCanonicalGroupOverview();
   renderCanonicalWebGroupMembers();
@@ -2939,40 +2930,50 @@ function listenToGroupPublications(groupId) {
 function listenToCanonicalWebGroup(userId, projectedGroupId) {
   if (!db) return;
   const nextGroupId = projectedGroupId || null;
+  const listenerKey = `${userId}:${nextGroupId || ""}`;
   if (
-    listeningWebGroupId === nextGroupId &&
-    (groupDocSub || (nextGroupId === null && groupLoaded))
+    listeningWebGroupId === listenerKey &&
+    groupDocSub
   ) {
     return;
   }
-  listeningWebGroupId = nextGroupId;
+  listeningWebGroupId = listenerKey;
   if (groupDocSub) groupDocSub();
   stopGroupPublicationListeners();
   activeWebGroup = null;
   groupLoaded = false;
   clearCanonicalGroupPublications();
 
-  if (!nextGroupId) {
-    groupLoaded = true;
-    refreshCanonicalGroupUi();
-    return;
-  }
-
-  groupDocSub = db.collection("groups").doc(nextGroupId).onSnapshot(
+  groupDocSub = db
+    .collection("groups")
+    .where("memberIds", "array-contains", userId)
+    .onSnapshot(
     snapshot => {
       groupLoaded = true;
-      const group = snapshot.exists
-        ? { id: snapshot.id, ...snapshot.data() }
-        : null;
-      if (!window.NudgeGroupContract?.isGroupMember(group, userId)) {
+      const activeGroups = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(group =>
+          window.NudgeGroupContract?.isGroupMember(group, userId),
+        );
+      if (activeGroups.length === 0) {
         activeWebGroup = null;
         stopGroupPublicationListeners();
         clearCanonicalGroupPublications();
         refreshCanonicalGroupUi();
         return;
       }
+      const group =
+        activeGroups.find(candidate => candidate.id === nextGroupId) ||
+        activeGroups[0];
+      const groupChanged = activeWebGroup?.id !== group.id;
+      if (groupChanged) {
+        stopGroupPublicationListeners();
+        clearCanonicalGroupPublications();
+      }
       activeWebGroup = group;
-      listenToGroupPublications(group.id);
+      if (groupChanged) {
+        listenToGroupPublications(group.id);
+      }
       refreshCanonicalGroupUi();
     },
     error => {
@@ -3003,6 +3004,9 @@ function renderFamilyLinkState() {
       consent.healthTrends && "健康趨勢",
     ].filter(Boolean);
     summary.textContent = labels.length ? labels.join("、") : "尚未開放";
+  }
+  if (currentWebUserData) {
+    renderWebGrowthTracks(currentWebUserData, false);
   }
 }
 
@@ -3267,10 +3271,10 @@ function updateRoleAwareNavigation(data) {
 
   const guardianLink = nav.querySelector('a[href*="guardian"]');
   if (guardianLink) {
-    if (capabilities.role === "guardian") {
+    if (capabilities.isGuardian) {
       guardianLink.href = "guardian.html";
       guardianLink.textContent = "家長陪伴中心";
-    } else if (capabilities.role === "child") {
+    } else if (capabilities.isChild) {
       guardianLink.href = "guardian-link.html";
       guardianLink.textContent = "家庭連結與隱私";
     } else {
@@ -3281,10 +3285,10 @@ function updateRoleAwareNavigation(data) {
 
   const groupLink = nav.querySelector('a[href*="groups"]');
   if (groupLink) {
-    if (capabilities.role === "groupManager") {
+    if (capabilities.canManageGroup) {
       groupLink.href = "groups.html";
       groupLink.textContent = "團體管理控制台";
-    } else if (capabilities.role === "groupMember") {
+    } else if (capabilities.canParticipateInGroup) {
       groupLink.href = "groups.html";
       groupLink.textContent = "團體任務與進度";
     } else {
@@ -3433,7 +3437,7 @@ function checkPagePermissions(data) {
   }
 
   // 1. 導覽列發光推薦與引導橫幅
-  updateNavigationRecommendation(userRole);
+  updateNavigationRecommendation(capabilities);
   applyRoleSpecificCopy(data, capabilities);
 
   // 2. 移除舊的防護遮罩
@@ -3472,7 +3476,7 @@ function checkPagePermissions(data) {
       subnav.insertAdjacentHTML("beforeend", `<a id="guardianLinkTab" href="guardian-link.html" class="${isGuardianLinkPage ? 'active' : ''}">連結親屬</a>`);
     }
 
-    if (capabilities.role === "child" && isGuardianLinkPage) {
+    if (capabilities.isChild && isGuardianLinkPage) {
       document.querySelectorAll(".subnav a").forEach((link) => {
         link.hidden = !link.getAttribute("href")?.includes("guardian-link");
       });
@@ -3649,7 +3653,7 @@ function checkPagePermissions(data) {
   }
 }
 
-function updateNavigationRecommendation(userRole) {
+function updateNavigationRecommendation(capabilities) {
   // 清除舊的發光
   document.querySelectorAll(".nav a").forEach(a => a.classList.remove("recommend-glow"));
 
@@ -3662,7 +3666,7 @@ function updateNavigationRecommendation(userRole) {
     oldBanner.remove();
   }
 
-  if (userRole === "guardian") {
+  if (capabilities.isGuardian) {
     // 家長發光推薦
     document.querySelectorAll(".nav a").forEach(a => {
       if (a.getAttribute("href") === "guardian.html") {
@@ -3685,7 +3689,7 @@ function updateNavigationRecommendation(userRole) {
       `;
       main.insertAdjacentHTML("afterbegin", bannerHtml);
     }
-  } else if (["group", "enterprise", "tutor", "school"].includes(userRole)) {
+  } else if (capabilities.canManageGroup) {
     // 團體發光推薦
     document.querySelectorAll(".nav a").forEach(a => {
       if (a.getAttribute("href") === "groups.html") {
@@ -3704,6 +3708,27 @@ function updateNavigationRecommendation(userRole) {
             </div>
           </div>
           <button class="recommend-banner-btn" onclick="window.location.href='groups.html'">前往團體中心</button>
+        </div>
+      `;
+      main.insertAdjacentHTML("afterbegin", bannerHtml);
+    }
+  } else if (capabilities.canParticipateInGroup) {
+    document.querySelectorAll(".nav a").forEach(a => {
+      if (a.getAttribute("href") === "groups.html") {
+        a.classList.add("recommend-glow");
+      }
+    });
+    if (isHome && main) {
+      const bannerHtml = `
+        <div id="recommendBanner" class="recommend-banner">
+          <div class="recommend-banner-content">
+            <span class="recommend-banner-icon">🤝</span>
+            <div class="recommend-banner-text">
+              <strong>您目前是團體成員身分</strong>
+              <p>前往團體中心查看共同目標與同儕進度；每次活動仍由你依自己的時間開始與完成。</p>
+            </div>
+          </div>
+          <button class="recommend-banner-btn" onclick="window.location.href='groups.html'">查看團體進度</button>
         </div>
       `;
       main.insertAdjacentHTML("afterbegin", bannerHtml);
@@ -6516,6 +6541,46 @@ function showWebProfileEditModal(data) {
   overlay.classList.add("active");
 }
 
+function renderWebGrowthTracks(data = {}, isFriend = false) {
+  const personalValue = document.getElementById("profilePersonalGrowthValue");
+  const familyTrack = document.getElementById("profileFamilyGrowth");
+  const familyValue = document.getElementById("profileFamilyGrowthValue");
+  const groupTrack = document.getElementById("profileGroupGrowth");
+  const groupValue = document.getElementById("profileGroupGrowthValue");
+  if (!personalValue && !familyTrack && !groupTrack) return;
+
+  const avatarLevel = Number(data.avatarLevel);
+  const avatarExperience = Number(data.avatarExperience);
+  if (personalValue) {
+    personalValue.textContent =
+      Number.isFinite(avatarLevel) && Number.isFinite(avatarExperience)
+        ? `Lv.${avatarLevel} · ${avatarExperience} EXP`
+        : "等待 App 同步角色進度";
+  }
+
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const showFamily = !isFriend && Boolean(activeFamilyLink);
+  if (familyTrack) familyTrack.hidden = !showFamily;
+  if (showFamily && familyValue) {
+    familyValue.textContent =
+      activeFamilyLink.guardianId === userId
+        ? "家長 · 已建立家庭連結"
+        : "孩子 · 已建立家庭連結";
+  }
+
+  const showGroup =
+    !isFriend &&
+    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId) === true;
+  if (groupTrack) groupTrack.hidden = !showGroup;
+  if (showGroup && groupValue) {
+    const role = window.NudgeGroupContract.isGroupManager(activeWebGroup, userId)
+      ? "管理者"
+      : "成員";
+    groupValue.textContent = `${role} · ${activeWebGroup.name || "已加入團體"}`;
+  }
+}
+
 function renderWebProfilePage(data, isFriend, friendUid) {
   const nickname = data.nickname || "自律使用者";
   const signature = data.signature || "今天也在穩定前進";
@@ -6524,6 +6589,7 @@ function renderWebProfilePage(data, isFriend, friendUid) {
   const planets = typeof data.planetCount === 'number' ? data.planetCount : 0;
   const profileTitleBadgeKey = data.profileTitleBadgeKey || "";
   const unlockedBadgeDates = data.unlockedBadgeDates || {};
+  renderWebGrowthTracks(data, isFriend);
 
   let accentColor = "#7c6ae6";
   if (data.accentColor) {

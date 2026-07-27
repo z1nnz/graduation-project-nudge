@@ -267,6 +267,50 @@
         padding-bottom: 10px;
       }
 
+      .growth-track-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .growth-track {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 10px;
+        align-items: start;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      .growth-track-icon {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: rgba(124, 106, 230, 0.14);
+      }
+
+      .growth-track strong,
+      .growth-track span,
+      .growth-track small {
+        display: block;
+      }
+
+      .growth-track span {
+        margin-top: 2px;
+        color: var(--page-accent);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .growth-track small {
+        margin-top: 5px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
       .intro-list {
         display: flex;
         flex-direction: column;
@@ -719,6 +763,36 @@
                     <span>上線狀態: <strong id="profileOnlineStatus" style="color: #64748b;">離線</strong></span>
                   </li>
                 </ul>
+              </article>
+
+              <article class="fb-card" id="profileGrowthTracks">
+                <h3 class="fb-card-title">成長關係</h3>
+                <div class="growth-track-list">
+                  <div class="growth-track" id="profilePersonalGrowth">
+                    <div class="growth-track-icon">✨</div>
+                    <div>
+                      <strong>個人角色進化</strong>
+                      <span id="profilePersonalGrowthValue">讀取角色進度中...</span>
+                      <small>只有本人完成並通過驗證的自律行動，才會推進角色等級與進化。</small>
+                    </div>
+                  </div>
+                  <div class="growth-track" id="profileFamilyGrowth" hidden>
+                    <div class="growth-track-icon">👪</div>
+                    <div>
+                      <strong>家庭羈絆</strong>
+                      <span id="profileFamilyGrowthValue">已建立家庭連結</span>
+                      <small>陪伴與共同目標屬於家庭成果，不會直接增加角色 EXP。</small>
+                    </div>
+                  </div>
+                  <div class="growth-track" id="profileGroupGrowth" hidden>
+                    <div class="growth-track-icon">🤝</div>
+                    <div>
+                      <strong>團體貢獻</strong>
+                      <span id="profileGroupGrowthValue">已加入團體</span>
+                      <small>共同進度與團體成果分開計算，不會直接增加角色 EXP。</small>
+                    </div>
+                  </div>
+                </div>
               </article>
 
               <!-- Achievements badges grid card -->

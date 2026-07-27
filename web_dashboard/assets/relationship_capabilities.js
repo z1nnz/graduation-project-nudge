@@ -10,32 +10,45 @@
 
   function resolveRelationshipCapabilities(input = {}) {
     const rawRole = String(input.rawRole || "personal").trim().toLowerCase();
+    const familyLinked = Boolean(input.familyLinked);
+    const hasCanonicalFamilyRole =
+      familyLinked &&
+      (Boolean(input.isFamilyGuardian) || Boolean(input.isFamilyChild));
+    const isGuardian = hasCanonicalFamilyRole
+      ? Boolean(input.isFamilyGuardian)
+      : rawRole === "guardian";
+    const isChild = hasCanonicalFamilyRole
+      ? Boolean(input.isFamilyChild)
+      : rawRole === "child";
+    const hasDeclaredGroupRole = GROUP_ROLES.has(rawRole);
+    const hasGroup = Boolean(input.hasGroup);
+    const isGroupOwner = hasGroup && Boolean(input.isGroupOwner);
     let role = "personal";
 
-    if (rawRole === "guardian") {
+    if (isGuardian) {
       role = "guardian";
-    } else if (rawRole === "child") {
+    } else if (isChild) {
       role = "child";
-    } else if (GROUP_ROLES.has(rawRole)) {
+    } else if (hasGroup || hasDeclaredGroupRole) {
       role = input.isGroupOwner ? "groupManager" : "groupMember";
     }
 
-    const familyLinked = Boolean(input.familyLinked);
-    const hasGroup = Boolean(input.hasGroup);
     const isPreview = Boolean(input.isPreview);
-    const canManageGroup = role === "groupManager" && hasGroup;
+    const canManageGroup = isGroupOwner;
 
     return Object.freeze({
       role,
+      isGuardian,
+      isChild,
       isPreview,
       isAuthenticated: Boolean(input.isAuthenticated) && !isPreview,
       familyLinked,
       hasGroup,
-      canViewGuardianHub: role === "guardian" && familyLinked,
-      canManageOwnFamilyLink: role === "child",
+      canViewGuardianHub: isGuardian && familyLinked,
+      canManageOwnFamilyLink: isChild && familyLinked,
       canManageGroup,
-      canParticipateInGroup:
-        (role === "groupManager" || role === "groupMember") && hasGroup,
+      canParticipateInGroup: hasGroup,
+      showsPersonalTools: !isGuardian,
       groupSurfaceTitle: canManageGroup
         ? "團體管理控制台"
         : "團體任務與共同進度",

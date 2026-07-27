@@ -365,7 +365,8 @@ void main() {
   });
 
   test('score coin rewards respect weekly and monthly caps', () async {
-    final now = DateTime.now();
+    // AppState rolls its logical day over at 05:00, not at midnight.
+    final now = DateTime.now().subtract(const Duration(hours: 5));
     final today = DateTime(now.year, now.month, now.day);
     final weekStart = today.subtract(
       Duration(days: today.weekday - DateTime.monday),
@@ -384,6 +385,13 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'discipline_coins_setting': AppState.coinWeeklyLimit,
       'daily_coin_earned_setting': jsonEncode(dailyEarned),
+      'last_daily_reset_date': keyFor(today),
+      // Keep this cap test independent from default completed-task rewards
+      // that loadAllLocalData synchronizes during hydration.
+      'tasks': jsonEncode([]),
+      'rewarded_task_keys_setting': AppState.scoreCoinMilestones.keys
+          .map((threshold) => '${keyFor(today)}|score:$threshold')
+          .toList(),
     });
 
     final appState = AppState();

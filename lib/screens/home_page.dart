@@ -239,7 +239,30 @@ class HomePage extends StatelessWidget {
                           isDark: isDark,
                         ),
                       ]);
-                    } else if (capabilities.isGroupExperience) {
+                    }
+
+                    if (capabilities.canManageOwnFamilyLink) {
+                      actionCards.add(
+                        _QuickActionCard(
+                          icon: Icons.family_restroom_rounded,
+                          title: '家庭連結與隱私',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const GuardianCenterPage(),
+                              ),
+                            );
+                          },
+                          accentColor: accentColor,
+                          primaryText: primaryText,
+                          secondaryText: secondaryText,
+                          isDark: isDark,
+                        ),
+                      );
+                    }
+
+                    if (capabilities.canParticipateInGroup) {
                       actionCards.addAll([
                         _QuickActionCard(
                           icon: capabilities.canManageGroup
@@ -269,29 +292,11 @@ class HomePage extends StatelessWidget {
                           isDark: isDark,
                         ),
                       ]);
-                    } else {
-                      if (capabilities.canManageOwnFamilyLink) {
-                        actionCards.add(
-                          _QuickActionCard(
-                            icon: Icons.family_restroom_rounded,
-                            title: '家庭連結與隱私',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const GuardianCenterPage(),
-                                ),
-                              );
-                            },
-                            accentColor: accentColor,
-                            primaryText: primaryText,
-                            secondaryText: secondaryText,
-                            isDark: isDark,
-                          ),
-                        );
-                      }
+                    }
 
-                      // Personal self-discipline tools remain available to children.
+                    if (capabilities.showsPersonalTools) {
+                      // Group participation augments personal self-discipline;
+                      // it never replaces the member's own tools.
                       actionCards.addAll([
                         _QuickActionCard(
                           icon: Icons.analytics_outlined,
