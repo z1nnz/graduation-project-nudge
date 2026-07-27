@@ -99,7 +99,9 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _shopSubscription;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
+  StreamSubscription? _incomingGroupRequestsSubscription;
   StreamSubscription? _groupOwnerSubscription;
+  final Set<String> _checkedLegacyGroupIds = {};
   Timer? _dailyResetTimer;
 
   /// The current user's Firestore uid, falling back to 'local_user' when
@@ -136,6 +138,10 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _outgoingGuardianRequests = [];
   List<Map<String, dynamic>> get outgoingGuardianRequests =>
       _outgoingGuardianRequests;
+
+  List<Map<String, dynamic>> _incomingGroupRequests = [];
+  List<Map<String, dynamic>> get incomingGroupRequests =>
+      _incomingGroupRequests;
 
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
@@ -231,6 +237,17 @@ class AppState extends ChangeNotifier {
               _groupId = data['groupId'] as String?;
               _groupName = data['groupName'] as String?;
               _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
+              if (_isGroupOwner && _groupId != null && _groupName != null) {
+                unawaited(
+                  _migrateLegacyGroupProjection(
+                    user.uid,
+                    _groupId!,
+                    _groupName!,
+                  ),
+                );
+              } else if (_groupId != null) {
+                unawaited(_ensureCanonicalGroupMembership(user.uid, _groupId!));
+              }
               _profileTitleBadgeKey =
                   data['profileTitleBadgeKey'] as String? ?? '';
               if (data['backgroundTheme'] != null) {
@@ -356,22 +373,24 @@ class AppState extends ChangeNotifier {
                   return a.id.compareTo(b.id);
                 });
 
-          final dynamicStages = <AvatarEvolutionStage>[];
+          final publishedSeries = <PublishedAvatarSeries>[];
           var fallbackIndex = 18;
           for (final doc in docs) {
             final data = doc.data();
-            if (data['type'] != 'event_character') continue;
-            final parsedStages = _dynamicStagesFromShopItem(
-              doc.id,
-              data,
-              fallbackIndex,
+            final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
+              documentId: doc.id,
+              data: data,
+              fallbackIndex: fallbackIndex,
             );
-            if (parsedStages.isEmpty) continue;
-            dynamicStages.addAll(parsedStages);
+            if (parsedSeries == null) continue;
+            publishedSeries.add(parsedSeries);
             fallbackIndex =
-                parsedStages.map((stage) => stage.index).reduce(math.max) + 1;
+                parsedSeries.stages
+                    .map((stage) => stage.index)
+                    .reduce(math.max) +
+                1;
           }
-          AvatarCatalog.replaceDynamicStages(dynamicStages);
+          AvatarCatalog.replacePublishedSeries(publishedSeries);
           _normalizeAvatarProfileForCatalog();
           notifyListeners();
         });
@@ -425,6 +444,18 @@ class AppState extends ChangeNotifier {
           }
           notifyListeners();
         });
+
+    _incomingGroupRequestsSubscription = FirebaseFirestore.instance
+        .collection('group_requests')
+        .where('receiverId', isEqualTo: user.uid)
+        .snapshots()
+        .listen((snapshot) {
+          _incomingGroupRequests = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .where((request) => request['status'] == 'pending')
+              .toList(growable: false);
+          notifyListeners();
+        });
   }
 
   int _shopTimestampSeconds(dynamic value) {
@@ -435,6 +466,8 @@ class AppState extends ChangeNotifier {
   }
 
   bool _isActiveShopItem(Map<String, dynamic> data) {
+    final status = data['status'] as String? ?? 'published';
+    if (status != 'published') return false;
     final type = data['type'] as String? ?? 'permanent';
     final expiresAt = _shopTimestampSeconds(data['expires_at']);
     if (type == 'permanent' || expiresAt == 0) return true;
@@ -444,89 +477,6 @@ class AppState extends ChangeNotifier {
         ? expiresAt
         : _shopTimestampSeconds(data['end_time']);
     return startAt <= now && now <= endAt;
-  }
-
-  List<AvatarEvolutionStage> _dynamicStagesFromShopItem(
-    String documentId,
-    Map<String, dynamic> data,
-    int fallbackIndex,
-  ) {
-    final seriesName =
-        data['series_name'] as String? ?? data['name'] as String? ?? '活動限定角色';
-    final description = data['description'] as String? ?? 'Web 端上架的活動限時角色。';
-    final price = (data['price'] as num?)?.toInt() ?? 60;
-    final baseIndex = (data['catalog_index_base'] as num?)?.toInt();
-    final rawStages = data['character_stages'];
-
-    if (rawStages is List && rawStages.isNotEmpty) {
-      return rawStages
-          .asMap()
-          .entries
-          .map((entry) {
-            final stageData = Map<String, dynamic>.from(entry.value as Map);
-            final stageNumber =
-                (stageData['stage'] as num?)?.toInt() ?? entry.key + 1;
-            final defaultRequirement = _defaultDynamicStageRequirement(
-              stageNumber,
-            );
-            final characterAsset =
-                stageData['character_asset'] as String? ??
-                stageData['image_path'] as String? ??
-                data['image_path'] as String? ??
-                '';
-            final iconAsset =
-                stageData['icon_asset'] as String? ??
-                stageData['icon_path'] as String? ??
-                characterAsset;
-            return AvatarEvolutionStage(
-              index:
-                  (stageData['catalog_index'] as num?)?.toInt() ??
-                  (baseIndex == null
-                      ? fallbackIndex + entry.key
-                      : baseIndex + stageNumber - 1),
-              series: seriesName,
-              name:
-                  stageData['name'] as String? ??
-                  '$seriesName 第 $stageNumber 階',
-              stage: stageNumber,
-              requiredLevel:
-                  (stageData['required_level'] as num?)?.toInt() ??
-                  defaultRequirement.$1,
-              requiredExperience:
-                  (stageData['required_experience'] as num?)?.toInt() ??
-                  defaultRequirement.$2,
-              description: stageData['description'] as String? ?? description,
-              characterAsset: characterAsset,
-              iconAsset: iconAsset,
-              coinPrice: stageNumber == 1
-                  ? ((stageData['coin_price'] as num?)?.toInt() ?? price)
-                  : 0,
-            );
-          })
-          .toList(growable: false);
-    }
-
-    final imagePath = data['image_path'] as String? ?? '';
-    return [
-      AvatarEvolutionStage(
-        index: baseIndex ?? fallbackIndex,
-        series: seriesName == '活動限定角色' ? '$seriesName $documentId' : seriesName,
-        name: data['name'] as String? ?? '未命名角色',
-        stage: 1,
-        requiredLevel: 1,
-        requiredExperience: 0,
-        description: description,
-        characterAsset: imagePath,
-        iconAsset: imagePath,
-        coinPrice: price,
-      ),
-    ];
-  }
-
-  (int, int) _defaultDynamicStageRequirement(int stage) {
-    if (stage <= 1) return (1, 0);
-    if (stage == 2) return (30, 10000);
-    return (60, 30000);
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
@@ -571,6 +521,7 @@ class AppState extends ChangeNotifier {
     _shopSubscription?.cancel();
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
+    _incomingGroupRequestsSubscription?.cancel();
     _groupOwnerSubscription?.cancel();
 
     _userSubscription = null;
@@ -581,6 +532,7 @@ class AppState extends ChangeNotifier {
     _shopSubscription = null;
     _incomingGuardianRequestsSubscription = null;
     _outgoingGuardianRequestsSubscription = null;
+    _incomingGroupRequestsSubscription = null;
     _groupOwnerSubscription = null;
   }
 
@@ -6893,95 +6845,235 @@ ${historyBuffer.toString()}
     }
   }
 
-  /// 創建新團體 (房主身份，生成唯一團體 ID)
-  Future<void> createGroup(String name) async {
-    final randomId = 'GRP-${DateTime.now().millisecondsSinceEpoch % 100000}';
-    _groupId = randomId;
-    _groupName = name;
-    _isGroupOwner = true;
-    notifyListeners();
+  Future<void> approveGroupRequest(Map<String, dynamic> request) async {
+    final requestId = request['id'] as String?;
+    final requestedGroupId = request['groupId'] as String?;
+    if (requestId == null || requestedGroupId == null) {
+      throw StateError('團體邀請資料不完整');
+    }
+    await joinGroup(requestedGroupId, requestId: requestId);
+  }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('group_id_setting', randomId);
-    await prefs.setString('group_name_setting', name);
-    await prefs.setBool('is_group_owner_setting', true);
-
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.id);
-        await docRef.update({
-          'groupId': randomId,
-          'groupName': name,
-          'isGroupOwner': true,
+  Future<void> declineGroupRequest(String requestId) async {
+    await FirebaseFirestore.instance
+        .collection('group_requests')
+        .doc(requestId)
+        .update({
+          'status': 'declined',
           'updatedAt': FieldValue.serverTimestamp(),
         });
-      } catch (e) {
-        debugPrint('Failed to sync created group to firestore: $e');
-      }
+  }
+
+  Future<void> _migrateLegacyGroupProjection(
+    String ownerId,
+    String legacyGroupId,
+    String legacyGroupName,
+  ) async {
+    if (!_checkedLegacyGroupIds.add(legacyGroupId)) return;
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final groupRef = firestore.collection('groups').doc(legacyGroupId);
+      final groupSnapshot = await groupRef.get();
+      if (groupSnapshot.exists) return;
+      await groupRef.set({
+        'id': legacyGroupId,
+        'name': legacyGroupName,
+        'ownerId': ownerId,
+        'memberIds': [ownerId],
+        'status': 'active',
+        'migratedFromUserProjection': true,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (error) {
+      _checkedLegacyGroupIds.remove(legacyGroupId);
+      debugPrint('Failed to migrate legacy group: $error');
     }
   }
 
-  /// 加入已有的團體 (成員身份)
-  Future<void> joinGroup(String groupIdInput) async {
-    _groupId = groupIdInput;
-    _groupName = '自律小組';
-    _isGroupOwner = false;
-    notifyListeners();
+  Future<void> _ensureCanonicalGroupMembership(
+    String userId,
+    String existingGroupId,
+  ) async {
+    try {
+      final groupRef = FirebaseFirestore.instance
+          .collection('groups')
+          .doc(existingGroupId);
+      final groupSnapshot = await groupRef.get();
+      if (!groupSnapshot.exists ||
+          groupSnapshot.data()?['status'] != 'active') {
+        return;
+      }
+      final memberIds = List<String>.from(
+        groupSnapshot.data()?['memberIds'] as List? ?? const [],
+      );
+      if (memberIds.contains(userId)) return;
+      await groupRef.update({
+        'memberIds': FieldValue.arrayUnion([userId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (error) {
+      debugPrint('Failed to repair group membership: $error');
+    }
+  }
+
+  /// 創建新團體 (房主身份，生成唯一團體 ID)
+  Future<void> createGroup(String name) async {
+    final user = _currentUser;
+    if (user == null) throw StateError('請先登入再建立團體');
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) throw ArgumentError('團體名稱不可空白');
+
+    final randomId =
+        'GRP-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
+    final firestore = FirebaseFirestore.instance;
+    final groupRef = firestore.collection('groups').doc(randomId);
+    final userRef = firestore.collection('users').doc(user.id);
+    final batch = firestore.batch();
+    batch.set(groupRef, {
+      'id': randomId,
+      'name': normalizedName,
+      'ownerId': user.id,
+      'memberIds': [user.id],
+      'status': 'active',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    batch.update(userRef, {
+      'groupId': randomId,
+      'groupName': normalizedName,
+      'isGroupOwner': true,
+      'userRole': 'group',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('group_id_setting', groupIdInput);
-    await prefs.setString('group_name_setting', '自律小組');
-    await prefs.setBool('is_group_owner_setting', false);
+    await prefs.setString('group_id_setting', randomId);
+    await prefs.setString('group_name_setting', normalizedName);
+    await prefs.setBool('is_group_owner_setting', true);
+    _groupId = randomId;
+    _groupName = normalizedName;
+    _isGroupOwner = true;
+    notifyListeners();
+  }
 
+  /// 加入已有的團體 (成員身份)
+  Future<void> joinGroup(String groupIdInput, {String? requestId}) async {
     final user = _currentUser;
-    if (user != null) {
-      try {
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.id);
-        await docRef.update({
-          'groupId': groupIdInput,
-          'groupName': '自律小組',
-          'isGroupOwner': false,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } catch (e) {
-        debugPrint('Failed to sync joined group to firestore: $e');
+    if (user == null) throw StateError('請先登入再加入團體');
+    final normalizedId = groupIdInput.trim().toUpperCase();
+    if (normalizedId.isEmpty) throw ArgumentError('團體 ID 不可空白');
+
+    final firestore = FirebaseFirestore.instance;
+    final groupRef = firestore.collection('groups').doc(normalizedId);
+    final userRef = firestore.collection('users').doc(user.id);
+    late String remoteGroupName;
+    await firestore.runTransaction((transaction) async {
+      final userSnapshot = await transaction.get(userRef);
+      final groupSnapshot = await transaction.get(groupRef);
+      if (!groupSnapshot.exists) throw StateError('找不到此團體 ID');
+      final data = groupSnapshot.data() ?? const <String, dynamic>{};
+      if (data['status'] != 'active') throw StateError('此團體目前無法加入');
+      remoteGroupName = (data['name'] as String?)?.trim() ?? '';
+      if (remoteGroupName.isEmpty) throw StateError('團體資料不完整');
+
+      final currentData = userSnapshot.data() ?? const <String, dynamic>{};
+      final previousGroupId = currentData['groupId'] as String?;
+      if (previousGroupId != null && previousGroupId != normalizedId) {
+        final previousGroupRef = firestore
+            .collection('groups')
+            .doc(previousGroupId);
+        final previousGroupSnapshot = await transaction.get(previousGroupRef);
+        if (previousGroupSnapshot.exists) {
+          final previousGroup =
+              previousGroupSnapshot.data() ?? const <String, dynamic>{};
+          if (previousGroup['ownerId'] == user.id) {
+            throw StateError('你目前是其他團體的房主，請先移轉或解散原團體');
+          }
+          transaction.update(previousGroupRef, {
+            'memberIds': FieldValue.arrayRemove([user.id]),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       }
-    }
+      transaction.update(groupRef, {
+        'memberIds': FieldValue.arrayUnion([user.id]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.update(userRef, {
+        'groupId': normalizedId,
+        'groupName': remoteGroupName,
+        'isGroupOwner': false,
+        'userRole': 'group',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      if (requestId != null) {
+        transaction.update(
+          firestore.collection('group_requests').doc(requestId),
+          {'status': 'accepted', 'updatedAt': FieldValue.serverTimestamp()},
+        );
+      }
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('group_id_setting', normalizedId);
+    await prefs.setString('group_name_setting', remoteGroupName);
+    await prefs.setBool('is_group_owner_setting', false);
+    _groupId = normalizedId;
+    _groupName = remoteGroupName;
+    _isGroupOwner = false;
+    notifyListeners();
   }
 
   /// 退出或解散當前團體
   Future<void> leaveGroup() async {
-    _groupId = null;
-    _groupName = null;
-    _isGroupOwner = false;
-    notifyListeners();
+    final user = _currentUser;
+    final currentGroupId = _groupId;
+    if (user == null) throw StateError('請先登入');
+    if (currentGroupId == null) return;
+
+    final firestore = FirebaseFirestore.instance;
+    final groupRef = firestore.collection('groups').doc(currentGroupId);
+    final userRef = firestore.collection('users').doc(user.id);
+    await firestore.runTransaction((transaction) async {
+      final groupSnapshot = await transaction.get(groupRef);
+      if (groupSnapshot.exists) {
+        final data = groupSnapshot.data() ?? const <String, dynamic>{};
+        final ownerId = data['ownerId'] as String?;
+        final memberIds = List<String>.from(
+          data['memberIds'] as List? ?? const [],
+        );
+        if (ownerId == user.id && memberIds.length > 1) {
+          throw StateError('團體仍有其他成員，請先移除成員或轉移管理權');
+        }
+        if (ownerId == user.id) {
+          transaction.delete(groupRef);
+        } else {
+          transaction.update(groupRef, {
+            'memberIds': FieldValue.arrayRemove([user.id]),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+      transaction.update(userRef, {
+        'groupId': FieldValue.delete(),
+        'groupName': FieldValue.delete(),
+        'isGroupOwner': FieldValue.delete(),
+        'userRole': 'individual',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('group_id_setting');
     await prefs.remove('group_name_setting');
     await prefs.remove('is_group_owner_setting');
 
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.id);
-        await docRef.update({
-          'groupId': FieldValue.delete(),
-          'groupName': FieldValue.delete(),
-          'isGroupOwner': FieldValue.delete(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } catch (e) {
-        debugPrint('Failed to sync leave group to firestore: $e');
-      }
-    }
+    _groupId = null;
+    _groupName = null;
+    _isGroupOwner = false;
+    notifyListeners();
   }
 
   void _setupGroupOwnerListener(String myUid, String groupId) {

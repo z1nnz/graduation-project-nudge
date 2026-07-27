@@ -41,11 +41,91 @@ service cloud.firestore {
       ]);
     }
 
+    function hasGroupProjectionFields() {
+      return request.resource.data.keys().hasAny([
+        'groupId', 'groupName', 'isGroupOwner'
+      ]);
+    }
+
+    function validGroupProjectionChange(userId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['groupId', 'groupName', 'isGroupOwner']);
+      return !changed
+        || (
+          request.resource.data.keys().hasAll([
+            'groupId', 'groupName', 'isGroupOwner'
+          ])
+          && existsAfter(
+            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+          )
+          && getAfter(
+            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+          ).data.status == 'active'
+          && getAfter(
+            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+          ).data.memberIds.hasAll([userId])
+          && getAfter(
+            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+          ).data.name == request.resource.data.groupName
+          && request.resource.data.isGroupOwner
+            == (
+              getAfter(
+                /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+              ).data.ownerId == userId
+            )
+        )
+        || (
+          !request.resource.data.keys().hasAny([
+            'groupId', 'groupName', 'isGroupOwner'
+          ])
+          && (
+            !existsAfter(
+              /databases/$(database)/documents/groups/$(resource.data.groupId)
+            )
+            || !getAfter(
+              /databases/$(database)/documents/groups/$(resource.data.groupId)
+            ).data.memberIds.hasAny([userId])
+          )
+        );
+    }
+
+    function changesOnlyOwnGroupMembership(groupId) {
+      let beforeMembers = resource.data.memberIds.toSet();
+      let afterMembers = request.resource.data.memberIds.toSet();
+      let addedMembers = afterMembers.difference(beforeMembers);
+      let removedMembers = beforeMembers.difference(afterMembers);
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['memberIds', 'updatedAt'])
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.ownerId in request.resource.data.memberIds
+        && (
+          (
+            addedMembers.hasOnly([request.auth.uid])
+            && removedMembers.size() == 0
+            && resource.data.status == 'active'
+            && getAfter(
+              /databases/$(database)/documents/users/$(request.auth.uid)
+            ).data.groupId == groupId
+          )
+          || (
+            removedMembers.hasOnly([request.auth.uid])
+            && addedMembers.size() == 0
+            && getAfter(
+              /databases/$(database)/documents/users/$(request.auth.uid)
+            ).data.groupId != groupId
+          )
+        );
+    }
+
     // ─── /users/{userId} ──────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isAuth();
-      allow create: if isOwner(userId) && !hasProtectedStaffFields();
-      allow update: if isOwner(userId) && !changesProtectedStaffFields();
+      allow create: if isOwner(userId)
+        && !hasProtectedStaffFields()
+        && !hasGroupProjectionFields();
+      allow update: if isOwner(userId)
+        && !changesProtectedStaffFields()
+        && validGroupProjectionChange(userId);
       allow delete: if false;
 
       // ─── /users/{userId}/friends/{friendId} ───────────────────────
@@ -113,9 +193,91 @@ service cloud.firestore {
         && request.resource.data.status == 'pending';
       allow update: if isAuth()
         && (
-          (resource.data.receiverId == request.auth.uid && request.resource.data.status in ['accepted', 'declined']) ||
-          (resource.data.senderId == request.auth.uid && request.resource.data.status == 'declined')
+          (resource.data.receiverId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+            && request.resource.data.status in ['accepted', 'declined']) ||
+          (resource.data.senderId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+            && request.resource.data.status in ['declined', 'cancelled'])
         );
+      allow delete: if isAuth()
+        && (resource.data.senderId == request.auth.uid
+          || resource.data.receiverId == request.auth.uid);
+    }
+
+    // ─── /groups/{groupId} ────────────────────────────────────────────
+    // Canonical group state. User document group fields are compatibility
+    // projections consumed by older App and Web screens.
+    match /groups/{groupId} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberIds.hasOnly([request.auth.uid])
+        && request.resource.data.status == 'active';
+      allow update: if isAuth() && (
+        (
+          resource.data.ownerId == request.auth.uid
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.ownerId in request.resource.data.memberIds
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'status', 'updatedAt'])
+        )
+        || changesOnlyOwnGroupMembership(groupId)
+      );
+      allow delete: if isAuth()
+        && resource.data.ownerId == request.auth.uid
+        && resource.data.memberIds.size() == 1
+        && resource.data.memberIds.hasOnly([request.auth.uid])
+        && getAfter(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.groupId != groupId;
+    }
+
+    // ─── /group_requests/{requestId} ──────────────────────────────────
+    match /group_requests/{requestId} {
+      allow read: if isAuth() && (
+        resource.data.senderId == request.auth.uid
+        || resource.data.receiverId == request.auth.uid
+      );
+      allow create: if isAuth()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && exists(
+          /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+        )
+        && get(
+          /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+        ).data.ownerId == request.auth.uid
+        && get(
+          /databases/$(database)/documents/groups/$(request.resource.data.groupId)
+        ).data.name == request.resource.data.groupName
+        && request.resource.data.receiverId != request.auth.uid
+        && exists(
+          /databases/$(database)/documents/users/$(request.resource.data.receiverId)
+        )
+        && request.resource.data.keys().hasAll([
+          'senderId', 'receiverId', 'groupId', 'groupName',
+          'status', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'senderId', 'senderNudgeId', 'senderNickname',
+          'receiverId', 'groupId', 'groupName',
+          'status', 'createdAt'
+        ]);
+      allow update: if isAuth() && (
+        (
+          resource.data.receiverId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status in ['accepted', 'declined']
+        )
+        || (
+          resource.data.senderId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status == 'cancelled'
+        )
+      );
       allow delete: if false;
     }
 
@@ -170,6 +332,10 @@ service cloud.firestore {
     match /shop_items/{itemId} {
       allow read: if isAuth();
       allow create, update, delete: if isStaff();
+    }
+
+    match /catalog_counters/{counterId} {
+      allow read, write: if isStaff();
     }
   }
 }

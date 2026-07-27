@@ -342,7 +342,7 @@
                   <select id="shopItemType" onchange="toggleAdminDays()">
                     <option value="permanent">常駐商品</option>
                     <option value="limited">限時商品</option>
-                    <option value="event_character">活動限定角色</option>
+                    <option value="avatar_series">完整進化鏈角色</option>
                   </select>
                 </div>
                 <div id="adminTimeGroup" style="display: none; gap: 1rem; margin-bottom: 1rem;">
@@ -372,13 +372,32 @@
                   </div>
                 </div>
                 <div class="admin-form-group" id="characterStagesGroup" style="display: none;">
-                  <label>角色三階段與 icon (活動限定角色必填)</label>
+                  <label>角色圖鑑與完整進化鏈</label>
+                  <p style="margin-top: 0.25rem; color: var(--c-text-muted); font-size: 0.85rem;">一次發布三階資料；商城只會販售第 1 階，第 2、3 階只能依等級與經驗值進化解鎖。</p>
+                  <div class="admin-grid" style="margin-bottom: 1rem;">
+                    <div class="admin-form-group">
+                      <label>系列代碼</label>
+                      <input type="text" id="shopSeriesKey" placeholder="例如：night-shadow" />
+                    </div>
+                    <div class="admin-form-group">
+                      <label>系列主題</label>
+                      <input type="text" id="shopSeriesTheme" placeholder="例如：深度專注" />
+                    </div>
+                  </div>
+                  <div class="admin-form-group">
+                    <label>圖鑑介紹</label>
+                    <textarea rows="3" id="shopCodexDescription" placeholder="說明這個角色系列的故事、習慣主題與成長意義。"></textarea>
+                  </div>
                   <div class="stage-upload-grid">
                     <div class="stage-upload-card">
                       <h3>第 1 階｜購買初始型</h3>
                       <div class="admin-form-group">
                         <label>角色名稱</label>
                         <input type="text" id="stage1Name" placeholder="例如：夜影見習生" />
+                      </div>
+                      <div class="admin-form-group">
+                        <label>圖鑑描述</label>
+                        <textarea rows="2" id="stage1Description" placeholder="系列起點與角色特徵"></textarea>
                       </div>
                       <div class="admin-form-group">
                         <label>角色全身圖</label>
@@ -399,6 +418,14 @@
                         <label>角色名稱</label>
                         <input type="text" id="stage2Name" placeholder="例如：夜輪行者" />
                       </div>
+                      <div class="admin-grid">
+                        <div class="admin-form-group"><label>所需等級</label><input type="number" id="stage2Level" value="30" min="2" /></div>
+                        <div class="admin-form-group"><label>所需經驗</label><input type="number" id="stage2Experience" value="10000" min="1" /></div>
+                      </div>
+                      <div class="admin-form-group">
+                        <label>圖鑑描述</label>
+                        <textarea rows="2" id="stage2Description" placeholder="第二階的成長變化"></textarea>
+                      </div>
                       <div class="admin-form-group">
                         <label>角色全身圖</label>
                         <input type="file" accept="image/*" id="stage2Character" onchange="previewStageImage(event, 'stage2CharacterPreview')" />
@@ -417,6 +444,14 @@
                       <div class="admin-form-group">
                         <label>角色名稱</label>
                         <input type="text" id="stage3Name" placeholder="例如：夜曜守護者" />
+                      </div>
+                      <div class="admin-grid">
+                        <div class="admin-form-group"><label>所需等級</label><input type="number" id="stage3Level" value="60" min="3" /></div>
+                        <div class="admin-form-group"><label>所需經驗</label><input type="number" id="stage3Experience" value="30000" min="2" /></div>
+                      </div>
+                      <div class="admin-form-group">
+                        <label>圖鑑描述</label>
+                        <textarea rows="2" id="stage3Description" placeholder="最終階的完成狀態"></textarea>
                       </div>
                       <div class="admin-form-group">
                         <label>角色全身圖</label>
@@ -440,7 +475,7 @@
             <!-- Active Products Table -->
             <div class="admin-panel">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2 style="margin: 0; border: none; padding: 0;">目前上架商品 (自動過濾過期)</h2>
+                <h2 style="margin: 0; border: none; padding: 0;">已發布商品（含排程與過期）</h2>
                 <button class="admin-btn" style="padding: 0.5rem 1rem; font-size: 0.8rem;" type="button" onclick="fetchAdminActiveItems()">重新整理</button>
               </div>
               <div style="overflow-x: auto;">
@@ -452,6 +487,7 @@
                       <th>商品類型</th>
                       <th>價格</th>
                       <th>到期時間</th>
+                      <th>管理</th>
                     </tr>
                   </thead>
                   <tbody id="activeShopTableBody">
@@ -500,6 +536,7 @@
     </div>
 
     <!-- UI Interaction Scripts -->
+    <script src="assets/admin_catalog.js?v=1"></script>
     <script>
       // Tab Switching Logic
       function switchTab(tabId, element) {
@@ -650,21 +687,37 @@
         reader.readAsDataURL(file);
       }
 
-      function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => resolve(event.target.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+      function validateCatalogImage(file) {
+        if (!file) throw new Error('缺少圖片檔案。');
+        if (!/^image\/(png|jpeg|webp)$/i.test(file.type)) {
+          throw new Error('角色素材僅支援 PNG、JPEG 或 WebP。');
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error('單張角色素材不可超過 5 MB。');
+        }
+      }
+
+      async function uploadCatalogImage(file, path) {
+        validateCatalogImage(file);
+        if (typeof storage === 'undefined' || !storage) {
+          throw new Error('Firebase Storage 尚未初始化，請重新整理後再試。');
+        }
+        const extension = (file.name.split('.').pop() || 'png').toLowerCase();
+        const safePath = `${path}.${extension}`;
+        const snapshot = await storage.ref().child(safePath).put(file, {
+          contentType: file.type,
+          cacheControl: 'public,max-age=31536000,immutable'
         });
+        return snapshot.ref.getDownloadURL();
       }
 
       function slugifySeriesName(name) {
-        return name
+        const slug = name
           .trim()
           .toLowerCase()
-          .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-          .replace(/^-+|-+$/g, '') || generateLocalUUID().slice(0, 8);
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        return slug || `series-${Date.now().toString(36)}`;
       }
 
       function generateLocalUUID() {
@@ -694,8 +747,8 @@
       }
 
       async function resolveNextCatalogIndexBase() {
-        const snap = await db.collection('shop_items').where('type', '==', 'event_character').get();
-        let nextIndex = 18;
+        const snap = await db.collection('shop_items').get();
+        let legacyNextIndex = 18;
         snap.forEach((doc) => {
           const item = doc.data();
           const base = Number(item.catalog_index_base || 0);
@@ -705,13 +758,25 @@
             return explicitIndex > max ? explicitIndex : max;
           }, 0);
           if (base > 0) {
-            nextIndex = Math.max(nextIndex, base + Math.max(stages.length, 1));
+            legacyNextIndex = Math.max(legacyNextIndex, base + Math.max(stages.length, 1));
           }
           if (maxStageIndex > 0) {
-            nextIndex = Math.max(nextIndex, maxStageIndex + 1);
+            legacyNextIndex = Math.max(legacyNextIndex, maxStageIndex + 1);
           }
         });
-        return nextIndex;
+        const counterRef = db.collection('catalog_counters').doc('avatar_series');
+        return db.runTransaction(async transaction => {
+          const counterSnapshot = await transaction.get(counterRef);
+          const storedNextIndex = counterSnapshot.exists
+            ? Number(counterSnapshot.data().next_index || 18)
+            : 18;
+          const allocatedIndex = Math.max(legacyNextIndex, storedNextIndex);
+          transaction.set(counterRef, {
+            next_index: allocatedIndex + 3,
+            updated_at: Math.floor(Date.now() / 1000)
+          }, { merge: true });
+          return allocatedIndex;
+        });
       }
 
       function toggleAdminDays() {
@@ -719,18 +784,21 @@
         const timeContainer = document.getElementById('adminTimeGroup');
         const singleImageGroup = document.getElementById('singleImageGroup');
         const characterStagesGroup = document.getElementById('characterStagesGroup');
-        if (type === 'limited' || type === 'event_character') {
+        if (type === 'limited' || type === 'avatar_series') {
           timeContainer.style.display = 'flex';
         } else {
           timeContainer.style.display = 'none';
         }
-        if (type === 'event_character') {
+        if (type === 'avatar_series') {
           singleImageGroup.style.display = 'none';
           characterStagesGroup.style.display = 'block';
         } else {
           singleImageGroup.style.display = 'block';
           characterStagesGroup.style.display = 'none';
         }
+        characterStagesGroup.querySelectorAll('input, textarea').forEach(field => {
+          field.required = type === 'avatar_series';
+        });
       }
 
       async function fetchAdminActiveItems() {
@@ -748,28 +816,26 @@
             const activeItems = [];
 
             items.forEach(item => {
-              if (item.type === 'permanent' || !item.expires_at) {
-                activeItems.push(item);
-              } else {
-                const startTs = item.start_time || 0;
-                const endTs = item.end_time || item.expires_at || 0;
-                if (startTs <= currentTime && currentTime <= endTs) {
-                  activeItems.push(item);
-                }
-              }
+              if ((item.status || 'published') !== 'published') return;
+              activeItems.push(item);
             });
 
             activeItems.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
 
             if (activeItems.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
             } else {
               activeItems.forEach(item => {
                 let expiresHTML = '';
                 if (item.end_time) {
                   const startDate = new Date(item.start_time * 1000).toLocaleString('zh-TW');
                   const endDate = new Date(item.end_time * 1000).toLocaleString('zh-TW');
-                  expiresHTML = `<div style="font-size: 0.75rem; color: #3b82f6;">起: ${startDate}</div><div style="font-size: 0.75rem; color: #ef4444;">迄: ${endDate}</div>`;
+                  const lifecycle = currentTime < item.start_time
+                    ? '<strong style="color:#f59e0b;">排程中</strong>'
+                    : currentTime > item.end_time
+                      ? '<strong style="color:#ef4444;">已過期</strong>'
+                      : '<strong style="color:#22c55e;">上架中</strong>';
+                  expiresHTML = `${lifecycle}<div style="font-size: 0.75rem; color: #3b82f6;">起: ${startDate}</div><div style="font-size: 0.75rem; color: #ef4444;">迄: ${endDate}</div>`;
                 } else {
                   expiresHTML = `<span style="color: #22c55e;">常駐</span>`;
                 }
@@ -777,6 +843,7 @@
                 let typeText = '常駐商品';
                 if (item.type === 'limited') typeText = '限時商品';
                 if (item.type === 'event_character') typeText = '活動限定角色';
+                if (item.type === 'avatar_series') typeText = `完整進化鏈（${(item.character_stages || []).length} 階）`;
 
                 const imagePath = item.image_path || item.icon_path || '';
                 const imgSrc = (imagePath.startsWith('data:') || imagePath.startsWith('http'))
@@ -790,6 +857,7 @@
                   <td>${typeText}</td>
                   <td>${item.price}</td>
                   <td>${expiresHTML}</td>
+                  <td><button class="admin-btn" type="button" style="padding: 0.4rem 0.65rem; font-size: 0.75rem;" onclick="archiveShopItem('${item.id}')">下架</button></td>
                 `;
                 tbody.appendChild(tr);
               });
@@ -808,7 +876,7 @@
 
           if (result.success && result.items) {
             if (result.items.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--c-text-muted);">目前沒有上架中的商品</td></tr>';
             } else {
               result.items.forEach(item => {
                 let expiresHTML = '';
@@ -823,6 +891,7 @@
                 let typeText = '常駐商品';
                 if (item.type === 'limited') typeText = '限時商品';
                 if (item.type === 'event_character') typeText = '活動限定角色';
+                if (item.type === 'avatar_series') typeText = `完整進化鏈（${(item.character_stages || []).length} 階）`;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -831,6 +900,7 @@
                   <td>${typeText}</td>
                   <td>${item.price}</td>
                   <td>${expiresHTML}</td>
+                  <td><span style="color: var(--c-text-muted);">API 管理</span></td>
                 `;
                 tbody.appendChild(tr);
               });
@@ -838,6 +908,20 @@
           }
         } catch (error) {
           console.error("無法取得上架商品", error);
+        }
+      }
+
+      async function archiveShopItem(itemId) {
+        if (!confirm('確定要下架這項商品？App 會在同步後移除商城與動態圖鑑資料。')) return;
+        try {
+          await getDeveloperUserOrThrow();
+          await db.collection('shop_items').doc(itemId).update({
+            status: 'archived',
+            updated_at: Math.floor(Date.now() / 1000)
+          });
+          await fetchAdminActiveItems();
+        } catch (error) {
+          alert('下架失敗：' + error.message);
         }
       }
 
@@ -849,7 +933,8 @@
 
         const name = document.getElementById('shopItemName').value;
         const type = document.getElementById('shopItemType').value;
-        const price = parseInt(document.getElementById('shopItemPrice').value) || 60;
+        const rawPrice = Number(document.getElementById('shopItemPrice').value);
+        const price = Number.isFinite(rawPrice) && rawPrice >= 0 ? Math.trunc(rawPrice) : 60;
         const description = document.getElementById('shopItemDesc').value || '';
 
         let startTimeTs = null;
@@ -886,11 +971,15 @@
             status: 'published'
           };
 
-          if (type === 'event_character') {
+          if (type === 'avatar_series') {
+            const seriesKey = (document.getElementById('shopSeriesKey').value || slugifySeriesName(name)).trim();
+            const seriesTheme = document.getElementById('shopSeriesTheme').value.trim();
+            const codexDescription = document.getElementById('shopCodexDescription').value.trim() || description;
             const stageFiles = [
               {
                 stage: 1,
                 name: document.getElementById('stage1Name').value || `${name} 初始型`,
+                description: document.getElementById('stage1Description').value.trim(),
                 character: document.getElementById('stage1Character').files[0],
                 icon: document.getElementById('stage1Icon').files[0],
                 requiredLevel: 1,
@@ -899,61 +988,93 @@
               {
                 stage: 2,
                 name: document.getElementById('stage2Name').value || `${name} 進化型`,
+                description: document.getElementById('stage2Description').value.trim(),
                 character: document.getElementById('stage2Character').files[0],
                 icon: document.getElementById('stage2Icon').files[0],
-                requiredLevel: 30,
-                requiredExperience: 10000,
+                requiredLevel: Number(document.getElementById('stage2Level').value),
+                requiredExperience: Number(document.getElementById('stage2Experience').value),
               },
               {
                 stage: 3,
                 name: document.getElementById('stage3Name').value || `${name} 最終型`,
+                description: document.getElementById('stage3Description').value.trim(),
                 character: document.getElementById('stage3Character').files[0],
                 icon: document.getElementById('stage3Icon').files[0],
-                requiredLevel: 60,
-                requiredExperience: 30000,
+                requiredLevel: Number(document.getElementById('stage3Level').value),
+                requiredExperience: Number(document.getElementById('stage3Experience').value),
               },
             ];
 
             if (stageFiles.some(stage => !stage.character || !stage.icon)) {
-              alert('活動限定角色需要一次上傳 3 階段角色圖與 3 個頭像 icon。');
+              alert('完整進化鏈需要一次上傳 3 階角色圖與 3 個頭像 icon。');
+              return;
+            }
+            stageFiles.forEach(stage => {
+              validateCatalogImage(stage.character);
+              validateCatalogImage(stage.icon);
+            });
+            const metadataErrors = NudgeAdminCatalog.validateAvatarSeriesDraft({
+              name,
+              seriesKey,
+              codexDescription,
+              price,
+              stages: stageFiles.map(stage => ({
+                ...stage,
+                characterAsset: 'pending-upload',
+                iconAsset: 'pending-upload'
+              }))
+            });
+            if (metadataErrors.length) {
+              alert(metadataErrors.join('\n'));
               return;
             }
 
             const catalogIndexBase = await resolveNextCatalogIndexBase();
-            const characterStages = [];
+            const uploadStamp = Date.now();
+            const uploadedStages = [];
             for (const stage of stageFiles) {
-              const characterAsset = await fileToBase64(stage.character);
-              const iconAsset = await fileToBase64(stage.icon);
-              characterStages.push({
-                stage: stage.stage,
-                catalog_index: catalogIndexBase + stage.stage - 1,
-                name: stage.name,
-                required_level: stage.requiredLevel,
-                required_experience: stage.requiredExperience,
-                description: description,
-                character_asset: characterAsset,
-                icon_asset: iconAsset,
-                coin_price: stage.stage === 1 ? price : 0
+              const basePath = `catalog/avatars/${seriesKey}/stage-${stage.stage}`;
+              const [characterAsset, iconAsset] = await Promise.all([
+                uploadCatalogImage(stage.character, `${basePath}-character-${uploadStamp}`),
+                uploadCatalogImage(stage.icon, `${basePath}-icon-${uploadStamp}`)
+              ]);
+              uploadedStages.push({
+                ...stage,
+                characterAsset,
+                iconAsset
               });
             }
 
-            payload = {
-              ...payload,
-              series_key: slugifySeriesName(name),
-              series_name: name,
-              catalog_index_base: catalogIndexBase,
-              image_path: characterStages[0].character_asset,
-              icon_path: characterStages[0].icon_asset,
-              character_stages: characterStages
-            };
+            payload = NudgeAdminCatalog.buildAvatarSeriesPayload({
+              name,
+              seriesKey,
+              theme: seriesTheme,
+              codexDescription,
+              price,
+              status: 'published',
+              startAt: startTimeTs,
+              endAt: endTimeTs,
+              expiresAt: endTimeTs,
+              catalogIndexBase,
+              createdAt,
+              updatedAt: createdAt,
+              createdBy: developerUser.uid,
+              stages: uploadedStages
+            });
+            payload.id = generateLocalUUID();
+            payload.created_by_email = developerUser.email || '';
+            payload.start_time = startTimeTs;
+            payload.end_time = endTimeTs;
           } else {
             const fileInput = document.getElementById('shopItemImage');
             if (fileInput.files.length === 0) {
               alert('請先選擇圖片！');
               return;
             }
-            const base64Data = await fileToBase64(fileInput.files[0]);
-            payload.image_path = base64Data;
+            payload.image_path = await uploadCatalogImage(
+              fileInput.files[0],
+              `catalog/shop/${payload.id}-${Date.now()}`
+            );
           }
 
           await db.collection("shop_items").add(payload);

@@ -1,6 +1,16 @@
 ﻿const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
+
 const modules = [
   ["home", "總覽入口", "dashboard.html"],
   ["personal", "個人進階分析", "personal.html"],
@@ -1833,7 +1843,12 @@ function loadFirebaseSDKs() {
     };
     const timeoutId = setTimeout(resolveOnce, 4000);
 
-    if (window.firebase && window.firebase.auth && window.firebase.firestore) {
+    if (
+      window.firebase &&
+      window.firebase.auth &&
+      window.firebase.firestore &&
+      window.firebase.storage
+    ) {
       resolveOnce();
       return;
     }
@@ -1846,7 +1861,11 @@ function loadFirebaseSDKs() {
         const dbScript = document.createElement('script');
         dbScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js";
         dbScript.onload = () => {
-          resolveOnce();
+          const storageScript = document.createElement('script');
+          storageScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js";
+          storageScript.onload = resolveOnce;
+          storageScript.onerror = resolveOnce;
+          document.head.appendChild(storageScript);
         };
         dbScript.onerror = () => resolveOnce();
         document.head.appendChild(dbScript);
@@ -1860,6 +1879,7 @@ function loadFirebaseSDKs() {
 }
 
 let db = null;
+let storage = null;
 
 function initializeFirebaseWeb() {
   loadFirebaseSDKs().then(() => {
@@ -1869,6 +1889,7 @@ function initializeFirebaseWeb() {
           firebase.initializeApp(firebaseConfig);
         }
         db = firebase.firestore();
+        storage = firebase.storage ? firebase.storage() : null;
         console.log("Firebase initialized successfully on Web Center");
 
         const auth = firebase.auth();
@@ -2488,12 +2509,12 @@ function refreshWebBindingCardUI() {
         <span style="font-size: 24px;">🔔</span>
         <div>
           <strong style="color: #f59e0b; display: block; margin-bottom: 4px;">收到親屬綁定邀請</strong>
-          <span style="color: rgba(255,255,255,0.85); font-size: 14px;">${senderName} (${senderNudge}) [身分：${senderRole}] 邀請與您建立親屬連結。接收邀請後將開始雙向數據同步。</span>
+          <span style="color: rgba(255,255,255,0.85); font-size: 14px;">${escapeHtml(senderName)} (${escapeHtml(senderNudge)}) [身分：${escapeHtml(senderRole)}] 邀請與您建立親屬連結。接收邀請後將開始雙向數據同步。</span>
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button onclick="approveWebGuardianRequest('${req.id}')" style="background: #10b981; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">同意</button>
-        <button onclick="declineWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">拒絕</button>
+        <button data-request-action="approve-guardian" data-request-id="${escapeHtml(req.id)}" style="background: #10b981; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">同意</button>
+        <button data-request-action="decline-guardian" data-request-id="${escapeHtml(req.id)}" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">拒絕</button>
       </div>
     `;
   } else {
@@ -2531,12 +2552,12 @@ function refreshWebBindingCardUI() {
         <span style="font-size: 24px;">👥</span>
         <div>
           <strong style="color: #14b8a6; display: block; margin-bottom: 4px;">收到團體邀請</strong>
-          <span style="color: rgba(255,255,255,0.85); font-size: 14px;">${senderName} (${senderNudge}) 邀請您加入團隊【${groupName}】(ID: ${groupId})。同意後將會與團隊同步您的挑戰進度！</span>
+          <span style="color: rgba(255,255,255,0.85); font-size: 14px;">${escapeHtml(senderName)} (${escapeHtml(senderNudge)}) 邀請您加入團隊【${escapeHtml(groupName)}】(ID: ${escapeHtml(groupId)})。同意後將會與團隊同步您的挑戰進度！</span>
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button onclick="approveWebGroupRequest('${req.id}', '${groupId}', '${groupName}')" style="background: #14b8a6; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">同意加入</button>
-        <button onclick="declineWebGroupRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">拒絕</button>
+        <button data-request-action="approve-group" data-request-id="${escapeHtml(req.id)}" data-group-id="${escapeHtml(groupId)}" data-group-name="${escapeHtml(groupName)}" style="background: #14b8a6; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">同意加入</button>
+        <button data-request-action="decline-group" data-request-id="${escapeHtml(req.id)}" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">拒絕</button>
       </div>
     `;
   } else {
@@ -2613,21 +2634,10 @@ function sendWebGroupRequest(targetNudgeId, groupId, groupName) {
 function approveWebGroupRequest(requestId, groupId, groupName) {
   const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
   if (!db || !activeUserId) return;
-  
-  db.collection("users").doc(activeUserId).update({
-    groupId: groupId,
-    groupName: groupName || "自律小組",
-    isGroupOwner: false,
-    userRole: "group",
-    updatedAt: new Date().toISOString()
-  }).then(() => {
-    db.collection("group_requests").doc(requestId).update({
-      status: "accepted",
-      updatedAt: new Date().toISOString()
-    }).then(() => {
-      toast("已成功加入團隊！ 🎉");
-      window.location.reload();
-    });
+
+  joinCanonicalWebGroup(activeUserId, groupId, requestId).then(() => {
+    toast(`已成功加入${groupName ? `「${groupName}」` : ""}團隊！ 🎉`);
+    window.location.reload();
   }).catch(err => {
     console.error(err);
     toast("同意失敗");
@@ -2650,6 +2660,28 @@ function declineWebGroupRequest(requestId) {
 window.approveWebGroupRequest = approveWebGroupRequest;
 window.declineWebGroupRequest = declineWebGroupRequest;
 
+document.addEventListener("click", event => {
+  const button = event.target.closest("[data-request-action]");
+  if (!button) return;
+  const action = button.dataset.requestAction;
+  const requestId = button.dataset.requestId || "";
+  if (action === "approve-group") {
+    approveWebGroupRequest(
+      requestId,
+      button.dataset.groupId || "",
+      button.dataset.groupName || ""
+    );
+  } else if (action === "decline-group") {
+    declineWebGroupRequest(requestId);
+  } else if (action === "approve-guardian") {
+    approveWebGuardianRequest(requestId);
+  } else if (action === "decline-guardian") {
+    declineWebGuardianRequest(requestId);
+  } else if (action === "cancel-guardian") {
+    cancelWebGuardianRequest(requestId);
+  }
+});
+
 function renderGroupRequestsList() {
   const container = document.getElementById("webGroupRequestsContainer");
   if (!container) return;
@@ -2668,12 +2700,12 @@ function renderGroupRequestsList() {
       html += `
         <div class="web-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.2); border-radius: 8px; margin-bottom: 8px;">
           <div>
-            <div style="font-size: 14px; color: #fff; font-weight: 700; margin-bottom: 4px;">團隊：${groupName}</div>
-            <div style="font-size: 12px; color: rgba(255,255,255,0.6);">邀請人：${senderName} (${senderNudge})</div>
+            <div style="font-size: 14px; color: #fff; font-weight: 700; margin-bottom: 4px;">團隊：${escapeHtml(groupName)}</div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.6);">邀請人：${escapeHtml(senderName)} (${escapeHtml(senderNudge)})</div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button onclick="approveWebGroupRequest('${req.id}', '${groupId}', '${groupName}')" style="background: #14b8a6; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700;">同意</button>
-            <button onclick="declineWebGroupRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700;">拒絕</button>
+            <button data-request-action="approve-group" data-request-id="${escapeHtml(req.id)}" data-group-id="${escapeHtml(groupId)}" data-group-name="${escapeHtml(groupName)}" style="background: #14b8a6; border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700;">同意</button>
+            <button data-request-action="decline-group" data-request-id="${escapeHtml(req.id)}" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700;">拒絕</button>
           </div>
         </div>
       `;
@@ -2724,12 +2756,12 @@ function renderNotificationsPage() {
       html += `
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; margin-bottom: 12px;">
           <div>
-            <div style="font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 4px;">邀請人：${senderName} (${senderNudge})</div>
-            <div style="font-size: 13px; color: rgba(255,255,255,0.7);">對方目前身分：<strong style="color: #f59e0b;">${senderRole}</strong></div>
+            <div style="font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 4px;">邀請人：${escapeHtml(senderName)} (${escapeHtml(senderNudge)})</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.7);">對方目前身分：<strong style="color: #f59e0b;">${escapeHtml(senderRole)}</strong></div>
           </div>
           <div style="display: flex; gap: 10px;">
-            <button onclick="approveWebGuardianRequest('${req.id}')" style="background: #10b981; border: none; color: #fff; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">同意</button>
-            <button onclick="declineWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">拒絕</button>
+            <button data-request-action="approve-guardian" data-request-id="${escapeHtml(req.id)}" style="background: #10b981; border: none; color: #fff; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">同意</button>
+            <button data-request-action="decline-guardian" data-request-id="${escapeHtml(req.id)}" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">拒絕</button>
           </div>
         </div>
       `;
@@ -2752,12 +2784,12 @@ function renderNotificationsPage() {
       html += `
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.2); border-radius: 12px; margin-bottom: 12px;">
           <div>
-            <div style="font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 4px;">團隊：${groupName} (ID: ${groupId})</div>
-            <div style="font-size: 13px; color: rgba(255,255,255,0.7);">邀請人：${senderName} (${senderNudge})</div>
+            <div style="font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 4px;">團隊：${escapeHtml(groupName)} (ID: ${escapeHtml(groupId)})</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.7);">邀請人：${escapeHtml(senderName)} (${escapeHtml(senderNudge)})</div>
           </div>
           <div style="display: flex; gap: 10px;">
-            <button onclick="approveWebGroupRequest('${req.id}', '${groupId}', '${groupName}')" style="background: #14b8a6; border: none; color: #fff; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">加入</button>
-            <button onclick="declineWebGroupRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">拒絕</button>
+            <button data-request-action="approve-group" data-request-id="${escapeHtml(req.id)}" data-group-id="${escapeHtml(groupId)}" data-group-name="${escapeHtml(groupName)}" style="background: #14b8a6; border: none; color: #fff; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">加入</button>
+            <button data-request-action="decline-group" data-request-id="${escapeHtml(req.id)}" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;">拒絕</button>
           </div>
         </div>
       `;
@@ -2910,10 +2942,10 @@ function renderRequestsList() {
       const senderNudge = req.senderNudgeId || "";
       html += `
         <div class="web-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 8px;">
-          <span style="font-size: 13px; color: #fff;">${senderName} (${senderNudge})</span>
+          <span style="font-size: 13px; color: #fff;">${escapeHtml(senderName)} (${escapeHtml(senderNudge)})</span>
           <div style="display: flex; gap: 8px;">
-            <button onclick="approveWebGuardianRequest('${req.id}')" style="background: #10b981; border: none; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">同意</button>
-            <button onclick="declineWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">拒絕</button>
+            <button data-request-action="approve-guardian" data-request-id="${escapeHtml(req.id)}" style="background: #10b981; border: none; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">同意</button>
+            <button data-request-action="decline-guardian" data-request-id="${escapeHtml(req.id)}" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">拒絕</button>
           </div>
         </div>
       `;
@@ -2929,9 +2961,9 @@ function renderRequestsList() {
       html += `
         <div class="web-pending-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; margin-bottom: 8px;">
           <span style="font-size: 13px; color: rgba(255, 255, 255, 0.7); display: flex; align-items: center; gap: 6px;">
-            <span style="color: #f59e0b;">⏳</span> 已向 ${req.receiverNudgeId} 發送申請，等待同意中...
+            <span style="color: #f59e0b;">⏳</span> 已向 ${escapeHtml(req.receiverNudgeId)} 發送申請，等待同意中...
           </span>
-          <button onclick="cancelWebGuardianRequest('${req.id}')" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: rgba(255,255,255,0.6); padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">取消</button>
+          <button data-request-action="cancel-guardian" data-request-id="${escapeHtml(req.id)}" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: rgba(255,255,255,0.6); padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">取消</button>
         </div>
       `;
     });
@@ -3002,7 +3034,7 @@ function showGuardianLinkedBanner(data) {
   banner.style.cssText = "background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; justify-content: space-between;";
   banner.innerHTML = `
     <div><span style="font-size: 18px; margin-right: 10px;">✅</span><strong style="color: #10b981;">已與 ${relativeId} 連結</strong><span style="color: var(--muted); font-size: 13px; margin-left: 12px;">家長共同目標、每週報告與鼓勵功能均已啟用</span></div>
-    <button onclick="toast('解除連結功能請在 App 端操作')" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 10px; padding: 6px 14px; font-weight: 700; cursor: pointer; font-size: 13px;">解除親屬連結</button>
+    <button onclick="unlinkWebGuardian()" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 10px; padding: 6px 14px; font-weight: 700; cursor: pointer; font-size: 13px;">解除親屬連結</button>
   `;
   const firstSection = main.querySelector("section, .page-section");
   if (firstSection) {
@@ -3010,6 +3042,178 @@ function showGuardianLinkedBanner(data) {
   } else {
     main.insertAdjacentElement("afterbegin", banner);
   }
+}
+
+async function unlinkWebGuardian() {
+  const userId = localStorage.getItem("nudgeActiveDemoUserId");
+  if (!db || !userId) {
+    toast("請先登入再解除親屬連結");
+    return;
+  }
+  if (!window.confirm("確定解除親屬連結？雙方將停止共享陪伴資料。")) return;
+  try {
+    const [incoming, outgoing] = await Promise.all([
+      db.collection("guardian_requests").where("receiverId", "==", userId).get(),
+      db.collection("guardian_requests").where("senderId", "==", userId).get()
+    ]);
+    const batch = db.batch();
+    const requestIds = new Set();
+    [...incoming.docs, ...outgoing.docs].forEach(doc => {
+      if (requestIds.has(doc.id)) return;
+      requestIds.add(doc.id);
+      batch.delete(doc.ref);
+    });
+    batch.update(db.collection("users").doc(userId), {
+      "webToolsState.guardianInvite": firebase.firestore.FieldValue.delete(),
+      "webToolsState.guardianInviteStatus": firebase.firestore.FieldValue.delete(),
+      updatedAt: new Date().toISOString()
+    });
+    await batch.commit();
+    toast("已解除親屬連結");
+  } catch (error) {
+    console.error("解除親屬連結失敗：", error);
+    toast("解除失敗，請稍後再試");
+  }
+}
+
+window.unlinkWebGuardian = unlinkWebGuardian;
+
+function generateWebGroupId() {
+  return `GRP-${Date.now().toString(36).toUpperCase()}`;
+}
+
+async function createCanonicalWebGroup(userId, name) {
+  const normalizedName = String(name || "").trim();
+  if (!normalizedName) throw new Error("團體名稱不可空白");
+  const groupId = generateWebGroupId();
+  const batch = db.batch();
+  const now = new Date().toISOString();
+  batch.set(db.collection("groups").doc(groupId), {
+    id: groupId,
+    name: normalizedName,
+    ownerId: userId,
+    memberIds: [userId],
+    status: "active",
+    createdAt: now,
+    updatedAt: now
+  });
+  batch.update(db.collection("users").doc(userId), {
+    groupId,
+    groupName: normalizedName,
+    isGroupOwner: true,
+    userRole: "group",
+    updatedAt: now
+  });
+  await batch.commit();
+  return groupId;
+}
+
+async function joinCanonicalWebGroup(userId, groupIdInput, requestId = null) {
+  const groupId = String(groupIdInput || "").trim().toUpperCase();
+  if (!groupId) throw new Error("團體 ID 不可空白");
+  return db.runTransaction(async transaction => {
+    const groupRef = db.collection("groups").doc(groupId);
+    const userRef = db.collection("users").doc(userId);
+    const userSnapshot = await transaction.get(userRef);
+    const groupSnapshot = await transaction.get(groupRef);
+    if (!groupSnapshot.exists) throw new Error("找不到此團體 ID");
+    const group = groupSnapshot.data();
+    if (group.status !== "active") throw new Error("此團體目前無法加入");
+    if (!group.name) throw new Error("團體資料不完整");
+    const previousGroupId = userSnapshot.data()?.groupId;
+    if (previousGroupId && previousGroupId !== groupId) {
+      const previousGroupRef = db.collection("groups").doc(previousGroupId);
+      const previousGroupSnapshot = await transaction.get(previousGroupRef);
+      if (previousGroupSnapshot.exists) {
+        const previousGroup = previousGroupSnapshot.data();
+        if (previousGroup.ownerId === userId) {
+          throw new Error("你目前是其他團體的房主，請先移轉或解散原團體");
+        }
+        transaction.update(previousGroupRef, {
+          memberIds: firebase.firestore.FieldValue.arrayRemove(userId),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+    transaction.update(groupRef, {
+      memberIds: firebase.firestore.FieldValue.arrayUnion(userId),
+      updatedAt: new Date().toISOString()
+    });
+    transaction.update(userRef, {
+      groupId,
+      groupName: group.name,
+      isGroupOwner: false,
+      userRole: "group",
+      updatedAt: new Date().toISOString()
+    });
+    if (requestId) {
+      transaction.update(db.collection("group_requests").doc(requestId), {
+        status: "accepted",
+        updatedAt: new Date().toISOString()
+      });
+    }
+    return { groupId, groupName: group.name };
+  });
+}
+
+async function leaveCanonicalWebGroup(userId, groupId) {
+  return db.runTransaction(async transaction => {
+    const groupRef = db.collection("groups").doc(groupId);
+    const userRef = db.collection("users").doc(userId);
+    const groupSnapshot = await transaction.get(groupRef);
+    if (groupSnapshot.exists) {
+      const group = groupSnapshot.data();
+      const memberIds = Array.isArray(group.memberIds) ? group.memberIds : [];
+      if (group.ownerId === userId && memberIds.length > 1) {
+        throw new Error("團體仍有其他成員，請先移除成員或轉移管理權");
+      }
+      if (group.ownerId === userId) {
+        transaction.delete(groupRef);
+      } else {
+        transaction.update(groupRef, {
+          memberIds: firebase.firestore.FieldValue.arrayRemove(userId),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+    transaction.update(userRef, {
+      groupId: firebase.firestore.FieldValue.delete(),
+      groupName: firebase.firestore.FieldValue.delete(),
+      isGroupOwner: firebase.firestore.FieldValue.delete(),
+      userRole: "individual",
+      updatedAt: new Date().toISOString()
+    });
+  });
+}
+
+async function migrateLegacyWebGroup(userId, userData) {
+  if (!userData?.isGroupOwner || !userData.groupId || !userData.groupName) return;
+  const groupRef = db.collection("groups").doc(userData.groupId);
+  const existing = await groupRef.get();
+  if (existing.exists) return;
+  await groupRef.set({
+    id: userData.groupId,
+    name: userData.groupName,
+    ownerId: userId,
+    memberIds: [userId],
+    status: "active",
+    migratedFromUserProjection: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function ensureCanonicalWebMembership(userId, userData) {
+  if (!userData?.groupId || userData.isGroupOwner) return;
+  const groupRef = db.collection("groups").doc(userData.groupId);
+  const groupSnapshot = await groupRef.get();
+  if (!groupSnapshot.exists || groupSnapshot.data().status !== "active") return;
+  const memberIds = groupSnapshot.data().memberIds || [];
+  if (memberIds.includes(userId)) return;
+  await groupRef.update({
+    memberIds: firebase.firestore.FieldValue.arrayUnion(userId),
+    updatedAt: new Date().toISOString()
+  });
 }
 
 function showWebGroupBindingCard(atTop) {
@@ -3050,15 +3254,9 @@ function showWebGroupBindingCard(atTop) {
       return;
     }
     const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
-    const randomId = 'GRP-' + Math.floor(Math.random() * 100000);
     if (activeUserId && typeof db !== "undefined") {
-      db.collection("users").doc(activeUserId).update({
-        groupId: randomId,
-        groupName: name,
-        isGroupOwner: true,
-        updatedAt: new Date().toISOString()
-      }).then(() => {
-        toast(`成功創建「${name}」團體，ID：${randomId}！ 🚀`);
+      createCanonicalWebGroup(activeUserId, name).then((groupId) => {
+        toast(`成功創建「${name}」團體，ID：${groupId}！ 🚀`);
       }).catch(err => {
         console.error("創建團體失敗：", err);
         toast("操作失敗，請稍後再試");
@@ -3068,20 +3266,15 @@ function showWebGroupBindingCard(atTop) {
 
   document.getElementById("webGroupJoinBtn")?.addEventListener("click", () => {
     const groupInput = document.getElementById("webGroupIdInput");
-    const groupId = groupInput ? groupInput.value.trim() : "";
+    const groupId = groupInput ? groupInput.value.trim().toUpperCase() : "";
     if (!groupId) {
       toast("請輸入有效的團體 ID");
       return;
     }
     const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
     if (activeUserId && typeof db !== "undefined") {
-      db.collection("users").doc(activeUserId).update({
-        groupId: groupId,
-        groupName: "自律小組",
-        isGroupOwner: false,
-        updatedAt: new Date().toISOString()
-      }).then(() => {
-        toast(`已成功加入團體 ID：${groupId}！ 🎯`);
+      joinCanonicalWebGroup(activeUserId, groupId).then((group) => {
+        toast(`已成功加入「${group.groupName}」！ 🎯`);
       }).catch(err => {
         console.error("加入團體失敗：", err);
         toast("操作失敗，請稍後再試");
@@ -3114,9 +3307,9 @@ function renderWebGroupInfo(data) {
           <span style="background: rgba(20, 184, 166, 0.2); color: #14b8a6; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid rgba(20, 184, 166, 0.3);">
             ${isOwner ? '👑 團體建立者 (房主)' : '👥 團體成員'}
           </span>
-          <span style="font-family: monospace; font-size: 11px; color: var(--muted);">ID: ${groupId}</span>
+          <span style="font-family: monospace; font-size: 11px; color: var(--muted);">ID: ${escapeHtml(groupId)}</span>
         </div>
-        <h3 style="margin: 0; font-size: 18px; color: #fff; font-weight: 800;">當前關聯團體：${groupName}</h3>
+        <h3 style="margin: 0; font-size: 18px; color: #fff; font-weight: 800;">當前關聯團體：${escapeHtml(groupName)}</h3>
       </div>
       <button id="webGroupLeaveBtn" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
         ${isOwner ? '解散此團體' : '退出此小組'}
@@ -3135,12 +3328,7 @@ function renderWebGroupInfo(data) {
     if (confirm(`確定要${isOwner ? '解散' : '退出'}當前團體【${groupName}】嗎？`)) {
       const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
       if (activeUserId && typeof db !== "undefined") {
-        db.collection("users").doc(activeUserId).update({
-          groupId: firebase.firestore.FieldValue.delete(),
-          groupName: firebase.firestore.FieldValue.delete(),
-          isGroupOwner: firebase.firestore.FieldValue.delete(),
-          updatedAt: new Date().toISOString()
-        }).then(() => {
+        leaveCanonicalWebGroup(activeUserId, groupId).then(() => {
           toast("已退出當前團體");
         }).catch(err => {
           console.error("退出團體失敗：", err);
@@ -3193,16 +3381,9 @@ function renderWebGroupCreationPage(data) {
         return;
       }
       const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
-      const randomId = 'GRP-' + Math.floor(Math.random() * 100000);
       if (activeUserId && typeof db !== "undefined") {
-        db.collection("users").doc(activeUserId).update({
-          groupId: randomId,
-          groupName: name,
-          isGroupOwner: true,
-          userRole: "group",
-          updatedAt: new Date().toISOString()
-        }).then(() => {
-          toast(`成功創建「${name}」團體，ID：${randomId}！ 🚀`);
+        createCanonicalWebGroup(activeUserId, name).then((groupId) => {
+          toast(`成功創建「${name}」團體，ID：${groupId}！ 🚀`);
           window.location.reload();
         }).catch(err => {
           console.error("創建團體失敗：", err);
@@ -3213,21 +3394,15 @@ function renderWebGroupCreationPage(data) {
 
     document.getElementById("webGroupJoinBtnPage")?.addEventListener("click", () => {
       const groupInput = document.getElementById("webGroupIdInputPage");
-      const groupId = groupInput ? groupInput.value.trim() : "";
+      const groupId = groupInput ? groupInput.value.trim().toUpperCase() : "";
       if (!groupId) {
         toast("請輸入有效的團體 ID");
         return;
       }
       const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
       if (activeUserId && typeof db !== "undefined") {
-        db.collection("users").doc(activeUserId).update({
-          groupId: groupId,
-          groupName: "自律小組",
-          isGroupOwner: false,
-          userRole: "group",
-          updatedAt: new Date().toISOString()
-        }).then(() => {
-          toast(`已成功加入團體 ID：${groupId}！ 🎯`);
+        joinCanonicalWebGroup(activeUserId, groupId).then((group) => {
+          toast(`已成功加入「${group.groupName}」！ 🎯`);
           window.location.reload();
         }).catch(err => {
           console.error("加入團體失敗：", err);
@@ -3247,8 +3422,8 @@ function renderWebGroupCreationPage(data) {
         <span class="eyebrow">Team Information</span>
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
           <div>
-            <h2 style="margin: 0; color: #fff; font-size: 24px; font-weight: 800;">${groupName}</h2>
-            <p style="margin: 4px 0 0 0; color: var(--muted); font-size: 14px; font-family: monospace;">團體組織 ID: ${groupId}</p>
+            <h2 style="margin: 0; color: #fff; font-size: 24px; font-weight: 800;">${escapeHtml(groupName)}</h2>
+            <p style="margin: 4px 0 0 0; color: var(--muted); font-size: 14px; font-family: monospace;">團體組織 ID: ${escapeHtml(groupId)}</p>
           </div>
           <span style="background: rgba(20, 184, 166, 0.15); color: #14b8a6; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; border: 1px solid rgba(20, 184, 166, 0.3);">
             ${isOwner ? '👑 房主 (Owner)' : '👥 成員 (Member)'}
@@ -3308,13 +3483,7 @@ function renderWebGroupCreationPage(data) {
     if (confirm(`確定要${isOwner ? '解散' : '退出'}當前團體【${groupName}】嗎？`)) {
       const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
       if (activeUserId && typeof db !== "undefined") {
-        db.collection("users").doc(activeUserId).update({
-          groupId: firebase.firestore.FieldValue.delete(),
-          groupName: firebase.firestore.FieldValue.delete(),
-          isGroupOwner: firebase.firestore.FieldValue.delete(),
-          userRole: "personal",
-          updatedAt: new Date().toISOString()
-        }).then(() => {
+        leaveCanonicalWebGroup(activeUserId, groupId).then(() => {
           toast("已成功解除團體關聯");
           window.location.reload();
         }).catch(err => {
@@ -3362,20 +3531,28 @@ function renderWebGroupCreationPage(data) {
       // Extract stats
       const dailySummaries = mData.dailySummaries || [];
       const mTodaySummary = dailySummaries[dailySummaries.length - 1] || {};
-      const mSleepHours = mTodaySummary.sleepHours || (mData.sleepHours || 0);
-      const mSteps = mTodaySummary.steps || (mData.steps || 0);
-      const mFocusMinutes = mTodaySummary.focusMinutes || (mData.focusSeconds ? Math.floor(mData.focusSeconds / 60) : 0);
+      const rawSleepHours = Number(mTodaySummary.sleepHours ?? mData.sleepHours ?? 0);
+      const rawSteps = Number(mTodaySummary.steps ?? mData.steps ?? 0);
+      const rawFocusMinutes = Number(
+        mTodaySummary.focusMinutes ??
+        (mData.focusSeconds ? Math.floor(Number(mData.focusSeconds) / 60) : 0)
+      );
+      const mSleepHours = Number.isFinite(rawSleepHours) ? Math.max(0, Math.min(24, rawSleepHours)) : 0;
+      const mSteps = Number.isFinite(rawSteps) ? Math.max(0, Math.trunc(rawSteps)) : 0;
+      const mFocusMinutes = Number.isFinite(rawFocusMinutes) ? Math.max(0, Math.trunc(rawFocusMinutes)) : 0;
 
       // Task completion
       const mTasks = mData.tasks || [];
       const completedTasksCount = mTasks.filter(t => t.isDone || t.done).length;
-      const completionRate = mTasks.length > 0 ? Math.round((completedTasksCount / mTasks.length) * 100) : 0;
+      const completionRate = mTasks.length > 0
+        ? Math.max(0, Math.min(100, Math.round((completedTasksCount / mTasks.length) * 100)))
+        : 0;
 
       listTable.innerHTML += `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s;">
           <td style="padding: 14px 8px;">
-            <div style="font-weight: 700; color: #fff;">${mNickname}</div>
-            <div style="font-size: 11px; color: var(--muted); font-family: monospace;">${mNudgeId}</div>
+            <div style="font-weight: 700; color: #fff;">${escapeHtml(mNickname)}</div>
+            <div style="font-size: 11px; color: var(--muted); font-family: monospace;">${escapeHtml(mNudgeId)}</div>
           </td>
           <td style="padding: 14px 8px;">
             <span style="font-size: 12px; color: ${mIsOwner ? '#f59e0b' : 'rgba(255,255,255,0.5)'}; font-weight: 600;">
@@ -3830,6 +4007,13 @@ function listenToUser(userId) {
       return;
     }
     const data = docSnap.data();
+
+    migrateLegacyWebGroup(userId, data).catch(error => {
+      console.warn("Legacy group migration skipped:", error);
+    });
+    ensureCanonicalWebMembership(userId, data).catch(error => {
+      console.warn("Canonical group membership repair skipped:", error);
+    });
     
     updateSidebarProfile(data);
 

@@ -42,6 +42,8 @@ class AvatarEvolutionStage {
   final String characterAsset;
   final String iconAsset;
   final int coinPrice;
+  final bool shopEligible;
+  final int? evolvesFromStage;
 
   const AvatarEvolutionStage({
     required this.index,
@@ -54,7 +56,9 @@ class AvatarEvolutionStage {
     required this.characterAsset,
     required this.iconAsset,
     this.coinPrice = 0,
-  });
+    bool? shopEligible,
+    this.evolvesFromStage,
+  }) : shopEligible = shopEligible ?? stage == 1;
 
   String get stageLabel => '第 $stage 階';
 }
@@ -73,6 +77,150 @@ class AvatarSeries {
     required this.description,
     required this.stages,
   });
+}
+
+class PublishedAvatarSeries {
+  final String documentId;
+  final String key;
+  final String name;
+  final String theme;
+  final String codexDescription;
+  final List<AvatarEvolutionStage> stages;
+
+  const PublishedAvatarSeries({
+    required this.documentId,
+    required this.key,
+    required this.name,
+    required this.theme,
+    required this.codexDescription,
+    required this.stages,
+  });
+
+  List<AvatarEvolutionStage> get shopStages =>
+      stages.where((stage) => stage.shopEligible).toList(growable: false);
+
+  AvatarSeries toAvatarSeries() {
+    return AvatarSeries(
+      key: key,
+      name: name,
+      theme: theme,
+      description: codexDescription,
+      stages: List.unmodifiable(stages),
+    );
+  }
+
+  static PublishedAvatarSeries? tryParseShopDocument({
+    required String documentId,
+    required Map<String, dynamic> data,
+    required int fallbackIndex,
+  }) {
+    final type = data['type']?.toString() ?? '';
+    final status = data['status']?.toString() ?? 'published';
+    if (status != 'published' ||
+        (type != 'event_character' && type != 'avatar_series')) {
+      return null;
+    }
+
+    final rawStages = data['character_stages'];
+    if (rawStages is! List || rawStages.length != 3) return null;
+
+    final seriesData = data['series'] is Map
+        ? Map<String, dynamic>.from(data['series'] as Map)
+        : const <String, dynamic>{};
+    final seriesName = seriesData['name']?.toString().trim().isNotEmpty == true
+        ? seriesData['name'].toString().trim()
+        : (data['series_name'] ?? data['name'] ?? '').toString().trim();
+    if (seriesName.isEmpty) return null;
+
+    final seriesKey = seriesData['key']?.toString().trim().isNotEmpty == true
+        ? seriesData['key'].toString().trim()
+        : (data['series_key'] ?? documentId).toString().trim();
+    final theme = seriesData['theme']?.toString().trim().isNotEmpty == true
+        ? seriesData['theme'].toString().trim()
+        : (data['series_theme'] ?? '限時特展').toString().trim();
+    final codexDescription =
+        seriesData['codex_description']?.toString().trim().isNotEmpty == true
+        ? seriesData['codex_description'].toString().trim()
+        : (data['codex_description'] ?? '').toString().trim();
+    if (codexDescription.isEmpty) return null;
+    final topLevelPrice = (data['price'] as num?)?.toInt() ?? 0;
+    final baseIndex =
+        (data['catalog_index_base'] as num?)?.toInt() ?? fallbackIndex;
+
+    final stages = <AvatarEvolutionStage>[];
+    for (var rawIndex = 0; rawIndex < rawStages.length; rawIndex++) {
+      final rawStage = rawStages[rawIndex];
+      if (rawStage is! Map) return null;
+      final stageData = Map<String, dynamic>.from(rawStage);
+      final stageNumber = (stageData['stage'] as num?)?.toInt() ?? rawIndex + 1;
+      if (stageNumber < 1 || stageNumber > 3) return null;
+      final stageName = (stageData['name'] ?? '').toString().trim();
+      final stageDescription = (stageData['description'] ?? '')
+          .toString()
+          .trim();
+      final characterAsset = (stageData['character_asset'] ?? '')
+          .toString()
+          .trim();
+      final iconAsset = (stageData['icon_asset'] ?? '').toString().trim();
+      final requiredLevel = stageData['required_level'];
+      final requiredExperience = stageData['required_experience'];
+      final expectedPredecessor = stageNumber == 1 ? null : stageNumber - 1;
+      if (stageName.isEmpty ||
+          stageDescription.isEmpty ||
+          characterAsset.isEmpty ||
+          iconAsset.isEmpty ||
+          requiredLevel is! num ||
+          requiredExperience is! num ||
+          !stageData.containsKey('evolves_from_stage') ||
+          stageData['evolves_from_stage'] != expectedPredecessor) {
+        return null;
+      }
+
+      stages.add(
+        AvatarEvolutionStage(
+          index:
+              (stageData['catalog_index'] as num?)?.toInt() ??
+              baseIndex + stageNumber - 1,
+          series: seriesName,
+          name: stageName,
+          stage: stageNumber,
+          requiredLevel: requiredLevel.toInt(),
+          requiredExperience: requiredExperience.toInt(),
+          description: stageDescription,
+          characterAsset: characterAsset,
+          iconAsset: iconAsset,
+          coinPrice: stageNumber == 1
+              ? ((stageData['coin_price'] as num?)?.toInt() ?? topLevelPrice)
+              : 0,
+          shopEligible: stageNumber == 1,
+          evolvesFromStage: stageNumber == 1 ? null : stageNumber - 1,
+        ),
+      );
+    }
+
+    stages.sort((a, b) => a.stage.compareTo(b.stage));
+    if (stages.map((stage) => stage.stage).join(',') != '1,2,3' ||
+        stages.map((stage) => stage.index).toSet().length != 3) {
+      return null;
+    }
+    for (var index = 1; index < stages.length; index++) {
+      final previous = stages[index - 1];
+      final current = stages[index];
+      if (current.requiredLevel <= previous.requiredLevel ||
+          current.requiredExperience <= previous.requiredExperience) {
+        return null;
+      }
+    }
+
+    return PublishedAvatarSeries(
+      documentId: documentId,
+      key: seriesKey.isEmpty ? documentId : seriesKey,
+      name: seriesName,
+      theme: theme.isEmpty ? '限時特展' : theme,
+      codexDescription: codexDescription,
+      stages: List.unmodifiable(stages),
+    );
+  }
 }
 
 class AvatarCatalog {
@@ -337,38 +485,9 @@ class AvatarCatalog {
       ),
     ];
 
-    final predefinedSeriesNames = {
-      '星辰旅人',
-      '星詠魔導',
-      '焰心鬥士',
-      '玫瑰學院',
-      '月影忍者',
-      '森語女神',
-    };
-
-    final dynamicSeriesNames =
-        evolutionStages
-            .where((stage) => !predefinedSeriesNames.contains(stage.series))
-            .map((stage) => stage.series)
-            .toSet()
-            .toList()
-          ..sort();
-
-    for (final seriesName in dynamicSeriesNames) {
-      final stages =
-          evolutionStages.where((stage) => stage.series == seriesName).toList()
-            ..sort((a, b) => a.stage.compareTo(b.stage));
-      final firstStage = stages.first;
-      list.add(
-        AvatarSeries(
-          key: 'dynamic-${firstStage.index}',
-          name: seriesName,
-          theme: '限時特展',
-          description: '由 Web 端上架的活動限時角色。',
-          stages: stages,
-        ),
-      );
-    }
+    list.addAll(
+      _publishedSeries.map((published) => published.toAvatarSeries()),
+    );
 
     return list;
   }
@@ -399,6 +518,7 @@ class AvatarCatalog {
   static final List<String> _builtInFaceShapeLabels = List.unmodifiable(
     faceShapeLabels,
   );
+  static List<PublishedAvatarSeries> _publishedSeries = const [];
 
   // Future layered-avatar expansion. These labels stay here so older saved
   // profiles can still be normalized, but the current shop/editor only exposes
@@ -442,6 +562,10 @@ class AvatarCatalog {
         .toList(growable: false);
   }
 
+  static List<AvatarEvolutionStage> get shopStages => evolutionStages
+      .where((stage) => stage.shopEligible)
+      .toList(growable: false);
+
   static AvatarPartCategory categoryFor(String key) {
     return editorCategories.firstWhere((category) => category.key == key);
   }
@@ -482,13 +606,47 @@ class AvatarCatalog {
   }
 
   static void replaceDynamicStages(List<AvatarEvolutionStage> stages) {
-    evolutionStages = [
-      ..._builtInEvolutionStages,
-      ...stages..sort((a, b) => a.index.compareTo(b.index)),
-    ];
+    final grouped = <String, List<AvatarEvolutionStage>>{};
+    for (final stage in stages) {
+      grouped.putIfAbsent(stage.series, () => []).add(stage);
+    }
+    replacePublishedSeries(
+      grouped.entries
+          .map((entry) {
+            final sortedStages = [...entry.value]
+              ..sort((a, b) => a.stage.compareTo(b.stage));
+            return PublishedAvatarSeries(
+              documentId: entry.key,
+              key: 'dynamic-${sortedStages.first.index}',
+              name: entry.key,
+              theme: '限時特展',
+              codexDescription: '由 Web 營運後台發布的完整角色進化鏈。',
+              stages: sortedStages,
+            );
+          })
+          .toList(growable: false),
+    );
+  }
+
+  static void replacePublishedSeries(List<PublishedAvatarSeries> series) {
+    final usedIndexes = _builtInEvolutionStages
+        .map((stage) => stage.index)
+        .toSet();
+    final acceptedSeries = <PublishedAvatarSeries>[];
+    for (final published in series) {
+      final indexes = published.stages.map((stage) => stage.index).toSet();
+      if (indexes.any(usedIndexes.contains)) continue;
+      usedIndexes.addAll(indexes);
+      acceptedSeries.add(published);
+    }
+    _publishedSeries = List.unmodifiable(acceptedSeries);
+    final dynamicStages =
+        acceptedSeries.expand((published) => published.stages).toList()
+          ..sort((a, b) => a.index.compareTo(b.index));
+    evolutionStages = [..._builtInEvolutionStages, ...dynamicStages];
     faceShapeLabels = [
       ..._builtInFaceShapeLabels,
-      ...stages.map((stage) => stage.name),
+      ...dynamicStages.map((stage) => stage.name),
     ];
   }
 }
