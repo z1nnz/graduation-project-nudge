@@ -41,6 +41,15 @@
   `groupId`, `groupName`, and `isGroupOwner` fields are compatibility
   projections, not the canonical Group record.
 - **Group Request**: An owner-issued invitation to join a specific active Group.
+- **Group Manager**: The owner named by the canonical Group record. A Group
+  Manager can publish shared programs and moderate membership, but cannot
+  control an individual Member's Activity Session.
+- **Group Member**: An active participant named by the canonical Group record.
+  A Group Member can read Group Publications and decide when to perform their
+  own activities, but cannot publish or edit manager content.
+- **Group Publication**: Manager-authored shared content stored under a Group,
+  such as a challenge, suggested self-discipline schedule, or exam template.
+  It is not stored in the Manager's private user document.
 - **Study Room**: A persistent peer self-discipline space centered on one
   activity type, shared goals, and shared rules. Members control their own
   activity and progress; a Study Room is not a host-controlled session or a

@@ -12,7 +12,6 @@ class GroupManagerPage extends StatefulWidget {
 
 class _GroupManagerPageState extends State<GroupManagerPage> {
   // Challenge builder controllers
-  final _groupNameCtrl = TextEditingController();
   final _rewardCtrl = TextEditingController();
   String _challengeType = '讀書專注';
   int _challengeDays = 7;
@@ -32,7 +31,6 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
 
   @override
   void dispose() {
-    _groupNameCtrl.dispose();
     _rewardCtrl.dispose();
     _scheduleTitleCtrl.dispose();
     _scheduleTimeCtrl.dispose();
@@ -43,19 +41,21 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
   }
 
   void _publishChallenge(AppState appState) async {
-    final group = _groupNameCtrl.text.trim();
     final reward = _rewardCtrl.text.trim();
-    if (group.isEmpty || reward.isEmpty) {
+    if (reward.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('請填寫團體名稱與通關獎勵'),
+          content: Text('請填寫通關獎勵'),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
-    await appState.publishGroupChallenge(group, _challengeType, _challengeDays, reward);
-    _groupNameCtrl.clear();
+    await appState.publishGroupChallenge(
+      _challengeType,
+      _challengeDays,
+      reward,
+    );
     _rewardCtrl.clear();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,13 +122,33 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final capabilities = appState.experienceCapabilities;
     final accentColor = appState.currentIconColor;
     final primaryText = AppUI.textPrimaryOf(context);
 
+    if (!capabilities.canManageGroup) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('團體管理中心')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.pagePadding),
+            child: Card(
+              shape: AppUI.cardShape(),
+              child: const Padding(
+                padding: EdgeInsets.all(AppUI.innerPadding),
+                child: Text(
+                  '只有目前團體的管理者可以發布挑戰、共同時段與任務模板。團體成員可以在團體任務頁查看內容，並自行決定活動時間。',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('團體與教育管理端'),
-      ),
+      appBar: AppBar(title: const Text('團體與教育管理端')),
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
@@ -190,11 +210,14 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
-                    controller: _groupNameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '團體/班級名稱',
-                      hintText: '例如：三年二班、卓越英文補習班',
+                  InputDecorator(
+                    decoration: const InputDecoration(labelText: '發布到團體'),
+                    child: Text(
+                      appState.groupName ?? '尚未連結有效團體',
+                      style: TextStyle(
+                        color: primaryText,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

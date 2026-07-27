@@ -17,6 +17,7 @@ import '../models/daily_summary.dart';
 import '../models/experience_capabilities.dart';
 import '../models/family_link_contract.dart';
 import '../models/friend_request.dart';
+import '../models/group_contract.dart';
 import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
@@ -107,7 +108,11 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _familyBondEventSubscription;
   StreamSubscription? _familySummarySubscription;
   StreamSubscription? _incomingGroupRequestsSubscription;
-  StreamSubscription? _groupOwnerSubscription;
+  StreamSubscription? _groupSubscription;
+  StreamSubscription? _groupChallengeSubscription;
+  StreamSubscription? _groupSchedulesSubscription;
+  StreamSubscription? _groupTemplateSubscription;
+  String? _listeningGroupId;
   final Set<String> _checkedLegacyGroupIds = {};
   Timer? _dailyResetTimer;
   Timer? _familySummaryPublishTimer;
@@ -251,8 +256,12 @@ class AppState extends ChangeNotifier {
               _userRole = data['userRole'] as String? ?? _userRole;
               _groupId = data['groupId'] as String?;
               _groupName = data['groupName'] as String?;
-              _isGroupOwner = data['isGroupOwner'] as bool? ?? false;
-              if (_isGroupOwner && _groupId != null && _groupName != null) {
+              final projectedIsGroupOwner =
+                  data['isGroupOwner'] as bool? ?? false;
+              _isGroupOwner = projectedIsGroupOwner;
+              if (projectedIsGroupOwner &&
+                  _groupId != null &&
+                  _groupName != null) {
                 unawaited(
                   _migrateLegacyGroupProjection(
                     user.uid,
@@ -263,6 +272,7 @@ class AppState extends ChangeNotifier {
               } else if (_groupId != null) {
                 unawaited(_ensureCanonicalGroupMembership(user.uid, _groupId!));
               }
+              _setupCanonicalGroupListener(user.uid, _groupId);
               _profileTitleBadgeKey =
                   data['profileTitleBadgeKey'] as String? ?? '';
               if (data['backgroundTheme'] != null) {
@@ -277,12 +287,6 @@ class AppState extends ChangeNotifier {
                 if (cloudFocusSeconds > _focusSeconds) {
                   _focusSeconds = cloudFocusSeconds;
                 }
-              }
-              if (_groupId != null && !_isGroupOwner) {
-                _setupGroupOwnerListener(user.uid, _groupId!);
-              } else {
-                _groupOwnerSubscription?.cancel();
-                _groupOwnerSubscription = null;
               }
               _syncTaskRewards();
               checkWeeklyPlanetSettlement();
@@ -558,6 +562,108 @@ class AppState extends ChangeNotifier {
         });
   }
 
+  void _setupCanonicalGroupListener(String userId, String? groupId) {
+    if (groupId == null || groupId.isEmpty) {
+      _groupSubscription?.cancel();
+      _groupSubscription = null;
+      _clearGroupPublicationListeners();
+      _canonicalGroup = null;
+      _listeningGroupId = null;
+      return;
+    }
+    if (_listeningGroupId == groupId && _groupSubscription != null) return;
+
+    _groupSubscription?.cancel();
+    _clearGroupPublicationListeners();
+    _canonicalGroup = null;
+    _listeningGroupId = groupId;
+    _groupSubscription = FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            if (!snapshot.exists) {
+              _canonicalGroup = null;
+              _clearGroupPublicationListeners();
+              notifyListeners();
+              return;
+            }
+            final group = GroupContract.fromMap(snapshot.id, snapshot.data()!);
+            if (!group.isMember(userId)) {
+              _canonicalGroup = null;
+              _clearGroupPublicationListeners();
+              notifyListeners();
+              return;
+            }
+            _canonicalGroup = group;
+            _groupName = group.name;
+            _isGroupOwner = group.isManager(userId);
+            _setupGroupPublicationListeners(group.id);
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('Error listening to canonical group: $error');
+            _canonicalGroup = null;
+            _clearGroupPublicationListeners();
+            notifyListeners();
+          },
+        );
+  }
+
+  void _setupGroupPublicationListeners(String groupId) {
+    if (_groupChallengeSubscription != null &&
+        _groupSchedulesSubscription != null &&
+        _groupTemplateSubscription != null) {
+      return;
+    }
+    final groupRef = FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId);
+    _groupChallengeSubscription = groupRef
+        .collection('challenges')
+        .doc('current')
+        .snapshots()
+        .listen((snapshot) {
+          _groupChallengePublication = snapshot.exists ? snapshot.data() : null;
+          notifyListeners();
+        });
+    _groupSchedulesSubscription = groupRef
+        .collection('study_schedules')
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .listen((snapshot) {
+          _groupSchedulePublications = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(growable: false);
+          notifyListeners();
+        });
+    _groupTemplateSubscription = groupRef
+        .collection('templates')
+        .orderBy('updatedAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+          _groupTemplatePublication = snapshot.docs.isEmpty
+              ? null
+              : {'id': snapshot.docs.first.id, ...snapshot.docs.first.data()};
+          notifyListeners();
+        });
+  }
+
+  void _clearGroupPublicationListeners() {
+    _groupChallengeSubscription?.cancel();
+    _groupSchedulesSubscription?.cancel();
+    _groupTemplateSubscription?.cancel();
+    _groupChallengeSubscription = null;
+    _groupSchedulesSubscription = null;
+    _groupTemplateSubscription = null;
+    _groupChallengePublication = null;
+    _groupSchedulePublications = [];
+    _groupTemplatePublication = null;
+  }
+
   void _setupFamilyInteractionListeners(String linkId) {
     _clearFamilyInteractionListeners();
     _listeningFamilyLinkId = linkId;
@@ -641,7 +747,8 @@ class AppState extends ChangeNotifier {
     _familySummarySubscription?.cancel();
     _familySummaryPublishTimer?.cancel();
     _incomingGroupRequestsSubscription?.cancel();
-    _groupOwnerSubscription?.cancel();
+    _groupSubscription?.cancel();
+    _clearGroupPublicationListeners();
 
     _userSubscription = null;
     _friendsSubscription = null;
@@ -664,7 +771,9 @@ class AppState extends ChangeNotifier {
     _familyBondEvents = [];
     _familySummary = null;
     _incomingGroupRequestsSubscription = null;
-    _groupOwnerSubscription = null;
+    _groupSubscription = null;
+    _canonicalGroup = null;
+    _listeningGroupId = null;
   }
 
   @override
@@ -1143,14 +1252,22 @@ class AppState extends ChangeNotifier {
   String? _groupId;
   String? _groupName;
   bool _isGroupOwner = false;
+  GroupContract? _canonicalGroup;
+  Map<String, dynamic>? _groupChallengePublication;
+  List<Map<String, dynamic>> _groupSchedulePublications = [];
+  Map<String, dynamic>? _groupTemplatePublication;
 
   List<Map<String, dynamic>> get tasks => _tasks;
   Map<String, dynamic>? get webToolsState => _webToolsState;
   Map<String, dynamic>? get webToolsCollection => _webToolsCollection;
   String get userRole => _userRole;
-  String? get groupId => _groupId;
-  String? get groupName => _groupName;
-  bool get isGroupOwner => _isGroupOwner;
+  GroupContract? get canonicalGroup => _canonicalGroup;
+  String? get groupId => _canonicalGroup?.id;
+  String? get groupName => _canonicalGroup?.name;
+  bool get isGroupOwner =>
+      _canonicalGroup?.isManager(_currentUser?.id ?? '') ?? false;
+  bool get hasActiveGroupMembership =>
+      _canonicalGroup?.isMember(_currentUser?.id ?? '') ?? false;
   bool get isGuardianLinked => _familyLink?.status == FamilyLinkStatus.active;
   FamilyLinkContract? get familyLink => _familyLink;
   bool get isCurrentFamilyGuardian =>
@@ -1179,8 +1296,8 @@ class AppState extends ChangeNotifier {
   ExperienceCapabilities get experienceCapabilities =>
       ExperienceCapabilities.resolve(
         rawRole: _userRole,
-        isGroupOwner: _isGroupOwner,
-        hasGroup: _groupId != null,
+        isGroupOwner: isGroupOwner,
+        hasGroup: hasActiveGroupMembership,
         isGuardianLinked: isGuardianLinked,
       );
 
@@ -1218,29 +1335,19 @@ class AppState extends ChangeNotifier {
   }
 
   Map<String, dynamic>? get groupChallenge {
-    if (_webToolsState == null || _webToolsState!['challenge'] == null) {
-      return null;
-    }
-    return Map<String, dynamic>.from(_webToolsState!['challenge'] as Map);
+    return _groupChallengePublication == null
+        ? null
+        : Map<String, dynamic>.unmodifiable(_groupChallengePublication!);
   }
 
   List<Map<String, dynamic>> get studySchedules {
-    if (_webToolsCollection == null ||
-        _webToolsCollection!['studySchedules'] == null) {
-      return [];
-    }
-    return List<Map<String, dynamic>>.from(
-      (_webToolsCollection!['studySchedules'] as List).map(
-        (x) => Map<String, dynamic>.from(x as Map),
-      ),
-    );
+    return List<Map<String, dynamic>>.unmodifiable(_groupSchedulePublications);
   }
 
   Map<String, dynamic>? get examTemplate {
-    if (_webToolsState == null || _webToolsState!['template'] == null) {
-      return null;
-    }
-    return Map<String, dynamic>.from(_webToolsState!['template'] as Map);
+    return _groupTemplatePublication == null
+        ? null
+        : Map<String, dynamic>.unmodifiable(_groupTemplatePublication!);
   }
 
   int get focusSeconds => _focusSeconds;
@@ -7007,52 +7114,49 @@ ${historyBuffer.toString()}
   }
 
   Future<void> publishGroupChallenge(
-    String groupName,
     String type,
     int days,
     String reward,
   ) async {
     final user = _currentUser;
-    if (user == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id);
-      await docRef.update({
-        'webToolsState.challenge': {
-          'group': groupName,
-          'type': type,
-          'days': days,
-          'reward': reward,
-          'updatedAt': DateTime.now().toIso8601String(),
-        },
-      });
-    } catch (e) {
-      debugPrint('Failed to publish group challenge: $e');
+    final group = _canonicalGroup;
+    if (user == null || group == null) {
+      throw StateError('請先加入有效團體');
     }
+    final payload = GroupPublicationContract.buildChallenge(
+      group: group,
+      publisherId: user.id,
+      type: type,
+      days: days,
+      reward: reward,
+      now: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(group.id)
+        .collection('challenges')
+        .doc('current')
+        .set(payload);
   }
 
   Future<void> publishStudySchedule(String title, String meta) async {
     final user = _currentUser;
-    if (user == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id);
-      final newSchedule = {
-        'title': title,
-        'meta': meta,
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-      final updated = [newSchedule, ...studySchedules];
-      await docRef.update({
-        'webToolsCollection.studySchedules': updated,
-        'webToolsCollection.studySchedulesUpdatedAt': DateTime.now()
-            .toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('Failed to publish study schedule: $e');
+    final group = _canonicalGroup;
+    if (user == null || group == null) {
+      throw StateError('請先加入有效團體');
     }
+    final payload = GroupPublicationContract.buildStudySchedule(
+      group: group,
+      publisherId: user.id,
+      title: title,
+      meta: meta,
+      now: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(group.id)
+        .collection('study_schedules')
+        .add(payload);
   }
 
   Future<void> publishExamTemplate(
@@ -7062,23 +7166,24 @@ ${historyBuffer.toString()}
     String strategy,
   ) async {
     final user = _currentUser;
-    if (user == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id);
-      await docRef.update({
-        'webToolsState.template': {
-          'type': type,
-          'days': days,
-          'effort': effort,
-          'pressure': strategy,
-          'updatedAt': DateTime.now().toIso8601String(),
-        },
-      });
-    } catch (e) {
-      debugPrint('Failed to publish exam template: $e');
+    final group = _canonicalGroup;
+    if (user == null || group == null) {
+      throw StateError('請先加入有效團體');
     }
+    final payload = GroupPublicationContract.buildTemplate(
+      group: group,
+      publisherId: user.id,
+      type: type,
+      days: days,
+      effort: effort,
+      strategy: strategy,
+      now: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(group.id)
+        .collection('templates')
+        .add(payload);
   }
 
   /// 進行家長/小孩帳號雙向連結綁定
@@ -7456,54 +7561,5 @@ ${historyBuffer.toString()}
     _groupName = null;
     _isGroupOwner = false;
     notifyListeners();
-  }
-
-  void _setupGroupOwnerListener(String myUid, String groupId) {
-    if (_groupOwnerSubscription != null) return;
-    _groupOwnerSubscription = FirebaseFirestore.instance
-        .collection('users')
-        .where('groupId', isEqualTo: groupId)
-        .where('isGroupOwner', isEqualTo: true)
-        .limit(1)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            if (snapshot.docs.isNotEmpty) {
-              final ownerData = snapshot.docs.first.data();
-              bool changed = false;
-              if (ownerData['webToolsState'] != null) {
-                final ownerState = Map<String, dynamic>.from(
-                  ownerData['webToolsState'] as Map,
-                );
-                _webToolsState ??= {};
-                if (ownerState['challenge'] != null) {
-                  _webToolsState!['challenge'] = ownerState['challenge'];
-                  changed = true;
-                }
-                if (ownerState['template'] != null) {
-                  _webToolsState!['template'] = ownerState['template'];
-                  changed = true;
-                }
-              }
-              if (ownerData['webToolsCollection'] != null) {
-                final ownerCollection = Map<String, dynamic>.from(
-                  ownerData['webToolsCollection'] as Map,
-                );
-                _webToolsCollection ??= {};
-                if (ownerCollection['studySchedules'] != null) {
-                  _webToolsCollection!['studySchedules'] =
-                      ownerCollection['studySchedules'];
-                  changed = true;
-                }
-              }
-              if (changed) {
-                notifyListeners();
-              }
-            }
-          },
-          onError: (e) {
-            debugPrint('Error listening to group owner: $e');
-          },
-        );
   }
 }

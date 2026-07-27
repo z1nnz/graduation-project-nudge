@@ -204,7 +204,7 @@ class GroupManagementPage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(AppUI.innerPadding),
                 child: Text(
-                  '目前無排程的讀書時段。家長或老師可在 Web 端「讀書時段」中新增。',
+                  '目前沒有共同自律時段。團體管理者可發布建議時間；成員仍自行開始與完成。',
                   style: TextStyle(fontSize: 13, color: secondaryText),
                 ),
               ),

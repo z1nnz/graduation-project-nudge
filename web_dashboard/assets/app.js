@@ -31,6 +31,14 @@ function loadFamilyLinkContract() {
   );
 }
 
+function loadGroupContract() {
+  return loadWindowModule(
+    "NudgeGroupContract",
+    "assets/group_contract.js?v=1",
+    "團體契約模組載入失敗",
+  );
+}
+
 function isPreviewMode() {
   return localStorage.getItem("nudgePreviewMode") === "true";
 }
@@ -69,13 +77,25 @@ function resolveWebCapabilities(data = {}) {
     throw new Error("角色能力模組尚未就緒");
   }
 
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const canonicalMember =
+    !isPreviewMode() &&
+    groupLoaded &&
+    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId);
+  const canonicalManager =
+    canonicalMember &&
+    window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId);
+
   return resolver({
     rawRole: data.userRole,
     familyLinked:
       Boolean(activeFamilyLink) ||
       (isPreviewMode() && ["guardian", "child"].includes(data.userRole)),
-    hasGroup: Boolean(data.groupId),
-    isGroupOwner: Boolean(data.isGroupOwner),
+    hasGroup: isPreviewMode() ? Boolean(data.groupId) : Boolean(canonicalMember),
+    isGroupOwner: isPreviewMode()
+      ? Boolean(data.isGroupOwner)
+      : Boolean(canonicalManager),
     isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
     isPreview: isPreviewMode(),
   });
@@ -88,13 +108,25 @@ function resolveWebRoleGateRedirect(path, data = {}) {
     throw new Error("角色能力模組尚未就緒");
   }
 
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const canonicalMember =
+    !isPreviewMode() &&
+    groupLoaded &&
+    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId);
+  const canonicalManager =
+    canonicalMember &&
+    window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId);
+
   return resolver(path, {
     rawRole: data.userRole,
     familyLinked:
       Boolean(activeFamilyLink) ||
       (isPreviewMode() && ["guardian", "child"].includes(data.userRole)),
-    hasGroup: Boolean(data.groupId),
-    isGroupOwner: Boolean(data.isGroupOwner),
+    hasGroup: isPreviewMode() ? Boolean(data.groupId) : Boolean(canonicalMember),
+    isGroupOwner: isPreviewMode()
+      ? Boolean(data.isGroupOwner)
+      : Boolean(canonicalManager),
     isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
     isPreview: isPreviewMode(),
   });
@@ -480,6 +512,7 @@ function saveDemoState(key, payload) {
     updatedAt: new Date().toISOString(),
   };
   localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+  if (isPreviewMode()) return;
   
   // Sync to Firestore if user logged in
   const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
@@ -561,8 +594,10 @@ function bindExtensionTools() {
   });
 
   let challengeText = "";
-  challengeTool?.querySelector('[data-action="generate-challenge"]')?.addEventListener("click", () => {
-    const group = $('[data-challenge-group]', challengeTool).value.trim() || "未命名團體";
+  challengeTool?.querySelector('[data-action="generate-challenge"]')?.addEventListener("click", async () => {
+    const group = activeWebGroup?.name ||
+      $('[data-challenge-group]', challengeTool).value.trim() ||
+      "未命名團體";
     const type = $('[data-challenge-type]', challengeTool).value;
     const days = Number($('[data-challenge-days]', challengeTool).value || 7);
     const reward = $('[data-challenge-reward]', challengeTool).value;
@@ -571,8 +606,18 @@ function bindExtensionTools() {
       challengeTool,
       `<strong>${group}：${days} 日${type}</strong><p>獎勵為 ${reward}，系統會自動產生排行榜、提醒節奏與活動週報。</p>`,
     );
-    saveDemoState("challenge", { group, type, days, reward });
-    toast("挑戰草稿已建立");
+    if (isPreviewMode()) {
+      saveDemoState("challenge", { group, type, days, reward });
+      toast("展示模式：挑戰草稿已建立");
+      return;
+    }
+    try {
+      await publishCanonicalWebGroupChallenge({ type, days, reward });
+      toast("團體挑戰已同步到成員 App");
+    } catch (error) {
+      console.error(error);
+      toast(error.message || "團體挑戰發布失敗");
+    }
   });
   challengeTool?.querySelector('[data-action="download-challenge"]')?.addEventListener("click", () => {
     downloadTextFile("nudge-group-challenge.txt", challengeText || "請先建立挑戰草稿。");
@@ -653,9 +698,9 @@ function bindExtensionTools() {
     list.innerHTML = items
       .map((item, index) => `
         <article style="position: relative;">
-          <strong>${item.title}</strong>
-          <span>${item.meta}</span>
-          <button class="delete-btn" data-key="${key}" data-index="${index}" style="position: absolute; right: 10px; top: 10px; background: transparent; border: none; color: #ff3b3b; cursor: pointer; font-family: monospace;">[刪除]</button>
+          <strong>${escapeHtml(item.title)}</strong>
+          <span>${escapeHtml(item.meta)}</span>
+          <button class="${key === "studySchedules" && item.id && !isPreviewMode() ? "delete-group-schedule-btn" : "delete-btn"}" data-key="${key}" data-index="${index}" data-schedule-id="${escapeHtml(item.id || "")}" style="position: absolute; right: 10px; top: 10px; background: transparent; border: none; color: #ff3b3b; cursor: pointer; font-family: monospace;">[刪除]</button>
         </article>
       `)
       .join("");
@@ -664,6 +709,16 @@ function bindExtensionTools() {
 
   // Delegate delete events globally
   document.body.addEventListener("click", (e) => {
+    if (e.target.matches(".delete-group-schedule-btn")) {
+      const scheduleId = e.target.dataset.scheduleId;
+      deleteCanonicalWebStudySchedule(scheduleId)
+        .then(() => toast("已刪除團體自律時段"))
+        .catch(error => {
+          console.error(error);
+          toast(error.message || "時段刪除失敗");
+        });
+      return;
+    }
     if (e.target.matches(".delete-btn")) {
       const key = e.target.dataset.key;
       const index = parseInt(e.target.dataset.index, 10);
@@ -687,6 +742,7 @@ function bindExtensionTools() {
     current[key] = items;
     current[`${key}UpdatedAt`] = new Date().toISOString();
     localStorage.setItem("nudgeWebTools", JSON.stringify(current));
+    if (isPreviewMode()) return;
     
     // Sync to Firestore if user logged in
     const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
@@ -800,18 +856,29 @@ function bindExtensionTools() {
     }
   });
 
-  studyScheduleTool?.querySelector('[data-action="save-study-schedule"]')?.addEventListener("click", () => {
+  studyScheduleTool?.querySelector('[data-action="save-study-schedule"]')?.addEventListener("click", async () => {
     const title = $('[data-study-title]', studyScheduleTool).value.trim() || "未命名共讀";
     const time = $('[data-study-time]', studyScheduleTool).value || "未設定";
     const duration = $('[data-study-duration]', studyScheduleTool).value;
     const room = $('[data-study-room]', studyScheduleTool).value;
     setOutput(studyScheduleTool, `<strong>${title}</strong><p>${time}，${duration}，將建立${room}並排程提醒。</p>`);
-    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
-    const studySchedules = store.studySchedules || [];
-    studySchedules.unshift({ title, meta: `${time} / ${duration} / ${room}` });
-    saveToolCollection("studySchedules", studySchedules.slice(0, 50));
-    renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
-    toast("讀書時段已建立 Demo");
+    const meta = `${time} / ${duration} / ${room}`;
+    if (isPreviewMode()) {
+      const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+      const studySchedules = store.studySchedules || [];
+      studySchedules.unshift({ title, meta });
+      saveToolCollection("studySchedules", studySchedules.slice(0, 50));
+      renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
+      toast("展示模式：讀書時段已建立");
+      return;
+    }
+    try {
+      await publishCanonicalWebStudySchedule({ title, meta });
+      toast("讀書時段已同步到成員 App");
+    } catch (error) {
+      console.error(error);
+      toast(error.message || "讀書時段發布失敗");
+    }
   });
 
   let futureLetterText = "";
@@ -1523,76 +1590,72 @@ function bindExamTemplates() {
   const templateListContainer = $("[data-template-list]");
   if (!templateListContainer) return;
 
-  const defaultTemplates = [
-    { time: "週一", title: "建立目標", desc: "派發本週讀書與健康任務。" },
-    { time: "週三", title: "中段提醒", desc: "自動提醒落後小組與個人。" },
-    { time: "週五", title: "共同自律房", desc: "排程 50 分鐘團體專注。" },
-    { time: "週日", title: "週報匯出", desc: "生成班級、小組、個人摘要。" }
-  ];
-
   const loadExamTemplates = () => {
-    const store = JSON.parse(localStorage.getItem("nudgeWebExamTemplates"));
-    return store || defaultTemplates;
+    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+    return store.groupTemplates || [];
   };
 
-  const saveExamTemplates = (templates) => {
-    localStorage.setItem("nudgeWebExamTemplates", JSON.stringify(templates));
-  };
-
-  const renderExamTemplates = () => {
-    const templates = loadExamTemplates();
-    templateListContainer.innerHTML = templates.map((tpl, idx) => `
+  const renderExamTemplates = (templates = loadExamTemplates()) => {
+    templateListContainer.innerHTML = templates.length
+      ? templates.map(tpl => `
       <article>
-        <button type="button" class="delete-template-btn" data-idx="${idx}" title="刪除">×</button>
-        <small>${tpl.time}</small>
-        <strong>${tpl.title}</strong>
-        <span>${tpl.desc}</span>
+        <button type="button" class="delete-template-btn" data-template-id="${escapeHtml(tpl.id || "")}" title="刪除">×</button>
+        <small>${escapeHtml(`${tpl.days || 7} 天`)}</small>
+        <strong>${escapeHtml(tpl.type || "未命名模板")}</strong>
+        <span>${escapeHtml(tpl.effort || "")}</span>
       </article>
-    `).join("");
+    `).join("")
+      : `<article><small>尚未發布</small><strong>建立第一個團體模板</strong><span>發布後，成員 App 會讀取同一份團體資料。</span></article>`;
 
     $$(".delete-template-btn", templateListContainer).forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const idx = parseInt(e.currentTarget.dataset.idx, 10);
-        const tpls = loadExamTemplates();
-        tpls.splice(idx, 1);
-        saveExamTemplates(tpls);
-        renderExamTemplates();
-        toast("已刪除模板");
+      btn.addEventListener("click", async (e) => {
+        const templateId = e.currentTarget.dataset.templateId;
+        if (isPreviewMode() || !templateId) {
+          toast("展示模式不會刪除正式資料");
+          return;
+        }
+        try {
+          await deleteCanonicalWebGroupTemplate(templateId);
+          toast("已刪除團體模板");
+        } catch (error) {
+          console.error(error);
+          toast(error.message || "模板刪除失敗");
+        }
       });
     });
   };
+  window.renderCanonicalGroupTemplates = renderExamTemplates;
 
   renderExamTemplates();
 
   const addBtn = $('[data-action="add-template"]');
   if (addBtn) {
-    addBtn.addEventListener("click", () => {
-      const timeInput = $('[data-template-time]');
-      const titleInput = $('[data-template-title]');
-      const descInput = $('[data-template-desc]');
-      
-      const time = timeInput.value.trim() || "新時段";
-      const title = titleInput.value.trim() || "新模板";
-      const desc = descInput.value.trim() || "無說明";
+    addBtn.addEventListener("click", async () => {
+      const daysInput = $('[data-template-days]');
+      const typeInput = $('[data-template-title]');
+      const effortInput = $('[data-template-desc]');
+      const strategyInput = $('[data-template-strategy]');
+      const payload = {
+        type: typeInput.value.trim(),
+        days: Number(daysInput.value || 7),
+        effort: effortInput.value.trim(),
+        strategy: strategyInput.value.trim(),
+      };
 
-      const tpls = loadExamTemplates();
-      tpls.push({ time, title, desc });
-      
-      const dayWeights = { "週一": 1, "週二": 2, "週三": 3, "週四": 4, "週五": 5, "週六": 6, "週日": 7 };
-      tpls.sort((a, b) => {
-        const weightA = dayWeights[a.time] || 99;
-        const weightB = dayWeights[b.time] || 99;
-        if (weightA !== weightB) return weightA - weightB;
-        return 0;
-      });
-
-      saveExamTemplates(tpls);
-      renderExamTemplates();
-
-      timeInput.value = "";
-      titleInput.value = "";
-      descInput.value = "";
-      toast("已加入模板");
+      if (isPreviewMode()) {
+        toast("展示模式：模板預覽已建立，不會寫入正式資料");
+        return;
+      }
+      try {
+        await publishCanonicalWebGroupTemplate(payload);
+        typeInput.value = "";
+        effortInput.value = "";
+        strategyInput.value = "";
+        toast("團體模板已同步到成員 App");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "模板發布失敗");
+      }
     });
   }
 }
@@ -1879,6 +1942,7 @@ async function bootFirebaseBackedData() {
     await Promise.all([
       loadRelationshipCapabilities(),
       loadFamilyLinkContract(),
+      loadGroupContract(),
     ]);
   } catch (error) {
     console.error(error);
@@ -1985,10 +2049,17 @@ let activeFamilyLink = null;
 let currentFamilySummary = null;
 let currentWebUserData = null;
 let familyLinkLoaded = false;
+let activeWebGroup = null;
+let groupLoaded = false;
 let familyLinkSub = null;
 let familyEncouragementSub = null;
 let familyGoalSub = null;
 let familySummarySub = null;
+let groupDocSub = null;
+let groupChallengeSub = null;
+let groupSchedulesSub = null;
+let groupTemplatesSub = null;
+let listeningWebGroupId = undefined;
 
 function stopFamilyInteractionListeners() {
   if (familyEncouragementSub) familyEncouragementSub();
@@ -2092,6 +2163,168 @@ function listenToFamilyInteractions(linkId) {
       currentFamilySummary = snapshot.exists ? snapshot.data() : null;
       renderFamilyReportState();
     });
+}
+
+function stopGroupPublicationListeners() {
+  if (groupChallengeSub) groupChallengeSub();
+  if (groupSchedulesSub) groupSchedulesSub();
+  if (groupTemplatesSub) groupTemplatesSub();
+  groupChallengeSub = null;
+  groupSchedulesSub = null;
+  groupTemplatesSub = null;
+}
+
+function effectiveWebGroupProfile() {
+  const data = currentWebUserData || {};
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const isMember =
+    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId) === true;
+  if (!isMember) {
+    return {
+      ...data,
+      groupId: null,
+      groupName: null,
+      isGroupOwner: false,
+    };
+  }
+  return {
+    ...data,
+    groupId: activeWebGroup.id,
+    groupName: activeWebGroup.name,
+    isGroupOwner:
+      window.NudgeGroupContract.isGroupManager(activeWebGroup, userId),
+  };
+}
+
+function refreshCanonicalGroupUi() {
+  const groupNameInput = document.querySelector("[data-challenge-group]");
+  if (groupNameInput && activeWebGroup) {
+    groupNameInput.value = activeWebGroup.name;
+  }
+  const heroCount = document.querySelector(".hero-card [data-count]");
+  if (heroCount && activeWebGroup && window.location.pathname.includes("groups-challenge")) {
+    heroCount.textContent = String(activeWebGroup.memberIds?.length || 0);
+  }
+  if (currentWebUserData) {
+    updateSidebarProfile(effectiveWebGroupProfile());
+  }
+}
+
+function syncCanonicalGroupPublicationsToLocal({
+  challenge,
+  schedules,
+  templates,
+} = {}) {
+  const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  if (challenge !== undefined) {
+    if (challenge) store.challenge = challenge;
+    else delete store.challenge;
+  }
+  if (schedules !== undefined) {
+    store.studySchedules = schedules;
+    if (window.location.pathname.includes("groups-study-schedule")) {
+      const count = document.querySelector(".hero-card [data-count]");
+      if (count) count.textContent = String(schedules.length);
+    }
+  }
+  if (templates !== undefined) {
+    store.groupTemplates = templates;
+    if (window.location.pathname.includes("groups-templates")) {
+      const count = document.querySelector(".hero-card [data-count]");
+      if (count) count.textContent = String(templates.length);
+    }
+  }
+  localStorage.setItem("nudgeWebTools", JSON.stringify(store));
+
+  if (typeof window.renderSavedList === "function") {
+    window.renderSavedList(
+      "[data-study-list]",
+      "studySchedules",
+      "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>",
+    );
+  }
+  if (typeof window.renderCanonicalGroupTemplates === "function") {
+    window.renderCanonicalGroupTemplates(templates ?? store.groupTemplates ?? []);
+  }
+}
+
+function listenToGroupPublications(groupId) {
+  stopGroupPublicationListeners();
+  const groupRef = db.collection("groups").doc(groupId);
+  groupChallengeSub = groupRef
+    .collection("challenges")
+    .doc("current")
+    .onSnapshot(snapshot => {
+      syncCanonicalGroupPublicationsToLocal({
+        challenge: snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null,
+      });
+    });
+  groupSchedulesSub = groupRef
+    .collection("study_schedules")
+    .orderBy("createdAt", "desc")
+    .limit(50)
+    .onSnapshot(snapshot => {
+      syncCanonicalGroupPublicationsToLocal({
+        schedules: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+      });
+    });
+  groupTemplatesSub = groupRef
+    .collection("templates")
+    .orderBy("updatedAt", "desc")
+    .limit(50)
+    .onSnapshot(snapshot => {
+      syncCanonicalGroupPublicationsToLocal({
+        templates: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+      });
+    });
+}
+
+function listenToCanonicalWebGroup(userId, projectedGroupId) {
+  if (!db) return;
+  const nextGroupId = projectedGroupId || null;
+  if (
+    listeningWebGroupId === nextGroupId &&
+    (groupDocSub || (nextGroupId === null && groupLoaded))
+  ) {
+    return;
+  }
+  listeningWebGroupId = nextGroupId;
+  if (groupDocSub) groupDocSub();
+  stopGroupPublicationListeners();
+  activeWebGroup = null;
+  groupLoaded = false;
+
+  if (!nextGroupId) {
+    groupLoaded = true;
+    refreshCanonicalGroupUi();
+    return;
+  }
+
+  groupDocSub = db.collection("groups").doc(nextGroupId).onSnapshot(
+    snapshot => {
+      groupLoaded = true;
+      const group = snapshot.exists
+        ? { id: snapshot.id, ...snapshot.data() }
+        : null;
+      if (!window.NudgeGroupContract?.isGroupMember(group, userId)) {
+        activeWebGroup = null;
+        stopGroupPublicationListeners();
+        refreshCanonicalGroupUi();
+        return;
+      }
+      activeWebGroup = group;
+      listenToGroupPublications(group.id);
+      refreshCanonicalGroupUi();
+    },
+    error => {
+      console.error("Canonical group listen error:", error);
+      groupLoaded = true;
+      activeWebGroup = null;
+      stopGroupPublicationListeners();
+      refreshCanonicalGroupUi();
+    },
+  );
 }
 
 function renderFamilyLinkState() {
@@ -2403,6 +2636,13 @@ function updateRoleAwareNavigation(data) {
 }
 
 function applyRoleSpecificCopy(data, capabilities) {
+  const isGroupPage = window.location.pathname.includes("/groups");
+  if (isGroupPage) {
+    const challengeGroupInput = document.querySelector("[data-challenge-group]");
+    if (challengeGroupInput && data.groupName) {
+      challengeGroupInput.value = data.groupName;
+    }
+  }
   if (!window.location.pathname.endsWith("/groups.html")) {
     return;
   }
@@ -2523,6 +2763,7 @@ function checkPagePermissions(data) {
   const isGroupsPage = path.includes("groups") || document.body.getAttribute("data-page") === "groups";
   const isLinkPage = path.includes("guardian-link.html") || path.includes("groups-link.html");
   if (isGuardianPage && !isPreviewMode() && !familyLinkLoaded) return;
+  if (isGroupsPage && !isPreviewMode() && !groupLoaded) return;
   const roleGateRedirect = resolveWebRoleGateRedirect(path, data);
 
   if (roleGateRedirect) {
@@ -2659,7 +2900,7 @@ function checkPagePermissions(data) {
   }
   
   if (isGroupsPage) {
-    const hasGroup = !!data.groupId;
+    const hasGroup = capabilities.hasGroup;
     const isGroupsLinkPage = window.location.pathname.includes("groups-link.html");
 
     // Add subnav link dynamically if not present
@@ -3598,6 +3839,88 @@ async function unlinkWebGuardian() {
 
 window.unlinkWebGuardian = unlinkWebGuardian;
 
+function requireCanonicalWebGroupManager() {
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  if (!userId || !activeWebGroup) {
+    throw new Error("請先加入有效團體");
+  }
+  if (!window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId)) {
+    throw new Error("只有目前團體的管理者可以發布團體內容");
+  }
+  return { group: activeWebGroup, userId };
+}
+
+async function publishCanonicalWebGroupChallenge({ type, days, reward }) {
+  const { group, userId } = requireCanonicalWebGroupManager();
+  const payload = window.NudgeGroupContract.buildGroupChallenge({
+    group,
+    publisherId: userId,
+    type,
+    days,
+    reward,
+  });
+  await db.collection("groups")
+    .doc(group.id)
+    .collection("challenges")
+    .doc("current")
+    .set(payload);
+}
+
+async function publishCanonicalWebStudySchedule({ title, meta }) {
+  const { group, userId } = requireCanonicalWebGroupManager();
+  const payload = window.NudgeGroupContract.buildGroupStudySchedule({
+    group,
+    publisherId: userId,
+    title,
+    meta,
+  });
+  await db.collection("groups")
+    .doc(group.id)
+    .collection("study_schedules")
+    .add(payload);
+}
+
+async function deleteCanonicalWebStudySchedule(scheduleId) {
+  const { group } = requireCanonicalWebGroupManager();
+  if (!scheduleId) throw new Error("找不到要刪除的時段");
+  await db.collection("groups")
+    .doc(group.id)
+    .collection("study_schedules")
+    .doc(scheduleId)
+    .delete();
+}
+
+async function publishCanonicalWebGroupTemplate({
+  type,
+  days,
+  effort,
+  strategy,
+}) {
+  const { group, userId } = requireCanonicalWebGroupManager();
+  const payload = window.NudgeGroupContract.buildGroupTemplate({
+    group,
+    publisherId: userId,
+    type,
+    days,
+    effort,
+    strategy,
+  });
+  await db.collection("groups")
+    .doc(group.id)
+    .collection("templates")
+    .add(payload);
+}
+
+async function deleteCanonicalWebGroupTemplate(templateId) {
+  const { group } = requireCanonicalWebGroupManager();
+  await db.collection("groups")
+    .doc(group.id)
+    .collection("templates")
+    .doc(templateId)
+    .delete();
+}
+
 function generateWebGroupId() {
   return `GRP-${Date.now().toString(36).toUpperCase()}`;
 }
@@ -4103,7 +4426,7 @@ function getRoleLabel(role) {
     case "personal": return "個人";
     case "child": return "孩子";
     case "guardian": return "家長";
-    case "group": return "團體挑戰";
+    case "group": return "團體";
     case "enterprise": return "企業管理";
     case "tutor": return "補習班管理";
     case "school": return "學校班級";
@@ -4208,8 +4531,6 @@ let currentUserTasks = [];
 let currentUserDailySummaries = [];
 let childDocSub = null;
 let currentChildNudgeId = null;
-let groupOwnerSub = null;
-let currentGroupIdListener = null;
 
 function updateParentDashboardWithChildData(childData) {
   const tasks = childData.tasks || [];
@@ -4302,33 +4623,6 @@ function updateParentDashboardWithChildData(childData) {
   if (chipA) {
     chipA.dataset.count = completionRate;
     chipA.textContent = `${completionRate}%`;
-  }
-}
-
-function syncGroupOwnerDataToLocal(ownerData) {
-  const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
-  let changed = false;
-  if (ownerData.webToolsState) {
-    for (const k of ["challenge", "template"]) {
-      if (ownerData.webToolsState[k] && JSON.stringify(store[k]) !== JSON.stringify(ownerData.webToolsState[k])) {
-        store[k] = ownerData.webToolsState[k];
-        changed = true;
-      }
-    }
-  }
-  if (ownerData.webToolsCollection) {
-    for (const k of ["studySchedules"]) {
-      if (ownerData.webToolsCollection[k] && JSON.stringify(store[k]) !== JSON.stringify(ownerData.webToolsCollection[k])) {
-        store[k] = ownerData.webToolsCollection[k];
-        changed = true;
-      }
-    }
-  }
-  if (changed) {
-    localStorage.setItem("nudgeWebTools", JSON.stringify(store));
-    if (typeof window.renderSavedList === 'function') {
-      window.renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
-    }
   }
 }
 
@@ -4561,32 +4855,9 @@ function listenToUser(userId) {
     // family_links record. Parent pages never subscribe to the child's raw
     // user document.
 
-    // Group member sync
-    const isGroupMember = ["group", "enterprise", "tutor", "school"].includes(data.userRole) && !data.isGroupOwner;
-    const groupId = data.groupId;
-    if (isGroupMember && groupId) {
-      if (currentGroupIdListener !== groupId) {
-        currentGroupIdListener = groupId;
-        if (groupOwnerSub) groupOwnerSub();
-        groupOwnerSub = db.collection("users")
-          .where("groupId", "==", groupId)
-          .where("isGroupOwner", "==", true)
-          .limit(1)
-          .onSnapshot((ownerQuerySnap) => {
-            if (!ownerQuerySnap.empty) {
-              const ownerDoc = ownerQuerySnap.docs[0];
-              const ownerData = ownerDoc.data();
-              syncGroupOwnerDataToLocal(ownerData);
-            }
-          }, (err) => console.error("Group owner sub error:", err));
-      }
-    } else {
-      currentGroupIdListener = null;
-      if (groupOwnerSub) {
-        groupOwnerSub();
-        groupOwnerSub = null;
-      }
-    }
+    // Group role and shared publications come from the canonical Group record.
+    // User-document group fields only locate the record during migration.
+    listenToCanonicalWebGroup(userId, data.groupId);
     
     const dailySummaries = data.dailySummaries || [];
     const tasks = data.tasks || [];
@@ -4689,6 +4960,7 @@ function listenToUser(userId) {
     let changed = false;
     if (data.webToolsState) {
       for (const k in data.webToolsState) {
+        if (k === "challenge" || k === "template") continue;
         if (JSON.stringify(store[k]) !== JSON.stringify(data.webToolsState[k])) {
           store[k] = data.webToolsState[k];
           changed = true;
@@ -4697,6 +4969,7 @@ function listenToUser(userId) {
     }
     if (data.webToolsCollection) {
       for (const k in data.webToolsCollection) {
+        if (k === "studySchedules") continue;
         if (JSON.stringify(store[k]) !== JSON.stringify(data.webToolsCollection[k])) {
           store[k] = data.webToolsCollection[k];
           changed = true;

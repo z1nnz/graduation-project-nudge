@@ -568,6 +568,107 @@ service cloud.firestore {
         && getAfter(
           /databases/$(database)/documents/users/$(request.auth.uid)
         ).data.groupId != groupId;
+
+      match /challenges/{challengeId} {
+        function group() {
+          return get(
+            /databases/$(database)/documents/groups/$(groupId)
+          ).data;
+        }
+
+        function isActiveGroupMember() {
+          return isAuth()
+            && group().status == 'active'
+            && group().memberIds.hasAny([request.auth.uid]);
+        }
+
+        function isGroupManager() {
+          return isActiveGroupMember()
+            && group().ownerId == request.auth.uid;
+        }
+
+        allow read: if isActiveGroupMember();
+        allow create, update: if challengeId == 'current'
+          && isGroupManager()
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.groupId == groupId
+          && request.resource.data.groupName == group().name
+          && request.resource.data.publishedBy == group().ownerId
+          && request.resource.data.status == 'active'
+          && request.resource.data.days is int
+          && request.resource.data.days >= 1
+          && request.resource.data.days <= 365
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'groupId', 'groupName', 'type', 'days',
+            'reward', 'status', 'publishedBy', 'updatedAt'
+          ]);
+        allow delete: if isGroupManager();
+      }
+
+      match /study_schedules/{scheduleId} {
+        function group() {
+          return get(
+            /databases/$(database)/documents/groups/$(groupId)
+          ).data;
+        }
+
+        function isActiveGroupMember() {
+          return isAuth()
+            && group().status == 'active'
+            && group().memberIds.hasAny([request.auth.uid]);
+        }
+
+        function isGroupManager() {
+          return isActiveGroupMember()
+            && group().ownerId == request.auth.uid;
+        }
+
+        allow read: if isActiveGroupMember();
+        allow create, update: if isGroupManager()
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.groupId == groupId
+          && request.resource.data.publishedBy == group().ownerId
+          && request.resource.data.status == 'scheduled'
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'groupId', 'title', 'meta', 'status',
+            'publishedBy', 'createdAt'
+          ]);
+        allow delete: if isGroupManager();
+      }
+
+      match /templates/{templateId} {
+        function group() {
+          return get(
+            /databases/$(database)/documents/groups/$(groupId)
+          ).data;
+        }
+
+        function isActiveGroupMember() {
+          return isAuth()
+            && group().status == 'active'
+            && group().memberIds.hasAny([request.auth.uid]);
+        }
+
+        function isGroupManager() {
+          return isActiveGroupMember()
+            && group().ownerId == request.auth.uid;
+        }
+
+        allow read: if isActiveGroupMember();
+        allow create, update: if isGroupManager()
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.groupId == groupId
+          && request.resource.data.publishedBy == group().ownerId
+          && request.resource.data.status == 'active'
+          && request.resource.data.days is int
+          && request.resource.data.days >= 1
+          && request.resource.data.days <= 365
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'groupId', 'type', 'days', 'effort',
+            'strategy', 'status', 'publishedBy', 'updatedAt'
+          ]);
+        allow delete: if isGroupManager();
+      }
     }
 
     // ─── /group_requests/{requestId} ──────────────────────────────────
@@ -607,6 +708,17 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'updatedAt'])
           && request.resource.data.status in ['accepted', 'declined']
+          && (
+            request.resource.data.status == 'declined'
+            || (
+              getAfter(
+                /databases/$(database)/documents/groups/$(resource.data.groupId)
+              ).data.memberIds.hasAny([request.auth.uid])
+              && getAfter(
+                /databases/$(database)/documents/users/$(request.auth.uid)
+              ).data.groupId == resource.data.groupId
+            )
+          )
         )
         || (
           resource.data.senderId == request.auth.uid

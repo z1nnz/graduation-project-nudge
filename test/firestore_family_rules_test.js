@@ -466,6 +466,136 @@ async function run() {
     403,
     "An ended family link must reject new interactions",
   );
+
+  const groupId = "GRP-RULE-TEST";
+  const groupData = {
+    id: groupId,
+    name: "自律同行團",
+    ownerId: guardian.localId,
+    memberIds: [guardian.localId],
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  };
+  response = await commit(
+    [
+      createWrite(`groups/${groupId}`, groupData),
+      updateWrite(`users/${guardian.localId}`, {
+        groupId,
+        groupName: groupData.name,
+        isGroupOwner: true,
+        userRole: "group",
+      }),
+    ],
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  const groupRequestId = "group-invite-test";
+  response = await createDoc(
+    `group_requests/${groupRequestId}`,
+    {
+      senderId: guardian.localId,
+      senderNudgeId: `NDG_${guardian.localId}`,
+      senderNickname: "Guardian",
+      receiverId: child.localId,
+      groupId,
+      groupName: groupData.name,
+      status: "pending",
+      createdAt: now,
+    },
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(`group_requests/${groupRequestId}`, {
+        status: "accepted",
+        updatedAt: now,
+      }),
+    ],
+    child.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "Accepting a group request must atomically create canonical membership",
+  );
+
+  response = await commit(
+    [
+      updateWrite(`groups/${groupId}`, {
+        memberIds: [guardian.localId, child.localId],
+        updatedAt: now,
+      }),
+      updateWrite(`users/${child.localId}`, {
+        groupId,
+        groupName: groupData.name,
+        isGroupOwner: false,
+        userRole: "group",
+      }),
+      updateWrite(`group_requests/${groupRequestId}`, {
+        status: "accepted",
+        updatedAt: now,
+      }),
+    ],
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  const challengeData = {
+    schemaVersion: 1,
+    groupId,
+    groupName: groupData.name,
+    type: "步數挑戰",
+    days: 7,
+    reward: "限定徽章",
+    status: "active",
+    publishedBy: guardian.localId,
+    updatedAt: now,
+  };
+  response = await createDoc(
+    `groups/${groupId}/challenges/current`,
+    challengeData,
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await request(
+    `groups/${groupId}/challenges/current`,
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    `groups/${groupId}/study_schedules/member-write`,
+    {
+      schemaVersion: 1,
+      groupId,
+      title: "成員不能發布",
+      meta: "由自己安排活動",
+      status: "scheduled",
+      publishedBy: child.localId,
+      createdAt: now,
+    },
+    child.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A group member must not publish manager content",
+  );
+
+  response = await request(
+    `groups/${groupId}/challenges/current`,
+    stranger.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A non-member must not read group publications",
+  );
 }
 
 run()
