@@ -23,8 +23,18 @@
   `groupId`, `groupName`, and `isGroupOwner` fields are compatibility
   projections, not the canonical Group record.
 - **Group Request**: An owner-issued invitation to join a specific active Group.
-- **Study Room**: A time-bound collaboration space. A Study Room is not a Group;
-  Group membership may grant context, but room participation remains explicit.
+- **Study Room**: A persistent peer self-discipline space centered on one
+  activity type, shared goals, and shared rules. Members control their own
+  activity and progress; a Study Room is not a host-controlled session or a
+  Group.
+- **Room Owner**: The member responsible for a Study Room's configuration,
+  admission, and moderation. A Room Owner cannot start, pause, end, or alter
+  another member's activity.
+- **Activity Session**: One member's bounded attempt toward a Study Room goal.
+  The member or their assigned device controls its lifecycle.
+- **Synced Progress**: A member's Study Room progress imported from an approved
+  source, such as health data or an assigned device, rather than entered by a
+  Room Owner.
 
 ## Product boundary
 
