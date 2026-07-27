@@ -64,6 +64,24 @@ function resolveWebCapabilities(data = {}) {
   });
 }
 
+function resolveWebRoleGateRedirect(path, data = {}) {
+  const resolver =
+    window.NudgeRelationshipCapabilities?.resolveRoleGateRedirect;
+  if (!resolver) {
+    throw new Error("角色能力模組尚未就緒");
+  }
+
+  return resolver(path, {
+    rawRole: data.userRole,
+    familyLinked:
+      data.webToolsState?.guardianInviteStatus?.status === "linked",
+    hasGroup: Boolean(data.groupId),
+    isGroupOwner: Boolean(data.isGroupOwner),
+    isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
+    isPreview: isPreviewMode(),
+  });
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
     "&": "&amp;",
@@ -2180,10 +2198,7 @@ function updateRoleAwareNavigation(data) {
 }
 
 function applyRoleSpecificCopy(data, capabilities) {
-  if (
-    document.body.dataset.page !== "groups" &&
-    !window.location.pathname.endsWith("groups.html")
-  ) {
+  if (!window.location.pathname.endsWith("/groups.html")) {
     return;
   }
 
@@ -2302,6 +2317,12 @@ function checkPagePermissions(data) {
   const isGuardianPage = path.includes("guardian") || document.body.getAttribute("data-page") === "guardian";
   const isGroupsPage = path.includes("groups") || document.body.getAttribute("data-page") === "groups";
   const isLinkPage = path.includes("guardian-link.html") || path.includes("groups-link.html");
+  const roleGateRedirect = resolveWebRoleGateRedirect(path, data);
+
+  if (roleGateRedirect) {
+    window.location.replace(roleGateRedirect);
+    return;
+  }
 
   // 1. 導覽列發光推薦與引導橫幅
   updateNavigationRecommendation(userRole);
@@ -2335,14 +2356,6 @@ function checkPagePermissions(data) {
     const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
     const isGuardianLinkPage = window.location.pathname.includes("guardian-link.html");
 
-    if (
-      capabilities.role === "child" &&
-      !isGuardianLinkPage
-    ) {
-      window.location.replace("guardian-link.html");
-      return;
-    }
-    
     // Add subnav link dynamically if not present
     const subnav = document.querySelector(".subnav");
     if (subnav && !document.getElementById("guardianLinkTab") && !subnav.querySelector('a[href*="guardian-link"]')) {
@@ -2440,20 +2453,6 @@ function checkPagePermissions(data) {
   if (isGroupsPage) {
     const hasGroup = !!data.groupId;
     const isGroupsLinkPage = window.location.pathname.includes("groups-link.html");
-    const managerOnlyPage = [
-      "groups-challenge.html",
-      "groups-study-schedule.html",
-      "groups-templates.html",
-      "groups-creation.html",
-    ].some((fileName) => window.location.pathname.includes(fileName));
-
-    if (
-      capabilities.role === "groupMember" &&
-      managerOnlyPage
-    ) {
-      window.location.replace("groups.html");
-      return;
-    }
 
     // Add subnav link dynamically if not present
     const subnav = document.querySelector(".subnav");

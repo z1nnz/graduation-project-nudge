@@ -42,5 +42,41 @@
     });
   }
 
-  return { resolveRelationshipCapabilities };
+  function resolveRoleGateRedirect(path, input = {}) {
+    const fileName = String(path || "")
+      .split("?")[0]
+      .split("/")
+      .pop();
+    const capabilities = resolveRelationshipCapabilities(input);
+
+    if (
+      fileName.startsWith("guardian") &&
+      fileName !== "guardian-link.html" &&
+      !capabilities.canViewGuardianHub
+    ) {
+      return "guardian-link.html";
+    }
+
+    const managerOnlyPages = new Set([
+      "groups-challenge.html",
+      "groups-study-schedule.html",
+      "groups-templates.html",
+      "groups-creation.html",
+    ]);
+    if (
+      managerOnlyPages.has(fileName) &&
+      !capabilities.canManageGroup
+    ) {
+      return capabilities.canParticipateInGroup
+        ? "groups.html"
+        : "groups-link.html";
+    }
+
+    return null;
+  }
+
+  return {
+    resolveRelationshipCapabilities,
+    resolveRoleGateRedirect,
+  };
 });

@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   resolveRelationshipCapabilities,
+  resolveRoleGateRedirect,
 } = require("../web_dashboard/assets/relationship_capabilities.js");
 
 test("guardian and child receive different family capabilities", () => {
@@ -54,4 +55,53 @@ test("preview mode is explicit and does not imply a real signed-in session", () 
   assert.equal(preview.isPreview, true);
   assert.equal(preview.isAuthenticated, false);
   assert.equal(preview.canViewGuardianHub, true);
+});
+
+test("family insight pages require a linked guardian capability", () => {
+  assert.equal(
+    resolveRoleGateRedirect("guardian-report.html", {
+      rawRole: "child",
+      familyLinked: true,
+    }),
+    "guardian-link.html",
+  );
+  assert.equal(
+    resolveRoleGateRedirect("guardian.html", {
+      rawRole: "guardian",
+      familyLinked: false,
+    }),
+    "guardian-link.html",
+  );
+  assert.equal(
+    resolveRoleGateRedirect("guardian-report.html", {
+      rawRole: "guardian",
+      familyLinked: true,
+    }),
+    null,
+  );
+});
+
+test("group management pages require a manager capability", () => {
+  assert.equal(
+    resolveRoleGateRedirect("groups-challenge.html", {
+      rawRole: "group",
+      isGroupOwner: false,
+      hasGroup: true,
+    }),
+    "groups.html",
+  );
+  assert.equal(
+    resolveRoleGateRedirect("groups-templates.html", {
+      rawRole: "personal",
+    }),
+    "groups-link.html",
+  );
+  assert.equal(
+    resolveRoleGateRedirect("groups-study-schedule.html", {
+      rawRole: "school",
+      isGroupOwner: true,
+      hasGroup: true,
+    }),
+    null,
+  );
 });
