@@ -2077,8 +2077,11 @@ let listeningWebGroupId = undefined;
 let webRoomsSub = null;
 let webRoomMemberSub = null;
 let webRoomSessionsSub = null;
+let webRoomMessagesSub = null;
+let webRoomEventsSub = null;
 let activeWebRoom = null;
 let activeWebRoomMember = null;
+let activeWebRoomMembers = [];
 let activeWebRoomSession = null;
 
 function roomActivityKind(room = {}) {
@@ -2188,23 +2191,292 @@ function renderWebRoomSessionPanel() {
   });
 }
 
+function stopWebRoomInteractionListeners() {
+  if (webRoomMessagesSub) webRoomMessagesSub();
+  if (webRoomEventsSub) webRoomEventsSub();
+  webRoomMessagesSub = null;
+  webRoomEventsSub = null;
+  const messageList = $("[data-room-message-list]");
+  const eventList = $("[data-room-event-list]");
+  if (messageList) {
+    messageList.innerHTML =
+      `<p class="room-inline-empty">選擇已核准的活動房後即可查看對話。</p>`;
+  }
+  if (eventList) {
+    eventList.innerHTML =
+      `<p class="room-inline-empty">選擇已核准的活動房後即可查看歷程。</p>`;
+  }
+}
+
+function stopWebRoomDetailListeners() {
+  if (webRoomMemberSub) webRoomMemberSub();
+  if (webRoomSessionsSub) webRoomSessionsSub();
+  webRoomMemberSub = null;
+  webRoomSessionsSub = null;
+  stopWebRoomInteractionListeners();
+}
+
+function renderWebRoomMembers() {
+  const list = $("[data-room-member-list]");
+  if (!list) return;
+  if (!activeWebRoomMembers.length) {
+    list.innerHTML = `<p class="room-inline-empty">尚未載入成員資料。</p>`;
+    return;
+  }
+  const userId = firebase.auth().currentUser?.uid;
+  const isOwner = activeWebRoom?.ownerId === userId;
+  list.innerHTML = activeWebRoomMembers.map(member => {
+    const displayName = escapeHtml(member.displayName || "自律夥伴");
+    const role = member.role === "owner" ? "房主" : "成員";
+    const approval = member.approvalStatus === "approved" ? "已核准" : "待審核";
+    const presence = {
+      studying: "活動中",
+      resting: "休息中",
+      offline: "離線",
+    }[member.presenceStatus] || "離線";
+    const actions = isOwner && member.memberId !== userId
+      ? `<div class="room-member-actions">
+          ${member.approvalStatus === "approved"
+            ? `<button type="button" data-room-transfer-owner="${escapeHtml(member.memberId)}">移交房主</button>`
+            : ""}
+          <button type="button" data-room-remove-member="${escapeHtml(member.memberId)}">移除</button>
+        </div>`
+      : "";
+    return `<article class="room-member-row">
+      <div><strong>${displayName}</strong><span>${role} · ${approval} · ${presence}</span></div>
+      ${actions}
+    </article>`;
+  }).join("");
+  $$("[data-room-transfer-owner]", list).forEach(button => {
+    button.addEventListener("click", () => {
+      transferWebRoomOwnership(button.dataset.roomTransferOwner)
+        .catch(error => toast(error.message || "房主移交失敗"));
+    });
+  });
+  $$("[data-room-remove-member]", list).forEach(button => {
+    button.addEventListener("click", () => {
+      removeWebRoomMember(button.dataset.roomRemoveMember)
+        .catch(error => toast(error.message || "移除成員失敗"));
+    });
+  });
+}
+
+function listenToWebRoomInteractions(roomId) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !roomId) return;
+  stopWebRoomInteractionListeners();
+  webRoomMessagesSub = db.collection("rooms").doc(roomId)
+    .collection("messages")
+    .orderBy("createdAt", "desc")
+    .limit(60)
+    .onSnapshot(snapshot => {
+      const list = $("[data-room-message-list]");
+      if (!list) return;
+      const messages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      list.innerHTML = messages.length
+        ? messages.map(message => `
+          <article class="room-message${message.senderId === userId ? " mine" : ""}">
+            <strong>${escapeHtml(message.senderName || "自律夥伴")}</strong>
+            <p>${escapeHtml(message.text || "")}</p>
+          </article>`).join("")
+        : `<p class="room-inline-empty">還沒有訊息，先送出一句鼓勵吧。</p>`;
+    }, error => console.warn("Room message sync failed:", error));
+
+  webRoomEventsSub = db.collection("rooms").doc(roomId)
+    .collection("events")
+    .orderBy("createdAt", "desc")
+    .limit(40)
+    .onSnapshot(snapshot => {
+      const list = $("[data-room-event-list]");
+      if (!list) return;
+      const events = snapshot.docs.map(doc => doc.data());
+      list.innerHTML = events.length
+        ? events.map(event => `
+          <article class="room-event-row">
+            <span>${escapeHtml(event.type || "system")}</span>
+            <p>${escapeHtml(event.text || "")}</p>
+          </article>`).join("")
+        : `<p class="room-inline-empty">活動歷程會在這裡同步顯示。</p>`;
+    }, error => console.warn("Room event sync failed:", error));
+}
+
+function buildWebRoomEvent(type, text) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId || !activeWebRoom || !activeWebRoomMember) {
+    throw new Error("尚未載入房間成員身分");
+  }
+  const now = new Date().toISOString();
+  const eventId = `event_${userId}_${Date.now()}`.replaceAll("/", "_");
+  return {
+    id: eventId,
+    roomId: activeWebRoom.id,
+    actorId: userId,
+    actorName: String(activeWebRoomMember.displayName || "自律夥伴").slice(0, 40),
+    text: String(text || "").slice(0, 500),
+    type,
+    createdAt: now,
+  };
+}
+
+async function writeWebRoomEvent(type, text) {
+  if (!db || !activeWebRoom) throw new Error("尚未選擇活動房");
+  const event = buildWebRoomEvent(type, text);
+  await db.collection("rooms").doc(activeWebRoom.id)
+    .collection("events").doc(event.id).set(event);
+}
+
+async function sendWebRoomMessage(rawText, type = "text") {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !activeWebRoom) throw new Error("尚未選擇活動房");
+  if (activeWebRoomMember?.approvalStatus !== "approved") {
+    throw new Error("成員資格尚未核准");
+  }
+  const text = String(rawText || "").trim();
+  if (!text) throw new Error("請輸入訊息");
+  const now = new Date().toISOString();
+  const messageId = `message_${userId}_${Date.now()}`.replaceAll("/", "_");
+  const senderName = String(activeWebRoomMember.displayName || "自律夥伴")
+    .slice(0, 40);
+  const roomRef = db.collection("rooms").doc(activeWebRoom.id);
+  const message = {
+      id: messageId,
+      roomId: activeWebRoom.id,
+      senderId: userId,
+      senderName,
+      text: text.slice(0, 500),
+      type,
+      createdAt: now,
+    };
+  const event = buildWebRoomEvent(
+    type === "sticker" ? "sticker" : "message",
+    type === "sticker" ? `${senderName} 送出鼓勵貼圖 ${text}` : `${senderName} 傳送了一則訊息`,
+  );
+  const batch = db.batch();
+  batch.set(roomRef.collection("messages").doc(messageId), message);
+  batch.set(roomRef.collection("events").doc(event.id), event);
+  await batch.commit();
+}
+
+function bindWebRoomInteractionControls() {
+  const sendButton = $("[data-room-message-send]");
+  const input = $("[data-room-message-input]");
+  if (sendButton && sendButton.dataset.bound !== "true") {
+    sendButton.dataset.bound = "true";
+    const submit = async () => {
+      const text = input?.value || "";
+      try {
+        await sendWebRoomMessage(text);
+        if (input) input.value = "";
+      } catch (error) {
+        toast(error.message || "訊息傳送失敗");
+      }
+    };
+    sendButton.addEventListener("click", submit);
+    input?.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        submit();
+      }
+    });
+  }
+  $$("[data-room-sticker]").forEach(button => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      sendWebRoomMessage(button.dataset.roomSticker, "sticker")
+        .catch(error => toast(error.message || "貼圖傳送失敗"));
+    });
+  });
+}
+
+async function transferWebRoomOwnership(newOwnerId) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !activeWebRoom || activeWebRoom.ownerId !== userId) {
+    throw new Error("只有房主可以移交");
+  }
+  const nextOwner = activeWebRoomMembers.find(
+    member => member.memberId === newOwnerId && member.approvalStatus === "approved",
+  );
+  if (!nextOwner || newOwnerId === userId || nextOwner.role === "owner") {
+    throw new Error("新房主必須是另一位已核准成員");
+  }
+  const roomRef = db.collection("rooms").doc(activeWebRoom.id);
+  const batch = db.batch();
+  const now = new Date().toISOString();
+  batch.update(roomRef, {
+    ownerId: newOwnerId,
+    ownerName: nextOwner.displayName,
+    updatedAt: now,
+  });
+  batch.update(roomRef.collection("members").doc(userId), {
+    role: "member",
+    updatedAt: now,
+  });
+  batch.update(roomRef.collection("members").doc(newOwnerId), {
+    role: "owner",
+    updatedAt: now,
+  });
+  const event = buildWebRoomEvent(
+    "system",
+    `房主已移交給 ${nextOwner.displayName}`,
+  );
+  batch.set(roomRef.collection("events").doc(event.id), event);
+  await batch.commit();
+  toast("房主已完成移交");
+}
+
+async function removeWebRoomMember(memberId) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !activeWebRoom || activeWebRoom.ownerId !== userId) {
+    throw new Error("只有房主可以移除成員");
+  }
+  const target = activeWebRoomMembers.find(member => member.memberId === memberId);
+  if (!target || memberId === userId || target.role === "owner") {
+    throw new Error("不能移除自己或目前房主");
+  }
+  const roomRef = db.collection("rooms").doc(activeWebRoom.id);
+  const batch = db.batch();
+  batch.update(roomRef, {
+    memberIds: firebase.firestore.FieldValue.arrayRemove(memberId),
+    updatedAt: new Date().toISOString(),
+  });
+  batch.delete(roomRef.collection("members").doc(memberId));
+  const event = buildWebRoomEvent(
+    "system",
+    `${target.displayName || "成員"} 已被移出房間`,
+  );
+  batch.set(roomRef.collection("events").doc(event.id), event);
+  await batch.commit();
+  toast("成員已移除");
+}
+
 function selectWebRoom(roomId, room) {
   const userId = firebase.auth().currentUser?.uid;
   if (!db || !userId || !roomId) return;
   activeWebRoom = { ...room, id: roomId };
   activeWebRoomMember = null;
+  activeWebRoomMembers = [];
   activeWebRoomSession = null;
-  if (webRoomMemberSub) webRoomMemberSub();
-  if (webRoomSessionsSub) webRoomSessionsSub();
+  stopWebRoomDetailListeners();
   webRoomMemberSub = db.collection("rooms").doc(roomId)
-    .collection("members").doc(userId)
-    .onSnapshot(memberSnap => {
-      activeWebRoomMember = memberSnap.exists ? memberSnap.data() : null;
+    .collection("members")
+    .onSnapshot(snapshot => {
+      activeWebRoomMembers = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        memberId: doc.id,
+      }));
+      activeWebRoomMember =
+        activeWebRoomMembers.find(member => member.memberId === userId) || null;
+      renderWebRoomMembers();
       renderWebRoomSessionPanel();
       if (activeWebRoomMember?.approvalStatus !== "approved") {
         if (webRoomSessionsSub) webRoomSessionsSub();
         webRoomSessionsSub = null;
+        stopWebRoomInteractionListeners();
         return;
+      }
+      if (!webRoomMessagesSub || !webRoomEventsSub) {
+        listenToWebRoomInteractions(roomId);
       }
       if (webRoomSessionsSub) return;
       webRoomSessionsSub = db.collection("rooms").doc(roomId)
@@ -2235,6 +2507,7 @@ function selectWebRoom(roomId, room) {
 function listenToWebRooms(userId) {
   const list = $("[data-room-list]");
   if (!db || !list || !userId) return;
+  bindWebRoomInteractionControls();
   if (webRoomsSub) webRoomsSub();
   webRoomsSub = db.collection("rooms")
     .where("memberIds", "array-contains", userId)
@@ -2251,6 +2524,11 @@ function listenToWebRooms(userId) {
             <p>加入後，這裡會顯示相同的成員資格與活動紀錄。</p>
           </div>`;
         activeWebRoom = null;
+        activeWebRoomMember = null;
+        activeWebRoomMembers = [];
+        activeWebRoomSession = null;
+        stopWebRoomDetailListeners();
+        renderWebRoomMembers();
         renderWebRoomSessionPanel();
         return;
       }
@@ -2302,6 +2580,11 @@ async function startWebRoomSession() {
     roomRef.collection("activity_sessions").doc(session.sessionId),
     session,
   );
+  const event = buildWebRoomEvent(
+    "start",
+    `${activeWebRoomMember.displayName || "成員"} 開始活動`,
+  );
+  batch.set(roomRef.collection("events").doc(event.id), event);
   await batch.commit();
   toast("已開始你的活動紀錄");
 }
@@ -2321,8 +2604,18 @@ async function transitionWebRoomSession(nextStatus) {
     now: new Date(),
   });
   const roomRef = db.collection("rooms").doc(activeWebRoom.id);
+  const event = buildWebRoomEvent(
+    nextStatus === "completed"
+      ? "complete"
+      : nextStatus === "paused"
+        ? "pause"
+        : nextStatus === "cancelled"
+          ? "cancel"
+          : "start",
+    `${activeWebRoomMember.displayName || "成員"} ${roomSessionStatusLabel(nextStatus)}`,
+  );
+  const batch = db.batch();
   if (["completed", "cancelled"].includes(next.status)) {
-    const batch = db.batch();
     batch.update(roomRef.collection("members").doc(userId), {
       activeSessionId: null,
       updatedAt: next.updatedAt,
@@ -2331,10 +2624,14 @@ async function transitionWebRoomSession(nextStatus) {
       roomRef.collection("activity_sessions").doc(next.sessionId),
       next,
     );
-    await batch.commit();
   } else {
-    await roomRef.collection("activity_sessions").doc(next.sessionId).set(next);
+    batch.set(
+      roomRef.collection("activity_sessions").doc(next.sessionId),
+      next,
+    );
   }
+  batch.set(roomRef.collection("events").doc(event.id), event);
+  await batch.commit();
   toast(nextStatus === "completed" ? "這輪活動已完成" : "活動狀態已同步");
 }
 

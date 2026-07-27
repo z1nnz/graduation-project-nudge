@@ -1182,6 +1182,11 @@ service cloud.firestore {
           ).data.approvalStatus == 'approved';
       }
 
+      function isApprovedActiveRoomParticipant() {
+        return isApprovedRoomParticipant()
+          && roomDocument().data.status == 'active';
+      }
+
       function validRoomMetadata() {
         return request.resource.data.schemaVersion == 2
           && request.resource.data.id == roomId
@@ -1219,7 +1224,9 @@ service cloud.firestore {
         let afterMembers = request.resource.data.memberIds.toSet();
         let addedMembers = afterMembers.difference(beforeMembers);
         let removedMembers = beforeMembers.difference(afterMembers);
-        return request.resource.data.diff(resource.data).affectedKeys()
+        return resource.data.status == 'active'
+          && request.resource.data.status == 'active'
+          && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['memberIds', 'updatedAt'])
           && request.resource.data.ownerId == resource.data.ownerId
           && request.resource.data.ownerId in request.resource.data.memberIds
@@ -1248,13 +1255,50 @@ service cloud.firestore {
         let afterMembers = request.resource.data.memberIds.toSet();
         let addedMembers = afterMembers.difference(beforeMembers);
         let removedMembers = beforeMembers.difference(afterMembers);
-        return resource.data.ownerId == request.auth.uid
+        return resource.data.status == 'active'
+          && request.resource.data.status == 'active'
+          && resource.data.ownerId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['memberIds', 'updatedAt'])
           && request.resource.data.ownerId == resource.data.ownerId
           && request.resource.data.ownerId in request.resource.data.memberIds
           && addedMembers.size() == 0
           && removedMembers.size() == 1;
+      }
+
+      function ownerTransfersRoom() {
+        let nextOwnerId = request.resource.data.ownerId;
+        return resource.data.status == 'active'
+          && request.resource.data.status == 'active'
+          && resource.data.ownerId == request.auth.uid
+          && nextOwnerId != resource.data.ownerId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['ownerId', 'ownerName', 'updatedAt'])
+          && request.resource.data.memberIds == resource.data.memberIds
+          && request.resource.data.memberIds.hasAny([nextOwnerId])
+          && getAfter(
+            /databases/$(database)/documents/rooms/$(roomId)/members/$(resource.data.ownerId)
+          ).data.role == 'member'
+          && getAfter(
+            /databases/$(database)/documents/rooms/$(roomId)/members/$(nextOwnerId)
+          ).data.role == 'owner'
+          && getAfter(
+            /databases/$(database)/documents/rooms/$(roomId)/members/$(nextOwnerId)
+          ).data.approvalStatus == 'approved';
+      }
+
+      function ownerUpdatesOrClosesActiveRoom() {
+        return resource.data.status == 'active'
+          && resource.data.ownerId == request.auth.uid
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.memberIds == resource.data.memberIds
+          && (
+            request.resource.data.status == 'active'
+            || (
+              request.resource.data.status == 'closed'
+              && resource.data.memberIds.hasOnly([request.auth.uid])
+            )
+          );
       }
 
       allow read: if isAuth()
@@ -1275,18 +1319,15 @@ service cloud.firestore {
       allow update: if isAuth()
         && validRoomMetadata()
         && (
-          (
-            resource.data.ownerId == request.auth.uid
-            && request.resource.data.ownerId == resource.data.ownerId
-            && request.resource.data.memberIds == resource.data.memberIds
-          )
+          ownerUpdatesOrClosesActiveRoom()
           || changesOnlyOwnRoomMembership()
           || ownerRemovesOneRoomMember()
+          || ownerTransfersRoom()
         );
 
-      allow delete: if isAuth()
-        && resource.data.ownerId == request.auth.uid
-        && resource.data.memberIds.hasOnly([request.auth.uid]);
+      // Closing preserves the canonical audit trail. Physical deletion and
+      // recursive subcollection cleanup belong to a trusted server process.
+      allow delete: if false;
 
       match /members/{memberId} {
         function validRoomMember() {
@@ -1360,8 +1401,40 @@ service cloud.firestore {
             );
         }
 
+        function ownerChangesApproval() {
+          return roomDocument().data.ownerId == request.auth.uid
+            && memberId != roomDocument().data.ownerId
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['approvalStatus', 'updatedAt'])
+            && request.resource.data.role == resource.data.role
+            && resource.data.approvalStatus == 'pending'
+            && request.resource.data.approvalStatus == 'approved';
+        }
+
+        function ownerChangesRoleDuringTransfer() {
+          let oldOwnerId = roomDocument().data.ownerId;
+          let nextOwnerId = roomDocumentAfter().data.ownerId;
+          return oldOwnerId == request.auth.uid
+            && nextOwnerId != oldOwnerId
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['role', 'updatedAt'])
+            && (
+              (
+                memberId == oldOwnerId
+                && resource.data.role == 'owner'
+                && request.resource.data.role == 'member'
+              )
+              || (
+                memberId == nextOwnerId
+                && resource.data.role == 'member'
+                && request.resource.data.role == 'owner'
+              )
+            );
+        }
+
         allow read: if isRoomParticipant();
         allow create: if isAuth()
+          && roomDocumentAfter().data.status == 'active'
           && request.auth.uid == memberId
           && validRoomMember()
           && roomDocumentAfter().data.memberIds.hasAny([memberId])
@@ -1380,6 +1453,8 @@ service cloud.firestore {
             )
           && request.resource.data.activeSessionId == null;
         allow update: if isAuth()
+          && roomDocument().data.status == 'active'
+          && roomDocumentAfter().data.status == 'active'
           && validRoomMember()
           && (
             (
@@ -1389,13 +1464,12 @@ service cloud.firestore {
                 == resource.data.approvalStatus
               && validActiveSessionPointerChange()
             )
-            || (
-              roomDocument().data.ownerId == request.auth.uid
-              && request.resource.data.diff(resource.data).affectedKeys()
-                .hasOnly(['approvalStatus', 'role', 'updatedAt'])
-            )
+            || ownerChangesApproval()
+            || ownerChangesRoleDuringTransfer()
           );
         allow delete: if isAuth()
+          && roomDocument().data.status == 'active'
+          && roomDocumentAfter().data.status == 'active'
           && !roomDocumentAfter().data.memberIds.hasAny([memberId])
           && (
             request.auth.uid == memberId
@@ -1474,7 +1548,7 @@ service cloud.firestore {
         }
 
         allow read: if isApprovedRoomParticipant();
-        allow create: if isApprovedRoomParticipant()
+        allow create: if isApprovedActiveRoomParticipant()
           && validRoomSession()
           && request.resource.data.actorId == request.auth.uid
           && getAfter(
@@ -1483,7 +1557,7 @@ service cloud.firestore {
           && request.resource.data.status == 'active'
           && request.resource.data.metricValue == 0
           && request.resource.data.endedAt == null;
-        allow update: if isApprovedRoomParticipant()
+        allow update: if isApprovedActiveRoomParticipant()
           && resource.data.actorId == request.auth.uid
           && request.resource.data.actorId == resource.data.actorId
           && request.resource.data.sessionId == resource.data.sessionId
@@ -1507,11 +1581,88 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      match /messages/{messageId} {
+        function validRoomMessage() {
+          return request.resource.data.keys().hasOnly([
+              'id', 'roomId', 'senderId', 'senderName',
+              'text', 'type', 'createdAt'
+            ])
+            && request.resource.data.keys().hasAll([
+              'id', 'roomId', 'senderId', 'senderName',
+              'text', 'type', 'createdAt'
+            ])
+            && request.resource.data.id == messageId
+            && request.resource.data.roomId == roomId
+            && request.resource.data.senderId == request.auth.uid
+            && request.resource.data.senderName == get(
+              /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+            ).data.displayName
+            && request.resource.data.senderName is string
+            && request.resource.data.senderName.size() > 0
+            && request.resource.data.senderName.size() <= 40
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 500
+            && request.resource.data.type in ['text', 'sticker']
+            && request.resource.data.createdAt is string
+            && request.resource.data.createdAt.size() <= 40;
+        }
+
+        allow read: if isApprovedRoomParticipant();
+        allow create: if isApprovedActiveRoomParticipant()
+          && validRoomMessage();
+        allow update, delete: if false;
+      }
+
+      match /events/{eventId} {
+        function validRoomEvent() {
+          return request.resource.data.keys().hasOnly([
+              'id', 'roomId', 'actorId', 'actorName',
+              'text', 'type', 'createdAt'
+            ])
+            && request.resource.data.keys().hasAll([
+              'id', 'roomId', 'actorId', 'actorName',
+              'text', 'type', 'createdAt'
+            ])
+            && request.resource.data.id == eventId
+            && request.resource.data.roomId == roomId
+            && request.resource.data.actorId == request.auth.uid
+            && request.resource.data.actorName == get(
+              /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+            ).data.displayName
+            && request.resource.data.actorName is string
+            && request.resource.data.actorName.size() > 0
+            && request.resource.data.actorName.size() <= 40
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 500
+            && request.resource.data.type in [
+              'join', 'start', 'pause', 'complete', 'cancel', 'leave',
+              'message', 'sticker', 'system'
+            ]
+            && (
+              request.resource.data.type != 'system'
+              || roomDocument().data.ownerId == request.auth.uid
+            )
+            && request.resource.data.createdAt is string
+            && request.resource.data.createdAt.size() <= 40;
+        }
+
+        allow read: if isApprovedRoomParticipant();
+        allow create: if isApprovedActiveRoomParticipant()
+          && validRoomEvent();
+        allow update, delete: if false;
+      }
+
       // ─── /rooms/{roomId}/calls/{callUserId} ───────────────────────
       match /calls/{callUserId} {
         allow read: if isRoomParticipant();
-        allow write: if isRoomParticipant() && isOwner(callUserId);
-        allow delete: if isRoomParticipant() && isOwner(callUserId);
+        allow write: if isRoomParticipant()
+          && roomDocument().data.status == 'active'
+          && isOwner(callUserId);
+        allow delete: if isRoomParticipant()
+          && roomDocument().data.status == 'active'
+          && isOwner(callUserId);
 
         // ─── sdpExchange ────────────────────────────────────────────
         match /sdpExchange/{senderId} {
@@ -1519,8 +1670,10 @@ service cloud.firestore {
             request.auth.uid == callUserId || request.auth.uid == senderId
           );
           allow write: if isRoomParticipant()
+            && roomDocument().data.status == 'active'
             && request.auth.uid == senderId;
           allow delete: if isRoomParticipant()
+            && roomDocument().data.status == 'active'
             && request.auth.uid == senderId;
         }
 
@@ -1529,8 +1682,10 @@ service cloud.firestore {
           allow read: if isRoomParticipant()
             && request.auth.uid == callUserId;
           allow create: if isRoomParticipant()
+            && roomDocument().data.status == 'active'
             && request.resource.data.senderId == request.auth.uid;
           allow delete: if isRoomParticipant()
+            && roomDocument().data.status == 'active'
             && resource.data.senderId == request.auth.uid;
         }
       }

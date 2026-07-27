@@ -58,6 +58,43 @@
           </article>
         </section>
 
+        <section class="room-interaction-grid page-section">
+          <article class="panel room-conversation-panel">
+            <div class="room-panel-heading">
+              <div><span class="eyebrow">Room Conversation</span><h2>互相鼓勵</h2></div>
+              <div class="room-stickers">
+                <button type="button" data-room-sticker="👏">👏</button>
+                <button type="button" data-room-sticker="🔥">🔥</button>
+                <button type="button" data-room-sticker="🌱">🌱</button>
+              </div>
+            </div>
+            <div class="room-message-list" data-room-message-list>
+              <p class="room-inline-empty">選擇房間後會同步 App 與 Web 訊息。</p>
+            </div>
+            <div class="room-message-composer">
+              <input type="text" maxlength="500" placeholder="送出一句鼓勵…" aria-label="房間訊息" data-room-message-input />
+              <button class="primary-btn" type="button" data-room-message-send>傳送</button>
+            </div>
+          </article>
+
+          <aside class="panel">
+            <span class="eyebrow">Room Governance</span>
+            <h2>成員與房主</h2>
+            <p>房主可管理資格或明確移交；活動紀錄仍由成員本人控制。</p>
+            <div class="room-member-list" data-room-member-list>
+              <p class="room-inline-empty">選擇房間後載入成員。</p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="panel page-section room-events-panel">
+          <span class="eyebrow">Activity Timeline</span>
+          <h2>房間歷程</h2>
+          <div class="room-event-list" data-room-event-list>
+            <p class="room-inline-empty">活動歷程會在這裡同步顯示。</p>
+          </div>
+        </section>
+
         <section class="card-grid-3 page-section">
           <article class="panel">
             <span class="eyebrow">Personal control</span>

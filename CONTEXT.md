@@ -68,7 +68,8 @@
   Group.
 - **Room Owner**: The member responsible for a Study Room's configuration,
   admission, and moderation. A Room Owner cannot start, pause, end, or alter
-  another member's activity.
+  another member's activity. If other approved members remain, ownership must
+  be transferred explicitly before the current owner can leave.
 - **Room Membership Projection**: The canonical
   `rooms/{roomId}/members/{memberId}` record for a participant's role,
   approval, presence, and summarized progress. The Room metadata stores only
@@ -77,6 +78,14 @@
   It is stored under `rooms/{roomId}/activity_sessions/{sessionId}` and is
   shared by App and Web. Only the member or their assigned device controls its
   lifecycle.
+- **Room Interaction**: An append-only message or event stored under the Study
+  Room. App and Web read the same history, and the authenticated participant
+  must be the sender or actor of every new record. Display names come from the
+  canonical membership projection, and only the Room Owner may create system
+  governance events.
+- **Closed Room**: A Study Room retained with `status = closed` after its final
+  owner closes it. Active App/Web surfaces hide it, while the canonical parent
+  keeps its member, activity, message, and event audit trail attached.
 - **Synced Progress**: A member's Study Room progress imported from an approved
   source, such as health data or an assigned device, rather than entered by a
   Room Owner.

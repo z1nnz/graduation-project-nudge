@@ -149,7 +149,7 @@ void main() {
     expect(completed.metricValue, 7.2);
   });
 
-  test('room messages and events are persisted on the room model', () {
+  test('room messages and events are persisted on the room model', () async {
     final appState = AppState();
 
     appState.createStudyRoom(
@@ -160,13 +160,13 @@ void main() {
 
     final roomId = appState.studyRooms.first.id;
 
-    appState.addStudyRoomMessage(roomId: roomId, text: '加油');
-    appState.addStudyRoomMessage(
+    await appState.addStudyRoomMessage(roomId: roomId, text: '加油');
+    await appState.addStudyRoomMessage(
       roomId: roomId,
       text: '穩住',
       type: StudyRoomMessageType.sticker,
     );
-    appState.addStudyRoomEvent(
+    await appState.addStudyRoomEvent(
       roomId: roomId,
       text: '老闆 開始專注',
       type: StudyRoomEventType.start,
@@ -248,7 +248,7 @@ void main() {
     },
   );
 
-  test('approval room requests can be accepted or rejected by owner', () {
+  test('approval room requests can be accepted or rejected by owner', () async {
     final appState = AppState();
 
     appState.createStudyRoom(
@@ -273,7 +273,7 @@ void main() {
     var applicant = room.members.firstWhere((m) => m.memberId == 'friend_ming');
     expect(applicant.isApproved, isFalse);
 
-    appState.approveStudyRoomJoinRequest(
+    await appState.approveStudyRoomJoinRequest(
       roomId: roomId,
       memberId: 'friend_ming',
     );
@@ -292,11 +292,48 @@ void main() {
       joinAnswer: '想加入早讀',
     );
 
-    appState.rejectStudyRoomJoinRequest(roomId: roomId, memberId: 'friend_hua');
+    await appState.rejectStudyRoomJoinRequest(
+      roomId: roomId,
+      memberId: 'friend_hua',
+    );
 
     room = appState.getStudyRoomById(roomId)!;
     expect(room.members.any((m) => m.memberId == 'friend_hua'), isFalse);
     expect(room.events.first.text, contains('加入申請已拒絕'));
+  });
+
+  test('room owner explicitly transfers ownership before leaving', () async {
+    final appState = AppState();
+    appState.createStudyRoom(
+      name: '房主移交測試房',
+      description: '房主不能被隨機轉移',
+      accentColor: const Color(0xFF7C6AE6),
+    );
+    final roomId = appState.studyRooms.first.id;
+    appState.inviteMemberToRoom(
+      roomId: roomId,
+      memberName: '小明',
+      memberId: 'friend_ming',
+      avatarColor: const Color(0xFF2563EB),
+    );
+
+    await appState.transferStudyRoomOwnership(
+      roomId: roomId,
+      newOwnerId: 'friend_ming',
+    );
+
+    final room = appState.getStudyRoomById(roomId)!;
+    expect(room.ownerId, 'friend_ming');
+    expect(
+      room.members
+          .firstWhere((member) => member.memberId == 'friend_ming')
+          .role,
+      'owner',
+    );
+    expect(
+      room.members.firstWhere((member) => member.memberId == 'local_user').role,
+      'member',
+    );
   });
 
   test('leaving a room removes its linked task goal', () {

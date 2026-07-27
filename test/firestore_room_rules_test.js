@@ -164,15 +164,41 @@ function session(roomId, actorId, now) {
   };
 }
 
+function message(roomId, senderId, messageId, now) {
+  return {
+    id: messageId,
+    roomId,
+    senderId,
+    senderName: senderId,
+    text: "一起加油",
+    type: "text",
+    createdAt: now,
+  };
+}
+
+function event(roomId, actorId, eventId, now) {
+  return {
+    id: eventId,
+    roomId,
+    actorId,
+    actorName: actorId,
+    text: "完成一輪活動",
+    type: "complete",
+    createdAt: now,
+  };
+}
+
 async function run() {
   const owner = await signUp("room-owner");
   const alice = await signUp("room-alice");
   const stranger = await signUp("room-stranger");
+  const bob = await signUp("room-bob");
   const roomId = "room-member-controlled";
   const roomPath = `rooms/${roomId}`;
   const ownerMemberPath = `${roomPath}/members/${owner.localId}`;
   const aliceMemberPath = `${roomPath}/members/${alice.localId}`;
   const strangerMemberPath = `${roomPath}/members/${stranger.localId}`;
+  const bobMemberPath = `${roomPath}/members/${bob.localId}`;
   const sessionPath =
     `${roomPath}/activity_sessions/session-alice-focus`;
   const now = "2026-07-27T09:00:00.000Z";
@@ -346,6 +372,88 @@ async function run() {
     "A stranger cannot read room activity sessions",
   );
 
+  const aliceMessagePath = `${roomPath}/messages/message-alice`;
+  response = await createDoc(
+    aliceMessagePath,
+    message(roomId, alice.localId, "message-alice", now),
+    alice.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "An approved member can create their own room message",
+  );
+
+  response = await createDoc(
+    `${roomPath}/messages/owner-forges-alice`,
+    message(roomId, alice.localId, "owner-forges-alice", now),
+    owner.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A room owner cannot impersonate another message sender",
+  );
+
+  response = await createDoc(
+    `${roomPath}/messages/alice-forges-name`,
+    {
+      ...message(roomId, alice.localId, "alice-forges-name", now),
+      senderName: "房主",
+    },
+    alice.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A member cannot forge the displayed message sender name",
+  );
+
+  response = await request(aliceMessagePath, stranger.idToken);
+  assert.equal(
+    response.status,
+    403,
+    "A stranger cannot read room messages",
+  );
+
+  const aliceEventPath = `${roomPath}/events/event-alice`;
+  response = await createDoc(
+    aliceEventPath,
+    event(roomId, alice.localId, "event-alice", now),
+    alice.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "An approved member can create their own room event",
+  );
+
+  response = await createDoc(
+    `${roomPath}/events/owner-forges-alice`,
+    event(roomId, alice.localId, "owner-forges-alice", now),
+    owner.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A room owner cannot impersonate another event actor",
+  );
+
+  response = await createDoc(
+    `${roomPath}/events/alice-forges-system`,
+    {
+      ...event(roomId, alice.localId, "alice-forges-system", now),
+      text: "房主已移交",
+      type: "system",
+    },
+    alice.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A regular member cannot forge a system event",
+  );
+
   response = await commit(
     [
       updateWrite(roomPath, {
@@ -389,6 +497,38 @@ async function run() {
 
   response = await commit(
     [
+      updateWrite(
+        bobMemberPath,
+        {
+          role: "owner",
+          updatedAt: "2026-07-27T09:14:30.000Z",
+        },
+        ["role", "updatedAt"],
+      ),
+      createWrite(
+        `${roomPath}/events/ownership-transfer`,
+        {
+          ...event(
+            roomId,
+            owner.localId,
+            "ownership-transfer",
+            "2026-07-27T09:15:00.000Z",
+          ),
+          text: `房主已移交給 ${bob.localId}`,
+          type: "system",
+        },
+      ),
+    ],
+    owner.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "The owner cannot change roles outside an atomic ownership transfer",
+  );
+
+  response = await commit(
+    [
       updateWrite(roomPath, {
         memberIds: [owner.localId],
         updatedAt: "2026-07-27T09:13:00.000Z",
@@ -401,6 +541,190 @@ async function run() {
     response.status,
     200,
     "A room owner can remove a member atomically",
+  );
+
+  response = await commit(
+    [
+      updateWrite(roomPath, {
+        memberIds: [owner.localId, bob.localId],
+        updatedAt: "2026-07-27T09:14:00.000Z",
+      }),
+      createWrite(bobMemberPath, member(roomId, bob.localId, now)),
+    ],
+    bob.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(roomPath, {
+        ownerId: bob.localId,
+        ownerName: bob.localId,
+        updatedAt: "2026-07-27T09:15:00.000Z",
+      }),
+      updateWrite(
+        ownerMemberPath,
+        {
+          role: "member",
+          updatedAt: "2026-07-27T09:15:00.000Z",
+        },
+        ["role", "updatedAt"],
+      ),
+      updateWrite(
+        bobMemberPath,
+        {
+          role: "owner",
+          updatedAt: "2026-07-27T09:15:00.000Z",
+        },
+        ["role", "updatedAt"],
+      ),
+    ],
+    owner.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "The current owner can atomically transfer room ownership",
+  );
+
+  response = await commit(
+    [updateWrite(roomPath, { name: "舊房主不能再管理" }, ["name"])],
+    owner.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "The previous owner loses room-management permission immediately",
+  );
+
+  response = await commit(
+    [
+      updateWrite(
+        roomPath,
+        {
+          status: "closed",
+          updatedAt: "2026-07-27T09:16:00.000Z",
+        },
+        ["status", "updatedAt"],
+      ),
+    ],
+    bob.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A room cannot close while another member remains",
+  );
+
+  response = await commit(
+    [
+      updateWrite(roomPath, {
+        memberIds: [bob.localId],
+        updatedAt: "2026-07-27T09:16:30.000Z",
+      }),
+      deleteWrite(ownerMemberPath),
+    ],
+    bob.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "The new owner can remove the previous owner before closing",
+  );
+
+  response = await commit(
+    [
+      updateWrite(
+        roomPath,
+        {
+          status: "closed",
+          updatedAt: "2026-07-27T09:17:00.000Z",
+        },
+        ["status", "updatedAt"],
+      ),
+    ],
+    bob.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "The final owner can close a room without deleting its audit parent",
+  );
+
+  response = await commit(
+    [
+      updateWrite(
+        roomPath,
+        {
+          status: "active",
+          updatedAt: "2026-07-27T09:18:00.000Z",
+        },
+        ["status", "updatedAt"],
+      ),
+    ],
+    bob.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A closed room cannot be reopened by a client",
+  );
+
+  response = await createDoc(
+    `${roomPath}/events/after-close`,
+    {
+      ...event(roomId, bob.localId, "after-close", now),
+      text: "關房後不能再追加",
+      type: "complete",
+    },
+    bob.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A closed room rejects new interaction events",
+  );
+
+  response = await request(roomPath, bob.idToken, { method: "DELETE" });
+  assert.equal(
+    response.status,
+    403,
+    "Clients cannot orphan room subcollections by deleting the parent",
+  );
+
+  const closedWithoutProjectionId = "closed-without-member-projection";
+  const closedWithoutProjectionPath = `rooms/${closedWithoutProjectionId}`;
+  response = await createDoc(
+    closedWithoutProjectionPath,
+    room(closedWithoutProjectionId, stranger.localId, now),
+    stranger.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(
+        closedWithoutProjectionPath,
+        {
+          status: "closed",
+          updatedAt: "2026-07-27T09:19:00.000Z",
+        },
+        ["status", "updatedAt"],
+      ),
+    ],
+    stranger.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    `${closedWithoutProjectionPath}/members/${stranger.localId}`,
+    member(closedWithoutProjectionId, stranger.localId, now, "owner"),
+    stranger.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A closed room rejects late member projection creation",
   );
 
   console.log("Firestore room rules integration test passed.");

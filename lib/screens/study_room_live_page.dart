@@ -96,7 +96,8 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
       _isRunning = true;
       _sessionStartTime = DateTime.now();
     });
-    appState.addStudyRoomEvent(
+    await _recordRoomEvent(
+      appState,
       roomId: room.id,
       text: '${appState.profileNickname} 開始${_activeNoun(room)}',
       type: StudyRoomEventType.start,
@@ -143,7 +144,8 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     setState(() {
       _isRunning = false;
     });
-    appState.addStudyRoomEvent(
+    await _recordRoomEvent(
+      appState,
       roomId: room.id,
       text: '${appState.profileNickname} 暫停了這輪${_metricName(room)}',
       type: StudyRoomEventType.pause,
@@ -188,7 +190,8 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
       status: StudyMemberStatus.resting,
       sessionSeconds: 0,
     );
-    appState.addStudyRoomEvent(
+    await _recordRoomEvent(
+      appState,
       roomId: room.id,
       text: '${appState.profileNickname} 完成一輪${_metricName(room)}',
       type: StudyRoomEventType.complete,
@@ -226,7 +229,8 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
       appState.addSecureFocusSeconds(_elapsedSeconds, startTime, endTime);
     }
     appState.clearMyStudyRoomPresence(room.id);
-    appState.addStudyRoomEvent(
+    await _recordRoomEvent(
+      appState,
       roomId: room.id,
       text: '${appState.profileNickname} 離開即時房間',
       type: StudyRoomEventType.leave,
@@ -293,6 +297,22 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     ).showSnackBar(SnackBar(content: Text('活動狀態同步失敗：$error')));
   }
 
+  Future<void> _recordRoomEvent(
+    AppState appState, {
+    required String roomId,
+    required String text,
+    required StudyRoomEventType type,
+  }) async {
+    try {
+      await appState.addStudyRoomEvent(roomId: roomId, text: text, type: type);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('活動已同步，但房間動態紀錄失敗：$error')));
+    }
+  }
+
   Future<void> _syncExternalActivity(
     AppState appState,
     StudyRoomData room,
@@ -338,25 +358,48 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     });
   }
 
-  void _sendMessage(AppState appState) {
+  Future<void> _sendMessage(AppState appState) async {
     final text = _chatController.text.trim();
     if (text.isEmpty) return;
     _chatController.clear();
-    appState.addStudyRoomMessage(roomId: widget.roomId, text: text);
-    appState.addStudyRoomEvent(
+    try {
+      await appState.addStudyRoomMessage(roomId: widget.roomId, text: text);
+    } catch (error) {
+      if (!mounted) return;
+      _chatController.text = text;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('訊息同步失敗：$error')));
+      return;
+    }
+    await _recordRoomEvent(
+      appState,
       roomId: widget.roomId,
       text: '${appState.profileNickname} 傳送了一則訊息',
       type: StudyRoomEventType.message,
     );
   }
 
-  void _sendSticker(AppState appState, StudyRoomData room, String sticker) {
-    appState.addStudyRoomMessage(
-      roomId: room.id,
-      text: sticker,
-      type: StudyRoomMessageType.sticker,
-    );
-    appState.addStudyRoomEvent(
+  Future<void> _sendSticker(
+    AppState appState,
+    StudyRoomData room,
+    String sticker,
+  ) async {
+    try {
+      await appState.addStudyRoomMessage(
+        roomId: room.id,
+        text: sticker,
+        type: StudyRoomMessageType.sticker,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('貼圖同步失敗：$error')));
+      return;
+    }
+    await _recordRoomEvent(
+      appState,
       roomId: room.id,
       text: '${appState.profileNickname} 送出鼓勵貼圖 $sticker',
       type: StudyRoomEventType.sticker,
@@ -2254,6 +2297,8 @@ class _EventPanel extends StatelessWidget {
         return Icons.pause_circle_outline;
       case StudyRoomEventType.complete:
         return Icons.check_circle_outline;
+      case StudyRoomEventType.cancel:
+        return Icons.cancel_outlined;
       case StudyRoomEventType.leave:
         return Icons.logout_rounded;
       case StudyRoomEventType.message:
@@ -2272,6 +2317,7 @@ class _EventPanel extends StatelessWidget {
         return const Color(0xFF10B981);
       case StudyRoomEventType.pause:
         return const Color(0xFFF59E0B);
+      case StudyRoomEventType.cancel:
       case StudyRoomEventType.leave:
         return const Color(0xFF64748B);
       case StudyRoomEventType.message:

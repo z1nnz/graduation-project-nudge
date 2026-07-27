@@ -17,6 +17,7 @@ enum StudyRoomEventType {
   start,
   pause,
   complete,
+  cancel,
   leave,
   message,
   sticker,

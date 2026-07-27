@@ -13,11 +13,21 @@ test("web exposes a real member-controlled activity room hub", () => {
 
   assert.match(html, /data-room-list/);
   assert.match(html, /data-room-session-panel/);
+  assert.match(html, /data-room-message-list/);
+  assert.match(html, /data-room-event-list/);
+  assert.match(html, /data-room-message-input/);
   assert.match(html, /由你自己開始、暫停與完成/);
   assert.match(app, /function listenToWebRooms/);
   assert.match(app, /function startWebRoomSession/);
   assert.match(app, /function transitionWebRoomSession/);
+  assert.match(app, /function listenToWebRoomInteractions/);
+  assert.match(app, /function sendWebRoomMessage/);
+  assert.match(app, /function buildWebRoomEvent/);
+  assert.match(app, /member\.presenceStatus/);
+  assert.match(app, /batch\.set\(roomRef\.collection\("events"\)/);
   assert.match(app, /\.collection\("activity_sessions"\)/);
+  assert.match(app, /\.collection\("messages"\)/);
+  assert.match(app, /\.collection\("events"\)/);
   assert.doesNotMatch(html, /房主開始|管理者開始|統一開始/);
 });
 

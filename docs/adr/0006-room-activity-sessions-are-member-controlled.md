@@ -42,10 +42,24 @@ completed|cancelled -> terminal
 Metric progress cannot decrease. App and Web implement the same versioned
 contract and listen to the same Firestore subcollection.
 
+Messages and room events are canonical append-only records at
+`rooms/{roomId}/messages/{messageId}` and
+`rooms/{roomId}/events/{eventId}`. Approved members may read them and may only
+write records whose sender or actor is their own authenticated identity.
+
 The owner controls room configuration, admission, and moderation. The member
 controls when their own activity starts, pauses, resumes, completes, or is
 cancelled. Health and assigned-device ingestion remain explicit sources and
 must still preserve the actor identity.
+
+An owner cannot leave while approved members remain. Ownership must first be
+transferred explicitly in one atomic write that changes the room owner and the
+old and new owner role projections together.
+
+When the final owner closes a room, the parent is marked `closed` instead of
+being deleted by the client. This keeps the interaction and activity audit
+trail attached to a canonical parent; physical recursive deletion is reserved
+for a trusted server cleanup process.
 
 ## Consequences
 
@@ -58,5 +72,8 @@ must still preserve the actor identity.
 - Legacy room documents that embed `members`, `messages`, `events`, or a
   plaintext password require a separate migration. New canonical writes do
   not depend on those embedded fields.
-- Room chat and event history should be moved to dedicated subcollections
-  before they are treated as cross-device canonical data.
+- App and Web use the same append-only room message and event history.
+- Owner transfer is deliberate and atomic; the system never chooses a random
+  successor when an owner leaves.
+- Closing a room hides it from active App/Web surfaces without creating orphan
+  subcollections.

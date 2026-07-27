@@ -5514,8 +5514,136 @@ body.sidebar-collapsed .role-gatekeeper-overlay {
   background: rgba(245, 158, 11, 0.08);
 }
 
+.room-interaction-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.room-panel-heading,
+.room-message-composer,
+.room-member-row,
+.room-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.room-panel-heading,
+.room-member-row {
+  justify-content: space-between;
+}
+
+.room-stickers {
+  display: flex;
+  gap: 6px;
+}
+
+.room-stickers button,
+.room-member-actions button {
+  padding: 7px 9px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.room-message-list {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  min-height: 180px;
+  margin: 18px 0;
+  overflow: auto;
+}
+
+.room-message {
+  max-width: 82%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px 14px 14px 4px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.room-message.mine {
+  justify-self: end;
+  border-radius: 14px 14px 4px;
+  background: rgba(124, 106, 230, 0.14);
+}
+
+.room-message strong,
+.room-message p,
+.room-event-row p {
+  margin: 0;
+}
+
+.room-message strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.room-message-composer input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(3, 9, 20, 0.42);
+}
+
+.room-member-list,
+.room-event-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.room-member-row,
+.room-event-row {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.room-member-row > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.room-member-row span,
+.room-inline-empty,
+.room-event-row span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.room-member-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.room-event-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.room-event-row span {
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
 @media (max-width: 900px) {
   .room-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .room-interaction-grid {
     grid-template-columns: 1fr;
   }
 

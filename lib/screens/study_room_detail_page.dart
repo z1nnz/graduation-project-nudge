@@ -278,7 +278,10 @@ class StudyRoomDetailPage extends StatelessWidget {
     AppState appState,
     StudyMemberData member,
   ) {
-    if (member.memberId == 'local_user') return appState.avatarProfile;
+    if (member.memberId == 'local_user' ||
+        member.memberId == appState.currentUser?.id) {
+      return appState.avatarProfile;
+    }
     return member.avatarProfile ??
         appState.avatarVariantForSeed(
           member.memberId.isEmpty
@@ -415,10 +418,18 @@ class StudyRoomDetailPage extends StatelessWidget {
     AppState appState,
     StudyRoomData room,
   ) async {
-    final approvedCount = room.members
-        .where((member) => member.isApproved)
-        .length;
-    final isOnlyOwner = room.ownerId == 'local_user' && approvedCount <= 1;
+    final currentMemberId = appState.currentUser?.id ?? 'local_user';
+    final hasOtherMembers = room.members.any(
+      (member) => member.memberId != currentMemberId,
+    );
+    final isOwner = room.ownerId == currentMemberId;
+    final isOnlyOwner = isOwner && !hasOtherMembers;
+    if (isOwner && !isOnlyOwner) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請先移交房主，並處理所有待審核成員，再退出房間。')));
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -427,7 +438,7 @@ class StudyRoomDetailPage extends StatelessWidget {
           content: Text(
             isOnlyOwner
                 ? '這間房目前只剩你一個人，退出後房間會被關閉。'
-                : '退出後你會從成員列表移除；如果你是房主，房主會轉給下一位成員。',
+                : '退出後你會從成員列表移除，房間與活動紀錄將不再顯示。',
           ),
           actions: [
             TextButton(
@@ -444,7 +455,15 @@ class StudyRoomDetailPage extends StatelessWidget {
     );
 
     if (confirmed != true || !context.mounted) return;
-    appState.leaveStudyRoom(room.id);
+    try {
+      await appState.leaveStudyRoom(room.id);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('退出房間失敗：$error')));
+      return;
+    }
     if (context.mounted) {
       Navigator.pop(context);
     }
@@ -455,10 +474,11 @@ class StudyRoomDetailPage extends StatelessWidget {
     AppState appState,
     StudyRoomData room,
   ) {
+    final currentMemberId = appState.currentUser?.id ?? 'local_user';
     final me = room.members.firstWhere(
-      (m) => m.memberId == 'local_user',
+      (m) => m.memberId == currentMemberId,
       orElse: () => StudyMemberData(
-        memberId: 'local_user',
+        memberId: currentMemberId,
         name: appState.profileNickname,
         roomNickname: appState.profileNickname,
         status: StudyMemberStatus.offline,
@@ -851,9 +871,13 @@ class StudyRoomDetailPage extends StatelessWidget {
         final approvedMembers = room.members
             .where((member) => member.isApproved)
             .toList(growable: false);
+        final currentMemberId = appState.currentUser?.id ?? 'local_user';
+        final hasOtherMembers = room.members.any(
+          (member) => member.memberId != currentMemberId,
+        );
         StudyMemberData? currentUserMember;
         for (final member in room.members) {
-          if (member.memberId == 'local_user') {
+          if (member.memberId == currentMemberId) {
             currentUserMember = member;
             break;
           }
@@ -885,7 +909,7 @@ class StudyRoomDetailPage extends StatelessWidget {
           );
 
         final me = approvedMembers.firstWhere(
-          (m) => m.memberId == 'local_user',
+          (m) => m.memberId == currentMemberId,
           orElse: () => StudyMemberData(
             memberId: 'local_user',
             name: appState.profileNickname,
@@ -1161,8 +1185,6 @@ class StudyRoomDetailPage extends StatelessWidget {
                       ),
                     ),
 
-
-
                     const SizedBox(height: AppUI.sectionGap),
 
                     _SectionHeader(
@@ -1424,8 +1446,6 @@ class StudyRoomDetailPage extends StatelessWidget {
                       ),
                     ),
 
-
-
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -1442,17 +1462,31 @@ class StudyRoomDetailPage extends StatelessWidget {
                       _PendingJoinRequestsCard(
                         room: room,
                         requests: pendingRequests,
-                        onApprove: (member) {
-                          appState.approveStudyRoomJoinRequest(
-                            roomId: room.id,
-                            memberId: member.memberId,
-                          );
+                        onApprove: (member) async {
+                          try {
+                            await appState.approveStudyRoomJoinRequest(
+                              roomId: room.id,
+                              memberId: member.memberId,
+                            );
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('核准失敗：$error')),
+                            );
+                          }
                         },
-                        onReject: (member) {
-                          appState.rejectStudyRoomJoinRequest(
-                            roomId: room.id,
-                            memberId: member.memberId,
-                          );
+                        onReject: (member) async {
+                          try {
+                            await appState.rejectStudyRoomJoinRequest(
+                              roomId: room.id,
+                              memberId: member.memberId,
+                            );
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('拒絕失敗：$error')),
+                            );
+                          }
                         },
                       ),
                       const SizedBox(height: AppUI.cardGap),
@@ -1473,7 +1507,7 @@ class StudyRoomDetailPage extends StatelessWidget {
                       ),
                     ...approvedMembers.map((member) {
                       final statusColor = _memberStatusColor(member.status);
-                      final isMe = member.memberId == 'local_user';
+                      final isMe = member.memberId == currentMemberId;
                       final avatarProfile = _memberAvatarProfile(
                         appState,
                         member,
@@ -1579,17 +1613,68 @@ class StudyRoomDetailPage extends StatelessWidget {
                                 ),
                                 if (isOwner &&
                                     member.role != 'owner' &&
-                                    member.memberId != 'local_user')
-                                  IconButton(
-                                    onPressed: () {
-                                      appState.removeMemberFromRoom(
-                                        roomId: room.id,
-                                        memberName: member.name,
-                                      );
-                                    },
-                                    icon: const Icon(
-                                      Icons.person_remove_outlined,
-                                    ),
+                                    member.memberId != currentMemberId)
+                                  Column(
+                                    children: [
+                                      IconButton(
+                                        tooltip: '移交房主',
+                                        onPressed: () async {
+                                          try {
+                                            await appState
+                                                .transferStudyRoomOwnership(
+                                                  roomId: room.id,
+                                                  newOwnerId: member.memberId,
+                                                );
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  '已將房主移交給 ${member.roomNickname.isEmpty ? member.name : member.roomNickname}',
+                                                ),
+                                              ),
+                                            );
+                                          } catch (error) {
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text('房主移交失敗：$error'),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        icon: const Icon(
+                                          Icons.admin_panel_settings_outlined,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        tooltip: '移除成員',
+                                        onPressed: () async {
+                                          try {
+                                            await appState
+                                                .removeStudyRoomMember(
+                                                  roomId: room.id,
+                                                  memberId: member.memberId,
+                                                );
+                                          } catch (error) {
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text('移除成員失敗：$error'),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        icon: const Icon(
+                                          Icons.person_remove_outlined,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                               ],
                             ),
@@ -1652,12 +1737,8 @@ class StudyRoomDetailPage extends StatelessWidget {
                 ListView(
                   padding: const EdgeInsets.all(AppUI.pagePadding),
                   children: [
-
                     // ── 房間公告 ──────────────────────────────
-                    _SectionHeader(
-                      title: '房間公告',
-                      subtitle: '這裡顯示房主想提醒大家的內容。',
-                    ),
+                    _SectionHeader(title: '房間公告', subtitle: '這裡顯示房主想提醒大家的內容。'),
                     const SizedBox(height: AppUI.cardGap),
                     Card(
                       shape: AppUI.cardShape(),
@@ -1681,12 +1762,11 @@ class StudyRoomDetailPage extends StatelessWidget {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: OutlinedButton.icon(
-                                  onPressed: () =>
-                                      _showEditAnnouncementDialog(
-                                        context,
-                                        appState,
-                                        room,
-                                      ),
+                                  onPressed: () => _showEditAnnouncementDialog(
+                                    context,
+                                    appState,
+                                    room,
+                                  ),
                                   icon: const Icon(Icons.edit_outlined),
                                   label: const Text('編輯公告'),
                                 ),
@@ -1828,14 +1908,10 @@ class StudyRoomDetailPage extends StatelessWidget {
                               ),
                               title: const Text(
                                 '設定公告',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.w600),
                               ),
                               subtitle: const Text('更新房間公告提醒大家'),
-                              trailing: const Icon(
-                                Icons.chevron_right_rounded,
-                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => _showEditAnnouncementDialog(
                                 context,
                                 appState,
@@ -1865,14 +1941,10 @@ class StudyRoomDetailPage extends StatelessWidget {
                               ),
                               title: const Text(
                                 '設定共同目標',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.w600),
                               ),
                               subtitle: const Text('調整今日房間挑戰與截止時間'),
-                              trailing: const Icon(
-                                Icons.chevron_right_rounded,
-                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => _showSetChallengeDialog(
                                 context,
                                 appState,
@@ -1902,14 +1974,10 @@ class StudyRoomDetailPage extends StatelessWidget {
                               ),
                               title: const Text(
                                 '邀請成員',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.w600),
                               ),
                               subtitle: const Text('新增成員到這間自律房'),
-                              trailing: const Icon(
-                                Icons.chevron_right_rounded,
-                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => _showInviteMemberDialog(
                                 context,
                                 appState,
@@ -1939,14 +2007,10 @@ class StudyRoomDetailPage extends StatelessWidget {
                               ),
                               title: const Text(
                                 '房間資訊',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.w600),
                               ),
                               subtitle: const Text('修改標籤、人數上限等基本資訊'),
-                              trailing: const Icon(
-                                Icons.chevron_right_rounded,
-                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => _showEditRoomSettingsDialog(
                                 context,
                                 appState,
@@ -1976,14 +2040,10 @@ class StudyRoomDetailPage extends StatelessWidget {
                               ),
                               title: const Text(
                                 '修改規則',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.w600),
                               ),
                               subtitle: const Text('編輯房規、暱稱規則與加入問題'),
-                              trailing: const Icon(
-                                Icons.chevron_right_rounded,
-                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => _showEditRoomRulesDialog(
                                 context,
                                 appState,
@@ -2073,8 +2133,8 @@ class StudyRoomDetailPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    room.ownerId == 'local_user' &&
-                                            approvedMembers.length <= 1
+                                    room.ownerId == currentMemberId &&
+                                            !hasOtherMembers
                                         ? '關閉房間'
                                         : '退出房間',
                                     style: TextStyle(
@@ -2097,14 +2157,11 @@ class StudyRoomDetailPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 10),
                             OutlinedButton(
-                              onPressed: () => _confirmLeaveRoom(
-                                context,
-                                appState,
-                                room,
-                              ),
+                              onPressed: () =>
+                                  _confirmLeaveRoom(context, appState, room),
                               child: Text(
-                                room.ownerId == 'local_user' &&
-                                        approvedMembers.length <= 1
+                                room.ownerId == currentMemberId &&
+                                        !hasOtherMembers
                                     ? '關閉'
                                     : '退出',
                               ),
@@ -2129,8 +2186,8 @@ class StudyRoomDetailPage extends StatelessWidget {
 class _PendingJoinRequestsCard extends StatelessWidget {
   final StudyRoomData room;
   final List<StudyMemberData> requests;
-  final ValueChanged<StudyMemberData> onApprove;
-  final ValueChanged<StudyMemberData> onReject;
+  final Future<void> Function(StudyMemberData) onApprove;
+  final Future<void> Function(StudyMemberData) onReject;
 
   const _PendingJoinRequestsCard({
     required this.room,
@@ -2261,7 +2318,7 @@ class _PendingJoinRequestsCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () => onReject(member),
+                              onPressed: () async => onReject(member),
                               icon: const Icon(Icons.close_rounded),
                               label: const Text('拒絕'),
                             ),
@@ -2269,7 +2326,7 @@ class _PendingJoinRequestsCard extends StatelessWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => onApprove(member),
+                              onPressed: () async => onApprove(member),
                               icon: const Icon(Icons.check_rounded),
                               label: const Text('同意'),
                             ),
