@@ -149,6 +149,7 @@ void main() {
         eventId: 'app-complete-1',
         sourceRecordId: 'app-record-1',
         sessionId: 'shared-session-1',
+        activityCorrelationId: 'cloud-shared-session-1',
         submittedByUserId: 'alice',
         actorUserId: 'alice',
         roomIds: const ['room-study'],
@@ -165,6 +166,7 @@ void main() {
         eventId: 'device-complete-1',
         sourceRecordId: 'device-record-1',
         sessionId: 'shared-session-1',
+        activityCorrelationId: 'cloud-shared-session-1',
         submittedByUserId: 'device:desk-1',
         actorUserId: 'alice',
         roomIds: const ['room-study'],
@@ -183,6 +185,56 @@ void main() {
     expect(ingestion.issuedPersonalRewardCount, 1);
     expect(deviceResult.contributions, hasLength(1));
   });
+
+  test(
+    'matching local ids across sources do not merge without correlation',
+    () {
+      final clock = DateTime.utc(2026, 7, 27, 12, 15);
+      final ingestion = InMemoryActivityIngestion(
+        clock: () => clock,
+        deviceAssignments: const [
+          DeviceAssignmentGrant(deviceId: 'desk-local-id', userId: 'alice'),
+        ],
+      );
+      final appResult = ingestion.recordActivity(
+        ActivityEvidence(
+          eventId: 'app-local-id-event',
+          sourceRecordId: 'app-local-id-record',
+          sessionId: 'coincidental-local-id',
+          submittedByUserId: 'alice',
+          actorUserId: 'alice',
+          roomIds: const [],
+          activityType: ActivityType.focus,
+          source: ActivitySource.app,
+          eventType: ActivityEventType.completed,
+          metricValue: 25,
+          metricUnit: 'minutes',
+          occurredAt: clock,
+        ),
+      );
+      final deviceResult = ingestion.recordActivity(
+        ActivityEvidence(
+          eventId: 'device-local-id-event',
+          sourceRecordId: 'device-local-id-record',
+          sessionId: 'coincidental-local-id',
+          submittedByUserId: 'device:desk-local-id',
+          actorUserId: 'alice',
+          roomIds: const [],
+          activityType: ActivityType.focus,
+          source: ActivitySource.device,
+          eventType: ActivityEventType.completed,
+          metricValue: 25,
+          metricUnit: 'minutes',
+          occurredAt: clock,
+          deviceId: 'desk-local-id',
+        ),
+      );
+
+      expect(appResult.wasDuplicate, isFalse);
+      expect(deviceResult.wasDuplicate, isFalse);
+      expect(ingestion.issuedReceiptCount, 2);
+    },
+  );
 
   test(
     'different app and device session ids merge into one active session',
@@ -656,7 +708,9 @@ void main() {
       eventType: ActivityEventType.metricSynced,
       metricValue: 8000,
       metricUnit: 'steps',
-      occurredAt: clock,
+      occurredAt: source == ActivitySource.health
+          ? clock.add(const Duration(hours: 1))
+          : clock,
     );
 
     final appResult = ingestion.recordActivity(

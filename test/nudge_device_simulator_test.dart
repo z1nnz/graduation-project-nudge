@@ -54,9 +54,40 @@ class _WrongEventSettlementReceipt implements ActivityIngestion {
     );
     return ActivityRecordResult(
       status: ActivityRecordStatus.settled,
-      acknowledgedEventId: 'old-event',
-      acknowledgedSourceRecordId: 'old-source-record',
+      acknowledgedEventId: evidence.eventId,
+      acknowledgedSourceRecordId: evidence.sourceRecordId,
       canonicalSessionId: 'old-session',
+      receipt: receipt,
+      contributions: const [],
+      wasDuplicate: false,
+    );
+  }
+}
+
+class _WrongMetricSettlementReceipt implements ActivityIngestion {
+  @override
+  ActivityRecordResult recordActivity(ActivityEvidence evidence) {
+    final canonicalSessionId =
+        evidence.activityCorrelationId ?? evidence.sessionId;
+    final receipt = ActivityReceipt(
+      receiptId: 'wrong-metric-receipt',
+      eventId: evidence.eventId,
+      sourceRecordId: evidence.sourceRecordId,
+      sessionId: canonicalSessionId,
+      actorUserId: evidence.actorUserId,
+      activityType: evidence.activityType,
+      activityFingerprint: 'wrong-metric-fingerprint',
+      acceptedMetric: evidence.metricValue + 1,
+      metricUnit: evidence.metricUnit,
+      personalRewardIssued: true,
+      characterExperienceIssued: true,
+      verifiedAt: evidence.occurredAt,
+    );
+    return ActivityRecordResult(
+      status: ActivityRecordStatus.settled,
+      acknowledgedEventId: evidence.eventId,
+      acknowledgedSourceRecordId: evidence.sourceRecordId,
+      canonicalSessionId: canonicalSessionId,
       receipt: receipt,
       contributions: const [],
       wasDuplicate: false,
@@ -291,6 +322,28 @@ void main() {
       deviceId: 'desk-wrong-ack',
       assignedUserId: 'alice',
       ingestion: _WrongEventSettlementReceipt(),
+      clock: () => clock,
+    );
+
+    device.completeActivity(
+      sessionId: 'current-session',
+      roomIds: const [],
+      activityType: ActivityType.focus,
+      metricValue: 25,
+      metricUnit: 'minutes',
+    );
+
+    expect(device.confirmedResults, isEmpty);
+    expect(device.failedEvents, hasLength(1));
+    expect(device.failedEvents.single.error, isA<DeviceProtocolException>());
+  });
+
+  test('a receipt with the wrong metric cannot acknowledge completion', () {
+    final clock = DateTime.utc(2026, 7, 27, 19);
+    final device = NudgeDeviceSimulator(
+      deviceId: 'desk-wrong-metric',
+      assignedUserId: 'alice',
+      ingestion: _WrongMetricSettlementReceipt(),
       clock: () => clock,
     );
 

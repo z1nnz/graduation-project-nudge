@@ -69,7 +69,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
   final Map<String, ActivityRecordResult> _resultsBySourceRecord = {};
   final Map<String, String> _signaturesBySourceRecord = {};
   final Map<String, ActivityRecordResult> _settlementsByFingerprint = {};
-  final Map<(String, ActivityType, String), _ActivitySessionState>
+  final Map<(String, ActivityType, String, String), _ActivitySessionState>
   _sessionsByAlias = {};
   final Map<(String, ActivityType, String), _ActivitySessionState>
   _sessionsByCanonicalId = {};
@@ -296,18 +296,24 @@ class InMemoryActivityIngestion implements ActivityIngestion {
   String _resolveCanonicalSession(ActivityEvidence evidence) {
     final canonicalSessionId =
         evidence.activityCorrelationId ?? evidence.sessionId;
+    final sessionRegistryId = evidence.activityCorrelationId != null
+        ? 'correlation:$canonicalSessionId'
+        : 'local:${_sourceNamespace(evidence)}:$canonicalSessionId';
     final canonicalKey = (
       evidence.actorUserId,
       evidence.activityType,
-      canonicalSessionId,
+      sessionRegistryId,
     );
     final aliasKey = (
       evidence.actorUserId,
       evidence.activityType,
+      _sourceNamespace(evidence),
       evidence.sessionId,
     );
-    var session =
-        _sessionsByAlias[aliasKey] ?? _sessionsByCanonicalId[canonicalKey];
+    var session = _sessionsByAlias[aliasKey];
+    if (session == null && evidence.activityCorrelationId != null) {
+      session = _sessionsByCanonicalId[canonicalKey];
+    }
     if (session == null) {
       if (evidence.eventType == ActivityEventType.paused ||
           evidence.eventType == ActivityEventType.resumed) {
@@ -342,7 +348,8 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         );
       }
       final endedAt = session.endedAt;
-      if (endedAt != null &&
+      if (evidence.activityCorrelationId == null &&
+          endedAt != null &&
           evidence.occurredAt.difference(endedAt).abs() >
               const Duration(minutes: 5)) {
         throw const ActivityValidationException(
@@ -374,6 +381,13 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         break;
     }
     return session.canonicalSessionId;
+  }
+
+  String _sourceNamespace(ActivityEvidence evidence) {
+    return switch (evidence.source) {
+      ActivitySource.device => 'device:${evidence.deviceId}',
+      _ => '${evidence.source.name}:${evidence.submittedByUserId}',
+    };
   }
 
   void _validateSettlementCompatibility(
@@ -456,9 +470,12 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     ActivityEvidence evidence,
     String canonicalSessionId,
   ) {
+    final fingerprintSessionId = evidence.activityCorrelationId != null
+        ? 'correlation:$canonicalSessionId'
+        : 'local:${_sourceNamespace(evidence)}:$canonicalSessionId';
     return jsonEncode([
       evidence.actorUserId,
-      canonicalSessionId,
+      fingerprintSessionId,
       evidence.activityType.name,
     ]);
   }

@@ -221,14 +221,19 @@ class NudgeDeviceSimulator {
     final isSettlement =
         evidence.eventType == ActivityEventType.completed ||
         evidence.eventType == ActivityEventType.metricSynced;
+    final expectedCanonicalSessionId =
+        evidence.activityCorrelationId ?? evidence.sessionId;
     if (isSettlement) {
       final receipt = result.receipt;
       if (result.status != ActivityRecordStatus.settled ||
           receipt == null ||
           result.acknowledgedEventId != evidence.eventId ||
           result.acknowledgedSourceRecordId != evidence.sourceRecordId ||
+          result.canonicalSessionId != expectedCanonicalSessionId ||
           receipt.actorUserId != evidence.actorUserId ||
           receipt.activityType != evidence.activityType ||
+          receipt.acceptedMetric != evidence.metricValue ||
+          receipt.metricUnit != evidence.metricUnit ||
           receipt.sessionId != result.canonicalSessionId) {
         throw const DeviceProtocolException(
           'A terminal activity requires a matching settlement receipt.',
@@ -239,7 +244,8 @@ class NudgeDeviceSimulator {
     if (result.status != ActivityRecordStatus.accepted ||
         result.receipt != null ||
         result.acknowledgedEventId != evidence.eventId ||
-        result.acknowledgedSourceRecordId != evidence.sourceRecordId) {
+        result.acknowledgedSourceRecordId != evidence.sourceRecordId ||
+        result.canonicalSessionId != expectedCanonicalSessionId) {
       throw const DeviceProtocolException(
         'A lifecycle event requires a non-settlement acknowledgement.',
       );
