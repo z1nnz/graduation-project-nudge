@@ -11,6 +11,7 @@ class NudgeDeviceSimulator {
 
   bool _isOnline;
   int _eventSequence = 0;
+  Object? _lastSyncError;
 
   NudgeDeviceSimulator({
     required this.deviceId,
@@ -25,6 +26,8 @@ class NudgeDeviceSimulator {
   bool get isOnline => _isOnline;
 
   int get pendingEventCount => _pendingEvents.length;
+
+  Object? get lastSyncError => _lastSyncError;
 
   List<ActivityRecordResult> get confirmedResults =>
       List.unmodifiable(_confirmedResults);
@@ -113,10 +116,16 @@ class NudgeDeviceSimulator {
 
   void flush() {
     if (!_isOnline || _pendingEvents.isEmpty) return;
-    final events = List<ActivityEvidence>.from(_pendingEvents);
-    for (final evidence in events) {
-      _confirmedResults.add(_ingestion.recordActivity(evidence));
-      _pendingEvents.remove(evidence);
+    while (_pendingEvents.isNotEmpty) {
+      final evidence = _pendingEvents.first;
+      try {
+        _confirmedResults.add(_ingestion.recordActivity(evidence));
+        _pendingEvents.removeAt(0);
+        _lastSyncError = null;
+      } on Object catch (error) {
+        _lastSyncError = error;
+        break;
+      }
     }
   }
 
@@ -129,9 +138,10 @@ class NudgeDeviceSimulator {
     required String metricUnit,
   }) {
     _eventSequence++;
+    final eventId = '$deviceId:$sessionId:${eventType.name}:$_eventSequence';
     return ActivityEvidence(
-      eventId: '$deviceId-event-$_eventSequence',
-      sourceRecordId: '$deviceId:$sessionId:${eventType.name}',
+      eventId: eventId,
+      sourceRecordId: eventId,
       sessionId: sessionId,
       submittedByUserId: 'device:$deviceId',
       actorUserId: assignedUserId,
@@ -147,10 +157,9 @@ class NudgeDeviceSimulator {
   }
 
   void _submitOrQueue(ActivityEvidence evidence) {
-    if (_isOnline) {
-      _confirmedResults.add(_ingestion.recordActivity(evidence));
-      return;
-    }
     _pendingEvents.add(evidence);
+    if (_isOnline) {
+      flush();
+    }
   }
 }

@@ -28,8 +28,8 @@ void main() {
 
       expect(first.wasDuplicate, isFalse);
       expect(replay.wasDuplicate, isTrue);
-      expect(replay.receipt.receiptId, first.receipt.receiptId);
-      expect(replay.receipt.personalRewardIssued, isTrue);
+      expect(replay.receipt!.receiptId, first.receipt!.receiptId);
+      expect(replay.receipt!.personalRewardIssued, isTrue);
       expect(ingestion.issuedPersonalRewardCount, 1);
     },
   );
@@ -66,7 +66,7 @@ void main() {
         result.contributions.map((contribution) => contribution.roomId),
         unorderedEquals(['room-study', 'room-steps']),
       );
-      expect(result.receipt.personalRewardIssued, isTrue);
+      expect(result.receipt!.personalRewardIssued, isTrue);
       expect(ingestion.issuedPersonalRewardCount, 1);
     },
   );
@@ -129,7 +129,85 @@ void main() {
     final replay = ingestion.recordActivity(evidence('health-import-2'));
 
     expect(replay.wasDuplicate, isTrue);
-    expect(replay.receipt.receiptId, first.receipt.receiptId);
+    expect(replay.receipt!.receiptId, first.receipt!.receiptId);
+    expect(ingestion.issuedPersonalRewardCount, 1);
+  });
+
+  test('the same session settled by app and device issues one receipt', () {
+    final clock = DateTime.utc(2026, 7, 27, 12, 30);
+    final ingestion = InMemoryActivityIngestion(
+      clock: () => clock,
+      roomMemberships: const [
+        RoomMembershipGrant(roomId: 'room-study', userId: 'alice'),
+      ],
+      deviceAssignments: const [
+        DeviceAssignmentGrant(deviceId: 'desk-1', userId: 'alice'),
+      ],
+    );
+    final appResult = ingestion.recordActivity(
+      ActivityEvidence(
+        eventId: 'app-complete-1',
+        sourceRecordId: 'app-record-1',
+        sessionId: 'shared-session-1',
+        submittedByUserId: 'alice',
+        actorUserId: 'alice',
+        roomIds: const ['room-study'],
+        activityType: ActivityType.focus,
+        source: ActivitySource.app,
+        eventType: ActivityEventType.completed,
+        metricValue: 25,
+        metricUnit: 'minutes',
+        occurredAt: clock,
+      ),
+    );
+    final deviceResult = ingestion.recordActivity(
+      ActivityEvidence(
+        eventId: 'device-complete-1',
+        sourceRecordId: 'device-record-1',
+        sessionId: 'shared-session-1',
+        submittedByUserId: 'device:desk-1',
+        actorUserId: 'alice',
+        roomIds: const ['room-study'],
+        activityType: ActivityType.focus,
+        source: ActivitySource.device,
+        eventType: ActivityEventType.completed,
+        metricValue: 25,
+        metricUnit: 'minutes',
+        occurredAt: clock,
+        deviceId: 'desk-1',
+      ),
+    );
+
+    expect(deviceResult.wasDuplicate, isTrue);
+    expect(deviceResult.receipt!.receiptId, appResult.receipt!.receiptId);
+    expect(ingestion.issuedPersonalRewardCount, 1);
+    expect(deviceResult.contributions, hasLength(1));
+  });
+
+  test('reusing an event id with a different actor is rejected', () {
+    final clock = DateTime.utc(2026, 7, 27, 12, 45);
+    final ingestion = InMemoryActivityIngestion(clock: () => clock);
+    ActivityEvidence evidence(String actor) => ActivityEvidence(
+      eventId: 'shared-event-id',
+      sourceRecordId: 'record-$actor',
+      sessionId: 'session-$actor',
+      submittedByUserId: actor,
+      actorUserId: actor,
+      roomIds: const [],
+      activityType: ActivityType.focus,
+      source: ActivitySource.app,
+      eventType: ActivityEventType.completed,
+      metricValue: 25,
+      metricUnit: 'minutes',
+      occurredAt: clock,
+    );
+
+    ingestion.recordActivity(evidence('alice'));
+
+    expect(
+      () => ingestion.recordActivity(evidence('bob')),
+      throwsA(isA<ActivityValidationException>()),
+    );
     expect(ingestion.issuedPersonalRewardCount, 1);
   });
 
@@ -158,7 +236,7 @@ void main() {
     );
 
     expect(
-      ingestion.recordActivity(evidence('alice')).receipt.actorUserId,
+      ingestion.recordActivity(evidence('alice')).receipt!.actorUserId,
       'alice',
     );
     expect(
@@ -226,6 +304,88 @@ void main() {
     expect(result.contributions.single.roomId, 'room-study');
   });
 
+  test('activity before membership or without consent is not contributed', () {
+    final occurredAt = DateTime.utc(2026, 7, 27, 14);
+    final ingestion = InMemoryActivityIngestion(
+      clock: () => occurredAt,
+      roomMemberships: [
+        RoomMembershipGrant(
+          roomId: 'joined-later',
+          userId: 'alice',
+          activeFrom: occurredAt.add(const Duration(minutes: 1)),
+        ),
+        const RoomMembershipGrant(
+          roomId: 'no-consent',
+          userId: 'alice',
+          sharingConsented: false,
+        ),
+        const RoomMembershipGrant(roomId: 'active-room', userId: 'alice'),
+      ],
+    );
+    final result = ingestion.recordActivity(
+      ActivityEvidence(
+        eventId: 'membership-time-event',
+        sourceRecordId: 'membership-time-record',
+        sessionId: 'membership-time-session',
+        submittedByUserId: 'alice',
+        actorUserId: 'alice',
+        roomIds: const ['joined-later', 'no-consent', 'active-room'],
+        activityType: ActivityType.focus,
+        source: ActivitySource.app,
+        eventType: ActivityEventType.completed,
+        metricValue: 25,
+        metricUnit: 'minutes',
+        occurredAt: occurredAt,
+      ),
+    );
+
+    expect(result.contributions.map((contribution) => contribution.roomId), [
+      'active-room',
+    ]);
+  });
+
+  test('cached contribution lists cannot be mutated by callers', () {
+    final clock = DateTime.utc(2026, 7, 27, 15);
+    final ingestion = InMemoryActivityIngestion(
+      clock: () => clock,
+      roomMemberships: const [
+        RoomMembershipGrant(roomId: 'room-study', userId: 'alice'),
+      ],
+    );
+    final evidence = ActivityEvidence(
+      eventId: 'immutable-event',
+      sourceRecordId: 'immutable-record',
+      sessionId: 'immutable-session',
+      submittedByUserId: 'alice',
+      actorUserId: 'alice',
+      roomIds: const ['room-study'],
+      activityType: ActivityType.focus,
+      source: ActivitySource.app,
+      eventType: ActivityEventType.completed,
+      metricValue: 25,
+      metricUnit: 'minutes',
+      occurredAt: clock,
+    );
+    final result = ingestion.recordActivity(evidence);
+
+    expect(
+      () => result.contributions[0] = RoomContribution(
+        contributionId: 'forged',
+        receiptId: 'forged',
+        roomId: 'forged',
+        actorUserId: 'mallory',
+        metricValue: 999,
+        metricUnit: 'minutes',
+        createdAt: clock,
+      ),
+      throwsUnsupportedError,
+    );
+    expect(
+      ingestion.recordActivity(evidence).contributions.single.roomId,
+      'room-study',
+    );
+  });
+
   test('negative activity metrics are rejected before rewards are issued', () {
     final clock = DateTime.utc(2026, 7, 27, 16);
     final ingestion = InMemoryActivityIngestion(clock: () => clock);
@@ -246,6 +406,35 @@ void main() {
 
     expect(
       () => ingestion.recordActivity(evidence),
+      throwsA(isA<ActivityValidationException>()),
+    );
+    expect(ingestion.issuedPersonalRewardCount, 0);
+  });
+
+  test('non-finite activity metrics are rejected before settlement', () {
+    final clock = DateTime.utc(2026, 7, 27, 16, 30);
+    final ingestion = InMemoryActivityIngestion(clock: () => clock);
+    ActivityEvidence evidence(double metric) => ActivityEvidence(
+      eventId: 'event-$metric',
+      sourceRecordId: 'record-$metric',
+      sessionId: 'session-$metric',
+      submittedByUserId: 'alice',
+      actorUserId: 'alice',
+      roomIds: const [],
+      activityType: ActivityType.steps,
+      source: ActivitySource.health,
+      eventType: ActivityEventType.metricSynced,
+      metricValue: metric,
+      metricUnit: 'steps',
+      occurredAt: clock,
+    );
+
+    expect(
+      () => ingestion.recordActivity(evidence(double.nan)),
+      throwsA(isA<ActivityValidationException>()),
+    );
+    expect(
+      () => ingestion.recordActivity(evidence(double.infinity)),
       throwsA(isA<ActivityValidationException>()),
     );
     expect(ingestion.issuedPersonalRewardCount, 0);
