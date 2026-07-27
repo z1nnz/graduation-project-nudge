@@ -18,6 +18,7 @@ import '../models/experience_capabilities.dart';
 import '../models/family_link_contract.dart';
 import '../models/friend_request.dart';
 import '../models/group_contract.dart';
+import '../models/room_activity_session.dart';
 import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
@@ -99,6 +100,9 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _incomingRequestsSubscription;
   StreamSubscription? _outgoingRequestsSubscription;
   StreamSubscription? _roomsSubscription;
+  StreamSubscription? _roomDiscoverySubscription;
+  final Map<String, StreamSubscription> _roomMemberSubscriptions = {};
+  final Map<String, StreamSubscription> _roomSessionSubscriptions = {};
   StreamSubscription? _shopSubscription;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
@@ -118,6 +122,9 @@ class AppState extends ChangeNotifier {
   Timer? _dailyResetTimer;
   Timer? _familySummaryPublishTimer;
   Timer? _groupResultSummaryPublishTimer;
+  List<StudyRoomData> _discoverableStudyRooms = [];
+  final Map<String, RoomActivitySession> _roomActivitySessions = {};
+  final Map<String, String> _roomActiveSessionIds = {};
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -371,6 +378,23 @@ class AppState extends ChangeNotifier {
         .snapshots()
         .listen((snapshot) {
           _mergeFirestoreRooms(snapshot.docs);
+          _syncRoomChildListeners(
+            snapshot.docs.map((doc) => doc.id).toSet(),
+            user.uid,
+          );
+        });
+    _roomDiscoverySubscription = FirebaseFirestore.instance
+        .collection('rooms')
+        .where('visibility', isEqualTo: 'public')
+        .where('status', isEqualTo: 'active')
+        .snapshots()
+        .listen((snapshot) {
+          final joinedIds = _studyRooms.map((room) => room.id).toSet();
+          _discoverableStudyRooms = snapshot.docs
+              .where((doc) => !joinedIds.contains(doc.id))
+              .map((doc) => StudyRoomData.fromJson(doc.data()))
+              .toList();
+          notifyListeners();
         });
 
     // Shop items listener (dynamic character series)
@@ -519,15 +543,9 @@ class AppState extends ChangeNotifier {
         .where((r) => r.id.startsWith('room_demo_'))
         .toList();
 
-    // Merge: remote rooms replace local copies (preserving local data for unlisted rooms).
-    final remoteIds = remoteRooms.map((r) => r.id).toSet();
-    final localOnlyRooms = _studyRooms
-        .where(
-          (r) => !remoteIds.contains(r.id) && !r.id.startsWith('room_demo_'),
-        )
-        .toList();
-
-    _studyRooms = [...remoteRooms, ...localOnlyRooms, ...demoRooms];
+    // Firestore membership is authoritative for signed-in rooms. Keeping only
+    // explicit demo rooms prevents removed memberships from lingering locally.
+    _studyRooms = [...remoteRooms, ...demoRooms];
     _syncMyFocusSecondsAcrossRooms();
     _syncStudyRoomGoalTasks();
     _syncStudyGoalTaskCompletion();
@@ -535,6 +553,120 @@ class AppState extends ChangeNotifier {
     _syncTaskRewards();
     _syncTodaySummary();
     notifyListeners();
+  }
+
+  StudyMemberData _roomMemberFromProjection(
+    StudyRoomData room,
+    Map<String, dynamic> data,
+  ) {
+    final statusName = data['presenceStatus'] as String? ?? 'offline';
+    final status = StudyMemberStatus.values.firstWhere(
+      (item) => item.name == statusName,
+      orElse: () => StudyMemberStatus.offline,
+    );
+    final metricValue = (data['metricValue'] as num?)?.toDouble() ?? 0;
+    final isFocusMetric =
+        room.goalSourceType == TaskSourceType.studyRoom ||
+        room.goalSourceType == TaskSourceType.focusMinutes;
+    final displayName = data['displayName'] as String? ?? '自律夥伴';
+    return StudyMemberData(
+      memberId: data['memberId'] as String? ?? '',
+      name: displayName,
+      roomNickname: displayName,
+      status: status,
+      sessionSeconds: (data['sessionSeconds'] as num?)?.toInt() ?? 0,
+      todayFocusSeconds: isFocusMetric ? (metricValue * 60).round() : 0,
+      todayMetricValue: metricValue,
+      avatarColor: const Color(0xFF7C6AE6),
+      role: data['role'] as String? ?? 'member',
+      isApproved: data['approvalStatus'] == 'approved',
+    );
+  }
+
+  void _syncRoomChildListeners(Set<String> roomIds, String userId) {
+    for (final roomId
+        in _roomMemberSubscriptions.keys
+            .where((id) => !roomIds.contains(id))
+            .toList()) {
+      _roomMemberSubscriptions.remove(roomId)?.cancel();
+      _roomSessionSubscriptions.remove(roomId)?.cancel();
+      _roomActiveSessionIds.remove(roomId);
+      _roomActivitySessions.removeWhere(
+        (_, session) => session.roomId == roomId,
+      );
+    }
+
+    for (final roomId in roomIds) {
+      if (_roomMemberSubscriptions.containsKey(roomId)) continue;
+      _roomMemberSubscriptions[roomId] = FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(roomId)
+          .collection('members')
+          .snapshots()
+          .listen((snapshot) {
+            final roomIndex = _studyRooms.indexWhere(
+              (room) => room.id == roomId,
+            );
+            if (roomIndex == -1) return;
+            final room = _studyRooms[roomIndex];
+            final members = snapshot.docs
+                .map(
+                  (doc) => _roomMemberFromProjection(room, {
+                    ...doc.data(),
+                    'memberId': doc.id,
+                  }),
+                )
+                .toList(growable: false);
+            _studyRooms[roomIndex] = room.copyWith(members: members);
+            final me = members.where(
+              (member) => member.memberId == userId && member.isApproved,
+            );
+            if (me.isNotEmpty) {
+              final myProjection = snapshot.docs.where(
+                (doc) => doc.id == userId,
+              );
+              final activeSessionId = myProjection.isEmpty
+                  ? null
+                  : myProjection.first.data()['activeSessionId'] as String?;
+              if (activeSessionId == null || activeSessionId.isEmpty) {
+                _roomActiveSessionIds.remove(roomId);
+              } else {
+                _roomActiveSessionIds[roomId] = activeSessionId;
+              }
+              _ensureRoomSessionListener(roomId);
+            } else {
+              _roomActiveSessionIds.remove(roomId);
+              _roomSessionSubscriptions.remove(roomId)?.cancel();
+              _roomActivitySessions.removeWhere(
+                (_, session) => session.roomId == roomId,
+              );
+            }
+            notifyListeners();
+          });
+    }
+  }
+
+  void _ensureRoomSessionListener(String roomId) {
+    if (_roomSessionSubscriptions.containsKey(roomId)) return;
+    _roomSessionSubscriptions[roomId] = FirebaseFirestore.instance
+        .collection('rooms')
+        .doc(roomId)
+        .collection('activity_sessions')
+        .snapshots()
+        .listen((snapshot) {
+          _roomActivitySessions.removeWhere(
+            (_, session) => session.roomId == roomId,
+          );
+          for (final doc in snapshot.docs) {
+            try {
+              final session = RoomActivitySession.fromJson(doc.data());
+              _roomActivitySessions[session.sessionId] = session;
+            } catch (error) {
+              debugPrint('Skipping invalid room activity session: $error');
+            }
+          }
+          notifyListeners();
+        });
   }
 
   void _setupFamilyLinkListener(String userId) {
@@ -763,6 +895,15 @@ class AppState extends ChangeNotifier {
     _incomingRequestsSubscription?.cancel();
     _outgoingRequestsSubscription?.cancel();
     _roomsSubscription?.cancel();
+    _roomDiscoverySubscription?.cancel();
+    for (final subscription in _roomMemberSubscriptions.values) {
+      subscription.cancel();
+    }
+    for (final subscription in _roomSessionSubscriptions.values) {
+      subscription.cancel();
+    }
+    _roomMemberSubscriptions.clear();
+    _roomSessionSubscriptions.clear();
     _shopSubscription?.cancel();
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
@@ -782,6 +923,7 @@ class AppState extends ChangeNotifier {
     _incomingRequestsSubscription = null;
     _outgoingRequestsSubscription = null;
     _roomsSubscription = null;
+    _roomDiscoverySubscription = null;
     _shopSubscription = null;
     _incomingGuardianRequestsSubscription = null;
     _outgoingGuardianRequestsSubscription = null;
@@ -802,6 +944,9 @@ class AppState extends ChangeNotifier {
     _groupSubscription = null;
     _canonicalGroup = null;
     _listeningGroupId = null;
+    _discoverableStudyRooms = [];
+    _roomActivitySessions.clear();
+    _roomActiveSessionIds.clear();
   }
 
   @override
@@ -1538,6 +1683,8 @@ class AppState extends ChangeNotifier {
   }
 
   List<StudyRoomData> get studyRooms => _studyRooms;
+  List<StudyRoomData> get discoverableStudyRooms =>
+      List.unmodifiable(_discoverableStudyRooms);
   List<SocialFriendProfile> get socialFriends => _socialFriends;
   List<FriendRequest> get friendRequests => _friendRequests;
   String get myNudgeId => _myNudgeId;
@@ -3446,6 +3593,82 @@ class AppState extends ChangeNotifier {
     await syncDataToFirestore();
   }
 
+  String _roomMetricUnit(StudyRoomData room) {
+    return switch (room.goalSourceType) {
+      TaskSourceType.focusMinutes || TaskSourceType.studyRoom => 'minutes',
+      TaskSourceType.sleepHours => 'hours',
+      TaskSourceType.exerciseMinutes => 'minutes',
+      TaskSourceType.steps => 'steps',
+      TaskSourceType.manual || TaskSourceType.system => room.goalUnitLabel,
+    };
+  }
+
+  double _roomMemberMetricValue(StudyRoomData room, StudyMemberData member) {
+    return switch (room.goalSourceType) {
+      TaskSourceType.focusMinutes ||
+      TaskSourceType.studyRoom => member.todayFocusSeconds / 60,
+      TaskSourceType.sleepHours ||
+      TaskSourceType.exerciseMinutes ||
+      TaskSourceType.steps => member.todayMetricValue,
+      TaskSourceType.manual || TaskSourceType.system => member.todayMetricValue,
+    };
+  }
+
+  Map<String, dynamic> _roomMemberProjection(
+    StudyRoomData room,
+    StudyMemberData member,
+    String userId,
+  ) {
+    final memberId = member.memberId == 'local_user' ? userId : member.memberId;
+    return {
+      'schemaVersion': 1,
+      'roomId': room.id,
+      'memberId': memberId,
+      'displayName': member.roomNickname.trim().isEmpty
+          ? member.name
+          : member.roomNickname,
+      'role':
+          room.ownerId == memberId ||
+              (room.ownerId == 'local_user' && memberId == userId)
+          ? 'owner'
+          : 'member',
+      'approvalStatus': member.isApproved ? 'approved' : 'pending',
+      'presenceStatus': member.status.name,
+      'sessionSeconds': member.sessionSeconds,
+      'metricValue': _roomMemberMetricValue(room, member),
+      'metricUnit': _roomMetricUnit(room),
+      'activeSessionId': activeRoomActivitySession(room.id)?.sessionId,
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _roomMetadataPayload(StudyRoomData room, String userId) {
+    final ownerId = room.ownerId == 'local_user' ? userId : room.ownerId;
+    final memberIds = room.members
+        .map((member) {
+          return member.memberId == 'local_user' ? userId : member.memberId;
+        })
+        .where((id) => id.isNotEmpty && id != 'local_user')
+        .toSet()
+        .toList();
+    if (!memberIds.contains(ownerId)) memberIds.add(ownerId);
+    final data = room.toJson()
+      ..remove('members')
+      ..remove('dailyRecords')
+      ..remove('messages')
+      ..remove('events')
+      ..remove('password');
+    return {
+      ...data,
+      'schemaVersion': 2,
+      'ownerId': ownerId,
+      'memberIds': memberIds,
+      'visibility': room.password.isEmpty ? 'public' : 'private',
+      'status': 'active',
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+  }
+
   Future<void> _saveStudyRooms() async {
     // Always persist locally for offline access
     final prefs = await SharedPreferences.getInstance();
@@ -3458,32 +3681,31 @@ class AppState extends ChangeNotifier {
     final user = _currentUser;
     if (user == null) return;
 
-    final batch = FirebaseFirestore.instance.batch();
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
     for (final room in _studyRooms) {
       // Only skip rooms that are purely demo/local placeholders
       if (room.id.startsWith('room_demo_')) continue;
 
-      final data = room.toJson();
-      // Add the memberIds array so we can query rooms by member
-      final memberIds = room.members
-          .where((m) => m.isApproved)
-          .map(
-            (m) => (m.memberId == _myId || m.memberId == 'local_user')
-                ? user.id
-                : m.memberId,
-          )
-          .where((id) => id.isNotEmpty && id != 'local_user')
-          .toSet()
-          .toList();
-      // Always include the current user
-      if (!memberIds.contains(user.id)) memberIds.add(user.id);
-      data['memberIds'] = memberIds;
-      data['updatedAt'] = FieldValue.serverTimestamp();
+      final roomRef = firestore.collection('rooms').doc(room.id);
+      final ownerId = room.ownerId == 'local_user' ? user.id : room.ownerId;
+      if (ownerId == user.id) {
+        batch.set(
+          roomRef,
+          _roomMetadataPayload(room, user.id),
+          SetOptions(merge: true),
+        );
+      }
 
-      final docRef = FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(room.id);
-      batch.set(docRef, data, SetOptions(merge: true));
+      final me = room.members.where((member) {
+        return member.memberId == user.id || member.memberId == 'local_user';
+      });
+      if (me.isNotEmpty) {
+        batch.set(
+          roomRef.collection('members').doc(user.id),
+          _roomMemberProjection(room, me.first, user.id),
+        );
+      }
     }
     try {
       await batch.commit();
@@ -5905,6 +6127,13 @@ class AppState extends ChangeNotifier {
     required String roomId,
     required String memberName,
   }) {
+    final roomBefore = getStudyRoomById(roomId);
+    final removedMember = roomBefore?.members.where(
+      (member) =>
+          member.name == memberName &&
+          member.memberId != _myId &&
+          member.memberId != 'local_user',
+    );
     _studyRooms = _studyRooms.map((room) {
       if (room.id != roomId) return room;
       if (memberName == room.ownerName || memberName == _profileNickname) {
@@ -5924,6 +6153,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _saveStudyRooms();
     _saveTasks();
+    if (_currentUser != null &&
+        removedMember != null &&
+        removedMember.isNotEmpty) {
+      unawaited(
+        _removeCanonicalRoomMember(roomId, removedMember.first.memberId),
+      );
+    }
   }
 
   void approveStudyRoomJoinRequest({
@@ -5977,6 +6213,23 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _saveStudyRooms();
     _saveTasks();
+    final user = _currentUser;
+    if (user != null) {
+      unawaited(
+        FirebaseFirestore.instance
+            .collection('rooms')
+            .doc(roomId)
+            .collection('members')
+            .doc(memberId)
+            .update({
+              'approvalStatus': 'approved',
+              'updatedAt': DateTime.now().toUtc().toIso8601String(),
+            })
+            .catchError((Object error) {
+              debugPrint('Failed to approve canonical room member: $error');
+            }),
+      );
+    }
   }
 
   void rejectStudyRoomJoinRequest({
@@ -6030,6 +6283,36 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _saveStudyRooms();
     _saveTasks();
+    if (_currentUser != null) {
+      unawaited(_removeCanonicalRoomMember(roomId, memberId));
+    }
+  }
+
+  Future<void> _removeCanonicalRoomMember(
+    String roomId,
+    String memberId,
+  ) async {
+    if (memberId.isEmpty || memberId == _myId) return;
+    final firestore = FirebaseFirestore.instance;
+    final roomRef = firestore.collection('rooms').doc(roomId);
+    final batch = firestore.batch();
+    batch.update(roomRef, {
+      'memberIds': FieldValue.arrayRemove([memberId]),
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+    });
+    batch.delete(roomRef.collection('members').doc(memberId));
+    try {
+      await batch.commit();
+    } catch (error) {
+      try {
+        await roomRef.collection('members').doc(memberId).delete();
+      } catch (fallbackError) {
+        debugPrint(
+          'Failed to remove canonical room member: $error; '
+          'fallback failed: $fallbackError',
+        );
+      }
+    }
   }
 
   void addStudyRoomMessage({
@@ -6182,7 +6465,10 @@ class AppState extends ChangeNotifier {
     String challengeDeadlineLabel = '今天 23:59',
   }) async {
     // Use Firebase uid as ownerId when signed in
-    final resolvedOwnerId = (ownerId == null || ownerId.trim().isEmpty)
+    final resolvedOwnerId =
+        (ownerId == null ||
+            ownerId.trim().isEmpty ||
+            ownerId.trim() == 'local_user')
         ? _myId
         : ownerId.trim();
     final safeOwnerName = (ownerName == null || ownerName.trim().isEmpty)
@@ -6315,11 +6601,11 @@ class AppState extends ChangeNotifier {
     _saveTasks();
   }
 
-  void joinStudyRoomFromDiscovery({
+  Future<void> joinStudyRoomFromDiscovery({
     required StudyRoomData room,
     bool isApproved = true,
     String joinAnswer = '',
-  }) {
+  }) async {
     final now = DateTime.now();
     final localMember = StudyMemberData(
       memberId: _myId,
@@ -6405,8 +6691,32 @@ class AppState extends ChangeNotifier {
     _syncAutoTrackedTasks();
     _syncTaskRewards();
     notifyListeners();
-    _saveStudyRooms();
-    _saveTasks();
+    final joinedRoom = getStudyRoomById(room.id);
+    final user = _currentUser;
+    if (joinedRoom != null && user != null) {
+      final member = joinedRoom.members.firstWhere(
+        (item) => item.memberId == user.id || item.memberId == 'local_user',
+      );
+      final firestore = FirebaseFirestore.instance;
+      final roomRef = firestore.collection('rooms').doc(room.id);
+      final batch = firestore.batch();
+      batch.update(roomRef, {
+        'memberIds': FieldValue.arrayUnion([user.id]),
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+      batch.set(
+        roomRef.collection('members').doc(user.id),
+        _roomMemberProjection(joinedRoom, member, user.id),
+      );
+      try {
+        await batch.commit();
+      } catch (error) {
+        debugPrint('Failed to join canonical room: $error');
+        rethrow;
+      }
+    }
+    await _saveStudyRooms();
+    await _saveTasks();
   }
 
   void updateMyStudyRoomPresence({
@@ -6488,6 +6798,138 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _saveStudyRooms();
     _saveTasks();
+  }
+
+  List<RoomActivitySession> get roomActivitySessions =>
+      List.unmodifiable(_roomActivitySessions.values);
+
+  RoomActivitySession? activeRoomActivitySession(String roomId) {
+    final activeSessionId = _roomActiveSessionIds[roomId];
+    if (activeSessionId == null) return null;
+    final pointedSession = _roomActivitySessions[activeSessionId];
+    if (pointedSession == null || pointedSession.isTerminal) return null;
+    return pointedSession;
+  }
+
+  RoomActivityKind _activityKindForRoom(StudyRoomData room) {
+    return switch (room.roomType) {
+      StudyRoomType.study => RoomActivityKind.focus,
+      StudyRoomType.sleep => RoomActivityKind.sleep,
+      StudyRoomType.exercise => RoomActivityKind.exercise,
+      StudyRoomType.steps => RoomActivityKind.steps,
+      StudyRoomType.custom => RoomActivityKind.custom,
+    };
+  }
+
+  Future<RoomActivitySession> startRoomActivitySession({
+    required String roomId,
+    double? targetValue,
+    RoomActivitySource source = RoomActivitySource.app,
+  }) async {
+    final room = getStudyRoomById(roomId);
+    if (room == null) throw StateError('Room not found');
+    final member = room.members.where(
+      (item) =>
+          (item.memberId == _myId || item.memberId == 'local_user') &&
+          item.isApproved,
+    );
+    if (member.isEmpty) {
+      throw StateError('Only an approved member can start an activity');
+    }
+    final existing = activeRoomActivitySession(roomId);
+    if (existing != null) return existing;
+
+    final now = DateTime.now().toUtc();
+    final actorId = _myId;
+    final session = RoomActivitySession.start(
+      sessionId: '${actorId}_${room.id}_${now.microsecondsSinceEpoch}'
+          .replaceAll('/', '_'),
+      roomId: room.id,
+      actorId: actorId,
+      activityKind: _activityKindForRoom(room),
+      metricUnit: _roomMetricUnit(room),
+      targetValue: targetValue ?? room.dailyGoalValue,
+      source: source,
+      now: now,
+    );
+    _roomActivitySessions[session.sessionId] = session;
+    _roomActiveSessionIds[roomId] = session.sessionId;
+    notifyListeners();
+
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        final firestore = FirebaseFirestore.instance;
+        final roomRef = firestore.collection('rooms').doc(roomId);
+        final batch = firestore.batch();
+        batch.update(roomRef.collection('members').doc(user.id), {
+          'activeSessionId': session.sessionId,
+          'updatedAt': now.toIso8601String(),
+        });
+        batch.set(
+          roomRef.collection('activity_sessions').doc(session.sessionId),
+          session.toJson(),
+        );
+        await batch.commit();
+      } catch (_) {
+        _roomActivitySessions.remove(session.sessionId);
+        _roomActiveSessionIds.remove(roomId);
+        notifyListeners();
+        rethrow;
+      }
+    }
+    return session;
+  }
+
+  Future<RoomActivitySession> transitionRoomActivitySession({
+    required String sessionId,
+    required RoomActivitySessionStatus status,
+    required double metricValue,
+  }) async {
+    final current = _roomActivitySessions[sessionId];
+    if (current == null) throw StateError('Room activity session not found');
+    final next = current.transition(
+      actorId: _myId,
+      nextStatus: status,
+      metricValue: metricValue,
+      now: DateTime.now().toUtc(),
+    );
+    _roomActivitySessions[sessionId] = next;
+    if (next.isTerminal) {
+      _roomActiveSessionIds.remove(current.roomId);
+    }
+    notifyListeners();
+
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        final firestore = FirebaseFirestore.instance;
+        final roomRef = firestore.collection('rooms').doc(current.roomId);
+        if (next.isTerminal) {
+          final batch = firestore.batch();
+          batch.update(roomRef.collection('members').doc(user.id), {
+            'activeSessionId': null,
+            'updatedAt': next.updatedAt.toIso8601String(),
+          });
+          batch.set(
+            roomRef.collection('activity_sessions').doc(sessionId),
+            next.toJson(),
+          );
+          await batch.commit();
+        } else {
+          await roomRef
+              .collection('activity_sessions')
+              .doc(sessionId)
+              .set(next.toJson());
+        }
+      } catch (_) {
+        _roomActivitySessions[sessionId] = current;
+        _roomActiveSessionIds[current.roomId] = current.sessionId;
+        notifyListeners();
+        rethrow;
+      }
+    }
+    return next;
   }
 
   void clearMyStudyRoomPresence(String roomId) {

@@ -310,8 +310,9 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
     });
   }
 
-  bool _hasCurrentUserJoined(StudyRoomData room) {
-    return room.members.any((member) => member.memberId == 'local_user');
+  bool _hasCurrentUserJoined(StudyRoomData room, AppState appState) {
+    final memberId = appState.currentUser?.id ?? 'local_user';
+    return room.members.any((member) => member.memberId == memberId);
   }
 
   bool _matchesSearch(StudyRoomData room, String query) {
@@ -324,147 +325,23 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
         _displayTags(room).any((tag) => tag.toLowerCase().contains(q));
   }
 
-  List<StudyRoomData> _publicDiscoveryRooms(List<StudyRoomData> joinedRooms) {
+  List<StudyRoomData> _publicDiscoveryRooms(
+    List<StudyRoomData> joinedRooms,
+    AppState appState,
+  ) {
     final joinedIds = joinedRooms.map((room) => room.id).toSet();
-    final rooms = [
-      StudyRoomData(
-        id: 'public_focus_library',
-        name: '圖書館靜音房',
-        description: '不聊天，只打卡專注。適合需要安靜陪伴的人。',
-        accentColor: const Color(0xFF14B8A6),
-        ownerId: 'public_owner_library',
-        ownerName: '林同學',
-        announcement: '進房後先設定今天要完成的一件事。',
-        tags: const ['靜音房', '高效率', '專題'],
-        memberLimit: 12,
-        category: '讀書房',
-        dailyGoalHours: 3,
-        roomType: StudyRoomType.study,
-        goalSourceType: TaskSourceType.studyRoom,
-        dailyGoalValue: 3,
-        goalUnitLabel: '小時',
-        joinMode: StudyRoomJoinMode.instant,
-        roomRules: '專注期間保持安靜，休息時再留言。',
-        password: '',
-        challengeTitle: '圖書館自習挑戰',
-        challengeDescription: '今天一起累積 3 小時專注。',
-        challengeGoalSeconds: 3 * 60 * 60,
-        challengeDeadlineLabel: '今天 23:59',
-        members: const [
-          StudyMemberData(
-            memberId: 'public_amy',
-            name: 'Amy',
-            roomNickname: 'Amy',
-            status: StudyMemberStatus.studying,
-            sessionSeconds: 38 * 60,
-            todayFocusSeconds: 96 * 60,
-            avatarColor: Color(0xFF14B8A6),
-            role: 'owner',
-            personalGoalSeconds: 90 * 60,
-            hasReachedPersonalGoal: true,
-          ),
-          StudyMemberData(
-            memberId: 'public_kai',
-            name: 'Kai',
-            roomNickname: 'Kai',
-            status: StudyMemberStatus.resting,
-            sessionSeconds: 0,
-            todayFocusSeconds: 52 * 60,
-            avatarColor: Color(0xFF4F8CFF),
-            personalGoalSeconds: 60 * 60,
-            hasReachedPersonalGoal: false,
-          ),
-        ],
-      ),
-      StudyRoomData(
-        id: 'public_sleep_reset',
-        name: '早睡重整房',
-        description: '用健康資料同步睡眠目標，互相提醒不要熬夜。',
-        accentColor: const Color(0xFF8B5CF6),
-        ownerId: 'public_owner_sleep',
-        ownerName: '小眠',
-        tags: const ['早睡挑戰', '睡眠調整', '健康同步'],
-        memberLimit: 8,
-        category: '睡眠房',
-        dailyGoalHours: 7,
-        roomType: StudyRoomType.sleep,
-        goalSourceType: TaskSourceType.sleepHours,
-        dailyGoalValue: 7,
-        goalUnitLabel: '小時',
-        joinMode: StudyRoomJoinMode.approval,
-        joinQuestionsEnabled: true,
-        joinQuestions: const ['你想調整的睡覺時間是幾點？'],
-        roomRules: '晚上固定時間互相提醒，隔天用健康資料回報。',
-        challengeTitle: '早睡重整挑戰',
-        challengeDescription: '今晚一起達成 7 小時睡眠。',
-        challengeGoalSeconds: 7 * 60 * 60,
-        challengeDeadlineLabel: '明天 09:00',
-        members: const [
-          StudyMemberData(
-            memberId: 'public_sleep_1',
-            name: '小眠',
-            roomNickname: '小眠',
-            status: StudyMemberStatus.offline,
-            sessionSeconds: 0,
-            todayFocusSeconds: 0,
-            todayMetricValue: 6.5,
-            avatarColor: Color(0xFF8B5CF6),
-            role: 'owner',
-            personalGoalSeconds: 7 * 60 * 60,
-            hasReachedPersonalGoal: false,
-          ),
-        ],
-      ),
-      StudyRoomData(
-        id: 'public_exam_pass',
-        name: '考試倒數密碼房',
-        description: '小型讀書房，需要房主提供密碼才可加入。',
-        accentColor: const Color(0xFFF59E0B),
-        ownerId: 'public_owner_exam',
-        ownerName: '阿哲',
-        tags: const ['考試衝刺', '夜讀'],
-        memberLimit: 6,
-        category: '考試衝刺',
-        dailyGoalHours: 4,
-        roomType: StudyRoomType.study,
-        goalSourceType: TaskSourceType.studyRoom,
-        dailyGoalValue: 4,
-        goalUnitLabel: '小時',
-        joinMode: StudyRoomJoinMode.instant,
-        password: 'nudge',
-        roomRules: '進房需密碼，專注期間以任務進度回報為主。',
-        challengeTitle: '考試倒數挑戰',
-        challengeDescription: '今天一起累積 4 小時專注。',
-        challengeGoalSeconds: 4 * 60 * 60,
-        challengeDeadlineLabel: '今天 23:59',
-        members: const [
-          StudyMemberData(
-            memberId: 'public_exam_1',
-            name: '阿哲',
-            roomNickname: '阿哲',
-            status: StudyMemberStatus.studying,
-            sessionSeconds: 21 * 60,
-            todayFocusSeconds: 77 * 60,
-            avatarColor: Color(0xFFF59E0B),
-            role: 'owner',
-            personalGoalSeconds: 120 * 60,
-            hasReachedPersonalGoal: false,
-          ),
-        ],
-      ),
-    ];
-
-    return rooms.where((room) => !joinedIds.contains(room.id)).toList();
+    return appState.discoverableStudyRooms
+        .where((room) => !joinedIds.contains(room.id))
+        .toList();
   }
 
   List<StudyRoomData> _discoveryRooms(
     List<StudyRoomData> rooms,
     AppState appState,
   ) {
-    final publicRooms = _publicDiscoveryRooms(rooms);
-    final combined = [...publicRooms, ...rooms];
+    final publicRooms = _publicDiscoveryRooms(rooms, appState);
     return _filteredAndSortedRooms(
-      combined,
+      publicRooms,
       appState,
     ).where((room) => _matchesSearch(room, _searchQuery)).toList();
   }
@@ -524,13 +401,13 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
 
       final needsApproval = room.joinMode == StudyRoomJoinMode.approval;
       if (needsApproval) {
-        appState.joinStudyRoomFromDiscovery(
+        await appState.joinStudyRoomFromDiscovery(
           room: room,
           isApproved: false,
           joinAnswer: '我想加入這間自律房一起完成目標。',
         );
       } else {
-        appState.joinStudyRoomFromDiscovery(room: room);
+        await appState.joinStudyRoomFromDiscovery(room: room);
       }
 
       if (!context.mounted) return;
@@ -628,6 +505,7 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
     required String emptySubtitle,
     bool discoveryMode = false,
   }) {
+    final appState = context.read<AppState>();
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
 
@@ -690,7 +568,8 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
                 roomTypeIcon: _roomTypeIcon(room.roomType),
                 roomTypeLabel: _roomTypeLabel(room.roomType),
                 isJoining: _joiningRoomId == room.id,
-                onTap: () => discoveryMode && !_hasCurrentUserJoined(room)
+                onTap: () =>
+                    discoveryMode && !_hasCurrentUserJoined(room, appState)
                     ? _joinDiscoveryRoom(context, room)
                     : _openRoom(context, room),
               ),

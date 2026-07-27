@@ -69,8 +69,14 @@
 - **Room Owner**: The member responsible for a Study Room's configuration,
   admission, and moderation. A Room Owner cannot start, pause, end, or alter
   another member's activity.
+- **Room Membership Projection**: The canonical
+  `rooms/{roomId}/members/{memberId}` record for a participant's role,
+  approval, presence, and summarized progress. The Room metadata stores only
+  membership IDs; it does not embed writable member profiles.
 - **Activity Session**: One member's bounded attempt toward a Study Room goal.
-  The member or their assigned device controls its lifecycle.
+  It is stored under `rooms/{roomId}/activity_sessions/{sessionId}` and is
+  shared by App and Web. Only the member or their assigned device controls its
+  lifecycle.
 - **Synced Progress**: A member's Study Room progress imported from an approved
   source, such as health data or an assigned device, rather than entered by a
   Room Owner.
@@ -80,6 +86,8 @@
 The App owns daily action, purchase, Codex, evolution, Child consent, and Child
 goal decisions. The Web Dashboard owns long-term analysis, group
 administration, Guardian proposals, family consent summaries, and catalog
-operations. Both surfaces use the same Firestore records; neither surface
-maintains an independent binding or catalog truth. Family relationship growth
-does not advance personal Character evolution.
+operations. Study Room membership and member-controlled Activity Sessions are
+cross-surface records, so a member may continue the same activity from App or
+Web. Both surfaces use the same Firestore records; neither surface maintains an
+independent binding or catalog truth. Family relationship growth does not
+advance personal Character evolution.

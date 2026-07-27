@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nudge/models/room_activity_session.dart';
 import 'package:nudge/models/study_room_models.dart';
 import 'package:nudge/models/task_model.dart';
 import 'package:nudge/state/app_state.dart';
@@ -74,6 +75,79 @@ void main() {
       expect(me.status, StudyMemberStatus.studying);
     },
   );
+
+  test('member controls their own room activity lifecycle', () async {
+    final appState = AppState();
+
+    appState.createStudyRoom(
+      name: '自主活動房',
+      description: '每位成員控制自己的紀錄',
+      accentColor: const Color(0xFF7C6AE6),
+      roomType: StudyRoomType.study,
+      goalSourceType: TaskSourceType.focusMinutes,
+      dailyGoalValue: 60,
+      goalUnitLabel: '分鐘',
+    );
+
+    final roomId = appState.studyRooms.first.id;
+    final started = await appState.startRoomActivitySession(
+      roomId: roomId,
+      targetValue: 25,
+    );
+    expect(started.actorId, 'local_user');
+    expect(started.status, RoomActivitySessionStatus.active);
+
+    final paused = await appState.transitionRoomActivitySession(
+      sessionId: started.sessionId,
+      status: RoomActivitySessionStatus.paused,
+      metricValue: 10,
+    );
+    expect(paused.status, RoomActivitySessionStatus.paused);
+
+    final resumed = await appState.transitionRoomActivitySession(
+      sessionId: started.sessionId,
+      status: RoomActivitySessionStatus.active,
+      metricValue: 10,
+    );
+    expect(resumed.status, RoomActivitySessionStatus.active);
+
+    final completed = await appState.transitionRoomActivitySession(
+      sessionId: started.sessionId,
+      status: RoomActivitySessionStatus.completed,
+      metricValue: 25,
+    );
+    expect(completed.status, RoomActivitySessionStatus.completed);
+    expect(appState.activeRoomActivitySession(roomId), isNull);
+  });
+
+  test('health progress becomes a member-owned room activity', () async {
+    final appState = AppState();
+    appState.createStudyRoom(
+      name: '睡眠同行房',
+      description: '同步自己的睡眠進度',
+      accentColor: const Color(0xFF2563EB),
+      roomType: StudyRoomType.sleep,
+      goalSourceType: TaskSourceType.sleepHours,
+      dailyGoalValue: 7,
+      goalUnitLabel: '小時',
+    );
+
+    final roomId = appState.studyRooms.first.id;
+    final started = await appState.startRoomActivitySession(
+      roomId: roomId,
+      source: RoomActivitySource.health,
+    );
+    final completed = await appState.transitionRoomActivitySession(
+      sessionId: started.sessionId,
+      status: RoomActivitySessionStatus.completed,
+      metricValue: 7.2,
+    );
+
+    expect(completed.activityKind, RoomActivityKind.sleep);
+    expect(completed.source, RoomActivitySource.health);
+    expect(completed.metricUnit, 'hours');
+    expect(completed.metricValue, 7.2);
+  });
 
   test('room messages and events are persisted on the room model', () {
     final appState = AppState();

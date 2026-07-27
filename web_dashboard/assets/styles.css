@@ -5344,3 +5344,187 @@ body.sidebar-collapsed .role-gatekeeper-overlay {
 .web-binding-input:focus {
   border-color: var(--page-accent);
 }
+.room-hero {
+  background:
+    radial-gradient(circle at 82% 18%, rgba(124, 106, 230, 0.2), transparent 32%),
+    linear-gradient(135deg, rgba(12, 22, 42, 0.98), rgba(18, 28, 52, 0.94));
+}
+
+.room-workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.65fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.room-list-panel,
+.room-session-panel {
+  min-height: 480px;
+}
+
+.room-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.room-list-card {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  color: var(--text);
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.room-list-card:hover,
+.room-list-card.active {
+  border-color: rgba(124, 106, 230, 0.72);
+  background: rgba(124, 106, 230, 0.12);
+  transform: translateY(-1px);
+}
+
+.room-list-card span,
+.room-list-card small {
+  color: var(--muted);
+}
+
+.room-list-card span {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.room-empty-state {
+  display: grid;
+  place-items: start;
+  align-content: center;
+  min-height: 220px;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.room-empty-state strong {
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+.room-session-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.room-session-heading h2 {
+  margin: 8px 0;
+}
+
+.room-session-status {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.room-session-status.status-active {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.room-session-status.status-paused {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.room-progress-card {
+  display: grid;
+  gap: 12px;
+  margin: 28px 0 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(124, 106, 230, 0.07);
+}
+
+.room-progress-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.room-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.room-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7c6ae6, #38bdf8);
+}
+
+.room-metric-input {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.room-metric-input input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(3, 9, 20, 0.42);
+}
+
+.room-metric-input small,
+.room-control-note,
+.room-approval-note {
+  color: var(--muted);
+}
+
+.room-session-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.room-control-note,
+.room-approval-note {
+  margin: 18px 0 0;
+  line-height: 1.65;
+}
+
+.room-approval-note {
+  padding: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+@media (max-width: 900px) {
+  .room-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .room-list-panel,
+  .room-session-panel {
+    min-height: auto;
+  }
+
+  .room-session-heading {
+    flex-direction: column;
+  }
+}

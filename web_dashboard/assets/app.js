@@ -39,6 +39,14 @@ function loadGroupContract() {
   );
 }
 
+function loadRoomActivitySessionContract() {
+  return loadWindowModule(
+    "NudgeRoomActivitySessionContract",
+    "assets/room_activity_session_contract.js?v=1",
+    "活動房紀錄契約模組載入失敗",
+  );
+}
+
 function isPreviewMode() {
   return localStorage.getItem("nudgePreviewMode") === "true";
 }
@@ -147,6 +155,7 @@ const modules = [
   ["personal", "個人進階分析", "personal.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],
   ["groups", "團體 / 教育管理", "groups.html"],
+  ["rooms", "我的活動房", "rooms.html"],
   ["operations", "商城頁", "operations.html"],
   ["research", "研究中心", "research.html"],
   ["friend", "好友功能", "friend.html"],
@@ -2065,6 +2074,269 @@ let groupSchedulesSub = null;
 let groupTemplatesSub = null;
 let groupMemberSummariesSub = null;
 let listeningWebGroupId = undefined;
+let webRoomsSub = null;
+let webRoomMemberSub = null;
+let webRoomSessionsSub = null;
+let activeWebRoom = null;
+let activeWebRoomMember = null;
+let activeWebRoomSession = null;
+
+function roomActivityKind(room = {}) {
+  const roomType = String(room.roomType || "study");
+  if (roomType === "study") return "focus";
+  if (["sleep", "exercise", "steps", "custom"].includes(roomType)) {
+    return roomType;
+  }
+  return "custom";
+}
+
+function roomMetricUnit(room = {}) {
+  const source = String(room.goalSourceType || "");
+  if (source === "sleepHours") return "hours";
+  if (source === "steps") return "steps";
+  if (source === "exerciseMinutes") return "minutes";
+  return "minutes";
+}
+
+function roomSessionTargetValue(room = {}) {
+  const value = Math.max(0.1, Number(room.dailyGoalValue || 1));
+  return room.goalSourceType === "studyRoom" ? value * 60 : value;
+}
+
+function roomTypeLabel(room = {}) {
+  return ({
+    study: "專注",
+    sleep: "睡眠",
+    exercise: "運動",
+    steps: "步數",
+    custom: "自訂自律",
+  })[room.roomType] || "自律";
+}
+
+function roomSessionStatusLabel(status) {
+  return ({
+    active: "進行中",
+    paused: "已暫停",
+    completed: "已完成",
+    cancelled: "已取消",
+  })[status] || "尚未開始";
+}
+
+function renderWebRoomSessionPanel() {
+  const panel = $("[data-room-session-panel]");
+  if (!panel) return;
+  if (!activeWebRoom) {
+    panel.innerHTML = `
+      <div class="room-empty-state">
+        <span>選擇一個活動房</span>
+        <strong>你的活動節奏由你決定</strong>
+        <p>從左側選擇已加入的房間，再開始自己的紀錄。</p>
+      </div>`;
+    return;
+  }
+
+  const memberApproved = activeWebRoomMember?.approvalStatus === "approved";
+  const status = activeWebRoomSession?.status;
+  const metricValue = Number(activeWebRoomSession?.metricValue || 0);
+  const unit = activeWebRoomSession?.metricUnit || roomMetricUnit(activeWebRoom);
+  const target = Number(
+    activeWebRoomSession?.targetValue ||
+    activeWebRoom.dailyGoalValue ||
+    1,
+  );
+  const progress = Math.min(100, Math.max(0, target > 0 ? metricValue / target * 100 : 0));
+  const controls = !memberApproved
+    ? `<div class="room-approval-note">等待房間管理者核准加入；核准後，你仍然自行控制自己的活動。</div>`
+    : !status || ["completed", "cancelled"].includes(status)
+      ? `<button class="primary-btn" type="button" data-room-start>開始我的紀錄</button>`
+      : `
+        ${status === "active"
+          ? `<button class="secondary-btn" type="button" data-room-transition="paused">暫停</button>`
+          : `<button class="primary-btn" type="button" data-room-transition="active">繼續</button>`}
+        <button class="primary-btn" type="button" data-room-transition="completed">完成</button>
+        <button class="secondary-btn" type="button" data-room-transition="cancelled">取消本輪</button>`;
+
+  panel.innerHTML = `
+    <div class="room-session-heading">
+      <div>
+        <span class="eyebrow">${escapeHtml(roomTypeLabel(activeWebRoom))} Activity</span>
+        <h2>${escapeHtml(activeWebRoom.name || "未命名活動房")}</h2>
+        <p>${escapeHtml(activeWebRoom.description || "和同儕在各自的節奏裡一起前進。")}</p>
+      </div>
+      <span class="room-session-status status-${escapeHtml(status || "idle")}">${escapeHtml(roomSessionStatusLabel(status))}</span>
+    </div>
+    <div class="room-progress-card">
+      <div><span>我的進度</span><strong>${metricValue.toLocaleString("zh-TW")} / ${target.toLocaleString("zh-TW")} ${escapeHtml(unit)}</strong></div>
+      <div class="room-progress-track"><span style="width:${progress}%"></span></div>
+    </div>
+    <label class="room-metric-input">
+      <span>這一輪累積值</span>
+      <input type="number" min="${metricValue}" step="0.1" value="${metricValue}" data-room-metric-value />
+      <small>${escapeHtml(unit)}，進度只能向前增加</small>
+    </label>
+    <div class="room-session-controls">${controls}</div>
+    <p class="room-control-note">房間管理者負責規則與成員資格；由你自己開始、暫停與完成，不會被他人代替操作。</p>`;
+
+  $("[data-room-start]", panel)?.addEventListener("click", () => {
+    startWebRoomSession().catch(error => toast(error.message || "無法開始活動"));
+  });
+  $$("[data-room-transition]", panel).forEach(button => {
+    button.addEventListener("click", () => {
+      transitionWebRoomSession(button.dataset.roomTransition)
+        .catch(error => toast(error.message || "無法更新活動"));
+    });
+  });
+}
+
+function selectWebRoom(roomId, room) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !roomId) return;
+  activeWebRoom = { ...room, id: roomId };
+  activeWebRoomMember = null;
+  activeWebRoomSession = null;
+  if (webRoomMemberSub) webRoomMemberSub();
+  if (webRoomSessionsSub) webRoomSessionsSub();
+  webRoomMemberSub = db.collection("rooms").doc(roomId)
+    .collection("members").doc(userId)
+    .onSnapshot(memberSnap => {
+      activeWebRoomMember = memberSnap.exists ? memberSnap.data() : null;
+      renderWebRoomSessionPanel();
+      if (activeWebRoomMember?.approvalStatus !== "approved") {
+        if (webRoomSessionsSub) webRoomSessionsSub();
+        webRoomSessionsSub = null;
+        return;
+      }
+      if (webRoomSessionsSub) return;
+      webRoomSessionsSub = db.collection("rooms").doc(roomId)
+        .collection("activity_sessions")
+        .where("actorId", "==", userId)
+        .onSnapshot(snapshot => {
+          const sessions = snapshot.docs
+            .map(doc => ({ ...doc.data(), sessionId: doc.id }))
+            .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+          activeWebRoomSession =
+            sessions.find(
+              session => session.sessionId === activeWebRoomMember?.activeSessionId,
+            ) ||
+            sessions.find(session => ["completed", "cancelled"].includes(session.status)) ||
+            null;
+          renderWebRoomSessionPanel();
+        }, error => {
+          console.warn("Activity session sync failed:", error);
+          toast("活動紀錄同步失敗");
+        });
+    }, error => {
+      console.warn("Room membership sync failed:", error);
+      toast("房間成員資格同步失敗");
+    });
+  renderWebRoomSessionPanel();
+}
+
+function listenToWebRooms(userId) {
+  const list = $("[data-room-list]");
+  if (!db || !list || !userId) return;
+  if (webRoomsSub) webRoomsSub();
+  webRoomsSub = db.collection("rooms")
+    .where("memberIds", "array-contains", userId)
+    .onSnapshot(snapshot => {
+      const rooms = snapshot.docs
+        .map(doc => ({ ...doc.data(), id: doc.id }))
+        .filter(room => room.status !== "closed")
+        .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+      if (!rooms.length) {
+        list.innerHTML = `
+          <div class="room-empty-state">
+            <span>目前沒有活動房</span>
+            <strong>先從 App 探索或建立房間</strong>
+            <p>加入後，這裡會顯示相同的成員資格與活動紀錄。</p>
+          </div>`;
+        activeWebRoom = null;
+        renderWebRoomSessionPanel();
+        return;
+      }
+      list.innerHTML = rooms.map(room => `
+        <button class="room-list-card${activeWebRoom?.id === room.id ? " active" : ""}" type="button" data-room-id="${escapeHtml(room.id)}">
+          <span>${escapeHtml(roomTypeLabel(room))}</span>
+          <strong>${escapeHtml(room.name || "未命名活動房")}</strong>
+          <small>${Number(room.memberIds?.length || 0)} 位成員 · ${escapeHtml(room.joinMode === "approval" ? "加入需審核" : "開放加入")}</small>
+        </button>`).join("");
+      $$("[data-room-id]", list).forEach(button => {
+        button.addEventListener("click", () => {
+          const room = rooms.find(item => item.id === button.dataset.roomId);
+          if (room) selectWebRoom(room.id, room);
+        });
+      });
+      const selected = rooms.find(room => room.id === activeWebRoom?.id) || rooms[0];
+      selectWebRoom(selected.id, selected);
+    }, error => {
+      console.warn("Room list sync failed:", error);
+      list.innerHTML = `<div class="room-empty-state"><strong>無法同步活動房</strong><p>請確認登入狀態或稍後重試。</p></div>`;
+    });
+}
+
+async function startWebRoomSession() {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !activeWebRoom) throw new Error("尚未選擇活動房");
+  if (activeWebRoomMember?.approvalStatus !== "approved") {
+    throw new Error("成員資格尚未核准");
+  }
+  const contract = await loadRoomActivitySessionContract();
+  const safeIdentity = `${userId}_${activeWebRoom.id}_${Date.now()}`.replaceAll("/", "_");
+  const session = contract.start({
+    sessionId: safeIdentity,
+    roomId: activeWebRoom.id,
+    actorId: userId,
+    activityKind: roomActivityKind(activeWebRoom),
+    metricUnit: roomMetricUnit(activeWebRoom),
+    targetValue: roomSessionTargetValue(activeWebRoom),
+    source: "web",
+    now: new Date(),
+  });
+  const roomRef = db.collection("rooms").doc(activeWebRoom.id);
+  const batch = db.batch();
+  batch.update(roomRef.collection("members").doc(userId), {
+    activeSessionId: session.sessionId,
+    updatedAt: session.updatedAt,
+  });
+  batch.set(
+    roomRef.collection("activity_sessions").doc(session.sessionId),
+    session,
+  );
+  await batch.commit();
+  toast("已開始你的活動紀錄");
+}
+
+async function transitionWebRoomSession(nextStatus) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !activeWebRoom || !activeWebRoomSession) {
+    throw new Error("目前沒有可更新的活動");
+  }
+  const contract = await loadRoomActivitySessionContract();
+  const metricInput = $("[data-room-metric-value]");
+  const metricValue = Number(metricInput?.value ?? activeWebRoomSession.metricValue);
+  const next = contract.transition(activeWebRoomSession, {
+    actorId: userId,
+    nextStatus,
+    metricValue,
+    now: new Date(),
+  });
+  const roomRef = db.collection("rooms").doc(activeWebRoom.id);
+  if (["completed", "cancelled"].includes(next.status)) {
+    const batch = db.batch();
+    batch.update(roomRef.collection("members").doc(userId), {
+      activeSessionId: null,
+      updatedAt: next.updatedAt,
+    });
+    batch.set(
+      roomRef.collection("activity_sessions").doc(next.sessionId),
+      next,
+    );
+    await batch.commit();
+  } else {
+    await roomRef.collection("activity_sessions").doc(next.sessionId).set(next);
+  }
+  toast(nextStatus === "completed" ? "這輪活動已完成" : "活動狀態已同步");
+}
 
 function stopFamilyInteractionListeners() {
   if (familyEncouragementSub) familyEncouragementSub();
@@ -5107,6 +5379,9 @@ async function syncWebPublicProfile(userId, data) {
 function listenToUser(userId) {
   if (!db) return;
   listenToRequests(userId);
+  if (document.body.dataset.page === "rooms") {
+    listenToWebRooms(userId);
+  }
   const authenticatedUid = firebase.auth().currentUser?.uid;
   if (authenticatedUid && authenticatedUid === userId) {
     listenToFamilyLink(userId);

@@ -1152,47 +1152,385 @@ service cloud.firestore {
     }
 
     // ─── /rooms/{roomId} ─────────────────────────────────────────────
-    // Study rooms: authenticated members can read rooms they belong to.
-    // The 'memberIds' array field is used for efficient array-contains queries.
+    // Room metadata is canonical. Each participant owns their member
+    // projection and activity sessions in subcollections.
     match /rooms/{roomId} {
-      // Any authenticated user can read rooms (needed for QR-code join flow)
-      allow read: if isAuth();
+      function roomDocument() {
+        return get(
+          /databases/$(database)/documents/rooms/$(roomId)
+        );
+      }
 
-      // Any authenticated user can create a room (they become owner)
+      function roomDocumentAfter() {
+        return getAfter(
+          /databases/$(database)/documents/rooms/$(roomId)
+        );
+      }
+
+      function isRoomParticipant() {
+        return isAuth()
+          && roomDocument().data.memberIds.hasAny([request.auth.uid]);
+      }
+
+      function isApprovedRoomParticipant() {
+        return isRoomParticipant()
+          && exists(
+            /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+          )
+          && get(
+            /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+          ).data.approvalStatus == 'approved';
+      }
+
+      function validRoomMetadata() {
+        return request.resource.data.schemaVersion == 2
+          && request.resource.data.id == roomId
+          && request.resource.data.ownerId is string
+          && request.resource.data.ownerName is string
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 80
+          && request.resource.data.description is string
+          && request.resource.data.description.size() <= 500
+          && request.resource.data.memberIds is list
+          && request.resource.data.visibility in ['public', 'private']
+          && request.resource.data.status in ['active', 'closed']
+          && request.resource.data.joinMode in ['instant', 'approval']
+          && request.resource.data.roomType in [
+            'study', 'sleep', 'exercise', 'steps', 'custom'
+          ]
+          && request.resource.data.goalSourceType in [
+            'focusMinutes', 'sleepHours', 'steps',
+            'exerciseMinutes', 'studyRoom', 'manual', 'system'
+          ]
+          && request.resource.data.dailyGoalValue is number
+          && request.resource.data.dailyGoalValue > 0
+          && request.resource.data.goalUnitLabel is string
+          && request.resource.data.goalUnitLabel.size() > 0
+          && request.resource.data.goalUnitLabel.size() <= 20
+          && request.resource.data.memberLimit is int
+          && request.resource.data.memberLimit >= 2
+          && request.resource.data.memberLimit <= 50
+          && request.resource.data.updatedAt is string;
+      }
+
+      function changesOnlyOwnRoomMembership() {
+        let beforeMembers = resource.data.memberIds.toSet();
+        let afterMembers = request.resource.data.memberIds.toSet();
+        let addedMembers = afterMembers.difference(beforeMembers);
+        let removedMembers = beforeMembers.difference(afterMembers);
+        return request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['memberIds', 'updatedAt'])
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.ownerId in request.resource.data.memberIds
+          && (
+            (
+              addedMembers.hasOnly([request.auth.uid])
+              && removedMembers.size() == 0
+              && afterMembers.size() <= resource.data.memberLimit
+              && existsAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+              )
+            )
+            || (
+              removedMembers.hasOnly([request.auth.uid])
+              && addedMembers.size() == 0
+              && request.auth.uid != resource.data.ownerId
+              && !existsAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+              )
+            )
+          );
+      }
+
+      function ownerRemovesOneRoomMember() {
+        let beforeMembers = resource.data.memberIds.toSet();
+        let afterMembers = request.resource.data.memberIds.toSet();
+        let addedMembers = afterMembers.difference(beforeMembers);
+        let removedMembers = beforeMembers.difference(afterMembers);
+        return resource.data.ownerId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['memberIds', 'updatedAt'])
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.ownerId in request.resource.data.memberIds
+          && addedMembers.size() == 0
+          && removedMembers.size() == 1;
+      }
+
+      allow read: if isAuth()
+        && (
+          resource.data.memberIds.hasAny([request.auth.uid])
+          || (
+            resource.data.visibility == 'public'
+            && resource.data.status == 'active'
+          )
+        );
+
       allow create: if isAuth()
+        && validRoomMetadata()
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.memberIds.hasAll([request.auth.uid]);
+        && request.resource.data.memberIds.hasOnly([request.auth.uid])
+        && request.resource.data.status == 'active';
 
-      // Any authenticated member of the room can update it
-      // (members update their own presence, owner updates settings)
       allow update: if isAuth()
-        && (resource.data.memberIds.hasAll([request.auth.uid])
-            || request.resource.data.memberIds.hasAll([request.auth.uid]));
+        && validRoomMetadata()
+        && (
+          (
+            resource.data.ownerId == request.auth.uid
+            && request.resource.data.ownerId == resource.data.ownerId
+            && request.resource.data.memberIds == resource.data.memberIds
+          )
+          || changesOnlyOwnRoomMembership()
+          || ownerRemovesOneRoomMember()
+        );
 
       allow delete: if isAuth()
-        && resource.data.ownerId == request.auth.uid;
+        && resource.data.ownerId == request.auth.uid
+        && resource.data.memberIds.hasOnly([request.auth.uid]);
+
+      match /members/{memberId} {
+        function validRoomMember() {
+          return request.resource.data.keys().hasOnly([
+              'schemaVersion', 'roomId', 'memberId', 'displayName',
+              'role', 'approvalStatus', 'presenceStatus',
+              'sessionSeconds', 'metricValue', 'metricUnit',
+              'activeSessionId', 'updatedAt'
+            ])
+            && request.resource.data.keys().hasAll([
+              'schemaVersion', 'roomId', 'memberId', 'displayName',
+              'role', 'approvalStatus', 'presenceStatus',
+              'sessionSeconds', 'metricValue', 'metricUnit',
+              'activeSessionId', 'updatedAt'
+            ])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.roomId == roomId
+            && request.resource.data.memberId == memberId
+            && request.resource.data.displayName is string
+            && request.resource.data.displayName.size() > 0
+            && request.resource.data.displayName.size() <= 40
+            && request.resource.data.role in ['owner', 'member']
+            && request.resource.data.approvalStatus in [
+              'pending', 'approved'
+            ]
+            && request.resource.data.presenceStatus in [
+              'studying', 'resting', 'offline'
+            ]
+            && request.resource.data.sessionSeconds is int
+            && request.resource.data.sessionSeconds >= 0
+            && request.resource.data.metricValue is number
+            && request.resource.data.metricValue >= 0
+            && request.resource.data.metricUnit is string
+            && request.resource.data.metricUnit.size() > 0
+            && request.resource.data.metricUnit.size() <= 20
+            && (
+              request.resource.data.activeSessionId == null
+              || request.resource.data.activeSessionId is string
+            )
+            && request.resource.data.updatedAt is string;
+        }
+
+        function validActiveSessionPointerChange() {
+          let beforeId = resource.data.keys().hasAny(['activeSessionId'])
+            ? resource.data.activeSessionId
+            : null;
+          let afterId = request.resource.data.activeSessionId;
+          return beforeId == afterId
+            || (
+              beforeId == null
+              && afterId is string
+              && existsAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(afterId)
+              )
+              && getAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(afterId)
+              ).data.actorId == memberId
+              && getAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(afterId)
+              ).data.status == 'active'
+            )
+            || (
+              beforeId is string
+              && afterId == null
+              && existsAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(beforeId)
+              )
+              && getAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(beforeId)
+              ).data.status in ['completed', 'cancelled']
+            );
+        }
+
+        allow read: if isRoomParticipant();
+        allow create: if isAuth()
+          && request.auth.uid == memberId
+          && validRoomMember()
+          && roomDocumentAfter().data.memberIds.hasAny([memberId])
+          && request.resource.data.role
+            == (
+              roomDocumentAfter().data.ownerId == memberId
+                ? 'owner'
+                : 'member'
+            )
+          && request.resource.data.approvalStatus
+            == (
+              roomDocumentAfter().data.ownerId == memberId
+                || roomDocumentAfter().data.joinMode == 'instant'
+                ? 'approved'
+                : 'pending'
+            )
+          && request.resource.data.activeSessionId == null;
+        allow update: if isAuth()
+          && validRoomMember()
+          && (
+            (
+              request.auth.uid == memberId
+              && request.resource.data.role == resource.data.role
+              && request.resource.data.approvalStatus
+                == resource.data.approvalStatus
+              && validActiveSessionPointerChange()
+            )
+            || (
+              roomDocument().data.ownerId == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['approvalStatus', 'role', 'updatedAt'])
+            )
+          );
+        allow delete: if isAuth()
+          && !roomDocumentAfter().data.memberIds.hasAny([memberId])
+          && (
+            request.auth.uid == memberId
+            || roomDocument().data.ownerId == request.auth.uid
+          );
+      }
+
+      match /activity_sessions/{sessionId} {
+        function validRoomSession() {
+          return request.resource.data.keys().hasOnly([
+              'schemaVersion', 'sessionId', 'roomId', 'actorId',
+              'activityKind', 'metricUnit', 'targetValue', 'metricValue',
+              'source', 'status', 'startedAt', 'updatedAt', 'endedAt'
+            ])
+            && request.resource.data.keys().hasAll([
+              'schemaVersion', 'sessionId', 'roomId', 'actorId',
+              'activityKind', 'metricUnit', 'targetValue', 'metricValue',
+              'source', 'status', 'startedAt', 'updatedAt', 'endedAt'
+            ])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.sessionId == sessionId
+            && request.resource.data.roomId == roomId
+            && request.resource.data.actorId is string
+            && request.resource.data.activityKind in [
+              'focus', 'sleep', 'exercise', 'steps', 'custom'
+            ]
+            && request.resource.data.metricUnit is string
+            && request.resource.data.metricUnit.size() > 0
+            && request.resource.data.metricUnit.size() <= 20
+            && request.resource.data.targetValue is number
+            && request.resource.data.targetValue > 0
+            && request.resource.data.metricValue is number
+            && request.resource.data.metricValue >= 0
+            && request.resource.data.source in [
+              'app', 'web', 'health', 'device'
+            ]
+            && request.resource.data.status in [
+              'active', 'paused', 'completed', 'cancelled'
+            ]
+            && request.resource.data.startedAt is string
+            && request.resource.data.updatedAt is string
+            && (
+              request.resource.data.endedAt == null
+              || request.resource.data.endedAt is string
+            );
+        }
+
+        function validSessionTransition() {
+          return request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'metricValue', 'updatedAt', 'endedAt'])
+            && request.resource.data.metricValue >= resource.data.metricValue
+            && (
+              (
+                resource.data.status == 'active'
+                && request.resource.data.status in [
+                  'paused', 'completed', 'cancelled'
+                ]
+              )
+              || (
+                resource.data.status == 'paused'
+                && request.resource.data.status in [
+                  'active', 'completed', 'cancelled'
+                ]
+              )
+            )
+            && (
+              (
+                request.resource.data.status in ['active', 'paused']
+                && request.resource.data.endedAt == null
+              )
+              || (
+                request.resource.data.status in ['completed', 'cancelled']
+                && request.resource.data.endedAt is string
+              )
+            );
+        }
+
+        allow read: if isApprovedRoomParticipant();
+        allow create: if isApprovedRoomParticipant()
+          && validRoomSession()
+          && request.resource.data.actorId == request.auth.uid
+          && getAfter(
+            /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+          ).data.activeSessionId == sessionId
+          && request.resource.data.status == 'active'
+          && request.resource.data.metricValue == 0
+          && request.resource.data.endedAt == null;
+        allow update: if isApprovedRoomParticipant()
+          && resource.data.actorId == request.auth.uid
+          && request.resource.data.actorId == resource.data.actorId
+          && request.resource.data.sessionId == resource.data.sessionId
+          && request.resource.data.roomId == resource.data.roomId
+          && validRoomSession()
+          && validSessionTransition()
+          && (
+            (
+              request.resource.data.status in ['active', 'paused']
+              && getAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+              ).data.activeSessionId == sessionId
+            )
+            || (
+              request.resource.data.status in ['completed', 'cancelled']
+              && getAfter(
+                /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+              ).data.activeSessionId == null
+            )
+          );
+        allow delete: if false;
+      }
 
       // ─── /rooms/{roomId}/calls/{callUserId} ───────────────────────
       match /calls/{callUserId} {
-        allow read: if isAuth();
-        allow write: if isOwner(callUserId);
-        allow delete: if isOwner(callUserId);
+        allow read: if isRoomParticipant();
+        allow write: if isRoomParticipant() && isOwner(callUserId);
+        allow delete: if isRoomParticipant() && isOwner(callUserId);
 
         // ─── sdpExchange ────────────────────────────────────────────
         match /sdpExchange/{senderId} {
-          allow read: if isAuth() && (
+          allow read: if isRoomParticipant() && (
             request.auth.uid == callUserId || request.auth.uid == senderId
           );
-          allow write: if isAuth() && request.auth.uid == senderId;
-          allow delete: if isAuth() && request.auth.uid == senderId;
+          allow write: if isRoomParticipant()
+            && request.auth.uid == senderId;
+          allow delete: if isRoomParticipant()
+            && request.auth.uid == senderId;
         }
 
         // ─── ICE candidates ─────────────────────────────────────────
         match /candidates/{candidateId} {
-          allow read: if isAuth() && request.auth.uid == callUserId;
-          allow create: if isAuth()
+          allow read: if isRoomParticipant()
+            && request.auth.uid == callUserId;
+          allow create: if isRoomParticipant()
             && request.resource.data.senderId == request.auth.uid;
-          allow delete: if isAuth()
+          allow delete: if isRoomParticipant()
             && resource.data.senderId == request.auth.uid;
         }
       }
