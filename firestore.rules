@@ -257,6 +257,30 @@ service cloud.firestore {
           && scopes.healthTrends is bool;
       }
 
+      function futureSummaryObeysConsent(scopes) {
+        let summaryPath =
+          /databases/$(database)/documents/family_links/$(linkId)/summaries/current;
+        let summary = getAfter(summaryPath).data;
+        return existsAfter(summaryPath)
+          && summary.childId == resource.data.childId
+          && (
+            scopes.summary == true
+            || !summary.keys().hasAny(['summary'])
+          )
+          && (
+            scopes.weeklyReport == true
+            || !summary.keys().hasAny(['weeklyReport'])
+          )
+          && (
+            scopes.taskCategories == true
+            || !summary.keys().hasAny(['taskCategories'])
+          )
+          && (
+            scopes.healthTrends == true
+            || !summary.keys().hasAny(['healthTrends'])
+          );
+      }
+
       allow read: if isFamilyParticipant();
 
       allow create: if isAuth()
@@ -318,6 +342,9 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['consentScopes', 'updatedAt'])
             && validConsentScopes(request.resource.data.consentScopes)
+            && futureSummaryObeysConsent(
+              request.resource.data.consentScopes
+            )
           )
           || (
             request.resource.data.diff(resource.data).affectedKeys()
@@ -415,42 +442,58 @@ service cloud.firestore {
           ).data;
         }
 
+        function familyLinkAfter() {
+          return getAfter(
+            /databases/$(database)/documents/family_links/$(linkId)
+          ).data;
+        }
+
         function isFamilyParticipant() {
           return isAuth()
             && familyLink().participantIds.hasAny([request.auth.uid]);
         }
 
-        function obeysConsentScopes() {
+        function dataObeysConsent(data, scopes) {
           return (
-              familyLink().consentScopes.summary == true
-              || !request.resource.data.keys().hasAny(['summary'])
+              scopes.summary == true
+              || !data.keys().hasAny(['summary'])
             )
             && (
-              familyLink().consentScopes.weeklyReport == true
-              || !request.resource.data.keys().hasAny(['weeklyReport'])
+              scopes.weeklyReport == true
+              || !data.keys().hasAny(['weeklyReport'])
             )
             && (
-              familyLink().consentScopes.taskCategories == true
-              || !request.resource.data.keys().hasAny(['taskCategories'])
+              scopes.taskCategories == true
+              || !data.keys().hasAny(['taskCategories'])
             )
             && (
-              familyLink().consentScopes.healthTrends == true
-              || !request.resource.data.keys().hasAny(['healthTrends'])
+              scopes.healthTrends == true
+              || !data.keys().hasAny(['healthTrends'])
             );
         }
 
-        allow read: if isFamilyParticipant();
+        allow read: if isFamilyParticipant()
+          && (
+            request.auth.uid == familyLink().childId
+            || dataObeysConsent(
+              resource.data,
+              familyLink().consentScopes
+            )
+          );
         allow create, update: if summaryId == 'current'
           && isFamilyParticipant()
-          && familyLink().status == 'active'
-          && request.auth.uid == familyLink().childId
-          && request.resource.data.childId == familyLink().childId
+          && familyLinkAfter().status == 'active'
+          && request.auth.uid == familyLinkAfter().childId
+          && request.resource.data.childId == familyLinkAfter().childId
           && request.resource.data.schemaVersion == 1
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'childId', 'summary', 'weeklyReport',
             'taskCategories', 'healthTrends', 'updatedAt'
           ])
-          && obeysConsentScopes();
+          && dataObeysConsent(
+            request.resource.data,
+            familyLinkAfter().consentScopes
+          );
         allow delete: if false;
       }
 

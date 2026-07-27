@@ -269,8 +269,14 @@ class _GuardianParentPageState extends State<GuardianParentPage> {
     final secondaryText = AppUI.textSecondaryOf(context);
     final consent = appState.familyLink?.consent;
     final familySummary = appState.familySummary;
-    final sharedSummary = familySummary?['summary'] as Map?;
-    final healthTrends = familySummary?['healthTrends'] as Map?;
+    final sharedSummary =
+        consent?.summary == true && familySummary?['summary'] is Map
+        ? familySummary!['summary'] as Map
+        : null;
+    final healthTrends =
+        consent?.healthTrends == true && familySummary?['healthTrends'] is Map
+        ? familySummary!['healthTrends'] as Map
+        : null;
     final enabledScopes = <String>[
       if (consent?.summary == true) '今日總覽',
       if (consent?.weeklyReport == true) '週報',

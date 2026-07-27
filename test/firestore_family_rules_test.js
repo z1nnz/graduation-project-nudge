@@ -100,6 +100,13 @@ function updateWrite(path, data) {
   };
 }
 
+function replaceWrite(path, data) {
+  return {
+    update: { name: documentName(path), fields: fieldsOf(data) },
+    currentDocument: { exists: true },
+  };
+}
+
 async function run() {
   const guardian = await signUp("guardian");
   const child = await signUp("child");
@@ -220,25 +227,19 @@ async function run() {
         },
         updatedAt: now,
       }),
+      createWrite(`family_links/${requestId}/summaries/current`, {
+        schemaVersion: 1,
+        childId: child.localId,
+        summary: {
+          disciplineScore: 82,
+          completedTasks: 4,
+          totalTasks: 5,
+          focusMinutes: 45,
+        },
+        weeklyReport: [],
+        updatedAt: now,
+      }),
     ],
-    child.idToken,
-  );
-  assert.equal(response.status, 200, await response.clone().text());
-
-  response = await createDoc(
-    `family_links/${requestId}/summaries/current`,
-    {
-      schemaVersion: 1,
-      childId: child.localId,
-      summary: {
-        disciplineScore: 82,
-        completedTasks: 4,
-        totalTasks: 5,
-        focusMinutes: 45,
-      },
-      weeklyReport: [],
-      updatedAt: now,
-    },
     child.idToken,
   );
   assert.equal(response.status, 200, await response.clone().text());
@@ -261,6 +262,60 @@ async function run() {
     response.status,
     403,
     "A guardian must not forge the child's shared summary",
+  );
+
+  const revokedConsent = {
+    summary: false,
+    weeklyReport: false,
+    taskCategories: false,
+    healthTrends: false,
+  };
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}`, {
+        consentScopes: revokedConsent,
+        updatedAt: now,
+      }),
+    ],
+    child.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "Consent revocation must also remove the previously shared fields",
+  );
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}`, {
+        consentScopes: revokedConsent,
+        updatedAt: now,
+      }),
+      replaceWrite(`family_links/${requestId}/summaries/current`, {
+        schemaVersion: 1,
+        childId: child.localId,
+        updatedAt: now,
+      }),
+    ],
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await request(
+    `family_links/${requestId}/summaries/current`,
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+  const revokedSummary = await response.json();
+  assert.equal(
+    Object.hasOwn(revokedSummary.fields, "summary"),
+    false,
+    "A guardian must not receive a revoked daily summary",
+  );
+  assert.equal(
+    Object.hasOwn(revokedSummary.fields, "weeklyReport"),
+    false,
+    "A guardian must not receive a revoked weekly report",
   );
 
   const cardId = "card-1";

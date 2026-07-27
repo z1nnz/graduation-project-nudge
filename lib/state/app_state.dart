@@ -4367,9 +4367,26 @@ class AppState extends ChangeNotifier {
     final user = _currentUser;
     if (link == null || user == null || user.id != link.childId) return;
     final consent = consentOverride ?? link.consent;
+    final payload = _buildFamilySummaryPayload(
+      childId: user.id,
+      consent: consent,
+    );
+
+    await FirebaseFirestore.instance
+        .collection('family_links')
+        .doc(link.id)
+        .collection('summaries')
+        .doc('current')
+        .set(payload);
+  }
+
+  Map<String, dynamic> _buildFamilySummaryPayload({
+    required String childId,
+    required FamilyConsentScopes consent,
+  }) {
     final payload = <String, dynamic>{
       'schemaVersion': 1,
-      'childId': user.id,
+      'childId': childId,
       'updatedAt': DateTime.now().toUtc().toIso8601String(),
     };
 
@@ -4419,13 +4436,7 @@ class AppState extends ChangeNotifier {
         'exerciseMinutes': exerciseMinutes,
       };
     }
-
-    await FirebaseFirestore.instance
-        .collection('family_links')
-        .doc(link.id)
-        .collection('summaries')
-        .doc('current')
-        .set(payload);
+    return payload;
   }
 
   void _syncAvatarExperienceLedgerForSummary(DailySummary summary) {
@@ -6666,14 +6677,22 @@ ${summaryBuf.toString()}
     final link = _familyLink;
     final user = _currentUser;
     if (link == null || user == null || user.id != link.childId) return;
-    await FirebaseFirestore.instance
-        .collection('family_links')
-        .doc(link.id)
-        .update({
-          'consentScopes': consent.toMap(),
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        });
-    await _publishFamilySummarySnapshot(consentOverride: consent);
+    final firestore = FirebaseFirestore.instance;
+    final linkRef = firestore.collection('family_links').doc(link.id);
+    final summaryRef = linkRef.collection('summaries').doc('current');
+    final batch = firestore.batch();
+    final updatedAt = DateTime.now().toUtc().toIso8601String();
+
+    batch.update(linkRef, {
+      'consentScopes': consent.toMap(),
+      'updatedAt': updatedAt,
+    });
+    batch.set(
+      summaryRef,
+      _buildFamilySummaryPayload(childId: user.id, consent: consent)
+        ..['updatedAt'] = updatedAt,
+    );
+    await batch.commit();
   }
 
   /// 加入團體挑戰後，自動匯入每日挑戰任務

@@ -2167,6 +2167,8 @@ function renderFamilyReportState() {
       weekly.map(item => Number(item.disciplineScore || 0)),
       "#8d7aff",
     );
+  } else if (chart) {
+    chart.getContext("2d").clearRect(0, 0, chart.width, chart.height);
   }
 }
 
