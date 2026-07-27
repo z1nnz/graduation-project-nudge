@@ -316,6 +316,42 @@ async function run() {
     child.idToken,
   );
   assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}`, {
+        status: "ended",
+        endedBy: guardian.localId,
+        endedAt: now,
+        updatedAt: now,
+      }),
+      updateWrite(`guardian_requests/${requestId}`, {
+        status: "ended",
+        updatedAt: now,
+      }),
+    ],
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    `family_links/${requestId}/encouragements/card-after-end`,
+    {
+      schemaVersion: 1,
+      senderId: guardian.localId,
+      recipientId: child.localId,
+      title: "連結已結束",
+      message: "",
+      status: "sent",
+      createdAt: now,
+    },
+    guardian.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "An ended family link must reject new interactions",
+  );
 }
 
 run()

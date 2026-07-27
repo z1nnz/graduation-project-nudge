@@ -3458,6 +3458,29 @@ async function unlinkWebGuardian() {
   }
   if (!window.confirm("確定解除親屬連結？雙方將停止共享陪伴資料。")) return;
   try {
+    if (activeFamilyLink) {
+      const batch = db.batch();
+      const now = new Date().toISOString();
+      batch.update(db.collection("family_links").doc(activeFamilyLink.id), {
+        status: "ended",
+        endedBy: userId,
+        endedAt: now,
+        updatedAt: now,
+      });
+      batch.update(
+        db.collection("guardian_requests").doc(activeFamilyLink.id),
+        { status: "ended", updatedAt: now },
+      );
+      batch.update(db.collection("users").doc(userId), {
+        "webToolsState.guardianInvite": firebase.firestore.FieldValue.delete(),
+        "webToolsState.guardianInviteStatus": firebase.firestore.FieldValue.delete(),
+        updatedAt: now,
+      });
+      await batch.commit();
+      toast("已解除親屬連結");
+      return;
+    }
+
     const [incoming, outgoing] = await Promise.all([
       db.collection("guardian_requests").where("receiverId", "==", userId).get(),
       db.collection("guardian_requests").where("senderId", "==", userId).get()

@@ -424,7 +424,8 @@ class AppState extends ChangeNotifier {
           final accepted = docs
               .where((d) => d['status'] == 'accepted')
               .toList();
-          if (accepted.isNotEmpty && !isGuardianLinked) {
+          if (accepted.isNotEmpty &&
+              guardianInvite?['linkId'] != accepted.first['id']) {
             _autoUpdateLinkage(accepted.first, user.uid);
           } else if (accepted.isEmpty && isGuardianLinked) {
             _checkAndAutoClearLinkage(user.uid);
@@ -449,7 +450,8 @@ class AppState extends ChangeNotifier {
           final accepted = docs
               .where((d) => d['status'] == 'accepted')
               .toList();
-          if (accepted.isNotEmpty && !isGuardianLinked) {
+          if (accepted.isNotEmpty &&
+              guardianInvite?['linkId'] != accepted.first['id']) {
             _autoUpdateLinkage(accepted.first, user.uid);
           } else if (accepted.isEmpty && isGuardianLinked) {
             _checkAndAutoClearLinkage(user.uid);
@@ -6654,14 +6656,21 @@ ${summaryBuf.toString()}
       final link = _familyLink;
       if (link != null) {
         final batch = FirebaseFirestore.instance.batch();
+        final now = DateTime.now().toUtc().toIso8601String();
         batch.update(
           FirebaseFirestore.instance.collection('family_links').doc(link.id),
           {
             'status': 'ended',
             'endedBy': user.id,
-            'endedAt': DateTime.now().toUtc().toIso8601String(),
-            'updatedAt': DateTime.now().toUtc().toIso8601String(),
+            'endedAt': now,
+            'updatedAt': now,
           },
+        );
+        batch.update(
+          FirebaseFirestore.instance
+              .collection('guardian_requests')
+              .doc(link.id),
+          {'status': 'ended', 'updatedAt': now},
         );
         batch.update(docRef, {
           'webToolsState.guardianInvite': FieldValue.delete(),

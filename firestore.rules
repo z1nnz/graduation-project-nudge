@@ -213,7 +213,18 @@ service cloud.firestore {
             )) ||
           (resource.data.senderId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-            && request.resource.data.status in ['declined', 'cancelled'])
+            && request.resource.data.status in ['declined', 'cancelled']) ||
+          ((resource.data.senderId == request.auth.uid
+              || resource.data.receiverId == request.auth.uid)
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'updatedAt'])
+            && request.resource.data.status == 'ended'
+            && getAfter(
+              /databases/$(database)/documents/family_links/$(requestId)
+            ).data.status == 'ended'
+            && getAfter(
+              /databases/$(database)/documents/family_links/$(requestId)
+            ).data.endedBy == request.auth.uid)
         );
       allow delete: if isAuth()
         && (resource.data.senderId == request.auth.uid
