@@ -1,17 +1,17 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 家長權限設定</title><link rel="stylesheet" href="assets/styles.css?v=13" /></head>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 家庭資料同意</title><link rel="stylesheet" href="assets/styles.css?v=13" /></head>
   <body data-page="guardian">
-    <div class="shell"><aside class="sidebar"><a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>權限設定</small></span></a><nav class="nav"><a href="dashboard.html">總覽入口</a><a class="active" href="guardian.html">家長陪伴中心</a></nav></aside>
+    <div class="shell"><aside class="sidebar"><a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>資料同意</small></span></a><nav class="nav"><a href="dashboard.html">總覽入口</a><a class="active" href="guardian.html">家長陪伴中心</a></nav></aside>
       <main class="main">
-        <header class="hero split"><div><span class="eyebrow">Permission Center</span><h1>權限分級是家長陪伴的核心。</h1><p>預設只看總覽，不顯示詳細任務內容、不顯示原始健康資料，孩子可隨時解除。</p><div class="subnav"><a href="guardian.html">中心總覽</a><a href="guardian-report.html">孩子週報</a><a href="guardian-encouragement.html">鼓勵卡</a><a href="guardian-goals.html">共同目標</a><a class="active" href="guardian-permissions.html">權限設定</a></div></div><div class="hero-card"><span>目前權限</span><strong>總覽</strong><p>保護孩子隱私。</p></div></header>
-        <section class="permission-grid page-section">
-          <article class="mini-card"><strong>只看總覽</strong><p>分數、完成率、趨勢。</p><button class="button primary" data-toast="已設定為只看總覽">啟用</button></article>
-          <article class="mini-card"><strong>可看週報</strong><p>系統整理，不顯示原始資料。</p><button class="button ghost" data-toast="已允許查看週報">啟用</button></article>
-          <article class="mini-card"><strong>可看任務類型</strong><p>只顯示學習、健康、生活類別。</p><button class="button ghost" data-toast="已允許查看任務類型">啟用</button></article>
-          <article class="mini-card"><strong>可看健康趨勢</strong><p>不顯示原始睡眠或逐分鐘資料。</p><button class="button ghost" data-toast="已允許查看健康趨勢">啟用</button></article>
+        <header class="hero split"><div><span class="eyebrow">Consent Summary</span><h1>家長查看同意狀態，孩子控制分享範圍。</h1><p>這裡是唯讀摘要。家長不能替孩子開啟週報、任務分類或健康趨勢。</p><div class="subnav"><a href="guardian.html">中心總覽</a><a href="guardian-report.html">孩子週報</a><a href="guardian-encouragement.html">鼓勵卡</a><a href="guardian-goals.html">共同目標</a><a class="active" href="guardian-permissions.html">資料同意</a></div></div><div class="hero-card"><span>孩子目前同意</span><strong data-family-consent-summary>尚未開放</strong><p>App 端變更會即時同步。</p></div></header>
+        <section class="permission-grid page-section" aria-label="孩子目前同意的家庭資料範圍">
+          <article class="mini-card"><strong>今日總覽</strong><p>整體完成率與專注摘要，不含逐筆任務。</p><button class="button ghost" data-family-consent="summary" disabled>孩子未開放</button></article>
+          <article class="mini-card"><strong>每週回顧</strong><p>系統整理的週趨勢，不顯示原始資料。</p><button class="button ghost" data-family-consent="weeklyReport" disabled>孩子未開放</button></article>
+          <article class="mini-card"><strong>任務類別</strong><p>只顯示學習、健康、生活等分類彙整。</p><button class="button ghost" data-family-consent="taskCategories" disabled>孩子未開放</button></article>
+          <article class="mini-card"><strong>健康趨勢</strong><p>只顯示步數與睡眠趨勢，不含逐分鐘紀錄。</p><button class="button ghost" data-family-consent="healthTrends" disabled>孩子未開放</button></article>
         </section>
-        <section class="panel page-section"><span class="eyebrow">解除連結</span><h2>孩子端與家長端都可以解除。</h2><p>解除後家長無法再查看趨勢，既有週報只保留匿名摘要。</p><button class="button secondary" data-toast="已模擬解除陪伴連結">解除連結 Demo</button></section>
+        <section class="panel page-section"><span class="eyebrow">資料原則</span><h2>同意可以隨時收回。</h2><p>孩子在 App 關閉任一範圍後，家長端會立即更新。家庭目標與鼓勵不會自動取得額外資料權限。</p></section>
       </main>
     </div><script src="assets/app.js?v=13"></script>
   </body>

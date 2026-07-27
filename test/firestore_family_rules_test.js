@@ -1,0 +1,328 @@
+const assert = require("node:assert/strict");
+
+const projectId = "nudge-discipline-app";
+const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST;
+const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+
+if (!firestoreHost || !authHost) {
+  console.log(
+    "Firestore family rules integration test skipped: emulators are not enabled.",
+  );
+  process.exit(0);
+}
+
+const firestoreBase =
+  `http://${firestoreHost}/v1/projects/${projectId}` +
+  "/databases/(default)/documents";
+const commitUrl =
+  `http://${firestoreHost}/v1/projects/${projectId}` +
+  "/databases/(default)/documents:commit";
+
+function valueOf(value) {
+  if (value === null) return { nullValue: null };
+  if (typeof value === "string") return { stringValue: value };
+  if (typeof value === "boolean") return { booleanValue: value };
+  if (Number.isInteger(value)) return { integerValue: String(value) };
+  if (Array.isArray(value)) {
+    return { arrayValue: { values: value.map(valueOf) } };
+  }
+  return { mapValue: { fields: fieldsOf(value) } };
+}
+
+function fieldsOf(data) {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key, valueOf(value)]),
+  );
+}
+
+function documentName(path) {
+  return `projects/${projectId}/databases/(default)/documents/${path}`;
+}
+
+async function signUp(label) {
+  const response = await fetch(
+    `http://${authHost}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-key`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: `${label}-${Date.now()}@example.test`,
+        password: "correct-horse-battery-staple",
+        returnSecureToken: true,
+      }),
+    },
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+  return response.json();
+}
+
+async function request(path, token, options = {}) {
+  return fetch(`${firestoreBase}/${path}`, {
+    ...options,
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+}
+
+async function createDoc(path, data, token) {
+  return request(path, token, {
+    method: "PATCH",
+    body: JSON.stringify({ fields: fieldsOf(data) }),
+  });
+}
+
+async function commit(writes, token) {
+  return fetch(commitUrl, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ writes }),
+  });
+}
+
+function createWrite(path, data) {
+  return {
+    update: { name: documentName(path), fields: fieldsOf(data) },
+    currentDocument: { exists: false },
+  };
+}
+
+function updateWrite(path, data) {
+  return {
+    update: { name: documentName(path), fields: fieldsOf(data) },
+    updateMask: { fieldPaths: Object.keys(data) },
+    currentDocument: { exists: true },
+  };
+}
+
+async function run() {
+  const guardian = await signUp("guardian");
+  const child = await signUp("child");
+  const stranger = await signUp("stranger");
+  const now = "2026-07-27T00:00:00.000Z";
+
+  for (const [account, role] of [
+    [guardian, "guardian"],
+    [child, "child"],
+    [stranger, "personal"],
+  ]) {
+    const response = await createDoc(
+      `users/${account.localId}`,
+      { username: `NDG_${account.localId}`, userRole: role },
+      account.idToken,
+    );
+    assert.equal(response.status, 200, await response.clone().text());
+  }
+
+  const requestId = "family-rule-test";
+  const requestData = {
+    senderId: guardian.localId,
+    senderNudgeId: `NDG_${guardian.localId}`,
+    senderNickname: "Guardian",
+    senderRole: "guardian",
+    receiverId: child.localId,
+    receiverNudgeId: `NDG_${child.localId}`,
+    receiverRole: "child",
+    status: "pending",
+    createdAt: now,
+    updatedAt: now,
+  };
+  let response = await createDoc(
+    `guardian_requests/${requestId}`,
+    requestData,
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  const linkData = {
+    schemaVersion: 1,
+    guardianId: guardian.localId,
+    childId: child.localId,
+    participantIds: [guardian.localId, child.localId],
+    status: "active",
+    consentScopes: {
+      summary: true,
+      weeklyReport: false,
+      taskCategories: false,
+      healthTrends: false,
+    },
+    createdAt: now,
+    updatedAt: now,
+  };
+  response = await commit(
+    [
+      updateWrite(`guardian_requests/${requestId}`, {
+        status: "accepted",
+        updatedAt: now,
+      }),
+      createWrite(`family_links/${requestId}`, linkData),
+    ],
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await request(
+    `family_links/${requestId}`,
+    stranger.idToken,
+  );
+  assert.equal(response.status, 403, "A stranger must not read a family link");
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}`, {
+        consentScopes: {
+          summary: true,
+          weeklyReport: true,
+          taskCategories: false,
+          healthTrends: false,
+        },
+        updatedAt: now,
+      }),
+    ],
+    guardian.idToken,
+  );
+  assert.equal(response.status, 403, "A guardian must not change child consent");
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}`, {
+        consentScopes: {
+          summary: true,
+          weeklyReport: true,
+          taskCategories: false,
+          healthTrends: false,
+        },
+        updatedAt: now,
+      }),
+    ],
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  const cardId = "card-1";
+  response = await createDoc(
+    `family_links/${requestId}/encouragements/${cardId}`,
+    {
+      schemaVersion: 1,
+      senderId: guardian.localId,
+      recipientId: child.localId,
+      title: "今天也辛苦了",
+      message: "慢慢來就好",
+      status: "sent",
+      createdAt: now,
+    },
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(
+        `family_links/${requestId}/encouragements/${cardId}`,
+        { status: "acknowledged", acknowledgedAt: now },
+      ),
+      createWrite(
+        `family_links/${requestId}/bond_events/encouragement_${cardId}`,
+        {
+          schemaVersion: 1,
+          type: "acknowledgement",
+          sourceId: cardId,
+          actorId: child.localId,
+          points: 3,
+          createdAt: now,
+        },
+      ),
+    ],
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    `family_links/${requestId}/bond_events/fake`,
+    {
+      schemaVersion: 1,
+      type: "acknowledgement",
+      sourceId: cardId,
+      actorId: guardian.localId,
+      points: 999,
+      createdAt: now,
+    },
+    guardian.idToken,
+  );
+  assert.equal(response.status, 403, "A guardian must not mint Family Bond XP");
+
+  const goalId = "goal-1";
+  response = await createDoc(
+    `family_links/${requestId}/goals/${goalId}`,
+    {
+      schemaVersion: 1,
+      title: "每天專注 30 分鐘",
+      message: "我們一起慢慢建立節奏",
+      status: "proposed",
+      proposedBy: guardian.localId,
+      decisionBy: child.localId,
+      createdAt: now,
+      updatedAt: now,
+    },
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}/goals/${goalId}`, {
+        status: "accepted",
+        acceptedAt: now,
+        updatedAt: now,
+      }),
+    ],
+    guardian.idToken,
+  );
+  assert.equal(response.status, 403, "A guardian must not accept their proposal");
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}/goals/${goalId}`, {
+        status: "accepted",
+        acceptedAt: now,
+        updatedAt: now,
+      }),
+    ],
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}/goals/${goalId}`, {
+        status: "completed",
+        completedAt: now,
+        updatedAt: now,
+      }),
+      createWrite(`family_links/${requestId}/bond_events/goal_${goalId}`, {
+        schemaVersion: 1,
+        type: "goalCompleted",
+        sourceId: goalId,
+        actorId: child.localId,
+        points: 10,
+        createdAt: now,
+      }),
+    ],
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+}
+
+run()
+  .then(() => {
+    console.log("Firestore family rules integration test passed.");
+  })
+  .catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });

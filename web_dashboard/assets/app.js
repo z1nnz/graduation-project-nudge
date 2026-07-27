@@ -15,6 +15,20 @@ function loadRelationshipCapabilities() {
   });
 }
 
+function loadFamilyLinkContract() {
+  if (window.NudgeFamilyLinkContract) {
+    return Promise.resolve(window.NudgeFamilyLinkContract);
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "assets/family_link_contract.js?v=1";
+    script.onload = () => resolve(window.NudgeFamilyLinkContract);
+    script.onerror = () => reject(new Error("家庭連結契約模組載入失敗"));
+    document.head.appendChild(script);
+  });
+}
+
 function isPreviewMode() {
   return localStorage.getItem("nudgePreviewMode") === "true";
 }
@@ -56,6 +70,7 @@ function resolveWebCapabilities(data = {}) {
   return resolver({
     rawRole: data.userRole,
     familyLinked:
+      Boolean(activeFamilyLink) ||
       data.webToolsState?.guardianInviteStatus?.status === "linked",
     hasGroup: Boolean(data.groupId),
     isGroupOwner: Boolean(data.isGroupOwner),
@@ -74,6 +89,7 @@ function resolveWebRoleGateRedirect(path, data = {}) {
   return resolver(path, {
     rawRole: data.userRole,
     familyLinked:
+      Boolean(activeFamilyLink) ||
       data.webToolsState?.guardianInviteStatus?.status === "linked",
     hasGroup: Boolean(data.groupId),
     isGroupOwner: Boolean(data.isGroupOwner),
@@ -468,12 +484,6 @@ function saveDemoState(key, payload) {
       [`webToolsState.${key}`]: current[key]
     }).catch(e => console.warn("Firestore update error:", e));
 
-    // Guardian mode: write to child's document too
-    if (window.linkedChildUid) {
-      db.collection("users").doc(window.linkedChildUid).update({
-        [`webToolsState.${key}`]: current[key]
-      }).catch(e => console.warn("Child Firestore update error:", e));
-    }
   }
 }
 
@@ -527,18 +537,23 @@ function bindExtensionTools() {
 
   guardianTool?.querySelector('[data-action="preview-guardian"]')?.addEventListener("click", () => {
     const goal = $('[data-guardian-goal]', guardianTool).value;
-    const permission = $('[data-guardian-permission]', guardianTool).value;
     const message = $('[data-guardian-message]', guardianTool).value.trim();
     setOutput(
       guardianTool,
-      `<strong>${goal}</strong><p>權限：${permission}。鼓勵訊息：「${message}」孩子同意後才會啟用，並可隨時解除。</p>`,
+      `<strong>${escapeHtml(goal)}</strong><p>陪伴訊息：「${escapeHtml(message)}」孩子接受後才會匯入任務；資料分享範圍仍由孩子控制。</p>`,
     );
-    saveDemoState("guardianInvite", { goal, permission, message });
-    toast("邀請預覽已更新");
+    toast("目標預覽已更新");
   });
-  guardianTool?.querySelector('[data-action="send-guardian"]')?.addEventListener("click", () => {
-    saveDemoState("guardianInviteStatus", { status: "pending_child_approval" });
-    toast("已送出陪伴邀請 Demo");
+  guardianTool?.querySelector('[data-action="send-guardian"]')?.addEventListener("click", async () => {
+    const goal = $('[data-guardian-goal]', guardianTool).value;
+    const message = $('[data-guardian-message]', guardianTool).value.trim();
+    try {
+      await sendWebFamilyGoal(goal, message);
+      toast("共同目標已送出，等待孩子決定");
+    } catch (error) {
+      console.error(error);
+      toast(error.message || "共同目標送出失敗");
+    }
   });
 
   let challengeText = "";
@@ -677,13 +692,6 @@ function bindExtensionTools() {
         [`webToolsCollection.${key}UpdatedAt`]: current[`${key}UpdatedAt`]
       }).catch(e => console.warn("Firestore update error:", e));
 
-      // Guardian mode: write to child's document too
-      if (window.linkedChildUid) {
-        db.collection("users").doc(window.linkedChildUid).update({
-          [`webToolsCollection.${key}`]: items,
-          [`webToolsCollection.${key}UpdatedAt`]: current[`${key}UpdatedAt`]
-        }).catch(e => console.warn("Child Firestore update error:", e));
-      }
     }
   };
   
@@ -768,7 +776,7 @@ function bindExtensionTools() {
   encouragementTool?.querySelector('[data-action="preview-encouragement"]')?.addEventListener("click", () => {
     toast("預覽：這是一張溫暖的鼓勵卡。");
   });
-  encouragementTool?.querySelector('[data-action="send-encouragement"]')?.addEventListener("click", () => {
+  encouragementTool?.querySelector('[data-action="send-encouragement"]')?.addEventListener("click", async () => {
     const card = encouragementTool.querySelector('.generated-card');
     if (card) {
       card.classList.add("toss-animation");
@@ -777,18 +785,15 @@ function bindExtensionTools() {
       }, 400);
     }
     
-    const tone = $('[data-encourage-tone]', encouragementTool)?.value || "溫暖支持";
-    const type = $('[data-encourage-type]', encouragementTool)?.value || "貼圖";
-    const msg = $('[data-encourage-message]', encouragementTool)?.value.trim() || "無內容";
-    const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
-    const encouragements = store.encouragements || [];
-    encouragements.unshift({ title: `${tone} ${type}`, meta: "已發送至孩子端", message: msg });
-    saveToolCollection("encouragements", encouragements.slice(0, 50));
-    
-    setTimeout(() => {
-      renderSavedList("[data-encourage-list]", "encouragements", "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>");
-      toast("鼓勵卡已送出 Demo");
-    }, 300);
+    const type = $('[data-encourage-type]', encouragementTool)?.value || "今天也辛苦了";
+    const msg = $('[data-encourage-message]', encouragementTool)?.value.trim() || "";
+    try {
+      await sendWebFamilyEncouragement(type, msg);
+      toast("鼓勵卡已同步到孩子 App");
+    } catch (error) {
+      console.error(error);
+      toast(error.message || "鼓勵卡送出失敗");
+    }
   });
 
   studyScheduleTool?.querySelector('[data-action="save-study-schedule"]')?.addEventListener("click", () => {
@@ -1867,7 +1872,10 @@ function injectAdminSwitch() {
 
 async function bootFirebaseBackedData() {
   try {
-    await loadRelationshipCapabilities();
+    await Promise.all([
+      loadRelationshipCapabilities(),
+      loadFamilyLinkContract(),
+    ]);
   } catch (error) {
     console.error(error);
     return;
@@ -1969,6 +1977,149 @@ function loadFirebaseSDKs() {
 
 let db = null;
 let storage = null;
+let activeFamilyLink = null;
+let familyLinkSub = null;
+let familyEncouragementSub = null;
+let familyGoalSub = null;
+
+function stopFamilyInteractionListeners() {
+  if (familyEncouragementSub) familyEncouragementSub();
+  if (familyGoalSub) familyGoalSub();
+  familyEncouragementSub = null;
+  familyGoalSub = null;
+}
+
+function listenToFamilyLink(userId) {
+  if (!db) return;
+  if (familyLinkSub) familyLinkSub();
+  stopFamilyInteractionListeners();
+  activeFamilyLink = null;
+  window.activeFamilyLink = null;
+
+  familyLinkSub = db.collection("family_links")
+    .where("participantIds", "array-contains", userId)
+    .onSnapshot(snapshot => {
+      const activeDoc = snapshot.docs.find(doc => doc.data().status === "active");
+      if (!activeDoc) {
+        activeFamilyLink = null;
+        window.activeFamilyLink = null;
+        window.linkedChildUid = null;
+        stopFamilyInteractionListeners();
+        renderFamilyLinkState();
+        return;
+      }
+
+      activeFamilyLink = { id: activeDoc.id, ...activeDoc.data() };
+      window.activeFamilyLink = activeFamilyLink;
+      window.linkedChildUid =
+        activeFamilyLink.guardianId === userId ? activeFamilyLink.childId : null;
+      listenToFamilyInteractions(activeDoc.id);
+      renderFamilyLinkState();
+    }, error => {
+      console.error("Family link listen error:", error);
+    });
+}
+
+function listenToFamilyInteractions(linkId) {
+  stopFamilyInteractionListeners();
+  familyEncouragementSub = db.collection("family_links")
+    .doc(linkId)
+    .collection("encouragements")
+    .orderBy("createdAt", "desc")
+    .onSnapshot(snapshot => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const list = document.querySelector("[data-encourage-list]");
+      if (list) {
+        list.innerHTML = items.length
+          ? items.map(item => `
+              <article>
+                <strong>${escapeHtml(item.title || "今天也辛苦了")}</strong>
+                <span>${item.status === "acknowledged" ? "孩子已回應 · 羈絆 +3 XP" : "已送達孩子 App"}</span>
+              </article>
+            `).join("")
+          : "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>";
+      }
+      const count = document.querySelector('[data-family-encouragement-count]');
+      if (count) count.textContent = String(items.length);
+    });
+
+  familyGoalSub = db.collection("family_links")
+    .doc(linkId)
+    .collection("goals")
+    .orderBy("createdAt", "desc")
+    .onSnapshot(snapshot => {
+      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const pending = items.filter(item => item.status === "proposed");
+      const count = document.querySelector('[data-family-goal-count]');
+      if (count) count.textContent = String(pending.length);
+      const latest = document.querySelector('[data-family-latest-goal]');
+      if (latest) {
+        latest.textContent = items.length
+          ? `${items[0].title} · ${items[0].status === "proposed" ? "等待孩子決定" : items[0].status === "accepted" ? "孩子已接受" : "已完成"}`
+          : "目前沒有共同目標。";
+      }
+    });
+}
+
+function renderFamilyLinkState() {
+  const consent = activeFamilyLink?.consentScopes || {};
+  document.querySelectorAll("[data-family-consent]").forEach(node => {
+    const enabled = consent[node.dataset.familyConsent] === true;
+    node.textContent = enabled ? "孩子已同意" : "孩子未開放";
+    node.classList.toggle("primary", enabled);
+    node.classList.toggle("ghost", !enabled);
+  });
+  const summary = document.querySelector("[data-family-consent-summary]");
+  if (summary) {
+    const labels = [
+      consent.summary && "今日總覽",
+      consent.weeklyReport && "每週回顧",
+      consent.taskCategories && "任務類別",
+      consent.healthTrends && "健康趨勢",
+    ].filter(Boolean);
+    summary.textContent = labels.length ? labels.join("、") : "尚未開放";
+  }
+}
+
+function requireGuardianFamilyLink() {
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  if (!activeFamilyLink || !userId) {
+    throw new Error("請先建立有效的家庭連結");
+  }
+  if (activeFamilyLink.guardianId !== userId) {
+    throw new Error("只有此連結的家長可以使用這項功能");
+  }
+  return activeFamilyLink;
+}
+
+async function sendWebFamilyEncouragement(title, message) {
+  const link = requireGuardianFamilyLink();
+  const payload = window.NudgeFamilyLinkContract.buildEncouragementPayload({
+    guardianId: link.guardianId,
+    childId: link.childId,
+    title,
+    message,
+  });
+  await db.collection("family_links")
+    .doc(link.id)
+    .collection("encouragements")
+    .add(payload);
+}
+
+async function sendWebFamilyGoal(title, message) {
+  const link = requireGuardianFamilyLink();
+  const payload = window.NudgeFamilyLinkContract.buildSharedGoalPayload({
+    guardianId: link.guardianId,
+    childId: link.childId,
+    title,
+    message,
+  });
+  await db.collection("family_links")
+    .doc(link.id)
+    .collection("goals")
+    .add(payload);
+}
 
 function initializeFirebaseWeb() {
   loadFirebaseSDKs().then(() => {
@@ -2055,51 +2206,14 @@ function initializeFirebaseWeb() {
 function startListeningToFirestoreData() {
   if (!db) return;
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const viewUserId = urlParams.get('userId');
-
-  // Always listen to the logged-in user first to prevent page load hangs
   const currentUser = firebase.auth().currentUser;
   const loggedInUid = currentUser ? currentUser.uid : null;
-  let activeUserId = viewUserId || loggedInUid || localStorage.getItem("nudgeActiveDemoUserId");
+  if (!loggedInUid) return;
 
-  if (activeUserId) {
-    listenToUser(activeUserId);
-  }
-
-  db.collection("users").get().then((querySnapshot) => {
-    const users = [];
-    querySnapshot.forEach((doc) => {
-      users.push({ id: doc.id, ...doc.data() });
-    });
-
-    let finalActiveUserId = activeUserId;
-    if (users.length > 0) {
-      if (!finalActiveUserId || !users.some(u => u.id === finalActiveUserId)) {
-        if (!loggedInUid && !viewUserId) {
-          finalActiveUserId = users[0].id;
-        }
-      }
-    }
-
-    if (finalActiveUserId) {
-      if (!viewUserId) {
-        localStorage.setItem("nudgeActiveDemoUserId", finalActiveUserId);
-      }
-      
-      // Inject user switcher only if there are multiple users to switch between
-      if (users.length > 0 && !viewUserId) {
-        const panel = getOrCreateSidePanel();
-        if (panel && !$(".demo-user-select").length) {
-          injectUserSwitcher(users, finalActiveUserId);
-        }
-      }
-
-      listenToUser(finalActiveUserId);
-    }
-  }).catch(e => {
-    console.warn("Firestore access error: ", e);
-  });
+  // The authenticated UID is the only writable identity. Friend/profile views
+  // are loaded separately and never replace the active account.
+  localStorage.setItem("nudgeActiveDemoUserId", loggedInUid);
+  listenToUser(loggedInUid);
 }
 
 function getOrCreateSidePanel() {
@@ -2626,8 +2740,7 @@ function listenToRequests(userId) {
       
       const accepted = docs.filter(d => d.status === 'accepted');
       if (accepted.length > 0) {
-        const relativeNudgeId = accepted[0].senderNudgeId;
-        autoUpdateWebLinkage(userId, relativeNudgeId);
+        autoUpdateWebLinkage(userId, accepted[0]);
       } else {
         checkAndAutoClearWebLinkage(userId);
       }
@@ -2645,8 +2758,7 @@ function listenToRequests(userId) {
 
       const accepted = docs.filter(d => d.status === 'accepted');
       if (accepted.length > 0) {
-        const relativeNudgeId = accepted[0].receiverNudgeId;
-        autoUpdateWebLinkage(userId, relativeNudgeId);
+        autoUpdateWebLinkage(userId, accepted[0]);
       } else {
         checkAndAutoClearWebLinkage(userId);
       }
@@ -2666,17 +2778,24 @@ function listenToRequests(userId) {
     }, err => console.error("Incoming group requests listen error: ", err));
 }
 
-function autoUpdateWebLinkage(userId, relativeNudgeId) {
+function autoUpdateWebLinkage(userId, request) {
+  const isSender = request.senderId === userId;
+  const relativeNudgeId = isSender
+    ? request.receiverNudgeId
+    : request.senderNudgeId;
+  const relativeRole = isSender ? request.receiverRole : request.senderRole;
   const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
   const isAlreadyLinked = store.guardianInviteStatus?.status === 'linked' && store.guardianInvite?.relativeId === relativeNudgeId;
   if (isAlreadyLinked) return;
 
   db.collection("users").doc(userId).update({
     "webToolsState.guardianInvite": {
+      "linkId": request.id,
       "goal": "共同健康與專注",
-      "permission": "完整資料",
+      "permission": "只看總覽",
       "message": "親屬帳號已連結。",
-      "relativeId": relativeNudgeId
+      "relativeId": relativeNudgeId,
+      "relativeRole": relativeRole
     },
     "webToolsState.guardianInviteStatus": {
       "status": "linked",
@@ -3049,7 +3168,7 @@ function renderNotificationsPage() {
 }
 
 function sendWebGuardianRequest(targetNudgeId) {
-  const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
+  const activeUserId = firebase.auth().currentUser?.uid;
   if (!activeUserId || !db) return;
 
   const targetNudgeIdUpper = targetNudgeId.trim().toUpperCase();
@@ -3077,7 +3196,22 @@ function sendWebGuardianRequest(targetNudgeId) {
       }
       const receiverSnap = querySnap.docs[0];
       const receiverId = receiverSnap.id;
-      const receiverNudgeId = receiverSnap.data().username || "";
+      const receiverData = receiverSnap.data();
+      const receiverNudgeId = receiverData.username || "";
+      const receiverRole = receiverData.userRole || "personal";
+
+      try {
+        window.NudgeFamilyLinkContract.buildFamilyLinkPayload({
+          linkId: "validation",
+          senderId: activeUserId,
+          senderRole: myRole,
+          receiverId,
+          receiverRole,
+        });
+      } catch (error) {
+        toast("家庭連結必須由一個家長帳號與一個孩子帳號組成");
+        return;
+      }
 
       const isLinked = myData.webToolsState?.guardianInviteStatus?.status === 'linked';
       if (isLinked && myData.webToolsState?.guardianInvite?.relativeId === receiverNudgeId) {
@@ -3115,6 +3249,7 @@ function sendWebGuardianRequest(targetNudgeId) {
                 senderRole: myRole,
                 receiverId: receiverId,
                 receiverNudgeId: receiverNudgeId,
+                receiverRole: receiverRole,
                 status: "pending",
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
@@ -3132,9 +3267,32 @@ function sendWebGuardianRequest(targetNudgeId) {
 
 function approveWebGuardianRequest(requestId) {
   if (!db) return;
-  db.collection("guardian_requests").doc(requestId).update({
-    status: "accepted",
-    updatedAt: new Date().toISOString()
+  const currentUserId = firebase.auth().currentUser?.uid;
+  const requestRef = db.collection("guardian_requests").doc(requestId);
+  const linkRef = db.collection("family_links").doc(requestId);
+  db.runTransaction(async transaction => {
+    const requestSnap = await transaction.get(requestRef);
+    if (!requestSnap.exists) throw new Error("找不到親屬綁定申請");
+    const request = requestSnap.data();
+    if (!currentUserId || request.receiverId !== currentUserId) {
+      throw new Error("只有邀請接收者可以同意連結");
+    }
+    const now = new Date().toISOString();
+    const link = window.NudgeFamilyLinkContract.buildFamilyLinkPayload({
+      linkId: requestId,
+      senderId: request.senderId,
+      senderRole: request.senderRole,
+      receiverId: request.receiverId,
+      receiverRole:
+        request.receiverRole ||
+        (request.senderRole === "guardian" ? "child" : "guardian"),
+      now,
+    });
+    transaction.update(requestRef, {
+      status: "accepted",
+      updatedAt: now,
+    });
+    transaction.set(linkRef, link);
   }).then(() => {
     toast("已成功同意親屬綁定！ 🎉");
   }).catch(err => {
@@ -3281,7 +3439,7 @@ function showGuardianLinkedBanner(data) {
   banner.id = "webGuardianLinkedBanner";
   banner.style.cssText = "background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; justify-content: space-between;";
   banner.innerHTML = `
-    <div><span style="font-size: 18px; margin-right: 10px;">✅</span><strong style="color: #10b981;">已與 ${relativeId} 連結</strong><span style="color: var(--muted); font-size: 13px; margin-left: 12px;">家長共同目標、每週報告與鼓勵功能均已啟用</span></div>
+    <div><span style="font-size: 18px; margin-right: 10px;">✅</span><strong style="color: #10b981;">已與 ${relativeId} 連結</strong><span style="color: var(--muted); font-size: 13px; margin-left: 12px;">共同目標與鼓勵已啟用；可見資料依孩子同意範圍</span></div>
     <button onclick="unlinkWebGuardian()" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 10px; padding: 6px 14px; font-weight: 700; cursor: pointer; font-size: 13px;">解除親屬連結</button>
   `;
   const firstSection = main.querySelector("section, .page-section");
@@ -4203,6 +4361,10 @@ function updateLitPlanets(planetCount) {
 function listenToUser(userId) {
   if (!db) return;
   listenToRequests(userId);
+  const authenticatedUid = firebase.auth().currentUser?.uid;
+  if (authenticatedUid && authenticatedUid === userId) {
+    listenToFamilyLink(userId);
+  }
   
   // Check if profile page is viewing a friend's profile
   if (document.body.dataset.page === "profile") {
@@ -4280,36 +4442,9 @@ function listenToUser(userId) {
       }
     }
 
-    // Guardian-child sync
-    const isGuardian = data.userRole === "guardian";
-    const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
-    const childNudgeId = data.webToolsState?.guardianInvite?.relativeId;
-    
-    if (isGuardian && isLinked && childNudgeId) {
-      const childNudgeIdUpper = childNudgeId.trim().toUpperCase();
-      if (currentChildNudgeId !== childNudgeIdUpper) {
-        currentChildNudgeId = childNudgeIdUpper;
-        if (childDocSub) childDocSub();
-        childDocSub = db.collection("users")
-          .where("username", "==", childNudgeIdUpper)
-          .limit(1)
-          .onSnapshot((childQuerySnap) => {
-            if (!childQuerySnap.empty) {
-              const childDoc = childQuerySnap.docs[0];
-              const childData = childDoc.data();
-              window.linkedChildUid = childDoc.id;
-              updateParentDashboardWithChildData(childData);
-            }
-          }, (err) => console.error("Child doc sub error:", err));
-      }
-    } else {
-      currentChildNudgeId = null;
-      window.linkedChildUid = null;
-      if (childDocSub) {
-        childDocSub();
-        childDocSub = null;
-      }
-    }
+    // Family content and consent are synchronized through the canonical
+    // family_links record. Parent pages never subscribe to the child's raw
+    // user document.
 
     // Group member sync
     const isGroupMember = ["group", "enterprise", "tutor", "school"].includes(data.userRole) && !data.isGroupOwner;

@@ -15,6 +15,7 @@ import '../models/avatar_profile.dart';
 import '../models/badge_record.dart';
 import '../models/daily_summary.dart';
 import '../models/experience_capabilities.dart';
+import '../models/family_link_contract.dart';
 import '../models/friend_request.dart';
 import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
@@ -100,6 +101,10 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _shopSubscription;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
+  StreamSubscription? _familyLinkSubscription;
+  StreamSubscription? _familyEncouragementSubscription;
+  StreamSubscription? _familyGoalSubscription;
+  StreamSubscription? _familyBondEventSubscription;
   StreamSubscription? _incomingGroupRequestsSubscription;
   StreamSubscription? _groupOwnerSubscription;
   final Set<String> _checkedLegacyGroupIds = {};
@@ -139,6 +144,12 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _outgoingGuardianRequests = [];
   List<Map<String, dynamic>> get outgoingGuardianRequests =>
       _outgoingGuardianRequests;
+
+  FamilyLinkContract? _familyLink;
+  String? _listeningFamilyLinkId;
+  List<Map<String, dynamic>> _familyEncouragements = [];
+  List<Map<String, dynamic>> _familyGoals = [];
+  List<Map<String, dynamic>> _familyBondEvents = [];
 
   List<Map<String, dynamic>> _incomingGroupRequests = [];
   List<Map<String, dynamic>> get incomingGroupRequests =>
@@ -446,6 +457,8 @@ class AppState extends ChangeNotifier {
           notifyListeners();
         });
 
+    _setupFamilyLinkListener(user.uid);
+
     _incomingGroupRequestsSubscription = FirebaseFirestore.instance
         .collection('group_requests')
         .where('receiverId', isEqualTo: user.uid)
@@ -513,6 +526,85 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setupFamilyLinkListener(String userId) {
+    _familyLinkSubscription?.cancel();
+    _familyLinkSubscription = FirebaseFirestore.instance
+        .collection('family_links')
+        .where('participantIds', arrayContains: userId)
+        .snapshots()
+        .listen((snapshot) {
+          final activeDocs = snapshot.docs
+              .where((doc) => doc.data()['status'] == 'active')
+              .toList(growable: false);
+          if (activeDocs.isEmpty) {
+            _familyLink = null;
+            _clearFamilyInteractionListeners();
+            notifyListeners();
+            return;
+          }
+
+          final doc = activeDocs.first;
+          _familyLink = FamilyLinkContract.fromMap(doc.id, doc.data());
+          if (_listeningFamilyLinkId != doc.id) {
+            _setupFamilyInteractionListeners(doc.id);
+          }
+          notifyListeners();
+        });
+  }
+
+  void _setupFamilyInteractionListeners(String linkId) {
+    _clearFamilyInteractionListeners();
+    _listeningFamilyLinkId = linkId;
+    final linkRef = FirebaseFirestore.instance
+        .collection('family_links')
+        .doc(linkId);
+
+    _familyEncouragementSubscription = linkRef
+        .collection('encouragements')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+          _familyEncouragements = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(growable: false);
+          notifyListeners();
+        });
+
+    _familyGoalSubscription = linkRef
+        .collection('goals')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+          _familyGoals = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(growable: false);
+          notifyListeners();
+        });
+
+    _familyBondEventSubscription = linkRef
+        .collection('bond_events')
+        .snapshots()
+        .listen((snapshot) {
+          _familyBondEvents = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(growable: false);
+          notifyListeners();
+        });
+  }
+
+  void _clearFamilyInteractionListeners() {
+    _familyEncouragementSubscription?.cancel();
+    _familyGoalSubscription?.cancel();
+    _familyBondEventSubscription?.cancel();
+    _familyEncouragementSubscription = null;
+    _familyGoalSubscription = null;
+    _familyBondEventSubscription = null;
+    _listeningFamilyLinkId = null;
+    _familyEncouragements = [];
+    _familyGoals = [];
+    _familyBondEvents = [];
+  }
+
   void _cancelFirestoreListeners() {
     _userSubscription?.cancel();
     _friendsSubscription?.cancel();
@@ -522,6 +614,10 @@ class AppState extends ChangeNotifier {
     _shopSubscription?.cancel();
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
+    _familyLinkSubscription?.cancel();
+    _familyEncouragementSubscription?.cancel();
+    _familyGoalSubscription?.cancel();
+    _familyBondEventSubscription?.cancel();
     _incomingGroupRequestsSubscription?.cancel();
     _groupOwnerSubscription?.cancel();
 
@@ -533,6 +629,15 @@ class AppState extends ChangeNotifier {
     _shopSubscription = null;
     _incomingGuardianRequestsSubscription = null;
     _outgoingGuardianRequestsSubscription = null;
+    _familyLinkSubscription = null;
+    _familyEncouragementSubscription = null;
+    _familyGoalSubscription = null;
+    _familyBondEventSubscription = null;
+    _listeningFamilyLinkId = null;
+    _familyLink = null;
+    _familyEncouragements = [];
+    _familyGoals = [];
+    _familyBondEvents = [];
     _incomingGroupRequestsSubscription = null;
     _groupOwnerSubscription = null;
   }
@@ -553,14 +658,19 @@ class AppState extends ChangeNotifier {
     final senderNudgeId = requestData['senderNudgeId'] as String;
     final receiverNudgeId = requestData['receiverNudgeId'] as String;
     final targetNudgeId = (myUid == senderId) ? receiverNudgeId : senderNudgeId;
+    final targetRole = myUid == senderId
+        ? requestData['receiverRole']
+        : requestData['senderRole'];
 
     try {
       final docRef = FirebaseFirestore.instance.collection('users').doc(myUid);
       await docRef.update({
         'webToolsState.guardianInvite': {
+          'linkId': requestData['id'],
           'relativeId': targetNudgeId,
+          'relativeRole': targetRole,
           'goal': '共同健康與專注',
-          'permission': '完整資料',
+          'permission': '只看總覽',
           'message': '親屬帳號已連結。',
         },
         'webToolsState.guardianInviteStatus': {
@@ -1015,7 +1125,28 @@ class AppState extends ChangeNotifier {
   String? get groupName => _groupName;
   bool get isGroupOwner => _isGroupOwner;
   bool get isGuardianLinked =>
-      guardianInvite != null && guardianInvite!['status'] == 'linked';
+      _familyLink?.status == FamilyLinkStatus.active ||
+      (guardianInvite != null && guardianInvite!['status'] == 'linked');
+  FamilyLinkContract? get familyLink => _familyLink;
+  bool get isCurrentFamilyGuardian =>
+      _familyLink != null && _currentUser?.id == _familyLink!.guardianId;
+  bool get isCurrentFamilyChild =>
+      _familyLink != null && _currentUser?.id == _familyLink!.childId;
+  List<Map<String, dynamic>> get familyGoals => List.unmodifiable(_familyGoals);
+  Map<String, dynamic>? get activeFamilyGoal {
+    for (final goal in _familyGoals) {
+      if (goal['status'] == 'proposed' || goal['status'] == 'accepted') {
+        return Map<String, dynamic>.unmodifiable(goal);
+      }
+    }
+    return null;
+  }
+
+  int get familyBondXp => _familyBondEvents.fold<int>(
+    0,
+    (total, event) => total + ((event['points'] as num?)?.toInt() ?? 0),
+  );
+  int get familyBondLevel => FamilyBondPolicy.levelForXp(familyBondXp);
   ExperienceCapabilities get experienceCapabilities =>
       ExperienceCapabilities.resolve(
         rawRole: _userRole,
@@ -1035,6 +1166,9 @@ class AppState extends ChangeNotifier {
   }
 
   List<Map<String, dynamic>> get guardianEncouragements {
+    if (_familyLink != null) {
+      return List<Map<String, dynamic>>.unmodifiable(_familyEncouragements);
+    }
     if (_webToolsCollection == null ||
         _webToolsCollection!['encouragements'] == null) {
       return [];
@@ -6344,12 +6478,132 @@ ${summaryBuf.toString()}
 
   /// 接受家長共同目標後，自動將目標名稱匯入為每日任務
   Future<void> acceptParentGoalAsTask() async {
+    final link = _familyLink;
+    final familyGoal = activeFamilyGoal;
+    if (link != null &&
+        _currentUser?.id == link.childId &&
+        familyGoal != null &&
+        familyGoal['status'] == 'proposed') {
+      final goalId = familyGoal['id'] as String?;
+      final goal = familyGoal['title']?.toString() ?? '';
+      if (goalId == null || goal.isEmpty) return;
+      await FirebaseFirestore.instance
+          .collection('family_links')
+          .doc(link.id)
+          .collection('goals')
+          .doc(goalId)
+          .update({
+            'status': 'accepted',
+            'acceptedAt': DateTime.now().toUtc().toIso8601String(),
+            'updatedAt': DateTime.now().toUtc().toIso8601String(),
+          });
+      addTask('【家庭共同目標】$goal', '學習', taskType: 'flexible', priority: '高');
+      return;
+    }
+
     final invite = guardianInvite;
     if (invite == null) return;
     final goal = invite['goal']?.toString() ?? '';
     if (goal.isEmpty) return;
     await acceptGuardianInvite();
     addTask('【家長陪伴目標】$goal', '學習', taskType: 'flexible', priority: '高');
+  }
+
+  Future<void> declineFamilyGoal(String goalId) async {
+    final link = _familyLink;
+    if (link == null || _currentUser?.id != link.childId) return;
+    await FirebaseFirestore.instance
+        .collection('family_links')
+        .doc(link.id)
+        .collection('goals')
+        .doc(goalId)
+        .update({
+          'status': 'declined',
+          'declinedAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        });
+  }
+
+  Future<void> completeFamilyGoal(String goalId) async {
+    final link = _familyLink;
+    final user = _currentUser;
+    if (link == null || user == null || user.id != link.childId) return;
+    final firestore = FirebaseFirestore.instance;
+    final goalRef = firestore
+        .collection('family_links')
+        .doc(link.id)
+        .collection('goals')
+        .doc(goalId);
+    final eventRef = firestore
+        .collection('family_links')
+        .doc(link.id)
+        .collection('bond_events')
+        .doc('goal_$goalId');
+    await firestore.runTransaction((transaction) async {
+      final goal = await transaction.get(goalRef);
+      if (!goal.exists || goal.data()?['status'] != 'accepted') return;
+      final now = DateTime.now().toUtc().toIso8601String();
+      transaction.update(goalRef, {
+        'status': 'completed',
+        'completedAt': now,
+        'updatedAt': now,
+      });
+      transaction.set(eventRef, {
+        'schemaVersion': 1,
+        'type': 'goalCompleted',
+        'sourceId': goalId,
+        'actorId': user.id,
+        'points': FamilyBondPolicy.pointsFor(FamilyBondEvent.goalCompleted),
+        'createdAt': now,
+      });
+    });
+  }
+
+  Future<void> acknowledgeFamilyEncouragement(String cardId) async {
+    final link = _familyLink;
+    final user = _currentUser;
+    if (link == null || user == null || user.id != link.childId) return;
+    final firestore = FirebaseFirestore.instance;
+    final cardRef = firestore
+        .collection('family_links')
+        .doc(link.id)
+        .collection('encouragements')
+        .doc(cardId);
+    final eventRef = firestore
+        .collection('family_links')
+        .doc(link.id)
+        .collection('bond_events')
+        .doc('encouragement_$cardId');
+    await firestore.runTransaction((transaction) async {
+      final card = await transaction.get(cardRef);
+      if (!card.exists || card.data()?['status'] == 'acknowledged') return;
+      final now = DateTime.now().toUtc().toIso8601String();
+      transaction.update(cardRef, {
+        'status': 'acknowledged',
+        'acknowledgedAt': now,
+      });
+      transaction.set(eventRef, {
+        'schemaVersion': 1,
+        'type': 'acknowledgement',
+        'sourceId': cardId,
+        'actorId': user.id,
+        'points': FamilyBondPolicy.pointsFor(FamilyBondEvent.acknowledgement),
+        'createdAt': now,
+      });
+    });
+  }
+
+  Future<void> updateFamilyConsent(FamilyConsentScopes consent) async {
+    final link = _familyLink;
+    final user = _currentUser;
+    if (link == null || user == null || user.id != link.childId) return;
+    await FirebaseFirestore.instance
+        .collection('family_links')
+        .doc(link.id)
+        .update({
+          'consentScopes': consent.toMap(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        });
   }
 
   /// 加入團體挑戰後，自動匯入每日挑戰任務
@@ -6397,6 +6651,27 @@ ${summaryBuf.toString()}
       final docRef = FirebaseFirestore.instance
           .collection('users')
           .doc(user.id);
+      final link = _familyLink;
+      if (link != null) {
+        final batch = FirebaseFirestore.instance.batch();
+        batch.update(
+          FirebaseFirestore.instance.collection('family_links').doc(link.id),
+          {
+            'status': 'ended',
+            'endedBy': user.id,
+            'endedAt': DateTime.now().toUtc().toIso8601String(),
+            'updatedAt': DateTime.now().toUtc().toIso8601String(),
+          },
+        );
+        batch.update(docRef, {
+          'webToolsState.guardianInvite': FieldValue.delete(),
+          'webToolsState.guardianInviteStatus': FieldValue.delete(),
+        });
+        await batch.commit();
+        notifyListeners();
+        return;
+      }
+
       await docRef.update({
         'webToolsState.guardianInvite': FieldValue.delete(),
         'webToolsState.guardianInviteStatus': FieldValue.delete(),
@@ -6615,53 +6890,42 @@ ${historyBuffer.toString()}
 
   Future<void> sendParentEncouragementCard(String title, String message) async {
     final user = _currentUser;
-    if (user == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id);
-      final newCard = {
-        'title': title,
-        'meta': '剛剛',
-        'message': message,
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-      final updated = [newCard, ...guardianEncouragements];
-      await docRef.update({
-        'webToolsCollection.encouragements': updated,
-        'webToolsCollection.encouragementsUpdatedAt': DateTime.now()
-            .toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('Failed to send encouragement card: $e');
+    final link = _familyLink;
+    if (user == null || link == null || user.id != link.guardianId) {
+      throw StateError('請先以家長身分建立有效的家庭連結');
     }
+    final payload = FamilyLinkContract.buildEncouragementPayload(
+      guardianId: link.guardianId,
+      childId: link.childId,
+      title: title,
+      message: message,
+      now: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('family_links')
+        .doc(link.id)
+        .collection('encouragements')
+        .add(payload);
   }
 
-  Future<void> sendParentSharedGoal(
-    String goal,
-    String permission,
-    String message,
-  ) async {
+  Future<void> sendParentSharedGoal(String goal, String message) async {
     final user = _currentUser;
-    if (user == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id);
-      await docRef.update({
-        'webToolsState.guardianInvite': {
-          'goal': goal,
-          'permission': permission,
-          'message': message,
-        },
-        'webToolsState.guardianInviteStatus': {
-          'status': 'pending_child_approval',
-          'updatedAt': DateTime.now().toIso8601String(),
-        },
-      });
-    } catch (e) {
-      debugPrint('Failed to send shared goal: $e');
+    final link = _familyLink;
+    if (user == null || link == null || user.id != link.guardianId) {
+      throw StateError('請先以家長身分建立有效的家庭連結');
     }
+    final payload = FamilyLinkContract.buildSharedGoalPayload(
+      guardianId: link.guardianId,
+      childId: link.childId,
+      title: goal,
+      message: message,
+      now: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('family_links')
+        .doc(link.id)
+        .collection('goals')
+        .add(payload);
   }
 
   Future<void> publishGroupChallenge(
@@ -6766,8 +7030,18 @@ ${historyBuffer.toString()}
         throw Exception('找不到該 Nudge ID 的使用者');
       }
       final receiverId = querySnap.docs.first.id;
-      final receiverNudgeId =
-          querySnap.docs.first.data()['username'] as String? ?? '';
+      final receiverData = querySnap.docs.first.data();
+      final receiverNudgeId = receiverData['username'] as String? ?? '';
+      final receiverRole = receiverData['userRole'] as String? ?? 'personal';
+
+      FamilyLinkContract.fromAcceptedRequest(
+        linkId: 'validation',
+        senderId: user.id,
+        senderRole: _userRole,
+        receiverId: receiverId,
+        receiverRole: receiverRole,
+        now: DateTime.now(),
+      );
 
       // Check if they are already linked with us
       if (isGuardianLinked &&
@@ -6807,6 +7081,7 @@ ${historyBuffer.toString()}
         'senderRole': _userRole,
         'receiverId': receiverId,
         'receiverNudgeId': receiverNudgeId,
+        'receiverRole': receiverRole,
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -6822,13 +7097,35 @@ ${historyBuffer.toString()}
     final user = _currentUser;
     if (user == null) return;
     try {
-      await FirebaseFirestore.instance
+      final firestore = FirebaseFirestore.instance;
+      final requestRef = firestore
           .collection('guardian_requests')
-          .doc(requestId)
-          .update({
-            'status': 'accepted',
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          .doc(requestId);
+      final linkRef = firestore.collection('family_links').doc(requestId);
+      await firestore.runTransaction((transaction) async {
+        final requestSnapshot = await transaction.get(requestRef);
+        if (!requestSnapshot.exists) {
+          throw StateError('找不到親屬綁定申請');
+        }
+        final request = requestSnapshot.data()!;
+        if (request['receiverId'] != user.id) {
+          throw StateError('只有邀請接收者可以同意連結');
+        }
+
+        final contract = FamilyLinkContract.fromAcceptedRequest(
+          linkId: requestId,
+          senderId: request['senderId'] as String,
+          senderRole: request['senderRole'] as String? ?? 'personal',
+          receiverId: request['receiverId'] as String,
+          receiverRole: request['receiverRole'] as String? ?? _userRole,
+          now: DateTime.now(),
+        );
+        transaction.update(requestRef, {
+          'status': 'accepted',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        transaction.set(linkRef, contract.toMap());
+      });
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to approve guardian request: $e');

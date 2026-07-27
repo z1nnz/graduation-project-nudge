@@ -1,0 +1,30 @@
+[
+  {
+    "name": "guardian sends to child",
+    "senderId": "guardian-1",
+    "senderRole": "guardian",
+    "receiverId": "child-1",
+    "receiverRole": "child",
+    "guardianId": "guardian-1",
+    "childId": "child-1",
+    "valid": true
+  },
+  {
+    "name": "child sends to guardian",
+    "senderId": "child-2",
+    "senderRole": "child",
+    "receiverId": "guardian-2",
+    "receiverRole": "guardian",
+    "guardianId": "guardian-2",
+    "childId": "child-2",
+    "valid": true
+  },
+  {
+    "name": "two guardians cannot create a family link",
+    "senderId": "guardian-3",
+    "senderRole": "guardian",
+    "receiverId": "guardian-4",
+    "receiverRole": "guardian",
+    "valid": false
+  }
+]

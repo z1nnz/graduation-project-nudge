@@ -15,8 +15,25 @@
   Stages 2 and 3 are earned by level and experience, never purchased directly.
 - **Shop Listing**: A currently published and active item that can be purchased.
   A character Shop Listing always references a Starter Stage.
-- **Family Link**: A consent-based relationship between two accounts created
-  from a Guardian Request. Either participant can remove the relationship.
+- **Guardian**: The adult participant in a Family Link. A Guardian can send
+  encouragement and propose shared goals, but cannot grant consent for the
+  Child or write directly to the Child's private user document.
+- **Child**: The self-discipline participant in a Family Link. The Child owns
+  consent decisions, goal acceptance, and acknowledgement of encouragement.
+- **Family Link**: The canonical `family_links/{linkId}` relationship between
+  exactly one Guardian and one Child, created from an accepted Guardian
+  Request. Either participant can end the relationship.
+- **Consent Scope**: One Child-controlled category of summarized data that a
+  Guardian may see. Consent is independent from encouragement and shared goals
+  and can be withdrawn at any time.
+- **Encouragement Card**: A Guardian-to-Child message inside a Family Link.
+  Sending does not grant personal rewards; a Child acknowledgement creates one
+  idempotent Family Bond Event.
+- **Shared Goal**: A Guardian proposal that becomes a Child task only after the
+  Child accepts it. The Child may decline or later mark an accepted goal done.
+- **Family Bond XP**: Relationship-only progression earned from two-way family
+  interactions. It is separate from discipline score, coins, and Character
+  evolution and cannot be earned by repeatedly sending messages.
 - **Group**: The canonical Firestore record for an organization, its owner,
   members, name, and lifecycle status.
 - **Group Membership**: A user's membership in one Group. User-document
@@ -38,7 +55,9 @@
 
 ## Product boundary
 
-The App owns daily action, purchase, Codex, evolution, and consent decisions.
-The Web Dashboard owns long-term analysis, group administration, family
-oversight, and catalog operations. Both surfaces use the same Firestore records;
-neither surface maintains an independent binding or catalog truth.
+The App owns daily action, purchase, Codex, evolution, Child consent, and Child
+goal decisions. The Web Dashboard owns long-term analysis, group
+administration, Guardian proposals, family consent summaries, and catalog
+operations. Both surfaces use the same Firestore records; neither surface
+maintains an independent binding or catalog truth. Family relationship growth
+does not advance personal Character evolution.

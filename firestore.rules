@@ -190,12 +190,27 @@ service cloud.firestore {
       );
       allow create: if isAuth()
         && request.resource.data.senderId == request.auth.uid
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'pending'
+        && request.resource.data.senderId != request.resource.data.receiverId
+        && request.resource.data.senderRole in ['guardian', 'child']
+        && request.resource.data.receiverRole in ['guardian', 'child']
+        && request.resource.data.senderRole != request.resource.data.receiverRole
+        && request.resource.data.keys().hasAll([
+          'senderId', 'senderNudgeId', 'senderNickname', 'senderRole',
+          'receiverId', 'receiverNudgeId', 'receiverRole',
+          'status', 'createdAt', 'updatedAt'
+        ]);
       allow update: if isAuth()
         && (
           (resource.data.receiverId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-            && request.resource.data.status in ['accepted', 'declined']) ||
+            && request.resource.data.status in ['accepted', 'declined']
+            && (
+              request.resource.data.status == 'declined'
+              || existsAfter(
+                /databases/$(database)/documents/family_links/$(requestId)
+              )
+            )) ||
           (resource.data.senderId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
             && request.resource.data.status in ['declined', 'cancelled'])
@@ -203,6 +218,228 @@ service cloud.firestore {
       allow delete: if isAuth()
         && (resource.data.senderId == request.auth.uid
           || resource.data.receiverId == request.auth.uid);
+    }
+
+    // ─── /family_links/{linkId} ──────────────────────────────────────
+    // Canonical family relationship. Encouragements and goals live under
+    // the relationship, never in either participant's private user document.
+    match /family_links/{linkId} {
+      function isFamilyParticipant() {
+        return isAuth()
+          && resource.data.participantIds.hasAny([request.auth.uid]);
+      }
+
+      function isActiveFamilyParticipant() {
+        return isFamilyParticipant() && resource.data.status == 'active';
+      }
+
+      function validConsentScopes(scopes) {
+        return scopes.keys().hasOnly([
+            'summary', 'weeklyReport', 'taskCategories', 'healthTrends'
+          ])
+          && scopes.keys().hasAll([
+            'summary', 'weeklyReport', 'taskCategories', 'healthTrends'
+          ])
+          && scopes.summary is bool
+          && scopes.weeklyReport is bool
+          && scopes.taskCategories is bool
+          && scopes.healthTrends is bool;
+      }
+
+      allow read: if isFamilyParticipant();
+
+      allow create: if isAuth()
+        && existsAfter(
+          /databases/$(database)/documents/guardian_requests/$(linkId)
+        )
+        && getAfter(
+          /databases/$(database)/documents/guardian_requests/$(linkId)
+        ).data.receiverId == request.auth.uid
+        && getAfter(
+          /databases/$(database)/documents/guardian_requests/$(linkId)
+        ).data.status == 'accepted'
+        && request.resource.data.status == 'active'
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.guardianId
+          == (
+            getAfter(
+              /databases/$(database)/documents/guardian_requests/$(linkId)
+            ).data.senderRole == 'guardian'
+              ? getAfter(
+                  /databases/$(database)/documents/guardian_requests/$(linkId)
+                ).data.senderId
+              : getAfter(
+                  /databases/$(database)/documents/guardian_requests/$(linkId)
+                ).data.receiverId
+          )
+        && request.resource.data.childId
+          == (
+            getAfter(
+              /databases/$(database)/documents/guardian_requests/$(linkId)
+            ).data.senderRole == 'child'
+              ? getAfter(
+                  /databases/$(database)/documents/guardian_requests/$(linkId)
+                ).data.senderId
+              : getAfter(
+                  /databases/$(database)/documents/guardian_requests/$(linkId)
+                ).data.receiverId
+          )
+        && request.resource.data.guardianId != request.resource.data.childId
+        && request.resource.data.participantIds.size() == 2
+        && request.resource.data.participantIds.hasOnly([
+          request.resource.data.guardianId,
+          request.resource.data.childId
+        ])
+        && validConsentScopes(request.resource.data.consentScopes)
+        && request.resource.data.consentScopes.summary == true
+        && request.resource.data.consentScopes.weeklyReport == false
+        && request.resource.data.consentScopes.taskCategories == false
+        && request.resource.data.consentScopes.healthTrends == false
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'guardianId', 'childId', 'participantIds',
+          'status', 'consentScopes', 'createdAt', 'updatedAt'
+        ]);
+
+      allow update: if isActiveFamilyParticipant()
+        && (
+          (
+            request.auth.uid == resource.data.childId
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['consentScopes', 'updatedAt'])
+            && validConsentScopes(request.resource.data.consentScopes)
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'endedBy', 'endedAt', 'updatedAt'])
+            && request.resource.data.status == 'ended'
+            && request.resource.data.endedBy == request.auth.uid
+          )
+        );
+      allow delete: if false;
+
+      match /encouragements/{encouragementId} {
+        function familyLink() {
+          return get(
+            /databases/$(database)/documents/family_links/$(linkId)
+          ).data;
+        }
+
+        function isFamilyParticipant() {
+          return isAuth()
+            && familyLink().participantIds.hasAny([request.auth.uid]);
+        }
+
+        allow read: if isFamilyParticipant();
+        allow create: if isFamilyParticipant()
+          && familyLink().status == 'active'
+          && request.auth.uid == familyLink().guardianId
+          && request.resource.data.senderId == familyLink().guardianId
+          && request.resource.data.recipientId == familyLink().childId
+          && request.resource.data.status == 'sent'
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'senderId', 'recipientId', 'title', 'message',
+            'status', 'createdAt'
+          ]);
+        allow update: if isFamilyParticipant()
+          && familyLink().status == 'active'
+          && request.auth.uid == familyLink().childId
+          && resource.data.status == 'sent'
+          && request.resource.data.status == 'acknowledged'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'acknowledgedAt']);
+        allow delete: if false;
+      }
+
+      match /goals/{goalId} {
+        function familyLink() {
+          return get(
+            /databases/$(database)/documents/family_links/$(linkId)
+          ).data;
+        }
+
+        function isFamilyParticipant() {
+          return isAuth()
+            && familyLink().participantIds.hasAny([request.auth.uid]);
+        }
+
+        allow read: if isFamilyParticipant();
+        allow create: if isFamilyParticipant()
+          && familyLink().status == 'active'
+          && request.auth.uid == familyLink().guardianId
+          && request.resource.data.proposedBy == familyLink().guardianId
+          && request.resource.data.decisionBy == familyLink().childId
+          && request.resource.data.status == 'proposed'
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'title', 'message', 'status', 'proposedBy',
+            'decisionBy', 'createdAt', 'updatedAt'
+          ]);
+        allow update: if isFamilyParticipant()
+          && familyLink().status == 'active'
+          && request.auth.uid == familyLink().childId
+          && (
+            (
+              resource.data.status == 'proposed'
+              && request.resource.data.status in ['accepted', 'declined']
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly([
+                  'status', 'acceptedAt', 'declinedAt', 'updatedAt'
+                ])
+            )
+            || (
+              resource.data.status == 'accepted'
+              && request.resource.data.status == 'completed'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['status', 'completedAt', 'updatedAt'])
+            )
+          );
+        allow delete: if false;
+      }
+
+      match /bond_events/{eventId} {
+        function familyLink() {
+          return get(
+            /databases/$(database)/documents/family_links/$(linkId)
+          ).data;
+        }
+
+        function isFamilyParticipant() {
+          return isAuth()
+            && familyLink().participantIds.hasAny([request.auth.uid]);
+        }
+
+        function validAcknowledgementEvent() {
+          return request.resource.data.type == 'acknowledgement'
+            && request.resource.data.points == 3
+            && eventId == 'encouragement_' + request.resource.data.sourceId
+            && getAfter(
+              /databases/$(database)/documents/family_links/$(linkId)/encouragements/$(request.resource.data.sourceId)
+            ).data.status == 'acknowledged';
+        }
+
+        function validGoalCompletedEvent() {
+          return request.resource.data.type == 'goalCompleted'
+            && request.resource.data.points == 10
+            && eventId == 'goal_' + request.resource.data.sourceId
+            && getAfter(
+              /databases/$(database)/documents/family_links/$(linkId)/goals/$(request.resource.data.sourceId)
+            ).data.status == 'completed';
+        }
+
+        allow read: if isFamilyParticipant();
+        allow create: if isFamilyParticipant()
+          && familyLink().status == 'active'
+          && request.auth.uid == familyLink().childId
+          && request.resource.data.actorId == familyLink().childId
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'type', 'sourceId', 'actorId', 'points',
+            'createdAt'
+          ])
+          && (validAcknowledgementEvent() || validGoalCompletedEvent());
+        allow update, delete: if false;
+      }
     }
 
     // ─── /groups/{groupId} ────────────────────────────────────────────
