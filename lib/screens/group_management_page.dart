@@ -11,6 +11,7 @@ class GroupManagementPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final capabilities = appState.experienceCapabilities;
     final accentColor = appState.currentIconColor;
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
@@ -20,39 +21,37 @@ class GroupManagementPage extends StatelessWidget {
     final template = appState.examTemplate;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('團體與教育管理'),
-      ),
+      appBar: AppBar(title: Text(capabilities.groupSurfaceTitle)),
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
           Container(
             padding: const EdgeInsets.all(18),
             decoration: AppUI.heroGradient(accentColor),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.business_center_outlined,
                   color: Colors.white,
                   size: 32,
                 ),
-                SizedBox(width: 14),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '團體與教育管理端',
-                        style: TextStyle(
+                        capabilities.groupSurfaceTitle,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        '企業、學校、補習班專屬自律挑戰與學習任務清單接收端。',
-                        style: TextStyle(
+                        capabilities.groupSurfaceDescription,
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
                           height: 1.4,
@@ -67,15 +66,24 @@ class GroupManagementPage extends StatelessWidget {
           const SizedBox(height: AppUI.sectionGap),
 
           // ─── 房主控制台入口（僅房主可見）───────────────────────────────
-          if (appState.isGroupOwner) ...[            
+          if (capabilities.canManageGroup) ...[
             InkWell(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GroupManagerPage())),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GroupManagerPage()),
+              ),
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [accentColor.withValues(alpha: 0.25), accentColor.withValues(alpha: 0.10)],
+                    colors: [
+                      accentColor.withValues(alpha: 0.25),
+                      accentColor.withValues(alpha: 0.10),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -84,26 +92,46 @@ class GroupManagementPage extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.admin_panel_settings_outlined, color: accentColor, size: 26),
+                    Icon(
+                      Icons.admin_panel_settings_outlined,
+                      color: accentColor,
+                      size: 26,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('管理者控制台', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: accentColor)),
+                          Text(
+                            '管理者控制台',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: accentColor,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text('發布挑戰、讀書時段與考試模板', style: TextStyle(fontSize: 12, color: primaryText.withValues(alpha: 0.6))),
+                          Text(
+                            '發布挑戰、讀書時段與考試模板',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: primaryText.withValues(alpha: 0.6),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios, size: 16, color: accentColor.withValues(alpha: 0.7)),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: accentColor.withValues(alpha: 0.7),
+                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: AppUI.sectionGap),
           ],
-
 
           Row(
             children: [
@@ -190,7 +218,11 @@ class GroupManagementPage extends StatelessWidget {
                 final schedule = schedules[index];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-                  child: _buildStudyScheduleCard(context, schedule, accentColor),
+                  child: _buildStudyScheduleCard(
+                    context,
+                    schedule,
+                    accentColor,
+                  ),
                 );
               },
             ),
@@ -264,7 +296,10 @@ class GroupManagementPage extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppUI.green.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -292,7 +327,11 @@ class GroupManagementPage extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               '挑戰規則：每日完成目標，連續累積點數。只顯示前 10 名。\n完成獎勵：$reward。',
-              style: TextStyle(fontSize: 12, color: secondaryText, height: 1.45),
+              style: TextStyle(
+                fontSize: 12,
+                color: secondaryText,
+                height: 1.45,
+              ),
             ),
             const Divider(height: 24),
             Row(
@@ -387,12 +426,20 @@ class GroupManagementPage extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const StudyRoomListPage()),
+                    MaterialPageRoute(
+                      builder: (_) => const StudyRoomListPage(),
+                    ),
                   );
                 },
                 child: Row(
                   children: [
-                    Text('進入自律房', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                    Text(
+                      '進入自律房',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(width: 4),
                     Icon(Icons.arrow_forward_ios, size: 12, color: accentColor),
                   ],
@@ -437,16 +484,21 @@ class GroupManagementPage extends StatelessWidget {
             const Divider(height: 20),
             Text(
               '每日投入強度：',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: secondaryText),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: secondaryText,
+              ),
             ),
-            Text(
-              effort,
-              style: TextStyle(fontSize: 14, color: primaryText),
-            ),
+            Text(effort, style: TextStyle(fontSize: 14, color: primaryText)),
             const SizedBox(height: 12),
             Text(
               '準備階段策略：',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: secondaryText),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: secondaryText,
+              ),
             ),
             Text(
               pressure,

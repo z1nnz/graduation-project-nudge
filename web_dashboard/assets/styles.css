@@ -5232,6 +5232,66 @@ body.sidebar-collapsed .role-gatekeeper-overlay {
   background: #fff;
 }
 
+.preview-role-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border: 1px solid rgba(124, 106, 230, 0.4);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(124, 106, 230, 0.16), rgba(34, 199, 187, 0.08));
+}
+
+.preview-role-banner strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+}
+
+.preview-role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.preview-role-actions button {
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.preview-role-actions button:hover,
+.preview-role-actions button.active {
+  border-color: var(--page-accent);
+  background: rgba(124, 106, 230, 0.2);
+  color: #fff;
+}
+
+.main :disabled[title*="展示模式"] {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 860px) {
+  .preview-role-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .preview-role-actions {
+    justify-content: flex-start;
+  }
+}
+
 .web-binding-gated-wrapper {
   max-width: 600px;
   margin: 40px auto;
@@ -5279,4 +5339,3 @@ body.sidebar-collapsed .role-gatekeeper-overlay {
 .web-binding-input:focus {
   border-color: var(--page-accent);
 }
-

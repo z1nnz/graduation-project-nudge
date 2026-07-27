@@ -1,6 +1,69 @@
 ﻿const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
+function loadRelationshipCapabilities() {
+  if (window.NudgeRelationshipCapabilities) {
+    return Promise.resolve(window.NudgeRelationshipCapabilities);
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "assets/relationship_capabilities.js?v=1";
+    script.onload = () => resolve(window.NudgeRelationshipCapabilities);
+    script.onerror = () => reject(new Error("角色能力模組載入失敗"));
+    document.head.appendChild(script);
+  });
+}
+
+function isPreviewMode() {
+  return localStorage.getItem("nudgePreviewMode") === "true";
+}
+
+function buildPreviewProfile() {
+  const previewRole = localStorage.getItem("nudgePreviewRole") || "personal";
+  const isGroupPreview = previewRole === "groupManager" || previewRole === "groupMember";
+  const isFamilyPreview = previewRole === "guardian" || previewRole === "child";
+  const rawRole = isGroupPreview ? "group" : previewRole;
+
+  return {
+    nickname: "展示使用者",
+    myNudgeId: "NDG-PREVIEW",
+    username: "NDG-PREVIEW",
+    signature: "目前正在查看不會寫入資料的展示介面",
+    accentColor: "purple",
+    disciplineCoins: 100,
+    planetCount: 1,
+    userRole: rawRole,
+    groupId: isGroupPreview ? "PREVIEW-GROUP" : null,
+    groupName: isGroupPreview ? "自律同行示範團" : null,
+    isGroupOwner: previewRole === "groupManager",
+    webToolsState: isFamilyPreview
+      ? {
+          guardianInvite: { relativeId: "NDG-FAMILY" },
+          guardianInviteStatus: { status: "linked" },
+        }
+      : {},
+  };
+}
+
+function resolveWebCapabilities(data = {}) {
+  const resolver =
+    window.NudgeRelationshipCapabilities?.resolveRelationshipCapabilities;
+  if (!resolver) {
+    throw new Error("角色能力模組尚未就緒");
+  }
+
+  return resolver({
+    rawRole: data.userRole,
+    familyLinked:
+      data.webToolsState?.guardianInviteStatus?.status === "linked",
+    hasGroup: Boolean(data.groupId),
+    isGroupOwner: Boolean(data.isGroupOwner),
+    isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
+    isPreview: isPreviewMode(),
+  });
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
     "&": "&amp;",
@@ -1784,13 +1847,20 @@ function injectAdminSwitch() {
   }
 }
 
-function bootFirebaseBackedData() {
+async function bootFirebaseBackedData() {
+  try {
+    await loadRelationshipCapabilities();
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+
   setTimeout(() => {
     try { injectAdminSwitch(); } catch(e){ console.warn("Admin switch init failed:", e); }
   }, 100);
 
   // Render initial sidebar profile card from cache immediately
-  const cachedData = {
+  const cachedData = isPreviewMode() ? buildPreviewProfile() : {
     nickname: localStorage.getItem("nudgeNicknameCache") || "自律使用者",
     myNudgeId: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
     username: localStorage.getItem("nudgeActiveDemoUserId") || "NDG-Guest",
@@ -1802,6 +1872,7 @@ function bootFirebaseBackedData() {
     userRole: localStorage.getItem("nudgeRoleCache") || "personal"
   };
   try { updateSidebarProfile(cachedData); } catch(e){}
+  if (isPreviewMode()) injectPreviewRoleBanner(cachedData);
 
   if (document.body.dataset.page === "operations") {
     const prosperityElement = document.querySelector(".hero-card strong");
@@ -1910,6 +1981,8 @@ function initializeFirebaseWeb() {
           if (user) {
             console.log("Authenticated user detected:", user.uid);
             if (!user.isAnonymous) {
+              localStorage.removeItem("nudgePreviewMode");
+              localStorage.removeItem("nudgePreviewRole");
               localStorage.setItem("nudgeWebLoggedIn", "true");
               localStorage.setItem("nudgeActiveDemoUserId", user.uid);
             }
@@ -1919,6 +1992,13 @@ function initializeFirebaseWeb() {
           }
 
           console.log("No authenticated user detected.");
+          if (isPreviewMode()) {
+            const previewData = buildPreviewProfile();
+            updateSidebarProfile(previewData);
+            injectPreviewRoleBanner(previewData);
+            document.dispatchEvent(new Event('firebase-ready'));
+            return;
+          }
           clearWebSession();
           if (!isPublic()) {
             redirectToLogin();
@@ -2054,6 +2134,8 @@ function updateSidebarProfile(data) {
     if (data.userRole) localStorage.setItem("nudgeRoleCache", data.userRole);
   }
 
+  updateRoleAwareNavigation(data);
+
   const existingCard = document.querySelector(".sidebar-profile-container");
   if (existingCard) {
     existingCard.remove();
@@ -2061,6 +2143,134 @@ function updateSidebarProfile(data) {
 
   // 門禁安全保護判斷
   checkPagePermissions(data);
+}
+
+function updateRoleAwareNavigation(data) {
+  const capabilities = resolveWebCapabilities(data);
+  const nav = document.querySelector(".sidebar .nav");
+  if (!nav) return;
+
+  const guardianLink = nav.querySelector('a[href*="guardian"]');
+  if (guardianLink) {
+    if (capabilities.role === "guardian") {
+      guardianLink.href = "guardian.html";
+      guardianLink.textContent = "家長陪伴中心";
+    } else if (capabilities.role === "child") {
+      guardianLink.href = "guardian-link.html";
+      guardianLink.textContent = "家庭連結與隱私";
+    } else {
+      guardianLink.href = "guardian-link.html";
+      guardianLink.textContent = "建立家庭連結";
+    }
+  }
+
+  const groupLink = nav.querySelector('a[href*="groups"]');
+  if (groupLink) {
+    if (capabilities.role === "groupManager") {
+      groupLink.href = "groups.html";
+      groupLink.textContent = "團體管理控制台";
+    } else if (capabilities.role === "groupMember") {
+      groupLink.href = "groups.html";
+      groupLink.textContent = "團體任務與進度";
+    } else {
+      groupLink.href = "groups-link.html";
+      groupLink.textContent = "加入或建立團體";
+    }
+  }
+}
+
+function applyRoleSpecificCopy(data, capabilities) {
+  if (
+    document.body.dataset.page !== "groups" &&
+    !window.location.pathname.endsWith("groups.html")
+  ) {
+    return;
+  }
+
+  const heading = document.querySelector(".hero h1");
+  const description = document.querySelector(".hero h1 + p");
+  if (heading) heading.textContent = capabilities.groupSurfaceTitle;
+  if (description) {
+    description.textContent = capabilities.canManageGroup
+      ? "建立挑戰、排程與任務模板；成員在 App 端各自開始、暫停並完成，不需等待管理者開房。"
+      : "查看共同目標、同儕進度與每週摘要；你可以在 App 端依自己的時間完成團體活動。";
+  }
+
+  const managerOnlyDestinations = [
+    "groups-challenge.html",
+    "groups-study-schedule.html",
+    "groups-templates.html",
+  ];
+  document.querySelectorAll(".subnav a").forEach((link) => {
+    const destination = link.getAttribute("href") || "";
+    const managerOnly = managerOnlyDestinations.includes(destination);
+    link.hidden = managerOnly && !capabilities.canManageGroup;
+  });
+  document.querySelectorAll(".center-hub .hub-card").forEach((card) => {
+    const destination = card.getAttribute("href") || "";
+    const managerOnly = managerOnlyDestinations.includes(destination);
+    card.hidden = managerOnly && !capabilities.canManageGroup;
+  });
+
+  const careTitle = document.querySelector("#groupCareNote h2");
+  const careCopy = document.querySelector("#groupCareNote > p");
+  if (careTitle) {
+    careTitle.textContent = capabilities.canManageGroup
+      ? "設計規則，讓成員自己前進。"
+      : "跟著團體前進，也保留自己的節奏。";
+  }
+  if (careCopy) {
+    careCopy.textContent = capabilities.canManageGroup
+      ? "管理者負責建立共同目標、挑戰規則與可見範圍，不負責替成員開始或結束每一次活動。"
+      : "你的開始、暫停與完成都由自己決定；團體只提供共同目標、同儕回饋與進度摘要。";
+  }
+}
+
+function injectPreviewRoleBanner(data) {
+  if (!isPreviewMode()) return;
+  const main = document.querySelector(".main");
+  if (!main) return;
+
+  document.getElementById("previewRoleBanner")?.remove();
+  const capabilities = resolveWebCapabilities(data);
+  const banner = document.createElement("section");
+  banner.id = "previewRoleBanner";
+  banner.className = "preview-role-banner";
+  banner.innerHTML = `
+    <div>
+      <span class="eyebrow">展示模式 · 不會寫入資料</span>
+      <strong>目前介面：${escapeHtml(getRoleLabel(data.userRole || "personal"))}${capabilities.role === "groupManager" ? "（管理者）" : capabilities.role === "groupMember" ? "（成員）" : ""}</strong>
+    </div>
+    <div class="preview-role-actions" aria-label="切換展示身分">
+      <button type="button" data-preview-role="personal">個人</button>
+      <button type="button" data-preview-role="child">孩子</button>
+      <button type="button" data-preview-role="guardian">家長</button>
+      <button type="button" data-preview-role="groupMember">團體成員</button>
+      <button type="button" data-preview-role="groupManager">團體管理者</button>
+    </div>
+  `;
+  main.insertAdjacentElement("afterbegin", banner);
+
+  banner.querySelectorAll("[data-preview-role]").forEach((button) => {
+    const isActive =
+      button.dataset.previewRole ===
+      (localStorage.getItem("nudgePreviewRole") || "personal");
+    button.classList.toggle("active", isActive);
+    button.addEventListener("click", () => {
+      localStorage.setItem("nudgePreviewRole", button.dataset.previewRole);
+      window.location.href = "dashboard.html";
+    });
+  });
+
+  document
+    .querySelectorAll(
+      ".main input, .main textarea, .main select, .main button:not([data-preview-role])",
+    )
+    .forEach((control) => {
+      control.disabled = true;
+      control.setAttribute("aria-disabled", "true");
+      control.title = "展示模式不會寫入或變更任何資料";
+    });
 }
 
 function showRelativeRequiredBanner() {
@@ -2087,6 +2297,7 @@ function showGroupRequiredBanner() {
 
 function checkPagePermissions(data) {
   const userRole = data.userRole || "personal";
+  const capabilities = resolveWebCapabilities(data);
   const path = window.location.pathname;
   const isGuardianPage = path.includes("guardian") || document.body.getAttribute("data-page") === "guardian";
   const isGroupsPage = path.includes("groups") || document.body.getAttribute("data-page") === "groups";
@@ -2094,6 +2305,7 @@ function checkPagePermissions(data) {
 
   // 1. 導覽列發光推薦與引導橫幅
   updateNavigationRecommendation(userRole);
+  applyRoleSpecificCopy(data, capabilities);
 
   // 2. 移除舊的防護遮罩
   const existingOverlay = document.getElementById("roleGatekeeperOverlay");
@@ -2122,11 +2334,34 @@ function checkPagePermissions(data) {
   if (isGuardianPage) {
     const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
     const isGuardianLinkPage = window.location.pathname.includes("guardian-link.html");
+
+    if (
+      capabilities.role === "child" &&
+      !isGuardianLinkPage
+    ) {
+      window.location.replace("guardian-link.html");
+      return;
+    }
     
     // Add subnav link dynamically if not present
     const subnav = document.querySelector(".subnav");
     if (subnav && !document.getElementById("guardianLinkTab") && !subnav.querySelector('a[href*="guardian-link"]')) {
       subnav.insertAdjacentHTML("beforeend", `<a id="guardianLinkTab" href="guardian-link.html" class="${isGuardianLinkPage ? 'active' : ''}">連結親屬</a>`);
+    }
+
+    if (capabilities.role === "child" && isGuardianLinkPage) {
+      document.querySelectorAll(".subnav a").forEach((link) => {
+        link.hidden = !link.getAttribute("href")?.includes("guardian-link");
+      });
+      const heading = document.querySelector(".hero h1");
+      const description = document.querySelector(".hero h1 + p");
+      const eyebrow = document.querySelector(".hero .eyebrow");
+      if (eyebrow) eyebrow.textContent = "Family Link & Privacy";
+      if (heading) heading.textContent = "你的家庭連結與資料隱私。";
+      if (description) {
+        description.textContent =
+          "由你決定是否接受家長連結、分享哪些趨勢資料，也可以隨時解除；家長看不到未經同意的原始健康資料。";
+      }
     }
 
     // Set side stats text in hero-card
@@ -2205,6 +2440,20 @@ function checkPagePermissions(data) {
   if (isGroupsPage) {
     const hasGroup = !!data.groupId;
     const isGroupsLinkPage = window.location.pathname.includes("groups-link.html");
+    const managerOnlyPage = [
+      "groups-challenge.html",
+      "groups-study-schedule.html",
+      "groups-templates.html",
+      "groups-creation.html",
+    ].some((fileName) => window.location.pathname.includes(fileName));
+
+    if (
+      capabilities.role === "groupMember" &&
+      managerOnlyPage
+    ) {
+      window.location.replace("groups.html");
+      return;
+    }
 
     // Add subnav link dynamically if not present
     const subnav = document.querySelector(".subnav");
@@ -3580,7 +3829,8 @@ function renderWebGroupCreationPage(data) {
 
 function getRoleLabel(role) {
   switch (role) {
-    case "personal": return "個人/小孩";
+    case "personal": return "個人";
+    case "child": return "孩子";
     case "guardian": return "家長";
     case "group": return "團體挑戰";
     case "enterprise": return "企業管理";

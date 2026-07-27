@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge - 登入 / 註冊</title>
-    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/styles.css?v=13" />
     <!-- Firebase Compat SDK for real-time Firebase Auth and Firestore sync -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -236,7 +236,7 @@
           </button>
         </div>
 
-        <a href="dashboard.html" class="skip-link">稍後再說，先體驗功能</a>
+        <a href="dashboard.html" class="skip-link" id="previewModeLink">稍後再說，先體驗功能</a>
       </div>
     </div>
     <script>
@@ -257,6 +257,13 @@
       const auth = firebase.auth();
       const authReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
         console.warn("Auth persistence setup failed:", err);
+      });
+
+      document.getElementById('previewModeLink').addEventListener('click', () => {
+        localStorage.setItem('nudgePreviewMode', 'true');
+        localStorage.setItem('nudgePreviewRole', 'personal');
+        localStorage.setItem('nudgeActiveDemoUserId', 'preview-user');
+        localStorage.removeItem('nudgeWebLoggedIn');
       });
       const db = firebase.firestore();
 
@@ -294,6 +301,8 @@
             }, { merge: true });
           }
         }).then(() => {
+          localStorage.removeItem('nudgePreviewMode');
+          localStorage.removeItem('nudgePreviewRole');
           localStorage.setItem('nudgeWebLoggedIn', 'true');
           localStorage.setItem('nudgeActiveDemoUserId', user.uid);
           const redirectTarget = localStorage.getItem('nudgePostLoginRedirect') || 'dashboard.html';

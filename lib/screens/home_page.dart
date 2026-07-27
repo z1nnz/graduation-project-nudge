@@ -41,6 +41,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final accentColor = appState.currentIconColor;
+    final capabilities = appState.experienceCapabilities;
 
     final completedCount = appState.todayActionableTaskCompleted;
     final totalTasks = appState.todayActionableTaskTotal;
@@ -62,8 +63,8 @@ class HomePage extends StatelessWidget {
     bool isGated = false;
     Widget? gateCard;
 
-    if (appState.userRole == 'guardian') {
-      if (!appState.isGuardianLinked) {
+    if (capabilities.isGuardian) {
+      if (capabilities.requiresFamilyBinding) {
         isGated = true;
         gateCard = _BindingGatedCard(
           appState: appState,
@@ -76,8 +77,8 @@ class HomePage extends StatelessWidget {
           accentColor: accentColor,
         );
       }
-    } else if (appState.userRole == 'child') {
-      if (!appState.isGuardianLinked) {
+    } else if (capabilities.isChild) {
+      if (capabilities.requiresFamilyBinding) {
         isGated = true;
         gateCard = _BindingGatedCard(
           appState: appState,
@@ -90,11 +91,8 @@ class HomePage extends StatelessWidget {
           accentColor: accentColor,
         );
       }
-    } else if (appState.userRole == 'group' ||
-        appState.userRole == 'enterprise' ||
-        appState.userRole == 'tutor' ||
-        appState.userRole == 'school') {
-      if (appState.groupId == null) {
+    } else if (capabilities.isGroupExperience) {
+      if (capabilities.requiresGroupBinding) {
         isGated = true;
         gateCard = _GroupBindingGatedCard(
           appState: appState,
@@ -124,13 +122,7 @@ class HomePage extends StatelessWidget {
       backgroundColor: AppUI.scaffoldBackgroundOf(context),
       drawer: AppDrawer(onOpenTasks: openTasksPage),
       appBar: AppBar(
-        title: Text(
-          appState.userRole == 'guardian'
-              ? '家長陪伴端'
-              : (appState.userRole == 'child'
-                    ? '孩子端'
-                    : (appState.userRole == 'group' ? '自律團體端' : '個人首頁')),
-        ),
+        title: Text(capabilities.homeTitle),
         actions: [
           Center(
             child: _PlanetPill(
@@ -190,7 +182,7 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: AppUI.sectionGap),
 
                 // Show action center only if not guardian mode (guardian has separate dashboard metrics)
-                if (appState.userRole != 'guardian') ...[
+                if (!capabilities.isGuardian) ...[
                   _TodayActionCenter(
                     completedCount: completedCount,
                     totalTasks: totalTasks,
@@ -219,27 +211,11 @@ class HomePage extends StatelessWidget {
                     // Filter quick action cards based on active role
                     final List<Widget> actionCards = [];
 
-                    if (appState.userRole == 'guardian') {
+                    if (capabilities.isGuardian) {
                       actionCards.addAll([
                         _QuickActionCard(
-                          icon: Icons.family_restroom_rounded,
-                          title: '家長陪伴中心',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const GuardianCenterPage(),
-                              ),
-                            );
-                          },
-                          accentColor: accentColor,
-                          primaryText: primaryText,
-                          secondaryText: secondaryText,
-                          isDark: isDark,
-                        ),
-                        _QuickActionCard(
                           icon: Icons.favorite_outline,
-                          title: '鼓勵發送',
+                          title: '家庭陪伴與鼓勵',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -263,14 +239,13 @@ class HomePage extends StatelessWidget {
                           isDark: isDark,
                         ),
                       ]);
-                    } else if (appState.userRole == 'group' ||
-                        appState.userRole == 'enterprise' ||
-                        appState.userRole == 'tutor' ||
-                        appState.userRole == 'school') {
+                    } else if (capabilities.isGroupExperience) {
                       actionCards.addAll([
                         _QuickActionCard(
-                          icon: Icons.admin_panel_settings_outlined,
-                          title: '教育管理中心',
+                          icon: capabilities.canManageGroup
+                              ? Icons.admin_panel_settings_outlined
+                              : Icons.groups_2_outlined,
+                          title: capabilities.groupSurfaceTitle,
                           onTap: () {
                             Navigator.push(
                               context,
@@ -295,7 +270,28 @@ class HomePage extends StatelessWidget {
                         ),
                       ]);
                     } else {
-                      // Default personal tools
+                      if (capabilities.canManageOwnFamilyLink) {
+                        actionCards.add(
+                          _QuickActionCard(
+                            icon: Icons.family_restroom_rounded,
+                            title: '家庭連結與隱私',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const GuardianCenterPage(),
+                                ),
+                              );
+                            },
+                            accentColor: accentColor,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
+                            isDark: isDark,
+                          ),
+                        );
+                      }
+
+                      // Personal self-discipline tools remain available to children.
                       actionCards.addAll([
                         _QuickActionCard(
                           icon: Icons.analytics_outlined,

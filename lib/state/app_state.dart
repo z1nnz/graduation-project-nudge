@@ -14,6 +14,7 @@ import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
 import '../models/badge_record.dart';
 import '../models/daily_summary.dart';
+import '../models/experience_capabilities.dart';
 import '../models/friend_request.dart';
 import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
@@ -1015,6 +1016,13 @@ class AppState extends ChangeNotifier {
   bool get isGroupOwner => _isGroupOwner;
   bool get isGuardianLinked =>
       guardianInvite != null && guardianInvite!['status'] == 'linked';
+  ExperienceCapabilities get experienceCapabilities =>
+      ExperienceCapabilities.resolve(
+        rawRole: _userRole,
+        isGroupOwner: _isGroupOwner,
+        hasGroup: _groupId != null,
+        isGuardianLinked: isGuardianLinked,
+      );
 
   Map<String, dynamic>? get guardianInvite {
     if (_webToolsState == null) return null;
