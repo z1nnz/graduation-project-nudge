@@ -1603,6 +1603,7 @@ function bindExamTemplates() {
         <small>${escapeHtml(`${tpl.days || 7} 天`)}</small>
         <strong>${escapeHtml(tpl.type || "未命名模板")}</strong>
         <span>${escapeHtml(tpl.effort || "")}</span>
+        <span>${escapeHtml(tpl.strategy || "")}</span>
       </article>
     `).join("")
       : `<article><small>尚未發布</small><strong>建立第一個團體模板</strong><span>發布後，成員 App 會讀取同一份團體資料。</span></article>`;
@@ -2203,11 +2204,66 @@ function refreshCanonicalGroupUi() {
     groupNameInput.value = activeWebGroup.name;
   }
   const heroCount = document.querySelector(".hero-card [data-count]");
-  if (heroCount && activeWebGroup && window.location.pathname.includes("groups-challenge")) {
-    heroCount.textContent = String(activeWebGroup.memberIds?.length || 0);
+  if (
+    heroCount &&
+    (window.location.pathname.includes("groups-challenge") ||
+      window.location.pathname.endsWith("/groups.html"))
+  ) {
+    heroCount.textContent = String(activeWebGroup?.memberIds?.length || 0);
+  }
+  const groupSummary = document.querySelector("[data-group-summary]");
+  if (groupSummary) {
+    groupSummary.textContent = activeWebGroup
+      ? `${activeWebGroup.name} 的正式成員名單已同步。`
+      : "等待正式團體資料同步。";
   }
   if (currentWebUserData) {
     updateSidebarProfile(effectiveWebGroupProfile());
+  }
+  renderCanonicalGroupOverview();
+}
+
+function renderCanonicalGroupOverview() {
+  if (!document.querySelector("[data-group-publications]")) return;
+  const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
+  const canReadPublications = isPreviewMode() || Boolean(activeWebGroup);
+  const challenge = canReadPublications ? store.challenge || null : null;
+  const schedules = canReadPublications && Array.isArray(store.studySchedules)
+    ? store.studySchedules
+    : [];
+  const templates = canReadPublications && Array.isArray(store.groupTemplates)
+    ? store.groupTemplates
+    : [];
+
+  const challengeList = document.querySelector("[data-group-challenge-list]");
+  if (challengeList) {
+    challengeList.innerHTML = challenge
+      ? `<article><strong>${escapeHtml(challenge.type || "自律挑戰")} · ${escapeHtml(challenge.days || 0)} 天</strong><span>${escapeHtml(challenge.groupName || activeWebGroup?.name || "目前團體")}｜完成獎勵：${escapeHtml(challenge.reward || "未設定")}</span></article>`
+      : "<article><strong>尚未發布</strong><span>管理者發布後會同步顯示。</span></article>";
+  }
+
+  const scheduleList = document.querySelector("[data-group-schedule-list]");
+  if (scheduleList) {
+    scheduleList.innerHTML = schedules.length
+      ? schedules
+          .map(
+            schedule =>
+              `<article><strong>${escapeHtml(schedule.title || "共同自律時段")}</strong><span>${escapeHtml(schedule.meta || "由成員自行開始與完成")}</span></article>`,
+          )
+          .join("")
+      : "<article><strong>尚未排程</strong><span>成員仍可依自己的時間開始活動。</span></article>";
+  }
+
+  const templateList = document.querySelector("[data-group-template-list]");
+  if (templateList) {
+    templateList.innerHTML = templates.length
+      ? templates
+          .map(
+            template =>
+              `<article><strong>${escapeHtml(template.type || "自律")} · ${escapeHtml(template.days || 0)} 天</strong><span>${escapeHtml(template.effort || "未設定核心任務")}｜${escapeHtml(template.strategy || "未設定準備策略")}</span></article>`,
+          )
+          .join("")
+      : "<article><strong>尚未發布</strong><span>正式模板會同步到 Web 與 App。</span></article>";
   }
 }
 
@@ -2236,6 +2292,7 @@ function syncCanonicalGroupPublicationsToLocal({
     }
   }
   localStorage.setItem("nudgeWebTools", JSON.stringify(store));
+  renderCanonicalGroupOverview();
 
   if (typeof window.renderSavedList === "function") {
     window.renderSavedList(
@@ -2247,6 +2304,14 @@ function syncCanonicalGroupPublicationsToLocal({
   if (typeof window.renderCanonicalGroupTemplates === "function") {
     window.renderCanonicalGroupTemplates(templates ?? store.groupTemplates ?? []);
   }
+}
+
+function clearCanonicalGroupPublications() {
+  syncCanonicalGroupPublicationsToLocal({
+    challenge: null,
+    schedules: [],
+    templates: [],
+  });
 }
 
 function listenToGroupPublications(groupId) {
@@ -2294,6 +2359,7 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
   stopGroupPublicationListeners();
   activeWebGroup = null;
   groupLoaded = false;
+  clearCanonicalGroupPublications();
 
   if (!nextGroupId) {
     groupLoaded = true;
@@ -2310,6 +2376,7 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
       if (!window.NudgeGroupContract?.isGroupMember(group, userId)) {
         activeWebGroup = null;
         stopGroupPublicationListeners();
+        clearCanonicalGroupPublications();
         refreshCanonicalGroupUi();
         return;
       }
@@ -2322,6 +2389,7 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
       groupLoaded = true;
       activeWebGroup = null;
       stopGroupPublicationListeners();
+      clearCanonicalGroupPublications();
       refreshCanonicalGroupUi();
     },
   );
@@ -2664,12 +2732,14 @@ function applyRoleSpecificCopy(data, capabilities) {
   document.querySelectorAll(".subnav a").forEach((link) => {
     const destination = link.getAttribute("href") || "";
     const managerOnly = managerOnlyDestinations.includes(destination);
-    link.hidden = managerOnly && !capabilities.canManageGroup;
+    const shouldHide = managerOnly && !capabilities.canManageGroup;
+    link.hidden = shouldHide;
   });
   document.querySelectorAll(".center-hub .hub-card").forEach((card) => {
     const destination = card.getAttribute("href") || "";
     const managerOnly = managerOnlyDestinations.includes(destination);
-    card.hidden = managerOnly && !capabilities.canManageGroup;
+    const shouldHide = managerOnly && !capabilities.canManageGroup;
+    card.hidden = shouldHide;
   });
 
   const careTitle = document.querySelector("#groupCareNote h2");

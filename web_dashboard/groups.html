@@ -1,18 +1,42 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 團體 / 教育管理</title><link rel="stylesheet" href="assets/styles.css?v=13" /></head>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 團體 / 教育管理</title><link rel="stylesheet" href="assets/styles.css?v=14" /></head>
   <body data-page="groups">
     <div class="shell">
       <aside class="sidebar"><a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>團體管理</small></span></a><nav class="nav"><a href="dashboard.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a class="active" href="groups.html">團體 / 教育管理</a><a href="operations.html">商城頁</a><a href="research.html">研究 / 展示中心</a><a href="planet.html">自律城市 / 星球</a>
           <a href="profile.html">個人名片</a>
         </nav></aside>
       <main class="main">
-        <header class="hero split"><div><span class="eyebrow">Group & Education Hub</span><h1>團體中心改成教育與企業工具入口。</h1><p>挑戰、讀書時段、排行、考試模板分頁處理，中心頁只保留總覽和入口。</p><div class="subnav"><a class="active" href="groups.html">中心總覽</a><a href="groups-challenge.html">挑戰建立</a><a href="groups-study-schedule.html">讀書時段</a><a href="groups-ranking.html">排行與週報</a><a href="groups-templates.html">考試模板</a></div></div><div class="hero-card"><span>活躍團體</span><strong data-count="12">0</strong><p>本週共有 4 個企業挑戰與 8 個讀書會房間。</p></div></header>
+        <header class="hero split"><div><span class="eyebrow">Group & Education Hub</span><h1>團體中心改成教育與企業工具入口。</h1><p>挑戰、讀書時段、排行、考試模板分頁處理，中心頁只保留總覽和入口。</p><div class="subnav"><a class="active" href="groups.html">中心總覽</a><a href="groups-challenge.html">挑戰建立</a><a href="groups-study-schedule.html">讀書時段</a><a href="groups-ranking.html">排行與週報</a><a href="groups-templates.html">考試模板</a></div></div><div class="hero-card"><span>正式成員</span><strong data-count="0">0</strong><p data-group-summary>等待正式團體資料同步。</p></div></header>
         <section class="center-hub page-section">
           <a class="hub-card" href="groups-challenge.html"><span>◎</span><strong>團體挑戰建立器</strong><p>建立步數、專注、早睡、期末衝刺挑戰，包含規則、獎勵與排行榜。</p><small>建立挑戰</small></a>
           <a class="hub-card" href="groups-study-schedule.html"><span>◷</span><strong>讀書時段管理</strong><p>安排讀書會或補習班共讀時段，自動產生提醒與自律房。</p><small>排程時段</small></a>
           <a class="hub-card" href="groups-ranking.html"><span>↟</span><strong>排行與週報</strong><p>查看小組排名、班級摘要與可下載週報。</p><small>查看排行</small></a>
           <a class="hub-card" href="groups-templates.html"><span>＋</span><strong>考試倒數模板</strong><p>建立複習提醒、倒數任務、班級派發模板。</p><small>建立模板</small></a>
+        </section>
+
+        <section class="card-grid-3 page-section" data-group-publications>
+          <article class="panel">
+            <span class="eyebrow">Current Challenge</span>
+            <h2>目前挑戰</h2>
+            <div class="saved-list" data-group-challenge-list>
+              <article><strong>尚未發布</strong><span>管理者發布後會同步顯示。</span></article>
+            </div>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">Shared Schedule</span>
+            <h2>共同時段</h2>
+            <div class="saved-list" data-group-schedule-list>
+              <article><strong>尚未排程</strong><span>成員仍可依自己的時間開始活動。</span></article>
+            </div>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">Task Templates</span>
+            <h2>任務模板</h2>
+            <div class="saved-list" data-group-template-list>
+              <article><strong>尚未發布</strong><span>正式模板會同步到 Web 與 App。</span></article>
+            </div>
+          </article>
         </section>
 
         <section class="care-note page-section" id="groupCareNote" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.13), rgba(30, 58, 138, 0.055)), rgba(8, 17, 34, 0.92); border: 1px solid rgba(59, 130, 246, 0.25);">
@@ -23,6 +47,6 @@
           <p style="color: var(--muted); margin-bottom: 0;">團體自律與挑戰功能已啟用。您可以建立小組任務、查看成員學習時段與每週排行週報，用集體的力量對抗拖延。</p>
         </section>
       </main>
-    </div><script src="assets/app.js?v=13"></script>
+    </div><script src="assets/app.js?v=14"></script>
   </body>
 </html>

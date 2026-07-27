@@ -642,12 +642,12 @@ class AppState extends ChangeNotifier {
     _groupTemplateSubscription = groupRef
         .collection('templates')
         .orderBy('updatedAt', descending: true)
-        .limit(1)
+        .limit(50)
         .snapshots()
         .listen((snapshot) {
-          _groupTemplatePublication = snapshot.docs.isEmpty
-              ? null
-              : {'id': snapshot.docs.first.id, ...snapshot.docs.first.data()};
+          _groupTemplatePublications = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(growable: false);
           notifyListeners();
         });
   }
@@ -661,7 +661,7 @@ class AppState extends ChangeNotifier {
     _groupTemplateSubscription = null;
     _groupChallengePublication = null;
     _groupSchedulePublications = [];
-    _groupTemplatePublication = null;
+    _groupTemplatePublications = [];
   }
 
   void _setupFamilyInteractionListeners(String linkId) {
@@ -1255,7 +1255,7 @@ class AppState extends ChangeNotifier {
   GroupContract? _canonicalGroup;
   Map<String, dynamic>? _groupChallengePublication;
   List<Map<String, dynamic>> _groupSchedulePublications = [];
-  Map<String, dynamic>? _groupTemplatePublication;
+  List<Map<String, dynamic>> _groupTemplatePublications = [];
 
   List<Map<String, dynamic>> get tasks => _tasks;
   Map<String, dynamic>? get webToolsState => _webToolsState;
@@ -1344,10 +1344,8 @@ class AppState extends ChangeNotifier {
     return List<Map<String, dynamic>>.unmodifiable(_groupSchedulePublications);
   }
 
-  Map<String, dynamic>? get examTemplate {
-    return _groupTemplatePublication == null
-        ? null
-        : Map<String, dynamic>.unmodifiable(_groupTemplatePublication!);
+  List<Map<String, dynamic>> get groupTemplates {
+    return List<Map<String, dynamic>>.unmodifiable(_groupTemplatePublications);
   }
 
   int get focusSeconds => _focusSeconds;
@@ -6806,7 +6804,7 @@ ${summaryBuf.toString()}
   Future<void> joinGroupChallengeAsTask() async {
     final challenge = groupChallenge;
     if (challenge == null) return;
-    final group = challenge['group']?.toString() ?? '自律團體';
+    final group = challenge['groupName']?.toString() ?? groupName ?? '自律團體';
     final type = challenge['type']?.toString() ?? '自律挑戰';
     final days = (challenge['days'] as num?)?.toInt() ?? 7;
     for (int d = 1; d <= days; d++) {

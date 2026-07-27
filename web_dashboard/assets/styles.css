@@ -1364,6 +1364,11 @@ body[data-page="home"] .feature-card p {
   gap: 16px;
 }
 
+.subnav a[hidden],
+.center-hub .hub-card[hidden] {
+  display: none !important;
+}
+
 .hub-card {
   min-height: 180px;
   padding: 22px;

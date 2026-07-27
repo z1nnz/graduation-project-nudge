@@ -18,7 +18,7 @@ class GroupManagementPage extends StatelessWidget {
 
     final challenge = appState.groupChallenge;
     final schedules = appState.studySchedules;
-    final template = appState.examTemplate;
+    final templates = appState.groupTemplates;
 
     return Scaffold(
       appBar: AppBar(title: Text(capabilities.groupSurfaceTitle)),
@@ -246,7 +246,7 @@ class GroupManagementPage extends StatelessWidget {
           ),
           const SizedBox(height: AppUI.cardGap),
 
-          if (template == null)
+          if (templates.isEmpty)
             Card(
               shape: AppUI.cardShape(),
               child: Padding(
@@ -258,7 +258,22 @@ class GroupManagementPage extends StatelessWidget {
               ),
             )
           else
-            _buildTemplateCard(context, template, appState, accentColor),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: templates.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                  child: _buildTemplateCard(
+                    context,
+                    templates[index],
+                    appState,
+                    accentColor,
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -269,7 +284,7 @@ class GroupManagementPage extends StatelessWidget {
     Map<String, dynamic> challenge,
     Color accentColor,
   ) {
-    final group = challenge['group'] ?? '自律團體';
+    final group = challenge['groupName'] ?? '自律團體';
     final type = challenge['type'] ?? '專注挑戰';
     final days = challenge['days'] ?? 7;
     final reward = challenge['reward'] ?? '徽章';
@@ -461,7 +476,7 @@ class GroupManagementPage extends StatelessWidget {
     final type = template['type'] ?? '大考';
     final days = int.tryParse(template['days']?.toString() ?? '7') ?? 7;
     final effort = template['effort'] ?? '每日投入中等';
-    final pressure = template['pressure'] ?? '策略性規劃';
+    final strategy = template['strategy'] ?? '策略性規劃';
 
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
@@ -501,7 +516,7 @@ class GroupManagementPage extends StatelessWidget {
               ),
             ),
             Text(
-              pressure,
+              strategy,
               style: TextStyle(fontSize: 14, color: primaryText, height: 1.4),
             ),
             const SizedBox(height: 16),
@@ -510,7 +525,7 @@ class GroupManagementPage extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      appState.importExamTemplate(type, days, effort, pressure);
+                      appState.importExamTemplate(type, days, effort, strategy);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('成功匯入 $type 的 $days 日學習任務至任務清單！'),
