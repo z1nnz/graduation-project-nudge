@@ -14,8 +14,6 @@ class GuardianCenterPage extends StatelessWidget {
     final accentColor = appState.currentIconColor;
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
-    final invite = appState.guardianInvite;
-    final legacyStatus = invite?['status'];
     final isChild = appState.isCurrentFamilyChild;
     final link = appState.familyLink;
     final activeGoal = appState.activeFamilyGoal;
@@ -63,8 +61,6 @@ class GuardianCenterPage extends StatelessWidget {
           const SizedBox(height: AppUI.sectionGap),
           if (link != null)
             _buildActiveLinkCard(context, appState, isChild, accentColor)
-          else if (invite != null && legacyStatus == 'pending_child_approval')
-            _buildLegacyInviteCard(context, invite, appState, accentColor)
           else
             _buildEmptyLinkCard(context),
           if (activeGoal != null && isChild) ...[
@@ -155,53 +151,6 @@ class GuardianCenterPage extends StatelessWidget {
                 color: AppUI.textSecondaryOf(context),
                 height: 1.4,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLegacyInviteCard(
-    BuildContext context,
-    Map<String, dynamic> invite,
-    AppState appState,
-    Color accentColor,
-  ) {
-    return Card(
-      shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '收到舊版家庭邀請',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(invite['message']?.toString() ?? '家長邀請你建立陪伴連結。'),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: appState.declineGuardianInvite,
-                    child: const Text('婉拒'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: appState.acceptParentGoalAsTask,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('接受'),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

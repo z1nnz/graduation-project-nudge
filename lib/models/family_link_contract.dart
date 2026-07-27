@@ -6,7 +6,7 @@ enum FamilyBondEvent { acknowledgement, goalCompleted }
 
 class FamilyConsentScopes {
   const FamilyConsentScopes({
-    this.summary = true,
+    this.summary = false,
     this.weeklyReport = false,
     this.taskCategories = false,
     this.healthTrends = false,
@@ -33,7 +33,7 @@ class FamilyConsentScopes {
 
   factory FamilyConsentScopes.fromMap(Map<String, dynamic>? map) {
     return FamilyConsentScopes(
-      summary: map?['summary'] as bool? ?? true,
+      summary: map?['summary'] as bool? ?? false,
       weeklyReport: map?['weeklyReport'] as bool? ?? false,
       taskCategories: map?['taskCategories'] as bool? ?? false,
       healthTrends: map?['healthTrends'] as bool? ?? false,

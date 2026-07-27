@@ -15,3 +15,8 @@ Character evolution. Only two-way actions create Bond XP: acknowledging one
 encouragement grants 3 XP and completing one accepted shared goal grants 10 XP.
 This prevents a Guardian from creating pressure or progression by sending
 repeated messages.
+
+A new Family Link starts with all consent scopes disabled. After the Child opts
+in, the App publishes only the selected aggregate fields to the link's
+`summaries/current` document; the Web and Guardian App read that projection
+instead of the Child's private user document.

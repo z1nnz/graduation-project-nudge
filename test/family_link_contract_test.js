@@ -21,7 +21,6 @@ for (const testCase of cases) {
   test(testCase.name, () => {
     const build = () =>
       buildFamilyLinkPayload({
-        linkId: "link-1",
         senderId: testCase.senderId,
         senderRole: testCase.senderRole,
         receiverId: testCase.receiverId,
@@ -42,7 +41,7 @@ for (const testCase of cases) {
       testCase.guardianId,
     ].sort());
     assert.equal(payload.status, "active");
-    assert.equal(payload.consentScopes.summary, true);
+    assert.equal(payload.consentScopes.summary, false);
     assert.equal(payload.consentScopes.healthTrends, false);
   });
 }

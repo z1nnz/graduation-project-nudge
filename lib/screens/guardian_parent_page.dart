@@ -268,6 +268,9 @@ class _GuardianParentPageState extends State<GuardianParentPage> {
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
     final consent = appState.familyLink?.consent;
+    final familySummary = appState.familySummary;
+    final sharedSummary = familySummary?['summary'] as Map?;
+    final healthTrends = familySummary?['healthTrends'] as Map?;
     final enabledScopes = <String>[
       if (consent?.summary == true) '今日總覽',
       if (consent?.weeklyReport == true) '週報',
@@ -344,6 +347,40 @@ class _GuardianParentPageState extends State<GuardianParentPage> {
                     .map((label) => Chip(label: Text(label)))
                     .toList(),
               ),
+              if (sharedSummary != null || healthTrends != null) ...[
+                const Divider(height: 28),
+                Text(
+                  '孩子同意分享的最新摘要',
+                  style: TextStyle(color: secondaryText, fontSize: 12),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 10,
+                  children: [
+                    if (sharedSummary != null)
+                      Text(
+                        '完成 ${sharedSummary['completedTasks'] ?? 0}/${sharedSummary['totalTasks'] ?? 0}',
+                        style: TextStyle(color: primaryText),
+                      ),
+                    if (sharedSummary != null)
+                      Text(
+                        '專注 ${sharedSummary['focusMinutes'] ?? 0} 分',
+                        style: TextStyle(color: primaryText),
+                      ),
+                    if (healthTrends != null)
+                      Text(
+                        '睡眠 ${healthTrends['sleepHours'] ?? 0} 小時',
+                        style: TextStyle(color: primaryText),
+                      ),
+                    if (healthTrends != null)
+                      Text(
+                        '步數 ${healthTrends['steps'] ?? 0}',
+                        style: TextStyle(color: primaryText),
+                      ),
+                  ],
+                ),
+              ],
               if (activeGoal != null) ...[
                 const Divider(height: 28),
                 Text(

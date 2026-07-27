@@ -39,7 +39,7 @@ void main() {
           testCase['childId'],
         });
         expect(contract.status, FamilyLinkStatus.active);
-        expect(contract.consent.summary, isTrue);
+        expect(contract.consent.summary, isFalse);
         expect(contract.consent.healthTrends, isFalse);
       });
     }

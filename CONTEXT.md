@@ -25,7 +25,8 @@
   Request. Either participant can end the relationship.
 - **Consent Scope**: One Child-controlled category of summarized data that a
   Guardian may see. Consent is independent from encouragement and shared goals
-  and can be withdrawn at any time.
+  and can be withdrawn at any time. A new Family Link starts with every scope
+  disabled; the Child must opt in explicitly.
 - **Encouragement Card**: A Guardian-to-Child message inside a Family Link.
   Sending does not grant personal rewards; a Child acknowledgement creates one
   idempotent Family Bond Event.

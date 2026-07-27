@@ -15,7 +15,6 @@
   }
 
   function buildFamilyLinkPayload({
-    linkId,
     senderId,
     senderRole,
     receiverId,
@@ -37,7 +36,7 @@
       participantIds: [guardianId, childId],
       status: "active",
       consentScopes: {
-        summary: true,
+        summary: false,
         weeklyReport: false,
         taskCategories: false,
         healthTrends: false,

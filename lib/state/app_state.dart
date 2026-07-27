@@ -105,10 +105,12 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _familyEncouragementSubscription;
   StreamSubscription? _familyGoalSubscription;
   StreamSubscription? _familyBondEventSubscription;
+  StreamSubscription? _familySummarySubscription;
   StreamSubscription? _incomingGroupRequestsSubscription;
   StreamSubscription? _groupOwnerSubscription;
   final Set<String> _checkedLegacyGroupIds = {};
   Timer? _dailyResetTimer;
+  Timer? _familySummaryPublishTimer;
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -150,6 +152,7 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _familyEncouragements = [];
   List<Map<String, dynamic>> _familyGoals = [];
   List<Map<String, dynamic>> _familyBondEvents = [];
+  Map<String, dynamic>? _familySummary;
 
   List<Map<String, dynamic>> _incomingGroupRequests = [];
   List<Map<String, dynamic>> get incomingGroupRequests =>
@@ -550,6 +553,7 @@ class AppState extends ChangeNotifier {
           if (_listeningFamilyLinkId != doc.id) {
             _setupFamilyInteractionListeners(doc.id);
           }
+          unawaited(_publishFamilySummarySnapshot());
           notifyListeners();
         });
   }
@@ -592,19 +596,33 @@ class AppState extends ChangeNotifier {
               .toList(growable: false);
           notifyListeners();
         });
+
+    _familySummarySubscription = linkRef
+        .collection('summaries')
+        .doc('current')
+        .snapshots()
+        .listen((snapshot) {
+          _familySummary = snapshot.exists ? snapshot.data() : null;
+          notifyListeners();
+        });
   }
 
   void _clearFamilyInteractionListeners() {
     _familyEncouragementSubscription?.cancel();
     _familyGoalSubscription?.cancel();
     _familyBondEventSubscription?.cancel();
+    _familySummarySubscription?.cancel();
+    _familySummaryPublishTimer?.cancel();
     _familyEncouragementSubscription = null;
     _familyGoalSubscription = null;
     _familyBondEventSubscription = null;
+    _familySummarySubscription = null;
+    _familySummaryPublishTimer = null;
     _listeningFamilyLinkId = null;
     _familyEncouragements = [];
     _familyGoals = [];
     _familyBondEvents = [];
+    _familySummary = null;
   }
 
   void _cancelFirestoreListeners() {
@@ -620,6 +638,8 @@ class AppState extends ChangeNotifier {
     _familyEncouragementSubscription?.cancel();
     _familyGoalSubscription?.cancel();
     _familyBondEventSubscription?.cancel();
+    _familySummarySubscription?.cancel();
+    _familySummaryPublishTimer?.cancel();
     _incomingGroupRequestsSubscription?.cancel();
     _groupOwnerSubscription?.cancel();
 
@@ -635,11 +655,14 @@ class AppState extends ChangeNotifier {
     _familyEncouragementSubscription = null;
     _familyGoalSubscription = null;
     _familyBondEventSubscription = null;
+    _familySummarySubscription = null;
+    _familySummaryPublishTimer = null;
     _listeningFamilyLinkId = null;
     _familyLink = null;
     _familyEncouragements = [];
     _familyGoals = [];
     _familyBondEvents = [];
+    _familySummary = null;
     _incomingGroupRequestsSubscription = null;
     _groupOwnerSubscription = null;
   }
@@ -648,6 +671,8 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _dailyResetTimer?.cancel();
     _dailyResetTimer = null;
+    _familySummaryPublishTimer?.cancel();
+    _familySummaryPublishTimer = null;
     _cancelFirestoreListeners();
     super.dispose();
   }
@@ -1126,9 +1151,7 @@ class AppState extends ChangeNotifier {
   String? get groupId => _groupId;
   String? get groupName => _groupName;
   bool get isGroupOwner => _isGroupOwner;
-  bool get isGuardianLinked =>
-      _familyLink?.status == FamilyLinkStatus.active ||
-      (guardianInvite != null && guardianInvite!['status'] == 'linked');
+  bool get isGuardianLinked => _familyLink?.status == FamilyLinkStatus.active;
   FamilyLinkContract? get familyLink => _familyLink;
   bool get isCurrentFamilyGuardian =>
       _familyLink != null && _currentUser?.id == _familyLink!.guardianId;
@@ -1143,6 +1166,10 @@ class AppState extends ChangeNotifier {
     }
     return null;
   }
+
+  Map<String, dynamic>? get familySummary => _familySummary == null
+      ? null
+      : Map<String, dynamic>.unmodifiable(_familySummary!);
 
   int get familyBondXp => _familyBondEvents.fold<int>(
     0,
@@ -1168,18 +1195,7 @@ class AppState extends ChangeNotifier {
   }
 
   List<Map<String, dynamic>> get guardianEncouragements {
-    if (_familyLink != null) {
-      return List<Map<String, dynamic>>.unmodifiable(_familyEncouragements);
-    }
-    if (_webToolsCollection == null ||
-        _webToolsCollection!['encouragements'] == null) {
-      return [];
-    }
-    return List<Map<String, dynamic>>.from(
-      (_webToolsCollection!['encouragements'] as List).map(
-        (x) => Map<String, dynamic>.from(x as Map),
-      ),
-    );
+    return List<Map<String, dynamic>>.unmodifiable(_familyEncouragements);
   }
 
   List<Map<String, dynamic>> get timeCapsules {
@@ -4334,6 +4350,82 @@ class AppState extends ChangeNotifier {
 
     _saveDailySummaries();
     _syncAvatarExperienceLedgerForSummary(summary);
+    _scheduleFamilySummaryPublish();
+  }
+
+  void _scheduleFamilySummaryPublish() {
+    _familySummaryPublishTimer?.cancel();
+    _familySummaryPublishTimer = Timer(const Duration(milliseconds: 800), () {
+      unawaited(_publishFamilySummarySnapshot());
+    });
+  }
+
+  Future<void> _publishFamilySummarySnapshot({
+    FamilyConsentScopes? consentOverride,
+  }) async {
+    final link = _familyLink;
+    final user = _currentUser;
+    if (link == null || user == null || user.id != link.childId) return;
+    final consent = consentOverride ?? link.consent;
+    final payload = <String, dynamic>{
+      'schemaVersion': 1,
+      'childId': user.id,
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    if (consent.summary) {
+      payload['summary'] = {
+        'disciplineScore': todayWeightedDisciplineScore,
+        'completedTasks': todayActionableTaskCompleted,
+        'totalTasks': todayActionableTaskTotal,
+        'focusMinutes': focusMinutes,
+      };
+    }
+    if (consent.weeklyReport) {
+      final recent = _dailySummaries.length > 7
+          ? _dailySummaries.sublist(_dailySummaries.length - 7)
+          : _dailySummaries;
+      payload['weeklyReport'] = recent
+          .map(
+            (summary) => {
+              'date': summary.date,
+              'disciplineScore': summary.disciplineScore,
+              'completedTasks': summary.completedTasks,
+              'totalTasks': summary.totalTasks,
+              'focusMinutes': summary.focusMinutes,
+            },
+          )
+          .toList(growable: false);
+    }
+    if (consent.taskCategories) {
+      final categories = <String, Map<String, int>>{};
+      for (final task in _tasks) {
+        final category = task['category']?.toString() ?? '其他';
+        final counts = categories.putIfAbsent(
+          category,
+          () => {'completed': 0, 'total': 0},
+        );
+        counts['total'] = counts['total']! + 1;
+        if (task['done'] == true || task['isDone'] == true) {
+          counts['completed'] = counts['completed']! + 1;
+        }
+      }
+      payload['taskCategories'] = categories;
+    }
+    if (consent.healthTrends) {
+      payload['healthTrends'] = {
+        'sleepHours': sleepHours,
+        'steps': steps,
+        'exerciseMinutes': exerciseMinutes,
+      };
+    }
+
+    await FirebaseFirestore.instance
+        .collection('family_links')
+        .doc(link.id)
+        .collection('summaries')
+        .doc('current')
+        .set(payload);
   }
 
   void _syncAvatarExperienceLedgerForSummary(DailySummary summary) {
@@ -6460,24 +6552,6 @@ ${summaryBuf.toString()}
     }
   }
 
-  Future<void> acceptGuardianInvite() async {
-    final user = _currentUser;
-    if (user == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id);
-      await docRef.update({
-        'webToolsState.guardianInviteStatus': {
-          'status': 'linked',
-          'updatedAt': DateTime.now().toIso8601String(),
-        },
-      });
-    } catch (e) {
-      debugPrint('Failed to accept guardian invite: $e');
-    }
-  }
-
   /// 接受家長共同目標後，自動將目標名稱匯入為每日任務
   Future<void> acceptParentGoalAsTask() async {
     final link = _familyLink;
@@ -6502,13 +6576,6 @@ ${summaryBuf.toString()}
       addTask('【家庭共同目標】$goal', '學習', taskType: 'flexible', priority: '高');
       return;
     }
-
-    final invite = guardianInvite;
-    if (invite == null) return;
-    final goal = invite['goal']?.toString() ?? '';
-    if (goal.isEmpty) return;
-    await acceptGuardianInvite();
-    addTask('【家長陪伴目標】$goal', '學習', taskType: 'flexible', priority: '高');
   }
 
   Future<void> declineFamilyGoal(String goalId) async {
@@ -6606,6 +6673,7 @@ ${summaryBuf.toString()}
           'consentScopes': consent.toMap(),
           'updatedAt': DateTime.now().toUtc().toIso8601String(),
         });
+    await _publishFamilySummarySnapshot(consentOverride: consent);
   }
 
   /// 加入團體挑戰後，自動匯入每日挑戰任務
@@ -6625,24 +6693,6 @@ ${summaryBuf.toString()}
         title = '【$group】$type — 第$d天';
       }
       addTask(title, '學習', taskType: 'flexible', priority: '中');
-    }
-  }
-
-  Future<void> declineGuardianInvite() async {
-    final user = _currentUser;
-    if (user == null) return;
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id);
-      await docRef.update({
-        'webToolsState.guardianInviteStatus': {
-          'status': 'declined',
-          'updatedAt': DateTime.now().toIso8601String(),
-        },
-      });
-    } catch (e) {
-      debugPrint('Failed to decline guardian invite: $e');
     }
   }
 
@@ -7053,9 +7103,8 @@ ${historyBuffer.toString()}
       );
 
       // Check if they are already linked with us
-      if (isGuardianLinked &&
-          guardianInvite?['relativeId'] == receiverNudgeId) {
-        throw Exception('雙方已處於綁定狀態');
+      if (isGuardianLinked) {
+        throw Exception('請先解除目前的家庭連結，再建立新的連結');
       }
 
       // Check if there is already a pending request between us (outgoing)

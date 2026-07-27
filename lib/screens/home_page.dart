@@ -1638,10 +1638,21 @@ class _ChildHeroDashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final invite = appState.guardianInvite;
-    final goal = invite?['goal'] ?? '一週睡滿 49 小時';
+    final activeGoal = appState.activeFamilyGoal;
+    final goal = activeGoal?['title']?.toString() ?? '目前沒有共同目標';
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
+    final bondXp = appState.familyBondXp;
+    final bondLevel = appState.familyBondLevel;
+    final levelStart = bondLevel == 1
+        ? 0
+        : bondLevel == 2
+        ? 10
+        : 30;
+    final levelTarget = bondLevel == 1 ? 10 : 30;
+    final bondProgress = bondLevel >= 3
+        ? 1.0
+        : ((bondXp - levelStart) / (levelTarget - levelStart)).clamp(0.0, 1.0);
 
     final latestEncouragement = appState.guardianEncouragements.isNotEmpty
         ? appState.guardianEncouragements.first
@@ -1723,11 +1734,13 @@ class _ChildHeroDashboardCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '共同進度: 71%',
+                    '家庭羈絆 Lv.$bondLevel',
                     style: TextStyle(color: secondaryText, fontSize: 11),
                   ),
                   Text(
-                    '剩下 4 天',
+                    bondLevel >= 3
+                        ? '$bondXp XP · 最高等級'
+                        : '$bondXp / $levelTarget XP',
                     style: TextStyle(
                       color: accentColor,
                       fontSize: 11,
@@ -1740,7 +1753,7 @@ class _ChildHeroDashboardCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
-                  value: 0.71,
+                  value: bondProgress,
                   minHeight: 8,
                   backgroundColor: AppUI.isDark(context)
                       ? const Color(0xFF2A2F3A)

@@ -1,32 +1,34 @@
 ﻿const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-function loadRelationshipCapabilities() {
-  if (window.NudgeRelationshipCapabilities) {
-    return Promise.resolve(window.NudgeRelationshipCapabilities);
+function loadWindowModule(globalKey, source, errorMessage) {
+  if (window[globalKey]) {
+    return Promise.resolve(window[globalKey]);
   }
 
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "assets/relationship_capabilities.js?v=1";
-    script.onload = () => resolve(window.NudgeRelationshipCapabilities);
-    script.onerror = () => reject(new Error("角色能力模組載入失敗"));
+    script.src = source;
+    script.onload = () => resolve(window[globalKey]);
+    script.onerror = () => reject(new Error(errorMessage));
     document.head.appendChild(script);
   });
 }
 
-function loadFamilyLinkContract() {
-  if (window.NudgeFamilyLinkContract) {
-    return Promise.resolve(window.NudgeFamilyLinkContract);
-  }
+function loadRelationshipCapabilities() {
+  return loadWindowModule(
+    "NudgeRelationshipCapabilities",
+    "assets/relationship_capabilities.js?v=1",
+    "角色能力模組載入失敗",
+  );
+}
 
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "assets/family_link_contract.js?v=1";
-    script.onload = () => resolve(window.NudgeFamilyLinkContract);
-    script.onerror = () => reject(new Error("家庭連結契約模組載入失敗"));
-    document.head.appendChild(script);
-  });
+function loadFamilyLinkContract() {
+  return loadWindowModule(
+    "NudgeFamilyLinkContract",
+    "assets/family_link_contract.js?v=1",
+    "家庭連結契約模組載入失敗",
+  );
 }
 
 function isPreviewMode() {
@@ -71,7 +73,7 @@ function resolveWebCapabilities(data = {}) {
     rawRole: data.userRole,
     familyLinked:
       Boolean(activeFamilyLink) ||
-      data.webToolsState?.guardianInviteStatus?.status === "linked",
+      (isPreviewMode() && ["guardian", "child"].includes(data.userRole)),
     hasGroup: Boolean(data.groupId),
     isGroupOwner: Boolean(data.isGroupOwner),
     isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
@@ -90,7 +92,7 @@ function resolveWebRoleGateRedirect(path, data = {}) {
     rawRole: data.userRole,
     familyLinked:
       Boolean(activeFamilyLink) ||
-      data.webToolsState?.guardianInviteStatus?.status === "linked",
+      (isPreviewMode() && ["guardian", "child"].includes(data.userRole)),
     hasGroup: Boolean(data.groupId),
     isGroupOwner: Boolean(data.isGroupOwner),
     isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
@@ -420,7 +422,9 @@ function bindDemoButtons() {
 
 function bootCharts() {
   drawLineChart($("#trendChart"), [62, 68, 71, 73, 76, 81, 84, 88, 86, 91, 94, 96]);
-  drawLineChart($("#sleepChart"), [5.8, 6.1, 5.6, 6.8, 7.0, 6.4, 7.2], "#8d7aff");
+  if (!window.location.pathname.endsWith("guardian-report.html")) {
+    drawLineChart($("#sleepChart"), [5.8, 6.1, 5.6, 6.8, 7.0, 6.4, 7.2], "#8d7aff");
+  }
   drawLineChart($("#groupChart"), [42, 55, 61, 70, 76, 82, 89], "#5d8cff");
   drawDonut($("#sourceDonut"), [34, 22, 18, 16, 10], ["#22c7bb", "#5d8cff", "#8d7aff", "#ffad2f", "#ff62a7"]);
 }
@@ -1978,15 +1982,21 @@ function loadFirebaseSDKs() {
 let db = null;
 let storage = null;
 let activeFamilyLink = null;
+let currentFamilySummary = null;
+let currentWebUserData = null;
+let familyLinkLoaded = false;
 let familyLinkSub = null;
 let familyEncouragementSub = null;
 let familyGoalSub = null;
+let familySummarySub = null;
 
 function stopFamilyInteractionListeners() {
   if (familyEncouragementSub) familyEncouragementSub();
   if (familyGoalSub) familyGoalSub();
+  if (familySummarySub) familySummarySub();
   familyEncouragementSub = null;
   familyGoalSub = null;
+  familySummarySub = null;
 }
 
 function listenToFamilyLink(userId) {
@@ -1994,18 +2004,23 @@ function listenToFamilyLink(userId) {
   if (familyLinkSub) familyLinkSub();
   stopFamilyInteractionListeners();
   activeFamilyLink = null;
+  familyLinkLoaded = false;
   window.activeFamilyLink = null;
 
   familyLinkSub = db.collection("family_links")
     .where("participantIds", "array-contains", userId)
     .onSnapshot(snapshot => {
+      familyLinkLoaded = true;
       const activeDoc = snapshot.docs.find(doc => doc.data().status === "active");
       if (!activeDoc) {
         activeFamilyLink = null;
+        currentFamilySummary = null;
         window.activeFamilyLink = null;
         window.linkedChildUid = null;
         stopFamilyInteractionListeners();
         renderFamilyLinkState();
+        renderFamilyReportState();
+        if (currentWebUserData) updateSidebarProfile(currentWebUserData);
         return;
       }
 
@@ -2015,6 +2030,7 @@ function listenToFamilyLink(userId) {
         activeFamilyLink.guardianId === userId ? activeFamilyLink.childId : null;
       listenToFamilyInteractions(activeDoc.id);
       renderFamilyLinkState();
+      if (currentWebUserData) updateSidebarProfile(currentWebUserData);
     }, error => {
       console.error("Family link listen error:", error);
     });
@@ -2055,9 +2071,26 @@ function listenToFamilyInteractions(linkId) {
       const latest = document.querySelector('[data-family-latest-goal]');
       if (latest) {
         latest.textContent = items.length
-          ? `${items[0].title} · ${items[0].status === "proposed" ? "等待孩子決定" : items[0].status === "accepted" ? "孩子已接受" : "已完成"}`
+          ? `${items[0].title} · ${
+              items[0].status === "proposed"
+                ? "等待孩子決定"
+                : items[0].status === "accepted"
+                  ? "孩子已接受"
+                  : items[0].status === "declined"
+                    ? "孩子已婉拒"
+                    : "已完成"
+            }`
           : "目前沒有共同目標。";
       }
+    });
+
+  familySummarySub = db.collection("family_links")
+    .doc(linkId)
+    .collection("summaries")
+    .doc("current")
+    .onSnapshot(snapshot => {
+      currentFamilySummary = snapshot.exists ? snapshot.data() : null;
+      renderFamilyReportState();
     });
 }
 
@@ -2078,6 +2111,62 @@ function renderFamilyLinkState() {
       consent.healthTrends && "健康趨勢",
     ].filter(Boolean);
     summary.textContent = labels.length ? labels.join("、") : "尚未開放";
+  }
+}
+
+function renderFamilyReportState() {
+  const consent = activeFamilyLink?.consentScopes || {};
+  const shared = currentFamilySummary || {};
+  const summary = consent.summary ? shared.summary : null;
+  const health = consent.healthTrends ? shared.healthTrends : null;
+  const weekly = consent.weeklyReport && Array.isArray(shared.weeklyReport)
+    ? shared.weeklyReport
+    : [];
+  const completionRate = summary?.totalTasks > 0
+    ? Math.round((summary.completedTasks / summary.totalTasks) * 100)
+    : null;
+
+  const setText = (selector, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = value;
+  };
+  setText(
+    "[data-family-report-completion]",
+    completionRate === null ? "未開放" : `${completionRate}%`,
+  );
+  setText(
+    "#childTasksCount",
+    summary ? `${summary.completedTasks} / ${summary.totalTasks}` : "未開放",
+  );
+  setText(
+    "#childFocusVal",
+    summary ? `${summary.focusMinutes} 分` : "未開放",
+  );
+  setText(
+    "#childSleepVal",
+    health ? `${Number(health.sleepHours || 0).toFixed(1)} 小時` : "未開放",
+  );
+  setText(
+    "#childStepsVal",
+    health ? `${health.steps || 0}` : "未開放",
+  );
+
+  const insight = document.querySelector("[data-family-report-insight]");
+  if (insight) {
+    insight.textContent = !currentFamilySummary
+      ? "等待孩子 App 同步已同意的摘要資料。"
+      : health
+        ? "健康趨勢已由孩子開放。請用關心與討論回應，不以數字責備。"
+        : "孩子尚未開放健康趨勢；可以直接關心感受，不追問原始數據。";
+  }
+
+  const chart = document.querySelector("#sleepChart");
+  if (chart && weekly.length > 0) {
+    drawLineChart(
+      chart,
+      weekly.map(item => Number(item.disciplineScore || 0)),
+      "#8d7aff",
+    );
   }
 }
 
@@ -2431,6 +2520,7 @@ function checkPagePermissions(data) {
   const isGuardianPage = path.includes("guardian") || document.body.getAttribute("data-page") === "guardian";
   const isGroupsPage = path.includes("groups") || document.body.getAttribute("data-page") === "groups";
   const isLinkPage = path.includes("guardian-link.html") || path.includes("groups-link.html");
+  if (isGuardianPage && !isPreviewMode() && !familyLinkLoaded) return;
   const roleGateRedirect = resolveWebRoleGateRedirect(path, data);
 
   if (roleGateRedirect) {
@@ -2467,7 +2557,9 @@ function checkPagePermissions(data) {
 
   // For guardian and groups pages, always allow access.
   if (isGuardianPage) {
-    const isLinked = data.webToolsState?.guardianInviteStatus?.status === 'linked';
+    const isLinked =
+      Boolean(activeFamilyLink) ||
+      (isPreviewMode() && ["guardian", "child"].includes(data.userRole));
     const isGuardianLinkPage = window.location.pathname.includes("guardian-link.html");
 
     // Add subnav link dynamically if not present
@@ -3202,7 +3294,6 @@ function sendWebGuardianRequest(targetNudgeId) {
 
       try {
         window.NudgeFamilyLinkContract.buildFamilyLinkPayload({
-          linkId: "validation",
           senderId: activeUserId,
           senderRole: myRole,
           receiverId,
@@ -3213,8 +3304,7 @@ function sendWebGuardianRequest(targetNudgeId) {
         return;
       }
 
-      const isLinked = myData.webToolsState?.guardianInviteStatus?.status === 'linked';
-      if (isLinked && myData.webToolsState?.guardianInvite?.relativeId === receiverNudgeId) {
+      if (activeFamilyLink) {
         toast("雙方已處於綁定狀態");
         return;
       }
@@ -3279,7 +3369,6 @@ function approveWebGuardianRequest(requestId) {
     }
     const now = new Date().toISOString();
     const link = window.NudgeFamilyLinkContract.buildFamilyLinkPayload({
-      linkId: requestId,
       senderId: request.senderId,
       senderRole: request.senderRole,
       receiverId: request.receiverId,
@@ -4441,6 +4530,7 @@ function listenToUser(userId) {
       return;
     }
     const data = docSnap.data();
+    currentWebUserData = data;
 
     migrateLegacyWebGroup(userId, data).catch(error => {
       console.warn("Legacy group migration skipped:", error);

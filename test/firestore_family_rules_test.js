@@ -146,7 +146,7 @@ async function run() {
     participantIds: [guardian.localId, child.localId],
     status: "active",
     consentScopes: {
-      summary: true,
+      summary: false,
       weeklyReport: false,
       taskCategories: false,
       healthTrends: false,
@@ -171,6 +171,27 @@ async function run() {
     stranger.idToken,
   );
   assert.equal(response.status, 403, "A stranger must not read a family link");
+
+  response = await createDoc(
+    `family_links/${requestId}/summaries/current`,
+    {
+      schemaVersion: 1,
+      childId: child.localId,
+      summary: {
+        disciplineScore: 82,
+        completedTasks: 4,
+        totalTasks: 5,
+        focusMinutes: 45,
+      },
+      updatedAt: now,
+    },
+    child.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "No summary data is shared before the child explicitly opts in",
+  );
 
   response = await commit(
     [
@@ -203,6 +224,44 @@ async function run() {
     child.idToken,
   );
   assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    `family_links/${requestId}/summaries/current`,
+    {
+      schemaVersion: 1,
+      childId: child.localId,
+      summary: {
+        disciplineScore: 82,
+        completedTasks: 4,
+        totalTasks: 5,
+        focusMinutes: 45,
+      },
+      weeklyReport: [],
+      updatedAt: now,
+    },
+    child.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(`family_links/${requestId}/summaries/current`, {
+        summary: {
+          disciplineScore: 100,
+          completedTasks: 99,
+          totalTasks: 99,
+          focusMinutes: 999,
+        },
+        updatedAt: now,
+      }),
+    ],
+    guardian.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A guardian must not forge the child's shared summary",
+  );
 
   const cardId = "card-1";
   response = await createDoc(

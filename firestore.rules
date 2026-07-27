@@ -302,7 +302,7 @@ service cloud.firestore {
           request.resource.data.childId
         ])
         && validConsentScopes(request.resource.data.consentScopes)
-        && request.resource.data.consentScopes.summary == true
+        && request.resource.data.consentScopes.summary == false
         && request.resource.data.consentScopes.weeklyReport == false
         && request.resource.data.consentScopes.taskCategories == false
         && request.resource.data.consentScopes.healthTrends == false
@@ -405,6 +405,52 @@ service cloud.firestore {
                 .hasOnly(['status', 'completedAt', 'updatedAt'])
             )
           );
+        allow delete: if false;
+      }
+
+      match /summaries/{summaryId} {
+        function familyLink() {
+          return get(
+            /databases/$(database)/documents/family_links/$(linkId)
+          ).data;
+        }
+
+        function isFamilyParticipant() {
+          return isAuth()
+            && familyLink().participantIds.hasAny([request.auth.uid]);
+        }
+
+        function obeysConsentScopes() {
+          return (
+              familyLink().consentScopes.summary == true
+              || !request.resource.data.keys().hasAny(['summary'])
+            )
+            && (
+              familyLink().consentScopes.weeklyReport == true
+              || !request.resource.data.keys().hasAny(['weeklyReport'])
+            )
+            && (
+              familyLink().consentScopes.taskCategories == true
+              || !request.resource.data.keys().hasAny(['taskCategories'])
+            )
+            && (
+              familyLink().consentScopes.healthTrends == true
+              || !request.resource.data.keys().hasAny(['healthTrends'])
+            );
+        }
+
+        allow read: if isFamilyParticipant();
+        allow create, update: if summaryId == 'current'
+          && isFamilyParticipant()
+          && familyLink().status == 'active'
+          && request.auth.uid == familyLink().childId
+          && request.resource.data.childId == familyLink().childId
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'childId', 'summary', 'weeklyReport',
+            'taskCategories', 'healthTrends', 'updatedAt'
+          ])
+          && obeysConsentScopes();
         allow delete: if false;
       }
 
