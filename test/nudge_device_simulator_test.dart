@@ -14,9 +14,21 @@ class _LoseFirstAcknowledgement implements ActivityIngestion {
     final result = delegate.recordActivity(evidence);
     if (_shouldLoseAcknowledgement) {
       _shouldLoseAcknowledgement = false;
-      throw StateError('Simulated acknowledgement loss.');
+      throw const DeviceTransportException('Simulated acknowledgement loss.');
     }
     return result;
+  }
+}
+
+class _MissingSettlementReceipt implements ActivityIngestion {
+  @override
+  ActivityRecordResult recordActivity(ActivityEvidence evidence) {
+    return ActivityRecordResult(
+      status: ActivityRecordStatus.accepted,
+      receipt: null,
+      contributions: const [],
+      wasDuplicate: false,
+    );
   }
 }
 
@@ -164,7 +176,7 @@ void main() {
 
     expect(device.pendingEventCount, 1);
     expect(device.confirmedResults, isEmpty);
-    expect(device.lastSyncError, isA<StateError>());
+    expect(device.lastSyncError, isA<DeviceTransportException>());
     expect(ingestion.issuedPersonalRewardCount, 1);
 
     device.flush();
@@ -174,5 +186,70 @@ void main() {
     expect(device.confirmedResults.single.wasDuplicate, isTrue);
     expect(device.lastSyncError, isNull);
     expect(ingestion.issuedPersonalRewardCount, 1);
+  });
+
+  test('permanent invalid events do not block later queued events', () {
+    final clock = DateTime.utc(2026, 7, 27, 17);
+    final ingestion = InMemoryActivityIngestion(
+      clock: () => clock,
+      deviceAssignments: const [
+        DeviceAssignmentGrant(deviceId: 'desk-1', userId: 'alice'),
+      ],
+    );
+    final device = NudgeDeviceSimulator(
+      deviceId: 'desk-1',
+      assignedUserId: 'alice',
+      ingestion: ingestion,
+      clock: () => clock,
+    );
+
+    device.completeActivity(
+      sessionId: 'invalid-session',
+      roomIds: const [],
+      activityType: ActivityType.focus,
+      metricValue: -1,
+      metricUnit: 'minutes',
+    );
+    device.startActivity(
+      sessionId: 'valid-session',
+      roomIds: const [],
+      activityType: ActivityType.focus,
+      metricUnit: 'minutes',
+    );
+
+    expect(device.pendingEventCount, 0);
+    expect(device.failedEvents, hasLength(1));
+    expect(
+      device.failedEvents.single.error,
+      isA<ActivityValidationException>(),
+    );
+    expect(device.confirmedResults, hasLength(1));
+    expect(
+      device.confirmedResults.single.status,
+      ActivityRecordStatus.accepted,
+    );
+  });
+
+  test('terminal events are not confirmed without a settlement receipt', () {
+    final clock = DateTime.utc(2026, 7, 27, 18);
+    final device = NudgeDeviceSimulator(
+      deviceId: 'desk-protocol',
+      assignedUserId: 'alice',
+      ingestion: _MissingSettlementReceipt(),
+      clock: () => clock,
+    );
+
+    device.completeActivity(
+      sessionId: 'protocol-session',
+      roomIds: const [],
+      activityType: ActivityType.focus,
+      metricValue: 25,
+      metricUnit: 'minutes',
+    );
+
+    expect(device.pendingEventCount, 0);
+    expect(device.confirmedResults, isEmpty);
+    expect(device.failedEvents, hasLength(1));
+    expect(device.failedEvents.single.error, isA<DeviceProtocolException>());
   });
 }

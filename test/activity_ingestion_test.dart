@@ -184,6 +184,150 @@ void main() {
     expect(deviceResult.contributions, hasLength(1));
   });
 
+  test(
+    'different app and device session ids merge into one active session',
+    () {
+      final startedAt = DateTime.utc(2026, 7, 27, 12, 30);
+      final completedAt = startedAt.add(const Duration(minutes: 25));
+      final ingestion = InMemoryActivityIngestion(
+        clock: () => completedAt,
+        roomMemberships: const [
+          RoomMembershipGrant(roomId: 'room-app', userId: 'alice'),
+          RoomMembershipGrant(roomId: 'room-device', userId: 'alice'),
+        ],
+        deviceAssignments: const [
+          DeviceAssignmentGrant(deviceId: 'desk-1', userId: 'alice'),
+        ],
+      );
+      ActivityEvidence evidence({
+        required String eventId,
+        required String sessionId,
+        required ActivitySource source,
+        required ActivityEventType eventType,
+        required List<String> roomIds,
+        required DateTime occurredAt,
+      }) => ActivityEvidence(
+        eventId: eventId,
+        sourceRecordId: 'record-$eventId',
+        sessionId: sessionId,
+        submittedByUserId: source == ActivitySource.device
+            ? 'device:desk-1'
+            : 'alice',
+        actorUserId: 'alice',
+        roomIds: roomIds,
+        activityType: ActivityType.focus,
+        source: source,
+        eventType: eventType,
+        metricValue: eventType == ActivityEventType.completed ? 25 : 0,
+        metricUnit: 'minutes',
+        occurredAt: occurredAt,
+        deviceId: source == ActivitySource.device ? 'desk-1' : null,
+      );
+
+      ingestion.recordActivity(
+        evidence(
+          eventId: 'app-start',
+          sessionId: 'app-local-session',
+          source: ActivitySource.app,
+          eventType: ActivityEventType.started,
+          roomIds: const ['room-app'],
+          occurredAt: startedAt,
+        ),
+      );
+      ingestion.recordActivity(
+        evidence(
+          eventId: 'device-start',
+          sessionId: 'device-local-session',
+          source: ActivitySource.device,
+          eventType: ActivityEventType.started,
+          roomIds: const ['room-device'],
+          occurredAt: startedAt,
+        ),
+      );
+      final appSettlement = ingestion.recordActivity(
+        evidence(
+          eventId: 'app-complete',
+          sessionId: 'app-local-session',
+          source: ActivitySource.app,
+          eventType: ActivityEventType.completed,
+          roomIds: const ['room-app'],
+          occurredAt: completedAt,
+        ),
+      );
+      final deviceSettlement = ingestion.recordActivity(
+        evidence(
+          eventId: 'device-complete',
+          sessionId: 'device-local-session',
+          source: ActivitySource.device,
+          eventType: ActivityEventType.completed,
+          roomIds: const ['room-device'],
+          occurredAt: completedAt,
+        ),
+      );
+
+      expect(deviceSettlement.wasDuplicate, isTrue);
+      expect(
+        deviceSettlement.receipt!.receiptId,
+        appSettlement.receipt!.receiptId,
+      );
+      expect(
+        deviceSettlement.contributions.map(
+          (contribution) => contribution.roomId,
+        ),
+        unorderedEquals(['room-app', 'room-device']),
+      );
+      expect(ingestion.issuedReceiptCount, 1);
+      expect(ingestion.issuedPersonalRewardCount, 1);
+      expect(ingestion.activitySessions, hasLength(1));
+      expect(
+        ingestion.activitySessions.single.status,
+        ActivitySessionStatus.completed,
+      );
+      expect(
+        ingestion.activitySessions.single.sourceSessionIds,
+        unorderedEquals(['app-local-session', 'device-local-session']),
+      );
+    },
+  );
+
+  test('a completed activity session cannot be paused', () {
+    final startedAt = DateTime.utc(2026, 7, 27, 12, 30);
+    final completedAt = startedAt.add(const Duration(minutes: 25));
+    final ingestion = InMemoryActivityIngestion(clock: () => completedAt);
+    ActivityEvidence evidence(
+      String eventId,
+      ActivityEventType eventType,
+      DateTime occurredAt,
+    ) => ActivityEvidence(
+      eventId: eventId,
+      sourceRecordId: 'record-$eventId',
+      sessionId: 'closed-session',
+      submittedByUserId: 'alice',
+      actorUserId: 'alice',
+      roomIds: const [],
+      activityType: ActivityType.focus,
+      source: ActivitySource.app,
+      eventType: eventType,
+      metricValue: eventType == ActivityEventType.started ? 0 : 25,
+      metricUnit: 'minutes',
+      occurredAt: occurredAt,
+    );
+
+    ingestion.recordActivity(
+      evidence('start', ActivityEventType.started, startedAt),
+    );
+    ingestion.recordActivity(
+      evidence('complete', ActivityEventType.completed, completedAt),
+    );
+
+    expect(
+      () => ingestion.recordActivity(
+        evidence('late-pause', ActivityEventType.paused, completedAt),
+      ),
+      throwsA(isA<ActivityValidationException>()),
+    );
+  });
+
   test('reusing an event id with a different actor is rejected', () {
     final clock = DateTime.utc(2026, 7, 27, 12, 45);
     final ingestion = InMemoryActivityIngestion(clock: () => clock);
@@ -272,6 +416,66 @@ void main() {
     expect(
       () => ingestion.recordActivity(evidence),
       throwsA(isA<ActivityAuthorizationException>()),
+    );
+  });
+
+  test('device assignment is authorized at the activity occurrence time', () {
+    final transferredAt = DateTime.utc(2026, 7, 27, 14);
+    final ingestion = InMemoryActivityIngestion(
+      deviceAssignments: [
+        DeviceAssignmentGrant(
+          deviceId: 'desk-1',
+          userId: 'alice',
+          validUntil: transferredAt,
+        ),
+        DeviceAssignmentGrant(
+          deviceId: 'desk-1',
+          userId: 'bob',
+          validFrom: transferredAt,
+        ),
+      ],
+    );
+    ActivityEvidence evidence(String actor, DateTime occurredAt) =>
+        ActivityEvidence(
+          eventId: '$actor-${occurredAt.microsecondsSinceEpoch}',
+          sourceRecordId: '$actor-${occurredAt.microsecondsSinceEpoch}',
+          sessionId: '$actor-${occurredAt.microsecondsSinceEpoch}',
+          submittedByUserId: 'device:desk-1',
+          actorUserId: actor,
+          roomIds: const [],
+          activityType: ActivityType.focus,
+          source: ActivitySource.device,
+          eventType: ActivityEventType.completed,
+          metricValue: 25,
+          metricUnit: 'minutes',
+          occurredAt: occurredAt,
+          deviceId: 'desk-1',
+        );
+
+    expect(
+      ingestion
+          .recordActivity(
+            evidence(
+              'alice',
+              transferredAt.subtract(const Duration(minutes: 1)),
+            ),
+          )
+          .isSettled,
+      isTrue,
+    );
+    expect(
+      () => ingestion.recordActivity(
+        evidence('alice', transferredAt.add(const Duration(minutes: 1))),
+      ),
+      throwsA(isA<ActivityAuthorizationException>()),
+    );
+    expect(
+      ingestion
+          .recordActivity(
+            evidence('bob', transferredAt.add(const Duration(minutes: 1))),
+          )
+          .isSettled,
+      isTrue,
     );
   });
 

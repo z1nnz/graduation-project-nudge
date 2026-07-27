@@ -24,16 +24,56 @@ class ActivityValidationException implements Exception {
   String toString() => 'ActivityValidationException: $message';
 }
 
+class _ActivitySessionState {
+  final String canonicalSessionId;
+  final String actorUserId;
+  final ActivityType activityType;
+  final DateTime startedAt;
+  final Set<String> sourceSessionIds;
+  ActivitySessionStatus status;
+  DateTime? endedAt;
+  double metricValue;
+  String metricUnit;
+
+  _ActivitySessionState({
+    required this.canonicalSessionId,
+    required this.actorUserId,
+    required this.activityType,
+    required this.startedAt,
+    required this.sourceSessionIds,
+    required this.status,
+    required this.metricValue,
+    required this.metricUnit,
+  });
+
+  ActivitySessionSnapshot snapshot() => ActivitySessionSnapshot(
+    activitySessionId: canonicalSessionId,
+    actorUserId: actorUserId,
+    activityType: activityType,
+    status: status,
+    startedAt: startedAt,
+    endedAt: endedAt,
+    metricValue: metricValue,
+    metricUnit: metricUnit,
+    sourceSessionIds: sourceSessionIds.toList(growable: false),
+  );
+}
+
 class InMemoryActivityIngestion implements ActivityIngestion {
   final DateTime Function() _clock;
   final Map<(String roomId, String userId), RoomMembershipGrant>
   _roomMemberships;
-  final Set<(String deviceId, String userId)> _deviceAssignments;
+  final List<DeviceAssignmentGrant> _deviceAssignments;
   final Map<String, ActivityRecordResult> _resultsByEventId = {};
   final Map<String, String> _signaturesByEventId = {};
   final Map<String, ActivityRecordResult> _resultsBySourceRecord = {};
   final Map<String, String> _signaturesBySourceRecord = {};
   final Map<String, ActivityRecordResult> _settlementsByFingerprint = {};
+  final Map<(String, ActivityType), _ActivitySessionState> _openSessions = {};
+  final Map<(String, ActivityType, String), _ActivitySessionState>
+  _sessionsByAlias = {};
+  final Map<(String, ActivityType, String), _ActivitySessionState>
+  _sessionsByCanonicalId = {};
   int _issuedPersonalRewardCount = 0;
   int _issuedReceiptCount = 0;
 
@@ -46,13 +86,16 @@ class InMemoryActivityIngestion implements ActivityIngestion {
          grants[(grant.roomId, grant.userId)] = grant;
          return grants;
        }),
-       _deviceAssignments = deviceAssignments
-           .map((grant) => (grant.deviceId, grant.userId))
-           .toSet();
+       _deviceAssignments = List.unmodifiable(deviceAssignments);
 
   int get issuedPersonalRewardCount => _issuedPersonalRewardCount;
 
   int get issuedReceiptCount => _issuedReceiptCount;
+
+  List<ActivitySessionSnapshot> get activitySessions => _sessionsByCanonicalId
+      .values
+      .map((session) => session.snapshot())
+      .toList(growable: false);
 
   @override
   ActivityRecordResult recordActivity(ActivityEvidence evidence) {
@@ -89,14 +132,21 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     }
 
     final isSettlement = _isSettlement(evidence.eventType);
-    final activityFingerprint = _activityFingerprint(evidence);
+    final canonicalSessionId = _resolveCanonicalSession(evidence);
+    final activityFingerprint = _activityFingerprint(
+      evidence,
+      canonicalSessionId,
+    );
     final settledResult = isSettlement
         ? _settlementsByFingerprint[activityFingerprint]
         : null;
     if (settledResult != null) {
-      _rememberEvent(evidence, evidenceSignature, settledResult);
-      _rememberSourceRecord(sourceRecordKey, evidenceSignature, settledResult);
-      return _duplicate(settledResult);
+      _validateSettlementCompatibility(evidence, settledResult);
+      final mergedResult = _mergeEligibleContributions(evidence, settledResult);
+      _replaceCachedResult(settledResult, mergedResult);
+      _rememberEvent(evidence, evidenceSignature, mergedResult);
+      _rememberSourceRecord(sourceRecordKey, evidenceSignature, mergedResult);
+      return _duplicate(mergedResult);
     }
 
     final verifiedAt = _clock();
@@ -108,7 +158,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         receiptId: 'receipt_${evidence.eventId}',
         eventId: evidence.eventId,
         sourceRecordId: evidence.sourceRecordId,
-        sessionId: evidence.sessionId,
+        sessionId: canonicalSessionId,
         actorUserId: evidence.actorUserId,
         activityType: evidence.activityType,
         activityFingerprint: activityFingerprint,
@@ -140,6 +190,9 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         )
         .toList(growable: false);
     final result = ActivityRecordResult(
+      status: isSettlement
+          ? ActivityRecordStatus.settled
+          : ActivityRecordStatus.accepted,
       receipt: receipt,
       contributions: contributions,
       wasDuplicate: false,
@@ -178,7 +231,12 @@ class InMemoryActivityIngestion implements ActivityIngestion {
       final deviceId = evidence.deviceId;
       if (deviceId == null ||
           evidence.submittedByUserId != 'device:$deviceId' ||
-          !_deviceAssignments.contains((deviceId, evidence.actorUserId))) {
+          !_deviceAssignments.any(
+            (grant) =>
+                grant.deviceId == deviceId &&
+                grant.userId == evidence.actorUserId &&
+                grant.allowsActivityAt(evidence.occurredAt),
+          )) {
         throw const ActivityAuthorizationException(
           'The device is not assigned to this actor.',
         );
@@ -210,6 +268,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
 
   ActivityRecordResult _duplicate(ActivityRecordResult existing) {
     return ActivityRecordResult(
+      status: existing.status,
       receipt: existing.receipt,
       contributions: existing.contributions,
       wasDuplicate: true,
@@ -221,10 +280,193 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         eventType == ActivityEventType.metricSynced;
   }
 
-  String _activityFingerprint(ActivityEvidence evidence) {
+  String _resolveCanonicalSession(ActivityEvidence evidence) {
+    if (evidence.eventType == ActivityEventType.metricSynced) {
+      final canonicalKey = (
+        evidence.actorUserId,
+        evidence.activityType,
+        evidence.sessionId,
+      );
+      _sessionsByCanonicalId.putIfAbsent(
+        canonicalKey,
+        () => _ActivitySessionState(
+          canonicalSessionId: evidence.sessionId,
+          actorUserId: evidence.actorUserId,
+          activityType: evidence.activityType,
+          startedAt: evidence.occurredAt,
+          sourceSessionIds: {evidence.sessionId},
+          status: ActivitySessionStatus.completed,
+          metricValue: evidence.metricValue,
+          metricUnit: evidence.metricUnit,
+        )..endedAt = evidence.occurredAt,
+      );
+      return evidence.sessionId;
+    }
+
+    final openKey = (evidence.actorUserId, evidence.activityType);
+    final aliasKey = (
+      evidence.actorUserId,
+      evidence.activityType,
+      evidence.sessionId,
+    );
+    var session = _sessionsByAlias[aliasKey];
+    if (session == null) {
+      session = _openSessions[openKey];
+      if (session == null) {
+        if (evidence.eventType == ActivityEventType.paused ||
+            evidence.eventType == ActivityEventType.resumed) {
+          throw const ActivityValidationException(
+            'The activity session is not active.',
+          );
+        }
+        session = _ActivitySessionState(
+          canonicalSessionId: evidence.sessionId,
+          actorUserId: evidence.actorUserId,
+          activityType: evidence.activityType,
+          startedAt: evidence.occurredAt,
+          sourceSessionIds: {evidence.sessionId},
+          status: ActivitySessionStatus.active,
+          metricValue: 0,
+          metricUnit: evidence.metricUnit,
+        );
+        _openSessions[openKey] = session;
+        _sessionsByCanonicalId[(
+              evidence.actorUserId,
+              evidence.activityType,
+              session.canonicalSessionId,
+            )] =
+            session;
+      } else {
+        session.sourceSessionIds.add(evidence.sessionId);
+      }
+      _sessionsByAlias[aliasKey] = session;
+    }
+
+    if (session.status == ActivitySessionStatus.completed) {
+      if (evidence.eventType != ActivityEventType.completed) {
+        throw const ActivityValidationException(
+          'A completed activity session cannot change state.',
+        );
+      }
+      final endedAt = session.endedAt;
+      if (endedAt != null &&
+          evidence.occurredAt.difference(endedAt).abs() >
+              const Duration(minutes: 5)) {
+        throw const ActivityValidationException(
+          'The completed session ID was reused for another activity.',
+        );
+      }
+      return session.canonicalSessionId;
+    }
+
+    switch (evidence.eventType) {
+      case ActivityEventType.started:
+        break;
+      case ActivityEventType.paused:
+        session.status = ActivitySessionStatus.paused;
+        session.metricValue = evidence.metricValue;
+        session.metricUnit = evidence.metricUnit;
+        break;
+      case ActivityEventType.resumed:
+        session.status = ActivitySessionStatus.active;
+        session.metricValue = evidence.metricValue;
+        session.metricUnit = evidence.metricUnit;
+        break;
+      case ActivityEventType.completed:
+        session.status = ActivitySessionStatus.completed;
+        session.endedAt = evidence.occurredAt;
+        session.metricValue = evidence.metricValue;
+        session.metricUnit = evidence.metricUnit;
+        if (identical(_openSessions[openKey], session)) {
+          _openSessions.remove(openKey);
+        }
+        break;
+      case ActivityEventType.metricSynced:
+        break;
+    }
+    return session.canonicalSessionId;
+  }
+
+  void _validateSettlementCompatibility(
+    ActivityEvidence evidence,
+    ActivityRecordResult settledResult,
+  ) {
+    final receipt = settledResult.receipt;
+    if (receipt == null ||
+        receipt.metricUnit != evidence.metricUnit ||
+        receipt.acceptedMetric != evidence.metricValue) {
+      throw const ActivityValidationException(
+        'The activity settlement conflicts with its existing receipt.',
+      );
+    }
+  }
+
+  ActivityRecordResult _mergeEligibleContributions(
+    ActivityEvidence evidence,
+    ActivityRecordResult settledResult,
+  ) {
+    final receipt = settledResult.receipt!;
+    final contributionsByRoom = {
+      for (final contribution in settledResult.contributions)
+        contribution.roomId: contribution,
+    };
+    final createdAt = _clock();
+    for (final roomId in evidence.roomIds.toSet()) {
+      final grant = _roomMemberships[(roomId, evidence.actorUserId)];
+      if (contributionsByRoom.containsKey(roomId) ||
+          !(grant?.allowsContributionAt(evidence.occurredAt) ?? false)) {
+        continue;
+      }
+      contributionsByRoom[roomId] = RoomContribution(
+        contributionId: '${receipt.receiptId}_$roomId',
+        receiptId: receipt.receiptId,
+        roomId: roomId,
+        actorUserId: evidence.actorUserId,
+        metricValue: receipt.acceptedMetric,
+        metricUnit: receipt.metricUnit,
+        createdAt: createdAt,
+      );
+    }
+    return ActivityRecordResult(
+      status: ActivityRecordStatus.settled,
+      receipt: receipt,
+      contributions: contributionsByRoom.values.toList(growable: false),
+      wasDuplicate: false,
+    );
+  }
+
+  void _replaceCachedResult(
+    ActivityRecordResult oldResult,
+    ActivityRecordResult newResult,
+  ) {
+    for (final entry in _resultsByEventId.entries.toList(growable: false)) {
+      if (identical(entry.value, oldResult)) {
+        _resultsByEventId[entry.key] = newResult;
+      }
+    }
+    for (final entry in _resultsBySourceRecord.entries.toList(
+      growable: false,
+    )) {
+      if (identical(entry.value, oldResult)) {
+        _resultsBySourceRecord[entry.key] = newResult;
+      }
+    }
+    for (final entry in _settlementsByFingerprint.entries.toList(
+      growable: false,
+    )) {
+      if (identical(entry.value, oldResult)) {
+        _settlementsByFingerprint[entry.key] = newResult;
+      }
+    }
+  }
+
+  String _activityFingerprint(
+    ActivityEvidence evidence,
+    String canonicalSessionId,
+  ) {
     return jsonEncode([
       evidence.actorUserId,
-      evidence.sessionId,
+      canonicalSessionId,
       evidence.activityType.name,
     ]);
   }
@@ -243,6 +485,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
       'metricValue': evidence.metricValue,
       'metricUnit': evidence.metricUnit,
       'occurredAt': evidence.occurredAt.toUtc().toIso8601String(),
+      'receivedAt': evidence.receivedAt?.toUtc().toIso8601String(),
       'deviceId': evidence.deviceId,
     });
   }

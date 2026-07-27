@@ -4,6 +4,10 @@ enum ActivitySource { app, health, device, web }
 
 enum ActivityEventType { started, paused, resumed, completed, metricSynced }
 
+enum ActivityRecordStatus { accepted, settled }
+
+enum ActivitySessionStatus { active, paused, completed }
+
 class RoomMembershipGrant {
   final String roomId;
   final String userId;
@@ -32,8 +36,24 @@ class RoomMembershipGrant {
 class DeviceAssignmentGrant {
   final String deviceId;
   final String userId;
+  final bool isActive;
+  final DateTime? validFrom;
+  final DateTime? validUntil;
 
-  const DeviceAssignmentGrant({required this.deviceId, required this.userId});
+  const DeviceAssignmentGrant({
+    required this.deviceId,
+    required this.userId,
+    this.isActive = true,
+    this.validFrom,
+    this.validUntil,
+  });
+
+  bool allowsActivityAt(DateTime occurredAt) {
+    if (!isActive) return false;
+    if (validFrom != null && occurredAt.isBefore(validFrom!)) return false;
+    if (validUntil != null && !occurredAt.isBefore(validUntil!)) return false;
+    return true;
+  }
 }
 
 class ActivityEvidence {
@@ -49,6 +69,7 @@ class ActivityEvidence {
   final double metricValue;
   final String metricUnit;
   final DateTime occurredAt;
+  final DateTime? receivedAt;
   final String? deviceId;
 
   ActivityEvidence({
@@ -64,8 +85,33 @@ class ActivityEvidence {
     required this.metricValue,
     required this.metricUnit,
     required this.occurredAt,
+    this.receivedAt,
     this.deviceId,
   }) : roomIds = List.unmodifiable(roomIds);
+}
+
+class ActivitySessionSnapshot {
+  final String activitySessionId;
+  final String actorUserId;
+  final ActivityType activityType;
+  final ActivitySessionStatus status;
+  final DateTime startedAt;
+  final DateTime? endedAt;
+  final double metricValue;
+  final String metricUnit;
+  final List<String> sourceSessionIds;
+
+  ActivitySessionSnapshot({
+    required this.activitySessionId,
+    required this.actorUserId,
+    required this.activityType,
+    required this.status,
+    required this.startedAt,
+    required this.endedAt,
+    required this.metricValue,
+    required this.metricUnit,
+    required List<String> sourceSessionIds,
+  }) : sourceSessionIds = List.unmodifiable(sourceSessionIds);
 }
 
 class ActivityReceipt {
@@ -81,6 +127,7 @@ class ActivityReceipt {
   final bool personalRewardIssued;
   final bool characterExperienceIssued;
   final DateTime verifiedAt;
+  final String? correctionOfReceiptId;
 
   const ActivityReceipt({
     required this.receiptId,
@@ -95,6 +142,7 @@ class ActivityReceipt {
     required this.personalRewardIssued,
     required this.characterExperienceIssued,
     required this.verifiedAt,
+    this.correctionOfReceiptId,
   });
 }
 
@@ -119,11 +167,13 @@ class RoomContribution {
 }
 
 class ActivityRecordResult {
+  final ActivityRecordStatus status;
   final ActivityReceipt? receipt;
   final List<RoomContribution> contributions;
   final bool wasDuplicate;
 
   ActivityRecordResult({
+    required this.status,
     required this.receipt,
     required List<RoomContribution> contributions,
     required this.wasDuplicate,
