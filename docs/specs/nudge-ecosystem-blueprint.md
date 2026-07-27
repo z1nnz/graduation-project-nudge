@@ -223,6 +223,7 @@ Room Membership 角色只影響房間設定與管理，不影響活動控制權�
 一位成員的一次活動：
 
 - `activitySessionId`
+- `activityCorrelationId`：Cloud 發行的跨 App／裝置／健康來源關聯 Token
 - `actorUserId`
 - `roomId`
 - `activityType`
@@ -563,11 +564,14 @@ character_bonds/{bondId}
 - `activityType`
 - `occurredAt`
 - `receivedAt`
+- `activityCorrelationId`（跨來源共同活動時必填）
 - `metric`
 - `deviceId`（如適用）
 
-Cloud 以 `eventId` 保證冪等，並用活動時間、來源紀錄與活動指紋偵測
-HealthKit、App 與裝置之間的重疊紀錄。
+Cloud 以 `eventId` 保證冪等。已共同啟動的 App 與裝置必須攜帶同一個
+`activityCorrelationId`；健康來源則由 Adapter 將穩定的 provider record
+正規化為 correlation ID。Cloud 不得只因 Actor 與活動類型相同就猜測為同一
+活動，以免把真正並行的活動誤合併。
 
 ### 13.2 同一活動加入多個房間
 
@@ -623,8 +627,9 @@ HealthKit 更正或刪除紀錄時：
 
 ### App 與裝置同時開始
 
-若 Actor、活動類型與房間相同，Cloud 應回傳既有 Active Session，而不是
-建立兩筆。另一端切換成同步控制該 Session。
+App 先取得 Cloud `activityCorrelationId` 並交給已指派裝置。兩端攜帶同一
+Token 時，Cloud 回傳同一個 Active Session；沒有 Token 的不同 local
+session 不自動合併，避免誤把兩個合法並行活動算成同一筆。
 
 ### 裝置轉交他人
 

@@ -70,6 +70,7 @@ class NudgeDeviceSimulator {
 
   void startActivity({
     required String sessionId,
+    String? activityCorrelationId,
     required List<String> roomIds,
     required ActivityType activityType,
     required String metricUnit,
@@ -77,6 +78,7 @@ class NudgeDeviceSimulator {
     _submitOrQueue(
       _buildEvidence(
         sessionId: sessionId,
+        activityCorrelationId: activityCorrelationId,
         roomIds: roomIds,
         activityType: activityType,
         eventType: ActivityEventType.started,
@@ -88,6 +90,7 @@ class NudgeDeviceSimulator {
 
   void completeActivity({
     required String sessionId,
+    String? activityCorrelationId,
     required List<String> roomIds,
     required ActivityType activityType,
     required double metricValue,
@@ -96,6 +99,7 @@ class NudgeDeviceSimulator {
     _submitOrQueue(
       _buildEvidence(
         sessionId: sessionId,
+        activityCorrelationId: activityCorrelationId,
         roomIds: roomIds,
         activityType: activityType,
         eventType: ActivityEventType.completed,
@@ -107,6 +111,7 @@ class NudgeDeviceSimulator {
 
   void pauseActivity({
     required String sessionId,
+    String? activityCorrelationId,
     required List<String> roomIds,
     required ActivityType activityType,
     required double metricValue,
@@ -115,6 +120,7 @@ class NudgeDeviceSimulator {
     _submitOrQueue(
       _buildEvidence(
         sessionId: sessionId,
+        activityCorrelationId: activityCorrelationId,
         roomIds: roomIds,
         activityType: activityType,
         eventType: ActivityEventType.paused,
@@ -126,6 +132,7 @@ class NudgeDeviceSimulator {
 
   void resumeActivity({
     required String sessionId,
+    String? activityCorrelationId,
     required List<String> roomIds,
     required ActivityType activityType,
     required double metricValue,
@@ -134,6 +141,7 @@ class NudgeDeviceSimulator {
     _submitOrQueue(
       _buildEvidence(
         sessionId: sessionId,
+        activityCorrelationId: activityCorrelationId,
         roomIds: roomIds,
         activityType: activityType,
         eventType: ActivityEventType.resumed,
@@ -171,6 +179,7 @@ class NudgeDeviceSimulator {
 
   ActivityEvidence _buildEvidence({
     required String sessionId,
+    required String? activityCorrelationId,
     required List<String> roomIds,
     required ActivityType activityType,
     required ActivityEventType eventType,
@@ -184,6 +193,7 @@ class NudgeDeviceSimulator {
       eventId: eventId,
       sourceRecordId: eventId,
       sessionId: sessionId,
+      activityCorrelationId: activityCorrelationId,
       submittedByUserId: 'device:$deviceId',
       actorUserId: assignedUserId,
       roomIds: List.unmodifiable(roomIds),
@@ -215,8 +225,11 @@ class NudgeDeviceSimulator {
       final receipt = result.receipt;
       if (result.status != ActivityRecordStatus.settled ||
           receipt == null ||
+          result.acknowledgedEventId != evidence.eventId ||
+          result.acknowledgedSourceRecordId != evidence.sourceRecordId ||
           receipt.actorUserId != evidence.actorUserId ||
-          receipt.activityType != evidence.activityType) {
+          receipt.activityType != evidence.activityType ||
+          receipt.sessionId != result.canonicalSessionId) {
         throw const DeviceProtocolException(
           'A terminal activity requires a matching settlement receipt.',
         );
@@ -224,7 +237,9 @@ class NudgeDeviceSimulator {
       return;
     }
     if (result.status != ActivityRecordStatus.accepted ||
-        result.receipt != null) {
+        result.receipt != null ||
+        result.acknowledgedEventId != evidence.eventId ||
+        result.acknowledgedSourceRecordId != evidence.sourceRecordId) {
       throw const DeviceProtocolException(
         'A lifecycle event requires a non-settlement acknowledgement.',
       );

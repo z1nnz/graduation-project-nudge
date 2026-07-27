@@ -69,7 +69,6 @@ class InMemoryActivityIngestion implements ActivityIngestion {
   final Map<String, ActivityRecordResult> _resultsBySourceRecord = {};
   final Map<String, String> _signaturesBySourceRecord = {};
   final Map<String, ActivityRecordResult> _settlementsByFingerprint = {};
-  final Map<(String, ActivityType), _ActivitySessionState> _openSessions = {};
   final Map<(String, ActivityType, String), _ActivitySessionState>
   _sessionsByAlias = {};
   final Map<(String, ActivityType, String), _ActivitySessionState>
@@ -110,7 +109,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
           'The event ID is already used by different activity evidence.',
         );
       }
-      return _duplicate(existing);
+      return _duplicate(existing, evidence);
     }
 
     final sourceRecordKey = [
@@ -128,7 +127,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         );
       }
       _rememberEvent(evidence, evidenceSignature, sourceRecordResult);
-      return _duplicate(sourceRecordResult);
+      return _duplicate(sourceRecordResult, evidence);
     }
 
     final isSettlement = _isSettlement(evidence.eventType);
@@ -146,7 +145,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
       _replaceCachedResult(settledResult, mergedResult);
       _rememberEvent(evidence, evidenceSignature, mergedResult);
       _rememberSourceRecord(sourceRecordKey, evidenceSignature, mergedResult);
-      return _duplicate(mergedResult);
+      return _duplicate(mergedResult, evidence);
     }
 
     final verifiedAt = _clock();
@@ -193,6 +192,9 @@ class InMemoryActivityIngestion implements ActivityIngestion {
       status: isSettlement
           ? ActivityRecordStatus.settled
           : ActivityRecordStatus.accepted,
+      acknowledgedEventId: evidence.eventId,
+      acknowledgedSourceRecordId: evidence.sourceRecordId,
+      canonicalSessionId: canonicalSessionId,
       receipt: receipt,
       contributions: contributions,
       wasDuplicate: false,
@@ -222,6 +224,11 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     if (requiredValues.any((value) => value.trim().isEmpty)) {
       throw const ActivityValidationException(
         'Activity identifiers and metric units cannot be empty.',
+      );
+    }
+    if (evidence.activityCorrelationId?.trim().isEmpty ?? false) {
+      throw const ActivityValidationException(
+        'Activity correlation IDs cannot be empty.',
       );
     }
   }
@@ -266,9 +273,15 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     _signaturesBySourceRecord[sourceRecordKey] = evidenceSignature;
   }
 
-  ActivityRecordResult _duplicate(ActivityRecordResult existing) {
+  ActivityRecordResult _duplicate(
+    ActivityRecordResult existing,
+    ActivityEvidence evidence,
+  ) {
     return ActivityRecordResult(
       status: existing.status,
+      acknowledgedEventId: evidence.eventId,
+      acknowledgedSourceRecordId: evidence.sourceRecordId,
+      canonicalSessionId: existing.canonicalSessionId,
       receipt: existing.receipt,
       contributions: existing.contributions,
       wasDuplicate: true,
@@ -281,69 +294,49 @@ class InMemoryActivityIngestion implements ActivityIngestion {
   }
 
   String _resolveCanonicalSession(ActivityEvidence evidence) {
-    if (evidence.eventType == ActivityEventType.metricSynced) {
-      final canonicalKey = (
-        evidence.actorUserId,
-        evidence.activityType,
-        evidence.sessionId,
-      );
-      _sessionsByCanonicalId.putIfAbsent(
-        canonicalKey,
-        () => _ActivitySessionState(
-          canonicalSessionId: evidence.sessionId,
-          actorUserId: evidence.actorUserId,
-          activityType: evidence.activityType,
-          startedAt: evidence.occurredAt,
-          sourceSessionIds: {evidence.sessionId},
-          status: ActivitySessionStatus.completed,
-          metricValue: evidence.metricValue,
-          metricUnit: evidence.metricUnit,
-        )..endedAt = evidence.occurredAt,
-      );
-      return evidence.sessionId;
-    }
-
-    final openKey = (evidence.actorUserId, evidence.activityType);
+    final canonicalSessionId =
+        evidence.activityCorrelationId ?? evidence.sessionId;
+    final canonicalKey = (
+      evidence.actorUserId,
+      evidence.activityType,
+      canonicalSessionId,
+    );
     final aliasKey = (
       evidence.actorUserId,
       evidence.activityType,
       evidence.sessionId,
     );
-    var session = _sessionsByAlias[aliasKey];
+    var session =
+        _sessionsByAlias[aliasKey] ?? _sessionsByCanonicalId[canonicalKey];
     if (session == null) {
-      session = _openSessions[openKey];
-      if (session == null) {
-        if (evidence.eventType == ActivityEventType.paused ||
-            evidence.eventType == ActivityEventType.resumed) {
-          throw const ActivityValidationException(
-            'The activity session is not active.',
-          );
-        }
-        session = _ActivitySessionState(
-          canonicalSessionId: evidence.sessionId,
-          actorUserId: evidence.actorUserId,
-          activityType: evidence.activityType,
-          startedAt: evidence.occurredAt,
-          sourceSessionIds: {evidence.sessionId},
-          status: ActivitySessionStatus.active,
-          metricValue: 0,
-          metricUnit: evidence.metricUnit,
+      if (evidence.eventType == ActivityEventType.paused ||
+          evidence.eventType == ActivityEventType.resumed) {
+        throw const ActivityValidationException(
+          'The activity session is not active.',
         );
-        _openSessions[openKey] = session;
-        _sessionsByCanonicalId[(
-              evidence.actorUserId,
-              evidence.activityType,
-              session.canonicalSessionId,
-            )] =
-            session;
-      } else {
-        session.sourceSessionIds.add(evidence.sessionId);
       }
-      _sessionsByAlias[aliasKey] = session;
+      session = _ActivitySessionState(
+        canonicalSessionId: canonicalSessionId,
+        actorUserId: evidence.actorUserId,
+        activityType: evidence.activityType,
+        startedAt: evidence.occurredAt,
+        sourceSessionIds: {evidence.sessionId},
+        status: ActivitySessionStatus.active,
+        metricValue: 0,
+        metricUnit: evidence.metricUnit,
+      );
+      _sessionsByCanonicalId[canonicalKey] = session;
+    } else if (session.canonicalSessionId != canonicalSessionId) {
+      throw const ActivityValidationException(
+        'The local session is already linked to another activity.',
+      );
     }
+    session.sourceSessionIds.add(evidence.sessionId);
+    _sessionsByAlias[aliasKey] = session;
 
     if (session.status == ActivitySessionStatus.completed) {
-      if (evidence.eventType != ActivityEventType.completed) {
+      if (evidence.eventType != ActivityEventType.completed &&
+          evidence.eventType != ActivityEventType.metricSynced) {
         throw const ActivityValidationException(
           'A completed activity session cannot change state.',
         );
@@ -373,15 +366,11 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         session.metricUnit = evidence.metricUnit;
         break;
       case ActivityEventType.completed:
+      case ActivityEventType.metricSynced:
         session.status = ActivitySessionStatus.completed;
         session.endedAt = evidence.occurredAt;
         session.metricValue = evidence.metricValue;
         session.metricUnit = evidence.metricUnit;
-        if (identical(_openSessions[openKey], session)) {
-          _openSessions.remove(openKey);
-        }
-        break;
-      case ActivityEventType.metricSynced:
         break;
     }
     return session.canonicalSessionId;
@@ -429,6 +418,9 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     }
     return ActivityRecordResult(
       status: ActivityRecordStatus.settled,
+      acknowledgedEventId: evidence.eventId,
+      acknowledgedSourceRecordId: evidence.sourceRecordId,
+      canonicalSessionId: receipt.sessionId,
       receipt: receipt,
       contributions: contributionsByRoom.values.toList(growable: false),
       wasDuplicate: false,
@@ -476,6 +468,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     return jsonEncode({
       'sourceRecordId': evidence.sourceRecordId,
       'sessionId': evidence.sessionId,
+      'activityCorrelationId': evidence.activityCorrelationId,
       'submittedByUserId': evidence.submittedByUserId,
       'actorUserId': evidence.actorUserId,
       'roomIds': roomIds,

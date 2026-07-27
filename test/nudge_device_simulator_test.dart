@@ -25,7 +25,39 @@ class _MissingSettlementReceipt implements ActivityIngestion {
   ActivityRecordResult recordActivity(ActivityEvidence evidence) {
     return ActivityRecordResult(
       status: ActivityRecordStatus.accepted,
+      acknowledgedEventId: evidence.eventId,
+      acknowledgedSourceRecordId: evidence.sourceRecordId,
+      canonicalSessionId: evidence.activityCorrelationId ?? evidence.sessionId,
       receipt: null,
+      contributions: const [],
+      wasDuplicate: false,
+    );
+  }
+}
+
+class _WrongEventSettlementReceipt implements ActivityIngestion {
+  @override
+  ActivityRecordResult recordActivity(ActivityEvidence evidence) {
+    final receipt = ActivityReceipt(
+      receiptId: 'old-receipt',
+      eventId: 'old-event',
+      sourceRecordId: 'old-source-record',
+      sessionId: 'old-session',
+      actorUserId: evidence.actorUserId,
+      activityType: evidence.activityType,
+      activityFingerprint: 'old-fingerprint',
+      acceptedMetric: evidence.metricValue,
+      metricUnit: evidence.metricUnit,
+      personalRewardIssued: true,
+      characterExperienceIssued: true,
+      verifiedAt: evidence.occurredAt,
+    );
+    return ActivityRecordResult(
+      status: ActivityRecordStatus.settled,
+      acknowledgedEventId: 'old-event',
+      acknowledgedSourceRecordId: 'old-source-record',
+      canonicalSessionId: 'old-session',
+      receipt: receipt,
       contributions: const [],
       wasDuplicate: false,
     );
@@ -248,6 +280,28 @@ void main() {
     );
 
     expect(device.pendingEventCount, 0);
+    expect(device.confirmedResults, isEmpty);
+    expect(device.failedEvents, hasLength(1));
+    expect(device.failedEvents.single.error, isA<DeviceProtocolException>());
+  });
+
+  test('a receipt for another event cannot acknowledge the queue head', () {
+    final clock = DateTime.utc(2026, 7, 27, 18, 30);
+    final device = NudgeDeviceSimulator(
+      deviceId: 'desk-wrong-ack',
+      assignedUserId: 'alice',
+      ingestion: _WrongEventSettlementReceipt(),
+      clock: () => clock,
+    );
+
+    device.completeActivity(
+      sessionId: 'current-session',
+      roomIds: const [],
+      activityType: ActivityType.focus,
+      metricValue: 25,
+      metricUnit: 'minutes',
+    );
+
     expect(device.confirmedResults, isEmpty);
     expect(device.failedEvents, hasLength(1));
     expect(device.failedEvents.single.error, isA<DeviceProtocolException>());

@@ -60,6 +60,7 @@ class ActivityEvidence {
   final String eventId;
   final String sourceRecordId;
   final String sessionId;
+  final String? activityCorrelationId;
   final String submittedByUserId;
   final String actorUserId;
   final List<String> roomIds;
@@ -76,6 +77,7 @@ class ActivityEvidence {
     required this.eventId,
     required this.sourceRecordId,
     required this.sessionId,
+    this.activityCorrelationId,
     required this.submittedByUserId,
     required this.actorUserId,
     required List<String> roomIds,
@@ -168,12 +170,18 @@ class RoomContribution {
 
 class ActivityRecordResult {
   final ActivityRecordStatus status;
+  final String acknowledgedEventId;
+  final String acknowledgedSourceRecordId;
+  final String canonicalSessionId;
   final ActivityReceipt? receipt;
   final List<RoomContribution> contributions;
   final bool wasDuplicate;
 
   ActivityRecordResult({
     required this.status,
+    required this.acknowledgedEventId,
+    required this.acknowledgedSourceRecordId,
+    required this.canonicalSessionId,
     required this.receipt,
     required List<RoomContribution> contributions,
     required this.wasDuplicate,

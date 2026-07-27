@@ -210,6 +210,7 @@ void main() {
         eventId: eventId,
         sourceRecordId: 'record-$eventId',
         sessionId: sessionId,
+        activityCorrelationId: 'cloud-focus-session',
         submittedByUserId: source == ActivitySource.device
             ? 'device:desk-1'
             : 'alice',
@@ -287,6 +288,51 @@ void main() {
         ingestion.activitySessions.single.sourceSessionIds,
         unorderedEquals(['app-local-session', 'device-local-session']),
       );
+    },
+  );
+
+  test(
+    'independent concurrent sessions are not merged without correlation',
+    () {
+      final startedAt = DateTime.utc(2026, 7, 27, 12, 30);
+      final completedAt = startedAt.add(const Duration(minutes: 25));
+      final ingestion = InMemoryActivityIngestion(clock: () => completedAt);
+      ActivityEvidence evidence(
+        String eventId,
+        String sessionId,
+        ActivityEventType eventType,
+      ) => ActivityEvidence(
+        eventId: eventId,
+        sourceRecordId: 'record-$eventId',
+        sessionId: sessionId,
+        submittedByUserId: 'alice',
+        actorUserId: 'alice',
+        roomIds: const [],
+        activityType: ActivityType.focus,
+        source: ActivitySource.app,
+        eventType: eventType,
+        metricValue: eventType == ActivityEventType.completed ? 25 : 0,
+        metricUnit: 'minutes',
+        occurredAt: eventType == ActivityEventType.completed
+            ? completedAt
+            : startedAt,
+      );
+
+      ingestion.recordActivity(
+        evidence('start-a', 'session-a', ActivityEventType.started),
+      );
+      ingestion.recordActivity(
+        evidence('start-b', 'session-b', ActivityEventType.started),
+      );
+      ingestion.recordActivity(
+        evidence('complete-a', 'session-a', ActivityEventType.completed),
+      );
+      ingestion.recordActivity(
+        evidence('complete-b', 'session-b', ActivityEventType.completed),
+      );
+
+      expect(ingestion.activitySessions, hasLength(2));
+      expect(ingestion.issuedReceiptCount, 2);
     },
   );
 
@@ -588,6 +634,42 @@ void main() {
       ingestion.recordActivity(evidence).contributions.single.roomId,
       'room-study',
     );
+  });
+
+  test('correlated metric syncs from different sources settle once', () {
+    final clock = DateTime.utc(2026, 7, 27, 15, 30);
+    final ingestion = InMemoryActivityIngestion(clock: () => clock);
+    ActivityEvidence evidence(
+      String eventId,
+      String sessionId,
+      ActivitySource source,
+    ) => ActivityEvidence(
+      eventId: eventId,
+      sourceRecordId: 'record-$eventId',
+      sessionId: sessionId,
+      activityCorrelationId: 'provider-workout-42',
+      submittedByUserId: 'alice',
+      actorUserId: 'alice',
+      roomIds: const [],
+      activityType: ActivityType.steps,
+      source: source,
+      eventType: ActivityEventType.metricSynced,
+      metricValue: 8000,
+      metricUnit: 'steps',
+      occurredAt: clock,
+    );
+
+    final appResult = ingestion.recordActivity(
+      evidence('app-sync', 'app-local-sync', ActivitySource.app),
+    );
+    final healthResult = ingestion.recordActivity(
+      evidence('health-sync', 'health-local-sync', ActivitySource.health),
+    );
+
+    expect(healthResult.wasDuplicate, isTrue);
+    expect(healthResult.receipt!.receiptId, appResult.receipt!.receiptId);
+    expect(ingestion.issuedReceiptCount, 1);
+    expect(ingestion.issuedPersonalRewardCount, 1);
   });
 
   test('negative activity metrics are rejected before rewards are issued', () {
