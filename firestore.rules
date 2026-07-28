@@ -100,6 +100,22 @@ service cloud.firestore {
         );
     }
 
+    function isApprovedRoomMember(roomId) {
+      return isAuth()
+        && exists(
+          /databases/$(database)/documents/rooms/$(roomId)
+        )
+        && get(
+          /databases/$(database)/documents/rooms/$(roomId)
+        ).data.memberIds.hasAny([request.auth.uid])
+        && exists(
+          /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
+        ).data.approvalStatus == 'approved';
+    }
+
     function hasProtectedStaffFields() {
       return request.resource.data.keys().hasAny([
         'developerAccess',
@@ -1785,6 +1801,45 @@ service cloud.firestore {
             && resource.data.senderId == request.auth.uid;
         }
       }
+    }
+
+    // ─── Cloud Activity Ledger ─────────────────────────────────────────
+    // Activity Ledger writes are Cloud-only. Clients can read only their own
+    // evidence, sessions and receipts; room aggregates require membership.
+    match /activity_events/{eventId} {
+      allow read: if isAuth()
+        && (resource.data.actorUserId == request.auth.uid || isStaff());
+      allow write: if false;
+    }
+
+    match /activity_sessions/{sessionId} {
+      allow read: if isAuth()
+        && (resource.data.actorUserId == request.auth.uid || isStaff());
+      allow write: if false;
+    }
+
+    match /activity_receipts/{receiptId} {
+      allow read: if isAuth()
+        && (resource.data.actorUserId == request.auth.uid || isStaff());
+      allow write: if false;
+    }
+
+    match /room_contributions/{contributionId} {
+      allow read: if isAuth()
+        && (
+          resource.data.actorUserId == request.auth.uid
+          || isApprovedRoomMember(resource.data.roomId)
+          || isStaff()
+        );
+      allow write: if false;
+    }
+
+    match /activity_source_records/{claimId} {
+      allow read, write: if false;
+    }
+
+    match /activity_settlements/{claimId} {
+      allow read, write: if false;
     }
 
     // ─── /shop_items/{itemId} ──────────────────────────────────────────
