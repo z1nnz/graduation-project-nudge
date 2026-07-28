@@ -21,16 +21,66 @@ test("group challenge publication carries canonical ownership", () => {
   const payload = contract.buildGroupChallenge({
     group,
     publisherId: "manager-1",
+    challengeId: "challenge-20260727",
     type: "步數挑戰",
     days: 7,
     reward: "限定徽章",
     now: "2026-07-27T00:00:00.000Z",
   });
 
+  assert.equal(payload.schemaVersion, 2);
+  assert.equal(payload.challengeId, "challenge-20260727");
   assert.equal(payload.groupId, "GRP-TEST");
   assert.equal(payload.groupName, "自律同行團");
   assert.equal(payload.publishedBy, "manager-1");
   assert.equal(payload.status, "active");
+});
+
+test("member owns an explicit challenge participation lifecycle", () => {
+  const challenge = {
+    schemaVersion: 2,
+    challengeId: "challenge-20260727",
+    groupId: "GRP-TEST",
+    days: 3,
+    status: "active",
+  };
+  const joined = contract.buildGroupChallengeParticipation({
+    group,
+    challenge,
+    memberId: "member-1",
+    now: "2026-07-27T00:00:00.000Z",
+  });
+  const progressed = contract.updateGroupChallengeParticipation({
+    group,
+    challenge,
+    existing: joined,
+    memberId: "member-1",
+    completedDays: 2,
+    now: "2026-07-28T00:00:00.000Z",
+  });
+  const completed = contract.updateGroupChallengeParticipation({
+    group,
+    challenge,
+    existing: progressed,
+    memberId: "member-1",
+    completedDays: 3,
+    now: "2026-07-29T00:00:00.000Z",
+  });
+
+  assert.equal(joined.status, "joined");
+  assert.equal(progressed.completedDays, 2);
+  assert.equal(completed.status, "completed");
+  assert.ok(completed.completedAt);
+  assert.throws(() =>
+    contract.updateGroupChallengeParticipation({
+      group,
+      challenge,
+      existing: completed,
+      memberId: "member-1",
+      completedDays: 2,
+      now: "2026-07-30T00:00:00.000Z",
+    }),
+  );
 });
 
 test("group publication rejects a non-manager", () => {

@@ -35,6 +35,32 @@ test("app consumes the same canonical publication fields and full template list"
   assert.doesNotMatch(screen, /template\['pressure'\]/);
 });
 
+test("group challenge participation is shared and member-controlled", () => {
+  const app = read("web_dashboard/assets/app.js");
+  const state = read("lib/state/app_state.dart");
+  const rules = read("firestore.rules");
+  const overview = read("web_dashboard/groups.html");
+
+  assert.match(overview, /目前挑戰與我的參與/);
+  assert.match(app, /function joinCanonicalWebGroupChallenge/);
+  assert.match(
+    app,
+    /\.collection\("challenges"\)[\s\S]*?\.collection\("participants"\)/,
+  );
+  assert.match(app, /data-join-current-challenge/);
+  assert.match(state, /currentGroupChallengeParticipation/);
+  assert.match(state, /GroupChallengeTaskPlan\.missingTasks/);
+  assert.match(state, /GroupChallengeTaskPlan\.completedDays/);
+  assert.match(
+    state,
+    /GroupChallengeTaskPlan\.isGroupChallengeTask\(task\)\) return 0/,
+  );
+  assert.match(
+    rules,
+    /match \/participants\/\{memberId\}[\s\S]*?request\.auth\.uid == memberId/,
+  );
+});
+
 test("group surfaces do not ship fabricated outcomes", () => {
   const overview = read("web_dashboard/groups.html");
   const ranking = read("web_dashboard/groups-ranking.html");

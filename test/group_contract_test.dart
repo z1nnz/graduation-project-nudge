@@ -23,12 +23,15 @@ void main() {
       final payload = GroupPublicationContract.buildChallenge(
         group: group,
         publisherId: 'manager-1',
+        challengeId: 'challenge-20260727',
         type: '步數挑戰',
         days: 7,
         reward: '限定徽章',
         now: DateTime.utc(2026, 7, 27),
       );
 
+      expect(payload['schemaVersion'], 2);
+      expect(payload['challengeId'], 'challenge-20260727');
       expect(payload['groupId'], 'GRP-TEST');
       expect(payload['groupName'], '自律同行團');
       expect(payload['publishedBy'], 'manager-1');
@@ -48,6 +51,128 @@ void main() {
           now: DateTime.utc(2026, 7, 27),
         ),
         throwsStateError,
+      );
+    });
+
+    test('member owns an explicit challenge participation lifecycle', () {
+      final joined = GroupChallengeParticipationContract.buildJoined(
+        group: group,
+        challenge: {
+          'schemaVersion': 2,
+          'challengeId': 'challenge-20260727',
+          'groupId': 'GRP-TEST',
+          'days': 3,
+          'status': 'active',
+        },
+        memberId: 'member-1',
+        now: DateTime.utc(2026, 7, 27),
+      );
+      final progressed = GroupChallengeParticipationContract.buildProgress(
+        group: group,
+        challenge: {
+          'schemaVersion': 2,
+          'challengeId': 'challenge-20260727',
+          'groupId': 'GRP-TEST',
+          'days': 3,
+          'status': 'active',
+        },
+        existing: joined,
+        memberId: 'member-1',
+        completedDays: 2,
+        now: DateTime.utc(2026, 7, 28),
+      );
+      final completed = GroupChallengeParticipationContract.buildProgress(
+        group: group,
+        challenge: {
+          'schemaVersion': 2,
+          'challengeId': 'challenge-20260727',
+          'groupId': 'GRP-TEST',
+          'days': 3,
+          'status': 'active',
+        },
+        existing: progressed,
+        memberId: 'member-1',
+        completedDays: 3,
+        now: DateTime.utc(2026, 7, 29),
+      );
+
+      expect(joined['status'], 'joined');
+      expect(progressed['completedDays'], 2);
+      expect(progressed['status'], 'joined');
+      expect(completed['completedDays'], 3);
+      expect(completed['status'], 'completed');
+      expect(completed['completedAt'], isNotNull);
+      expect(
+        () => GroupChallengeParticipationContract.buildProgress(
+          group: group,
+          challenge: {
+            'schemaVersion': 2,
+            'challengeId': 'challenge-20260727',
+            'groupId': 'GRP-TEST',
+            'days': 3,
+            'status': 'active',
+          },
+          existing: completed,
+          memberId: 'member-1',
+          completedDays: 2,
+          now: DateTime.utc(2026, 7, 30),
+        ),
+        throwsStateError,
+      );
+    });
+
+    test('challenge task plan is deterministic and idempotent', () {
+      final first = GroupChallengeTaskPlan.missingTasks(
+        challengeId: 'challenge-20260727',
+        groupName: '自律同行團',
+        type: '步數挑戰',
+        days: 3,
+        existingTasks: const [],
+        now: DateTime.utc(2026, 7, 27),
+        userId: 'member-1',
+      );
+      final second = GroupChallengeTaskPlan.missingTasks(
+        challengeId: 'challenge-20260727',
+        groupName: '自律同行團',
+        type: '步數挑戰',
+        days: 3,
+        existingTasks: first,
+        now: DateTime.utc(2026, 7, 27),
+        userId: 'member-1',
+      );
+
+      expect(first, hasLength(3));
+      expect(first.first['id'], 'group_challenge_challenge-20260727_day_1');
+      expect(first.first['sourceKind'], 'groupChallenge');
+      expect(
+        first[1]['availableAt'],
+        DateTime.utc(2026, 7, 28).toIso8601String(),
+      );
+      expect(
+        GroupChallengeTaskPlan.isAvailable(
+          first[1],
+          now: DateTime.utc(2026, 7, 27, 23, 59),
+        ),
+        isFalse,
+      );
+      expect(
+        GroupChallengeTaskPlan.isAvailable(
+          first[1],
+          now: DateTime.utc(2026, 7, 28),
+        ),
+        isTrue,
+      );
+      expect(second, isEmpty);
+      expect(
+        GroupChallengeTaskPlan.completedDays(
+          challengeId: 'challenge-20260727',
+          tasks: [
+            {...first[0], 'done': true},
+            {...first[1], 'done': true},
+            first[2],
+          ],
+        ),
+        2,
       );
     });
 

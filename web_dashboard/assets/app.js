@@ -2053,6 +2053,7 @@ let currentWebUserData = null;
 let familyLinkLoaded = false;
 let activeWebGroup = null;
 let activeWebGroupSummaries = [];
+let activeWebGroupChallengeParticipants = [];
 let groupLoaded = false;
 let familyLinkSub = null;
 let familyEncouragementSub = null;
@@ -2060,6 +2061,7 @@ let familyGoalSub = null;
 let familySummarySub = null;
 let groupDocSub = null;
 let groupChallengeSub = null;
+let groupChallengeParticipantsSub = null;
 let groupSchedulesSub = null;
 let groupTemplatesSub = null;
 let groupMemberSummariesSub = null;
@@ -2731,14 +2733,17 @@ function listenToFamilyInteractions(linkId) {
 
 function stopGroupPublicationListeners() {
   if (groupChallengeSub) groupChallengeSub();
+  if (groupChallengeParticipantsSub) groupChallengeParticipantsSub();
   if (groupSchedulesSub) groupSchedulesSub();
   if (groupTemplatesSub) groupTemplatesSub();
   if (groupMemberSummariesSub) groupMemberSummariesSub();
   groupChallengeSub = null;
+  groupChallengeParticipantsSub = null;
   groupSchedulesSub = null;
   groupTemplatesSub = null;
   groupMemberSummariesSub = null;
   activeWebGroupSummaries = [];
+  activeWebGroupChallengeParticipants = [];
 }
 
 function effectiveWebGroupProfile() {
@@ -2806,9 +2811,40 @@ function renderCanonicalGroupOverview() {
 
   const challengeList = document.querySelector("[data-group-challenge-list]");
   if (challengeList) {
+    const challengeId = challenge?.challengeId || null;
+    const participants = challengeId
+      ? activeWebGroupChallengeParticipants.filter(
+          item => item.challengeId === challengeId,
+        )
+      : [];
+    const completedCount = participants.filter(
+      item => item.status === "completed",
+    ).length;
+    const userId =
+      typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+    const mine = participants.find(item => item.memberId === userId);
+    const participationCopy = mine
+      ? mine.status === "completed"
+        ? "你已完成這次挑戰"
+        : `你的進度 ${Number(mine.completedDays || 0)} / ${Number(mine.totalDays || challenge?.days || 0)} 天`
+      : "由你自己決定是否參加";
     challengeList.innerHTML = challenge
-      ? `<article><strong>${escapeHtml(challenge.type || "自律挑戰")} · ${escapeHtml(challenge.days || 0)} 天</strong><span>${escapeHtml(challenge.groupName || activeWebGroup?.name || "目前團體")}｜完成獎勵：${escapeHtml(challenge.reward || "未設定")}</span></article>`
+      ? `<article><strong>${escapeHtml(challenge.type || "自律挑戰")} · ${escapeHtml(challenge.days || 0)} 天</strong><span>${escapeHtml(challenge.groupName || activeWebGroup?.name || "目前團體")}｜${participants.length} 人參加、${completedCount} 人完成｜${escapeHtml(participationCopy)}</span><small>團體進度不另發個人 XP／自律幣；目標獎勵待團體結算。</small>${challenge.schemaVersion === 2 && !mine ? '<button class="button primary" type="button" data-join-current-challenge>我要參加</button>' : challenge.schemaVersion !== 2 ? '<small>此為舊版挑戰，請管理者重新發布後再參加。</small>' : ""}</article>`
       : "<article><strong>尚未發布</strong><span>管理者發布後會同步顯示。</span></article>";
+    challengeList
+      .querySelector("[data-join-current-challenge]")
+      ?.addEventListener("click", async event => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        try {
+          await joinCanonicalWebGroupChallenge(challenge);
+          toast("已參加挑戰；App 會同步匯入每日任務");
+        } catch (error) {
+          console.error(error);
+          button.disabled = false;
+          toast(error.message || "參加挑戰失敗");
+        }
+      });
   }
 
   const scheduleList = document.querySelector("[data-group-schedule-list]");
@@ -2893,6 +2929,17 @@ function listenToGroupPublications(groupId) {
       syncCanonicalGroupPublicationsToLocal({
         challenge: snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null,
       });
+    });
+  groupChallengeParticipantsSub = groupRef
+    .collection("challenges")
+    .doc("current")
+    .collection("participants")
+    .onSnapshot(snapshot => {
+      activeWebGroupChallengeParticipants = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      renderCanonicalGroupOverview();
     });
   groupSchedulesSub = groupRef
     .collection("study_schedules")
@@ -4534,18 +4581,52 @@ function requireCanonicalWebGroupManager() {
 
 async function publishCanonicalWebGroupChallenge({ type, days, reward }) {
   const { group, userId } = requireCanonicalWebGroupManager();
+  const now = new Date().toISOString();
   const payload = window.NudgeGroupContract.buildGroupChallenge({
     group,
     publisherId: userId,
+    challengeId: `challenge_${Date.now()}_${userId.slice(0, 8)}`,
     type,
     days,
     reward,
+    now,
   });
   await db.collection("groups")
     .doc(group.id)
     .collection("challenges")
     .doc("current")
     .set(payload);
+}
+
+async function joinCanonicalWebGroupChallenge(challenge) {
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  if (
+    !userId ||
+    !activeWebGroup ||
+    !window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId)
+  ) {
+    throw new Error("請先加入有效團體");
+  }
+  const existing = activeWebGroupChallengeParticipants.find(
+    item =>
+      item.memberId === userId &&
+      item.challengeId === challenge?.challengeId,
+  );
+  if (existing) return existing;
+  const payload = window.NudgeGroupContract.buildGroupChallengeParticipation({
+    group: activeWebGroup,
+    challenge,
+    memberId: userId,
+  });
+  await db.collection("groups")
+    .doc(activeWebGroup.id)
+    .collection("challenges")
+    .doc("current")
+    .collection("participants")
+    .doc(userId)
+    .set(payload);
+  return payload;
 }
 
 async function publishCanonicalWebStudySchedule({ title, meta }) {

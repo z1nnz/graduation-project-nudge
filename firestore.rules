@@ -863,6 +863,9 @@ service cloud.firestore {
           ).data.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
           && !existsAfter(
             /databases/$(database)/documents/groups/$(groupId)/member_summaries/$(change.memberId)
+          )
+          && !existsAfter(
+            /databases/$(database)/documents/groups/$(groupId)/challenges/current/participants/$(change.memberId)
           );
       }
 
@@ -938,7 +941,9 @@ service cloud.firestore {
         allow read: if isActiveGroupMember();
         allow create, update: if challengeId == 'current'
           && isGroupManager()
-          && request.resource.data.schemaVersion == 1
+          && request.resource.data.schemaVersion == 2
+          && request.resource.data.challengeId is string
+          && request.resource.data.challengeId.size() > 0
           && request.resource.data.groupId == groupId
           && request.resource.data.groupName == group().name
           && request.resource.data.publishedBy == group().ownerId
@@ -947,10 +952,101 @@ service cloud.firestore {
           && request.resource.data.days >= 1
           && request.resource.data.days <= 365
           && request.resource.data.keys().hasOnly([
-            'schemaVersion', 'groupId', 'groupName', 'type', 'days',
-            'reward', 'status', 'publishedBy', 'updatedAt'
+            'schemaVersion', 'challengeId', 'groupId', 'groupName', 'type',
+            'days', 'reward', 'status', 'publishedBy', 'updatedAt'
           ]);
         allow delete: if isGroupManager();
+
+        match /participants/{memberId} {
+          function currentChallenge() {
+            return get(
+              /databases/$(database)/documents/groups/$(groupId)/challenges/$(challengeId)
+            ).data;
+          }
+
+          function groupAfter() {
+            return getAfter(
+              /databases/$(database)/documents/groups/$(groupId)
+            ).data;
+          }
+
+          function validParticipationShape() {
+            let challenge = currentChallenge();
+            let completed = request.resource.data.status == 'completed';
+            return challengeId == 'current'
+              && challenge.schemaVersion == 2
+              && challenge.status == 'active'
+              && request.auth.uid == memberId
+              && request.resource.data.schemaVersion == 1
+              && request.resource.data.groupId == groupId
+              && request.resource.data.challengeId == challenge.challengeId
+              && request.resource.data.memberId == memberId
+              && request.resource.data.totalDays == challenge.days
+              && request.resource.data.completedDays is int
+              && request.resource.data.completedDays >= 0
+              && request.resource.data.completedDays <= challenge.days
+              && request.resource.data.joinedAt is string
+              && request.resource.data.updatedAt is string
+              && request.resource.data.keys().hasAll([
+                'schemaVersion', 'groupId', 'challengeId', 'memberId',
+                'status', 'completedDays', 'totalDays', 'joinedAt',
+                'updatedAt'
+              ])
+              && (
+                (
+                  !completed
+                  && request.resource.data.status == 'joined'
+                  && request.resource.data.completedDays < challenge.days
+                  && !request.resource.data.keys().hasAny(['completedAt'])
+                )
+                || (
+                  completed
+                  && request.resource.data.completedDays == challenge.days
+                  && request.resource.data.completedAt is string
+                )
+              )
+              && request.resource.data.keys().hasOnly([
+                'schemaVersion', 'groupId', 'challengeId', 'memberId',
+                'status', 'completedDays', 'totalDays', 'joinedAt',
+                'updatedAt', 'completedAt'
+              ]);
+          }
+
+          allow read: if isActiveGroupMember();
+          allow create: if isActiveGroupMember()
+            && validParticipationShape()
+            && request.resource.data.status == 'joined'
+            && request.resource.data.completedDays == 0;
+          allow update: if isActiveGroupMember()
+            && validParticipationShape()
+            && request.resource.data.memberId == resource.data.memberId
+            && (
+              (
+                request.resource.data.challengeId == resource.data.challengeId
+                && request.resource.data.joinedAt == resource.data.joinedAt
+                && !(
+                  resource.data.status == 'completed'
+                  && request.resource.data.status != 'completed'
+                )
+              )
+              || (
+                request.resource.data.challengeId
+                  != resource.data.challengeId
+                && request.resource.data.status == 'joined'
+                && request.resource.data.completedDays == 0
+              )
+            );
+          allow delete: if isAuth() && (
+            (
+              request.auth.uid == memberId
+              && resource.data.status == 'joined'
+            )
+            || (
+              group().ownerId == request.auth.uid
+              && !groupAfter().memberIds.hasAny([memberId])
+            )
+          );
+        }
       }
 
       match /study_schedules/{scheduleId} {

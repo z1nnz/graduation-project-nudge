@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
@@ -351,8 +353,21 @@ class GroupManagementPage extends StatelessWidget {
   ) {
     final group = challenge['groupName'] ?? '自律團體';
     final type = challenge['type'] ?? '專注挑戰';
-    final days = challenge['days'] ?? 7;
+    final days = (challenge['days'] as num?)?.toInt() ?? 7;
     final reward = challenge['reward'] ?? '徽章';
+    final appState = context.read<AppState>();
+    final challengeId = challenge['challengeId']?.toString();
+    final participants = challengeId == null
+        ? const <Map<String, dynamic>>[]
+        : appState.groupChallengeParticipations
+              .where((item) => item['challengeId'] == challengeId)
+              .toList(growable: false);
+    final participation = appState.currentGroupChallengeParticipation;
+    final completedCount = participants
+        .where((item) => item['status'] == 'completed')
+        .length;
+    final isLegacyChallenge =
+        challenge['schemaVersion'] != 2 || challengeId == null;
 
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
@@ -406,7 +421,9 @@ class GroupManagementPage extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '挑戰規則：每日完成目標，連續累積點數。只顯示前 10 名。\n完成獎勵：$reward。',
+              '挑戰規則：每日任務由成員自行完成，App 與 Web 共用參與狀態。\n'
+              '團體進度不另發個人 XP／自律幣；目標獎勵待團體結算：$reward。'
+              '${participants.length} 人參加，$completedCount 人完成。',
               style: TextStyle(
                 fontSize: 12,
                 color: secondaryText,
@@ -414,26 +431,58 @@ class GroupManagementPage extends StatelessWidget {
               ),
             ),
             const Divider(height: 24),
+            if (participation != null) ...[
+              LinearProgressIndicator(
+                value:
+                    ((participation['completedDays'] as num?)?.toDouble() ??
+                        0) /
+                    math.max(1, days),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                participation['status'] == 'completed'
+                    ? '你已完成這次挑戰'
+                    : '你的進度 ${(participation['completedDays'] as num?)?.toInt() ?? 0} / $days 天；每日任務完成後會自動同步。',
+                style: TextStyle(fontSize: 12, color: secondaryText),
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () async {
-                      final appState = context.read<AppState>();
-                      await appState.joinGroupChallengeAsTask();
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('已成功參與挑戰，$days 天任務已匯入清單 🎯'),
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    },
+                    onPressed: participation != null || isLegacyChallenge
+                        ? null
+                        : () async {
+                            try {
+                              await appState.joinGroupChallengeAsTask();
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('已參與挑戰，$days 天任務會同步到任務清單 🎯'),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accentColor,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('參與挑戰並匯入任務'),
+                    child: Text(
+                      isLegacyChallenge
+                          ? '請管理者重新發布新版挑戰'
+                          : participation == null
+                          ? '我要參與並同步任務'
+                          : participation['status'] == 'completed'
+                          ? '挑戰已完成'
+                          : '已參與・由我自行完成',
+                    ),
                   ),
                 ),
               ],

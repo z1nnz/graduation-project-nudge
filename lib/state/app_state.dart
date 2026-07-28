@@ -116,6 +116,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _incomingGroupRequestsSubscription;
   StreamSubscription? _groupSubscription;
   StreamSubscription? _groupChallengeSubscription;
+  StreamSubscription? _groupChallengeParticipantsSubscription;
   StreamSubscription? _groupSchedulesSubscription;
   StreamSubscription? _groupTemplateSubscription;
   StreamSubscription? _groupMemberSummariesSubscription;
@@ -125,6 +126,8 @@ class AppState extends ChangeNotifier {
   Timer? _dailyResetTimer;
   Timer? _familySummaryPublishTimer;
   Timer? _groupResultSummaryPublishTimer;
+  bool _groupChallengeProgressSyncInFlight = false;
+  bool _groupChallengeProgressSyncQueued = false;
   List<StudyRoomData> _discoverableStudyRooms = [];
   final Map<String, RoomActivitySession> _roomActivitySessions = {};
   final Map<String, String> _roomActiveSessionIds = {};
@@ -820,6 +823,7 @@ class AppState extends ChangeNotifier {
 
   void _setupGroupPublicationListeners(String groupId) {
     if (_groupChallengeSubscription != null &&
+        _groupChallengeParticipantsSubscription != null &&
         _groupSchedulesSubscription != null &&
         _groupTemplateSubscription != null &&
         _groupMemberSummariesSubscription != null) {
@@ -833,7 +837,24 @@ class AppState extends ChangeNotifier {
         .doc('current')
         .snapshots()
         .listen((snapshot) {
-          _groupChallengePublication = snapshot.exists ? snapshot.data() : null;
+          _groupChallengePublication = snapshot.exists
+              ? {'id': snapshot.id, ...?snapshot.data()}
+              : null;
+          _ensureCurrentGroupChallengeTasks();
+          _scheduleCurrentGroupChallengeProgressSync();
+          notifyListeners();
+        });
+    _groupChallengeParticipantsSubscription = groupRef
+        .collection('challenges')
+        .doc('current')
+        .collection('participants')
+        .snapshots()
+        .listen((snapshot) {
+          _groupChallengeParticipations = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(growable: false);
+          _ensureCurrentGroupChallengeTasks();
+          _scheduleCurrentGroupChallengeProgressSync();
           notifyListeners();
         });
     _groupSchedulesSubscription = groupRef
@@ -879,16 +900,19 @@ class AppState extends ChangeNotifier {
 
   void _clearGroupPublicationListeners() {
     _groupChallengeSubscription?.cancel();
+    _groupChallengeParticipantsSubscription?.cancel();
     _groupSchedulesSubscription?.cancel();
     _groupTemplateSubscription?.cancel();
     _groupMemberSummariesSubscription?.cancel();
     _groupResultSummaryPublishTimer?.cancel();
     _groupChallengeSubscription = null;
+    _groupChallengeParticipantsSubscription = null;
     _groupSchedulesSubscription = null;
     _groupTemplateSubscription = null;
     _groupMemberSummariesSubscription = null;
     _groupResultSummaryPublishTimer = null;
     _groupChallengePublication = null;
+    _groupChallengeParticipations = [];
     _groupSchedulePublications = [];
     _groupTemplatePublications = [];
     _groupMemberSummaries = [];
@@ -1575,6 +1599,7 @@ class AppState extends ChangeNotifier {
   bool _isGroupOwner = false;
   GroupContract? _canonicalGroup;
   Map<String, dynamic>? _groupChallengePublication;
+  List<Map<String, dynamic>> _groupChallengeParticipations = [];
   List<Map<String, dynamic>> _groupSchedulePublications = [];
   List<Map<String, dynamic>> _groupTemplatePublications = [];
   List<GroupResultSummaryContract> _groupMemberSummaries = [];
@@ -1666,6 +1691,22 @@ class AppState extends ChangeNotifier {
     return _groupChallengePublication == null
         ? null
         : Map<String, dynamic>.unmodifiable(_groupChallengePublication!);
+  }
+
+  List<Map<String, dynamic>> get groupChallengeParticipations =>
+      List<Map<String, dynamic>>.unmodifiable(_groupChallengeParticipations);
+
+  Map<String, dynamic>? get currentGroupChallengeParticipation {
+    final challengeId = _groupChallengePublication?['challengeId']?.toString();
+    final memberId = _currentUser?.id;
+    if (challengeId == null || memberId == null) return null;
+    for (final participation in _groupChallengeParticipations) {
+      if (participation['challengeId'] == challengeId &&
+          participation['memberId'] == memberId) {
+        return Map<String, dynamic>.unmodifiable(participation);
+      }
+    }
+    return null;
   }
 
   List<Map<String, dynamic>> get studySchedules {
@@ -3107,6 +3148,7 @@ class AppState extends ChangeNotifier {
   }
 
   double _taskRewardWeight(Map<String, dynamic> task) {
+    if (GroupChallengeTaskPlan.isGroupChallengeTask(task)) return 0;
     final isAutoTracked = task['isAutoTracked'] as bool? ?? false;
     final isSystemTask = task['isSystemTask'] as bool? ?? false;
     final taskType = task['taskType'] as String? ?? 'fixed';
@@ -5689,6 +5731,11 @@ class AppState extends ChangeNotifier {
     if (value && isDeadlineTask && !_isDeadlineTaskReady(task)) {
       return;
     }
+    if (value &&
+        GroupChallengeTaskPlan.isGroupChallengeTask(task) &&
+        !GroupChallengeTaskPlan.isAvailable(task, now: DateTime.now())) {
+      return;
+    }
 
     _tasks[index]['done'] = value;
     _tasks[index]['isDone'] = value;
@@ -5704,6 +5751,7 @@ class AppState extends ChangeNotifier {
     checkWeeklyPlanetSettlement();
     notifyListeners();
     _saveTasks();
+    _scheduleCurrentGroupChallengeProgressSync();
   }
 
   void addTask(
@@ -5800,6 +5848,9 @@ class AppState extends ChangeNotifier {
   void deleteTask(int index) {
     if (index < 0 || index >= _tasks.length) return;
 
+    if (_tasks[index]['sourceKind'] == 'groupChallenge') {
+      return;
+    }
     final sourceId = _tasks[index]['sourceId'] as String?;
     if (sourceId != null && sourceId.isNotEmpty) {
       _disableStudyRoomGoalTaskLink(sourceId);
@@ -7581,24 +7632,129 @@ ${summaryBuf.toString()}
     await batch.commit();
   }
 
-  /// 加入團體挑戰後，自動匯入每日挑戰任務
-  Future<void> joinGroupChallengeAsTask() async {
-    final challenge = groupChallenge;
-    if (challenge == null) return;
-    final group = challenge['groupName']?.toString() ?? groupName ?? '自律團體';
-    final type = challenge['type']?.toString() ?? '自律挑戰';
-    final days = (challenge['days'] as num?)?.toInt() ?? 7;
-    for (int d = 1; d <= days; d++) {
-      String title;
-      if (d == 1) {
-        title = '【$group】$type — 第$d天（啟動）';
-      } else if (d == days) {
-        title = '【$group】$type — 第$d天（完成衝刺）';
-      } else {
-        title = '【$group】$type — 第$d天';
-      }
-      addTask(title, '學習', taskType: 'flexible', priority: '中');
+  void _ensureCurrentGroupChallengeTasks() {
+    final challenge = _groupChallengePublication;
+    final participation = currentGroupChallengeParticipation;
+    final user = _currentUser;
+    if (challenge == null ||
+        participation == null ||
+        user == null ||
+        participation['status'] == 'completed') {
+      return;
     }
+    final challengeId = challenge['challengeId']?.toString() ?? '';
+    final days = (challenge['days'] as num?)?.toInt() ?? 0;
+    if (challengeId.isEmpty || days < 1) return;
+    final missing = GroupChallengeTaskPlan.missingTasks(
+      challengeId: challengeId,
+      groupName: challenge['groupName']?.toString() ?? groupName ?? '自律團體',
+      type: challenge['type']?.toString() ?? '自律挑戰',
+      days: days,
+      existingTasks: _tasks,
+      now: DateTime.now(),
+      userId: user.id,
+    );
+    if (missing.isEmpty) return;
+    _tasks.addAll(missing);
+    _syncTaskRewards();
+    _syncTodaySummary();
+    notifyListeners();
+    _saveTasks();
+  }
+
+  Future<void> _syncCurrentGroupChallengeProgress() async {
+    final challenge = _groupChallengePublication;
+    final participation = currentGroupChallengeParticipation;
+    final group = _canonicalGroup;
+    final user = _currentUser;
+    if (challenge == null ||
+        participation == null ||
+        group == null ||
+        user == null ||
+        participation['status'] == 'completed') {
+      return;
+    }
+    final challengeId = challenge['challengeId']?.toString() ?? '';
+    if (challengeId.isEmpty) return;
+    final completedDays = GroupChallengeTaskPlan.completedDays(
+      challengeId: challengeId,
+      tasks: _tasks,
+    );
+    if ((participation['completedDays'] as num?)?.toInt() == completedDays) {
+      return;
+    }
+    final payload = GroupChallengeParticipationContract.buildProgress(
+      group: group,
+      challenge: challenge,
+      existing: participation,
+      memberId: user.id,
+      completedDays: completedDays,
+      now: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(group.id)
+        .collection('challenges')
+        .doc('current')
+        .collection('participants')
+        .doc(user.id)
+        .set(payload);
+  }
+
+  void _scheduleCurrentGroupChallengeProgressSync() {
+    if (_groupChallengeProgressSyncInFlight) {
+      _groupChallengeProgressSyncQueued = true;
+      return;
+    }
+    _groupChallengeProgressSyncInFlight = true;
+    unawaited(() async {
+      try {
+        do {
+          _groupChallengeProgressSyncQueued = false;
+          try {
+            await _syncCurrentGroupChallengeProgress();
+          } catch (error) {
+            debugPrint('Failed to sync group challenge progress: $error');
+          }
+        } while (_groupChallengeProgressSyncQueued);
+      } finally {
+        _groupChallengeProgressSyncInFlight = false;
+      }
+    }());
+  }
+
+  /// 成員自行加入目前挑戰；參與紀錄在雲端，任務匯入具冪等性。
+  Future<void> joinGroupChallengeAsTask() async {
+    final challenge = _groupChallengePublication;
+    final group = _canonicalGroup;
+    final user = _currentUser;
+    if (challenge == null || group == null || user == null) {
+      throw StateError('請先加入有效團體並等待挑戰同步');
+    }
+    final existing = currentGroupChallengeParticipation;
+    if (existing == null) {
+      final payload = GroupChallengeParticipationContract.buildJoined(
+        group: group,
+        challenge: challenge,
+        memberId: user.id,
+        now: DateTime.now(),
+      );
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(group.id)
+          .collection('challenges')
+          .doc('current')
+          .collection('participants')
+          .doc(user.id)
+          .set(payload);
+      _groupChallengeParticipations = [
+        ..._groupChallengeParticipations.where(
+          (item) => item['memberId'] != user.id,
+        ),
+        {'id': user.id, ...payload},
+      ];
+    }
+    _ensureCurrentGroupChallengeTasks();
   }
 
   Future<void> removeGuardian() async {
@@ -7903,13 +8059,15 @@ ${historyBuffer.toString()}
     if (user == null || group == null) {
       throw StateError('請先加入有效團體');
     }
+    final now = DateTime.now();
     final payload = GroupPublicationContract.buildChallenge(
       group: group,
       publisherId: user.id,
+      challengeId: 'challenge_${now.toUtc().microsecondsSinceEpoch}',
       type: type,
       days: days,
       reward: reward,
-      now: DateTime.now(),
+      now: now,
     );
     await FirebaseFirestore.instance
         .collection('groups')
@@ -8024,6 +8182,11 @@ ${historyBuffer.toString()}
     final groupRef = firestore.collection('groups').doc(group.id);
     final targetUserRef = firestore.collection('users').doc(memberId);
     final summaryRef = groupRef.collection('member_summaries').doc(memberId);
+    final participationRef = groupRef
+        .collection('challenges')
+        .doc('current')
+        .collection('participants')
+        .doc(memberId);
     await firestore.runTransaction((transaction) async {
       final groupSnapshot = await transaction.get(groupRef);
       if (!groupSnapshot.exists) {
@@ -8048,6 +8211,7 @@ ${historyBuffer.toString()}
         'updatedAt': DateTime.now().toUtc().toIso8601String(),
       });
       transaction.delete(summaryRef);
+      transaction.delete(participationRef);
     });
   }
 

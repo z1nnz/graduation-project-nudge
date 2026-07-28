@@ -44,6 +44,7 @@ class GroupPublicationContract {
   static Map<String, dynamic> buildChallenge({
     required GroupContract group,
     required String publisherId,
+    required String challengeId,
     required String type,
     required int days,
     required String reward,
@@ -56,7 +57,8 @@ class GroupPublicationContract {
       throw ArgumentError('挑戰天數必須介於 1 到 365 天');
     }
     return {
-      'schemaVersion': 1,
+      'schemaVersion': 2,
+      'challengeId': _requireText(challengeId, '挑戰識別碼'),
       'groupId': group.id,
       'groupName': group.name,
       'type': normalizedType,
@@ -123,6 +125,192 @@ class GroupPublicationContract {
     final normalized = value.trim();
     if (normalized.isEmpty) throw ArgumentError('$label不可空白');
     return normalized;
+  }
+}
+
+class GroupChallengeParticipationContract {
+  const GroupChallengeParticipationContract._();
+
+  static Map<String, dynamic> buildJoined({
+    required GroupContract group,
+    required Map<String, dynamic> challenge,
+    required String memberId,
+    required DateTime now,
+  }) {
+    _requireCurrentMember(group, memberId);
+    final challengeId = _requireActiveChallenge(group, challenge);
+    final totalDays = _challengeDays(challenge);
+    final timestamp = now.toUtc().toIso8601String();
+    return {
+      'schemaVersion': 1,
+      'groupId': group.id,
+      'challengeId': challengeId,
+      'memberId': memberId,
+      'status': 'joined',
+      'completedDays': 0,
+      'totalDays': totalDays,
+      'joinedAt': timestamp,
+      'updatedAt': timestamp,
+    };
+  }
+
+  static Map<String, dynamic> buildProgress({
+    required GroupContract group,
+    required Map<String, dynamic> challenge,
+    required Map<String, dynamic> existing,
+    required String memberId,
+    required int completedDays,
+    required DateTime now,
+  }) {
+    _requireCurrentMember(group, memberId);
+    final challengeId = _requireActiveChallenge(group, challenge);
+    final totalDays = _challengeDays(challenge);
+    if (existing['groupId'] != group.id ||
+        existing['challengeId'] != challengeId ||
+        existing['memberId'] != memberId) {
+      throw StateError('挑戰參與紀錄與目前成員或挑戰不一致');
+    }
+    if (completedDays < 0 || completedDays > totalDays) {
+      throw ArgumentError('完成天數必須介於 0 到挑戰總天數');
+    }
+    if (existing['status'] == 'completed' && completedDays < totalDays) {
+      throw StateError('已完成的挑戰不可回退進度');
+    }
+
+    final timestamp = now.toUtc().toIso8601String();
+    final completed = completedDays == totalDays;
+    return {
+      'schemaVersion': 1,
+      'groupId': group.id,
+      'challengeId': challengeId,
+      'memberId': memberId,
+      'status': completed ? 'completed' : 'joined',
+      'completedDays': completedDays,
+      'totalDays': totalDays,
+      'joinedAt': existing['joinedAt']?.toString() ?? timestamp,
+      'updatedAt': timestamp,
+      if (completed)
+        'completedAt': existing['completedAt']?.toString() ?? timestamp,
+    };
+  }
+
+  static String _requireActiveChallenge(
+    GroupContract group,
+    Map<String, dynamic> challenge,
+  ) {
+    if (challenge['schemaVersion'] != 2 ||
+        challenge['groupId'] != group.id ||
+        challenge['status'] != 'active') {
+      throw StateError('請使用目前團體已發布的新版有效挑戰');
+    }
+    final challengeId = challenge['challengeId']?.toString().trim() ?? '';
+    if (challengeId.isEmpty) {
+      throw StateError('挑戰缺少唯一識別碼，請由管理者重新發布');
+    }
+    return challengeId;
+  }
+
+  static int _challengeDays(Map<String, dynamic> challenge) {
+    final days = (challenge['days'] as num?)?.toInt() ?? 0;
+    if (days < 1 || days > 365) {
+      throw ArgumentError('挑戰天數必須介於 1 到 365 天');
+    }
+    return days;
+  }
+
+  static void _requireCurrentMember(GroupContract group, String memberId) {
+    if (!group.isMember(memberId)) {
+      throw StateError('只有目前團體成員可以參與挑戰');
+    }
+  }
+}
+
+class GroupChallengeTaskPlan {
+  const GroupChallengeTaskPlan._();
+
+  static List<Map<String, dynamic>> missingTasks({
+    required String challengeId,
+    required String groupName,
+    required String type,
+    required int days,
+    required List<Map<String, dynamic>> existingTasks,
+    required DateTime now,
+    required String userId,
+  }) {
+    if (challengeId.trim().isEmpty || days < 1 || days > 365) {
+      throw ArgumentError('挑戰任務規劃需要有效識別碼與天數');
+    }
+    final existingIds = existingTasks
+        .map((task) => task['id']?.toString())
+        .whereType<String>()
+        .toSet();
+    final timestamp = now.toUtc().toIso8601String();
+    final category = _categoryForType(type);
+    final tasks = <Map<String, dynamic>>[];
+    for (var day = 1; day <= days; day++) {
+      final taskId = 'group_challenge_${challengeId}_day_$day';
+      if (existingIds.contains(taskId)) continue;
+      final suffix = day == 1
+          ? '（啟動）'
+          : day == days
+          ? '（完成衝刺）'
+          : '';
+      final availableAt = now.toUtc().add(Duration(days: day - 1));
+      tasks.add({
+        'id': taskId,
+        'userId': userId,
+        'title': '【$groupName】$type — 第$day天$suffix',
+        'done': false,
+        'isDone': false,
+        'category': category,
+        'taskType': 'flexible',
+        'dueDate': null,
+        'priority': '中',
+        'isSystemTask': false,
+        'isAutoTracked': false,
+        'sourceType': null,
+        'targetValue': null,
+        'unitLabel': null,
+        'sourceId': challengeId,
+        'sourceKind': 'groupChallenge',
+        'challengeDay': day,
+        'availableAt': availableAt.toIso8601String(),
+        'createdAt': timestamp,
+        'updatedAt': timestamp,
+        'completedAt': null,
+      });
+    }
+    return tasks;
+  }
+
+  static int completedDays({
+    required String challengeId,
+    required List<Map<String, dynamic>> tasks,
+  }) {
+    return tasks.where((task) {
+      return task['sourceKind'] == 'groupChallenge' &&
+          task['sourceId'] == challengeId &&
+          (task['done'] == true || task['isDone'] == true);
+    }).length;
+  }
+
+  static bool isGroupChallengeTask(Map<String, dynamic> task) =>
+      task['sourceKind'] == 'groupChallenge';
+
+  static bool isAvailable(Map<String, dynamic> task, {required DateTime now}) {
+    if (!isGroupChallengeTask(task)) return true;
+    final availableAt = DateTime.tryParse(
+      task['availableAt']?.toString() ?? '',
+    );
+    return availableAt != null && !now.toUtc().isBefore(availableAt.toUtc());
+  }
+
+  static String _categoryForType(String type) {
+    if (type.contains('睡')) return '睡眠';
+    if (type.contains('步') || type.contains('運動') || type.contains('健身')) {
+      return '健康';
+    }
+    return '學習';
   }
 }
 

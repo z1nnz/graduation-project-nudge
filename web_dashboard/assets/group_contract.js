@@ -41,6 +41,7 @@
   function buildGroupChallenge({
     group,
     publisherId,
+    challengeId,
     type,
     days,
     reward,
@@ -48,7 +49,8 @@
   }) {
     requireManager(group, publisherId);
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
+      challengeId: requireText(challengeId, "挑戰識別碼"),
       groupId: group.id,
       groupName: group.name,
       type: requireText(type, "挑戰類型"),
@@ -57,6 +59,89 @@
       status: "active",
       publishedBy: publisherId,
       updatedAt: now,
+    };
+  }
+
+  function requireActiveChallenge(group, challenge) {
+    if (
+      !challenge ||
+      challenge.schemaVersion !== 2 ||
+      challenge.groupId !== group.id ||
+      challenge.status !== "active"
+    ) {
+      throw new Error("請使用目前團體已發布的新版有效挑戰");
+    }
+    return requireText(challenge.challengeId, "挑戰識別碼");
+  }
+
+  function buildGroupChallengeParticipation({
+    group,
+    challenge,
+    memberId,
+    now = new Date().toISOString(),
+  }) {
+    if (!isGroupMember(group, memberId)) {
+      throw new Error("只有目前團體成員可以參與挑戰");
+    }
+    const challengeId = requireActiveChallenge(group, challenge);
+    const totalDays = requireDays(challenge.days, "挑戰");
+    return {
+      schemaVersion: 1,
+      groupId: group.id,
+      challengeId,
+      memberId,
+      status: "joined",
+      completedDays: 0,
+      totalDays,
+      joinedAt: now,
+      updatedAt: now,
+    };
+  }
+
+  function updateGroupChallengeParticipation({
+    group,
+    challenge,
+    existing,
+    memberId,
+    completedDays,
+    now = new Date().toISOString(),
+  }) {
+    if (!isGroupMember(group, memberId)) {
+      throw new Error("只有目前團體成員可以更新挑戰進度");
+    }
+    const challengeId = requireActiveChallenge(group, challenge);
+    const totalDays = requireDays(challenge.days, "挑戰");
+    const normalizedDays = Number(completedDays);
+    if (
+      !existing ||
+      existing.groupId !== group.id ||
+      existing.challengeId !== challengeId ||
+      existing.memberId !== memberId
+    ) {
+      throw new Error("挑戰參與紀錄與目前成員或挑戰不一致");
+    }
+    if (
+      !Number.isInteger(normalizedDays) ||
+      normalizedDays < 0 ||
+      normalizedDays > totalDays
+    ) {
+      throw new Error("完成天數必須介於 0 到挑戰總天數");
+    }
+    if (existing.status === "completed" && normalizedDays < totalDays) {
+      throw new Error("已完成的挑戰不可回退進度");
+    }
+    const completed = normalizedDays === totalDays;
+    return {
+      schemaVersion: 1,
+      groupId: group.id,
+      challengeId,
+      memberId,
+      status: completed ? "completed" : "joined",
+      completedDays: normalizedDays,
+      totalDays,
+      joinedAt: existing.joinedAt || now,
+      updatedAt: now,
+      ...(completed ? { completedAt: existing.completedAt || now } : {}),
     };
   }
 
@@ -219,6 +304,8 @@
     isGroupMember,
     isGroupManager,
     buildGroupChallenge,
+    buildGroupChallengeParticipation,
+    updateGroupChallengeParticipation,
     buildGroupStudySchedule,
     buildGroupTemplate,
     buildMemberRemoval,

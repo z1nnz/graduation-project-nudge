@@ -545,7 +545,8 @@ async function run() {
   assert.equal(response.status, 200, await response.clone().text());
 
   const challengeData = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    challengeId: "challenge-family-role-composition",
     groupId,
     groupName: groupData.name,
     type: "步數挑戰",

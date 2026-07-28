@@ -127,6 +127,42 @@ function groupSummary(groupId, memberId, displayName, now) {
   };
 }
 
+function groupChallenge(groupId, groupName, managerId, challengeId, now) {
+  return {
+    schemaVersion: 2,
+    challengeId,
+    groupId,
+    groupName,
+    type: "步數挑戰",
+    days: 3,
+    reward: "限定徽章",
+    status: "active",
+    publishedBy: managerId,
+    updatedAt: now,
+  };
+}
+
+function challengeParticipation(
+  groupId,
+  challengeId,
+  memberId,
+  completedDays,
+  now,
+) {
+  return {
+    schemaVersion: 1,
+    groupId,
+    challengeId,
+    memberId,
+    status: completedDays === 3 ? "completed" : "joined",
+    completedDays,
+    totalDays: 3,
+    joinedAt: now,
+    updatedAt: now,
+    ...(completedDays === 3 ? { completedAt: now } : {}),
+  };
+}
+
 function publicProfile(userId, now) {
   const nudgeId = `NDG_${userId}`;
   return {
@@ -299,6 +335,161 @@ async function run() {
     "A manager cannot revoke consent while the member remains active",
   );
 
+  const challengeId = "challenge-20260727";
+  const challengePath = `groups/${groupId}/challenges/current`;
+  response = await createDoc(
+    challengePath,
+    groupChallenge(
+      groupId,
+      groupName,
+      manager.localId,
+      challengeId,
+      now,
+    ),
+    manager.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  const participationPath =
+    `${challengePath}/participants/${member.localId}`;
+  response = await createDoc(
+    participationPath,
+    challengeParticipation(groupId, challengeId, member.localId, 0, now),
+    member.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "A member can explicitly join the current challenge",
+  );
+
+  response = await createDoc(
+    `${challengePath}/participants/${candidate.localId}`,
+    challengeParticipation(groupId, challengeId, candidate.localId, 0, now),
+    manager.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A manager cannot opt another member into a challenge",
+  );
+
+  response = await createDoc(
+    participationPath,
+    challengeParticipation(groupId, challengeId, member.localId, 2, now),
+    member.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "A member can update progress for their own participation",
+  );
+
+  const invalidParticipation = challengeParticipation(
+    groupId,
+    challengeId,
+    member.localId,
+    2,
+    now,
+  );
+  delete invalidParticipation.updatedAt;
+  response = await createDoc(
+    participationPath,
+    invalidParticipation,
+    member.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "Participation timestamps are required by the shared contract",
+  );
+
+  response = await createDoc(
+    participationPath,
+    {
+      ...challengeParticipation(
+        groupId,
+        challengeId,
+        member.localId,
+        3,
+        now,
+      ),
+      memberId: candidate.localId,
+    },
+    member.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A member cannot publish challenge progress for another account",
+  );
+
+  response = await request(
+    `${challengePath}/participants`,
+    manager.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "The manager can read aggregate participation in the active group",
+  );
+
+  const nextChallengeId = "challenge-20260728";
+  response = await createDoc(
+    challengePath,
+    groupChallenge(
+      groupId,
+      groupName,
+      manager.localId,
+      nextChallengeId,
+      "2026-07-28T00:00:00.000Z",
+    ),
+    manager.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    participationPath,
+    challengeParticipation(
+      groupId,
+      nextChallengeId,
+      member.localId,
+      0,
+      "2026-07-28T00:00:00.000Z",
+    ),
+    member.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "A member can join a newly published challenge after an earlier round",
+  );
+
+  response = await createDoc(
+    participationPath,
+    {
+      ...challengeParticipation(
+        groupId,
+        nextChallengeId,
+        member.localId,
+        3,
+        "2026-07-30T00:00:00.000Z",
+      ),
+      joinedAt: "2026-07-28T00:00:00.000Z",
+    },
+    member.idToken,
+  );
+  assert.equal(response.status, 200, "A member can complete their own round");
+
+  response = await request(participationPath, member.idToken, {
+    method: "DELETE",
+  });
+  assert.equal(
+    response.status,
+    403,
+    "A completed challenge cannot be deleted and restarted",
+  );
+
   response = await commit(
     [
       updateWrite(`groups/${groupId}`, {
@@ -376,6 +567,40 @@ async function run() {
         ],
       ),
       deleteWrite(summaryPath),
+    ],
+    manager.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "Membership cannot change while challenge participation remains",
+  );
+
+  response = await commit(
+    [
+      updateWrite(`groups/${groupId}`, {
+        memberIds: [manager.localId, candidate.localId],
+        lastMembershipChange: {
+          type: "member_removed",
+          memberId: member.localId,
+          by: manager.localId,
+          at: now,
+        },
+        updatedAt: now,
+      }),
+      updateWrite(
+        `users/${member.localId}`,
+        { userRole: "individual", updatedAt: now },
+        [
+          "groupId",
+          "groupName",
+          "isGroupOwner",
+          "userRole",
+          "updatedAt",
+        ],
+      ),
+      deleteWrite(summaryPath),
+      deleteWrite(participationPath),
     ],
     manager.idToken,
   );

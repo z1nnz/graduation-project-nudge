@@ -191,6 +191,8 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
     final capabilities = appState.experienceCapabilities;
     final accentColor = appState.currentIconColor;
     final primaryText = AppUI.textPrimaryOf(context);
+    final currentChallengeId = appState.groupChallenge?['challengeId']
+        ?.toString();
 
     if (!capabilities.canManageGroup) {
       return Scaffold(
@@ -279,6 +281,22 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
                       (summary) => summary.memberId == memberId,
                     );
                     final summary = summaries.isEmpty ? null : summaries.first;
+                    final challengeParticipations = appState
+                        .groupChallengeParticipations
+                        .where(
+                          (item) =>
+                              item['memberId'] == memberId &&
+                              item['challengeId'] == currentChallengeId,
+                        );
+                    final challengeParticipation =
+                        challengeParticipations.isEmpty
+                        ? null
+                        : challengeParticipations.first;
+                    final challengeStatus = challengeParticipation == null
+                        ? '未參與目前挑戰'
+                        : challengeParticipation['status'] == 'completed'
+                        ? '已完成目前挑戰'
+                        : '挑戰進度 ${challengeParticipation['completedDays'] ?? 0}/${challengeParticipation['totalDays'] ?? 0} 天';
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: accentColor.withValues(alpha: 0.15),
@@ -293,10 +311,10 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
                         summary?.displayName ?? memberId,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                  subtitle: Text(
-                    isOwner
-                        ? '團體管理者・${summary == null ? "未分享成果" : "已同意成果摘要・${summary.disciplineScore} 分"}'
-                        : '團體成員・${summary == null ? "未分享成果" : "已同意成果摘要・${summary.disciplineScore} 分"}',
+                      subtitle: Text(
+                        '${isOwner ? "團體管理者" : "團體成員"}・'
+                        '${summary == null ? "未分享成果" : "已同意成果摘要・${summary.disciplineScore} 分"}'
+                        '・$challengeStatus',
                       ),
                       trailing: isOwner
                           ? const Chip(label: Text('管理者'))
