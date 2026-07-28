@@ -16,6 +16,20 @@ const ACTIVITY_EVENT_TYPES = new Set([
   "completed",
   "metricSynced",
 ]);
+const REWARD_POLICIES = new Map([
+  ["focus", { unit: "minutes", maximum: 1440 }],
+  ["study", { unit: "minutes", maximum: 1440 }],
+  ["exercise", { unit: "minutes", maximum: 1440 }],
+  ["steps", { unit: "steps", maximum: 200000 }],
+  ["sleep", { unit: "hours", maximum: 24 }],
+]);
+
+export class ActivityLedgerAuthenticationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ActivityLedgerAuthenticationError";
+  }
+}
 
 export class ActivityLedgerAuthorizationError extends Error {
   constructor(message) {
@@ -36,20 +50,37 @@ function stableHash(value) {
 }
 
 function evidenceSignature(evidence) {
-  const { eventId: _eventId, ...signatureFields } = evidence;
-  return JSON.stringify({
-    ...signatureFields,
-    roomIds: [...new Set(evidence.roomIds)].sort(),
-  });
+  return JSON.stringify([
+    evidence.sourceRecordId,
+    evidence.sessionId,
+    evidence.activityCorrelationId,
+    evidence.submittedByUserId,
+    evidence.submittedByServiceId,
+    evidence.actorUserId,
+    [...new Set(evidence.roomIds)].sort(),
+    evidence.activityType,
+    evidence.source,
+    evidence.eventType,
+    evidence.metricValue,
+    evidence.metricUnit,
+    evidence.occurredAt,
+    evidence.deviceId,
+  ]);
 }
 
 function sourceRecordKey(evidence) {
   return JSON.stringify([
     evidence.source,
     evidence.actorUserId,
-    evidence.activityType,
-    evidence.eventType,
     evidence.sourceRecordId,
+  ]);
+}
+
+function activityEventKey(evidence) {
+  return JSON.stringify([
+    evidence.actorUserId,
+    evidence.source,
+    evidence.eventId,
   ]);
 }
 
@@ -72,26 +103,46 @@ function membershipAllowsContribution(membership, occurredAt) {
   if (!membership || membership.sharingConsented === false) {
     return false;
   }
-  const isActive =
-    membership.status === "active" ||
-    membership.approvalStatus === "approved";
-  if (!isActive) {
+  if (
+    Object.hasOwn(membership, "roomStatus") &&
+    membership.roomStatus !== "active"
+  ) {
+    return false;
+  }
+  const hasStatus = membership.status !== undefined;
+  const hasApproval = membership.approvalStatus !== undefined;
+  if (
+    (!hasStatus && !hasApproval) ||
+    (hasStatus && membership.status !== "active") ||
+    (hasApproval && membership.approvalStatus !== "approved")
+  ) {
     return false;
   }
   const occurred = new Date(occurredAt).getTime();
-  if (
-    membership.activeFrom &&
-    occurred < new Date(membership.activeFrom).getTime()
-  ) {
-    return false;
+  if (membership.activeFrom) {
+    const activeFrom = new Date(membership.activeFrom).getTime();
+    if (Number.isNaN(activeFrom) || occurred < activeFrom) {
+      return false;
+    }
   }
-  if (
-    membership.activeUntil &&
-    occurred >= new Date(membership.activeUntil).getTime()
-  ) {
-    return false;
+  if (membership.activeUntil) {
+    const activeUntil = new Date(membership.activeUntil).getTime();
+    if (Number.isNaN(activeUntil) || occurred >= activeUntil) {
+      return false;
+    }
   }
   return true;
+}
+
+function rewardEligibility(evidence) {
+  const policy = REWARD_POLICIES.get(evidence.activityType);
+  if (!policy || evidence.metricValue <= 0) {
+    return false;
+  }
+  return (
+    evidence.metricUnit === policy.unit &&
+    evidence.metricValue <= policy.maximum
+  );
 }
 
 export class InMemoryActivityLedgerStore {
@@ -119,8 +170,8 @@ export class InMemoryActivityLedgerStore {
     return callback(this);
   }
 
-  async getEvent(eventId) {
-    const value = this.#events.get(eventId);
+  async getEvent(eventKey) {
+    const value = this.#events.get(eventKey);
     return value ? clone(value) : null;
   }
 
@@ -144,22 +195,22 @@ export class InMemoryActivityLedgerStore {
     return value ? clone(value) : null;
   }
 
-  async rememberDuplicateEvent(eventId, event, sourceKey = null) {
-    this.#events.set(eventId, clone(event));
+  async rememberDuplicateEvent(eventKey, event, sourceKey = null) {
+    this.#events.set(eventKey, clone(event));
     if (sourceKey) {
       this.#sourceRecords.set(sourceKey, clone(event));
     }
   }
 
   async createSettlement({
-    eventId,
+    eventKey,
     event,
     receipt,
     sourceKey,
     fingerprint,
     session,
   }) {
-    this.#events.set(eventId, clone(event));
+    this.#events.set(eventKey, clone(event));
     this.#receipts.set(receipt.receiptId, clone(receipt));
     this.#sourceRecords.set(sourceKey, clone(event));
     this.#settlements.set(fingerprint, clone(event));
@@ -167,21 +218,22 @@ export class InMemoryActivityLedgerStore {
   }
 
   async createActivityEvent({
-    eventId,
+    eventKey,
     event,
     sourceKey,
     fingerprint,
     session,
   }) {
-    this.#events.set(eventId, clone(event));
+    this.#events.set(eventKey, clone(event));
     this.#sourceRecords.set(sourceKey, clone(event));
     this.#sessions.set(fingerprint, clone(session));
   }
 
   async mergeSettlement({
     fingerprint,
+    primaryEventKey,
     primaryEvent,
-    duplicateEventId,
+    duplicateEventKey,
     duplicateEvent,
     sourceKey,
     receipt,
@@ -192,8 +244,8 @@ export class InMemoryActivityLedgerStore {
       result: clone(primaryResult),
     };
     this.#settlements.set(fingerprint, updatedPrimaryEvent);
-    this.#events.set(primaryEvent.evidence.eventId, updatedPrimaryEvent);
-    this.#events.set(duplicateEventId, clone(duplicateEvent));
+    this.#events.set(primaryEventKey, updatedPrimaryEvent);
+    this.#events.set(duplicateEventKey, clone(duplicateEvent));
     this.#sourceRecords.set(sourceKey, clone(duplicateEvent));
     this.#receipts.set(receipt.receiptId, clone(receipt));
   }
@@ -209,9 +261,10 @@ export class ActivityLedgerService {
     const evidence = this.#validateAndNormalize(principal, rawEvidence);
     const signature = evidenceSignature(evidence);
     const sourceKey = sourceRecordKey(evidence);
+    const eventKey = activityEventKey(evidence);
 
     return this.store.runTransaction(async transaction => {
-      const existing = await transaction.getEvent(evidence.eventId);
+      const existing = await transaction.getEvent(eventKey);
       if (existing) {
         if (existing.signature !== signature) {
           throw new ActivityLedgerValidationError(
@@ -233,10 +286,10 @@ export class ActivityLedgerService {
           acknowledgedSourceRecordId: evidence.sourceRecordId,
           wasDuplicate: true,
         };
-        await transaction.rememberDuplicateEvent(evidence.eventId, {
-          ...existingSourceRecord,
-          result,
-        });
+        await transaction.rememberDuplicateEvent(
+          eventKey,
+          { signature, evidence, result },
+        );
         return result;
       }
 
@@ -266,7 +319,12 @@ export class ActivityLedgerService {
             roomId,
             evidence.actorUserId,
           );
-          if (!membershipAllowsContribution(membership, evidence.occurredAt)) {
+          if (
+            !membershipAllowsContribution(
+              membership,
+              existingSettlement.evidence.occurredAt,
+            )
+          ) {
             continue;
           }
           const contribution = {
@@ -276,6 +334,7 @@ export class ActivityLedgerService {
             actorUserId: evidence.actorUserId,
             metricValue: receipt.acceptedMetric,
             metricUnit: receipt.metricUnit,
+            occurredAt: existingSettlement.evidence.occurredAt,
             createdAt,
           };
           contributions.push(contribution);
@@ -298,7 +357,9 @@ export class ActivityLedgerService {
           };
           await transaction.mergeSettlement({
             fingerprint,
+            primaryEventKey: activityEventKey(existingSettlement.evidence),
             primaryEvent: existingSettlement,
+            duplicateEventKey: eventKey,
             duplicateEventId: evidence.eventId,
             duplicateEvent: { signature, evidence, result },
             sourceKey,
@@ -308,7 +369,7 @@ export class ActivityLedgerService {
           });
         } else {
           await transaction.rememberDuplicateEvent(
-            evidence.eventId,
+            eventKey,
             { signature, evidence, result },
             sourceKey,
           );
@@ -333,6 +394,7 @@ export class ActivityLedgerService {
           wasDuplicate: false,
         };
         await transaction.createActivityEvent({
+          eventKey,
           eventId: evidence.eventId,
           event: { signature, evidence, result },
           sourceKey,
@@ -348,14 +410,15 @@ export class ActivityLedgerService {
         receiptId,
         eventId: evidence.eventId,
         sourceRecordId: evidence.sourceRecordId,
-        sessionId: evidence.activityCorrelationId ?? evidence.sessionId,
+        activitySessionId:
+          evidence.activityCorrelationId ?? evidence.sessionId,
         actorUserId: evidence.actorUserId,
         activityType: evidence.activityType,
         activityFingerprint: fingerprint,
         acceptedMetric: evidence.metricValue,
         metricUnit: evidence.metricUnit,
-        personalRewardIssued: true,
-        characterExperienceIssued: true,
+        rewardIssued: rewardEligibility(evidence),
+        characterExperienceIssued: rewardEligibility(evidence),
         verifiedAt,
         correctionOfReceiptId: null,
       };
@@ -375,6 +438,7 @@ export class ActivityLedgerService {
           actorUserId: evidence.actorUserId,
           metricValue: evidence.metricValue,
           metricUnit: evidence.metricUnit,
+          occurredAt: evidence.occurredAt,
           createdAt: verifiedAt,
         });
       }
@@ -382,13 +446,14 @@ export class ActivityLedgerService {
         status: "settled",
         acknowledgedEventId: evidence.eventId,
         acknowledgedSourceRecordId: evidence.sourceRecordId,
-        canonicalSessionId: receipt.sessionId,
+        canonicalSessionId: receipt.activitySessionId,
         receipt,
         contributions,
         session,
         wasDuplicate: false,
       };
       await transaction.createSettlement({
+        eventKey,
         eventId: evidence.eventId,
         event: { signature, evidence, result },
         receipt,
@@ -416,6 +481,10 @@ export class ActivityLedgerService {
             evidence.activityCorrelationId ?? evidence.sessionId,
           actorUserId: evidence.actorUserId,
           activityType: evidence.activityType,
+          activityCorrelationId: evidence.activityCorrelationId,
+          source: evidence.source,
+          sourceDeviceId: evidence.deviceId,
+          evidenceRef: evidence.sourceRecordId,
           status: "active",
           startedAt: evidence.occurredAt,
           endedAt: null,
@@ -463,9 +532,22 @@ export class ActivityLedgerService {
   }
 
   #validateAndNormalize(principal, rawEvidence) {
-    if (!principal || principal.kind !== "user" || !principal.userId) {
+    const isUser =
+      principal?.kind === "user" &&
+      typeof principal.userId === "string" &&
+      principal.userId.length > 0;
+    const isHealthAdapter =
+      principal?.kind === "health_adapter" &&
+      typeof principal.adapterId === "string" &&
+      principal.adapterId.length > 0;
+    if (!principal) {
+      throw new ActivityLedgerAuthenticationError(
+        "An authenticated principal is required.",
+      );
+    }
+    if (!isUser && !isHealthAdapter) {
       throw new ActivityLedgerAuthorizationError(
-        "An authenticated user is required.",
+        "The ingestion principal is not trusted.",
       );
     }
     if (
@@ -478,17 +560,41 @@ export class ActivityLedgerService {
       );
     }
     const evidence = {
-      ...rawEvidence,
+      eventId: rawEvidence.eventId,
+      sourceRecordId: rawEvidence.sourceRecordId,
+      sessionId: rawEvidence.sessionId,
+      activityCorrelationId: rawEvidence.activityCorrelationId ?? null,
+      submittedByUserId: isUser ? principal.userId : null,
+      submittedByServiceId: isHealthAdapter ? principal.adapterId : null,
+      actorUserId: rawEvidence.actorUserId,
       roomIds: Array.isArray(rawEvidence?.roomIds) ? rawEvidence.roomIds : [],
+      activityType: rawEvidence.activityType,
+      source: rawEvidence.source,
+      eventType: rawEvidence.eventType,
+      metricValue: rawEvidence.metricValue,
+      metricUnit: rawEvidence.metricUnit,
+      occurredAt: rawEvidence.occurredAt,
+      receivedAt: this.clock().toISOString(),
+      deviceId: null,
     };
-    if (principal.userId !== evidence.actorUserId) {
+    if (isUser && principal.userId !== evidence.actorUserId) {
       throw new ActivityLedgerAuthorizationError(
         "Only the actor can control this activity.",
       );
     }
-    if (evidence.source === "device") {
+    if (isUser && !["app", "web"].includes(evidence.source)) {
       throw new ActivityLedgerAuthorizationError(
-        "User ingestion cannot submit device evidence.",
+        `User ingestion cannot submit ${String(evidence.source)} evidence.`,
+      );
+    }
+    if (isHealthAdapter && evidence.source !== "health") {
+      throw new ActivityLedgerAuthorizationError(
+        "A health adapter can only submit health evidence.",
+      );
+    }
+    if (rawEvidence.deviceId !== null && rawEvidence.deviceId !== undefined) {
+      throw new ActivityLedgerAuthorizationError(
+        "User ingestion cannot submit device identifiers.",
       );
     }
     const requiredStrings = [
@@ -509,6 +615,23 @@ export class ActivityLedgerService {
     ) {
       throw new ActivityLedgerValidationError(
         "Activity identifiers and metric units cannot be empty.",
+      );
+    }
+    const boundedIdentifiers = [
+      evidence.eventId,
+      evidence.sourceRecordId,
+      evidence.sessionId,
+      evidence.actorUserId,
+      evidence.activityCorrelationId,
+    ].filter(value => value !== null);
+    if (
+      boundedIdentifiers.some(value => value.length > 256) ||
+      evidence.metricUnit.length > 64 ||
+      evidence.roomIds.length > 20 ||
+      evidence.roomIds.some(roomId => roomId.length > 256)
+    ) {
+      throw new ActivityLedgerValidationError(
+        "Activity evidence exceeds the supported identifier limits.",
       );
     }
     if (!ACTIVITY_TYPES.has(evidence.activityType)) {
@@ -549,6 +672,17 @@ export class ActivityLedgerService {
         "Activity metrics must be finite and non-negative.",
       );
     }
+    const rewardPolicy = REWARD_POLICIES.get(evidence.activityType);
+    if (
+      (rewardPolicy &&
+        (evidence.metricUnit !== rewardPolicy.unit ||
+          evidence.metricValue > rewardPolicy.maximum)) ||
+      (!rewardPolicy && evidence.metricValue > 1_000_000_000)
+    ) {
+      throw new ActivityLedgerValidationError(
+        "Activity metric unit or range is invalid for this activity type.",
+      );
+    }
     if (
       !ACTIVITY_EVENT_TYPES.has(evidence.eventType)
     ) {
@@ -560,6 +694,12 @@ export class ActivityLedgerService {
     if (Number.isNaN(occurredAt.getTime())) {
       throw new ActivityLedgerValidationError(
         "Activity occurrence time must be a valid timestamp.",
+      );
+    }
+    const receivedAt = new Date(evidence.receivedAt);
+    if (occurredAt.getTime() > receivedAt.getTime() + 5 * 60 * 1000) {
+      throw new ActivityLedgerValidationError(
+        "Activity occurrence time cannot be in the future.",
       );
     }
     return {

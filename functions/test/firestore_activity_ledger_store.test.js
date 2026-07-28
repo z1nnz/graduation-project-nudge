@@ -36,7 +36,13 @@ test(
       metricValue: 25,
       metricUnit: "minutes",
       occurredAt: "2026-07-28T09:25:00.000Z",
+      receivedAt: "2000-01-01T00:00:00.000Z",
+      submittedByUserId: "forged-user",
+      unexpectedField: "must-not-persist",
     };
+    await firestore.collection("rooms").doc(roomId).set({
+      status: "active",
+    });
     await firestore
       .collection("rooms")
       .doc(roomId)
@@ -64,11 +70,33 @@ test(
       { kind: "user", userId: actorUserId },
       evidence,
     );
+    const sourceReplayEventId = `event-source-replay-${unique}`;
+    await restartedService.record(
+      { kind: "user", userId: actorUserId },
+      {
+        ...evidence,
+        eventId: sourceReplayEventId,
+      },
+    );
+    const sourceReplaySnapshot = await firestore
+      .collection("activity_events")
+      .where("eventId", "==", sourceReplayEventId)
+      .get();
 
     assert.equal(first.status, "settled");
     assert.equal(first.contributions.length, 1);
     assert.equal(replay.receipt.receiptId, first.receipt.receiptId);
     assert.equal(replay.wasDuplicate, true);
+    assert.equal(sourceReplaySnapshot.size, 1);
+    const persistedReplay = sourceReplaySnapshot.docs[0].data();
+    assert.equal(persistedReplay.actorUserId, actorUserId);
+    assert.equal(persistedReplay.evidence.eventId, sourceReplayEventId);
+    assert.equal(persistedReplay.evidence.submittedByUserId, actorUserId);
+    assert.equal(
+      persistedReplay.evidence.receivedAt,
+      "2026-07-28T09:26:00.000Z",
+    );
+    assert.equal("unexpectedField" in persistedReplay.evidence, false);
     await deleteApp(app);
   },
 );
@@ -103,6 +131,9 @@ test(
       occurredAt: "2026-07-28T09:25:00.000Z",
     };
     for (const roomId of [roomA, roomB]) {
+      await firestore.collection("rooms").doc(roomId).set({
+        status: "active",
+      });
       await firestore
         .collection("rooms")
         .doc(roomId)
@@ -124,7 +155,7 @@ test(
       evidence,
     );
     const second = await service.record(
-      { kind: "user", userId: actorUserId },
+      { kind: "health_adapter", adapterId: "health-connect" },
       {
         ...evidence,
         eventId: `event-health-${unique}`,
@@ -152,6 +183,58 @@ test(
       receipts.docs.filter(doc => doc.id === first.receipt.receiptId).length,
       1,
     );
+    await deleteApp(app);
+  },
+);
+
+test(
+  "concurrent replays commit one receipt",
+  { skip: !emulatorEnabled },
+  async () => {
+    const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const app = initializeApp(
+      {
+        projectId: process.env.GCLOUD_PROJECT || "nudge-discipline-app",
+      },
+      `activity-ledger-race-${unique}`,
+    );
+    const firestore = getFirestore(app);
+    const actorUserId = `ledger-race-user-${unique}`;
+    const evidence = {
+      eventId: `event-${unique}`,
+      sourceRecordId: `source-${unique}`,
+      sessionId: `session-${unique}`,
+      activityCorrelationId: `correlation-${unique}`,
+      actorUserId,
+      roomIds: [],
+      activityType: "focus",
+      source: "app",
+      eventType: "completed",
+      metricValue: 25,
+      metricUnit: "minutes",
+      occurredAt: "2026-07-28T09:25:00.000Z",
+    };
+    const services = Array.from(
+      { length: 8 },
+      () =>
+        new ActivityLedgerService({
+          store: new FirestoreActivityLedgerStore({ firestore }),
+          clock: () => new Date("2026-07-28T09:25:01.000Z"),
+        }),
+    );
+
+    const results = await Promise.all(
+      services.map(service =>
+        service.record({ kind: "user", userId: actorUserId }, evidence),
+      ),
+    );
+
+    assert.equal(new Set(results.map(item => item.receipt.receiptId)).size, 1);
+    const receipts = await firestore
+      .collection("activity_receipts")
+      .where("actorUserId", "==", actorUserId)
+      .get();
+    assert.equal(receipts.size, 1);
     await deleteApp(app);
   },
 );

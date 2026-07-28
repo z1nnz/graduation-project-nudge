@@ -51,13 +51,36 @@ test("a completed activity settles once across service restarts", async () => {
   );
 
   assert.equal(first.status, "settled");
-  assert.equal(first.receipt.personalRewardIssued, true);
+  assert.equal(first.receipt.rewardIssued, true);
   assert.equal(first.receipt.characterExperienceIssued, true);
   assert.equal(first.contributions.length, 1);
   assert.equal(first.contributions[0].roomId, "room-study");
   assert.equal(replay.receipt.receiptId, first.receipt.receiptId);
   assert.equal(replay.wasDuplicate, true);
   assert.equal(store.receiptCount, 1);
+});
+
+test("event idempotency is namespaced by actor and source", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const service = new ActivityLedgerService({ store });
+
+  const first = await service.record(
+    { kind: "user", userId: "user-1" },
+    completedFocusEvidence,
+  );
+  const second = await service.record(
+    { kind: "user", userId: "user-2" },
+    {
+      ...completedFocusEvidence,
+      sourceRecordId: "app-focus-user-2",
+      sessionId: "session-focus-user-2",
+      activityCorrelationId: "focus-user-2",
+      actorUserId: "user-2",
+    },
+  );
+
+  assert.notEqual(second.receipt.receiptId, first.receipt.receiptId);
+  assert.equal(store.receiptCount, 2);
 });
 
 test("one source record cannot mint another receipt under a new event ID", async () => {
@@ -84,6 +107,32 @@ test("one source record cannot mint another receipt under a new event ID", async
   assert.equal(store.receiptCount, 1);
 });
 
+test("a source record cannot be reclassified into another rewarded activity", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const service = new ActivityLedgerService({ store });
+
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    completedFocusEvidence,
+  );
+
+  await assert.rejects(
+    service.record(
+      { kind: "user", userId: "user-1" },
+      {
+        ...completedFocusEvidence,
+        eventId: "event-reclassified",
+        activityCorrelationId: "exercise-2026-07-28",
+        activityType: "exercise",
+      },
+    ),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.includes("source record"),
+  );
+  assert.equal(store.receiptCount, 1);
+});
+
 test("app and health evidence with one correlation settle one reward", async () => {
   const store = new InMemoryActivityLedgerStore();
   const service = new ActivityLedgerService({
@@ -96,7 +145,7 @@ test("app and health evidence with one correlation settle one reward", async () 
     completedFocusEvidence,
   );
   const healthResult = await service.record(
-    { kind: "user", userId: "user-1" },
+    { kind: "health_adapter", adapterId: "health-connect" },
     {
       ...completedFocusEvidence,
       eventId: "event-focus-health",
@@ -129,6 +178,15 @@ test("user ingestion rejects spoofed device evidence and invalid dimensions", as
   await assert.rejects(
     service.record(principal, {
       ...completedFocusEvidence,
+      source: "health",
+    }),
+    error =>
+      error.name === "ActivityLedgerAuthorizationError" &&
+      error.message.includes("health"),
+  );
+  await assert.rejects(
+    service.record(principal, {
+      ...completedFocusEvidence,
       activityType: "gaming",
     }),
     error =>
@@ -143,6 +201,24 @@ test("user ingestion rejects spoofed device evidence and invalid dimensions", as
     error =>
       error.name === "ActivityLedgerValidationError" &&
       error.message.includes("Room IDs"),
+  );
+  await assert.rejects(
+    service.record(principal, {
+      ...completedFocusEvidence,
+      metricValue: 2000,
+    }),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.includes("range"),
+  );
+  await assert.rejects(
+    service.record(principal, {
+      ...completedFocusEvidence,
+      occurredAt: "2030-01-01T00:00:00.000Z",
+    }),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.includes("future"),
   );
 });
 
@@ -228,6 +304,102 @@ test("only an approved membership active at occurrence time contributes", async 
   );
 });
 
+test("membership and room status must both allow the contribution", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    roomMemberships: [
+      {
+        roomId: "room-pending",
+        userId: "user-1",
+        status: "active",
+        approvalStatus: "pending",
+        roomStatus: "active",
+      },
+      {
+        roomId: "room-closed",
+        userId: "user-1",
+        approvalStatus: "approved",
+        roomStatus: "closed",
+      },
+    ],
+  });
+  const result = await new ActivityLedgerService({ store }).record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      roomIds: ["room-pending", "room-closed"],
+    },
+  );
+
+  assert.deepEqual(result.contributions, []);
+});
+
+test("a replay cannot use a later occurrence time to backfill a room", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    roomMemberships: [
+      {
+        roomId: "room-later",
+        userId: "user-1",
+        approvalStatus: "approved",
+        roomStatus: "active",
+        activeFrom: "2026-07-28T09:30:00.000Z",
+      },
+    ],
+  });
+  const service = new ActivityLedgerService({ store });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      roomIds: [],
+    },
+  );
+  const replay = await service.record(
+    { kind: "health_adapter", adapterId: "health-connect" },
+    {
+      ...completedFocusEvidence,
+      eventId: "event-health-after-join",
+      sourceRecordId: "health-after-join",
+      sessionId: "health-after-join",
+      source: "health",
+      roomIds: ["room-later"],
+      occurredAt: "2026-07-28T09:45:00.000Z",
+    },
+  );
+
+  assert.deepEqual(replay.contributions, []);
+});
+
+test("zero and unverified custom activities settle without reward issuance", async () => {
+  const service = new ActivityLedgerService({
+    store: new InMemoryActivityLedgerStore(),
+  });
+  const zero = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      metricValue: 0,
+    },
+  );
+  const custom = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      eventId: "event-custom",
+      sourceRecordId: "source-custom",
+      sessionId: "session-custom",
+      activityCorrelationId: "custom-correlation",
+      activityType: "custom",
+      metricUnit: "check-ins",
+      metricValue: 1,
+    },
+  );
+
+  assert.equal(zero.receipt.rewardIssued, false);
+  assert.equal(zero.receipt.characterExperienceIssued, false);
+  assert.equal(custom.receipt.rewardIssued, false);
+  assert.equal(custom.receipt.characterExperienceIssued, false);
+});
+
 test("one receipt can add a later eligible room without another reward", async () => {
   const store = new InMemoryActivityLedgerStore({
     roomMemberships: [
@@ -252,7 +424,7 @@ test("one receipt can add a later eligible room without another reward", async (
     },
   );
   const second = await service.record(
-    { kind: "user", userId: "user-1" },
+    { kind: "health_adapter", adapterId: "health-connect" },
     {
       ...completedFocusEvidence,
       eventId: "event-focus-health-room-b",

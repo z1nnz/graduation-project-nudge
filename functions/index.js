@@ -3,11 +3,8 @@ import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import {
-  ActivityLedgerAuthorizationError,
-  ActivityLedgerService,
-  ActivityLedgerValidationError,
-} from "./src/activity-ledger-service.js";
+import { ActivityLedgerService } from "./src/activity-ledger-service.js";
+import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
 import { createRecordActivityHandler } from "./src/record-activity-handler.js";
 
@@ -32,11 +29,9 @@ export const recordActivity = onCall(
     try {
       return await handleRecordActivity(request);
     } catch (error) {
-      if (error instanceof ActivityLedgerAuthorizationError) {
-        throw new HttpsError("permission-denied", error.message);
-      }
-      if (error instanceof ActivityLedgerValidationError) {
-        throw new HttpsError("invalid-argument", error.message);
+      const mappedError = activityLedgerHttpsError(error);
+      if (mappedError) {
+        throw mappedError;
       }
       console.error("recordActivity failed", error);
       throw new HttpsError(

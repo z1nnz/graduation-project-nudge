@@ -16,8 +16,8 @@ class FirestoreActivityLedgerTransaction {
     this.transaction = transaction;
   }
 
-  #eventRef(eventId) {
-    return this.firestore.collection("activity_events").doc(documentId(eventId));
+  #eventRef(eventKey) {
+    return this.firestore.collection("activity_events").doc(documentId(eventKey));
   }
 
   #sourceRecordRef(sourceKey) {
@@ -52,25 +52,24 @@ class FirestoreActivityLedgerTransaction {
     return eventSnapshot.exists ? eventSnapshot.data() : null;
   }
 
-  async getEvent(eventId) {
-    const snapshot = await this.transaction.get(this.#eventRef(eventId));
+  async getEvent(eventKey) {
+    const snapshot = await this.transaction.get(this.#eventRef(eventKey));
     return snapshot.exists ? snapshot.data() : null;
   }
 
   async getRoomMembership(roomId, userId) {
-    const snapshot = await this.transaction.get(
-      this.firestore
-        .collection("rooms")
-        .doc(roomId)
-        .collection("members")
-        .doc(userId),
+    const roomRef = this.firestore.collection("rooms").doc(roomId);
+    const roomSnapshot = await this.transaction.get(roomRef);
+    const memberSnapshot = await this.transaction.get(
+      roomRef.collection("members").doc(userId),
     );
-    if (!snapshot.exists) {
+    if (!roomSnapshot.exists || !memberSnapshot.exists) {
       return null;
     }
-    const data = snapshot.data();
+    const data = memberSnapshot.data();
     return {
       ...data,
+      roomStatus: roomSnapshot.data().status,
       activeFrom: timestampToIso(data.activeFrom),
       activeUntil: timestampToIso(data.activeUntil),
     };
@@ -91,12 +90,16 @@ class FirestoreActivityLedgerTransaction {
     return snapshot.exists ? snapshot.data() : null;
   }
 
-  async rememberDuplicateEvent(eventId, event, sourceKey = null) {
-    const eventRef = this.#eventRef(eventId);
+  async rememberDuplicateEvent(eventKey, event, sourceKey = null) {
+    const eventRef = this.#eventRef(eventKey);
     this.transaction.create(eventRef, {
       schemaVersion: 1,
       ...event,
-      eventId,
+      eventId: event.evidence.eventId,
+      actorUserId: event.evidence.actorUserId,
+      eventType: event.evidence.eventType,
+      occurredAt: event.evidence.occurredAt,
+      receivedAt: event.evidence.receivedAt,
     });
     if (sourceKey) {
       this.transaction.create(this.#sourceRecordRef(sourceKey), {
@@ -108,13 +111,14 @@ class FirestoreActivityLedgerTransaction {
   }
 
   async createActivityEvent({
+    eventKey,
     eventId,
     event,
     sourceKey,
     fingerprint,
     session,
   }) {
-    const eventRef = this.#eventRef(eventId);
+    const eventRef = this.#eventRef(eventKey);
     this.transaction.create(eventRef, {
       schemaVersion: 1,
       ...event,
@@ -122,6 +126,7 @@ class FirestoreActivityLedgerTransaction {
       actorUserId: event.evidence.actorUserId,
       eventType: event.evidence.eventType,
       occurredAt: event.evidence.occurredAt,
+      receivedAt: event.evidence.receivedAt,
     });
     this.transaction.create(this.#sourceRecordRef(sourceKey), {
       schemaVersion: 1,
@@ -137,6 +142,7 @@ class FirestoreActivityLedgerTransaction {
   }
 
   async createSettlement({
+    eventKey,
     eventId,
     event,
     receipt,
@@ -144,7 +150,7 @@ class FirestoreActivityLedgerTransaction {
     fingerprint,
     session,
   }) {
-    const eventRef = this.#eventRef(eventId);
+    const eventRef = this.#eventRef(eventKey);
     this.transaction.create(eventRef, {
       schemaVersion: 1,
       ...event,
@@ -152,6 +158,7 @@ class FirestoreActivityLedgerTransaction {
       actorUserId: event.evidence.actorUserId,
       eventType: event.evidence.eventType,
       occurredAt: event.evidence.occurredAt,
+      receivedAt: event.evidence.receivedAt,
     });
     this.transaction.create(this.#sourceRecordRef(sourceKey), {
       schemaVersion: 1,
@@ -195,7 +202,9 @@ class FirestoreActivityLedgerTransaction {
 
   async mergeSettlement({
     fingerprint,
+    primaryEventKey,
     primaryEvent,
+    duplicateEventKey,
     duplicateEventId,
     duplicateEvent,
     sourceKey,
@@ -203,8 +212,8 @@ class FirestoreActivityLedgerTransaction {
     newContributions,
     primaryResult,
   }) {
-    const primaryEventRef = this.#eventRef(primaryEvent.evidence.eventId);
-    const duplicateEventRef = this.#eventRef(duplicateEventId);
+    const primaryEventRef = this.#eventRef(primaryEventKey);
+    const duplicateEventRef = this.#eventRef(duplicateEventKey);
     this.transaction.update(primaryEventRef, { result: primaryResult });
     this.transaction.create(duplicateEventRef, {
       schemaVersion: 1,
@@ -213,6 +222,7 @@ class FirestoreActivityLedgerTransaction {
       actorUserId: duplicateEvent.evidence.actorUserId,
       eventType: duplicateEvent.evidence.eventType,
       occurredAt: duplicateEvent.evidence.occurredAt,
+      receivedAt: duplicateEvent.evidence.receivedAt,
     });
     this.transaction.create(this.#sourceRecordRef(sourceKey), {
       schemaVersion: 1,
