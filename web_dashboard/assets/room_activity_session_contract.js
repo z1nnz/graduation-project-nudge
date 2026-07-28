@@ -78,7 +78,20 @@
     };
   }
 
-  const contract = { start, transition, statuses, activityKinds, sources };
+  function requiresTrustedHealthAdapter(room = {}) {
+    return ["sleepHours", "steps", "exerciseMinutes"].includes(
+      String(room.goalSourceType || ""),
+    );
+  }
+
+  const contract = {
+    start,
+    transition,
+    requiresTrustedHealthAdapter,
+    statuses,
+    activityKinds,
+    sources,
+  };
   root.NudgeRoomActivitySessionContract = contract;
   if (typeof module !== "undefined" && module.exports) {
     module.exports = contract;

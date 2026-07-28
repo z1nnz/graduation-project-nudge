@@ -44,6 +44,10 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 - Health Connect／Apple Health 已轉換為每日步數、睡眠、運動快照，經
   provider 分批送入 Cloud；同日後續快照建立不可變 correction Receipt，
   不覆寫舊 Receipt。
+- Web 的個人專注與一般自律房活動也已使用耐久 outbox 提交 Ledger；健康型
+  房間不接受 Web 手動輸入，只顯示 Cloud 驗證後的 Room Contribution。
+- App 健康型房間已移除舊式手動投影入口，只能前往 Health Connect／
+  Apple Health 同步後由 Ledger 更新房間貢獻。
 
 尚未完成或仍需重構：
 
@@ -51,9 +55,14 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 - 多團體成員關係與關係範圍角色。
 - 正式家庭與家庭成員關係。
 - 所有 App 與 Web 頁面共用的完整細粒度權限判斷。
-- Web Dashboard 仍需改走 Activity Ledger，App 內舊健康／房間投影也仍需
-  在讀取端切換完成後移除。
+- 一般活動房仍保留舊 `activity_sessions` 讀取投影供過渡期 UI 使用；需在
+  App／Web 都能直接讀取正式 Session／Contribution 後移除。
 - 房間資料與使用者文件中既有投影資料的遷移、封存與清除。
+
+正式 Web 發布前必須透過部署環境設定
+`window.NUDGE_FIREBASE_APP_CHECK_SITE_KEY`，或在 HTML 提供
+`firebase-app-check-site-key` meta。未設定時活動會保留於本機 outbox，
+不會繞過 App Check 寫入 Cloud。
 
 ## 3. 核心產品原則
 

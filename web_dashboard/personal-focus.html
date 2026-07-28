@@ -61,15 +61,18 @@
         <div class="stars layer3"></div>
       </div>
     </div>
-    <script src="assets/app.js?v=12"></script>
+    <script src="assets/app.js?v=17"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const urlParams = new URLSearchParams(window.location.search);
         const focusMins = parseInt(urlParams.get('focus')) || 25;
         const autoStart = urlParams.get('start') === 'true';
 
-        let timeLeft = focusMins * 60;
+        const totalSeconds = focusMins * 60;
+        let timeLeft = totalSeconds;
         let timerId = null;
+        let sessionId = null;
+        let timerState = 'idle';
         const display = document.getElementById('focusTimerDisplay');
         const status = document.getElementById('focusTimerStatus');
         const btnStart = document.getElementById('btnStartFocus');
@@ -84,8 +87,36 @@
         };
         updateDisplay();
 
-        const startTimer = () => {
+        const queueLedger = async (eventType) => {
+          if (typeof window.queueWebStandaloneFocusLedgerEvent !== 'function') {
+            throw new Error('Activity Ledger 尚未載入，請稍後再試。');
+          }
+          await window.queueWebStandaloneFocusLedgerEvent({
+            sessionId,
+            eventType,
+            elapsedSeconds: totalSeconds - timeLeft,
+            occurredAt: new Date(),
+          });
+        };
+
+        const startTimer = async () => {
           if (timerId) return;
+          const isResume = timerState === 'paused';
+          if (!sessionId) {
+            sessionId = `web_focus_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+          }
+          try {
+            btnStart.disabled = true;
+            await queueLedger(isResume ? 'resumed' : 'started');
+          } catch (error) {
+            btnStart.disabled = false;
+            status.textContent = error.message || '無法保存專注事件，請確認已登入。';
+            status.style.color = '#ff3333';
+            if (!isResume) sessionId = null;
+            return;
+          }
+          btnStart.disabled = false;
+          timerState = 'active';
           hyperdriveBg.classList.add('active');
           btnStart.style.display = 'none';
           btnPause.style.display = 'inline-flex';
@@ -97,16 +128,26 @@
             timeLeft--;
             updateDisplay();
             if (timeLeft <= 0) {
-              stopTimer();
-              status.textContent = '躍遷完成！您已抵達目標星系。';
-              status.style.color = '#00ff88';
+              finishTimer(
+                'completed',
+                '躍遷完成！活動已送入 Cloud Ledger。',
+                '#00ff88',
+              );
             }
           }, 1000);
         };
 
-        const pauseTimer = () => {
+        const pauseTimer = async () => {
+          try {
+            await queueLedger('paused');
+          } catch (error) {
+            status.textContent = error.message || '無法保存暫停事件。';
+            status.style.color = '#ff3333';
+            return;
+          }
           clearInterval(timerId);
           timerId = null;
+          timerState = 'paused';
           hyperdriveBg.classList.remove('active');
           btnStart.style.display = 'inline-flex';
           btnPause.style.display = 'none';
@@ -115,26 +156,36 @@
           status.style.color = '#ff9900';
         };
 
-        const stopTimer = () => {
+        const finishTimer = async (eventType, message, color) => {
           clearInterval(timerId);
           timerId = null;
-          timeLeft = 25 * 60;
+          try {
+            await queueLedger(eventType);
+          } catch (error) {
+            message = error.message || '活動已停止，但 Ledger 尚未保存。';
+            color = '#ff3333';
+          }
+          timerState = 'idle';
+          sessionId = null;
+          timeLeft = totalSeconds;
           updateDisplay();
           hyperdriveBg.classList.remove('active');
           btnStart.style.display = 'inline-flex';
           btnPause.style.display = 'none';
           btnStop.style.display = 'none';
           btnStart.textContent = '啟動引擎 (Start)';
-          status.textContent = '躍遷已中斷。';
-          status.style.color = '#ff3333';
+          status.textContent = message;
+          status.style.color = color;
         };
 
         btnStart.addEventListener('click', startTimer);
         btnPause.addEventListener('click', pauseTimer);
-        btnStop.addEventListener('click', stopTimer);
+        btnStop.addEventListener('click', () => {
+          finishTimer('discarded', '躍遷已中斷，本輪不會發放獎勵。', '#ff3333');
+        });
 
         if (autoStart) {
-          startTimer();
+          document.addEventListener('firebase-ready', startTimer, { once: true });
         }
       });
     </script>

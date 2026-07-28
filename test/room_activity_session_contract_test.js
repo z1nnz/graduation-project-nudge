@@ -69,3 +69,24 @@ test("web contract rejects owner control and terminal replay", () => {
     }),
   );
 });
+
+test("protected health rooms never accept manual Web activity control", () => {
+  assert.equal(
+    contract.requiresTrustedHealthAdapter({ goalSourceType: "steps" }),
+    true,
+  );
+  assert.equal(
+    contract.requiresTrustedHealthAdapter({ goalSourceType: "sleepHours" }),
+    true,
+  );
+  assert.equal(
+    contract.requiresTrustedHealthAdapter({
+      goalSourceType: "exerciseMinutes",
+    }),
+    true,
+  );
+  assert.equal(
+    contract.requiresTrustedHealthAdapter({ goalSourceType: "studyRoom" }),
+    false,
+  );
+});

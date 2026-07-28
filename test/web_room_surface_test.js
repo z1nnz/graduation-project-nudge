@@ -42,6 +42,8 @@ test("app discovery no longer ships fabricated public rooms", () => {
   assert.doesNotMatch(listPage, /final combined = \[\.\.\.publicRooms, \.\.\.rooms\]/);
 
   const livePage = read("lib/screens/study_room_live_page.dart");
-  assert.match(livePage, /_syncExternalActivity/);
-  assert.match(livePage, /RoomActivitySource\.health/);
+  assert.doesNotMatch(livePage, /_syncExternalActivity/);
+  assert.doesNotMatch(livePage, /RoomActivitySource\.health/);
+  assert.match(livePage, /MaterialPageRoute\(builder: \(_\) => const HealthPage\(\)\)/);
+  assert.match(livePage, /活動帳本/);
 });

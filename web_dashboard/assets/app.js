@@ -5,14 +5,22 @@ function loadWindowModule(globalKey, source, errorMessage) {
   if (window[globalKey]) {
     return Promise.resolve(window[globalKey]);
   }
+  window.nudgeModulePromises ||= {};
+  if (window.nudgeModulePromises[globalKey]) {
+    return window.nudgeModulePromises[globalKey];
+  }
 
-  return new Promise((resolve, reject) => {
+  window.nudgeModulePromises[globalKey] = new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = source;
     script.onload = () => resolve(window[globalKey]);
     script.onerror = () => reject(new Error(errorMessage));
     document.head.appendChild(script);
+  }).catch(error => {
+    delete window.nudgeModulePromises[globalKey];
+    throw error;
   });
+  return window.nudgeModulePromises[globalKey];
 }
 
 function loadRelationshipCapabilities() {
@@ -42,8 +50,16 @@ function loadGroupContract() {
 function loadRoomActivitySessionContract() {
   return loadWindowModule(
     "NudgeRoomActivitySessionContract",
-    "assets/room_activity_session_contract.js?v=1",
+    "assets/room_activity_session_contract.js?v=2",
     "活動房紀錄契約模組載入失敗",
+  );
+}
+
+function loadActivityLedgerClient() {
+  return loadWindowModule(
+    "NudgeActivityLedgerClient",
+    "assets/activity_ledger_client.js?v=1",
+    "Activity Ledger 模組載入失敗",
   );
 }
 
@@ -2000,53 +2016,59 @@ const firebaseConfig = {
 };
 
 function loadFirebaseSDKs() {
-  return new Promise((resolve) => {
-    let settled = false;
-    const resolveOnce = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
-      resolve();
-    };
-    const timeoutId = setTimeout(resolveOnce, 4000);
-
-    if (
-      window.firebase &&
-      window.firebase.auth &&
-      window.firebase.firestore &&
-      window.firebase.storage
-    ) {
-      resolveOnce();
-      return;
-    }
-    const coreScript = document.createElement('script');
-    coreScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js";
-    coreScript.onload = () => {
-      const authScript = document.createElement('script');
-      authScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js";
-      authScript.onload = () => {
-        const dbScript = document.createElement('script');
-        dbScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js";
-        dbScript.onload = () => {
-          const storageScript = document.createElement('script');
-          storageScript.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js";
-          storageScript.onload = resolveOnce;
-          storageScript.onerror = resolveOnce;
-          document.head.appendChild(storageScript);
-        };
-        dbScript.onerror = () => resolveOnce();
-        document.head.appendChild(dbScript);
-      };
-      authScript.onerror = () => resolveOnce();
-      document.head.appendChild(authScript);
-    };
-    coreScript.onerror = () => resolveOnce();
-    document.head.appendChild(coreScript);
-  });
+  if (window.nudgeFirebaseSdkPromise) {
+    return window.nudgeFirebaseSdkPromise;
+  }
+  const loadScript = (source, isReady) => {
+    if (isReady()) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${source}"]`);
+      if (existing) {
+        existing.addEventListener("load", resolve, { once: true });
+        existing.addEventListener("error", reject, { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = source;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  };
+  const sdk = "https://www.gstatic.com/firebasejs/9.22.0";
+  window.nudgeFirebaseSdkPromise = (async () => {
+    await loadScript(
+      `${sdk}/firebase-app-compat.js`,
+      () => Boolean(window.firebase),
+    );
+    await loadScript(
+      `${sdk}/firebase-auth-compat.js`,
+      () => Boolean(window.firebase?.auth),
+    );
+    await loadScript(
+      `${sdk}/firebase-firestore-compat.js`,
+      () => Boolean(window.firebase?.firestore),
+    );
+    await loadScript(
+      `${sdk}/firebase-storage-compat.js`,
+      () => Boolean(window.firebase?.storage),
+    );
+    await loadScript(
+      `${sdk}/firebase-functions-compat.js`,
+      () => Boolean(window.firebase?.functions),
+    );
+    await loadScript(
+      `${sdk}/firebase-app-check-compat.js`,
+      () => Boolean(window.firebase?.appCheck),
+    );
+  })();
+  return window.nudgeFirebaseSdkPromise;
 }
 
 let db = null;
 let storage = null;
+let functions = null;
+let webActivityLedgerOutbox = null;
 let activeFamilyLink = null;
 let currentFamilySummary = null;
 let currentWebUserData = null;
@@ -2069,12 +2091,122 @@ let listeningWebGroupId = undefined;
 let webRoomsSub = null;
 let webRoomMemberSub = null;
 let webRoomSessionsSub = null;
+let webRoomContributionsSub = null;
 let webRoomMessagesSub = null;
 let webRoomEventsSub = null;
 let activeWebRoom = null;
 let activeWebRoomMember = null;
 let activeWebRoomMembers = [];
 let activeWebRoomSession = null;
+let activeWebRoomContribution = null;
+
+function configuredAppCheckSiteKey() {
+  return String(
+    window.NUDGE_FIREBASE_APP_CHECK_SITE_KEY ||
+    document.querySelector('meta[name="firebase-app-check-site-key"]')?.content ||
+    "",
+  ).trim();
+}
+
+function initializeFirebaseAppCheck() {
+  const siteKey = configuredAppCheckSiteKey();
+  if (!firebase.appCheck || !siteKey) {
+    console.warn(
+      "Firebase App Check site key is not configured; protected Cloud ingestion will remain queued.",
+    );
+    return false;
+  }
+  try {
+    firebase.appCheck().activate(siteKey, true);
+    return true;
+  } catch (error) {
+    if (!String(error?.message || "").includes("already been activated")) {
+      console.warn("Firebase App Check initialization failed:", error);
+      return false;
+    }
+    return true;
+  }
+}
+
+async function ensureWebActivityLedgerOutbox() {
+  if (webActivityLedgerOutbox) return webActivityLedgerOutbox;
+  const ledger = await loadActivityLedgerClient();
+  webActivityLedgerOutbox = ledger.createActivityLedgerOutbox({
+    storage: localStorage,
+    getActorId: () => firebase.auth().currentUser?.uid || null,
+    call: async payload => {
+      if (!functions || !firebase.auth().currentUser) {
+        const error = new Error("Activity Ledger 尚未連線或使用者尚未登入。");
+        error.code = "functions/unauthenticated";
+        throw error;
+      }
+      if (!configuredAppCheckSiteKey()) {
+        const error = new Error(
+          "Activity Ledger 等待 Firebase App Check 正式設定。",
+        );
+        error.code = "functions/unavailable";
+        throw error;
+      }
+      const response = await functions.httpsCallable("recordActivity")(payload);
+      return response.data;
+    },
+  });
+  return webActivityLedgerOutbox;
+}
+
+async function queueWebRoomLedgerTransition({
+  session,
+  previousStatus = null,
+  nextStatus,
+}) {
+  const ledger = await loadActivityLedgerClient();
+  const evidence = ledger.buildRoomActivityEvidence({
+    session,
+    previousStatus,
+    nextStatus,
+  });
+  const outbox = await ensureWebActivityLedgerOutbox();
+  await outbox.enqueue(evidence);
+  outbox.flush().then(report => {
+    if (report.retryBlocked) {
+      toast("活動已保存，Cloud Ledger 將在連線恢復後重送");
+    }
+  }).catch(error => {
+    console.warn("Activity Ledger flush failed:", error);
+  });
+}
+
+window.queueWebStandaloneFocusLedgerEvent = async ({
+  sessionId,
+  eventType,
+  elapsedSeconds,
+  occurredAt = new Date(),
+}) => {
+  const ledger = await loadActivityLedgerClient();
+  const evidence = ledger.buildStandaloneFocusEvidence({
+    sessionId,
+    eventType,
+    elapsedSeconds,
+    occurredAt,
+  });
+  const outbox = await ensureWebActivityLedgerOutbox();
+  await outbox.enqueue(evidence);
+  outbox.flush().then(report => {
+    if (report.retryBlocked) {
+      toast("專注事件已離線保存，登入或連線恢復後會自動同步");
+    }
+  }).catch(error => {
+    console.warn("Standalone focus Ledger flush failed:", error);
+  });
+  return { queued: true };
+};
+
+function roomUsesTrustedHealthAdapter(room = {}) {
+  return Boolean(
+    window.NudgeRoomActivitySessionContract
+      ?.requiresTrustedHealthAdapter(room),
+  );
+}
 
 function roomActivityKind(room = {}) {
   const roomType = String(room.roomType || "study");
@@ -2114,6 +2246,7 @@ function roomSessionStatusLabel(status) {
     paused: "已暫停",
     completed: "已完成",
     cancelled: "已取消",
+    verified: "Ledger 已驗證",
   })[status] || "尚未開始";
 }
 
@@ -2131,9 +2264,22 @@ function renderWebRoomSessionPanel() {
   }
 
   const memberApproved = activeWebRoomMember?.approvalStatus === "approved";
-  const status = activeWebRoomSession?.status;
-  const metricValue = Number(activeWebRoomSession?.metricValue || 0);
-  const unit = activeWebRoomSession?.metricUnit || roomMetricUnit(activeWebRoom);
+  const trustedHealthOnly = roomUsesTrustedHealthAdapter(activeWebRoom);
+  const legacyStatus = activeWebRoomSession?.status;
+  const status =
+    activeWebRoomContribution &&
+    (!legacyStatus || ["completed", "cancelled"].includes(legacyStatus))
+      ? "verified"
+      : legacyStatus;
+  const metricValue = Number(
+    activeWebRoomContribution?.metricValue ??
+    activeWebRoomSession?.metricValue ??
+    0,
+  );
+  const unit =
+    activeWebRoomContribution?.metricUnit ||
+    activeWebRoomSession?.metricUnit ||
+    roomMetricUnit(activeWebRoom);
   const target = Number(
     activeWebRoomSession?.targetValue ||
     activeWebRoom.dailyGoalValue ||
@@ -2142,7 +2288,9 @@ function renderWebRoomSessionPanel() {
   const progress = Math.min(100, Math.max(0, target > 0 ? metricValue / target * 100 : 0));
   const controls = !memberApproved
     ? `<div class="room-approval-note">等待房間管理者核准加入；核准後，你仍然自行控制自己的活動。</div>`
-    : !status || ["completed", "cancelled"].includes(status)
+    : trustedHealthOnly
+      ? `<div class="room-approval-note">此房間使用受信任健康資料；請從 App 觸發 Health Connect／Apple Health 同步，Web 不接受手動輸入。</div>`
+    : !status || ["completed", "cancelled", "verified"].includes(status)
       ? `<button class="primary-btn" type="button" data-room-start>開始我的紀錄</button>`
       : `
         ${status === "active"
@@ -2166,11 +2314,13 @@ function renderWebRoomSessionPanel() {
     </div>
     <label class="room-metric-input">
       <span>這一輪累積值</span>
-      <input type="number" min="${metricValue}" step="0.1" value="${metricValue}" data-room-metric-value />
-      <small>${escapeHtml(unit)}，進度只能向前增加</small>
+      <input type="number" min="${metricValue}" step="0.1" value="${metricValue}" data-room-metric-value ${trustedHealthOnly ? "disabled" : ""} />
+      <small>${trustedHealthOnly ? "只顯示由健康 Adapter 驗證的數值" : `${escapeHtml(unit)}，進度只能向前增加`}</small>
     </label>
     <div class="room-session-controls">${controls}</div>
-    <p class="room-control-note">房間管理者負責規則與成員資格；由你自己開始、暫停與完成，不會被他人代替操作。</p>`;
+    <p class="room-control-note">${trustedHealthOnly
+      ? "房間管理者只能查看經同意的彙整貢獻，不能修改健康數值或替成員同步。"
+      : "房間管理者負責規則與成員資格；由你自己開始、暫停與完成，事件會送入 Cloud Activity Ledger。"}</p>`;
 
   $("[data-room-start]", panel)?.addEventListener("click", () => {
     startWebRoomSession().catch(error => toast(error.message || "無法開始活動"));
@@ -2203,8 +2353,10 @@ function stopWebRoomInteractionListeners() {
 function stopWebRoomDetailListeners() {
   if (webRoomMemberSub) webRoomMemberSub();
   if (webRoomSessionsSub) webRoomSessionsSub();
+  if (webRoomContributionsSub) webRoomContributionsSub();
   webRoomMemberSub = null;
   webRoomSessionsSub = null;
+  webRoomContributionsSub = null;
   stopWebRoomInteractionListeners();
 }
 
@@ -2449,6 +2601,7 @@ function selectWebRoom(roomId, room) {
   activeWebRoomMember = null;
   activeWebRoomMembers = [];
   activeWebRoomSession = null;
+  activeWebRoomContribution = null;
   stopWebRoomDetailListeners();
   webRoomMemberSub = db.collection("rooms").doc(roomId)
     .collection("members")
@@ -2467,8 +2620,33 @@ function selectWebRoom(roomId, room) {
         stopWebRoomInteractionListeners();
         return;
       }
+      if (!webRoomContributionsSub) {
+        webRoomContributionsSub = db.collection("room_contributions")
+          .where("actorUserId", "==", userId)
+          .onSnapshot(snapshot => {
+            const contributions = snapshot.docs
+              .map(doc => ({ ...doc.data(), contributionId: doc.id }))
+              .filter(contribution => contribution.roomId === roomId)
+              .sort((a, b) =>
+                String(b.createdAt || "").localeCompare(
+                  String(a.createdAt || ""),
+                ));
+            activeWebRoomContribution = contributions[0] || null;
+            renderWebRoomSessionPanel();
+          }, error => {
+            console.warn("Activity Ledger contribution sync failed:", error);
+            toast("Cloud Ledger 貢獻同步失敗");
+          });
+      }
       if (!webRoomMessagesSub || !webRoomEventsSub) {
         listenToWebRoomInteractions(roomId);
+      }
+      if (roomUsesTrustedHealthAdapter(activeWebRoom)) {
+        if (webRoomSessionsSub) webRoomSessionsSub();
+        webRoomSessionsSub = null;
+        activeWebRoomSession = null;
+        renderWebRoomSessionPanel();
+        return;
       }
       if (webRoomSessionsSub) return;
       webRoomSessionsSub = db.collection("rooms").doc(roomId)
@@ -2519,6 +2697,7 @@ function listenToWebRooms(userId) {
         activeWebRoomMember = null;
         activeWebRoomMembers = [];
         activeWebRoomSession = null;
+        activeWebRoomContribution = null;
         stopWebRoomDetailListeners();
         renderWebRoomMembers();
         renderWebRoomSessionPanel();
@@ -2550,6 +2729,9 @@ async function startWebRoomSession() {
   if (activeWebRoomMember?.approvalStatus !== "approved") {
     throw new Error("成員資格尚未核准");
   }
+  if (roomUsesTrustedHealthAdapter(activeWebRoom)) {
+    throw new Error("健康型房間只能從 App 的受信任健康來源同步");
+  }
   const contract = await loadRoomActivitySessionContract();
   const safeIdentity = `${userId}_${activeWebRoom.id}_${Date.now()}`.replaceAll("/", "_");
   const session = contract.start({
@@ -2577,6 +2759,10 @@ async function startWebRoomSession() {
     `${activeWebRoomMember.displayName || "成員"} 開始活動`,
   );
   batch.set(roomRef.collection("events").doc(event.id), event);
+  await queueWebRoomLedgerTransition({
+    session,
+    nextStatus: "active",
+  });
   await batch.commit();
   toast("已開始你的活動紀錄");
 }
@@ -2585,6 +2771,9 @@ async function transitionWebRoomSession(nextStatus) {
   const userId = firebase.auth().currentUser?.uid;
   if (!db || !userId || !activeWebRoom || !activeWebRoomSession) {
     throw new Error("目前沒有可更新的活動");
+  }
+  if (roomUsesTrustedHealthAdapter(activeWebRoom)) {
+    throw new Error("健康型房間只能從 App 的受信任健康來源同步");
   }
   const contract = await loadRoomActivitySessionContract();
   const metricInput = $("[data-room-metric-value]");
@@ -2623,6 +2812,11 @@ async function transitionWebRoomSession(nextStatus) {
     );
   }
   batch.set(roomRef.collection("events").doc(event.id), event);
+  await queueWebRoomLedgerTransition({
+    session: next,
+    previousStatus: activeWebRoomSession.status,
+    nextStatus,
+  });
   await batch.commit();
   toast(nextStatus === "completed" ? "這輪活動已完成" : "活動狀態已同步");
 }
@@ -3162,8 +3356,12 @@ function initializeFirebaseWeb() {
         if (!firebase.apps.length) {
           firebase.initializeApp(firebaseConfig);
         }
+        initializeFirebaseAppCheck();
         db = firebase.firestore();
         storage = firebase.storage ? firebase.storage() : null;
+        functions = firebase.functions
+          ? firebase.app().functions("asia-east1")
+          : null;
         console.log("Firebase initialized successfully on Web Center");
 
         const auth = firebase.auth();
@@ -3190,6 +3388,11 @@ function initializeFirebaseWeb() {
               localStorage.setItem("nudgeActiveDemoUserId", user.uid);
             }
             startListeningToFirestoreData();
+            ensureWebActivityLedgerOutbox()
+              .then(outbox => outbox.flush())
+              .catch(error => {
+                console.warn("Activity Ledger resume failed:", error);
+              });
             document.dispatchEvent(new Event('firebase-ready'));
             return;
           }
@@ -3234,6 +3437,9 @@ function initializeFirebaseWeb() {
       startListeningToFirestoreData();
       document.dispatchEvent(new Event('firebase-ready'));
     }
+  }).catch(error => {
+    console.warn("Firebase SDK loading failed:", error);
+    document.dispatchEvent(new Event('firebase-ready'));
   });
 }
 

@@ -313,42 +313,6 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     }
   }
 
-  Future<void> _syncExternalActivity(
-    AppState appState,
-    StudyRoomData room,
-    double metricValue,
-  ) async {
-    if (metricValue <= 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('目前沒有可同步的健康進度')));
-      return;
-    }
-    try {
-      final current =
-          appState.activeRoomActivitySession(room.id) ??
-          await appState.startRoomActivitySession(
-            roomId: room.id,
-            source: RoomActivitySource.health,
-          );
-      final safeMetric = metricValue < current.metricValue
-          ? current.metricValue
-          : metricValue;
-      await appState.transitionRoomActivitySession(
-        sessionId: current.sessionId,
-        status: RoomActivitySessionStatus.completed,
-        metricValue: safeMetric,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('已把今日${_metricName(room)}同步到房間')));
-    } catch (error) {
-      if (!mounted) return;
-      _showSessionSyncError(error);
-    }
-  }
-
   void _setDuration(int seconds) {
     if (_isRunning) return;
     setState(() {
@@ -429,14 +393,14 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   String _healthSyncDescription(StudyRoomData room) {
     switch (room.roomType) {
       case StudyRoomType.sleep:
-        return '睡眠房不在房內開始計時，會讀取健康資料中的睡眠時數來更新進度。';
+        return '睡眠房不在房內開始計時；App 會將 Health Connect 或 Apple Health 的睡眠紀錄送往活動帳本，驗證後自動更新房間進度。';
       case StudyRoomType.exercise:
-        return '運動房以健康資料的運動分鐘更新進度，房內保留聊天和鼓勵打卡。';
+        return '運動分鐘會由 Health Connect 或 Apple Health 送往活動帳本，驗證後自動更新房間進度；房內保留聊天和鼓勵打卡。';
       case StudyRoomType.steps:
-        return '步數房不在房內開始走路，會讀取健康資料中的今日步數來更新進度。';
+        return '步數房不在房內手動登錄；App 會將 Health Connect 或 Apple Health 的步數送往活動帳本，驗證後自動更新房間進度。';
       case StudyRoomType.study:
       case StudyRoomType.custom:
-        return '這間房會從外部資料同步今日進度。';
+        return '這間房會從可信任的外部資料來源同步今日進度。';
     }
   }
 
@@ -715,11 +679,6 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                   progress: externalProgress,
                   isHealthConnected: appState.isHealthConnected,
                   description: _healthSyncDescription(room),
-                  onRecord: () => _syncExternalActivity(
-                    appState,
-                    room,
-                    me.todayMetricValue,
-                  ),
                   onSync: () {
                     Navigator.push(
                       context,
@@ -1790,7 +1749,6 @@ class _HealthSyncPanel extends StatelessWidget {
   final double progress;
   final bool isHealthConnected;
   final String description;
-  final VoidCallback onRecord;
   final VoidCallback onSync;
 
   const _HealthSyncPanel({
@@ -1801,7 +1759,6 @@ class _HealthSyncPanel extends StatelessWidget {
     required this.progress,
     required this.isHealthConnected,
     required this.description,
-    required this.onRecord,
     required this.onSync,
   });
 
@@ -1910,24 +1867,13 @@ class _HealthSyncPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onSync,
-                    icon: const Icon(Icons.health_and_safety_outlined),
-                    label: const Text('健康資料'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onRecord,
-                    icon: const Icon(Icons.sync_outlined),
-                    label: const Text('同步到房間'),
-                  ),
-                ),
-              ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onSync,
+                icon: const Icon(Icons.health_and_safety_outlined),
+                label: Text(isHealthConnected ? '更新健康資料' : '連接健康資料'),
+              ),
             ),
           ],
         ),
