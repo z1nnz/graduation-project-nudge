@@ -191,8 +191,7 @@ erDiagram
 
 主要資料：
 
-- `roomIds`：活動本身不隸屬單一房間，可為零到多個候選房間；實際計入仍由
-  Room Contribution 與發生時的 Membership／分享同意判定
+- `roomId`
 - `name`
 - `activityType`
 - `progressMode`
@@ -212,7 +211,8 @@ erDiagram
 使用者與房間的關係：
 
 - `membershipId`
-- `roomId`
+- `roomIds`：活動本身不隸屬單一房間，可為零到多個候選房間；實際計入仍由
+  Room Contribution 與發生時的 Membership／分享同意判定
 - `userId`
 - `role`: `owner | moderator | member`
 - `status`: `pending | active | muted | removed | left`
