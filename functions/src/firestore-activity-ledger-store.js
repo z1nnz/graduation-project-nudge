@@ -67,9 +67,13 @@ class FirestoreActivityLedgerTransaction {
       return null;
     }
     const data = memberSnapshot.data();
+    const roomData = roomSnapshot.data();
     return {
       ...data,
-      roomStatus: roomSnapshot.data().status,
+      roomStatus: roomData.status,
+      sharingConsentRequired:
+        roomData.sharingConsentRequired === true ||
+        roomData.sharingPolicy === "required",
       activeFrom: timestampToIso(data.activeFrom),
       activeUntil: timestampToIso(data.activeUntil),
     };

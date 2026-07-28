@@ -191,7 +191,8 @@ erDiagram
 
 主要資料：
 
-- `roomId`
+- `roomIds`：活動本身不隸屬單一房間，可為零到多個候選房間；實際計入仍由
+  Room Contribution 與發生時的 Membership／分享同意判定
 - `name`
 - `activityType`
 - `progressMode`
@@ -244,7 +245,7 @@ Room Membership 角色只影響房間設定與管理，不影響活動控制權�
 - `activityType`
 - `source`
 - `sourceDeviceId`
-- `status`: `created | active | paused | completed | discarded`
+- `status`: `active | paused | completed | discarded`
 - `startedAt`
 - `endedAt`
 - `metricValue`
@@ -262,8 +263,11 @@ Cloud 對活動的唯一驗證結果：
 - `actorUserId`
 - `activityFingerprint`
 - `acceptedMetric`
-- `rewardIssued`
-- `characterExperienceIssued`
+- `rewardEligible`
+- `rewardIssued`：只有 Cloud 已在同一交易建立正式獎勵 Ledger 時才可為 `true`
+- `characterExperienceEligible`
+- `characterExperienceIssued`：只有 Cloud 已在同一交易建立角色經驗 Ledger
+  時才可為 `true`
 - `verifiedAt`
 - `correctionOfReceiptId`
 

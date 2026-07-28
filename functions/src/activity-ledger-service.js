@@ -15,6 +15,7 @@ const ACTIVITY_EVENT_TYPES = new Set([
   "resumed",
   "completed",
   "metricSynced",
+  "discarded",
 ]);
 const REWARD_POLICIES = new Map([
   ["focus", { unit: "minutes", maximum: 1440 }],
@@ -101,6 +102,12 @@ function clone(value) {
 
 function membershipAllowsContribution(membership, occurredAt) {
   if (!membership || membership.sharingConsented === false) {
+    return false;
+  }
+  if (
+    membership.sharingConsentRequired === true &&
+    membership.sharingConsented !== true
+  ) {
     return false;
   }
   if (
@@ -406,6 +413,7 @@ export class ActivityLedgerService {
 
       const verifiedAt = this.clock().toISOString();
       const receiptId = `receipt_${stableHash(fingerprint).slice(0, 40)}`;
+      const isRewardEligible = rewardEligibility(evidence);
       const receipt = {
         receiptId,
         eventId: evidence.eventId,
@@ -417,8 +425,10 @@ export class ActivityLedgerService {
         activityFingerprint: fingerprint,
         acceptedMetric: evidence.metricValue,
         metricUnit: evidence.metricUnit,
-        rewardIssued: rewardEligibility(evidence),
-        characterExperienceIssued: rewardEligibility(evidence),
+        rewardEligible: isRewardEligible,
+        rewardIssued: false,
+        characterExperienceEligible: isRewardEligible,
+        characterExperienceIssued: false,
         verifiedAt,
         correctionOfReceiptId: null,
       };
@@ -482,6 +492,7 @@ export class ActivityLedgerService {
           actorUserId: evidence.actorUserId,
           activityType: evidence.activityType,
           activityCorrelationId: evidence.activityCorrelationId,
+          roomIds: evidence.roomIds,
           source: evidence.source,
           sourceDeviceId: evidence.deviceId,
           evidenceRef: evidence.sourceRecordId,
@@ -493,15 +504,19 @@ export class ActivityLedgerService {
           sourceSessionIds: [],
         };
     if (
-      session.status === "completed" &&
-      !["completed", "metricSynced"].includes(evidence.eventType)
+      session.status === "discarded" ||
+      (session.status === "completed" &&
+        !["completed", "metricSynced"].includes(evidence.eventType))
     ) {
       throw new ActivityLedgerValidationError(
-        "A completed activity session cannot change state.",
+        `A ${session.status} activity session cannot change state.`,
       );
     }
     session.sourceSessionIds = [
       ...new Set([...session.sourceSessionIds, evidence.sessionId]),
+    ];
+    session.roomIds = [
+      ...new Set([...(session.roomIds ?? []), ...evidence.roomIds]),
     ];
     switch (evidence.eventType) {
       case "started":
@@ -519,6 +534,12 @@ export class ActivityLedgerService {
       case "completed":
       case "metricSynced":
         session.status = "completed";
+        session.endedAt = evidence.occurredAt;
+        session.metricValue = evidence.metricValue;
+        session.metricUnit = evidence.metricUnit;
+        break;
+      case "discarded":
+        session.status = "discarded";
         session.endedAt = evidence.occurredAt;
         session.metricValue = evidence.metricValue;
         session.metricUnit = evidence.metricUnit;
@@ -704,6 +725,14 @@ export class ActivityLedgerService {
     }
     return {
       ...evidence,
+      eventId: evidence.eventId.trim(),
+      sourceRecordId: evidence.sourceRecordId.trim(),
+      sessionId: evidence.sessionId.trim(),
+      actorUserId: evidence.actorUserId.trim(),
+      activityType: evidence.activityType.trim(),
+      source: evidence.source.trim(),
+      eventType: evidence.eventType.trim(),
+      metricUnit: evidence.metricUnit.trim(),
       occurredAt: occurredAt.toISOString(),
       activityCorrelationId: evidence.activityCorrelationId?.trim() ?? null,
       roomIds: [...new Set(evidence.roomIds.map(roomId => roomId.trim()))],

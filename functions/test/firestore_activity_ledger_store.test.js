@@ -42,6 +42,7 @@ test(
     };
     await firestore.collection("rooms").doc(roomId).set({
       status: "active",
+      sharingConsentRequired: true,
     });
     await firestore
       .collection("rooms")
@@ -85,6 +86,8 @@ test(
 
     assert.equal(first.status, "settled");
     assert.equal(first.contributions.length, 1);
+    assert.equal(first.receipt.rewardEligible, true);
+    assert.equal(first.receipt.rewardIssued, false);
     assert.equal(replay.receipt.receiptId, first.receipt.receiptId);
     assert.equal(replay.wasDuplicate, true);
     assert.equal(sourceReplaySnapshot.size, 1);

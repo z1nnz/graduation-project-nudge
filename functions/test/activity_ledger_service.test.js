@@ -51,8 +51,10 @@ test("a completed activity settles once across service restarts", async () => {
   );
 
   assert.equal(first.status, "settled");
-  assert.equal(first.receipt.rewardIssued, true);
-  assert.equal(first.receipt.characterExperienceIssued, true);
+  assert.equal(first.receipt.rewardEligible, true);
+  assert.equal(first.receipt.rewardIssued, false);
+  assert.equal(first.receipt.characterExperienceEligible, true);
+  assert.equal(first.receipt.characterExperienceIssued, false);
   assert.equal(first.contributions.length, 1);
   assert.equal(first.contributions[0].roomId, "room-study");
   assert.equal(replay.receipt.receiptId, first.receipt.receiptId);
@@ -333,6 +335,52 @@ test("membership and room status must both allow the contribution", async () => 
   assert.deepEqual(result.contributions, []);
 });
 
+test("rooms requiring sharing consent fail closed", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    roomMemberships: [
+      {
+        roomId: "room-missing-consent",
+        userId: "user-1",
+        approvalStatus: "approved",
+        roomStatus: "active",
+        sharingConsentRequired: true,
+      },
+      {
+        roomId: "room-denied-consent",
+        userId: "user-1",
+        approvalStatus: "approved",
+        roomStatus: "active",
+        sharingConsentRequired: true,
+        sharingConsented: false,
+      },
+      {
+        roomId: "room-approved-consent",
+        userId: "user-1",
+        approvalStatus: "approved",
+        roomStatus: "active",
+        sharingConsentRequired: true,
+        sharingConsented: true,
+      },
+    ],
+  });
+  const result = await new ActivityLedgerService({ store }).record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      roomIds: [
+        "room-missing-consent",
+        "room-denied-consent",
+        "room-approved-consent",
+      ],
+    },
+  );
+
+  assert.deepEqual(
+    result.contributions.map(item => item.roomId),
+    ["room-approved-consent"],
+  );
+});
+
 test("a replay cannot use a later occurrence time to backfill a room", async () => {
   const store = new InMemoryActivityLedgerStore({
     roomMemberships: [
@@ -394,10 +442,81 @@ test("zero and unverified custom activities settle without reward issuance", asy
     },
   );
 
+  assert.equal(zero.receipt.rewardEligible, false);
   assert.equal(zero.receipt.rewardIssued, false);
+  assert.equal(zero.receipt.characterExperienceEligible, false);
   assert.equal(zero.receipt.characterExperienceIssued, false);
+  assert.equal(custom.receipt.rewardEligible, false);
   assert.equal(custom.receipt.rewardIssued, false);
+  assert.equal(custom.receipt.characterExperienceEligible, false);
   assert.equal(custom.receipt.characterExperienceIssued, false);
+});
+
+test("discarding a session is terminal and never settles a receipt", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const service = new ActivityLedgerService({ store });
+  const started = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      eventId: "event-discard-start",
+      sourceRecordId: "source-discard-start",
+      sessionId: "session-discard",
+      activityCorrelationId: "discard-correlation",
+      eventType: "started",
+      metricValue: 0,
+    },
+  );
+  const discarded = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      eventId: "event-discard",
+      sourceRecordId: "source-discard",
+      sessionId: "session-discard",
+      activityCorrelationId: "discard-correlation",
+      eventType: "discarded",
+      metricValue: 5,
+    },
+  );
+
+  assert.equal(started.session.status, "active");
+  assert.equal(discarded.session.status, "discarded");
+  assert.equal(discarded.receipt, null);
+  assert.equal(store.receiptCount, 0);
+  await assert.rejects(
+    service.record(
+      { kind: "user", userId: "user-1" },
+      {
+        ...completedFocusEvidence,
+        eventId: "event-after-discard",
+        sourceRecordId: "source-after-discard",
+        sessionId: "session-discard",
+        activityCorrelationId: "discard-correlation",
+      },
+    ),
+    /discarded activity session cannot change state/i,
+  );
+});
+
+test("activity identifiers are canonicalized before idempotency", async () => {
+  const service = new ActivityLedgerService({
+    store: new InMemoryActivityLedgerStore(),
+  });
+  const result = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      eventId: " event-canonical ",
+      sourceRecordId: " source-canonical ",
+      sessionId: " session-canonical ",
+      activityCorrelationId: " correlation-canonical ",
+    },
+  );
+
+  assert.equal(result.acknowledgedEventId, "event-canonical");
+  assert.equal(result.acknowledgedSourceRecordId, "source-canonical");
+  assert.equal(result.canonicalSessionId, "correlation-canonical");
 });
 
 test("one receipt can add a later eligible room without another reward", async () => {
