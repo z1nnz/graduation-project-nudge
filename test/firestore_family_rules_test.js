@@ -583,12 +583,6 @@ async function run() {
           now,
         ),
       ),
-      updateWrite(`users/${guardian.localId}`, {
-        groupId,
-        groupName: groupData.name,
-        isGroupOwner: true,
-        userRole: "group",
-      }),
     ],
     guardian.idToken,
   );
@@ -641,12 +635,6 @@ async function run() {
       updateWrite(`groups/${groupId}`, {
         memberIds: [guardian.localId, child.localId],
         updatedAt: now,
-      }),
-      updateWrite(`users/${child.localId}`, {
-        groupId,
-        groupName: groupData.name,
-        isGroupOwner: false,
-        userRole: "group",
       }),
       createWrite(
         `relationship_memberships/group--${groupId}--${child.localId}`,

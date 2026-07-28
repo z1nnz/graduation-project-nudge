@@ -5152,13 +5152,6 @@ async function createCanonicalWebGroup(userId, name) {
     createdAt: now,
     updatedAt: now
   });
-  batch.update(db.collection("users").doc(userId), {
-    groupId,
-    groupName: normalizedName,
-    isGroupOwner: true,
-    userRole: "group",
-    updatedAt: now
-  });
   const membership = buildWebRelationshipMembership({
     scopeType: "group",
     scopeId: groupId,
@@ -5181,7 +5174,6 @@ async function joinCanonicalWebGroup(userId, groupIdInput, requestId = null) {
   if (!groupId) throw new Error("團體 ID 不可空白");
   const result = await db.runTransaction(async transaction => {
     const groupRef = db.collection("groups").doc(groupId);
-    const userRef = db.collection("users").doc(userId);
     const groupSnapshot = await transaction.get(groupRef);
     if (!groupSnapshot.exists) throw new Error("找不到此團體 ID");
     const group = groupSnapshot.data();
@@ -5205,13 +5197,6 @@ async function joinCanonicalWebGroup(userId, groupIdInput, requestId = null) {
       membership,
       { merge: true },
     );
-    transaction.update(userRef, {
-      groupId,
-      groupName: group.name,
-      isGroupOwner: group.ownerId === userId,
-      userRole: "group",
-      updatedAt: now
-    });
     if (requestId) {
       transaction.update(db.collection("group_requests").doc(requestId), {
         status: "accepted",
@@ -5228,7 +5213,6 @@ async function leaveCanonicalWebGroup(userId, groupId) {
   const fallbackGroup = activeWebGroups.find(group => group.id !== groupId);
   await db.runTransaction(async transaction => {
     const groupRef = db.collection("groups").doc(groupId);
-    const userRef = db.collection("users").doc(userId);
     const summaryRef = groupRef.collection("member_summaries").doc(userId);
     const participationRef = groupRef
       .collection("challenges")
@@ -5269,17 +5253,6 @@ async function leaveCanonicalWebGroup(userId, groupId) {
         { merge: true },
       );
     }
-    transaction.update(userRef, {
-      groupId: fallbackGroup?.id ||
-        firebase.firestore.FieldValue.delete(),
-      groupName: fallbackGroup?.name ||
-        firebase.firestore.FieldValue.delete(),
-      isGroupOwner: fallbackGroup
-        ? fallbackGroup.ownerId === userId
-        : firebase.firestore.FieldValue.delete(),
-      userRole: fallbackGroup ? "group" : "individual",
-      updatedAt: now
-    });
     transaction.delete(summaryRef);
     transaction.delete(participationRef);
   });
@@ -5296,7 +5269,6 @@ async function leaveCanonicalWebGroup(userId, groupId) {
 async function removeCanonicalWebGroupMember(memberId) {
   const { group, userId } = requireCanonicalWebGroupManager();
   const groupRef = db.collection("groups").doc(group.id);
-  const memberRef = db.collection("users").doc(memberId);
   const summaryRef = groupRef.collection("member_summaries").doc(memberId);
   const participationRef = groupRef
     .collection("challenges")
@@ -5305,7 +5277,6 @@ async function removeCanonicalWebGroupMember(memberId) {
     .doc(memberId);
   return db.runTransaction(async transaction => {
     const groupSnapshot = await transaction.get(groupRef);
-    const memberSnapshot = await transaction.get(memberRef);
     if (!groupSnapshot.exists) {
       throw new Error("團體資料不存在");
     }
@@ -5332,15 +5303,6 @@ async function removeCanonicalWebGroupMember(memberId) {
       membership,
       { merge: true },
     );
-    if (memberSnapshot.data()?.groupId === group.id) {
-      transaction.update(memberRef, {
-        groupId: firebase.firestore.FieldValue.delete(),
-        groupName: firebase.firestore.FieldValue.delete(),
-        isGroupOwner: firebase.firestore.FieldValue.delete(),
-        userRole: "individual",
-        updatedAt: now,
-      });
-    }
     transaction.delete(summaryRef);
     transaction.delete(participationRef);
   });
@@ -5349,12 +5311,8 @@ async function removeCanonicalWebGroupMember(memberId) {
 async function transferCanonicalWebGroupOwnership(nextManagerId) {
   const { group, userId } = requireCanonicalWebGroupManager();
   const groupRef = db.collection("groups").doc(group.id);
-  const currentManagerRef = db.collection("users").doc(userId);
-  const nextManagerRef = db.collection("users").doc(nextManagerId);
   return db.runTransaction(async transaction => {
     const groupSnapshot = await transaction.get(groupRef);
-    const currentManagerSnapshot = await transaction.get(currentManagerRef);
-    const nextManagerSnapshot = await transaction.get(nextManagerRef);
     if (!groupSnapshot.exists) {
       throw new Error("團體資料不存在");
     }
@@ -5392,20 +5350,6 @@ async function transferCanonicalWebGroupOwnership(nextManagerId) {
         { merge: true },
       );
     });
-    if (currentManagerSnapshot.data()?.groupId === group.id) {
-      transaction.update(currentManagerRef, {
-        isGroupOwner: false,
-        userRole: "group",
-        updatedAt: now,
-      });
-    }
-    if (nextManagerSnapshot.data()?.groupId === group.id) {
-      transaction.update(nextManagerRef, {
-        isGroupOwner: true,
-        userRole: "group",
-        updatedAt: now,
-      });
-    }
   });
 }
 

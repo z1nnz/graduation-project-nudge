@@ -59,6 +59,8 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 - 將既有 `family_links.participantIds`、`groups.memberIds` 與
   `users.groupId/groupName/isGroupOwner` 從過渡期查詢／偏好投影遷移完畢，
   再停止用父文件陣列推導 Membership。
+- 已備妥預設 dry-run 的 `scripts/migrate_relationship_memberships.js`；
+  正式環境尚未執行，因此目前不能把舊投影清理標示為完成。
 - 一般活動房仍保留舊 `activity_sessions` 讀取投影供過渡期 UI 使用；需在
   App／Web 都能直接讀取正式 Session／Contribution 後移除。
 - 房間資料與使用者文件中既有投影資料的遷移、封存與清除。

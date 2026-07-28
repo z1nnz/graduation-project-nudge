@@ -5,7 +5,9 @@
   "main": "seed_firestore.js",
   "scripts": {
     "backfill:public-profiles": "node backfill_public_profiles.js",
-    "backfill:public-profiles:apply": "node backfill_public_profiles.js --apply"
+    "backfill:public-profiles:apply": "node backfill_public_profiles.js --apply",
+    "migrate:relationships": "node migrate_relationship_memberships.js",
+    "migrate:relationships:apply": "node migrate_relationship_memberships.js --apply"
   },
   "dependencies": {
     "firebase-admin": "^12.0.0"

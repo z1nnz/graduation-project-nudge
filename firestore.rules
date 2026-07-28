@@ -138,45 +138,18 @@ service cloud.firestore {
       ]);
     }
 
-    function validGroupProjectionChange(userId) {
+    function doesNotAddOrChangeLegacyGroupProjection() {
       let changed = request.resource.data.diff(resource.data).affectedKeys()
         .hasAny(['groupId', 'groupName', 'isGroupOwner']);
       return !changed
         || (
-          request.resource.data.keys().hasAll([
+          resource.data.keys().hasAny([
             'groupId', 'groupName', 'isGroupOwner'
           ])
-          && existsAfter(
-            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
-          )
-          && getAfter(
-            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
-          ).data.status == 'active'
-          && getAfter(
-            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
-          ).data.memberIds.hasAll([userId])
-          && getAfter(
-            /databases/$(database)/documents/groups/$(request.resource.data.groupId)
-          ).data.name == request.resource.data.groupName
-          && request.resource.data.isGroupOwner
-            == (
-              getAfter(
-                /databases/$(database)/documents/groups/$(request.resource.data.groupId)
-              ).data.ownerId == userId
-            )
-        )
-        || (
+          &&
           !request.resource.data.keys().hasAny([
             'groupId', 'groupName', 'isGroupOwner'
           ])
-          && (
-            !existsAfter(
-              /databases/$(database)/documents/groups/$(resource.data.groupId)
-            )
-            || !getAfter(
-              /databases/$(database)/documents/groups/$(resource.data.groupId)
-            ).data.memberIds.hasAny([userId])
-          )
         );
     }
 
@@ -227,9 +200,6 @@ service cloud.firestore {
             addedMembers.hasOnly([request.auth.uid])
             && removedMembers.size() == 0
             && resource.data.status == 'active'
-            && getAfter(
-              /databases/$(database)/documents/users/$(request.auth.uid)
-            ).data.groupId == groupId
             && hasActiveRelationshipMembershipAfter(
               'group',
               groupId,
@@ -240,9 +210,6 @@ service cloud.firestore {
           || (
             removedMembers.hasOnly([request.auth.uid])
             && addedMembers.size() == 0
-            && getAfter(
-              /databases/$(database)/documents/users/$(request.auth.uid)
-            ).data.groupId != groupId
             && !existsAfter(
               /databases/$(database)/documents/groups/$(groupId)/member_summaries/$(request.auth.uid)
             )
@@ -255,60 +222,6 @@ service cloud.firestore {
         );
     }
 
-    function managerClearsGroupProjection(userId) {
-      let groupId = resource.data.groupId;
-      return isAuth()
-        && userId != request.auth.uid
-        && resource.data.keys().hasAll([
-          'groupId', 'groupName', 'isGroupOwner'
-        ])
-        && exists(
-          /databases/$(database)/documents/groups/$(groupId)
-        )
-        && get(
-          /databases/$(database)/documents/groups/$(groupId)
-        ).data.ownerId == request.auth.uid
-        && !getAfter(
-          /databases/$(database)/documents/groups/$(groupId)
-        ).data.memberIds.hasAny([userId])
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly([
-            'groupId', 'groupName', 'isGroupOwner',
-            'userRole', 'updatedAt'
-          ])
-        && !request.resource.data.keys().hasAny([
-          'groupId', 'groupName', 'isGroupOwner'
-        ])
-        && request.resource.data.userRole == 'individual';
-    }
-
-    function managerPromotesGroupOwner(userId) {
-      let groupId = resource.data.groupId;
-      return isAuth()
-        && userId != request.auth.uid
-        && resource.data.keys().hasAll([
-          'groupId', 'groupName', 'isGroupOwner'
-        ])
-        && exists(
-          /databases/$(database)/documents/groups/$(groupId)
-        )
-        && get(
-          /databases/$(database)/documents/groups/$(groupId)
-        ).data.ownerId == request.auth.uid
-        && getAfter(
-          /databases/$(database)/documents/groups/$(groupId)
-        ).data.ownerId == userId
-        && getAfter(
-          /databases/$(database)/documents/groups/$(groupId)
-        ).data.memberIds.hasAny([userId])
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['isGroupOwner', 'userRole', 'updatedAt'])
-        && request.resource.data.groupId == groupId
-        && request.resource.data.groupName == resource.data.groupName
-        && request.resource.data.isGroupOwner == true
-        && request.resource.data.userRole == 'group';
-    }
-
     // ─── /users/{userId} ──────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isOwner(userId);
@@ -318,10 +231,8 @@ service cloud.firestore {
       allow update: if (
           isOwner(userId)
           && !changesProtectedStaffFields()
-          && validGroupProjectionChange(userId)
-        )
-        || managerClearsGroupProjection(userId)
-        || managerPromotesGroupOwner(userId);
+          && doesNotAddOrChangeLegacyGroupProjection()
+        );
       allow delete: if false;
 
       // ─── /users/{userId}/friends/{friendId} ───────────────────────
@@ -920,67 +831,9 @@ service cloud.firestore {
     }
 
     // ─── /groups/{groupId} ────────────────────────────────────────────
-    // Canonical group state. User document group fields are compatibility
-    // projections consumed by older App and Web screens.
+    // Canonical group state. Scoped roles live in relationship_memberships;
+    // clients may not recreate the retired single-group user projection.
     match /groups/{groupId} {
-      function projectionClearedOrKeepsOtherGroup(userId) {
-        let before = get(
-          /databases/$(database)/documents/users/$(userId)
-        ).data;
-        let after = getAfter(
-          /databases/$(database)/documents/users/$(userId)
-        ).data;
-        let beforeHasProjection = before.keys().hasAll([
-          'groupId', 'groupName', 'isGroupOwner'
-        ]);
-        let afterHasProjection = after.keys().hasAll([
-          'groupId', 'groupName', 'isGroupOwner'
-        ]);
-        return (
-            !after.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
-          )
-          || (
-            beforeHasProjection
-            && afterHasProjection
-            && before.groupId != groupId
-            && after.groupId == before.groupId
-            && after.groupName == before.groupName
-            && after.isGroupOwner == before.isGroupOwner
-          );
-      }
-
-      function ownershipProjectionMatches(userId, expectedOwner) {
-        let before = get(
-          /databases/$(database)/documents/users/$(userId)
-        ).data;
-        let after = getAfter(
-          /databases/$(database)/documents/users/$(userId)
-        ).data;
-        let beforeHasProjection = before.keys().hasAll([
-          'groupId', 'groupName', 'isGroupOwner'
-        ]);
-        let afterHasProjection = after.keys().hasAll([
-          'groupId', 'groupName', 'isGroupOwner'
-        ]);
-        return (
-            afterHasProjection
-            && after.groupId == groupId
-            && after.isGroupOwner == expectedOwner
-          )
-          || (
-            beforeHasProjection
-            && afterHasProjection
-            && before.groupId != groupId
-            && after.groupId == before.groupId
-            && after.groupName == before.groupName
-            && after.isGroupOwner == before.isGroupOwner
-          )
-          || (
-            !before.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
-            && !after.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
-          );
-      }
-
       function managerRemovesOneMember() {
         let beforeMembers = resource.data.memberIds.toSet();
         let afterMembers = request.resource.data.memberIds.toSet();
@@ -998,7 +851,6 @@ service cloud.firestore {
           && change.by == request.auth.uid
           && change.memberId != resource.data.ownerId
           && removedMembers.hasOnly([change.memberId])
-          && projectionClearedOrKeepsOtherGroup(change.memberId)
           && !existsAfter(
             /databases/$(database)/documents/groups/$(groupId)/member_summaries/$(change.memberId)
           )
@@ -1027,8 +879,6 @@ service cloud.firestore {
           && change.fromMemberId == resource.data.ownerId
           && change.toMemberId == request.resource.data.ownerId
           && change.by == request.auth.uid
-          && ownershipProjectionMatches(change.fromMemberId, false)
-          && ownershipProjectionMatches(change.toMemberId, true)
           && hasActiveRelationshipMembershipAfter(
             'group',
             groupId,
@@ -1070,9 +920,6 @@ service cloud.firestore {
         && resource.data.ownerId == request.auth.uid
         && resource.data.memberIds.size() == 1
         && resource.data.memberIds.hasOnly([request.auth.uid])
-        && getAfter(
-          /databases/$(database)/documents/users/$(request.auth.uid)
-        ).data.groupId != groupId
         && !existsAfter(
           /databases/$(database)/documents/groups/$(groupId)/member_summaries/$(request.auth.uid)
         )
@@ -1396,9 +1243,12 @@ service cloud.firestore {
               getAfter(
                 /databases/$(database)/documents/groups/$(resource.data.groupId)
               ).data.memberIds.hasAny([request.auth.uid])
-              && getAfter(
-                /databases/$(database)/documents/users/$(request.auth.uid)
-              ).data.groupId == resource.data.groupId
+              && hasActiveRelationshipMembershipAfter(
+                'group',
+                resource.data.groupId,
+                request.auth.uid,
+                'member'
+              )
             )
           )
         )

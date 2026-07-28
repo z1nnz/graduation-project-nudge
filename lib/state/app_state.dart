@@ -294,7 +294,6 @@ class AppState extends ChangeNotifier {
               _groupName = data['groupName'] as String?;
               final projectedIsGroupOwner =
                   data['isGroupOwner'] as bool? ?? false;
-              _isGroupOwner = projectedIsGroupOwner;
               if (projectedIsGroupOwner &&
                   _groupId != null &&
                   _groupName != null) {
@@ -857,9 +856,15 @@ class AppState extends ChangeNotifier {
     _selectedFamilyLinkId = prefs.getString(
       _relationshipSelectionKey('family', userId),
     );
-    _selectedGroupId = prefs.getString(
-      _relationshipSelectionKey('group', userId),
-    );
+    final groupSelectionKey = _relationshipSelectionKey('group', userId);
+    final legacyGroupId = prefs.getString('group_id_setting');
+    _selectedGroupId = prefs.getString(groupSelectionKey) ?? legacyGroupId;
+    if (prefs.getString(groupSelectionKey) == null && legacyGroupId != null) {
+      await prefs.setString(groupSelectionKey, legacyGroupId);
+    }
+    await prefs.remove('group_id_setting');
+    await prefs.remove('group_name_setting');
+    await prefs.remove('is_group_owner_setting');
     _activateSelectedFamilyLink(userId);
     _activateSelectedGroup(userId);
     notifyListeners();
@@ -899,7 +904,6 @@ class AppState extends ChangeNotifier {
     }
     _canonicalGroup = selected;
     _groupName = selected.name;
-    _isGroupOwner = selected.isManager(userId);
   }
 
   Future<void> selectFamilyRelationship(String familyLinkId) async {
@@ -1420,9 +1424,6 @@ class AppState extends ChangeNotifier {
         'dailySummaries': _dailySummaries.map((s) => s.toJson()).toList(),
         'unlockedBadgeDates': _unlockedBadgeDates,
         'userRole': _userRole,
-        'groupId': _groupId,
-        'groupName': _groupName,
-        'isGroupOwner': _isGroupOwner,
         'webToolsState': _webToolsState,
         'webToolsCollection': _webToolsCollection,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -1738,7 +1739,6 @@ class AppState extends ChangeNotifier {
   String _userRole = 'personal';
   String? _groupId;
   String? _groupName;
-  bool _isGroupOwner = false;
   GroupContract? _canonicalGroup;
   List<GroupContract> _canonicalGroups = [];
   String? _selectedGroupId;
@@ -3510,7 +3510,6 @@ class AppState extends ChangeNotifier {
       _userRole = prefs.getString('user_role_setting') ?? 'personal';
       _groupId = prefs.getString('group_id_setting');
       _groupName = prefs.getString('group_name_setting');
-      _isGroupOwner = prefs.getBool('is_group_owner_setting') ?? false;
       if (prefs.containsKey(_focusSecondsKey)) {
         _focusSeconds = prefs.getInt(_focusSecondsKey) ?? 0;
       } else {
@@ -8480,7 +8479,6 @@ ${historyBuffer.toString()}
     }
     final firestore = FirebaseFirestore.instance;
     final groupRef = firestore.collection('groups').doc(group.id);
-    final targetUserRef = firestore.collection('users').doc(memberId);
     final summaryRef = groupRef.collection('member_summaries').doc(memberId);
     final participationRef = groupRef
         .collection('challenges')
@@ -8489,7 +8487,6 @@ ${historyBuffer.toString()}
         .doc(memberId);
     await firestore.runTransaction((transaction) async {
       final groupSnapshot = await transaction.get(groupRef);
-      final targetUserSnapshot = await transaction.get(targetUserRef);
       if (!groupSnapshot.exists) {
         throw StateError('團體資料不存在');
       }
@@ -8515,15 +8512,6 @@ ${historyBuffer.toString()}
         endedMembership.toFirestoreMap(now: DateTime.now(), endedBy: user.id),
         SetOptions(merge: true),
       );
-      if (targetUserSnapshot.data()?['groupId'] == group.id) {
-        transaction.update(targetUserRef, {
-          'groupId': FieldValue.delete(),
-          'groupName': FieldValue.delete(),
-          'isGroupOwner': FieldValue.delete(),
-          'userRole': 'individual',
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        });
-      }
       transaction.delete(summaryRef);
       transaction.delete(participationRef);
     });
@@ -8537,12 +8525,8 @@ ${historyBuffer.toString()}
     }
     final firestore = FirebaseFirestore.instance;
     final groupRef = firestore.collection('groups').doc(group.id);
-    final currentUserRef = firestore.collection('users').doc(user.id);
-    final nextManagerRef = firestore.collection('users').doc(nextManagerId);
     await firestore.runTransaction((transaction) async {
       final groupSnapshot = await transaction.get(groupRef);
-      final currentUserSnapshot = await transaction.get(currentUserRef);
-      final nextManagerSnapshot = await transaction.get(nextManagerRef);
       if (!groupSnapshot.exists) {
         throw StateError('團體資料不存在');
       }
@@ -8579,20 +8563,6 @@ ${historyBuffer.toString()}
         nextManagerMembership.toFirestoreMap(now: DateTime.now()),
         SetOptions(merge: true),
       );
-      if (currentUserSnapshot.data()?['groupId'] == group.id) {
-        transaction.update(currentUserRef, {
-          'isGroupOwner': false,
-          'userRole': 'group',
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        });
-      }
-      if (nextManagerSnapshot.data()?['groupId'] == group.id) {
-        transaction.update(nextManagerRef, {
-          'isGroupOwner': true,
-          'userRole': 'group',
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        });
-      }
     });
   }
 
@@ -8879,7 +8849,6 @@ ${historyBuffer.toString()}
         'GRP-${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase()}';
     final firestore = FirebaseFirestore.instance;
     final groupRef = firestore.collection('groups').doc(randomId);
-    final userRef = firestore.collection('users').doc(user.id);
     final membership = RelationshipMembership.fromGroup(
       group: GroupContract(
         id: randomId,
@@ -8900,13 +8869,6 @@ ${historyBuffer.toString()}
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    batch.update(userRef, {
-      'groupId': randomId,
-      'groupName': normalizedName,
-      'isGroupOwner': true,
-      'userRole': 'group',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
     batch.set(
       firestore.collection('relationship_memberships').doc(membership.id),
       membership.toFirestoreMap(now: DateTime.now()),
@@ -8914,9 +8876,6 @@ ${historyBuffer.toString()}
     await batch.commit();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('group_id_setting', randomId);
-    await prefs.setString('group_name_setting', normalizedName);
-    await prefs.setBool('is_group_owner_setting', true);
     await prefs.setString(
       _relationshipSelectionKey('group', user.id),
       randomId,
@@ -8924,7 +8883,6 @@ ${historyBuffer.toString()}
     _selectedGroupId = randomId;
     _groupId = randomId;
     _groupName = normalizedName;
-    _isGroupOwner = true;
     notifyListeners();
   }
 
@@ -8937,9 +8895,7 @@ ${historyBuffer.toString()}
 
     final firestore = FirebaseFirestore.instance;
     final groupRef = firestore.collection('groups').doc(normalizedId);
-    final userRef = firestore.collection('users').doc(user.id);
     late String remoteGroupName;
-    late bool remoteIsOwner;
     await firestore.runTransaction((transaction) async {
       final groupSnapshot = await transaction.get(groupRef);
       if (!groupSnapshot.exists) throw StateError('找不到此團體 ID');
@@ -8949,7 +8905,6 @@ ${historyBuffer.toString()}
       if (remoteGroupName.isEmpty) throw StateError('團體資料不完整');
       final ownerId = (data['ownerId'] as String?)?.trim() ?? '';
       if (ownerId.isEmpty) throw StateError('團體管理者資料不完整');
-      remoteIsOwner = ownerId == user.id;
       final joinedGroup = GroupContract(
         id: normalizedId,
         name: remoteGroupName,
@@ -8973,13 +8928,6 @@ ${historyBuffer.toString()}
         membership.toFirestoreMap(now: DateTime.now()),
         SetOptions(merge: true),
       );
-      transaction.update(userRef, {
-        'groupId': normalizedId,
-        'groupName': remoteGroupName,
-        'isGroupOwner': remoteIsOwner,
-        'userRole': 'group',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
       if (requestId != null) {
         transaction.update(
           firestore.collection('group_requests').doc(requestId),
@@ -8989,9 +8937,6 @@ ${historyBuffer.toString()}
     });
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('group_id_setting', normalizedId);
-    await prefs.setString('group_name_setting', remoteGroupName);
-    await prefs.setBool('is_group_owner_setting', remoteIsOwner);
     await prefs.setString(
       _relationshipSelectionKey('group', user.id),
       normalizedId,
@@ -8999,7 +8944,6 @@ ${historyBuffer.toString()}
     _selectedGroupId = normalizedId;
     _groupId = normalizedId;
     _groupName = remoteGroupName;
-    _isGroupOwner = remoteIsOwner;
     notifyListeners();
   }
 
@@ -9019,7 +8963,6 @@ ${historyBuffer.toString()}
 
     final firestore = FirebaseFirestore.instance;
     final groupRef = firestore.collection('groups').doc(currentGroupId);
-    final userRef = firestore.collection('users').doc(user.id);
     final summaryRef = groupRef.collection('member_summaries').doc(user.id);
     final participationRef = groupRef
         .collection('challenges')
@@ -9055,24 +8998,6 @@ ${historyBuffer.toString()}
           SetOptions(merge: true),
         );
       }
-      transaction.update(
-        userRef,
-        fallbackGroup == null
-            ? {
-                'groupId': FieldValue.delete(),
-                'groupName': FieldValue.delete(),
-                'isGroupOwner': FieldValue.delete(),
-                'userRole': 'individual',
-                'updatedAt': FieldValue.serverTimestamp(),
-              }
-            : {
-                'groupId': fallbackGroup.id,
-                'groupName': fallbackGroup.name,
-                'isGroupOwner': fallbackGroup.isManager(user.id),
-                'userRole': 'group',
-                'updatedAt': FieldValue.serverTimestamp(),
-              },
-      );
       transaction.delete(summaryRef);
       transaction.delete(participationRef);
     });
@@ -9080,26 +9005,16 @@ ${historyBuffer.toString()}
     final prefs = await SharedPreferences.getInstance();
     if (fallbackGroup == null) {
       await prefs.remove(_relationshipSelectionKey('group', user.id));
-      await prefs.remove('group_id_setting');
-      await prefs.remove('group_name_setting');
-      await prefs.remove('is_group_owner_setting');
     } else {
       await prefs.setString(
         _relationshipSelectionKey('group', user.id),
         fallbackGroup.id,
-      );
-      await prefs.setString('group_id_setting', fallbackGroup.id);
-      await prefs.setString('group_name_setting', fallbackGroup.name);
-      await prefs.setBool(
-        'is_group_owner_setting',
-        fallbackGroup.isManager(user.id),
       );
     }
 
     _selectedGroupId = fallbackGroup?.id;
     _groupId = fallbackGroup?.id;
     _groupName = fallbackGroup?.name;
-    _isGroupOwner = fallbackGroup?.isManager(user.id) ?? false;
     notifyListeners();
   }
 }

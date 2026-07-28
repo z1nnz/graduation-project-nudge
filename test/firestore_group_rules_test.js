@@ -262,6 +262,23 @@ async function run() {
     "Another signed-in user cannot read raw private user data",
   );
 
+  response = await commit(
+    [
+      updateWrite(`users/${member.localId}`, {
+        groupId: "LEGACY-GROUP",
+        groupName: "舊版單一團體",
+        isGroupOwner: false,
+        updatedAt: now,
+      }),
+    ],
+    member.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A client cannot recreate the retired single-group user projection",
+  );
+
   response = await request(
     `public_profiles/${member.localId}`,
     stranger.idToken,
@@ -293,13 +310,6 @@ async function run() {
           now,
         }),
       ),
-      updateWrite(`users/${manager.localId}`, {
-        groupId,
-        groupName,
-        isGroupOwner: true,
-        userRole: "group",
-        updatedAt: now,
-      }),
     ],
     manager.idToken,
   );
@@ -314,13 +324,6 @@ async function run() {
             ...(account === candidate ? [member.localId] : []),
             account.localId,
           ],
-          updatedAt: now,
-        }),
-        updateWrite(`users/${account.localId}`, {
-          groupId,
-          groupName,
-          isGroupOwner: false,
-          userRole: "group",
           updatedAt: now,
         }),
         createWrite(
@@ -584,7 +587,7 @@ async function run() {
   assert.equal(
     response.status,
     403,
-    "Membership cannot change without clearing the user projection atomically",
+    "Membership cannot change without ending the formal membership",
   );
 
   response = await commit(
@@ -599,17 +602,6 @@ async function run() {
         },
         updatedAt: now,
       }),
-      updateWrite(
-        `users/${member.localId}`,
-        { userRole: "individual", updatedAt: now },
-        [
-          "groupId",
-          "groupName",
-          "isGroupOwner",
-          "userRole",
-          "updatedAt",
-        ],
-      ),
     ],
     manager.idToken,
   );
@@ -631,17 +623,6 @@ async function run() {
         },
         updatedAt: now,
       }),
-      updateWrite(
-        `users/${member.localId}`,
-        { userRole: "individual", updatedAt: now },
-        [
-          "groupId",
-          "groupName",
-          "isGroupOwner",
-          "userRole",
-          "updatedAt",
-        ],
-      ),
       deleteWrite(summaryPath),
     ],
     manager.idToken,
@@ -664,17 +645,6 @@ async function run() {
         },
         updatedAt: now,
       }),
-      updateWrite(
-        `users/${member.localId}`,
-        { userRole: "individual", updatedAt: now },
-        [
-          "groupId",
-          "groupName",
-          "isGroupOwner",
-          "userRole",
-          "updatedAt",
-        ],
-      ),
       deleteWrite(summaryPath),
       deleteWrite(participationPath),
       updateWrite(
@@ -724,7 +694,7 @@ async function run() {
   assert.equal(
     response.status,
     403,
-    "Ownership cannot change without both user projections",
+    "Ownership cannot change without both formal membership roles",
   );
 
   response = await commit(
@@ -738,16 +708,6 @@ async function run() {
           by: manager.localId,
           at: now,
         },
-        updatedAt: now,
-      }),
-      updateWrite(`users/${manager.localId}`, {
-        isGroupOwner: false,
-        userRole: "group",
-        updatedAt: now,
-      }),
-      updateWrite(`users/${candidate.localId}`, {
-        isGroupOwner: true,
-        userRole: "group",
         updatedAt: now,
       }),
       updateWrite(
