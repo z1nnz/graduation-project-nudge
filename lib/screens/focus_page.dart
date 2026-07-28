@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/focus_activity_ledger_controller.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
@@ -24,6 +25,7 @@ class _FocusPageState extends State<FocusPage> {
   Timer? timer;
   bool isRunning = false;
   int completedPomodoros = 0;
+  FocusActivityLedgerController? _ledgerController;
 
   bool get isFocusPhase => currentPhase == _PomodoroPhase.focus;
 
@@ -43,6 +45,27 @@ class _FocusPageState extends State<FocusPage> {
         if (mounted) startTimer();
       });
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _ledgerController ??= FocusActivityLedgerController(
+      eventSink:
+          ({
+            required sessionId,
+            required eventType,
+            required elapsedSeconds,
+            required occurredAt,
+          }) {
+            return context.read<AppState>().queuePersonalFocusLedgerEvent(
+              sessionId: sessionId,
+              eventType: eventType,
+              elapsedSeconds: elapsedSeconds,
+              occurredAt: occurredAt,
+            );
+          },
+    );
   }
 
   int get elapsedSeconds {
@@ -91,6 +114,7 @@ class _FocusPageState extends State<FocusPage> {
     required int restMinutes,
   }) {
     if (isRunning) return;
+    unawaited(_ledgerController?.discard(elapsedSeconds: elapsedSeconds));
 
     setState(() {
       selectedFocusMinutes = focusMinutes;
@@ -103,6 +127,11 @@ class _FocusPageState extends State<FocusPage> {
 
   void startTimer() {
     if (isRunning) return;
+    if (isFocusPhase) {
+      unawaited(
+        _ledgerController?.startOrResume(elapsedSeconds: elapsedSeconds),
+      );
+    }
 
     setState(() {
       if (remainingSeconds <= 0) {
@@ -134,6 +163,7 @@ class _FocusPageState extends State<FocusPage> {
     final finishedRestMinutes = selectedRestMinutes;
 
     if (finishedPhase == _PomodoroPhase.focus) {
+      unawaited(_ledgerController?.complete(elapsedSeconds: focusSeconds));
       context.read<AppState>().addFocusSeconds(focusSeconds);
     }
 
@@ -196,6 +226,9 @@ class _FocusPageState extends State<FocusPage> {
 
   void pauseTimer() {
     timer?.cancel();
+    if (isFocusPhase) {
+      unawaited(_ledgerController?.pause(elapsedSeconds: elapsedSeconds));
+    }
     setState(() {
       isRunning = false;
     });
@@ -203,6 +236,7 @@ class _FocusPageState extends State<FocusPage> {
 
   void resetTimer() {
     timer?.cancel();
+    unawaited(_ledgerController?.discard(elapsedSeconds: elapsedSeconds));
     setState(() {
       currentPhase = _PomodoroPhase.focus;
       remainingSeconds = focusSeconds;
@@ -215,6 +249,9 @@ class _FocusPageState extends State<FocusPage> {
     final wasRunning = isRunning;
     if (wasRunning) {
       timer?.cancel();
+      if (isFocusPhase) {
+        unawaited(_ledgerController?.pause(elapsedSeconds: elapsedSeconds));
+      }
       setState(() {
         isRunning = false;
       });
@@ -301,6 +338,7 @@ class _FocusPageState extends State<FocusPage> {
     timer?.cancel();
 
     final appState = context.read<AppState>();
+    unawaited(_ledgerController?.complete(elapsedSeconds: savedSeconds));
     appState.addFocusSeconds(savedSeconds);
 
     setState(() {
@@ -312,6 +350,15 @@ class _FocusPageState extends State<FocusPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('已記錄 ${formatDuration(savedSeconds)}專注時間')),
     );
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    if (isFocusPhase) {
+      unawaited(_ledgerController?.discard(elapsedSeconds: elapsedSeconds));
+    }
+    super.dispose();
   }
 
   Future<void> showCustomMinutesDialog() async {
@@ -492,12 +539,6 @@ class _FocusPageState extends State<FocusPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
   }
 
   @override

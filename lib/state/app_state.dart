@@ -12,6 +12,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
+import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
 import '../models/daily_summary.dart';
 import '../models/experience_capabilities.dart';
@@ -26,6 +27,8 @@ import '../models/task_model.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
+import '../services/activity_ledger_outbox.dart';
+import '../services/cloud_activity_ledger_gateway.dart';
 import '../theme/app_ui.dart';
 
 class ReminderChannelSetting {
@@ -83,7 +86,12 @@ class ReminderPreview {
 }
 
 class AppState extends ChangeNotifier {
-  AppState() {
+  final ActivityLedgerOutbox _activityLedgerOutbox;
+
+  AppState({ActivityLedgerOutbox? activityLedgerOutbox})
+    : _activityLedgerOutbox =
+          activityLedgerOutbox ??
+          ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()) {
     _listenToAuthChanges();
   }
 
@@ -145,6 +153,7 @@ class AppState extends ChangeNotifier {
           _isGuestMode = false;
           await _syncProfileFromFirebaseUser(user);
           _setupFirestoreListeners(user);
+          unawaited(_activityLedgerOutbox.flush());
         } else {
           _cancelFirestoreListeners();
           _currentUser = null;
@@ -7146,6 +7155,7 @@ class AppState extends ChangeNotifier {
         rethrow;
       }
     }
+    await _queueRoomActivityLedgerEvent(session, ActivityEventType.started);
     return session;
   }
 
@@ -7197,7 +7207,94 @@ class AppState extends ChangeNotifier {
         rethrow;
       }
     }
+    await _queueRoomActivityLedgerEvent(next, switch (status) {
+      RoomActivitySessionStatus.active => ActivityEventType.resumed,
+      RoomActivitySessionStatus.paused => ActivityEventType.paused,
+      RoomActivitySessionStatus.completed => ActivityEventType.completed,
+      RoomActivitySessionStatus.cancelled => ActivityEventType.discarded,
+    });
     return next;
+  }
+
+  Future<void> _queueRoomActivityLedgerEvent(
+    RoomActivitySession session,
+    ActivityEventType eventType,
+  ) async {
+    final user = _currentUser;
+    if (user == null) return;
+    final source = switch (session.source) {
+      RoomActivitySource.app => ActivitySource.app,
+      RoomActivitySource.web => ActivitySource.web,
+      RoomActivitySource.health => ActivitySource.health,
+      RoomActivitySource.device => ActivitySource.device,
+    };
+    if (source != ActivitySource.app && source != ActivitySource.web) {
+      return;
+    }
+    final activityType = switch (session.activityKind) {
+      RoomActivityKind.focus => ActivityType.focus,
+      RoomActivityKind.sleep => ActivityType.sleep,
+      RoomActivityKind.exercise => ActivityType.exercise,
+      RoomActivityKind.steps => ActivityType.steps,
+      RoomActivityKind.custom => ActivityType.custom,
+    };
+    final eventId = [
+      session.sessionId,
+      eventType.name,
+      session.updatedAt.microsecondsSinceEpoch,
+    ].join('_');
+    await _activityLedgerOutbox.enqueue(
+      ActivityEvidence(
+        eventId: eventId,
+        sourceRecordId: eventId,
+        sessionId: session.sessionId,
+        activityCorrelationId: session.sessionId,
+        submittedByUserId: user.id,
+        actorUserId: user.id,
+        roomIds: [session.roomId],
+        activityType: activityType,
+        source: source,
+        eventType: eventType,
+        metricValue: session.metricValue,
+        metricUnit: session.metricUnit,
+        occurredAt: session.updatedAt,
+      ),
+    );
+    unawaited(_activityLedgerOutbox.flush());
+  }
+
+  Future<void> queuePersonalFocusLedgerEvent({
+    required String sessionId,
+    required ActivityEventType eventType,
+    required int elapsedSeconds,
+    required DateTime occurredAt,
+  }) async {
+    final user = _currentUser;
+    if (user == null) return;
+    final normalizedSeconds = math.max(0, elapsedSeconds);
+    final eventId = [
+      sessionId,
+      eventType.name,
+      occurredAt.toUtc().microsecondsSinceEpoch,
+    ].join('_');
+    await _activityLedgerOutbox.enqueue(
+      ActivityEvidence(
+        eventId: eventId,
+        sourceRecordId: eventId,
+        sessionId: sessionId,
+        activityCorrelationId: sessionId,
+        submittedByUserId: user.id,
+        actorUserId: user.id,
+        roomIds: const [],
+        activityType: ActivityType.focus,
+        source: ActivitySource.app,
+        eventType: eventType,
+        metricValue: normalizedSeconds / 60,
+        metricUnit: 'minutes',
+        occurredAt: occurredAt.toUtc(),
+      ),
+    );
+    unawaited(_activityLedgerOutbox.flush());
   }
 
   void clearMyStudyRoomPresence(String roomId) {
@@ -7350,7 +7447,7 @@ ${summaryBuf.toString()}
 3. **[微行動 3]**：[具體且容易執行的精準建議]
 ''';
 
-      final googleAI = FirebaseAI.googleAI(auth: fb_auth.FirebaseAuth.instance);
+      final googleAI = FirebaseAI.googleAI();
       final model = googleAI.generativeModel(model: 'gemini-flash-latest');
 
       final response = await model.generateContent([Content.text(prompt)]);
@@ -7955,7 +8052,7 @@ ${historyBuffer.toString()}
 4. 回覆請盡量精煉，避免過長的冗長鋪陳，排版清晰美觀，合適地使用 Emoji。
 ''';
 
-      final googleAI = FirebaseAI.googleAI(auth: fb_auth.FirebaseAuth.instance);
+      final googleAI = FirebaseAI.googleAI();
       final model = googleAI.generativeModel(model: 'gemini-flash-latest');
 
       final response = await model.generateContent([Content.text(prompt)]);

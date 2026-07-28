@@ -184,6 +184,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
             actorUserId: evidence.actorUserId,
             metricValue: evidence.metricValue,
             metricUnit: evidence.metricUnit,
+            occurredAt: evidence.occurredAt,
             createdAt: verifiedAt,
           ),
         )
@@ -284,6 +285,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
       canonicalSessionId: existing.canonicalSessionId,
       receipt: existing.receipt,
       contributions: existing.contributions,
+      session: existing.session,
       wasDuplicate: true,
     );
   }
@@ -340,6 +342,11 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     session.sourceSessionIds.add(evidence.sessionId);
     _sessionsByAlias[aliasKey] = session;
 
+    if (session.status == ActivitySessionStatus.discarded) {
+      throw const ActivityValidationException(
+        'A discarded activity session cannot change state.',
+      );
+    }
     if (session.status == ActivitySessionStatus.completed) {
       if (evidence.eventType != ActivityEventType.completed &&
           evidence.eventType != ActivityEventType.metricSynced) {
@@ -375,6 +382,12 @@ class InMemoryActivityIngestion implements ActivityIngestion {
       case ActivityEventType.completed:
       case ActivityEventType.metricSynced:
         session.status = ActivitySessionStatus.completed;
+        session.endedAt = evidence.occurredAt;
+        session.metricValue = evidence.metricValue;
+        session.metricUnit = evidence.metricUnit;
+        break;
+      case ActivityEventType.discarded:
+        session.status = ActivitySessionStatus.discarded;
         session.endedAt = evidence.occurredAt;
         session.metricValue = evidence.metricValue;
         session.metricUnit = evidence.metricUnit;
@@ -427,6 +440,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         actorUserId: evidence.actorUserId,
         metricValue: receipt.acceptedMetric,
         metricUnit: receipt.metricUnit,
+        occurredAt: evidence.occurredAt,
         createdAt: createdAt,
       );
     }
@@ -437,6 +451,7 @@ class InMemoryActivityIngestion implements ActivityIngestion {
       canonicalSessionId: receipt.sessionId,
       receipt: receipt,
       contributions: contributionsByRoom.values.toList(growable: false),
+      session: settledResult.session,
       wasDuplicate: false,
     );
   }

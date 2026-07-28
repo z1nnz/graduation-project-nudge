@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'state/app_state.dart';
 import 'services/notification_service.dart';
+import 'services/firebase_app_check_service.dart';
 import 'screens/home_page.dart';
 import 'screens/focus_page.dart';
 import 'screens/health_page.dart';
@@ -18,10 +19,13 @@ Future<void> main() async {
   await NotificationService.initialize();
   try {
     await Firebase.initializeApp();
+    await FirebaseAppCheckService.activate();
     debugPrint('Firebase initialized successfully');
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
-    debugPrint('Please ensure google-services.json and GoogleService-Info.plist are correctly configured.');
+    debugPrint(
+      'Please ensure google-services.json and GoogleService-Info.plist are correctly configured.',
+    );
   }
   runApp(const NudgeApp());
 }
@@ -265,8 +269,8 @@ class _AppRoot extends StatelessWidget {
       home: !appState.isHydrated
           ? const _AppLoadingScreen()
           : (appState.hasCompletedOnboarding
-              ? const MainShell()
-              : const OnboardingPage()),
+                ? const MainShell()
+                : const OnboardingPage()),
     );
   }
 }
