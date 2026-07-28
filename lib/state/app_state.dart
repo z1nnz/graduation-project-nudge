@@ -21,6 +21,7 @@ import '../models/friend_request.dart';
 import '../models/group_contract.dart';
 import '../models/health_activity_snapshot.dart';
 import '../models/relationship_membership.dart';
+import '../models/relationship_outcome.dart';
 import '../models/room_activity_session.dart';
 import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
@@ -32,6 +33,7 @@ import '../services/notification_service.dart';
 import '../services/activity_ledger_outbox.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
 import '../services/cloud_health_snapshot_gateway.dart';
+import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../theme/app_ui.dart';
 
@@ -92,18 +94,21 @@ class ReminderPreview {
 class AppState extends ChangeNotifier {
   final ActivityLedgerOutbox _activityLedgerOutbox;
   final HealthSnapshotOutbox _healthSnapshotOutbox;
+  final CloudRelationshipOutcomeGateway _relationshipOutcomeGateway;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
     HealthSnapshotOutbox? healthSnapshotOutbox,
+    CloudRelationshipOutcomeGateway? relationshipOutcomeGateway,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()),
        _healthSnapshotOutbox =
            healthSnapshotOutbox ??
-           HealthSnapshotOutbox(
-             gateway: CloudHealthSnapshotGateway.firebase(),
-           ) {
+           HealthSnapshotOutbox(gateway: CloudHealthSnapshotGateway.firebase()),
+       _relationshipOutcomeGateway =
+           relationshipOutcomeGateway ??
+           CloudRelationshipOutcomeGateway.firebase() {
     _listenToAuthChanges();
   }
 
@@ -133,6 +138,8 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _familyGoalSubscription;
   StreamSubscription? _familyBondEventSubscription;
   StreamSubscription? _familySummarySubscription;
+  StreamSubscription? _familyOutcomeSubscription;
+  StreamSubscription? _familyMemoriesSubscription;
   StreamSubscription? _incomingGroupRequestsSubscription;
   StreamSubscription? _groupSubscription;
   StreamSubscription? _groupChallengeSubscription;
@@ -140,6 +147,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _groupSchedulesSubscription;
   StreamSubscription? _groupTemplateSubscription;
   StreamSubscription? _groupMemberSummariesSubscription;
+  StreamSubscription? _groupOutcomeSubscription;
   String? _listeningGroupId;
   String? _projectedGroupId;
   final Set<String> _checkedLegacyGroupIds = {};
@@ -197,6 +205,13 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> _familyGoals = [];
   List<Map<String, dynamic>> _familyBondEvents = [];
   Map<String, dynamic>? _familySummary;
+  RelationshipOutcome? _familyRelationshipOutcome;
+  List<RelationshipMemory> _familyRelationshipMemories = [];
+  RelationshipOutcome? _groupRelationshipOutcome;
+  bool _isRefreshingFamilyRelationshipOutcome = false;
+  bool _isRefreshingGroupRelationshipOutcome = false;
+  String? _familyRelationshipOutcomeError;
+  String? _groupRelationshipOutcomeError;
 
   List<Map<String, dynamic>> _incomingGroupRequests = [];
   List<Map<String, dynamic>> get incomingGroupRequests =>
@@ -885,6 +900,7 @@ class AppState extends ChangeNotifier {
       _setupFamilyInteractionListeners(selected.id);
     }
     unawaited(_publishFamilySummarySnapshot());
+    unawaited(_refreshRelationshipOutcomeSilently('family', selected.id));
   }
 
   void _activateSelectedGroup(String userId) {
@@ -904,6 +920,7 @@ class AppState extends ChangeNotifier {
     }
     _canonicalGroup = selected;
     _groupName = selected.name;
+    unawaited(_refreshRelationshipOutcomeSilently('group', selected.id));
   }
 
   Future<void> selectFamilyRelationship(String familyLinkId) async {
@@ -933,6 +950,97 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_relationshipSelectionKey('group', userId), groupId);
     notifyListeners();
+  }
+
+  Future<RelationshipOutcome> refreshFamilyRelationshipOutcome() async {
+    final scopeId = _selectedFamilyLinkId;
+    if (scopeId == null || _familyLink == null) {
+      throw StateError('目前沒有可更新的家庭關係');
+    }
+    if (_isRefreshingFamilyRelationshipOutcome) {
+      return _familyRelationshipOutcome ?? (throw StateError('家庭樹正在更新，請稍候'));
+    }
+    _isRefreshingFamilyRelationshipOutcome = true;
+    _familyRelationshipOutcomeError = null;
+    notifyListeners();
+    try {
+      final result = await _relationshipOutcomeGateway.refresh(
+        scopeType: 'family',
+        scopeId: scopeId,
+      );
+      if (_selectedFamilyLinkId == scopeId) {
+        _familyRelationshipOutcome = result.outcome;
+        _familyRelationshipMemories = result.memories;
+      }
+      return result.outcome;
+    } catch (error) {
+      if (_selectedFamilyLinkId == scopeId) {
+        _familyRelationshipOutcomeError = _relationshipOutcomeErrorText(error);
+      }
+      rethrow;
+    } finally {
+      if (_selectedFamilyLinkId == scopeId) {
+        _isRefreshingFamilyRelationshipOutcome = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<RelationshipOutcome> refreshGroupRelationshipOutcome() async {
+    final scopeId = _selectedGroupId;
+    if (scopeId == null || _canonicalGroup == null) {
+      throw StateError('目前沒有可更新的團體關係');
+    }
+    if (_isRefreshingGroupRelationshipOutcome) {
+      return _groupRelationshipOutcome ?? (throw StateError('團體星球正在更新，請稍候'));
+    }
+    _isRefreshingGroupRelationshipOutcome = true;
+    _groupRelationshipOutcomeError = null;
+    notifyListeners();
+    try {
+      final result = await _relationshipOutcomeGateway.refresh(
+        scopeType: 'group',
+        scopeId: scopeId,
+      );
+      if (_selectedGroupId == scopeId) {
+        _groupRelationshipOutcome = result.outcome;
+      }
+      return result.outcome;
+    } catch (error) {
+      if (_selectedGroupId == scopeId) {
+        _groupRelationshipOutcomeError = _relationshipOutcomeErrorText(error);
+      }
+      rethrow;
+    } finally {
+      if (_selectedGroupId == scopeId) {
+        _isRefreshingGroupRelationshipOutcome = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> _refreshRelationshipOutcomeSilently(
+    String scopeType,
+    String scopeId,
+  ) async {
+    try {
+      if (scopeType == 'family' &&
+          _selectedFamilyLinkId == scopeId &&
+          !_isRefreshingFamilyRelationshipOutcome) {
+        await refreshFamilyRelationshipOutcome();
+      } else if (scopeType == 'group' &&
+          _selectedGroupId == scopeId &&
+          !_isRefreshingGroupRelationshipOutcome) {
+        await refreshGroupRelationshipOutcome();
+      }
+    } catch (error) {
+      debugPrint('Failed to refresh $scopeType relationship outcome: $error');
+    }
+  }
+
+  String _relationshipOutcomeErrorText(Object error) {
+    if (error is RelationshipOutcomeException) return error.message;
+    return '關係成果暫時無法更新，請稍後再試。';
   }
 
   Future<void> _syncMyRelationshipMembershipDocuments(String userId) async {
@@ -976,6 +1084,16 @@ class AppState extends ChangeNotifier {
     final groupRef = FirebaseFirestore.instance
         .collection('groups')
         .doc(groupId);
+    _groupOutcomeSubscription = FirebaseFirestore.instance
+        .collection('relationship_outcomes')
+        .doc('group--$groupId')
+        .snapshots()
+        .listen((snapshot) {
+          _groupRelationshipOutcome = snapshot.exists
+              ? RelationshipOutcome.fromMap(snapshot.data()!)
+              : null;
+          notifyListeners();
+        });
     _groupChallengeSubscription = groupRef
         .collection('challenges')
         .doc('current')
@@ -1048,12 +1166,14 @@ class AppState extends ChangeNotifier {
     _groupSchedulesSubscription?.cancel();
     _groupTemplateSubscription?.cancel();
     _groupMemberSummariesSubscription?.cancel();
+    _groupOutcomeSubscription?.cancel();
     _groupResultSummaryPublishTimer?.cancel();
     _groupChallengeSubscription = null;
     _groupChallengeParticipantsSubscription = null;
     _groupSchedulesSubscription = null;
     _groupTemplateSubscription = null;
     _groupMemberSummariesSubscription = null;
+    _groupOutcomeSubscription = null;
     _groupResultSummaryPublishTimer = null;
     _groupChallengePublication = null;
     _groupChallengeParticipations = [];
@@ -1061,6 +1181,9 @@ class AppState extends ChangeNotifier {
     _groupTemplatePublications = [];
     _groupMemberSummaries = [];
     _groupResultSharingEnabled = false;
+    _groupRelationshipOutcome = null;
+    _groupRelationshipOutcomeError = null;
+    _isRefreshingGroupRelationshipOutcome = false;
   }
 
   void _setupFamilyInteractionListeners(String linkId) {
@@ -1069,6 +1192,29 @@ class AppState extends ChangeNotifier {
     final linkRef = FirebaseFirestore.instance
         .collection('family_links')
         .doc(linkId);
+    final outcomeRef = FirebaseFirestore.instance
+        .collection('relationship_outcomes')
+        .doc('family--$linkId');
+    _familyOutcomeSubscription = outcomeRef.snapshots().listen((snapshot) {
+      _familyRelationshipOutcome = snapshot.exists
+          ? RelationshipOutcome.fromMap(snapshot.data()!)
+          : null;
+      notifyListeners();
+    });
+    _familyMemoriesSubscription = outcomeRef
+        .collection('memories')
+        .orderBy('happenedAt', descending: true)
+        .limit(30)
+        .snapshots()
+        .listen((snapshot) {
+          _familyRelationshipMemories = snapshot.docs
+              .map(
+                (doc) =>
+                    RelationshipMemory.fromMap(doc.data(), documentId: doc.id),
+              )
+              .toList(growable: false);
+          notifyListeners();
+        });
 
     _familyEncouragementSubscription = linkRef
         .collection('encouragements')
@@ -1117,17 +1263,25 @@ class AppState extends ChangeNotifier {
     _familyGoalSubscription?.cancel();
     _familyBondEventSubscription?.cancel();
     _familySummarySubscription?.cancel();
+    _familyOutcomeSubscription?.cancel();
+    _familyMemoriesSubscription?.cancel();
     _familySummaryPublishTimer?.cancel();
     _familyEncouragementSubscription = null;
     _familyGoalSubscription = null;
     _familyBondEventSubscription = null;
     _familySummarySubscription = null;
+    _familyOutcomeSubscription = null;
+    _familyMemoriesSubscription = null;
     _familySummaryPublishTimer = null;
     _listeningFamilyLinkId = null;
     _familyEncouragements = [];
     _familyGoals = [];
     _familyBondEvents = [];
     _familySummary = null;
+    _familyRelationshipOutcome = null;
+    _familyRelationshipMemories = [];
+    _familyRelationshipOutcomeError = null;
+    _isRefreshingFamilyRelationshipOutcome = false;
   }
 
   void _cancelFirestoreListeners() {
@@ -1161,6 +1315,8 @@ class AppState extends ChangeNotifier {
     _familyGoalSubscription?.cancel();
     _familyBondEventSubscription?.cancel();
     _familySummarySubscription?.cancel();
+    _familyOutcomeSubscription?.cancel();
+    _familyMemoriesSubscription?.cancel();
     _familySummaryPublishTimer?.cancel();
     _groupResultSummaryPublishTimer?.cancel();
     _incomingGroupRequestsSubscription?.cancel();
@@ -1181,6 +1337,8 @@ class AppState extends ChangeNotifier {
     _familyGoalSubscription = null;
     _familyBondEventSubscription = null;
     _familySummarySubscription = null;
+    _familyOutcomeSubscription = null;
+    _familyMemoriesSubscription = null;
     _familySummaryPublishTimer = null;
     _groupResultSummaryPublishTimer = null;
     _listeningFamilyLinkId = null;
@@ -1191,6 +1349,13 @@ class AppState extends ChangeNotifier {
     _familyGoals = [];
     _familyBondEvents = [];
     _familySummary = null;
+    _familyRelationshipOutcome = null;
+    _familyRelationshipMemories = [];
+    _familyRelationshipOutcomeError = null;
+    _groupRelationshipOutcome = null;
+    _groupRelationshipOutcomeError = null;
+    _isRefreshingFamilyRelationshipOutcome = false;
+    _isRefreshingGroupRelationshipOutcome = false;
     _incomingGroupRequestsSubscription = null;
     _groupSubscription = null;
     _canonicalGroup = null;
@@ -1766,6 +1931,11 @@ class AppState extends ChangeNotifier {
   List<GroupResultSummaryContract> get groupMemberSummaries =>
       List<GroupResultSummaryContract>.unmodifiable(_groupMemberSummaries);
   bool get isGroupResultSharingEnabled => _groupResultSharingEnabled;
+  RelationshipOutcome? get groupRelationshipOutcome =>
+      _groupRelationshipOutcome;
+  bool get isRefreshingGroupRelationshipOutcome =>
+      _isRefreshingGroupRelationshipOutcome;
+  String? get groupRelationshipOutcomeError => _groupRelationshipOutcomeError;
   bool get isGuardianLinked => _familyLink?.status == FamilyLinkStatus.active;
   FamilyLinkContract? get familyLink => _familyLink;
   List<FamilyLinkContract> get familyLinks =>
@@ -1803,6 +1973,13 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? get familySummary => _familySummary == null
       ? null
       : Map<String, dynamic>.unmodifiable(_familySummary!);
+  RelationshipOutcome? get familyRelationshipOutcome =>
+      _familyRelationshipOutcome;
+  List<RelationshipMemory> get familyRelationshipMemories =>
+      List<RelationshipMemory>.unmodifiable(_familyRelationshipMemories);
+  bool get isRefreshingFamilyRelationshipOutcome =>
+      _isRefreshingFamilyRelationshipOutcome;
+  String? get familyRelationshipOutcomeError => _familyRelationshipOutcomeError;
 
   int get familyBondXp => _familyBondEvents.fold<int>(
     0,

@@ -71,6 +71,10 @@ class GroupManagementPage extends StatelessWidget {
           const RelationshipContextSwitcher(scope: RelationshipScope.group),
           if (appState.canonicalGroups.isNotEmpty)
             const SizedBox(height: AppUI.sectionGap),
+          if (appState.canonicalGroup != null) ...[
+            _buildGroupPlanetCard(context, appState, accentColor),
+            const SizedBox(height: AppUI.sectionGap),
+          ],
 
           Card(
             shape: AppUI.cardShape(),
@@ -349,6 +353,178 @@ class GroupManagementPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildGroupPlanetCard(
+    BuildContext context,
+    AppState appState,
+    Color accentColor,
+  ) {
+    final outcome = appState.groupRelationshipOutcome;
+    final secondaryText = AppUI.textSecondaryOf(context);
+    final roleLabel = appState.isGroupOwner ? '管理者' : '成員';
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.public_rounded, color: accentColor, size: 30),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        outcome?.characterTitle ?? '團體星球尚未生成',
+                        style: TextStyle(
+                          color: AppUI.textPrimaryOf(context),
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$roleLabel介面 · ${appState.groupName ?? '目前團體'}',
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: '重新計算團體成果',
+                  onPressed: appState.isRefreshingGroupRelationshipOutcome
+                      ? null
+                      : () => _refreshGroupPlanet(context, appState),
+                  icon: appState.isRefreshingGroupRelationshipOutcome
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              outcome?.characterDescription ??
+                  '由有效成員、主動分享與目前挑戰參與紀錄生成；管理者不能替成員完成。',
+              style: TextStyle(color: secondaryText, fontSize: 12, height: 1.4),
+            ),
+            if (outcome != null) ...[
+              const SizedBox(height: 16),
+              LinearProgressIndicator(
+                value: outcome.levelProgress,
+                color: accentColor,
+                backgroundColor: accentColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                outcome.nextLevelXp == null
+                    ? '團體星球 Lv.${outcome.growthLevel} · ${outcome.growthXp} 關係 XP · 已達目前最高階段'
+                    : '團體星球 Lv.${outcome.growthLevel} · ${outcome.growthXp}/${outcome.nextLevelXp} 關係 XP',
+                style: TextStyle(color: secondaryText, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _outcomeMetric(
+                    context,
+                    '有效成員',
+                    outcome.metric('memberCount'),
+                    accentColor,
+                  ),
+                  _outcomeMetric(
+                    context,
+                    '主動分享',
+                    outcome.metric('sharedMemberCount'),
+                    accentColor,
+                  ),
+                  _outcomeMetric(
+                    context,
+                    '挑戰參與',
+                    outcome.metric('joinedChallengeCount'),
+                    accentColor,
+                  ),
+                  _outcomeMetric(
+                    context,
+                    '挑戰完成',
+                    outcome.metric('completedChallengeCount'),
+                    accentColor,
+                  ),
+                ],
+              ),
+            ],
+            if (appState.groupRelationshipOutcomeError != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                appState.groupRelationshipOutcomeError!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              '團體星球與團體陪伴角色是共同成果，不發放個人 XP／自律幣。',
+              style: TextStyle(color: secondaryText, fontSize: 11, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _outcomeMetric(
+    BuildContext context,
+    String label,
+    int value,
+    Color accentColor,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$label $value',
+        style: TextStyle(
+          color: AppUI.textPrimaryOf(context),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshGroupPlanet(
+    BuildContext context,
+    AppState appState,
+  ) async {
+    try {
+      await appState.refreshGroupRelationshipOutcome();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('團體星球已更新')));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(appState.groupRelationshipOutcomeError ?? '更新失敗'),
+        ),
+      );
+    }
   }
 
   Widget _buildChallengeCard(

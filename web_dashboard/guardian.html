@@ -26,9 +26,9 @@
         <header class="hero split">
           <div>
             <span class="eyebrow">Guardian Companion Hub</span>
-            <h1>家長中心拆成陪伴工具，不再全部塞一頁。</h1>
-            <p>家長只看孩子同意分享的趨勢資料。週報、鼓勵、共同目標、資料同意都拆成獨立頁面，避免變成監控看板。</p>
-            <div class="subnav">
+            <h1 data-family-surface-title>家庭陪伴與自主中心</h1>
+            <p data-family-surface-description>登入後會依正式家庭 Membership 顯示家長或孩子介面。</p>
+            <div class="subnav" data-family-guardian-tools hidden>
               <a class="active" href="guardian.html">中心總覽</a>
               <a href="guardian-report.html">孩子週報</a>
               <a href="guardian-encouragement.html">鼓勵卡</a>
@@ -43,7 +43,26 @@
           </div>
         </header>
 
-        <section class="center-hub page-section">
+        <section class="panel page-section" data-family-outcome>
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow" data-family-role>等待家庭連結</span>
+              <h2 data-family-outcome-title>家庭樹尚未生成</h2>
+            </div>
+            <button class="button ghost" type="button" data-refresh-family-outcome disabled>重新計算</button>
+          </div>
+          <p data-family-outcome-description>家庭樹由 Cloud 驗證的共同目標與雙向回應生成，不使用個人 XP。</p>
+          <div class="saved-list" data-family-outcome-metrics>
+            <article><strong>尚未計算</strong><span>登入後按「重新計算」建立正式成果。</span></article>
+          </div>
+          <h3>共同回憶</h3>
+          <div class="saved-list" data-family-memory-list>
+            <article><strong>尚無共同回憶</strong><span>完成共同目標或回應鼓勵卡後會出現在這裡。</span></article>
+          </div>
+          <small>家庭樹與陪伴角色屬於這段關係，不會成為任一方的個人獎勵。</small>
+        </section>
+
+        <section class="center-hub page-section" data-family-guardian-tools hidden>
           <a class="hub-card" href="guardian-report.html">
             <span>☺</span>
             <strong>孩子週報</strong>
@@ -79,6 +98,6 @@
         </section>
       </main>
     </div>
-    <script src="assets/app.js?v=13"></script>
+    <script src="assets/app.js?v=16"></script>
   </body>
 </html>

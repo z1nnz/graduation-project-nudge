@@ -186,6 +186,15 @@ service cloud.firestore {
           == 'ended';
     }
 
+    function hasRelationshipMembership(scopeType, scopeId, userId) {
+      return exists(
+          /databases/$(database)/documents/relationship_memberships/$(scopeType + '--' + scopeId + '--' + userId)
+        )
+        && get(
+          /databases/$(database)/documents/relationship_memberships/$(scopeType + '--' + scopeId + '--' + userId)
+        ).data.status in ['active', 'ended'];
+    }
+
     function changesOnlyOwnGroupMembership(groupId) {
       let beforeMembers = resource.data.memberIds.toSet();
       let afterMembers = request.resource.data.memberIds.toSet();
@@ -2010,6 +2019,39 @@ service cloud.firestore {
           )
         );
       allow delete: if false;
+    }
+
+    // ─── Cloud-built relationship outcomes ────────────────────────────
+    // Family trees, group planets and shared memories are derived by the
+    // callable from validated relationship events. Clients cannot mint them.
+    match /relationship_outcomes/{outcomeId} {
+      function canReadOutcome() {
+        return isAuth()
+          && hasRelationshipMembership(
+            resource.data.scopeType,
+            resource.data.scopeId,
+            request.auth.uid
+          );
+      }
+
+      allow read: if canReadOutcome();
+      allow write: if false;
+
+      match /memories/{memoryId} {
+        function parentOutcome() {
+          return get(
+            /databases/$(database)/documents/relationship_outcomes/$(outcomeId)
+          ).data;
+        }
+
+        allow read: if isAuth()
+          && hasRelationshipMembership(
+            parentOutcome().scopeType,
+            parentOutcome().scopeId,
+            request.auth.uid
+          );
+        allow write: if false;
+      }
     }
 
     // ─── Cloud Activity Ledger ─────────────────────────────────────────

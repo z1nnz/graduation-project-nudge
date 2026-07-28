@@ -68,6 +68,10 @@ class GuardianCenterPage extends StatelessWidget {
             _buildActiveLinkCard(context, appState, isChild, accentColor)
           else
             _buildEmptyLinkCard(context),
+          if (link != null) ...[
+            const SizedBox(height: AppUI.sectionGap),
+            _buildFamilyTreeCard(context, appState, accentColor),
+          ],
           if (activeGoal != null && isChild) ...[
             const SizedBox(height: AppUI.sectionGap),
             Text(
@@ -185,7 +189,7 @@ class GuardianCenterPage extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    isChild ? '已連結家長帳號' : '目前帳號不是此連結的孩子',
+                    isChild ? '孩子介面 · 已連結家長帳號' : '家長介面 · 已連結孩子帳號',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -197,16 +201,16 @@ class GuardianCenterPage extends StatelessWidget {
                 Expanded(
                   child: _metric(
                     context,
-                    '家庭羈絆',
-                    'Lv.${appState.familyBondLevel}',
+                    '目前身份',
+                    isChild ? '孩子' : '家長',
                     accentColor,
                   ),
                 ),
                 Expanded(
                   child: _metric(
                     context,
-                    '互動 XP',
-                    '${appState.familyBondXp}',
+                    '連結狀態',
+                    appState.isGuardianLinked ? '有效' : '已結束',
                     accentColor,
                   ),
                 ),
@@ -279,6 +283,178 @@ class GuardianCenterPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildFamilyTreeCard(
+    BuildContext context,
+    AppState appState,
+    Color accentColor,
+  ) {
+    final outcome = appState.familyRelationshipOutcome;
+    final memories = appState.familyRelationshipMemories;
+    final secondaryText = AppUI.textSecondaryOf(context);
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.park_rounded, color: accentColor, size: 30),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        outcome?.characterTitle ?? '家庭樹尚未生成',
+                        style: TextStyle(
+                          color: AppUI.textPrimaryOf(context),
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        outcome?.characterDescription ??
+                            '由完成共同目標與雙向回應的正式紀錄生成，不使用個人 XP。',
+                        style: TextStyle(
+                          color: secondaryText,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: '重新計算家庭成果',
+                  onPressed: appState.isRefreshingFamilyRelationshipOutcome
+                      ? null
+                      : () => _refreshFamilyTree(context, appState),
+                  icon: appState.isRefreshingFamilyRelationshipOutcome
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh_rounded),
+                ),
+              ],
+            ),
+            if (outcome != null) ...[
+              const SizedBox(height: 16),
+              LinearProgressIndicator(
+                value: outcome.levelProgress,
+                color: accentColor,
+                backgroundColor: accentColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                outcome.nextLevelXp == null
+                    ? '家庭樹 Lv.${outcome.growthLevel} · ${outcome.growthXp} 關係 XP · 已達目前最高階段'
+                    : '家庭樹 Lv.${outcome.growthLevel} · ${outcome.growthXp}/${outcome.nextLevelXp} 關係 XP',
+                style: TextStyle(color: secondaryText, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _metric(
+                      context,
+                      '共同目標',
+                      '${outcome.metric('completedGoals')}',
+                      accentColor,
+                    ),
+                  ),
+                  Expanded(
+                    child: _metric(
+                      context,
+                      '雙向回應',
+                      '${outcome.metric('acknowledgements')}',
+                      accentColor,
+                    ),
+                  ),
+                  Expanded(
+                    child: _metric(
+                      context,
+                      '共同回憶',
+                      '${outcome.metric('memoryCount')}',
+                      accentColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (appState.familyRelationshipOutcomeError != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                appState.familyRelationshipOutcomeError!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ],
+            const Divider(height: 28),
+            Text(
+              '共同回憶',
+              style: TextStyle(
+                color: AppUI.textPrimaryOf(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (memories.isEmpty)
+              Text(
+                '完成共同目標或回應家庭鼓勵卡後，經 Cloud 驗證的事件會出現在這裡。',
+                style: TextStyle(color: secondaryText, fontSize: 12),
+              )
+            else
+              ...memories
+                  .take(5)
+                  .map(
+                    (memory) => ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        memory.memoryType == 'goal_completed'
+                            ? Icons.flag_circle_outlined
+                            : Icons.favorite_outline_rounded,
+                        color: accentColor,
+                      ),
+                      title: Text(memory.title),
+                      subtitle: Text('+${memory.points} 關係 XP'),
+                    ),
+                  ),
+            const SizedBox(height: 8),
+            Text(
+              '家庭樹與陪伴角色屬於這段關係，不會變成任一方的個人獎勵。',
+              style: TextStyle(color: secondaryText, fontSize: 11, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshFamilyTree(
+    BuildContext context,
+    AppState appState,
+  ) async {
+    try {
+      await appState.refreshFamilyRelationshipOutcome();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('家庭樹與共同回憶已更新')));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(appState.familyRelationshipOutcomeError ?? '更新失敗'),
+        ),
+      );
+    }
   }
 
   Widget _consentSwitch({

@@ -2072,23 +2072,29 @@ let webActivityLedgerOutbox = null;
 let activeFamilyLink = null;
 let activeFamilyLinks = [];
 let currentFamilySummary = null;
+let currentFamilyRelationshipOutcome = null;
+let currentFamilyRelationshipMemories = [];
 let currentWebUserData = null;
 let familyLinkLoaded = false;
 let activeWebGroup = null;
 let activeWebGroups = [];
 let activeWebGroupSummaries = [];
 let activeWebGroupChallengeParticipants = [];
+let currentGroupRelationshipOutcome = null;
 let groupLoaded = false;
 let familyLinkSub = null;
 let familyEncouragementSub = null;
 let familyGoalSub = null;
 let familySummarySub = null;
+let familyOutcomeSub = null;
+let familyMemoriesSub = null;
 let groupDocSub = null;
 let groupChallengeSub = null;
 let groupChallengeParticipantsSub = null;
 let groupSchedulesSub = null;
 let groupTemplatesSub = null;
 let groupMemberSummariesSub = null;
+let groupOutcomeSub = null;
 let listeningWebGroupId = undefined;
 let webRoomsSub = null;
 let webRoomMemberSub = null;
@@ -2827,9 +2833,15 @@ function stopFamilyInteractionListeners() {
   if (familyEncouragementSub) familyEncouragementSub();
   if (familyGoalSub) familyGoalSub();
   if (familySummarySub) familySummarySub();
+  if (familyOutcomeSub) familyOutcomeSub();
+  if (familyMemoriesSub) familyMemoriesSub();
   familyEncouragementSub = null;
   familyGoalSub = null;
   familySummarySub = null;
+  familyOutcomeSub = null;
+  familyMemoriesSub = null;
+  currentFamilyRelationshipOutcome = null;
+  currentFamilyRelationshipMemories = [];
 }
 
 function relationshipSelectionKey(scope, userId) {
@@ -2931,6 +2943,7 @@ function activateWebFamilyLink(link, userId) {
   renderWebRelationshipContextSwitcher(userId);
   renderFamilyLinkState();
   renderFamilyReportState();
+  renderFamilyRelationshipOutcome();
   if (currentWebUserData) updateSidebarProfile(currentWebUserData);
 }
 
@@ -2965,6 +2978,7 @@ function listenToFamilyLink(userId) {
         renderWebRelationshipContextSwitcher(userId);
         renderFamilyLinkState();
         renderFamilyReportState();
+        renderFamilyRelationshipOutcome();
         if (currentWebUserData) updateSidebarProfile(currentWebUserData);
         return;
       }
@@ -3037,6 +3051,26 @@ function listenToFamilyInteractions(linkId) {
       currentFamilySummary = snapshot.exists ? snapshot.data() : null;
       renderFamilyReportState();
     });
+
+  const outcomeRef = db.collection("relationship_outcomes")
+    .doc(`family--${linkId}`);
+  familyOutcomeSub = outcomeRef.onSnapshot(snapshot => {
+    currentFamilyRelationshipOutcome = snapshot.exists
+      ? snapshot.data()
+      : null;
+    renderFamilyRelationshipOutcome();
+  });
+  familyMemoriesSub = outcomeRef
+    .collection("memories")
+    .orderBy("happenedAt", "desc")
+    .limit(30)
+    .onSnapshot(snapshot => {
+      currentFamilyRelationshipMemories = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      renderFamilyRelationshipOutcome();
+    });
 }
 
 function stopGroupPublicationListeners() {
@@ -3045,13 +3079,16 @@ function stopGroupPublicationListeners() {
   if (groupSchedulesSub) groupSchedulesSub();
   if (groupTemplatesSub) groupTemplatesSub();
   if (groupMemberSummariesSub) groupMemberSummariesSub();
+  if (groupOutcomeSub) groupOutcomeSub();
   groupChallengeSub = null;
   groupChallengeParticipantsSub = null;
   groupSchedulesSub = null;
   groupTemplatesSub = null;
   groupMemberSummariesSub = null;
+  groupOutcomeSub = null;
   activeWebGroupSummaries = [];
   activeWebGroupChallengeParticipants = [];
+  currentGroupRelationshipOutcome = null;
 }
 
 function effectiveWebGroupProfile() {
@@ -3103,6 +3140,7 @@ function refreshCanonicalGroupUi() {
   renderCanonicalGroupOverview();
   renderCanonicalWebGroupMembers();
   renderCanonicalGroupRanking();
+  renderGroupRelationshipOutcome();
 }
 
 function renderCanonicalGroupOverview() {
@@ -3280,6 +3318,14 @@ function listenToGroupPublications(groupId) {
       renderCanonicalWebGroupMembers();
       renderCanonicalGroupRanking();
     });
+  groupOutcomeSub = db.collection("relationship_outcomes")
+    .doc(`group--${groupId}`)
+    .onSnapshot(snapshot => {
+      currentGroupRelationshipOutcome = snapshot.exists
+        ? snapshot.data()
+        : null;
+      renderGroupRelationshipOutcome();
+    });
 }
 
 function listenToCanonicalWebGroup(userId, projectedGroupId) {
@@ -3367,6 +3413,190 @@ function webRelationshipRole(scope, relationship, userId) {
     return relationship.guardianId === userId ? "家長" : "孩子";
   }
   return relationship.ownerId === userId ? "團體管理者" : "團體成員";
+}
+
+async function refreshWebRelationshipOutcome(scopeType, scopeId) {
+  const user = firebase.auth().currentUser;
+  if (!user || !functions) {
+    throw new Error("請先登入並完成 Cloud Functions 初始化。");
+  }
+  if (!["family", "group"].includes(scopeType) || !scopeId) {
+    throw new Error("目前沒有可更新的家庭或團體關係。");
+  }
+  const response = await functions.httpsCallable(
+    "refreshRelationshipOutcome",
+  )({ scopeType, scopeId });
+  const outcome = response?.data?.outcome;
+  if (
+    !outcome ||
+    outcome.scopeType !== scopeType ||
+    outcome.scopeId !== scopeId
+  ) {
+    throw new Error("Cloud 回傳的關係成果與目前情境不一致。");
+  }
+  if (scopeType === "family") {
+    currentFamilyRelationshipOutcome = outcome;
+    currentFamilyRelationshipMemories = Array.isArray(response.data.memories)
+      ? response.data.memories
+      : [];
+    renderFamilyRelationshipOutcome();
+  } else {
+    currentGroupRelationshipOutcome = outcome;
+    renderGroupRelationshipOutcome();
+  }
+  return outcome;
+}
+
+function renderFamilyRelationshipOutcome() {
+  const root = document.querySelector("[data-family-outcome]");
+  if (!root) return;
+  const userId = firebase.auth().currentUser?.uid;
+  const isGuardian =
+    Boolean(activeFamilyLink) && activeFamilyLink.guardianId === userId;
+  const role = document.querySelector("[data-family-role]");
+  if (role) {
+    role.textContent = activeFamilyLink
+      ? `${isGuardian ? "家長" : "孩子"}介面`
+      : "等待家庭連結";
+  }
+  document.querySelectorAll("[data-family-guardian-tools]").forEach(node => {
+    node.hidden = !isGuardian;
+  });
+  const surfaceTitle = document.querySelector("[data-family-surface-title]");
+  if (surfaceTitle) {
+    surfaceTitle.textContent = isGuardian
+      ? "家長陪伴工具"
+      : activeFamilyLink
+        ? "我的家庭自主與共同回憶"
+        : "家庭陪伴與自主中心";
+  }
+  const surfaceDescription = document.querySelector(
+    "[data-family-surface-description]",
+  );
+  if (surfaceDescription) {
+    surfaceDescription.textContent = isGuardian
+      ? "只查看孩子已同意的摘要，並透過鼓勵與共同目標陪伴。"
+      : activeFamilyLink
+        ? "你可以調整資料同意、回應鼓勵並決定是否接受共同目標。"
+        : "登入後會依正式家庭 Membership 顯示家長或孩子介面。";
+  }
+
+  const outcome = currentFamilyRelationshipOutcome;
+  const title = root.querySelector("[data-family-outcome-title]");
+  const description = root.querySelector("[data-family-outcome-description]");
+  const metrics = root.querySelector("[data-family-outcome-metrics]");
+  const memories = root.querySelector("[data-family-memory-list]");
+  if (title) {
+    title.textContent = outcome?.characterOutcome?.title || "家庭樹尚未生成";
+  }
+  if (description) {
+    description.textContent =
+      outcome?.characterOutcome?.description ||
+      "家庭樹由 Cloud 驗證的共同目標與雙向回應生成，不使用個人 XP。";
+  }
+  if (metrics) {
+    const growth = outcome?.growth || {};
+    const values = outcome?.metrics || {};
+    metrics.innerHTML = outcome
+      ? `<article><strong>Lv.${Number(growth.level || 1)} · ${Number(growth.xp || 0)} 關係 XP</strong><span>${growth.nextLevelXp == null ? "已達目前最高階段" : `下一階段 ${Number(growth.nextLevelXp)} XP`}</span></article>
+         <article><strong>${Number(values.completedGoals || 0)} 個共同目標</strong><span>${Number(values.acknowledgements || 0)} 次雙向回應 · ${Number(values.memoryCount || 0)} 段共同回憶</span></article>`
+      : "<article><strong>尚未計算</strong><span>登入後按「重新計算」建立正式成果。</span></article>";
+  }
+  if (memories) {
+    memories.innerHTML = currentFamilyRelationshipMemories.length
+      ? currentFamilyRelationshipMemories.slice(0, 5).map(memory =>
+          `<article><strong>${escapeHtml(memory.title || "家庭共同回憶")}</strong><span>+${Number(memory.points || 0)} 關係 XP</span></article>`,
+        ).join("")
+      : "<article><strong>尚無共同回憶</strong><span>完成共同目標或回應鼓勵卡後會出現在這裡。</span></article>";
+  }
+  const button = root.querySelector("[data-refresh-family-outcome]");
+  if (button) {
+    button.disabled = !activeFamilyLink;
+    button.onclick = async () => {
+      button.disabled = true;
+      try {
+        await refreshWebRelationshipOutcome("family", activeFamilyLink.id);
+        toast("家庭樹與共同回憶已更新");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "家庭樹更新失敗");
+      } finally {
+        button.disabled = !activeFamilyLink;
+      }
+    };
+  }
+}
+
+function renderGroupRelationshipOutcome() {
+  const root = document.querySelector("[data-group-outcome]");
+  if (!root) return;
+  const userId = firebase.auth().currentUser?.uid;
+  const isManager =
+    Boolean(activeWebGroup) && activeWebGroup.ownerId === userId;
+  const role = document.querySelector("[data-group-role]");
+  if (role) {
+    role.textContent = activeWebGroup
+      ? `${isManager ? "管理者" : "成員"}介面 · ${activeWebGroup.name || "目前團體"}`
+      : "等待正式團體";
+  }
+  document.querySelectorAll("[data-group-manager-tools]").forEach(node => {
+    node.hidden = !isManager;
+  });
+  const surfaceTitle = document.querySelector("[data-group-surface-title]");
+  if (surfaceTitle) {
+    surfaceTitle.textContent = isManager
+      ? "團體管理與共同進度"
+      : activeWebGroup
+        ? "我的團體任務與共同進度"
+        : "團體共同進度中心";
+  }
+  const surfaceDescription = document.querySelector(
+    "[data-group-surface-description]",
+  );
+  if (surfaceDescription) {
+    surfaceDescription.textContent = isManager
+      ? "管理者可以發布規則與模板，但不能替成員開始或完成活動。"
+      : activeWebGroup
+        ? "你自行選擇參與並完成活動，團體只彙整已同意分享的成果。"
+        : "登入後會依正式團體 Membership 顯示管理者或成員介面。";
+  }
+
+  const outcome = currentGroupRelationshipOutcome;
+  const title = root.querySelector("[data-group-outcome-title]");
+  const description = root.querySelector("[data-group-outcome-description]");
+  const metrics = root.querySelector("[data-group-outcome-metrics]");
+  if (title) {
+    title.textContent = outcome?.characterOutcome?.title || "團體星球尚未生成";
+  }
+  if (description) {
+    description.textContent =
+      outcome?.characterOutcome?.description ||
+      "團體星球由有效成員、主動分享與目前挑戰參與紀錄生成。";
+  }
+  if (metrics) {
+    const growth = outcome?.growth || {};
+    const values = outcome?.metrics || {};
+    metrics.innerHTML = outcome
+      ? `<article><strong>Lv.${Number(growth.level || 1)} · ${Number(growth.xp || 0)} 關係 XP</strong><span>${growth.nextLevelXp == null ? "已達目前最高階段" : `下一階段 ${Number(growth.nextLevelXp)} XP`}</span></article>
+         <article><strong>${Number(values.memberCount || 0)} 位有效成員 · ${Number(values.sharedMemberCount || 0)} 位主動分享</strong><span>${Number(values.joinedChallengeCount || 0)} 人參與目前挑戰 · ${Number(values.completedChallengeCount || 0)} 人完成</span></article>`
+      : "<article><strong>尚未計算</strong><span>登入後按「重新計算」建立正式成果。</span></article>";
+  }
+  const button = root.querySelector("[data-refresh-group-outcome]");
+  if (button) {
+    button.disabled = !activeWebGroup;
+    button.onclick = async () => {
+      button.disabled = true;
+      try {
+        await refreshWebRelationshipOutcome("group", activeWebGroup.id);
+        toast("團體星球已更新");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "團體星球更新失敗");
+      } finally {
+        button.disabled = !activeWebGroup;
+      }
+    };
+  }
 }
 
 function renderWebRelationshipContextSwitcher(userId) {

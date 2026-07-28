@@ -8,6 +8,7 @@ import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
 import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshots-handler.js";
 import { createRecordActivityHandler } from "./src/record-activity-handler.js";
+import { createRefreshRelationshipOutcomeHandler } from "./src/relationship-outcome-service.js";
 
 initializeApp();
 setGlobalOptions({
@@ -22,6 +23,10 @@ const handleRecordActivity = createRecordActivityHandler({ service });
 const handleIngestHealthSnapshots = createIngestHealthSnapshotsHandler({
   service,
 });
+const handleRefreshRelationshipOutcome =
+  createRefreshRelationshipOutcomeHandler({
+    firestore: getFirestore(),
+  });
 
 export const recordActivity = onCall(
   {
@@ -64,6 +69,26 @@ export const ingestHealthSnapshots = onCall(
       throw new HttpsError(
         "internal",
         "The health snapshots could not be ingested.",
+      );
+    }
+  },
+);
+
+export const refreshRelationshipOutcome = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleRefreshRelationshipOutcome(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("refreshRelationshipOutcome failed", error);
+      throw new HttpsError(
+        "internal",
+        "The relationship outcome could not be refreshed.",
       );
     }
   },
