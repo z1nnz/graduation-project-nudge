@@ -66,6 +66,7 @@ function evidenceSignature(evidence) {
     evidence.metricUnit,
     evidence.occurredAt,
     evidence.deviceId,
+    evidence.healthContext,
   ]);
 }
 
@@ -142,6 +143,9 @@ function membershipAllowsContribution(membership, occurredAt) {
 }
 
 function rewardEligibility(evidence) {
+  if (evidence.source === "health" && evidence.eventType === "metricSynced") {
+    return false;
+  }
   const policy = REWARD_POLICIES.get(evidence.activityType);
   if (!policy || evidence.metricValue <= 0) {
     return false;
@@ -150,6 +154,82 @@ function rewardEligibility(evidence) {
     evidence.metricUnit === policy.unit &&
     evidence.metricValue <= policy.maximum
   );
+}
+
+function isHealthCorrection(existingSettlement, evidence) {
+  return (
+    existingSettlement.evidence.source === "health" &&
+    existingSettlement.evidence.eventType === "metricSynced" &&
+    evidence.source === "health" &&
+    ["metricSynced", "completed"].includes(evidence.eventType)
+  );
+}
+
+function normalizeHealthContext(rawContext) {
+  if (rawContext === null || rawContext === undefined) {
+    return null;
+  }
+  if (typeof rawContext !== "object" || Array.isArray(rawContext)) {
+    throw new ActivityLedgerValidationError(
+      "Health context must be an object.",
+    );
+  }
+  const provider = rawContext.provider;
+  const localDate = rawContext.localDate;
+  const periodStart = rawContext.periodStart;
+  const periodEnd = rawContext.periodEnd;
+  const rawOrigins = Array.isArray(rawContext.dataOrigins)
+    ? rawContext.dataOrigins
+    : [];
+  if (
+    rawOrigins.some(origin => typeof origin !== "string")
+  ) {
+    throw new ActivityLedgerValidationError(
+      "Health data origins must be strings.",
+    );
+  }
+  const dataOrigins = [
+    ...new Set(rawOrigins.map(origin => origin.trim())),
+  ].sort();
+  if (!["healthConnect", "appleHealth"].includes(provider)) {
+    throw new ActivityLedgerValidationError("Unsupported health provider.");
+  }
+  if (
+    typeof localDate !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(localDate)
+  ) {
+    throw new ActivityLedgerValidationError(
+      "Health context requires a local date.",
+    );
+  }
+  const start = new Date(periodStart);
+  const end = new Date(periodEnd);
+  if (
+    typeof periodStart !== "string" ||
+    typeof periodEnd !== "string" ||
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end.getTime() <= start.getTime()
+  ) {
+    throw new ActivityLedgerValidationError(
+      "Health context requires a valid period.",
+    );
+  }
+  if (
+    dataOrigins.length > 20 ||
+    dataOrigins.some(origin => origin.length === 0 || origin.length > 256)
+  ) {
+    throw new ActivityLedgerValidationError(
+      "Health data origins exceed the supported limits.",
+    );
+  }
+  return {
+    provider,
+    localDate,
+    periodStart: start.toISOString(),
+    periodEnd: end.toISOString(),
+    dataOrigins,
+  };
 }
 
 export class InMemoryActivityLedgerStore {
@@ -210,6 +290,21 @@ export class InMemoryActivityLedgerStore {
   }
 
   async createSettlement({
+    eventKey,
+    event,
+    receipt,
+    sourceKey,
+    fingerprint,
+    session,
+  }) {
+    this.#events.set(eventKey, clone(event));
+    this.#receipts.set(receipt.receiptId, clone(receipt));
+    this.#sourceRecords.set(sourceKey, clone(event));
+    this.#settlements.set(fingerprint, clone(event));
+    this.#sessions.set(fingerprint, clone(session));
+  }
+
+  async createCorrectionSettlement({
     eventKey,
     event,
     receipt,
@@ -303,6 +398,74 @@ export class ActivityLedgerService {
       const fingerprint = activityFingerprint(evidence);
       const existingSettlement = await transaction.getSettlement(fingerprint);
       if (existingSettlement) {
+        if (isHealthCorrection(existingSettlement, evidence)) {
+          const existingSession = await transaction.getSession(fingerprint);
+          const session = this.#transitionSession(existingSession, evidence);
+          const verifiedAt = this.clock().toISOString();
+          const previousReceipt = existingSettlement.result.receipt;
+          const receiptId = `receipt_${stableHash(
+            `${fingerprint}:${sourceKey}`,
+          ).slice(0, 40)}`;
+          const isRewardEligible = rewardEligibility(evidence);
+          const receipt = {
+            receiptId,
+            eventId: evidence.eventId,
+            sourceRecordId: evidence.sourceRecordId,
+            activitySessionId:
+              evidence.activityCorrelationId ?? evidence.sessionId,
+            actorUserId: evidence.actorUserId,
+            activityType: evidence.activityType,
+            activityFingerprint: fingerprint,
+            acceptedMetric: evidence.metricValue,
+            metricUnit: evidence.metricUnit,
+            rewardEligible: isRewardEligible,
+            rewardIssued: false,
+            characterExperienceEligible: isRewardEligible,
+            characterExperienceIssued: false,
+            verifiedAt,
+            correctionOfReceiptId: previousReceipt.receiptId,
+          };
+          const contributions = [];
+          for (const roomId of new Set(evidence.roomIds)) {
+            const membership = await transaction.getRoomMembership(
+              roomId,
+              evidence.actorUserId,
+            );
+            if (!membershipAllowsContribution(membership, evidence.occurredAt)) {
+              continue;
+            }
+            contributions.push({
+              contributionId: `${receiptId}_${stableHash(roomId).slice(0, 24)}`,
+              receiptId,
+              correctionOfReceiptId: previousReceipt.receiptId,
+              roomId,
+              actorUserId: evidence.actorUserId,
+              metricValue: evidence.metricValue,
+              metricUnit: evidence.metricUnit,
+              occurredAt: evidence.occurredAt,
+              createdAt: verifiedAt,
+            });
+          }
+          const result = {
+            status: "settled",
+            acknowledgedEventId: evidence.eventId,
+            acknowledgedSourceRecordId: evidence.sourceRecordId,
+            canonicalSessionId: receipt.activitySessionId,
+            receipt,
+            contributions,
+            session,
+            wasDuplicate: false,
+          };
+          await transaction.createCorrectionSettlement({
+            eventKey,
+            event: { signature, evidence, result },
+            receipt,
+            sourceKey,
+            fingerprint,
+            session,
+          });
+          return clone(result);
+        }
         const receipt = existingSettlement.result.receipt;
         if (
           receipt.acceptedMetric !== evidence.metricValue ||
@@ -506,7 +669,7 @@ export class ActivityLedgerService {
     if (
       session.status === "discarded" ||
       (session.status === "completed" &&
-        !["completed", "metricSynced"].includes(evidence.eventType))
+        evidence.eventType !== "completed")
     ) {
       throw new ActivityLedgerValidationError(
         `A ${session.status} activity session cannot change state.`,
@@ -532,9 +695,14 @@ export class ActivityLedgerService {
         session.metricUnit = evidence.metricUnit;
         break;
       case "completed":
-      case "metricSynced":
         session.status = "completed";
         session.endedAt = evidence.occurredAt;
+        session.metricValue = evidence.metricValue;
+        session.metricUnit = evidence.metricUnit;
+        break;
+      case "metricSynced":
+        session.status = "active";
+        session.endedAt = null;
         session.metricValue = evidence.metricValue;
         session.metricUnit = evidence.metricUnit;
         break;
@@ -597,6 +765,9 @@ export class ActivityLedgerService {
       occurredAt: rawEvidence.occurredAt,
       receivedAt: this.clock().toISOString(),
       deviceId: null,
+      healthContext: isHealthAdapter
+        ? normalizeHealthContext(rawEvidence.healthContext)
+        : null,
     };
     if (isUser && principal.userId !== evidence.actorUserId) {
       throw new ActivityLedgerAuthorizationError(
@@ -611,6 +782,15 @@ export class ActivityLedgerService {
     if (isHealthAdapter && evidence.source !== "health") {
       throw new ActivityLedgerAuthorizationError(
         "A health adapter can only submit health evidence.",
+      );
+    }
+    if (
+      isHealthAdapter &&
+      typeof principal.allowedActorUserId === "string" &&
+      principal.allowedActorUserId !== evidence.actorUserId
+    ) {
+      throw new ActivityLedgerAuthorizationError(
+        "The health adapter can only submit its assigned actor.",
       );
     }
     if (rawEvidence.deviceId !== null && rawEvidence.deviceId !== undefined) {

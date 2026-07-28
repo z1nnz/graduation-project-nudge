@@ -192,21 +192,42 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var exerciseMinutes: Int = 0
 
+    var sleepOrigins: [String] = []
+
+    var stepOrigins: [String] = []
+
+    var exerciseOrigins: [String] = []
+
     var firstErrorMessage: String?
+
+    let resultLock = NSLock()
+
+    let now = Date()
+
+    let calendar = Calendar.current
+
+    let startOfDay = calendar.startOfDay(for: now)
+
+    let sleepStart = calendar.date(byAdding: .hour, value: -12, to: startOfDay) ?? startOfDay
+
+    let localDate = localDateString(now)
 
     group.enter()
 
-    fetchTodaySteps { value, error in
+    fetchTodaySteps(from: startOfDay, to: now) { value, origins, error in
 
       print("fetchTodaySteps callback, value: \(value), error: \(String(describing: error))")
 
+      resultLock.lock()
       steps = value
+      stepOrigins = origins
 
       if let error = error, firstErrorMessage == nil {
 
         firstErrorMessage = error.localizedDescription
 
       }
+      resultLock.unlock()
 
       group.leave()
 
@@ -214,17 +235,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     group.enter()
 
-    fetchLastNightSleepHours { value, error in
+    fetchSleepHours(from: sleepStart, to: now) { value, origins, error in
 
       print("fetchLastNightSleepHours callback, value: \(value), error: \(String(describing: error))")
 
+      resultLock.lock()
       sleepHours = value
+      sleepOrigins = origins
 
       if let error = error, firstErrorMessage == nil {
 
         firstErrorMessage = error.localizedDescription
 
       }
+      resultLock.unlock()
 
       group.leave()
 
@@ -232,17 +256,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     group.enter()
 
-    fetchTodayExerciseMinutes { value, error in
+    fetchTodayExerciseMinutes(from: startOfDay, to: now) { value, origins, error in
 
       print("fetchTodayExerciseMinutes callback, value: \(value), error: \(String(describing: error))")
 
+      resultLock.lock()
       exerciseMinutes = value
+      exerciseOrigins = origins
 
       if let error = error, firstErrorMessage == nil {
 
         firstErrorMessage = error.localizedDescription
 
       }
+      resultLock.unlock()
 
       group.leave()
 
@@ -262,7 +289,40 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         "steps": steps,
 
-        "exerciseMinutes": exerciseMinutes
+        "exerciseMinutes": exerciseMinutes,
+
+        "snapshots": [
+          self.healthSnapshot(
+            activityType: "steps",
+            metricValue: Double(steps),
+            metricUnit: "steps",
+            localDate: localDate,
+            periodStart: startOfDay,
+            periodEnd: now,
+            observedAt: now,
+            dataOrigins: stepOrigins
+          ),
+          self.healthSnapshot(
+            activityType: "sleep",
+            metricValue: sleepHours,
+            metricUnit: "hours",
+            localDate: localDate,
+            periodStart: sleepStart,
+            periodEnd: now,
+            observedAt: now,
+            dataOrigins: sleepOrigins
+          ),
+          self.healthSnapshot(
+            activityType: "exercise",
+            metricValue: Double(exerciseMinutes),
+            metricUnit: "minutes",
+            localDate: localDate,
+            periodStart: startOfDay,
+            periodEnd: now,
+            observedAt: now,
+            dataOrigins: exerciseOrigins
+          )
+        ]
 
       ])
 
@@ -270,25 +330,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
   }
 
-  private func fetchTodaySteps(completion: @escaping (Int, Error?) -> Void) {
+  private func fetchTodaySteps(
+    from start: Date,
+    to end: Date,
+    completion: @escaping (Int, [String], Error?) -> Void
+  ) {
 
     guard let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) else {
 
-      completion(0, nil)
+      completion(0, [], nil)
 
       return
 
     }
 
-    let now = Date()
-
-    let startOfDay = Calendar.current.startOfDay(for: now)
-
     let predicate = HKQuery.predicateForSamples(
 
-      withStart: startOfDay,
+      withStart: start,
 
-      end: now,
+      end: end,
 
       options: .strictStartDate
 
@@ -300,13 +360,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       quantitySamplePredicate: predicate,
 
-      options: .cumulativeSum
+      options: [.cumulativeSum, .separateBySource]
 
     ) { _, statistics, error in
 
       let value = statistics?.sumQuantity()?.doubleValue(for: HKUnit.count()) ?? 0
 
-      completion(Int(value), error)
+      let origins = statistics?.sources
+        .map(\.bundleIdentifier)
+        .sorted() ?? []
+
+      completion(Int(value), origins, error)
 
     }
 
@@ -314,25 +378,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
   }
 
-  private func fetchTodayExerciseMinutes(completion: @escaping (Int, Error?) -> Void) {
+  private func fetchTodayExerciseMinutes(
+    from start: Date,
+    to end: Date,
+    completion: @escaping (Int, [String], Error?) -> Void
+  ) {
 
     guard let exerciseType = HKQuantityType.quantityType(forIdentifier: .appleExerciseTime) else {
 
-      completion(0, nil)
+      completion(0, [], nil)
 
       return
 
     }
 
-    let now = Date()
-
-    let startOfDay = Calendar.current.startOfDay(for: now)
-
     let predicate = HKQuery.predicateForSamples(
 
-      withStart: startOfDay,
+      withStart: start,
 
-      end: now,
+      end: end,
 
       options: .strictStartDate
 
@@ -344,13 +408,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       quantitySamplePredicate: predicate,
 
-      options: .cumulativeSum
+      options: [.cumulativeSum, .separateBySource]
 
     ) { _, statistics, error in
 
       let value = statistics?.sumQuantity()?.doubleValue(for: HKUnit.minute()) ?? 0
 
-      completion(Int(value), error)
+      let origins = statistics?.sources
+        .map(\.bundleIdentifier)
+        .sorted() ?? []
+
+      completion(Int(value), origins, error)
 
     }
 
@@ -358,25 +426,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
   }
 
-  private func fetchLastNightSleepHours(completion: @escaping (Double, Error?) -> Void) {
+  private func fetchSleepHours(
+    from start: Date,
+    to end: Date,
+    completion: @escaping (Double, [String], Error?) -> Void
+  ) {
 
     guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
 
-      completion(0, nil)
+      completion(0, [], nil)
 
       return
 
     }
 
-    let now = Date()
-
-    let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
-
     let predicate = HKQuery.predicateForSamples(
 
-      withStart: sevenDaysAgo,
+      withStart: start,
 
-      end: now,
+      end: end,
 
       options: .strictStartDate
 
@@ -398,7 +466,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       guard let samples = samples as? [HKCategorySample], error == nil else {
 
-        completion(0, error)
+        completion(0, [], error)
 
         return
 
@@ -422,23 +490,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       }
 
-      let calendar = Calendar.current
+      var intervals: [DateInterval] = []
 
-      let yesterday = calendar.date(byAdding: .day, value: -1, to: now) ?? now
-
-      let targetDay = calendar.startOfDay(for: yesterday)
-
-      var totalSeconds: TimeInterval = 0
+      var origins: Set<String> = []
 
       for sample in samples {
 
         if asleepValues.contains(sample.value) {
 
-          let sampleDay = calendar.startOfDay(for: sample.endDate)
+          let clippedStart = max(sample.startDate, start)
 
-          if sampleDay == targetDay || calendar.startOfDay(for: sample.startDate) == targetDay {
+          let clippedEnd = min(sample.endDate, end)
 
-            totalSeconds += sample.endDate.timeIntervalSince(sample.startDate)
+          if clippedEnd > clippedStart {
+
+            intervals.append(DateInterval(start: clippedStart, end: clippedEnd))
+
+            origins.insert(sample.sourceRevision.source.bundleIdentifier)
 
           }
 
@@ -446,12 +514,76 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       }
 
-      completion(totalSeconds / 3600.0, nil)
+      let sortedIntervals = intervals.sorted { $0.start < $1.start }
+
+      var mergedIntervals: [DateInterval] = []
+
+      for interval in sortedIntervals {
+
+        if let last = mergedIntervals.last, interval.start <= last.end {
+
+          mergedIntervals[mergedIntervals.count - 1] = DateInterval(
+            start: last.start,
+            end: max(last.end, interval.end)
+          )
+
+        } else {
+
+          mergedIntervals.append(interval)
+
+        }
+
+      }
+
+      let totalSeconds = mergedIntervals.reduce(0) { total, interval in
+
+        total + interval.duration
+
+      }
+
+      completion(totalSeconds / 3600.0, origins.sorted(), nil)
 
     }
 
     healthStore.execute(query)
 
+  }
+
+  private func healthSnapshot(
+    activityType: String,
+    metricValue: Double,
+    metricUnit: String,
+    localDate: String,
+    periodStart: Date,
+    periodEnd: Date,
+    observedAt: Date,
+    dataOrigins: [String]
+  ) -> [String: Any] {
+    return [
+      "activityType": activityType,
+      "metricValue": metricValue,
+      "metricUnit": metricUnit,
+      "localDate": localDate,
+      "periodStart": isoTimestamp(periodStart),
+      "periodEnd": isoTimestamp(periodEnd),
+      "observedAt": isoTimestamp(observedAt),
+      "dataOrigins": dataOrigins
+    ]
+  }
+
+  private func isoTimestamp(_ date: Date) -> String {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter.string(from: date)
+  }
+
+  private func localDateString(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar.current
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone.current
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: date)
   }
 
 }

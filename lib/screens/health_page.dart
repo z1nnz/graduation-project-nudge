@@ -141,6 +141,7 @@ class _HealthPageState extends State<HealthPage> {
         sleepHours: result.sleepHours,
         steps: result.steps,
         exerciseMinutes: result.exerciseMinutes,
+        snapshots: result.snapshots,
       );
 
       final hasData = getHasAnyHealthData(
@@ -853,7 +854,8 @@ class _HealthGoalDialogWidget extends StatefulWidget {
   });
 
   @override
-  State<_HealthGoalDialogWidget> createState() => _HealthGoalDialogWidgetState();
+  State<_HealthGoalDialogWidget> createState() =>
+      _HealthGoalDialogWidgetState();
 }
 
 class _HealthGoalDialogWidgetState extends State<_HealthGoalDialogWidget> {
@@ -908,11 +910,16 @@ class _HealthGoalDialogWidgetState extends State<_HealthGoalDialogWidget> {
           onPressed: () {
             final value = double.tryParse(_controller.text.trim());
             if (value == null || value <= 0) {
-              setState(() { _errorText = '請輸入大於 0 的目標'; });
+              setState(() {
+                _errorText = '請輸入大於 0 的目標';
+              });
               return;
             }
-            if (widget.sourceType != TaskSourceType.sleepHours && value % 1 != 0) {
-              setState(() { _errorText = '${widget.metricName}目標請輸入整數'; });
+            if (widget.sourceType != TaskSourceType.sleepHours &&
+                value % 1 != 0) {
+              setState(() {
+                _errorText = '${widget.metricName}目標請輸入整數';
+              });
               return;
             }
             Navigator.pop(context, value);

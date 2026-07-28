@@ -241,3 +241,106 @@ test(
     await deleteApp(app);
   },
 );
+
+test(
+  "Firestore preserves health correction receipts and the latest session",
+  { skip: !emulatorEnabled },
+  async () => {
+    const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const app = initializeApp(
+      {
+        projectId: process.env.GCLOUD_PROJECT || "nudge-discipline-app",
+      },
+      `activity-ledger-health-${unique}`,
+    );
+    const firestore = getFirestore(app);
+    const actorUserId = `health-user-${unique}`;
+    const principal = {
+      kind: "health_adapter",
+      adapterId: "mobile-health-connect",
+      allowedActorUserId: actorUserId,
+    };
+    const evidence = {
+      eventId: `health-first-${unique}`,
+      sourceRecordId: `health-source-first-${unique}`,
+      sessionId: `health-session-${unique}`,
+      activityCorrelationId: `health-session-${unique}`,
+      actorUserId,
+      roomIds: [],
+      activityType: "steps",
+      source: "health",
+      eventType: "metricSynced",
+      metricValue: 1200,
+      metricUnit: "steps",
+      occurredAt: "2026-07-28T09:00:00.000Z",
+      healthContext: {
+        provider: "healthConnect",
+        localDate: "2026-07-28",
+        periodStart: "2026-07-27T16:00:00.000Z",
+        periodEnd: "2026-07-28T09:00:00.000Z",
+        dataOrigins: ["android"],
+      },
+    };
+    const service = new ActivityLedgerService({
+      store: new FirestoreActivityLedgerStore({ firestore }),
+      clock: () => new Date("2026-07-28T12:00:00.000Z"),
+    });
+
+    const first = await service.record(principal, evidence);
+    const corrected = await service.record(principal, {
+      ...evidence,
+      eventId: `health-corrected-${unique}`,
+      sourceRecordId: `health-source-corrected-${unique}`,
+      metricValue: 1800,
+      occurredAt: "2026-07-28T10:00:00.000Z",
+      healthContext: {
+        ...evidence.healthContext,
+        periodEnd: "2026-07-28T10:00:00.000Z",
+      },
+    });
+    const finalized = await service.record(principal, {
+      ...evidence,
+      eventId: `health-final-${unique}`,
+      sourceRecordId: `health-source-final-${unique}`,
+      eventType: "completed",
+      metricValue: 1800,
+      occurredAt: "2026-07-28T11:00:00.000Z",
+      healthContext: {
+        ...evidence.healthContext,
+        periodEnd: "2026-07-28T11:00:00.000Z",
+      },
+    });
+
+    const receipts = await firestore
+      .collection("activity_receipts")
+      .where("actorUserId", "==", actorUserId)
+      .get();
+    const sessions = await firestore
+      .collection("activity_sessions")
+      .where("actorUserId", "==", actorUserId)
+      .get();
+    const finalEvent = await firestore
+      .collection("activity_events")
+      .where("eventId", "==", `health-final-${unique}`)
+      .get();
+
+    assert.equal(receipts.size, 3);
+    assert.equal(
+      corrected.receipt.correctionOfReceiptId,
+      first.receipt.receiptId,
+    );
+    assert.equal(
+      finalized.receipt.correctionOfReceiptId,
+      corrected.receipt.receiptId,
+    );
+    assert.equal(sessions.size, 1);
+    assert.equal(sessions.docs[0].data().status, "completed");
+    assert.equal(sessions.docs[0].data().metricValue, 1800);
+    assert.equal(finalEvent.size, 1);
+    assert.deepEqual(
+      finalEvent.docs[0].data().evidence.healthContext.dataOrigins,
+      ["android"],
+    );
+    await deleteApp(app);
+  },
+);

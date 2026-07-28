@@ -22,6 +22,11 @@ import java.time.Instant
 import java.time.ZonedDateTime
 
 class MainActivity : FlutterActivity() {
+    private data class MetricAggregate(
+        val value: Double,
+        val dataOrigins: List<String>
+    )
+
     private val channelName = "nudge/healthkit"
     private val healthPermissions = setOf(
         HealthPermission.getReadPermission(StepsRecord::class),
@@ -117,28 +122,69 @@ class MainActivity : FlutterActivity() {
 
                 val end = ZonedDateTime.now()
                 val start = end.toLocalDate().atStartOfDay(end.zone)
+                val sleepStart = start.minusHours(12)
                 val range = TimeRangeFilter.between(start.toInstant(), end.toInstant())
                 val sleepRange = TimeRangeFilter.between(
-                    start.minusHours(12).toInstant(),
+                    sleepStart.toInstant(),
                     end.toInstant()
                 )
 
                 val steps = readSteps(client, range)
-                val sleepHours = readSleepHours(
+                val sleep = readSleepHours(
                     client = client,
                     range = sleepRange,
-                    dayStart = start.toInstant(),
+                    periodStart = sleepStart.toInstant(),
                     end = end.toInstant()
                 )
-                val exerciseMinutes = readExerciseMinutes(client, range)
+                val exercise = readExerciseMinutes(
+                    client = client,
+                    range = range,
+                    periodStart = start.toInstant(),
+                    end = end.toInstant()
+                )
+                val observedAt = end.toInstant().toString()
+                val localDate = end.toLocalDate().toString()
+                val snapshots = listOf(
+                    healthSnapshot(
+                        activityType = "steps",
+                        metricValue = steps.value,
+                        metricUnit = "steps",
+                        localDate = localDate,
+                        periodStart = start.toInstant(),
+                        periodEnd = end.toInstant(),
+                        observedAt = observedAt,
+                        dataOrigins = steps.dataOrigins
+                    ),
+                    healthSnapshot(
+                        activityType = "sleep",
+                        metricValue = sleep.value,
+                        metricUnit = "hours",
+                        localDate = localDate,
+                        periodStart = sleepStart.toInstant(),
+                        periodEnd = end.toInstant(),
+                        observedAt = observedAt,
+                        dataOrigins = sleep.dataOrigins
+                    ),
+                    healthSnapshot(
+                        activityType = "exercise",
+                        metricValue = exercise.value,
+                        metricUnit = "minutes",
+                        localDate = localDate,
+                        periodStart = start.toInstant(),
+                        periodEnd = end.toInstant(),
+                        observedAt = observedAt,
+                        dataOrigins = exercise.dataOrigins
+                    )
+                )
 
                 result.success(
                     mapOf(
                         "success" to true,
                         "message" to "已同步 Health Connect 資料",
-                        "sleepHours" to sleepHours,
-                        "steps" to steps,
-                        "exerciseMinutes" to exerciseMinutes
+                        "sleepHours" to sleep.value,
+                        "steps" to steps.value.toInt(),
+                        "exerciseMinutes" to exercise.value.toInt(),
+                        "snapshots" to snapshots
                     )
                 )
             } catch (error: Exception) {
@@ -158,22 +204,28 @@ class MainActivity : FlutterActivity() {
     private suspend fun readSteps(
         client: HealthConnectClient,
         range: TimeRangeFilter
-    ): Int {
+    ): MetricAggregate {
         val response = client.aggregate(
             AggregateRequest(
                 metrics = setOf(StepsRecord.COUNT_TOTAL),
                 timeRangeFilter = range
             )
         )
-        return (response[StepsRecord.COUNT_TOTAL] ?: 0L).toInt()
+        return MetricAggregate(
+            value = (response[StepsRecord.COUNT_TOTAL] ?: 0L).toDouble(),
+            dataOrigins = response.dataOrigins
+                .map { origin -> origin.packageName }
+                .distinct()
+                .sorted()
+        )
     }
 
     private suspend fun readSleepHours(
         client: HealthConnectClient,
         range: TimeRangeFilter,
-        dayStart: Instant,
+        periodStart: Instant,
         end: Instant
-    ): Double {
+    ): MetricAggregate {
         val response = client.readRecords(
             ReadRecordsRequest(
                 SleepSessionRecord::class,
@@ -181,7 +233,7 @@ class MainActivity : FlutterActivity() {
             )
         )
         val totalMinutes = response.records.sumOf { session ->
-            val clippedStart = maxOf(session.startTime, dayStart)
+            val clippedStart = maxOf(session.startTime, periodStart)
             val clippedEnd = minOf(session.endTime, end)
             if (clippedEnd.isAfter(clippedStart)) {
                 Duration.between(clippedStart, clippedEnd).toMinutes()
@@ -189,13 +241,21 @@ class MainActivity : FlutterActivity() {
                 0L
             }
         }
-        return totalMinutes / 60.0
+        return MetricAggregate(
+            value = totalMinutes / 60.0,
+            dataOrigins = response.records
+                .map { session -> session.metadata.dataOrigin.packageName }
+                .distinct()
+                .sorted()
+        )
     }
 
     private suspend fun readExerciseMinutes(
         client: HealthConnectClient,
-        range: TimeRangeFilter
-    ): Int {
+        range: TimeRangeFilter,
+        periodStart: Instant,
+        end: Instant
+    ): MetricAggregate {
         val response = client.readRecords(
             ReadRecordsRequest(
                 ExerciseSessionRecord::class,
@@ -203,8 +263,42 @@ class MainActivity : FlutterActivity() {
             )
         )
         val totalMinutes = response.records.sumOf { session ->
-            Duration.between(session.startTime, session.endTime).toMinutes()
+            val clippedStart = maxOf(session.startTime, periodStart)
+            val clippedEnd = minOf(session.endTime, end)
+            if (clippedEnd.isAfter(clippedStart)) {
+                Duration.between(clippedStart, clippedEnd).toMinutes()
+            } else {
+                0L
+            }
         }
-        return totalMinutes.toInt()
+        return MetricAggregate(
+            value = totalMinutes.toDouble(),
+            dataOrigins = response.records
+                .map { session -> session.metadata.dataOrigin.packageName }
+                .distinct()
+                .sorted()
+        )
+    }
+
+    private fun healthSnapshot(
+        activityType: String,
+        metricValue: Double,
+        metricUnit: String,
+        localDate: String,
+        periodStart: Instant,
+        periodEnd: Instant,
+        observedAt: String,
+        dataOrigins: List<String>
+    ): Map<String, Any> {
+        return mapOf(
+            "activityType" to activityType,
+            "metricValue" to metricValue,
+            "metricUnit" to metricUnit,
+            "localDate" to localDate,
+            "periodStart" to periodStart.toString(),
+            "periodEnd" to periodEnd.toString(),
+            "observedAt" to observedAt,
+            "dataOrigins" to dataOrigins
+        )
     }
 }

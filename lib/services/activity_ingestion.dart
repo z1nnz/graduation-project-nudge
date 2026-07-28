@@ -151,8 +151,11 @@ class InMemoryActivityIngestion implements ActivityIngestion {
     final verifiedAt = _clock();
     ActivityReceipt? receipt;
     if (isSettlement) {
-      _issuedPersonalRewardCount++;
       _issuedReceiptCount++;
+      final rewardEligible = evidence.eventType == ActivityEventType.completed;
+      if (rewardEligible) {
+        _issuedPersonalRewardCount++;
+      }
       receipt = ActivityReceipt(
         receiptId: 'receipt_${evidence.eventId}',
         eventId: evidence.eventId,
@@ -163,8 +166,10 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         activityFingerprint: activityFingerprint,
         acceptedMetric: evidence.metricValue,
         metricUnit: evidence.metricUnit,
-        personalRewardIssued: true,
-        characterExperienceIssued: true,
+        rewardEligible: rewardEligible,
+        personalRewardIssued: rewardEligible,
+        characterExperienceEligible: rewardEligible,
+        characterExperienceIssued: rewardEligible,
         verifiedAt: verifiedAt,
       );
     }
@@ -379,8 +384,11 @@ class InMemoryActivityIngestion implements ActivityIngestion {
         session.metricValue = evidence.metricValue;
         session.metricUnit = evidence.metricUnit;
         break;
-      case ActivityEventType.completed:
       case ActivityEventType.metricSynced:
+        session.metricValue = evidence.metricValue;
+        session.metricUnit = evidence.metricUnit;
+        break;
+      case ActivityEventType.completed:
         session.status = ActivitySessionStatus.completed;
         session.endedAt = evidence.occurredAt;
         session.metricValue = evidence.metricValue;

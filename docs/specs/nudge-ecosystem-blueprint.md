@@ -1,7 +1,7 @@
 # Nudge 全系統與多活動自律房藍圖
 
 - Status: Working blueprint
-- Date: 2026-07-27
+- Date: 2026-07-28
 - Scope: App、Web Dashboard、Cloud、角色養成、團體、家庭與實體裝置
 
 ## 1. 目標
@@ -37,6 +37,13 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
   加入、逐日任務進度及清單完成狀態，管理者不能替成員參加或填寫進度。
   此狀態不直接發放個人 XP／自律幣，也不等同尚待 Activity Receipt 結算的
   正式團體成果。
+- Cloud 已提供具 App Check、身分綁定、來源去重、交易式 Receipt 與
+  Room Contribution 的正式 Activity Ledger callable。
+- App 的個人專注與自律房活動已使用耐久 outbox 提交 Ledger；離線或暫時性
+  失敗不會遺失事件，也不會在 Cloud 確認前由端點自行發獎勵。
+- Health Connect／Apple Health 已轉換為每日步數、睡眠、運動快照，經
+  provider 分批送入 Cloud；同日後續快照建立不可變 correction Receipt，
+  不覆寫舊 Receipt。
 
 尚未完成或仍需重構：
 
@@ -44,8 +51,9 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 - 多團體成員關係與關係範圍角色。
 - 正式家庭與家庭成員關係。
 - 所有 App 與 Web 頁面共用的完整細粒度權限判斷。
-- 統一活動帳本、跨來源去重與一次性獎勵。
-- 房間資料與使用者文件中既有投影資料的遷移。
+- Web Dashboard 仍需改走 Activity Ledger，App 內舊健康／房間投影也仍需
+  在讀取端切換完成後移除。
+- 房間資料與使用者文件中既有投影資料的遷移、封存與清除。
 
 ## 3. 核心產品原則
 
@@ -253,6 +261,9 @@ Room Membership 角色只影響房間設定與管理，不影響活動控制權�
 - `evidenceRef`
 
 只有 `actorUserId`、其已指派裝置或受信任健康 Adapter 可以改變活動狀態。
+`metricSynced` 會建立可稽核的 Receipt 與房間貢獻，但 Session 保持
+`active`，且不具個人獎勵或角色經驗資格；只有經規則確認的 `completed`
+事件可以結束 Session 並進入獎勵判定。
 
 ### 6.5 Activity Receipt
 
@@ -610,6 +621,10 @@ HealthKit 更正或刪除紀錄時：
 
 - 不直接覆寫歷史 Receipt。
 - 建立 correction Receipt。
+- 每個健康來源、使用者、指標與本地日期使用穩定 correlation；最新
+  settlement 指向新 Receipt，舊 Receipt 與其來源證據保持不可變。
+- 快照本身不直接發放個人 XP、自律幣或角色經驗；若產品日後允許由健康
+  指標完成任務，必須另由 Cloud 規則建立可獎勵的 `completed` correction。
 - 調整尚未結算的房間週期。
 - 已結算週期保留稽核紀錄，必要時顯示更正值。
 - 不允許餘額變成負數；涉及已消費獎勵時交由補償規則處理。

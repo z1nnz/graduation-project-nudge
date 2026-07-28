@@ -204,6 +204,63 @@ class FirestoreActivityLedgerTransaction {
     }
   }
 
+  async createCorrectionSettlement({
+    eventKey,
+    event,
+    receipt,
+    sourceKey,
+    fingerprint,
+    session,
+  }) {
+    const eventRef = this.#eventRef(eventKey);
+    this.transaction.create(eventRef, {
+      schemaVersion: 1,
+      ...event,
+      eventId: event.evidence.eventId,
+      actorUserId: event.evidence.actorUserId,
+      eventType: event.evidence.eventType,
+      occurredAt: event.evidence.occurredAt,
+      receivedAt: event.evidence.receivedAt,
+    });
+    this.transaction.create(this.#sourceRecordRef(sourceKey), {
+      schemaVersion: 1,
+      eventPath: eventRef.path,
+      sourceKey,
+    });
+    this.transaction.update(this.#settlementRef(fingerprint), {
+      eventPath: eventRef.path,
+      receiptId: receipt.receiptId,
+      updatedAt: receipt.verifiedAt,
+    });
+    this.transaction.create(
+      this.firestore.collection("activity_receipts").doc(receipt.receiptId),
+      {
+        schemaVersion: 1,
+        ...receipt,
+        contributionIds: event.result.contributions.map(
+          contribution => contribution.contributionId,
+        ),
+      },
+    );
+    this.transaction.set(this.#sessionRef(fingerprint), {
+      schemaVersion: 1,
+      ...session,
+      activityFingerprint: fingerprint,
+      updatedAt: receipt.verifiedAt,
+    });
+    for (const contribution of event.result.contributions) {
+      this.transaction.create(
+        this.firestore
+          .collection("room_contributions")
+          .doc(contribution.contributionId),
+        {
+          schemaVersion: 1,
+          ...contribution,
+        },
+      );
+    }
+  }
+
   async mergeSettlement({
     fingerprint,
     primaryEventKey,

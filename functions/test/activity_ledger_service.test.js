@@ -573,3 +573,103 @@ test("one receipt can add a later eligible room without another reward", async (
   assert.equal(second.wasDuplicate, true);
   assert.equal(store.receiptCount, 1);
 });
+
+test("health snapshots correct one logical daily metric before finalization", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const service = new ActivityLedgerService({
+    store,
+    clock: () => new Date("2026-07-28T12:00:00.000Z"),
+  });
+  const principal = {
+    kind: "health_adapter",
+    adapterId: "mobile-health-connect",
+    allowedActorUserId: "user-1",
+  };
+  const firstEvidence = {
+    eventId: "health-steps-snapshot-1",
+    sourceRecordId: "health-steps-source-1",
+    sessionId: "health-steps-2026-07-28",
+    activityCorrelationId: "health-steps-2026-07-28",
+    actorUserId: "user-1",
+    roomIds: [],
+    activityType: "steps",
+    source: "health",
+    eventType: "metricSynced",
+    metricValue: 1200,
+    metricUnit: "steps",
+    occurredAt: "2026-07-28T10:00:00.000Z",
+    healthContext: {
+      provider: "healthConnect",
+      localDate: "2026-07-28",
+      periodStart: "2026-07-27T16:00:00.000Z",
+      periodEnd: "2026-07-28T10:00:00.000Z",
+      dataOrigins: ["android"],
+    },
+  };
+
+  const first = await service.record(principal, firstEvidence);
+  const corrected = await service.record(principal, {
+    ...firstEvidence,
+    eventId: "health-steps-snapshot-2",
+    sourceRecordId: "health-steps-source-2",
+    metricValue: 1800,
+    occurredAt: "2026-07-28T11:00:00.000Z",
+    healthContext: {
+      ...firstEvidence.healthContext,
+      periodEnd: "2026-07-28T11:00:00.000Z",
+    },
+  });
+  const finalized = await service.record(principal, {
+    ...firstEvidence,
+    eventId: "health-steps-final",
+    sourceRecordId: "health-steps-final",
+    eventType: "completed",
+    metricValue: 1800,
+    occurredAt: "2026-07-28T11:30:00.000Z",
+    healthContext: {
+      ...firstEvidence.healthContext,
+      periodEnd: "2026-07-28T11:30:00.000Z",
+    },
+  });
+
+  assert.equal(first.status, "settled");
+  assert.equal(first.session.status, "active");
+  assert.equal(first.receipt.rewardEligible, false);
+  assert.equal(corrected.receipt.acceptedMetric, 1800);
+  assert.equal(
+    corrected.receipt.correctionOfReceiptId,
+    first.receipt.receiptId,
+  );
+  assert.equal(corrected.receipt.rewardEligible, false);
+  assert.equal(finalized.session.status, "completed");
+  assert.equal(
+    finalized.receipt.correctionOfReceiptId,
+    corrected.receipt.receiptId,
+  );
+  assert.equal(finalized.receipt.rewardEligible, true);
+  assert.equal(store.receiptCount, 3);
+});
+
+test("a mobile health adapter is bound to its authenticated actor", async () => {
+  const service = new ActivityLedgerService({
+    store: new InMemoryActivityLedgerStore(),
+  });
+
+  await assert.rejects(
+    service.record(
+      {
+        kind: "health_adapter",
+        adapterId: "mobile-health-connect",
+        allowedActorUserId: "user-1",
+      },
+      {
+        ...completedFocusEvidence,
+        actorUserId: "user-2",
+        source: "health",
+      },
+    ),
+    error =>
+      error.name === "ActivityLedgerAuthorizationError" &&
+      error.message.includes("assigned actor"),
+  );
+});

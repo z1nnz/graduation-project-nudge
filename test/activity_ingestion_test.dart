@@ -35,7 +35,7 @@ void main() {
   );
 
   test(
-    'one receipt contributes to every joined room but not an unjoined room',
+    'a health snapshot contributes to joined rooms without issuing rewards',
     () {
       final clock = DateTime.utc(2026, 7, 27, 10);
       final ingestion = InMemoryActivityIngestion(
@@ -66,8 +66,16 @@ void main() {
         result.contributions.map((contribution) => contribution.roomId),
         unorderedEquals(['room-study', 'room-steps']),
       );
-      expect(result.receipt!.personalRewardIssued, isTrue);
-      expect(ingestion.issuedPersonalRewardCount, 1);
+      expect(result.receipt!.rewardEligible, isFalse);
+      expect(result.receipt!.personalRewardIssued, isFalse);
+      expect(result.receipt!.characterExperienceEligible, isFalse);
+      expect(result.receipt!.characterExperienceIssued, isFalse);
+      expect(ingestion.issuedReceiptCount, 1);
+      expect(ingestion.issuedPersonalRewardCount, 0);
+      expect(
+        ingestion.activitySessions.single.status,
+        ActivitySessionStatus.active,
+      );
     },
   );
 
@@ -102,7 +110,7 @@ void main() {
     expect(ingestion.issuedPersonalRewardCount, 0);
   });
 
-  test('the same source record cannot mint a second personal reward', () {
+  test('the same health source record cannot mint a personal reward', () {
     final clock = DateTime.utc(2026, 7, 27, 12);
     final ingestion = InMemoryActivityIngestion(
       clock: () => clock,
@@ -130,7 +138,9 @@ void main() {
 
     expect(replay.wasDuplicate, isTrue);
     expect(replay.receipt!.receiptId, first.receipt!.receiptId);
-    expect(ingestion.issuedPersonalRewardCount, 1);
+    expect(first.receipt!.rewardEligible, isFalse);
+    expect(ingestion.issuedReceiptCount, 1);
+    expect(ingestion.issuedPersonalRewardCount, 0);
   });
 
   test('the same session settled by app and device issues one receipt', () {
@@ -688,7 +698,7 @@ void main() {
     );
   });
 
-  test('correlated metric syncs from different sources settle once', () {
+  test('correlated metric syncs settle once without issuing rewards', () {
     final clock = DateTime.utc(2026, 7, 27, 15, 30);
     final ingestion = InMemoryActivityIngestion(clock: () => clock);
     ActivityEvidence evidence(
@@ -722,8 +732,9 @@ void main() {
 
     expect(healthResult.wasDuplicate, isTrue);
     expect(healthResult.receipt!.receiptId, appResult.receipt!.receiptId);
+    expect(healthResult.receipt!.rewardEligible, isFalse);
     expect(ingestion.issuedReceiptCount, 1);
-    expect(ingestion.issuedPersonalRewardCount, 1);
+    expect(ingestion.issuedPersonalRewardCount, 0);
   });
 
   test('negative activity metrics are rejected before rewards are issued', () {

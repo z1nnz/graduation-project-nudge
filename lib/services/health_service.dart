@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../models/health_activity_snapshot.dart';
+
 enum HealthDataProvider { appleHealth, healthConnect, unsupported }
 
 class HealthPlatformStatus {
@@ -23,22 +25,39 @@ class HealthServiceResult {
   final double sleepHours;
   final int steps;
   final int exerciseMinutes;
+  final List<HealthActivitySnapshot> snapshots;
 
-  const HealthServiceResult({
+  HealthServiceResult({
     required this.success,
     required this.message,
     required this.sleepHours,
     required this.steps,
     required this.exerciseMinutes,
-  });
+    List<HealthActivitySnapshot> snapshots = const [],
+  }) : snapshots = List.unmodifiable(snapshots);
 
-  factory HealthServiceResult.fromMap(Map<String, dynamic> map) {
+  factory HealthServiceResult.fromMap(
+    Map<String, dynamic> map, {
+    required HealthSnapshotProvider provider,
+  }) {
+    final rawSnapshots = map['snapshots'];
     return HealthServiceResult(
       success: map['success'] as bool? ?? false,
       message: map['message'] as String? ?? '',
       sleepHours: (map['sleepHours'] as num?)?.toDouble() ?? 0.0,
       steps: (map['steps'] as num?)?.toInt() ?? 0,
       exerciseMinutes: (map['exerciseMinutes'] as num?)?.toInt() ?? 0,
+      snapshots: rawSnapshots is List
+          ? rawSnapshots
+                .whereType<Map>()
+                .map(
+                  (snapshot) => HealthActivitySnapshot.fromPlatformMap(
+                    snapshot,
+                    provider: provider,
+                  ),
+                )
+                .toList()
+          : const [],
     );
   }
 }
@@ -103,7 +122,7 @@ class HealthService {
           .timeout(const Duration(seconds: 10));
 
       if (result == null) {
-        return const HealthServiceResult(
+        return HealthServiceResult(
           success: false,
           message: '沒有取得資料',
           sleepHours: 0,
@@ -112,7 +131,15 @@ class HealthService {
         );
       }
 
-      return HealthServiceResult.fromMap(result);
+      final provider = switch (status.provider) {
+        HealthDataProvider.appleHealth => HealthSnapshotProvider.appleHealth,
+        HealthDataProvider.healthConnect =>
+          HealthSnapshotProvider.healthConnect,
+        HealthDataProvider.unsupported => throw StateError(
+          'Unsupported health provider.',
+        ),
+      };
+      return HealthServiceResult.fromMap(result, provider: provider);
     } catch (e) {
       debugPrint('syncHealthData error: $e');
       return HealthServiceResult(

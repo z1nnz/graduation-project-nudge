@@ -19,6 +19,7 @@ import '../models/experience_capabilities.dart';
 import '../models/family_link_contract.dart';
 import '../models/friend_request.dart';
 import '../models/group_contract.dart';
+import '../models/health_activity_snapshot.dart';
 import '../models/room_activity_session.dart';
 import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
@@ -29,6 +30,8 @@ import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
 import '../services/activity_ledger_outbox.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
+import '../services/cloud_health_snapshot_gateway.dart';
+import '../services/health_snapshot_outbox.dart';
 import '../theme/app_ui.dart';
 
 class ReminderChannelSetting {
@@ -87,11 +90,19 @@ class ReminderPreview {
 
 class AppState extends ChangeNotifier {
   final ActivityLedgerOutbox _activityLedgerOutbox;
+  final HealthSnapshotOutbox _healthSnapshotOutbox;
 
-  AppState({ActivityLedgerOutbox? activityLedgerOutbox})
-    : _activityLedgerOutbox =
-          activityLedgerOutbox ??
-          ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()) {
+  AppState({
+    ActivityLedgerOutbox? activityLedgerOutbox,
+    HealthSnapshotOutbox? healthSnapshotOutbox,
+  }) : _activityLedgerOutbox =
+           activityLedgerOutbox ??
+           ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()),
+       _healthSnapshotOutbox =
+           healthSnapshotOutbox ??
+           HealthSnapshotOutbox(
+             gateway: CloudHealthSnapshotGateway.firebase(),
+           ) {
     _listenToAuthChanges();
   }
 
@@ -154,6 +165,7 @@ class AppState extends ChangeNotifier {
           await _syncProfileFromFirebaseUser(user);
           _setupFirestoreListeners(user);
           unawaited(_activityLedgerOutbox.flush());
+          unawaited(_healthSnapshotOutbox.flush());
         } else {
           _cancelFirestoreListeners();
           _currentUser = null;
@@ -1558,8 +1570,6 @@ class AppState extends ChangeNotifier {
   int _steps = 0;
   int _exerciseMinutes = 0;
   bool _isHealthConnected = false;
-  DateTime? _lastHealthSyncTime;
-  int _lastStepsCount = 0;
   List<DailySummary> _dailySummaries = [];
   int _disciplineCoins = 0;
   int _planetCount = 0;
@@ -5958,23 +5968,9 @@ class AppState extends ChangeNotifier {
     required double sleepHours,
     required int steps,
     required int exerciseMinutes,
+    List<HealthActivitySnapshot> snapshots = const [],
   }) {
     _checkDailyResetSync();
-    final now = DateTime.now();
-    if (_lastHealthSyncTime != null && steps > _lastStepsCount) {
-      final deltaSteps = steps - _lastStepsCount;
-      final deltaTime = now.difference(_lastHealthSyncTime!);
-      if (!validateActivityLegitimacy(
-        'steps',
-        deltaSteps.toDouble(),
-        deltaTime,
-      )) {
-        debugPrint('Steps synchronization rejected due to velocity check.');
-        return;
-      }
-    }
-    _lastHealthSyncTime = now;
-    _lastStepsCount = steps;
 
     _isHealthConnected = isConnected;
     _sleepHours = sleepHours;
@@ -5988,6 +5984,9 @@ class AppState extends ChangeNotifier {
     _saveHealthData();
     _saveStudyRooms();
     _saveTasks();
+    if (snapshots.isNotEmpty) {
+      unawaited(_queueHealthSnapshots(snapshots));
+    }
   }
 
   Future<void> clearHealthData() async {
@@ -7295,6 +7294,48 @@ class AppState extends ChangeNotifier {
       ),
     );
     unawaited(_activityLedgerOutbox.flush());
+  }
+
+  List<String> _eligibleRoomIdsForHealthSnapshot(
+    HealthActivitySnapshot snapshot,
+  ) {
+    final sourceType = switch (snapshot.activityType) {
+      ActivityType.sleep => TaskSourceType.sleepHours,
+      ActivityType.steps => TaskSourceType.steps,
+      ActivityType.exercise => TaskSourceType.exerciseMinutes,
+      _ => null,
+    };
+    if (sourceType == null) return const [];
+    final userId = _currentUser?.id;
+    if (userId == null) return const [];
+    return _studyRooms
+        .where(
+          (room) =>
+              room.goalSourceType == sourceType &&
+              room.members.any(
+                (member) =>
+                    member.isApproved &&
+                    (member.memberId == userId ||
+                        member.memberId == 'local_user'),
+              ),
+        )
+        .map((room) => room.id)
+        .toList(growable: false);
+  }
+
+  Future<void> _queueHealthSnapshots(
+    List<HealthActivitySnapshot> snapshots,
+  ) async {
+    if (_currentUser == null) return;
+    final enriched = snapshots
+        .map(
+          (snapshot) => snapshot.copyWith(
+            roomIds: _eligibleRoomIdsForHealthSnapshot(snapshot),
+          ),
+        )
+        .toList(growable: false);
+    await _healthSnapshotOutbox.enqueueAll(enriched);
+    unawaited(_healthSnapshotOutbox.flush());
   }
 
   void clearMyStudyRoomPresence(String roomId) {
