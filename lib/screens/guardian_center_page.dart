@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/family_link_contract.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../widgets/relationship_context_switcher.dart';
+import '../models/relationship_membership.dart';
 
 class GuardianCenterPage extends StatelessWidget {
   const GuardianCenterPage({super.key});
@@ -59,6 +61,9 @@ class GuardianCenterPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
+          const RelationshipContextSwitcher(scope: RelationshipScope.family),
+          if (appState.familyLinks.isNotEmpty)
+            const SizedBox(height: AppUI.sectionGap),
           if (link != null)
             _buildActiveLinkCard(context, appState, isChild, accentColor)
           else

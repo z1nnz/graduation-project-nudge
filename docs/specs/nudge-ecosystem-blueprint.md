@@ -29,8 +29,11 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 - 房間成員、加入審核、聊天、貼圖、事件、個人目標與共同進度。
 - App 與 Web 共用 Firestore 的部分使用者、團體及角色資料。
 - 完整三階角色系列、初始階商城規則與角色圖鑑。
-- App 與 Web 會以目前有效的 `family_links` 與 `groups` 文件判定家長、孩子、
-  團體管理者及成員；個人檔案中的舊角色值只作為尚未綁定時的入口意圖。
+- App 與 Web 已支援同一帳號同時持有多個有效家庭與團體關係，並可切換目前
+  情境；家長、孩子、團體管理者及成員介面由選定關係中的 scoped role 決定。
+- `relationship_memberships` 已成為正式角色生命週期紀錄；家庭建立／解除、
+  團體建立／加入／退出／移除成員／轉移管理權都必須在同一原子操作同步
+  Membership，Firestore Rules 會拒絕缺少或偽造角色文件的關係異動。
 - 家庭與團體能力可以同時存在，例如孩子也可以是團體成員；團體身分不會
   取代個人的自律工具。
 - 團體挑戰具有唯一版本識別與成員自己的參與文件；App 與 Web 顯示相同的
@@ -52,9 +55,10 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 尚未完成或仍需重構：
 
 - ESP32 韌體、BLE 配對、Wi-Fi 同步、裝置事件及裝置模擬器。
-- 多團體成員關係與關係範圍角色。
-- 正式家庭與家庭成員關係。
 - 所有 App 與 Web 頁面共用的完整細粒度權限判斷。
+- 將既有 `family_links.participantIds`、`groups.memberIds` 與
+  `users.groupId/groupName/isGroupOwner` 從過渡期查詢／偏好投影遷移完畢，
+  再停止用父文件陣列推導 Membership。
 - 一般活動房仍保留舊 `activity_sessions` 讀取投影供過渡期 UI 使用；需在
   App／Web 都能直接讀取正式 Session／Contribution 後移除。
 - 房間資料與使用者文件中既有投影資料的遷移、封存與清除。
@@ -199,6 +203,28 @@ erDiagram
     USER ||--o{ CHARACTER_OWNERSHIP : owns
     CHARACTER_OWNERSHIP ||--|| CHARACTER_PROGRESS : progresses
 ```
+
+### 5.1 正式 Relationship Membership
+
+`relationship_memberships/{scopeType}--{scopeId}--{userId}` 記錄使用者在單一
+家庭或團體中的 scoped role 與生命週期：
+
+- `scopeType`: `family | group`
+- `scopeId`、`scopeName`
+- `userId`
+- `role`: `guardian | child | manager | member`
+- `status`: `active | ended`
+- `activeFrom`、`activeUntil`、`endedBy`
+- `createdAt`、`updatedAt`
+
+同一帳號可同時擁有多筆家庭與團體 Membership；App 使用帳號範圍的偏好，
+Web 使用帳號範圍的 local storage，保存目前選定情境。選擇只改變正在檢視與
+操作的關係，不會終止其他 Membership，也不會把個人帳號永久改成互斥角色。
+
+遷移期仍保留父文件的 `participantIds`／`memberIds` 作查詢索引，以及
+`users` 上的單一團體投影作舊版相容；它們不是多關係的唯一真相。每一次正式
+關係異動都必須與 Membership 同批提交，避免 App、Web 或舊投影各自產生
+互相矛盾的權限。
 
 ## 6. 自律房正式模型
 
@@ -716,7 +742,8 @@ session 不自動合併，避免誤把兩個合法並行活動算成同一筆。
 
 ### Phase 2：關係與權限
 
-- 正式 Group Membership、Family Membership、Room Membership。
+- 已完成正式 Group Membership、Family Membership 與多關係情境切換。
+- 待完成正式 Room Membership。
 - App 與 Web 使用同一 Capability 判斷。
 - 建立管理者、成員、家長與孩子介面差異。
 - 遷移 user projection 與 webToolsState。

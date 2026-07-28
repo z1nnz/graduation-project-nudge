@@ -2070,10 +2070,12 @@ let storage = null;
 let functions = null;
 let webActivityLedgerOutbox = null;
 let activeFamilyLink = null;
+let activeFamilyLinks = [];
 let currentFamilySummary = null;
 let currentWebUserData = null;
 let familyLinkLoaded = false;
 let activeWebGroup = null;
+let activeWebGroups = [];
 let activeWebGroupSummaries = [];
 let activeWebGroupChallengeParticipants = [];
 let groupLoaded = false;
@@ -2830,11 +2832,114 @@ function stopFamilyInteractionListeners() {
   familySummarySub = null;
 }
 
+function relationshipSelectionKey(scope, userId) {
+  return `nudgeSelected${scope === "family" ? "Family" : "Group"}:${userId}`;
+}
+
+function relationshipMembershipDocumentId(scopeType, scopeId, userId) {
+  const values = [scopeType, scopeId, userId].map(value => String(value || ""));
+  if (
+    !["family", "group"].includes(values[0]) ||
+    values.some(value => !value || value.includes("/"))
+  ) {
+    throw new Error("Membership 識別碼不完整");
+  }
+  return `${values[0]}--${values[1]}--${values[2]}`;
+}
+
+function buildWebRelationshipMembership({
+  scopeType,
+  scopeId,
+  scopeName,
+  userId,
+  role,
+  status = "active",
+  endedBy = null,
+  now = new Date().toISOString(),
+}) {
+  const membershipId = relationshipMembershipDocumentId(
+    scopeType,
+    scopeId,
+    userId,
+  );
+  return {
+    schemaVersion: 1,
+    membershipId,
+    scopeType,
+    scopeId,
+    scopeName,
+    userId,
+    role,
+    status,
+    createdAt: now,
+    updatedAt: now,
+    ...(status === "active" ? { activeFrom: now } : {}),
+    ...(status === "ended"
+      ? { activeUntil: now, endedBy: endedBy || userId }
+      : {}),
+  };
+}
+
+async function syncMyWebRelationshipMemberships(userId) {
+  if (!db || firebase.auth().currentUser?.uid !== userId) return;
+  const now = new Date().toISOString();
+  const memberships = [
+    ...activeFamilyLinks.map(link =>
+      buildWebRelationshipMembership({
+        scopeType: "family",
+        scopeId: link.id,
+        scopeName: `家庭連結 ${link.id.slice(-8)}`,
+        userId,
+        role: link.guardianId === userId ? "guardian" : "child",
+        now,
+      }),
+    ),
+    ...activeWebGroups.map(group =>
+      buildWebRelationshipMembership({
+        scopeType: "group",
+        scopeId: group.id,
+        scopeName: group.name || "未命名團體",
+        userId,
+        role: group.ownerId === userId ? "manager" : "member",
+        now,
+      }),
+    ),
+  ];
+  if (!memberships.length) return;
+  const batch = db.batch();
+  memberships.forEach(membership => {
+    batch.set(
+      db.collection("relationship_memberships").doc(membership.membershipId),
+      membership,
+      { merge: true },
+    );
+  });
+  await batch.commit();
+}
+
+function activateWebFamilyLink(link, userId) {
+  const changed = activeFamilyLink?.id !== link?.id;
+  activeFamilyLink = link || null;
+  window.activeFamilyLink = activeFamilyLink;
+  window.linkedChildUid =
+    activeFamilyLink?.guardianId === userId ? activeFamilyLink.childId : null;
+  if (changed) {
+    stopFamilyInteractionListeners();
+    currentFamilySummary = null;
+    if (activeFamilyLink) listenToFamilyInteractions(activeFamilyLink.id);
+  }
+  renderWebRelationshipContextSwitcher(userId);
+  renderFamilyLinkState();
+  renderFamilyReportState();
+  if (currentWebUserData) updateSidebarProfile(currentWebUserData);
+}
+
 function listenToFamilyLink(userId) {
   if (!db) return;
   if (familyLinkSub) familyLinkSub();
   stopFamilyInteractionListeners();
   activeFamilyLink = null;
+  activeFamilyLinks = [];
   familyLinkLoaded = false;
   window.activeFamilyLink = null;
 
@@ -2842,26 +2947,35 @@ function listenToFamilyLink(userId) {
     .where("participantIds", "array-contains", userId)
     .onSnapshot(snapshot => {
       familyLinkLoaded = true;
-      const activeDoc = snapshot.docs.find(doc => doc.data().status === "active");
-      if (!activeDoc) {
+      activeFamilyLinks = snapshot.docs
+        .filter(doc => doc.data().status === "active")
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) =>
+          String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")),
+        );
+      syncMyWebRelationshipMemberships(userId).catch(error => {
+        console.warn("Formal family membership sync failed:", error);
+      });
+      if (activeFamilyLinks.length === 0) {
         activeFamilyLink = null;
         currentFamilySummary = null;
         window.activeFamilyLink = null;
         window.linkedChildUid = null;
         stopFamilyInteractionListeners();
+        renderWebRelationshipContextSwitcher(userId);
         renderFamilyLinkState();
         renderFamilyReportState();
         if (currentWebUserData) updateSidebarProfile(currentWebUserData);
         return;
       }
 
-      activeFamilyLink = { id: activeDoc.id, ...activeDoc.data() };
-      window.activeFamilyLink = activeFamilyLink;
-      window.linkedChildUid =
-        activeFamilyLink.guardianId === userId ? activeFamilyLink.childId : null;
-      listenToFamilyInteractions(activeDoc.id);
-      renderFamilyLinkState();
-      if (currentWebUserData) updateSidebarProfile(currentWebUserData);
+      const selectedId = localStorage.getItem(
+        relationshipSelectionKey("family", userId),
+      );
+      const selected =
+        activeFamilyLinks.find(link => link.id === selectedId) ||
+        activeFamilyLinks[0];
+      activateWebFamilyLink(selected, userId);
     }, error => {
       console.error("Family link listen error:", error);
     });
@@ -3182,6 +3296,7 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
   if (groupDocSub) groupDocSub();
   stopGroupPublicationListeners();
   activeWebGroup = null;
+  activeWebGroups = [];
   groupLoaded = false;
   clearCanonicalGroupPublications();
 
@@ -3195,35 +3310,118 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(group =>
           window.NudgeGroupContract?.isGroupMember(group, userId),
+        )
+        .sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || "")),
         );
+      activeWebGroups = activeGroups;
+      syncMyWebRelationshipMemberships(userId).catch(error => {
+        console.warn("Formal group membership sync failed:", error);
+      });
       if (activeGroups.length === 0) {
         activeWebGroup = null;
+        renderWebRelationshipContextSwitcher(userId);
         stopGroupPublicationListeners();
         clearCanonicalGroupPublications();
         refreshCanonicalGroupUi();
         return;
       }
+      const selectedId = localStorage.getItem(
+        relationshipSelectionKey("group", userId),
+      );
       const group =
+        activeGroups.find(candidate => candidate.id === selectedId) ||
         activeGroups.find(candidate => candidate.id === nextGroupId) ||
         activeGroups[0];
-      const groupChanged = activeWebGroup?.id !== group.id;
-      if (groupChanged) {
-        stopGroupPublicationListeners();
-        clearCanonicalGroupPublications();
-      }
-      activeWebGroup = group;
-      if (groupChanged) {
-        listenToGroupPublications(group.id);
-      }
-      refreshCanonicalGroupUi();
+      activateWebGroup(group, userId);
     },
     error => {
       console.error("Canonical group listen error:", error);
       groupLoaded = true;
       activeWebGroup = null;
+      activeWebGroups = [];
+      renderWebRelationshipContextSwitcher(userId);
       stopGroupPublicationListeners();
       clearCanonicalGroupPublications();
       refreshCanonicalGroupUi();
+    },
+  );
+}
+
+function activateWebGroup(group, userId) {
+  const groupChanged = activeWebGroup?.id !== group?.id;
+  if (groupChanged) {
+    stopGroupPublicationListeners();
+    clearCanonicalGroupPublications();
+  }
+  activeWebGroup = group || null;
+  if (groupChanged && activeWebGroup) {
+    listenToGroupPublications(activeWebGroup.id);
+  }
+  renderWebRelationshipContextSwitcher(userId);
+  refreshCanonicalGroupUi();
+}
+
+function webRelationshipRole(scope, relationship, userId) {
+  if (scope === "family") {
+    return relationship.guardianId === userId ? "家長" : "孩子";
+  }
+  return relationship.ownerId === userId ? "團體管理者" : "團體成員";
+}
+
+function renderWebRelationshipContextSwitcher(userId) {
+  const panel = getOrCreateSidePanel();
+  if (!panel) return;
+  panel.querySelector(".relationship-context-switcher")?.remove();
+  if (isPreviewMode() || (!activeFamilyLinks.length && !activeWebGroups.length)) {
+    return;
+  }
+
+  const familyOptions = activeFamilyLinks.map(link => {
+    const shortId = link.id.length <= 8 ? link.id : link.id.slice(-8);
+    const selected = activeFamilyLink?.id === link.id ? "selected" : "";
+    return `<option value="${escapeHtml(link.id)}" ${selected}>家庭連結 ${escapeHtml(shortId)} · ${webRelationshipRole("family", link, userId)}</option>`;
+  }).join("");
+  const groupOptions = activeWebGroups.map(group => {
+    const selected = activeWebGroup?.id === group.id ? "selected" : "";
+    return `<option value="${escapeHtml(group.id)}" ${selected}>${escapeHtml(group.name || "未命名團體")} · ${webRelationshipRole("group", group, userId)}</option>`;
+  }).join("");
+  panel.insertAdjacentHTML("beforeend", `
+    <section class="relationship-context-switcher" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">
+      <span class="eyebrow">目前關係情境</span>
+      ${familyOptions ? `<label style="display:block; margin-top:8px; font-size:11px;">家庭<select data-relationship-family class="module-select" style="width:100%; margin-top:4px;">${familyOptions}</select></label>` : ""}
+      ${groupOptions ? `<label style="display:block; margin-top:8px; font-size:11px;">團體<select data-relationship-group class="module-select" style="width:100%; margin-top:4px;">${groupOptions}</select></label>` : ""}
+    </section>
+  `);
+
+  panel.querySelector("[data-relationship-family]")?.addEventListener(
+    "change",
+    event => {
+      const selected = activeFamilyLinks.find(
+        link => link.id === event.target.value,
+      );
+      if (!selected) return;
+      localStorage.setItem(
+        relationshipSelectionKey("family", userId),
+        selected.id,
+      );
+      activateWebFamilyLink(selected, userId);
+      toast("已切換家庭情境");
+    },
+  );
+  panel.querySelector("[data-relationship-group]")?.addEventListener(
+    "change",
+    event => {
+      const selected = activeWebGroups.find(
+        group => group.id === event.target.value,
+      );
+      if (!selected) return;
+      localStorage.setItem(
+        relationshipSelectionKey("group", userId),
+        selected.id,
+      );
+      activateWebGroup(selected, userId);
+      toast("已切換團體情境");
     },
   );
 }
@@ -4481,8 +4679,13 @@ function sendWebGuardianRequest(targetNudgeId) {
         return;
       }
 
-      if (activeFamilyLink) {
-        toast("雙方已處於綁定狀態");
+      if (
+        activeFamilyLinks.some(link =>
+          Array.isArray(link.participantIds) &&
+          link.participantIds.includes(receiverId),
+        )
+      ) {
+        toast("你們已經有有效的家庭連結");
         return;
       }
 
@@ -4559,6 +4762,23 @@ function approveWebGuardianRequest(requestId) {
       updatedAt: now,
     });
     transaction.set(linkRef, link);
+    [link.guardianId, link.childId].forEach(participantId => {
+      const role = participantId === link.guardianId ? "guardian" : "child";
+      const membership = buildWebRelationshipMembership({
+        scopeType: "family",
+        scopeId: requestId,
+        scopeName: `家庭連結 ${requestId.slice(-8)}`,
+        userId: participantId,
+        role,
+        now,
+      });
+      transaction.set(
+        db.collection("relationship_memberships").doc(
+          membership.membershipId,
+        ),
+        membership,
+      );
+    });
   }).then(() => {
     toast("已成功同意親屬綁定！ 🎉");
   }).catch(err => {
@@ -4736,6 +4956,30 @@ async function unlinkWebGuardian() {
       batch.update(
         db.collection("guardian_requests").doc(activeFamilyLink.id),
         { status: "ended", updatedAt: now },
+      );
+      [activeFamilyLink.guardianId, activeFamilyLink.childId].forEach(
+        participantId => {
+          const membership = buildWebRelationshipMembership({
+            scopeType: "family",
+            scopeId: activeFamilyLink.id,
+            scopeName: `家庭連結 ${activeFamilyLink.id.slice(-8)}`,
+            userId: participantId,
+            role:
+              participantId === activeFamilyLink.guardianId
+                ? "guardian"
+                : "child",
+            status: "ended",
+            endedBy: userId,
+            now,
+          });
+          batch.set(
+            db.collection("relationship_memberships").doc(
+              membership.membershipId,
+            ),
+            membership,
+            { merge: true },
+          );
+        },
       );
       batch.update(db.collection("users").doc(userId), {
         "webToolsState.guardianInvite": firebase.firestore.FieldValue.delete(),
@@ -4915,67 +5159,84 @@ async function createCanonicalWebGroup(userId, name) {
     userRole: "group",
     updatedAt: now
   });
+  const membership = buildWebRelationshipMembership({
+    scopeType: "group",
+    scopeId: groupId,
+    scopeName: normalizedName,
+    userId,
+    role: "manager",
+    now,
+  });
+  batch.set(
+    db.collection("relationship_memberships").doc(membership.membershipId),
+    membership,
+  );
   await batch.commit();
+  localStorage.setItem(relationshipSelectionKey("group", userId), groupId);
   return groupId;
 }
 
 async function joinCanonicalWebGroup(userId, groupIdInput, requestId = null) {
   const groupId = String(groupIdInput || "").trim().toUpperCase();
   if (!groupId) throw new Error("團體 ID 不可空白");
-  return db.runTransaction(async transaction => {
+  const result = await db.runTransaction(async transaction => {
     const groupRef = db.collection("groups").doc(groupId);
     const userRef = db.collection("users").doc(userId);
-    const userSnapshot = await transaction.get(userRef);
     const groupSnapshot = await transaction.get(groupRef);
     if (!groupSnapshot.exists) throw new Error("找不到此團體 ID");
     const group = groupSnapshot.data();
     if (group.status !== "active") throw new Error("此團體目前無法加入");
     if (!group.name) throw new Error("團體資料不完整");
-    const previousGroupId = userSnapshot.data()?.groupId;
-    if (previousGroupId && previousGroupId !== groupId) {
-      const previousGroupRef = db.collection("groups").doc(previousGroupId);
-      const previousGroupSnapshot = await transaction.get(previousGroupRef);
-      if (previousGroupSnapshot.exists) {
-        const previousGroup = previousGroupSnapshot.data();
-        if (previousGroup.ownerId === userId) {
-          throw new Error("你目前是其他團體的房主，請先移轉或解散原團體");
-        }
-        transaction.update(previousGroupRef, {
-          memberIds: firebase.firestore.FieldValue.arrayRemove(userId),
-          updatedAt: new Date().toISOString()
-        });
-        transaction.delete(
-          previousGroupRef.collection("member_summaries").doc(userId)
-        );
-      }
-    }
+    const now = new Date().toISOString();
     transaction.update(groupRef, {
       memberIds: firebase.firestore.FieldValue.arrayUnion(userId),
-      updatedAt: new Date().toISOString()
+      updatedAt: now
     });
+    const membership = buildWebRelationshipMembership({
+      scopeType: "group",
+      scopeId: groupId,
+      scopeName: group.name,
+      userId,
+      role: group.ownerId === userId ? "manager" : "member",
+      now,
+    });
+    transaction.set(
+      db.collection("relationship_memberships").doc(membership.membershipId),
+      membership,
+      { merge: true },
+    );
     transaction.update(userRef, {
       groupId,
       groupName: group.name,
-      isGroupOwner: false,
+      isGroupOwner: group.ownerId === userId,
       userRole: "group",
-      updatedAt: new Date().toISOString()
+      updatedAt: now
     });
     if (requestId) {
       transaction.update(db.collection("group_requests").doc(requestId), {
         status: "accepted",
-        updatedAt: new Date().toISOString()
+        updatedAt: now
       });
     }
     return { groupId, groupName: group.name };
   });
+  localStorage.setItem(relationshipSelectionKey("group", userId), groupId);
+  return result;
 }
 
 async function leaveCanonicalWebGroup(userId, groupId) {
-  return db.runTransaction(async transaction => {
+  const fallbackGroup = activeWebGroups.find(group => group.id !== groupId);
+  await db.runTransaction(async transaction => {
     const groupRef = db.collection("groups").doc(groupId);
     const userRef = db.collection("users").doc(userId);
     const summaryRef = groupRef.collection("member_summaries").doc(userId);
+    const participationRef = groupRef
+      .collection("challenges")
+      .doc("current")
+      .collection("participants")
+      .doc(userId);
     const groupSnapshot = await transaction.get(groupRef);
+    const now = new Date().toISOString();
     if (groupSnapshot.exists) {
       const group = groupSnapshot.data();
       const memberIds = Array.isArray(group.memberIds) ? group.memberIds : [];
@@ -4987,19 +5248,49 @@ async function leaveCanonicalWebGroup(userId, groupId) {
       } else {
         transaction.update(groupRef, {
           memberIds: firebase.firestore.FieldValue.arrayRemove(userId),
-          updatedAt: new Date().toISOString()
+          updatedAt: now
         });
       }
+      const membership = buildWebRelationshipMembership({
+        scopeType: "group",
+        scopeId: groupId,
+        scopeName: group.name,
+        userId,
+        role: group.ownerId === userId ? "manager" : "member",
+        status: "ended",
+        endedBy: userId,
+        now,
+      });
+      transaction.set(
+        db.collection("relationship_memberships").doc(
+          membership.membershipId,
+        ),
+        membership,
+        { merge: true },
+      );
     }
     transaction.update(userRef, {
-      groupId: firebase.firestore.FieldValue.delete(),
-      groupName: firebase.firestore.FieldValue.delete(),
-      isGroupOwner: firebase.firestore.FieldValue.delete(),
-      userRole: "individual",
-      updatedAt: new Date().toISOString()
+      groupId: fallbackGroup?.id ||
+        firebase.firestore.FieldValue.delete(),
+      groupName: fallbackGroup?.name ||
+        firebase.firestore.FieldValue.delete(),
+      isGroupOwner: fallbackGroup
+        ? fallbackGroup.ownerId === userId
+        : firebase.firestore.FieldValue.delete(),
+      userRole: fallbackGroup ? "group" : "individual",
+      updatedAt: now
     });
     transaction.delete(summaryRef);
+    transaction.delete(participationRef);
   });
+  if (fallbackGroup) {
+    localStorage.setItem(
+      relationshipSelectionKey("group", userId),
+      fallbackGroup.id,
+    );
+  } else {
+    localStorage.removeItem(relationshipSelectionKey("group", userId));
+  }
 }
 
 async function removeCanonicalWebGroupMember(memberId) {
@@ -5007,8 +5298,14 @@ async function removeCanonicalWebGroupMember(memberId) {
   const groupRef = db.collection("groups").doc(group.id);
   const memberRef = db.collection("users").doc(memberId);
   const summaryRef = groupRef.collection("member_summaries").doc(memberId);
+  const participationRef = groupRef
+    .collection("challenges")
+    .doc("current")
+    .collection("participants")
+    .doc(memberId);
   return db.runTransaction(async transaction => {
     const groupSnapshot = await transaction.get(groupRef);
+    const memberSnapshot = await transaction.get(memberRef);
     if (!groupSnapshot.exists) {
       throw new Error("團體資料不存在");
     }
@@ -5018,15 +5315,34 @@ async function removeCanonicalWebGroupMember(memberId) {
       managerId: userId,
       memberId,
     });
-    transaction.update(groupRef, update);
-    transaction.update(memberRef, {
-      groupId: firebase.firestore.FieldValue.delete(),
-      groupName: firebase.firestore.FieldValue.delete(),
-      isGroupOwner: firebase.firestore.FieldValue.delete(),
-      userRole: "individual",
-      updatedAt: new Date().toISOString(),
+    const now = new Date().toISOString();
+    const membership = buildWebRelationshipMembership({
+      scopeType: "group",
+      scopeId: group.id,
+      scopeName: group.name,
+      userId: memberId,
+      role: group.ownerId === memberId ? "manager" : "member",
+      status: "ended",
+      endedBy: userId,
+      now,
     });
+    transaction.update(groupRef, update);
+    transaction.set(
+      db.collection("relationship_memberships").doc(membership.membershipId),
+      membership,
+      { merge: true },
+    );
+    if (memberSnapshot.data()?.groupId === group.id) {
+      transaction.update(memberRef, {
+        groupId: firebase.firestore.FieldValue.delete(),
+        groupName: firebase.firestore.FieldValue.delete(),
+        isGroupOwner: firebase.firestore.FieldValue.delete(),
+        userRole: "individual",
+        updatedAt: now,
+      });
+    }
     transaction.delete(summaryRef);
+    transaction.delete(participationRef);
   });
 }
 
@@ -5037,6 +5353,8 @@ async function transferCanonicalWebGroupOwnership(nextManagerId) {
   const nextManagerRef = db.collection("users").doc(nextManagerId);
   return db.runTransaction(async transaction => {
     const groupSnapshot = await transaction.get(groupRef);
+    const currentManagerSnapshot = await transaction.get(currentManagerRef);
+    const nextManagerSnapshot = await transaction.get(nextManagerRef);
     if (!groupSnapshot.exists) {
       throw new Error("團體資料不存在");
     }
@@ -5046,17 +5364,48 @@ async function transferCanonicalWebGroupOwnership(nextManagerId) {
       managerId: userId,
       nextManagerId,
     });
+    const now = new Date().toISOString();
     transaction.update(groupRef, update);
-    transaction.update(currentManagerRef, {
-      isGroupOwner: false,
-      userRole: "group",
-      updatedAt: new Date().toISOString(),
+    [
+      buildWebRelationshipMembership({
+        scopeType: "group",
+        scopeId: group.id,
+        scopeName: group.name,
+        userId,
+        role: "member",
+        now,
+      }),
+      buildWebRelationshipMembership({
+        scopeType: "group",
+        scopeId: group.id,
+        scopeName: group.name,
+        userId: nextManagerId,
+        role: "manager",
+        now,
+      }),
+    ].forEach(membership => {
+      transaction.set(
+        db.collection("relationship_memberships").doc(
+          membership.membershipId,
+        ),
+        membership,
+        { merge: true },
+      );
     });
-    transaction.update(nextManagerRef, {
-      isGroupOwner: true,
-      userRole: "group",
-      updatedAt: new Date().toISOString(),
-    });
+    if (currentManagerSnapshot.data()?.groupId === group.id) {
+      transaction.update(currentManagerRef, {
+        isGroupOwner: false,
+        userRole: "group",
+        updatedAt: now,
+      });
+    }
+    if (nextManagerSnapshot.data()?.groupId === group.id) {
+      transaction.update(nextManagerRef, {
+        isGroupOwner: true,
+        userRole: "group",
+        updatedAt: now,
+      });
+    }
   });
 }
 
@@ -5065,16 +5414,31 @@ async function migrateLegacyWebGroup(userId, userData) {
   const groupRef = db.collection("groups").doc(userData.groupId);
   const existing = await groupRef.get();
   if (existing.exists) return;
-  await groupRef.set({
+  const now = new Date().toISOString();
+  const membership = buildWebRelationshipMembership({
+    scopeType: "group",
+    scopeId: userData.groupId,
+    scopeName: userData.groupName,
+    userId,
+    role: "manager",
+    now,
+  });
+  const batch = db.batch();
+  batch.set(groupRef, {
     id: userData.groupId,
     name: userData.groupName,
     ownerId: userId,
     memberIds: [userId],
     status: "active",
     migratedFromUserProjection: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: now,
+    updatedAt: now,
   });
+  batch.set(
+    db.collection("relationship_memberships").doc(membership.membershipId),
+    membership,
+  );
+  await batch.commit();
 }
 
 async function ensureCanonicalWebMembership(userId, userData) {
@@ -5082,12 +5446,30 @@ async function ensureCanonicalWebMembership(userId, userData) {
   const groupRef = db.collection("groups").doc(userData.groupId);
   const groupSnapshot = await groupRef.get();
   if (!groupSnapshot.exists || groupSnapshot.data().status !== "active") return;
-  const memberIds = groupSnapshot.data().memberIds || [];
-  if (memberIds.includes(userId)) return;
-  await groupRef.update({
-    memberIds: firebase.firestore.FieldValue.arrayUnion(userId),
-    updatedAt: new Date().toISOString()
+  const group = { id: groupSnapshot.id, ...groupSnapshot.data() };
+  const memberIds = group.memberIds || [];
+  const now = new Date().toISOString();
+  const membership = buildWebRelationshipMembership({
+    scopeType: "group",
+    scopeId: group.id,
+    scopeName: group.name,
+    userId,
+    role: group.ownerId === userId ? "manager" : "member",
+    now,
   });
+  const batch = db.batch();
+  if (!memberIds.includes(userId)) {
+    batch.update(groupRef, {
+      memberIds: firebase.firestore.FieldValue.arrayUnion(userId),
+      updatedAt: now,
+    });
+  }
+  batch.set(
+    db.collection("relationship_memberships").doc(membership.membershipId),
+    membership,
+    { merge: true },
+  );
+  await batch.commit();
 }
 
 function showWebGroupBindingCard(atTop) {

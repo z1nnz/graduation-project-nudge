@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../widgets/relationship_context_switcher.dart';
+import '../models/relationship_membership.dart';
 import 'study_room_list_page.dart';
 import 'group_manager_page.dart';
 
@@ -66,6 +68,9 @@ class GroupManagementPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
+          const RelationshipContextSwitcher(scope: RelationshipScope.group),
+          if (appState.canonicalGroups.isNotEmpty)
+            const SizedBox(height: AppUI.sectionGap),
 
           Card(
             shape: AppUI.cardShape(),

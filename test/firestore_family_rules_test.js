@@ -107,6 +107,43 @@ function replaceWrite(path, data) {
   };
 }
 
+function familyMembership(linkId, userId, role, status, now, endedBy) {
+  const membershipId = `family--${linkId}--${userId}`;
+  return {
+    schemaVersion: 1,
+    membershipId,
+    scopeType: "family",
+    scopeId: linkId,
+    scopeName: `家庭連結 ${linkId.slice(-8)}`,
+    userId,
+    role,
+    status,
+    createdAt: now,
+    updatedAt: now,
+    ...(status === "active" ? { activeFrom: now } : {}),
+    ...(status === "ended"
+      ? { activeUntil: now, endedBy: endedBy || userId }
+      : {}),
+  };
+}
+
+function groupMembership(groupId, groupName, userId, role, now) {
+  const membershipId = `group--${groupId}--${userId}`;
+  return {
+    schemaVersion: 1,
+    membershipId,
+    scopeType: "group",
+    scopeId: groupId,
+    scopeName: groupName,
+    userId,
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+    activeFrom: now,
+  };
+}
+
 async function run() {
   const guardian = await signUp("guardian");
   const child = await signUp("child");
@@ -168,10 +205,44 @@ async function run() {
         updatedAt: now,
       }),
       createWrite(`family_links/${requestId}`, linkData),
+      createWrite(
+        `relationship_memberships/family--${requestId}--${guardian.localId}`,
+        familyMembership(
+          requestId,
+          guardian.localId,
+          "guardian",
+          "active",
+          now,
+        ),
+      ),
+      createWrite(
+        `relationship_memberships/family--${requestId}--${child.localId}`,
+        familyMembership(requestId, child.localId, "child", "active", now),
+      ),
     ],
     child.idToken,
   );
   assert.equal(response.status, 200, await response.clone().text());
+
+  response = await request(
+    `relationship_memberships/family--${requestId}--${child.localId}`,
+    guardian.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "A family participant can read the other scoped role",
+  );
+
+  response = await request(
+    `relationship_memberships/family--${requestId}--${child.localId}`,
+    stranger.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A stranger cannot read a private family membership",
+  );
 
   response = await request(
     `family_links/${requestId}`,
@@ -443,6 +514,28 @@ async function run() {
         status: "ended",
         updatedAt: now,
       }),
+      updateWrite(
+        `relationship_memberships/family--${requestId}--${guardian.localId}`,
+        familyMembership(
+          requestId,
+          guardian.localId,
+          "guardian",
+          "ended",
+          now,
+          guardian.localId,
+        ),
+      ),
+      updateWrite(
+        `relationship_memberships/family--${requestId}--${child.localId}`,
+        familyMembership(
+          requestId,
+          child.localId,
+          "child",
+          "ended",
+          now,
+          guardian.localId,
+        ),
+      ),
     ],
     guardian.idToken,
   );
@@ -480,6 +573,16 @@ async function run() {
   response = await commit(
     [
       createWrite(`groups/${groupId}`, groupData),
+      createWrite(
+        `relationship_memberships/group--${groupId}--${guardian.localId}`,
+        groupMembership(
+          groupId,
+          groupData.name,
+          guardian.localId,
+          "manager",
+          now,
+        ),
+      ),
       updateWrite(`users/${guardian.localId}`, {
         groupId,
         groupName: groupData.name,
@@ -514,6 +617,16 @@ async function run() {
         status: "accepted",
         updatedAt: now,
       }),
+      createWrite(
+        `relationship_memberships/group--${groupId}--${child.localId}`,
+        groupMembership(
+          groupId,
+          groupData.name,
+          child.localId,
+          "member",
+          now,
+        ),
+      ),
     ],
     child.idToken,
   );
@@ -535,6 +648,16 @@ async function run() {
         isGroupOwner: false,
         userRole: "group",
       }),
+      createWrite(
+        `relationship_memberships/group--${groupId}--${child.localId}`,
+        groupMembership(
+          groupId,
+          groupData.name,
+          child.localId,
+          "member",
+          now,
+        ),
+      ),
       updateWrite(`group_requests/${groupRequestId}`, {
         status: "accepted",
         updatedAt: now,

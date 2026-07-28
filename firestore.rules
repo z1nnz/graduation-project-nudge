@@ -180,6 +180,39 @@ service cloud.firestore {
         );
     }
 
+    function relationshipMembershipAfter(scopeType, scopeId, userId) {
+      return getAfter(
+        /databases/$(database)/documents/relationship_memberships/$(scopeType + '--' + scopeId + '--' + userId)
+      ).data;
+    }
+
+    function hasActiveRelationshipMembershipAfter(
+      scopeType,
+      scopeId,
+      userId,
+      role
+    ) {
+      return existsAfter(
+          /databases/$(database)/documents/relationship_memberships/$(scopeType + '--' + scopeId + '--' + userId)
+        )
+        && relationshipMembershipAfter(scopeType, scopeId, userId).status
+          == 'active'
+        && relationshipMembershipAfter(scopeType, scopeId, userId).role
+          == role;
+    }
+
+    function hasEndedRelationshipMembershipAfter(
+      scopeType,
+      scopeId,
+      userId
+    ) {
+      return existsAfter(
+          /databases/$(database)/documents/relationship_memberships/$(scopeType + '--' + scopeId + '--' + userId)
+        )
+        && relationshipMembershipAfter(scopeType, scopeId, userId).status
+          == 'ended';
+    }
+
     function changesOnlyOwnGroupMembership(groupId) {
       let beforeMembers = resource.data.memberIds.toSet();
       let afterMembers = request.resource.data.memberIds.toSet();
@@ -197,6 +230,12 @@ service cloud.firestore {
             && getAfter(
               /databases/$(database)/documents/users/$(request.auth.uid)
             ).data.groupId == groupId
+            && hasActiveRelationshipMembershipAfter(
+              'group',
+              groupId,
+              request.auth.uid,
+              'member'
+            )
           )
           || (
             removedMembers.hasOnly([request.auth.uid])
@@ -206,6 +245,11 @@ service cloud.firestore {
             ).data.groupId != groupId
             && !existsAfter(
               /databases/$(database)/documents/groups/$(groupId)/member_summaries/$(request.auth.uid)
+            )
+            && hasEndedRelationshipMembershipAfter(
+              'group',
+              groupId,
+              request.auth.uid
             )
           )
         );
@@ -641,6 +685,18 @@ service cloud.firestore {
         && request.resource.data.consentScopes.weeklyReport == false
         && request.resource.data.consentScopes.taskCategories == false
         && request.resource.data.consentScopes.healthTrends == false
+        && hasActiveRelationshipMembershipAfter(
+          'family',
+          linkId,
+          request.resource.data.guardianId,
+          'guardian'
+        )
+        && hasActiveRelationshipMembershipAfter(
+          'family',
+          linkId,
+          request.resource.data.childId,
+          'child'
+        )
         && request.resource.data.keys().hasOnly([
           'schemaVersion', 'guardianId', 'childId', 'participantIds',
           'status', 'consentScopes', 'createdAt', 'updatedAt'
@@ -662,6 +718,16 @@ service cloud.firestore {
               .hasOnly(['status', 'endedBy', 'endedAt', 'updatedAt'])
             && request.resource.data.status == 'ended'
             && request.resource.data.endedBy == request.auth.uid
+            && hasEndedRelationshipMembershipAfter(
+              'family',
+              linkId,
+              resource.data.guardianId
+            )
+            && hasEndedRelationshipMembershipAfter(
+              'family',
+              linkId,
+              resource.data.childId
+            )
           )
         );
       allow delete: if false;
@@ -857,6 +923,64 @@ service cloud.firestore {
     // Canonical group state. User document group fields are compatibility
     // projections consumed by older App and Web screens.
     match /groups/{groupId} {
+      function projectionClearedOrKeepsOtherGroup(userId) {
+        let before = get(
+          /databases/$(database)/documents/users/$(userId)
+        ).data;
+        let after = getAfter(
+          /databases/$(database)/documents/users/$(userId)
+        ).data;
+        let beforeHasProjection = before.keys().hasAll([
+          'groupId', 'groupName', 'isGroupOwner'
+        ]);
+        let afterHasProjection = after.keys().hasAll([
+          'groupId', 'groupName', 'isGroupOwner'
+        ]);
+        return (
+            !after.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
+          )
+          || (
+            beforeHasProjection
+            && afterHasProjection
+            && before.groupId != groupId
+            && after.groupId == before.groupId
+            && after.groupName == before.groupName
+            && after.isGroupOwner == before.isGroupOwner
+          );
+      }
+
+      function ownershipProjectionMatches(userId, expectedOwner) {
+        let before = get(
+          /databases/$(database)/documents/users/$(userId)
+        ).data;
+        let after = getAfter(
+          /databases/$(database)/documents/users/$(userId)
+        ).data;
+        let beforeHasProjection = before.keys().hasAll([
+          'groupId', 'groupName', 'isGroupOwner'
+        ]);
+        let afterHasProjection = after.keys().hasAll([
+          'groupId', 'groupName', 'isGroupOwner'
+        ]);
+        return (
+            afterHasProjection
+            && after.groupId == groupId
+            && after.isGroupOwner == expectedOwner
+          )
+          || (
+            beforeHasProjection
+            && afterHasProjection
+            && before.groupId != groupId
+            && after.groupId == before.groupId
+            && after.groupName == before.groupName
+            && after.isGroupOwner == before.isGroupOwner
+          )
+          || (
+            !before.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
+            && !after.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
+          );
+      }
+
       function managerRemovesOneMember() {
         let beforeMembers = resource.data.memberIds.toSet();
         let afterMembers = request.resource.data.memberIds.toSet();
@@ -874,14 +998,17 @@ service cloud.firestore {
           && change.by == request.auth.uid
           && change.memberId != resource.data.ownerId
           && removedMembers.hasOnly([change.memberId])
-          && !getAfter(
-            /databases/$(database)/documents/users/$(change.memberId)
-          ).data.keys().hasAny(['groupId', 'groupName', 'isGroupOwner'])
+          && projectionClearedOrKeepsOtherGroup(change.memberId)
           && !existsAfter(
             /databases/$(database)/documents/groups/$(groupId)/member_summaries/$(change.memberId)
           )
           && !existsAfter(
             /databases/$(database)/documents/groups/$(groupId)/challenges/current/participants/$(change.memberId)
+          )
+          && hasEndedRelationshipMembershipAfter(
+            'group',
+            groupId,
+            change.memberId
           );
       }
 
@@ -900,19 +1027,33 @@ service cloud.firestore {
           && change.fromMemberId == resource.data.ownerId
           && change.toMemberId == request.resource.data.ownerId
           && change.by == request.auth.uid
-          && getAfter(
-            /databases/$(database)/documents/users/$(change.fromMemberId)
-          ).data.isGroupOwner == false
-          && getAfter(
-            /databases/$(database)/documents/users/$(change.toMemberId)
-          ).data.isGroupOwner == true;
+          && ownershipProjectionMatches(change.fromMemberId, false)
+          && ownershipProjectionMatches(change.toMemberId, true)
+          && hasActiveRelationshipMembershipAfter(
+            'group',
+            groupId,
+            change.fromMemberId,
+            'member'
+          )
+          && hasActiveRelationshipMembershipAfter(
+            'group',
+            groupId,
+            change.toMemberId,
+            'manager'
+          );
       }
 
       allow read: if isAuth();
       allow create: if isAuth()
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.memberIds.hasOnly([request.auth.uid])
-        && request.resource.data.status == 'active';
+        && request.resource.data.status == 'active'
+        && hasActiveRelationshipMembershipAfter(
+          'group',
+          groupId,
+          request.auth.uid,
+          'manager'
+        );
       allow update: if isAuth() && (
         (
           resource.data.ownerId == request.auth.uid
@@ -934,6 +1075,11 @@ service cloud.firestore {
         ).data.groupId != groupId
         && !existsAfter(
           /databases/$(database)/documents/groups/$(groupId)/member_summaries/$(request.auth.uid)
+        )
+        && hasEndedRelationshipMembershipAfter(
+          'group',
+          groupId,
+          request.auth.uid
         );
 
       match /challenges/{challengeId} {
@@ -1055,7 +1201,10 @@ service cloud.firestore {
           allow delete: if isAuth() && (
             (
               request.auth.uid == memberId
-              && resource.data.status == 'joined'
+              && (
+                resource.data.status == 'joined'
+                || !groupAfter().memberIds.hasAny([memberId])
+              )
             )
             || (
               group().ownerId == request.auth.uid
@@ -1801,6 +1950,216 @@ service cloud.firestore {
             && resource.data.senderId == request.auth.uid;
         }
       }
+    }
+
+    // ─── Formal relationship memberships ─────────────────────────────
+    // One document per user and family/group scope. Parent documents keep
+    // query-friendly participant/member projections during migration, while
+    // this collection records the scoped role and membership lifecycle.
+    match /relationship_memberships/{membershipId} {
+      function familyAfter() {
+        return getAfter(
+          /databases/$(database)/documents/family_links/$(request.resource.data.scopeId)
+        ).data;
+      }
+
+      function groupBefore() {
+        return get(
+          /databases/$(database)/documents/groups/$(request.resource.data.scopeId)
+        ).data;
+      }
+
+      function groupAfter() {
+        return getAfter(
+          /databases/$(database)/documents/groups/$(request.resource.data.scopeId)
+        ).data;
+      }
+
+      function hasValidShape() {
+        let data = request.resource.data;
+        return data.schemaVersion == 1
+          && data.membershipId == membershipId
+          && membershipId
+            == data.scopeType + '--' + data.scopeId + '--' + data.userId
+          && data.scopeType in ['family', 'group']
+          && data.scopeId is string
+          && data.scopeId.size() > 0
+          && data.scopeName is string
+          && data.scopeName.size() > 0
+          && data.scopeName.size() <= 120
+          && data.userId is string
+          && data.userId.size() > 0
+          && data.role in ['guardian', 'child', 'manager', 'member']
+          && data.status in ['active', 'ended']
+          && data.createdAt is string
+          && data.updatedAt is string
+          && data.keys().hasAll([
+            'schemaVersion', 'membershipId', 'scopeType', 'scopeId',
+            'scopeName', 'userId', 'role', 'status', 'createdAt',
+            'updatedAt'
+          ])
+          && data.keys().hasOnly([
+            'schemaVersion', 'membershipId', 'scopeType', 'scopeId',
+            'scopeName', 'userId', 'role', 'status', 'createdAt',
+            'updatedAt', 'activeFrom', 'activeUntil', 'endedBy'
+          ])
+          && (
+            (
+              data.status == 'active'
+              && data.activeFrom is string
+            )
+            || (
+              data.status == 'ended'
+              && data.activeUntil is string
+              && data.endedBy is string
+            )
+          );
+      }
+
+      function familyStateMatches() {
+        let data = request.resource.data;
+        return existsAfter(
+            /databases/$(database)/documents/family_links/$(data.scopeId)
+          )
+          && familyAfter().participantIds.hasAny([data.userId])
+          && (
+            (
+              data.role == 'guardian'
+              && familyAfter().guardianId == data.userId
+            )
+            || (
+              data.role == 'child'
+              && familyAfter().childId == data.userId
+            )
+          )
+          && (
+            (
+              data.status == 'active'
+              && familyAfter().status == 'active'
+            )
+            || (
+              data.status == 'ended'
+              && familyAfter().status == 'ended'
+            )
+          );
+      }
+
+      function groupStateMatches() {
+        let data = request.resource.data;
+        let groupExists = existsAfter(
+          /databases/$(database)/documents/groups/$(data.scopeId)
+        );
+        return (
+            data.status == 'active'
+            && groupExists
+            && groupAfter().status == 'active'
+            && groupAfter().memberIds.hasAny([data.userId])
+            && (
+              (
+                data.role == 'manager'
+                && groupAfter().ownerId == data.userId
+              )
+              || (
+                data.role == 'member'
+                && groupAfter().ownerId != data.userId
+              )
+            )
+          )
+          || (
+            data.status == 'ended'
+            && (
+              !groupExists
+              || !groupAfter().memberIds.hasAny([data.userId])
+            )
+          );
+      }
+
+      function requesterCanWriteFamily() {
+        let data = request.resource.data;
+        return existsAfter(
+            /databases/$(database)/documents/family_links/$(data.scopeId)
+          )
+          && familyAfter().participantIds.hasAny([request.auth.uid]);
+      }
+
+      function requesterCanWriteGroup() {
+        let data = request.resource.data;
+        return request.auth.uid == data.userId
+          || (
+            exists(
+              /databases/$(database)/documents/groups/$(data.scopeId)
+            )
+            && groupBefore().ownerId == request.auth.uid
+          )
+          || (
+            existsAfter(
+              /databases/$(database)/documents/groups/$(data.scopeId)
+            )
+            && groupAfter().ownerId == request.auth.uid
+          );
+      }
+
+      function immutableIdentity() {
+        return request.resource.data.membershipId == resource.data.membershipId
+          && request.resource.data.scopeType == resource.data.scopeType
+          && request.resource.data.scopeId == resource.data.scopeId
+          && request.resource.data.userId == resource.data.userId;
+      }
+
+      allow read: if isAuth() && (
+        resource.data.userId == request.auth.uid
+        || (
+          resource.data.scopeType == 'family'
+          && exists(
+            /databases/$(database)/documents/family_links/$(resource.data.scopeId)
+          )
+          && get(
+            /databases/$(database)/documents/family_links/$(resource.data.scopeId)
+          ).data.participantIds.hasAny([request.auth.uid])
+        )
+        || (
+          resource.data.scopeType == 'group'
+          && exists(
+            /databases/$(database)/documents/groups/$(resource.data.scopeId)
+          )
+          && get(
+            /databases/$(database)/documents/groups/$(resource.data.scopeId)
+          ).data.ownerId == request.auth.uid
+        )
+        || isStaff()
+      );
+
+      allow create: if isAuth()
+        && hasValidShape()
+        && (
+          (
+            request.resource.data.scopeType == 'family'
+            && requesterCanWriteFamily()
+            && familyStateMatches()
+          )
+          || (
+            request.resource.data.scopeType == 'group'
+            && requesterCanWriteGroup()
+            && groupStateMatches()
+          )
+        );
+
+      allow update: if isAuth()
+        && immutableIdentity()
+        && hasValidShape()
+        && (
+          (
+            request.resource.data.scopeType == 'family'
+            && requesterCanWriteFamily()
+            && familyStateMatches()
+          )
+          || (
+            request.resource.data.scopeType == 'group'
+            && requesterCanWriteGroup()
+            && groupStateMatches()
+          )
+        );
+      allow delete: if false;
     }
 
     // ─── Cloud Activity Ledger ─────────────────────────────────────────

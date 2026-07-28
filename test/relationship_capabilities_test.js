@@ -3,6 +3,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
+const root = path.resolve(__dirname, "..");
+
+function read(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), "utf8");
+}
+
 const {
   resolveRelationshipCapabilities,
   resolveRoleGateRedirect,
@@ -211,6 +217,21 @@ test("App surfaces composable relationship tools and separates growth tracks", (
   assert.match(
     webApp,
     /\.where\("memberIds", "array-contains", userId\)/,
+  );
+  assert.match(appState, /List<GroupContract> get canonicalGroups/);
+  assert.match(appState, /List<FamilyLinkContract> get familyLinks/);
+  assert.match(appState, /selectFamilyRelationship/);
+  assert.match(appState, /selectGroupRelationship/);
+  assert.match(webApp, /function renderWebRelationshipContextSwitcher/);
+  assert.match(webApp, /activeFamilyLinks/);
+  assert.match(webApp, /activeWebGroups/);
+  assert.match(webApp, /relationshipSelectionKey/);
+  assert.match(webApp, /function buildWebRelationshipMembership/);
+  assert.match(webApp, /collection\("relationship_memberships"\)/);
+  assert.match(appState, /collection\('relationship_memberships'\)/);
+  assert.match(
+    read("firestore.rules"),
+    /match \/relationship_memberships\/\{membershipId\}/,
   );
   assert.match(
     appState,

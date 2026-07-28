@@ -127,6 +127,35 @@ function groupSummary(groupId, memberId, displayName, now) {
   };
 }
 
+function relationshipMembership({
+  scopeType = "group",
+  scopeId,
+  scopeName,
+  userId,
+  role,
+  status = "active",
+  now,
+  endedBy,
+}) {
+  const membershipId = `${scopeType}--${scopeId}--${userId}`;
+  return {
+    schemaVersion: 1,
+    membershipId,
+    scopeType,
+    scopeId,
+    scopeName,
+    userId,
+    role,
+    status,
+    createdAt: now,
+    updatedAt: now,
+    ...(status === "active" ? { activeFrom: now } : {}),
+    ...(status === "ended"
+      ? { activeUntil: now, endedBy: endedBy || userId }
+      : {}),
+  };
+}
+
 function groupChallenge(groupId, groupName, managerId, challengeId, now) {
   return {
     schemaVersion: 2,
@@ -254,6 +283,16 @@ async function run() {
         createdAt: now,
         updatedAt: now,
       }),
+      createWrite(
+        `relationship_memberships/group--${groupId}--${manager.localId}`,
+        relationshipMembership({
+          scopeId: groupId,
+          scopeName: groupName,
+          userId: manager.localId,
+          role: "manager",
+          now,
+        }),
+      ),
       updateWrite(`users/${manager.localId}`, {
         groupId,
         groupName,
@@ -284,11 +323,48 @@ async function run() {
           userRole: "group",
           updatedAt: now,
         }),
+        createWrite(
+          `relationship_memberships/group--${groupId}--${account.localId}`,
+          relationshipMembership({
+            scopeId: groupId,
+            scopeName: groupName,
+            userId: account.localId,
+            role: "member",
+            now,
+          }),
+        ),
       ],
       account.idToken,
     );
     assert.equal(response.status, 200, await response.clone().text());
   }
+
+  response = await request(
+    `relationship_memberships/group--${groupId}--${member.localId}`,
+    manager.idToken,
+  );
+  assert.equal(
+    response.status,
+    200,
+    "A group manager can inspect a member's scoped role",
+  );
+
+  response = await createDoc(
+    `relationship_memberships/group--${groupId}--${stranger.localId}`,
+    relationshipMembership({
+      scopeId: groupId,
+      scopeName: groupName,
+      userId: stranger.localId,
+      role: "member",
+      now,
+    }),
+    stranger.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A non-member cannot forge an active group membership",
+  );
 
   const summaryPath =
     `groups/${groupId}/member_summaries/${member.localId}`;
@@ -601,6 +677,18 @@ async function run() {
       ),
       deleteWrite(summaryPath),
       deleteWrite(participationPath),
+      updateWrite(
+        `relationship_memberships/group--${groupId}--${member.localId}`,
+        relationshipMembership({
+          scopeId: groupId,
+          scopeName: groupName,
+          userId: member.localId,
+          role: "member",
+          status: "ended",
+          now,
+          endedBy: manager.localId,
+        }),
+      ),
     ],
     manager.idToken,
   );
@@ -662,6 +750,24 @@ async function run() {
         userRole: "group",
         updatedAt: now,
       }),
+      updateWrite(
+        `relationship_memberships/group--${groupId}--${manager.localId}`,
+        {
+          role: "member",
+          status: "active",
+          activeFrom: now,
+          updatedAt: now,
+        },
+      ),
+      updateWrite(
+        `relationship_memberships/group--${groupId}--${candidate.localId}`,
+        {
+          role: "manager",
+          status: "active",
+          activeFrom: now,
+          updatedAt: now,
+        },
+      ),
     ],
     manager.idToken,
   );
