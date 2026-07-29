@@ -1313,7 +1313,7 @@
         }
       });
     </script>
-    <script src="assets/app.js?v=20"></script>
+    <script src="assets/app.js?v=21"></script>
     <script>
       let adminAuditUnsubscribe = null;
       let adminAuditEvents = [];
@@ -1392,6 +1392,8 @@
         return {
           pending: '等待冷靜期',
           in_review: '承辦審核中',
+          deleting: '正在刪除帳號資料',
+          deletion_failed: '刪除未完成，等待安全重試',
           cancelled: '使用者已取消',
           rejected: '未受理',
           completed: '完成並留存證明'
@@ -1412,19 +1414,33 @@
           const reviewAfter = adminAuditDate(request.reviewAfter);
           const coolingComplete =
             reviewAfter && reviewAfter.getTime() <= Date.now();
+          const leaseExpiresAt = adminAuditDate(request.executionLeaseExpiresAt);
+          const leaseExpired =
+            !leaseExpiresAt || leaseExpiresAt.getTime() <= Date.now();
+          const blockers = Array.isArray(request.deletionPlan?.blockers)
+            ? request.deletionPlan.blockers
+            : [];
+          const blockerText = blockers.map(blocker =>
+            `${blocker.scopeType || 'scope'}:${blocker.scopeId || 'unknown'}`
+          ).join('、');
           const actions = [];
           if (request.status === 'pending') {
             actions.push(`<button class="admin-btn" type="button" data-privacy-admin-action="start_review" data-request-id="${escapeHtml(request.id)}">開始審核</button>`);
             actions.push(`<button class="button ghost" type="button" data-privacy-admin-action="reject" data-request-id="${escapeHtml(request.id)}">拒絕</button>`);
           } else if (request.status === 'in_review') {
-            actions.push(`<button class="admin-btn" type="button" data-privacy-admin-action="complete" data-request-id="${escapeHtml(request.id)}" ${coolingComplete ? '' : 'disabled title="冷靜期尚未結束"'}>完成</button>`);
+            actions.push(`<button class="admin-btn" type="button" data-privacy-admin-action="complete" data-request-id="${escapeHtml(request.id)}" ${coolingComplete ? '' : 'disabled title="冷靜期尚未結束"'}>執行刪除</button>`);
             actions.push(`<button class="button ghost" type="button" data-privacy-admin-action="reject" data-request-id="${escapeHtml(request.id)}">拒絕</button>`);
+          } else if (
+            request.status === 'deletion_failed' ||
+            (request.status === 'deleting' && leaseExpired)
+          ) {
+            actions.push(`<button class="admin-btn" type="button" data-privacy-admin-action="complete" data-request-id="${escapeHtml(request.id)}">安全重試</button>`);
           }
           return `
             <tr>
               <td>${escapeHtml(requestedAt ? requestedAt.toLocaleString('zh-TW') : '未提供')}</td>
               <td><code>${escapeHtml(request.userId || '')}</code></td>
-              <td><span class="status-badge">${escapeHtml(adminPrivacyStatusLabel(request.status))}</span></td>
+              <td><span class="status-badge">${escapeHtml(adminPrivacyStatusLabel(request.status))}</span>${blockerText ? `<br><small>需先處理：${escapeHtml(blockerText)}</small>` : ''}</td>
               <td>${escapeHtml(reviewAfter ? reviewAfter.toLocaleString('zh-TW') : '不適用')}</td>
               <td><code>${escapeHtml(request.assignedStaffUserId || '尚未指派')}</code></td>
               <td><div style="display:flex; gap:0.5rem; flex-wrap:wrap;">${actions.join('') || '—'}</div></td>
@@ -1438,7 +1454,15 @@
               button.dataset.requestId
             ).catch(error => {
               console.error(error);
-              toast(error.message || '資料權利承辦操作失敗');
+              const details = error?.details || error?.customData?.details;
+              const blockers = Array.isArray(details?.blockers)
+                ? details.blockers.map(blocker =>
+                    `${blocker.scopeType || 'scope'}:${blocker.scopeId || 'unknown'}`
+                  ).join('、')
+                : '';
+              toast(
+                `${error.message || '資料權利承辦操作失敗'}${blockers ? ` · 需先處理 ${blockers}` : ''}`
+              );
             });
           });
         });
@@ -1450,11 +1474,11 @@
         const actionLabel = {
           start_review: '開始審核',
           reject: '拒絕申請',
-          complete: '完成申請'
+          complete: '執行帳號刪除'
         }[action] || action;
         if (
           action === 'complete' &&
-          !window.confirm('只有在實際帳號刪除、關係解除、保留義務核對及案件證明都完成後才能繼續。確定？')
+          !window.confirm('這會啟動不可逆的 Cloud 資料與登入帳號刪除。已確認家庭、團體及房間關係可安全解除，確定繼續？')
         ) {
           return;
         }
@@ -1478,14 +1502,19 @@
             throw new Error('完成申請必須提供有效的正式案件編號。');
           }
         }
-        const response = await functions.httpsCallable('managePrivacyDataRequest')({
+        const callableName =
+          action === 'complete'
+            ? 'executeAccountDeletion'
+            : 'managePrivacyDataRequest';
+        const response = await functions.httpsCallable(callableName)({
           action,
           requestId,
           clientRequestId:
             `privacy_admin_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
           sourceSurface: 'admin_web',
           resolutionNote: note.trim(),
-          caseId
+          caseId,
+          confirmation: action === 'complete' ? 'DELETE ACCOUNT' : ''
         });
         const result = response?.data;
         if (!result?.auditEventId || result?.request?.requestId !== requestId) {

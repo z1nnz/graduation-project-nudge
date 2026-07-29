@@ -19,6 +19,6 @@ test("every Web page loads the current shared app bundle", () => {
   assert.ok(versions.length > 20);
   assert.deepEqual(
     [...new Set(versions.map(item => item.version))],
-    ["20"],
+    ["21"],
   );
 });

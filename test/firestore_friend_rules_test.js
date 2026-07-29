@@ -334,6 +334,38 @@ async function run() {
     "Removing a friendship revokes permission to send new messages",
   );
 
+  response = await createDoc(
+    `account_deletion_fences/${bob.localId}`,
+    {
+      schemaVersion: "1",
+      requestId: "request-friend-deleting-target",
+      executionId: "execution-friend-deleting-target",
+      status: "deleting",
+    },
+    "owner",
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    `friend_requests/req_${stranger.localId}_${bob.localId}`,
+    {
+      senderId: stranger.localId,
+      senderNudgeId: `NDG_${stranger.localId}`,
+      senderName: "Stranger",
+      receiverId: bob.localId,
+      receiverNudgeId: `NDG_${bob.localId}`,
+      receiverName: "Bob",
+      status: "pending",
+      createdAt: "2026-07-29T00:00:00.000Z",
+    },
+    stranger.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A new friend request cannot target an account fenced for deletion",
+  );
+
   console.log("Firestore friend rules integration test passed.");
 }
 

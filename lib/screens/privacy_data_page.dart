@@ -473,6 +473,8 @@ class _PrivacyDataRightsCardState extends State<_PrivacyDataRightsCard> {
       'failed' => '產生失敗',
       'pending' => '等待冷靜期',
       'in_review' => '承辦審核中',
+      'deleting' => '正在刪除帳號資料',
+      'deletion_failed' => '刪除未完成，等待安全重試',
       'cancelled' => '已取消',
       'rejected' => '未受理',
       'completed' => '已完成並留存證明',
@@ -514,7 +516,7 @@ class _PrivacyDataRightsCardState extends State<_PrivacyDataRightsCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '送出後會進入 7 天冷靜期，再由有權限的承辦者核對關係、Ledger 保留義務與刪除證明。冷靜期內可以取消。',
+              '送出後會進入 7 天冷靜期，再由有權限的承辦者核對關係、Ledger 保留義務與刪除證明。冷靜期內可以取消；正式執行開始後帳號會停用，若作業失敗將由承辦者依案件編號安全重試。',
             ),
             const SizedBox(height: 14),
             TextField(
@@ -681,7 +683,7 @@ class _PrivacyDataRightsCardState extends State<_PrivacyDataRightsCard> {
             ),
             const SizedBox(height: 12),
             Text(
-              '匯出檔由 Cloud 依帳號本人資料產生，排除推播 Token 等伺服器祕密，7 天後自動失效；帳號刪除採可取消、可承辦、可稽核的正式流程。',
+              '匯出檔由 Cloud 依帳號本人資料產生，排除推播 Token 等伺服器祕密，7 天後自動失效；帳號刪除在正式執行前可取消，執行開始後會停用登入並由承辦者依案件編號完成或安全重試。',
               style: AppUI.bodyOf(context),
             ),
             const SizedBox(height: 14),

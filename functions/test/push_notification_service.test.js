@@ -44,6 +44,7 @@ function fakeFirestore(seed = {}) {
     get: async () => snapshotFor({ path: `${collection}/${id}` }),
     set: async data => set({ path: `${collection}/${id}` }, data),
     update: async patch => update({ path: `${collection}/${id}` }, patch),
+    delete: async () => documents.delete(`${collection}/${id}`),
   });
   return {
     documents,
@@ -232,6 +233,8 @@ test("delivery sends only server-held tokens and revokes invalid ones", async ()
   const notification = {
     notificationId: "family-request--request-001--pending",
     recipientUserId: "child",
+    actorUserId: "guardian",
+    actorPrincipalId: "guardian",
     category: "relationship",
     kind: "family_invitation",
     title: "新的家庭連結邀請",
@@ -241,6 +244,8 @@ test("delivery sends only server-held tokens and revokes invalid ones", async ()
     updatedAt: "2026-07-29T03:10:00.000Z",
   };
   const job = buildPushDeliveryJob(notification);
+  assert.equal(job.actorUserId, notification.actorUserId);
+  assert.equal(job.actorPrincipalId, notification.actorPrincipalId);
   const firestore = fakeFirestore({
     [`push_delivery_jobs/${job.jobId}`]: job,
     "push_delivery_state/child": {
@@ -324,6 +329,12 @@ test("delivery sends only server-held tokens and revokes invalid ones", async ()
     firestore.documents.get(`push_delivery_jobs/${job.jobId}`).status,
     "partial",
   );
+  assert.equal(
+    [...firestore.documents.keys()].some(path =>
+      path.startsWith("push_delivery_leases/")
+    ),
+    false,
+  );
   const replay = await handler({
     data: { exists: true },
     params: { jobId: job.jobId },
@@ -366,6 +377,58 @@ test("delivery skips accounts that never enabled push", async () => {
   assert.equal(
     firestore.documents.has(`audit_events/push-delivery--${job.jobId}`),
     true,
+  );
+});
+
+test("delivery drops a job when account deletion is fenced", async () => {
+  const jobId = "group-request--request-fenced--pending";
+  const firestore = fakeFirestore({
+    [`push_delivery_jobs/${jobId}`]: {
+      schemaVersion: 1,
+      jobId,
+      notificationId: jobId,
+      recipientUserId: "other-member",
+      category: "relationship",
+      kind: "group_invitation",
+      title: "新的團體邀請",
+      body: "你收到團體邀請。",
+      route: "groups",
+      status: "pending",
+      attemptCount: 0,
+    },
+    [`user_notifications/${jobId}`]: {
+      notificationId: jobId,
+      recipientUserId: "other-member",
+      actorUserId: "member",
+      actorPrincipalId: "member",
+    },
+    "account_deletion_fences/member": {
+      status: "deleting",
+    },
+  });
+  let sendCount = 0;
+  const handler = createDeliverPushJobHandler({
+    firestore,
+    messaging: {
+      sendEachForMulticast: async () => {
+        sendCount += 1;
+        throw new Error("must not send");
+      },
+    },
+    clock: () => new Date("2026-07-29T03:25:00.000Z"),
+  });
+
+  const result = await handler({
+    data: { exists: true },
+    params: { jobId },
+  });
+
+  assert.equal(result.status, "cancelled_account_deletion");
+  assert.equal(sendCount, 0);
+  assert.equal(firestore.documents.has(`push_delivery_jobs/${jobId}`), false);
+  assert.equal(
+    firestore.documents.has(`audit_events/push-delivery--${jobId}`),
+    false,
   );
 });
 

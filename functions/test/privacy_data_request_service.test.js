@@ -472,7 +472,7 @@ test("expired exports are deleted and their access tokens are revoked", async ()
   );
 });
 
-test("staff management enforces role and valid deletion transitions", async () => {
+test("staff management handles review and rejection but cannot fake completion", async () => {
   const requestId = "user-one--privacy-delete-001";
   const initialRequest = {
     schemaVersion: 1,
@@ -531,28 +531,21 @@ test("staff management enforces role and valid deletion transitions", async () =
           requestId,
           clientRequestId: "privacy-admin-003",
           sourceSurface: "admin_web",
-          resolutionNote: "CASE-2026-0001 已完成正式刪除作業",
-          caseId: "CASE-2026-0001",
+          resolutionNote: "不得用人工狀態取代正式刪除",
         },
       }),
-    error => error.code === "failed-precondition",
+    error => error.code === "invalid-argument",
   );
 
-  const completionHandler = createManagePrivacyDataRequestHandler({
-    firestore,
-    clock: () => new Date("2026-08-06T03:00:00.000Z"),
-  });
-  const completed = await completionHandler({
+  const rejected = await handler({
     auth: { uid: "operator-one" },
     data: {
-      action: "complete",
+      action: "reject",
       requestId,
       clientRequestId: "privacy-admin-004",
       sourceSurface: "admin_web",
-      resolutionNote: "CASE-2026-0001 已完成正式刪除作業",
-      caseId: "CASE-2026-0001",
+      resolutionNote: "帳號持有人驗證資料不完整",
     },
   });
-  assert.equal(completed.request.status, "completed");
-  assert.equal(completed.request.caseId, "CASE-2026-0001");
+  assert.equal(rejected.request.status, "rejected");
 });

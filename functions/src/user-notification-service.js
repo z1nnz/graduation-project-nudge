@@ -173,6 +173,16 @@ export function createRelationshipRequestCreatedHandler({
       ) {
         return null;
       }
+      const identity = requireRequestIdentity(currentRequest.data());
+      const [senderFence, receiverFence] = await Promise.all([
+        transaction.get(
+          firestore.collection("account_deletion_fences").doc(identity.senderId),
+        ),
+        transaction.get(
+          firestore.collection("account_deletion_fences").doc(identity.receiverId),
+        ),
+      ]);
+      if (senderFence.exists || receiverFence.exists) return null;
       const notification = buildRelationshipInvitationNotification({
         scopeType,
         requestId,
@@ -247,12 +257,33 @@ export function createRelationshipRequestUpdatedHandler({
       .collection("push_delivery_jobs")
       .doc(notification.notificationId);
     const auditRef = firestore.collection("audit_events").doc(auditEventId);
+    const identity = requireRequestIdentity(after.data());
+    const senderFenceRef = firestore
+      .collection("account_deletion_fences")
+      .doc(identity.senderId);
+    const receiverFenceRef = firestore
+      .collection("account_deletion_fences")
+      .doc(identity.receiverId);
 
-    await firestore.runTransaction(async transaction => {
-      const [pending, pendingPushDeliveryJob] = await Promise.all([
+    const written = await firestore.runTransaction(async transaction => {
+      const [
+        pending,
+        pendingPushDeliveryJob,
+        senderFence,
+        receiverFence,
+      ] = await Promise.all([
         transaction.get(pendingRef),
         transaction.get(pendingPushDeliveryJobRef),
+        transaction.get(senderFenceRef),
+        transaction.get(receiverFenceRef),
       ]);
+      if (senderFence.exists || receiverFence.exists) {
+        transaction.delete(pendingRef);
+        transaction.delete(pendingPushDeliveryJobRef);
+        transaction.delete(notificationRef);
+        transaction.delete(pushDeliveryJobRef);
+        return false;
+      }
       if (pending.exists) {
         transaction.update(pendingRef, {
           status: "resolved",
@@ -287,8 +318,9 @@ export function createRelationshipRequestUpdatedHandler({
           now,
         }),
       );
+      return true;
     });
-    return notification;
+    return written ? notification : null;
   };
 }
 

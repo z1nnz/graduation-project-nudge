@@ -708,6 +708,105 @@ async function run() {
     403,
     "A non-member must not read group publications",
   );
+
+  const staleRequestId = "family-deleting-sender-test";
+  response = await createDoc(
+    `guardian_requests/${staleRequestId}`,
+    {
+      ...requestData,
+      receiverId: stranger.localId,
+      receiverNudgeId: `NDG_${stranger.localId}`,
+      receiverRole: "child",
+    },
+    guardian.idToken,
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    `account_deletion_fences/${guardian.localId}`,
+    {
+      schemaVersion: 1,
+      requestId: "request-family-deleting-sender",
+      executionId: "execution-family-deleting-sender",
+      status: "deleting",
+    },
+    "owner",
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await commit(
+    [
+      updateWrite(`guardian_requests/${staleRequestId}`, {
+        status: "accepted",
+        updatedAt: now,
+      }),
+      createWrite(`family_links/${staleRequestId}`, {
+        ...linkData,
+        childId: stranger.localId,
+        participantIds: [guardian.localId, stranger.localId],
+      }),
+      createWrite(
+        `relationship_memberships/family--${staleRequestId}--${guardian.localId}`,
+        familyMembership(
+          staleRequestId,
+          guardian.localId,
+          "guardian",
+          "active",
+          now,
+        ),
+      ),
+      createWrite(
+        `relationship_memberships/family--${staleRequestId}--${stranger.localId}`,
+        familyMembership(
+          staleRequestId,
+          stranger.localId,
+          "child",
+          "active",
+          now,
+        ),
+      ),
+    ],
+    stranger.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A pending family request cannot be accepted after its sender is fenced",
+  );
+
+  response = await createDoc(
+    `account_deletion_fences/${child.localId}`,
+    {
+      schemaVersion: 1,
+      requestId: "request-family-deleting-receiver",
+      executionId: "execution-family-deleting-receiver",
+      status: "deleting",
+    },
+    "owner",
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    "guardian_requests/family-deleting-receiver-test",
+    {
+      senderId: stranger.localId,
+      senderNudgeId: `NDG_${stranger.localId}`,
+      senderNickname: "Stranger",
+      senderRole: "guardian",
+      receiverId: child.localId,
+      receiverNudgeId: `NDG_${child.localId}`,
+      receiverRole: "child",
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+    },
+    stranger.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A new family request cannot target an account fenced for deletion",
+  );
 }
 
 run()

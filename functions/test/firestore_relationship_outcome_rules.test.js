@@ -4,6 +4,10 @@ import test from "node:test";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
+import {
+  createRefreshRelationshipOutcomeHandler,
+} from "../src/relationship-outcome-service.js";
+
 const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST;
 const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST;
 const emulatorEnabled = Boolean(firestoreHost && authHost);
@@ -155,6 +159,60 @@ test(
         )
       ).status,
       403,
+    );
+  },
+);
+
+test(
+  "relationship outcome refresh aborts when any participant is deleting",
+  { skip: !emulatorEnabled },
+  async () => {
+    const app = initializeApp(
+      { projectId },
+      `relationship-outcome-fence-${Date.now()}`,
+    );
+    const firestore = getFirestore(app);
+    const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const scopeId = `group-${unique}`;
+    const memberId = `member-${unique}`;
+    const deletingMemberId = `deleting-${unique}`;
+
+    await firestore.collection("groups").doc(scopeId).set({
+      groupId: scopeId,
+      name: "刪除競態測試團體",
+      status: "active",
+      memberIds: [memberId, deletingMemberId],
+    });
+    await firestore
+      .collection("account_deletion_fences")
+      .doc(deletingMemberId)
+      .set({
+        schemaVersion: 1,
+        requestId: `request-${unique}`,
+        executionId: `execution-${unique}`,
+        status: "deleting",
+      });
+
+    const handler = createRefreshRelationshipOutcomeHandler({
+      firestore,
+      clock: () => new Date("2026-07-29T06:00:00.000Z"),
+    });
+    await assert.rejects(
+      () =>
+        handler({
+          auth: { uid: memberId },
+          data: { scopeType: "group", scopeId },
+        }),
+      error => error.code === "failed-precondition",
+    );
+    assert.equal(
+      (
+        await firestore
+          .collection("relationship_outcomes")
+          .doc(`group--${scopeId}`)
+          .get()
+      ).exists,
+      false,
     );
   },
 );

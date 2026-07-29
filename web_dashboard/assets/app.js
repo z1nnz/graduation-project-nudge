@@ -4398,6 +4398,8 @@ function webPrivacyRequestStatus(request) {
     failed: "產生失敗",
     pending: "等待冷靜期",
     in_review: "承辦審核中",
+    deleting: "正在刪除帳號資料",
+    deletion_failed: "刪除未完成，等待安全重試",
     cancelled: "已取消",
     rejected: "未受理",
     completed: "已完成並留存證明",
@@ -4531,7 +4533,7 @@ document.querySelector("[data-privacy-request-deletion]")?.addEventListener(
   "click",
   () => {
     if (!window.confirm(
-      "送出後會進入 7 天冷靜期，再由有權限的承辦者核對並留存刪除證明。冷靜期內仍可取消。確定送出？",
+      "送出後會進入 7 天冷靜期，冷靜期內仍可取消。正式執行開始後帳號會停用；若作業失敗，承辦者會依案件編號安全重試。確定送出？",
     )) {
       return;
     }

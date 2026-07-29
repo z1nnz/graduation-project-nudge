@@ -80,6 +80,8 @@ class PrivacyDataRequest {
           'failed',
           'pending',
           'in_review',
+          'deleting',
+          'deletion_failed',
           'cancelled',
           'rejected',
           'completed',

@@ -27,11 +27,16 @@ test("App and Web expose the same formal privacy data-rights workflow", () => {
 
   assert.match(cloud, /export const requestPrivacyDataAction/);
   assert.match(cloud, /export const managePrivacyDataRequest/);
+  assert.match(cloud, /export const executeAccountDeletion/);
+  assert.match(cloud, /export const cleanupExpiredAccountDeletionEvidence/);
+  assert.match(cloud, /assertAccountNotDeleting/);
   assert.match(cloud, /export const cleanupExpiredPrivacyExports/);
   assert.match(admin, /adminPrivacyRequestTableBody/);
   assert.match(admin, /managePrivacyDataRequest/);
   assert.match(admin, /冷靜期尚未結束/);
   assert.match(admin, /caseId/);
+  assert.match(admin, /executeAccountDeletion/);
+  assert.match(admin, /deletion_failed/);
 });
 
 test("privacy export secrets stay outside client-readable Firestore", () => {
@@ -45,6 +50,7 @@ test("privacy export secrets stay outside client-readable Firestore", () => {
     rules,
     /match \/privacy_export_access\/\{requestId\}[\s\S]*allow read, write: if false/,
   );
+  assert.match(rules, /account_deletion_fences/);
   assert.match(
     storageRules,
     /match \/privacy_exports\/\{userId\}\/\{fileName\}[\s\S]*allow read, write: if false/,

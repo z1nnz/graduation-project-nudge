@@ -74,6 +74,17 @@ test(
     const notificationId = `family-request--${requestId}--pending`;
     const now = new Date().toISOString();
 
+    await Promise.all([
+      firestore.collection("users").doc(guardian.localId).set({
+        username: "NDG-GUARDIAN",
+        userRole: "guardian",
+      }),
+      firestore.collection("users").doc(child.localId).set({
+        username: "NDG-CHILD",
+        userRole: "child",
+      }),
+    ]);
+
     const response = await fetch(
       `${firestoreBase}/guardian_requests/${requestId}`,
       {

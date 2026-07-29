@@ -365,6 +365,8 @@ export function buildPushDeliveryJob(notification) {
     jobId: notification.notificationId,
     notificationId: notification.notificationId,
     recipientUserId: notification.recipientUserId,
+    actorUserId: notification.actorUserId,
+    actorPrincipalId: notification.actorPrincipalId,
     category: notification.category,
     kind: notification.kind,
     title: notification.title,
@@ -400,6 +402,27 @@ function timestampMillis(value) {
   }
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function releasePushDeliveryLeases({
+  firestore,
+  userIds,
+  jobId,
+}) {
+  if (!Array.isArray(userIds) || userIds.length === 0) return;
+  await firestore.runTransaction(async transaction => {
+    const references = userIds.map(userId =>
+      firestore.collection("push_delivery_leases").doc(userId)
+    );
+    const snapshots = await Promise.all(
+      references.map(reference => transaction.get(reference)),
+    );
+    snapshots.forEach((snapshot, index) => {
+      if (snapshot.exists && snapshot.data().jobId === jobId) {
+        transaction.delete(references[index]);
+      }
+    });
+  });
 }
 
 function pushDeliveryAudit({ auditEventId, jobId, recipientUserId, result, now }) {
@@ -438,6 +461,32 @@ export function createDeliverPushJobHandler({
       const currentSnapshot = await transaction.get(jobRef);
       if (!currentSnapshot.exists) return null;
       const current = currentSnapshot.data();
+      const notificationId =
+        normalizedString(current.notificationId) || jobId;
+      const notificationSnapshot = await transaction.get(
+        firestore.collection("user_notifications").doc(notificationId),
+      );
+      const notification = notificationSnapshot.exists
+        ? notificationSnapshot.data()
+        : null;
+      const identityIds = [...new Set([
+        normalizedString(current.recipientUserId),
+        normalizedString(current.actorUserId),
+        normalizedString(current.actorPrincipalId),
+        normalizedString(notification?.actorUserId),
+        normalizedString(notification?.actorPrincipalId),
+      ].filter(Boolean))];
+      const deletionFences = await Promise.all(
+        identityIds.map(userId =>
+          transaction.get(
+            firestore.collection("account_deletion_fences").doc(userId),
+          )
+        ),
+      );
+      if (deletionFences.some(snapshot => snapshot.exists)) {
+        transaction.delete(jobRef);
+        return { terminal: true, status: "cancelled_account_deletion" };
+      }
       if (TERMINAL_JOB_STATUSES.has(current.status)) {
         return { terminal: true, ...current };
       }
@@ -447,8 +496,30 @@ export function createDeliverPushJobHandler({
       ) {
         throw new Error("Push delivery job already has an active lease.");
       }
+      const deliveryLeaseRefs = identityIds.map(userId =>
+        firestore.collection("push_delivery_leases").doc(userId)
+      );
+      const deliveryLeases = await Promise.all(
+        deliveryLeaseRefs.map(reference => transaction.get(reference)),
+      );
+      if (
+        deliveryLeases.some(lease =>
+          lease.exists &&
+          lease.data().jobId !== jobId &&
+          timestampMillis(lease.data().leaseUntil) > attemptStartedAt.getTime()
+        )
+      ) {
+        throw new Error("An account already has an active push delivery.");
+      }
       const claimed = {
         ...current,
+        actorUserId:
+          normalizedString(current.actorUserId) ||
+          normalizedString(notification?.actorUserId),
+        actorPrincipalId:
+          normalizedString(current.actorPrincipalId) ||
+          normalizedString(notification?.actorPrincipalId),
+        deliveryLeaseUserIds: identityIds,
         status: "sending",
         attemptCount: (current.attemptCount || 0) + 1,
         leaseUntil,
@@ -459,6 +530,15 @@ export function createDeliverPushJobHandler({
         attemptCount: claimed.attemptCount,
         leaseUntil: claimed.leaseUntil,
         updatedAt: claimed.updatedAt,
+      });
+      deliveryLeaseRefs.forEach((reference, index) => {
+        transaction.set(reference, {
+          schemaVersion: 1,
+          userId: identityIds[index],
+          jobId,
+          leaseUntil,
+          updatedAt: claimed.updatedAt,
+        }, { merge: false });
       });
       return claimed;
     });
@@ -522,6 +602,11 @@ export function createDeliverPushJobHandler({
           }),
         );
       });
+      await releasePushDeliveryLeases({
+        firestore,
+        userIds: job.deliveryLeaseUserIds,
+        jobId,
+      });
       return result;
     }
 
@@ -546,6 +631,31 @@ export function createDeliverPushJobHandler({
         installation.data?.status === "active" &&
         normalizedString(installation.data?.token),
     );
+
+    const identityIds = [...new Set([
+      recipientUserId,
+      normalizedString(job.actorUserId),
+      normalizedString(job.actorPrincipalId),
+    ].filter(Boolean))];
+    const deletionFences = await Promise.all(
+      identityIds.map(userId =>
+        firestore.collection("account_deletion_fences").doc(userId).get()
+      ),
+    );
+    if (deletionFences.some(snapshot => snapshot.exists)) {
+      await jobRef.delete();
+      await releasePushDeliveryLeases({
+        firestore,
+        userIds: job.deliveryLeaseUserIds,
+        jobId,
+      });
+      return {
+        status: "skipped",
+        reason: "account_deletion_in_progress",
+        successCount: 0,
+        failureCount: 0,
+      };
+    }
 
     if (installations.length === 0) {
       const completedAt = clock().toISOString();
@@ -599,6 +709,11 @@ export function createDeliverPushJobHandler({
             now: completedAt,
           }),
         );
+      });
+      await releasePushDeliveryLeases({
+        firestore,
+        userIds: job.deliveryLeaseUserIds,
+        jobId,
       });
       return result;
     }
@@ -670,6 +785,11 @@ export function createDeliverPushJobHandler({
       } else {
         await jobRef.update(errorPatch);
       }
+      await releasePushDeliveryLeases({
+        firestore,
+        userIds: job.deliveryLeaseUserIds,
+        jobId,
+      });
       if (!terminal) throw error;
       return {
         status: "failed",
@@ -801,6 +921,11 @@ export function createDeliverPushJobHandler({
           now: completedAt,
         }),
       );
+    });
+    await releasePushDeliveryLeases({
+      firestore,
+      userIds: job.deliveryLeaseUserIds,
+      jobId,
     });
     return result;
   };

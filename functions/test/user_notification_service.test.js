@@ -90,6 +90,7 @@ function fakeRelationshipFirestore(seed = {}) {
             ...documents.get(ref.path),
             ...structuredClone(patch),
           }),
+        delete: ref => documents.delete(ref.path),
       }),
   };
 }
@@ -120,6 +121,85 @@ test("late create trigger does not resurrect a resolved invitation", async () =>
   assert.equal(
     firestore.documents.has(
       `user_notifications/family-request--${requestId}--pending`,
+    ),
+    false,
+  );
+});
+
+test("relationship triggers do not write after either account is fenced", async () => {
+  const requestId = "family-request-fenced-001";
+  const pendingId = `family-request--${requestId}--pending`;
+  const firestore = fakeRelationshipFirestore({
+    [`guardian_requests/${requestId}`]: {
+      senderId: "guardian",
+      receiverId: "child",
+      status: "pending",
+    },
+    "account_deletion_fences/guardian": {
+      status: "deleting",
+    },
+    [`user_notifications/${pendingId}`]: {
+      notificationId: pendingId,
+      status: "unread",
+    },
+    [`push_delivery_jobs/${pendingId}`]: {
+      jobId: pendingId,
+      status: "pending",
+    },
+  });
+  const created = createRelationshipRequestCreatedHandler({
+    firestore,
+    scopeType: "family",
+  });
+  const createdResult = await created({
+    data: { exists: true },
+    params: { requestId },
+    authId: "guardian",
+    authType: "USER",
+    time: "2026-07-29T02:05:00.000Z",
+  });
+  assert.equal(createdResult, null);
+  assert.equal(
+    firestore.documents.has(
+      `audit_events/family-request--${requestId}--created`,
+    ),
+    false,
+  );
+
+  const updated = createRelationshipRequestUpdatedHandler({
+    firestore,
+    scopeType: "family",
+  });
+  const updatedResult = await updated({
+    data: {
+      before: {
+        exists: true,
+        data: () => ({
+          senderId: "guardian",
+          receiverId: "child",
+          status: "pending",
+        }),
+      },
+      after: {
+        exists: true,
+        data: () => ({
+          senderId: "guardian",
+          receiverId: "child",
+          status: "accepted",
+        }),
+      },
+    },
+    params: { requestId },
+    authId: "child",
+    authType: "USER",
+    time: "2026-07-29T02:06:00.000Z",
+  });
+  assert.equal(updatedResult, null);
+  assert.equal(firestore.documents.has(`user_notifications/${pendingId}`), false);
+  assert.equal(firestore.documents.has(`push_delivery_jobs/${pendingId}`), false);
+  assert.equal(
+    firestore.documents.has(
+      `user_notifications/family-request--${requestId}--accepted`,
     ),
     false,
   );

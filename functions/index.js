@@ -1,4 +1,7 @@
+import { randomUUID } from "node:crypto";
+
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { getStorage } from "firebase-admin/storage";
@@ -39,12 +42,87 @@ import {
   createManagePrivacyDataRequestHandler,
   createRequestPrivacyDataActionHandler,
 } from "./src/privacy-data-request-service.js";
+import {
+  createCleanupExpiredAccountDeletionEvidenceHandler,
+  createExecuteAccountDeletionHandler,
+} from "./src/account-deletion-service.js";
+import { FirestoreAccountDeletionRepository } from
+  "./src/firestore-account-deletion-repository.js";
 
 initializeApp();
 setGlobalOptions({
   region: "asia-east1",
   maxInstances: 20,
 });
+
+const ACCOUNT_OPERATION_LEASE_MS = 3 * 60 * 1000;
+
+async function assertAccountNotDeleting(request) {
+  const userId = request.auth?.uid;
+  if (!userId) return async () => {};
+  const firestore = getFirestore();
+  const fenceRef = firestore.collection("account_deletion_fences").doc(userId);
+  const leaseRef = firestore.collection("account_operation_leases").doc(userId);
+  const operationId = randomUUID();
+  const startedAt = new Date();
+  const expiresAt = new Date(
+    startedAt.getTime() + ACCOUNT_OPERATION_LEASE_MS,
+  ).toISOString();
+  await firestore.runTransaction(async transaction => {
+    const [fence, lease] = await Promise.all([
+      transaction.get(fenceRef),
+      transaction.get(leaseRef),
+    ]);
+    if (fence.exists) {
+      throw new HttpsError(
+        "failed-precondition",
+        "This account is locked for verified deletion.",
+      );
+    }
+    const operations = Object.fromEntries(
+      Object.entries(lease.exists ? lease.data().operations ?? {} : {})
+        .filter(([, value]) => Date.parse(value) > startedAt.getTime()),
+    );
+    operations[operationId] = expiresAt;
+    transaction.set(leaseRef, {
+      schemaVersion: 1,
+      userId,
+      operations,
+      updatedAt: startedAt.toISOString(),
+    }, { merge: false });
+  });
+  return async () => {
+    await firestore.runTransaction(async transaction => {
+      const lease = await transaction.get(leaseRef);
+      if (!lease.exists) return;
+      const operations = { ...(lease.data().operations ?? {}) };
+      delete operations[operationId];
+      if (Object.keys(operations).length === 0) {
+        transaction.delete(leaseRef);
+      } else {
+        transaction.update(leaseRef, {
+          operations,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    });
+  };
+}
+
+async function withAccountOperation(request, operation) {
+  const release = await assertAccountNotDeleting(request);
+  try {
+    return await operation();
+  } finally {
+    try {
+      await release();
+    } catch (error) {
+      console.error("Account operation lease release failed", {
+        code: error?.code ?? "unknown",
+      });
+    }
+  }
+}
 
 const service = new ActivityLedgerService({
   store: new FirestoreActivityLedgerStore({ firestore: getFirestore() }),
@@ -115,6 +193,23 @@ const handleCleanupExpiredPrivacyExports =
     bucket: privacyExportBucket,
     clock: () => new Date(),
   });
+const handleExecuteAccountDeletion = createExecuteAccountDeletionHandler({
+  repository: new FirestoreAccountDeletionRepository({
+    firestore: getFirestore(),
+    auth: getAuth(),
+    bucket: privacyExportBucket,
+  }),
+  clock: () => new Date(),
+});
+const handleCleanupExpiredAccountDeletionEvidence =
+  createCleanupExpiredAccountDeletionEvidenceHandler({
+    repository: new FirestoreAccountDeletionRepository({
+      firestore: getFirestore(),
+      auth: getAuth(),
+      bucket: privacyExportBucket,
+    }),
+    clock: () => new Date(),
+  });
 const handleGuardianRequestCreated = createRelationshipRequestCreatedHandler({
   firestore: getFirestore(),
   scopeType: "family",
@@ -140,7 +235,10 @@ export const recordActivity = onCall(
   },
   async request => {
     try {
-      return await handleRecordActivity(request);
+      return await withAccountOperation(
+        request,
+        () => handleRecordActivity(request),
+      );
     } catch (error) {
       const mappedError = activityLedgerHttpsError(error);
       if (mappedError) {
@@ -163,7 +261,10 @@ export const ingestHealthSnapshots = onCall(
   },
   async request => {
     try {
-      return await handleIngestHealthSnapshots(request);
+      return await withAccountOperation(
+        request,
+        () => handleIngestHealthSnapshots(request),
+      );
     } catch (error) {
       const mappedError = activityLedgerHttpsError(error);
       if (mappedError) {
@@ -186,7 +287,10 @@ export const refreshRelationshipOutcome = onCall(
   },
   async request => {
     try {
-      return await handleRefreshRelationshipOutcome(request);
+      return await withAccountOperation(
+        request,
+        () => handleRefreshRelationshipOutcome(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("refreshRelationshipOutcome failed", error);
@@ -206,7 +310,10 @@ export const recordPrivacyConsent = onCall(
   },
   async request => {
     try {
-      return await handleRecordPrivacyConsent(request);
+      return await withAccountOperation(
+        request,
+        () => handleRecordPrivacyConsent(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("recordPrivacyConsent failed", error);
@@ -226,7 +333,10 @@ export const updateNotificationPreferences = onCall(
   },
   async request => {
     try {
-      return await handleUpdateNotificationPreferences(request);
+      return await withAccountOperation(
+        request,
+        () => handleUpdateNotificationPreferences(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("updateNotificationPreferences failed", error);
@@ -246,7 +356,10 @@ export const markNotificationRead = onCall(
   },
   async request => {
     try {
-      return await handleMarkNotificationRead(request);
+      return await withAccountOperation(
+        request,
+        () => handleMarkNotificationRead(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("markNotificationRead failed", error);
@@ -286,7 +399,10 @@ export const updatePushInstallation = onCall(
   },
   async request => {
     try {
-      return await handleUpdatePushInstallation(request);
+      return await withAccountOperation(
+        request,
+        () => handleUpdatePushInstallation(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("updatePushInstallation failed", error);
@@ -306,7 +422,10 @@ export const requestPrivacyDataAction = onCall(
   },
   async request => {
     try {
-      return await handleRequestPrivacyDataAction(request);
+      return await withAccountOperation(
+        request,
+        () => handleRequestPrivacyDataAction(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("requestPrivacyDataAction failed", error);
@@ -326,7 +445,10 @@ export const cancelPrivacyDataRequest = onCall(
   },
   async request => {
     try {
-      return await handleCancelPrivacyDataRequest(request);
+      return await withAccountOperation(
+        request,
+        () => handleCancelPrivacyDataRequest(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("cancelPrivacyDataRequest failed", error);
@@ -346,7 +468,10 @@ export const getPrivacyExportDownload = onCall(
   },
   async request => {
     try {
-      return await handleGetPrivacyExportDownload(request);
+      return await withAccountOperation(
+        request,
+        () => handleGetPrivacyExportDownload(request),
+      );
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       console.error("getPrivacyExportDownload failed", error);
@@ -378,6 +503,26 @@ export const managePrivacyDataRequest = onCall(
   },
 );
 
+export const executeAccountDeletion = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 540,
+    memory: "1GiB",
+  },
+  async request => {
+    try {
+      return await handleExecuteAccountDeletion(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("executeAccountDeletion failed", error);
+      throw new HttpsError(
+        "internal",
+        "The account deletion execution did not complete.",
+      );
+    }
+  },
+);
+
 export const cleanupExpiredPrivacyExports = onSchedule(
   {
     schedule: "every day 03:00",
@@ -390,6 +535,23 @@ export const cleanupExpiredPrivacyExports = onSchedule(
       return await handleCleanupExpiredPrivacyExports();
     } catch (error) {
       console.error("cleanupExpiredPrivacyExports failed", error);
+      throw error;
+    }
+  },
+);
+
+export const cleanupExpiredAccountDeletionEvidence = onSchedule(
+  {
+    schedule: "every day 03:30",
+    timeZone: "Asia/Taipei",
+    timeoutSeconds: 120,
+    memory: "256MiB",
+  },
+  async () => {
+    try {
+      return await handleCleanupExpiredAccountDeletionEvidence();
+    } catch (error) {
+      console.error("cleanupExpiredAccountDeletionEvidence failed", error);
       throw error;
     }
   },

@@ -5,7 +5,20 @@ service cloud.firestore {
 
     // ─── Helper Functions ─────────────────────────────────────────────
     function isAuth() {
-      return request.auth != null;
+      return request.auth != null
+        && !exists(
+          /databases/$(database)/documents/account_deletion_fences/$(request.auth.uid)
+        );
+    }
+
+    function isAccountReferenceableAfter(userId) {
+      return userId is string
+        && existsAfter(
+          /databases/$(database)/documents/users/$(userId)
+        )
+        && !existsAfter(
+          /databases/$(database)/documents/account_deletion_fences/$(userId)
+        );
     }
 
     function areMutualFriends(userA, userB) {
@@ -356,6 +369,8 @@ service cloud.firestore {
           == 'req_' + request.resource.data.senderId
             + '_' + request.resource.data.receiverId
         && request.resource.data.senderId == request.auth.uid
+        && isAccountReferenceableAfter(request.resource.data.senderId)
+        && isAccountReferenceableAfter(request.resource.data.receiverId)
         && request.resource.data.status == 'pending'
         && request.resource.data.keys().hasAll([
           'senderId', 'senderNudgeId', 'senderName',
@@ -366,6 +381,8 @@ service cloud.firestore {
         // Receiver can accept or decline
         (resource.data.receiverId == request.auth.uid
           && resource.data.status == 'pending'
+          && isAccountReferenceableAfter(resource.data.senderId)
+          && isAccountReferenceableAfter(resource.data.receiverId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
           && request.resource.data.status in ['accepted', 'declined'])
           && (
@@ -405,6 +422,8 @@ service cloud.firestore {
         // Sender can resend a request (update all fields, but must keep sender/receiver IDs)
         (resource.data.senderId == request.auth.uid
           && resource.data.status in ['cancelled', 'declined', 'removed']
+          && isAccountReferenceableAfter(resource.data.senderId)
+          && isAccountReferenceableAfter(resource.data.receiverId)
           && request.resource.data.senderId == resource.data.senderId
           && request.resource.data.receiverId == resource.data.receiverId
           && request.resource.data.status == 'pending')
@@ -422,6 +441,8 @@ service cloud.firestore {
         && request.resource.data.senderId == request.auth.uid
         && request.resource.data.receiverId is string
         && request.resource.data.receiverId != request.auth.uid
+        && isAccountReferenceableAfter(request.resource.data.senderId)
+        && isAccountReferenceableAfter(request.resource.data.receiverId)
         && areMutualFriends(
           request.auth.uid,
           request.resource.data.receiverId
@@ -465,6 +486,8 @@ service cloud.firestore {
       );
       allow create: if isAuth()
         && request.resource.data.senderId == request.auth.uid
+        && isAccountReferenceableAfter(request.resource.data.senderId)
+        && isAccountReferenceableAfter(request.resource.data.receiverId)
         && request.resource.data.status == 'pending'
         && request.resource.data.senderId != request.resource.data.receiverId
         && request.resource.data.senderRole in ['guardian', 'child']
@@ -478,6 +501,13 @@ service cloud.firestore {
       allow update: if isAuth()
         && (
           (resource.data.receiverId == request.auth.uid
+            && (
+              request.resource.data.status != 'accepted'
+              || (
+                isAccountReferenceableAfter(resource.data.senderId)
+                && isAccountReferenceableAfter(resource.data.receiverId)
+              )
+            )
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
             && request.resource.data.status in ['accepted', 'declined']
             && (
@@ -559,6 +589,8 @@ service cloud.firestore {
       allow read: if isFamilyParticipant();
 
       allow create: if isAuth()
+        && isAccountReferenceableAfter(request.resource.data.guardianId)
+        && isAccountReferenceableAfter(request.resource.data.childId)
         && existsAfter(
           /databases/$(database)/documents/guardian_requests/$(linkId)
         )
@@ -916,8 +948,10 @@ service cloud.firestore {
       allow update: if isAuth() && (
         (
           resource.data.ownerId == request.auth.uid
+          && resource.data.status in ['active', 'archived']
           && request.resource.data.ownerId == resource.data.ownerId
           && request.resource.data.ownerId in request.resource.data.memberIds
+          && request.resource.data.status in ['active', 'archived']
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['name', 'status', 'updatedAt'])
         )
@@ -1156,7 +1190,8 @@ service cloud.firestore {
 
         function validMemberSummary() {
           let summary = request.resource.data.summary;
-          return request.auth.uid == memberId
+          return isAuth()
+            && request.auth.uid == memberId
             && groupAfter().status == 'active'
             && groupAfter().memberIds.hasAny([request.auth.uid])
             && groupAfter().memberIds.hasAny([memberId])
@@ -1217,6 +1252,8 @@ service cloud.firestore {
       );
       allow create: if isAuth()
         && request.resource.data.senderId == request.auth.uid
+        && isAccountReferenceableAfter(request.resource.data.senderId)
+        && isAccountReferenceableAfter(request.resource.data.receiverId)
         && request.resource.data.status == 'pending'
         && exists(
           /databases/$(database)/documents/groups/$(request.resource.data.groupId)
@@ -1243,6 +1280,13 @@ service cloud.firestore {
       allow update: if isAuth() && (
         (
           resource.data.receiverId == request.auth.uid
+          && (
+            request.resource.data.status != 'accepted'
+            || (
+              isAccountReferenceableAfter(resource.data.senderId)
+              && isAccountReferenceableAfter(resource.data.receiverId)
+            )
+          )
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'updatedAt'])
           && request.resource.data.status in ['accepted', 'declined']
@@ -1991,6 +2035,10 @@ service cloud.firestore {
       allow create: if isAuth()
         && hasValidShape()
         && (
+          request.resource.data.status != 'active'
+          || isAccountReferenceableAfter(request.resource.data.userId)
+        )
+        && (
           (
             request.resource.data.scopeType == 'family'
             && requesterCanWriteFamily()
@@ -2006,6 +2054,10 @@ service cloud.firestore {
       allow update: if isAuth()
         && immutableIdentity()
         && hasValidShape()
+        && (
+          request.resource.data.status != 'active'
+          || isAccountReferenceableAfter(request.resource.data.userId)
+        )
         && (
           (
             request.resource.data.scopeType == 'family'
@@ -2044,6 +2096,24 @@ service cloud.firestore {
     // Download tokens are server-only secrets. The owner obtains a short-lived
     // action result from getPrivacyExportDownload instead of reading this doc.
     match /privacy_export_access/{requestId} {
+      allow read, write: if false;
+    }
+
+    // Server-owned deletion fences make every helper derived from isAuth()
+    // fail closed before the account is disabled and physically removed.
+    match /account_deletion_fences/{userId} {
+      allow read, write: if false;
+    }
+
+    match /account_deletion_executions/{executionId} {
+      allow read, write: if false;
+    }
+
+    match /account_operation_leases/{userId} {
+      allow read, write: if false;
+    }
+
+    match /push_delivery_leases/{userId} {
       allow read, write: if false;
     }
 

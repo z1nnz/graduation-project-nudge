@@ -737,6 +737,38 @@ async function run() {
     await response.clone().text(),
   );
 
+  response = await createDoc(
+    `account_deletion_fences/${member.localId}`,
+    {
+      schemaVersion: 1,
+      requestId: "request-group-deleting-target",
+      executionId: "execution-group-deleting-target",
+      status: "deleting",
+    },
+    "owner",
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await createDoc(
+    "group_requests/group-deleting-target-test",
+    {
+      senderId: candidate.localId,
+      senderNudgeId: `NDG_${candidate.localId}`,
+      senderNickname: "Candidate",
+      receiverId: member.localId,
+      groupId,
+      groupName,
+      status: "pending",
+      createdAt: now,
+    },
+    candidate.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A new group request cannot target an account fenced for deletion",
+  );
+
   console.log("Firestore group rules integration test passed.");
 }
 

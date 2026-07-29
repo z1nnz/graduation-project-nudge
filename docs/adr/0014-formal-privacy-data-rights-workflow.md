@@ -35,17 +35,87 @@ account exports and account deletion requests.
   and writes a system audit event.
 - Account deletion requests have a seven-day cooling period and may be
   cancelled while pending or in review.
-- Only staff roles may move deletion requests to review, reject them, or mark
-  them complete. Completion is blocked until the cooling period ends and the
-  staff must provide both a resolution note and a structured `caseId` that
-  identifies the real deletion case or evidence.
+- Only staff roles may move deletion requests to review or reject them.
+  `managePrivacyDataRequest` cannot mark a case complete. Completion belongs
+  exclusively to `executeAccountDeletion`, which requires App Check, the end
+  of the cooling period, a structured `caseId`, and an explicit destructive
+  confirmation.
+- Execution first inventories canonical family, group and room ownership. A
+  group or room with other active participants blocks deletion until ownership
+  is transferred. An active family link with another participant blocks
+  deletion until that relationship is explicitly resolved; an already-ended
+  family link is preserved for the other participant but the deleting account
+  identifier, membership, consent, shared subcontent and derived outcome are
+  removed. The executor never deletes another person's active shared family
+  scope as a side effect. Sole-owner scopes are locked and revalidated
+  immediately before recursive removal.
+- A server-owned `account_deletion_fences/{uid}` record becomes active when the
+  execution lease is claimed. The claim transaction refuses a fence owned by a
+  different request and verifies the same fence again on failure and
+  completion. Firestore rules fail closed for the fenced account, Auth is
+  disabled and refresh tokens are revoked before erasure, and relationship
+  notification triggers drop work involving a fenced account. Rules that
+  create or accept family, group, friendship and formal membership references
+  also require every referenced account to still have a user record and no
+  deletion fence. Another signed-in account therefore cannot resurrect a
+  deleted UID through a new invitation, acceptance or membership write.
+- Every user callable holds a short `account_operation_leases/{uid}` lease for
+  its complete execution, and every push send holds short leases for its
+  recipient and relationship actors. The deletion claim transaction refuses
+  active callable or push leases, while lease acquisition reads the deletion
+  fence in the same transaction. This removes the check-then-write and
+  check-then-send gaps instead of relying on a single early fence read.
+- Inventory is run once for non-destructive preflight and again after the
+  account-level fence and Auth freeze. The claimed execution stores and uses
+  only the post-fence plan. If a relationship appeared between preflight and
+  claim, the request becomes `deletion_failed` with a blocker plan instead of
+  silently leaving a new scope behind.
+- Ordinary group and room memberships are unlinked. Authored messages, events
+  and sessions are removed through collection-group queries even when the
+  account already left the room. Friendship messages, relationship requests,
+  outbound and inbound notifications, push jobs, Ledger records and source
+  claims, privacy export access, derived relationship outcomes, profile data
+  and export objects are purged. The executor drains these sets twice before
+  Auth deletion and once after Auth deletion to catch late background writes.
+  Relationship outcome refreshes also re-read the canonical scope and every
+  participant fence in their write transaction, preventing another member's
+  stale refresh from restoring a deleted participant. The collection-group
+  cleanup fields are declared with production `COLLECTION_GROUP` indexes. A
+  staff account cannot execute its own deletion.
+- The executor is retry-safe: it claims the request as `deleting` with a
+  15-minute execution lease. An active lease prevents concurrent execution; an
+  expired lease may be safely reclaimed after a worker crash. A partial failure
+  moves the request to non-cancellable `deletion_failed`, records a sanitized
+  failure code, and requires a safe retry. Mutable lease state is held in the
+  private `account_deletion_executions` collection; every attempt, failure,
+  blocker and completion is a separate append-only `audit_events` document.
+  Completion verifies that the same private execution and attempt still own the
+  lease, treats an already-removed Auth user as an idempotent retry, and marks
+  `completed` only after Cloud data erasure and Auth removal both finish.
+- User-authored relationship and notification audits that identify the subject
+  as actor, principal or recipient are removed with the account. Append-only
+  staff actions created from `admin_web` for other cases are a security
+  retention exception: they remain immutable and are removed only by the
+  target case's retention cleanup. Deleting one staff account therefore cannot
+  destroy another account-deletion case's evidence.
+- Completion replaces the operational request with a minimal staff-only
+  evidence tombstone. It retains the case ID, staff assignment, bounded
+  resolution note, timestamps, deletion counts and execution audit reference
+  for 365 days; reason text, download tokens, account profile data and the
+  `userId` field are removed. The request document ID remains a pseudonymous
+  case-path identifier during that evidence period. A daily scheduled cleanup
+  deletes expired tombstones, append-only request-targeted audits, private
+  execution state and the deletion fence.
 
 ## Consequences
 
-The user sees the same request status in App and Web, while the admin Web has a
-separate staff queue. A `completed` deletion request is an audited operational
-assertion that the real deletion and retention checks were performed; it is not
-permission for the client to erase canonical Ledger or relationship records.
+The user sees the same request status in App and Web before execution, while
+the admin Web has a separate staff queue. Once verified deletion starts, login
+is intentionally disabled; a failed execution is staff/support-only and is
+retried by its case ID rather than reopening a partially erased account. App
+and Web disclose this before submission. A `completed` deletion request is now
+the result of the Cloud executor, not a free-form operational assertion.
+Clients cannot directly erase canonical Ledger or relationship records.
 
 Production acceptance still requires exercising export download and deletion
 operations with real accounts, App Check, Storage, and the organization’s

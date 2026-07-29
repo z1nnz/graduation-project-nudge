@@ -308,12 +308,38 @@ async function refreshFamily({ firestore, userId, scopeId, now }) {
   const outcomeRef = firestore
     .collection("relationship_outcomes")
     .doc(outcome.outcomeId);
-  const batch = firestore.batch();
-  batch.set(outcomeRef, outcome);
-  for (const memory of memories) {
-    batch.set(outcomeRef.collection("memories").doc(memory.id), memory.data);
-  }
-  await batch.commit();
+  await firestore.runTransaction(async transaction => {
+    const [currentLink, ...participantFences] = await Promise.all([
+      transaction.get(linkRef),
+      ...participantIds.map(participantId =>
+        transaction.get(
+          firestore.collection("account_deletion_fences").doc(participantId),
+        )
+      ),
+    ]);
+    const currentParticipantIds = currentLink.exists &&
+      Array.isArray(currentLink.data().participantIds)
+      ? [...currentLink.data().participantIds].sort()
+      : [];
+    if (
+      !currentLink.exists ||
+      JSON.stringify(currentParticipantIds) !==
+        JSON.stringify([...participantIds].sort()) ||
+      participantFences.some(fence => fence.exists)
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "The family relationship changed while outcomes were refreshed.",
+      );
+    }
+    transaction.set(outcomeRef, outcome);
+    for (const memory of memories) {
+      transaction.set(
+        outcomeRef.collection("memories").doc(memory.id),
+        memory.data,
+      );
+    }
+  });
   return { outcome, memories: memories.map(memory => memory.data) };
 }
 
@@ -359,10 +385,36 @@ async function refreshGroup({ firestore, userId, scopeId, now }) {
     refreshedBy: userId,
     now,
   });
-  await firestore
+  const outcomeRef = firestore
     .collection("relationship_outcomes")
-    .doc(outcome.outcomeId)
-    .set(outcome);
+    .doc(outcome.outcomeId);
+  await firestore.runTransaction(async transaction => {
+    const [currentGroup, ...participantFences] = await Promise.all([
+      transaction.get(groupRef),
+      ...participantIds.map(participantId =>
+        transaction.get(
+          firestore.collection("account_deletion_fences").doc(participantId),
+        )
+      ),
+    ]);
+    const currentParticipantIds = currentGroup.exists &&
+      Array.isArray(currentGroup.data().memberIds)
+      ? [...currentGroup.data().memberIds].sort()
+      : [];
+    if (
+      !currentGroup.exists ||
+      currentGroup.data().status !== "active" ||
+      JSON.stringify(currentParticipantIds) !==
+        JSON.stringify([...participantIds].sort()) ||
+      participantFences.some(fence => fence.exists)
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "The group relationship changed while outcomes were refreshed.",
+      );
+    }
+    transaction.set(outcomeRef, outcome);
+  });
   return { outcome, memories: [] };
 }
 

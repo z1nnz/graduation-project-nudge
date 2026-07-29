@@ -8,7 +8,7 @@ const USER_ACTIONS = new Set([
   "request_export",
   "request_account_deletion",
 ]);
-const ADMIN_ACTIONS = new Set(["start_review", "reject", "complete"]);
+const ADMIN_ACTIONS = new Set(["start_review", "reject"]);
 const SOURCE_SURFACES = new Set(["app", "web"]);
 const EXPORT_RETENTION_DAYS = 7;
 const DELETION_REVIEW_DELAY_DAYS = 7;
@@ -49,18 +49,6 @@ function boundedReason(value, { required = false } = {}) {
       required
         ? "A resolution note of 8 to 1000 characters is required."
         : "Privacy request reasons must be at most 1000 characters.",
-    );
-  }
-  return result;
-}
-
-function normalizedCaseId(value, { required = false } = {}) {
-  const result = normalizedString(value).toUpperCase();
-  if (!result && !required) return "";
-  if (!/^CASE-\d{4}-[A-Z0-9][A-Z0-9_-]{3,63}$/.test(result)) {
-    throw new HttpsError(
-      "invalid-argument",
-      "Completion requires a structured caseId such as CASE-2026-0001.",
     );
   }
   return result;
@@ -683,7 +671,6 @@ function normalizeAdminCommand(data) {
       "Privacy administration action is invalid.",
     );
   }
-  const completing = action === "complete";
   return {
     action,
     requestId: stableRequestId(data?.requestId, "requestId"),
@@ -693,9 +680,8 @@ function normalizeAdminCommand(data) {
       new Set(["admin_web"]),
     ),
     resolutionNote: boundedReason(data?.resolutionNote, {
-      required: ["reject", "complete"].includes(action),
+      required: action === "reject",
     }),
-    caseId: normalizedCaseId(data?.caseId, { required: completing }),
   };
 }
 
@@ -759,10 +745,7 @@ export function createManagePrivacyDataRequestHandler({ firestore, clock }) {
       const allowed =
         (input.action === "start_review" && current.status === "pending") ||
         (input.action === "reject" &&
-          ["pending", "in_review"].includes(current.status)) ||
-        (input.action === "complete" &&
-          current.status === "in_review" &&
-          Date.parse(current.reviewAfter) <= Date.parse(now));
+          ["pending", "in_review"].includes(current.status));
       if (!allowed) {
         throw new HttpsError(
           "failed-precondition",
@@ -772,30 +755,25 @@ export function createManagePrivacyDataRequestHandler({ firestore, clock }) {
       const nextStatus = {
         start_review: "in_review",
         reject: "rejected",
-        complete: "completed",
       }[input.action];
       const updated = {
         ...current,
         status: nextStatus,
         assignedStaffUserId: staffUserId,
         resolutionNote: input.resolutionNote,
-        ...(input.caseId ? { caseId: input.caseId } : {}),
         updatedAt: now,
         ...(input.action === "start_review" ? { reviewStartedAt: now } : {}),
         ...(input.action === "reject" ? { rejectedAt: now } : {}),
-        ...(input.action === "complete" ? { completedAt: now } : {}),
       };
       transaction.update(requestRef, {
         status: updated.status,
         assignedStaffUserId: updated.assignedStaffUserId,
         resolutionNote: updated.resolutionNote,
-        ...(updated.caseId ? { caseId: updated.caseId } : {}),
         updatedAt: updated.updatedAt,
         ...(updated.reviewStartedAt
           ? { reviewStartedAt: updated.reviewStartedAt }
           : {}),
         ...(updated.rejectedAt ? { rejectedAt: updated.rejectedAt } : {}),
-        ...(updated.completedAt ? { completedAt: updated.completedAt } : {}),
       });
       const profile = staffSnapshot.data();
       transaction.create(auditRef, {
