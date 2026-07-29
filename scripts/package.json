@@ -6,6 +6,7 @@
   "scripts": {
     "backfill:public-profiles": "node backfill_public_profiles.js",
     "backfill:public-profiles:apply": "node backfill_public_profiles.js --apply",
+    "e2e:production:accounts": "node production_real_account_e2e.mjs",
     "migrate:relationships": "node migrate_relationship_memberships.js",
     "migrate:relationships:apply": "node migrate_relationship_memberships.js --apply"
   },
