@@ -38,6 +38,23 @@ test("health snapshot ingestion requires an authenticated user", async () => {
   );
 });
 
+test("health snapshot ingestion fails closed without active consent", async () => {
+  const handler = createIngestHealthSnapshotsHandler({
+    service: new ActivityLedgerService({
+      store: new InMemoryActivityLedgerStore(),
+    }),
+    requireHealthConsent: async userId => userId === "consented-user",
+  });
+
+  await assert.rejects(
+    handler({
+      auth: { uid: "revoked-user", token: {} },
+      data: { provider: "healthConnect", snapshots: [snapshot()] },
+    }),
+    /consent is required/i,
+  );
+});
+
 test("health snapshot ingestion binds actor and deduplicates a replay", async () => {
   const store = new InMemoryActivityLedgerStore();
   const handler = createIngestHealthSnapshotsHandler({

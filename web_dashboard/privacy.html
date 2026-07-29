@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 隱私與資料</title>
+    <link rel="stylesheet" href="assets/styles.css?v=14" />
+  </head>
+  <body data-page="privacy">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="dashboard.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>隱私與資料</small></span>
+        </a>
+        <nav class="nav">
+          <a href="dashboard.html">總覽入口</a>
+          <a href="personal.html">個人進階分析</a>
+          <a href="notifications.html">通知與邀請</a>
+          <a class="active" href="privacy.html">隱私與資料</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Privacy & Data Rights</span>
+            <h1>健康資料同意必須可驗證、可撤回。</h1>
+            <p>App 與 Web 共用同一份 Cloud consent。沒有目前版本的有效同意，Health Connect／Apple Health ingestion 會直接被拒絕。</p>
+          </div>
+          <div class="hero-card">
+            <span>目前政策版本</span>
+            <strong data-privacy-version>2026-07-29</strong>
+            <p data-privacy-updated>正在讀取 Cloud 同意狀態。</p>
+          </div>
+        </header>
+
+        <section class="panel page-section" data-privacy-consent>
+          <span class="eyebrow">Health Ingestion Consent</span>
+          <h2 data-privacy-status>正在讀取 Cloud 同意狀態</h2>
+          <p>同意範圍只包含睡眠、步數與運動分鐘的每日彙整證據，用於 Activity Ledger、自動追蹤任務，以及你主動加入且同意分享的自律房。</p>
+          <div class="button-row">
+            <button class="button primary" type="button" data-privacy-accept disabled>同意目前版本</button>
+            <button class="button ghost" type="button" data-privacy-revoke disabled>撤回同意</button>
+          </div>
+          <small>撤回會停止後續 Cloud ingestion，但不會把既有 Ledger 紀錄或帳號資料假裝成已刪除。每次操作都會建立客戶端不能偽造的 audit event。</small>
+        </section>
+
+        <section class="card-grid-3 page-section">
+          <article class="panel">
+            <span class="eyebrow">Collected</span>
+            <h2>實際送出的資料</h2>
+            <p>活動類型、彙整值與單位、統計區間、觀察時間、資料來源，以及你已同意加入的房間 ID。</p>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">Not Shared</span>
+            <h2>不自動公開</h2>
+            <p>好友看不到私人 Ledger；家庭只看孩子開放的摘要；團體只看成員主動分享的成果投影。</p>
+          </article>
+          <article class="panel">
+            <span class="eyebrow">Deletion Boundary</span>
+            <h2>清快取不是刪雲端</h2>
+            <p>App 的「清除本機資料」只影響裝置。正式匯出與刪除要求仍需經資料權利工作流程處理。</p>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="assets/app.js?v=17"></script>
+  </body>
+</html>

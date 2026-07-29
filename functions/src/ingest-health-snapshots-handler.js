@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   ActivityLedgerAuthenticationError,
+  ActivityLedgerAuthorizationError,
   ActivityLedgerValidationError,
 } from "./activity-ledger-service.js";
 
@@ -149,12 +150,18 @@ function normalizeSnapshot({
 export function createIngestHealthSnapshotsHandler({
   service,
   clock = () => new Date(),
+  requireHealthConsent = async () => true,
 }) {
   return async function ingestHealthSnapshotsRequest(request) {
     const userId = request?.auth?.uid;
     if (!userId) {
       throw new ActivityLedgerAuthenticationError(
         "An authenticated user is required.",
+      );
+    }
+    if (!(await requireHealthConsent(userId))) {
+      throw new ActivityLedgerAuthorizationError(
+        "Active health data ingestion consent is required.",
       );
     }
     const provider = request?.data?.provider;

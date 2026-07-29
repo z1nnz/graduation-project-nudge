@@ -2021,6 +2021,23 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ─── Privacy consent and immutable audit events ────────────────────
+    // Current consent and its audit trail are Cloud-written. A user may
+    // inspect only their own record; staff may inspect records for operations.
+    match /privacy_consents/{userId} {
+      allow read: if isOwner(userId) || isStaff();
+      allow write: if false;
+    }
+
+    match /audit_events/{auditEventId} {
+      allow read: if isAuth()
+        && (
+          resource.data.actorUserId == request.auth.uid
+          || isStaff()
+        );
+      allow write: if false;
+    }
+
     // ─── Cloud-built relationship outcomes ────────────────────────────
     // Family trees, group planets and shared memories are derived by the
     // callable from validated relationship events. Clients cannot mint them.

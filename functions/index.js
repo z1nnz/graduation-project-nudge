@@ -9,6 +9,10 @@ import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-st
 import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshots-handler.js";
 import { createRecordActivityHandler } from "./src/record-activity-handler.js";
 import { createRefreshRelationshipOutcomeHandler } from "./src/relationship-outcome-service.js";
+import {
+  createHealthConsentChecker,
+  createRecordPrivacyConsentHandler,
+} from "./src/privacy-consent-service.js";
 
 initializeApp();
 setGlobalOptions({
@@ -22,11 +26,18 @@ const service = new ActivityLedgerService({
 const handleRecordActivity = createRecordActivityHandler({ service });
 const handleIngestHealthSnapshots = createIngestHealthSnapshotsHandler({
   service,
+  requireHealthConsent: createHealthConsentChecker({
+    firestore: getFirestore(),
+  }),
 });
 const handleRefreshRelationshipOutcome =
   createRefreshRelationshipOutcomeHandler({
     firestore: getFirestore(),
   });
+const handleRecordPrivacyConsent = createRecordPrivacyConsentHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
 
 export const recordActivity = onCall(
   {
@@ -89,6 +100,26 @@ export const refreshRelationshipOutcome = onCall(
       throw new HttpsError(
         "internal",
         "The relationship outcome could not be refreshed.",
+      );
+    }
+  },
+);
+
+export const recordPrivacyConsent = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleRecordPrivacyConsent(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("recordPrivacyConsent failed", error);
+      throw new HttpsError(
+        "internal",
+        "The privacy consent could not be recorded.",
       );
     }
   },

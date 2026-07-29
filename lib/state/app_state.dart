@@ -20,6 +20,7 @@ import '../models/family_link_contract.dart';
 import '../models/friend_request.dart';
 import '../models/group_contract.dart';
 import '../models/health_activity_snapshot.dart';
+import '../models/privacy_consent.dart';
 import '../models/relationship_membership.dart';
 import '../models/relationship_outcome.dart';
 import '../models/room_activity_session.dart';
@@ -33,6 +34,7 @@ import '../services/notification_service.dart';
 import '../services/activity_ledger_outbox.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
 import '../services/cloud_health_snapshot_gateway.dart';
+import '../services/cloud_privacy_consent_gateway.dart';
 import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../theme/app_ui.dart';
@@ -95,11 +97,13 @@ class AppState extends ChangeNotifier {
   final ActivityLedgerOutbox _activityLedgerOutbox;
   final HealthSnapshotOutbox _healthSnapshotOutbox;
   final CloudRelationshipOutcomeGateway _relationshipOutcomeGateway;
+  final CloudPrivacyConsentGateway _privacyConsentGateway;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
     HealthSnapshotOutbox? healthSnapshotOutbox,
     CloudRelationshipOutcomeGateway? relationshipOutcomeGateway,
+    CloudPrivacyConsentGateway? privacyConsentGateway,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()),
@@ -108,7 +112,9 @@ class AppState extends ChangeNotifier {
            HealthSnapshotOutbox(gateway: CloudHealthSnapshotGateway.firebase()),
        _relationshipOutcomeGateway =
            relationshipOutcomeGateway ??
-           CloudRelationshipOutcomeGateway.firebase() {
+           CloudRelationshipOutcomeGateway.firebase(),
+       _privacyConsentGateway =
+           privacyConsentGateway ?? CloudPrivacyConsentGateway.firebase() {
     _listenToAuthChanges();
   }
 
@@ -148,6 +154,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _groupTemplateSubscription;
   StreamSubscription? _groupMemberSummariesSubscription;
   StreamSubscription? _groupOutcomeSubscription;
+  StreamSubscription? _privacyConsentSubscription;
   String? _listeningGroupId;
   String? _projectedGroupId;
   final Set<String> _checkedLegacyGroupIds = {};
@@ -220,6 +227,22 @@ class AppState extends ChangeNotifier {
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
     unawaited(_restoreRelationshipSelections(user.uid));
+    _privacyConsentSubscription = FirebaseFirestore.instance
+        .collection('privacy_consents')
+        .doc(user.uid)
+        .snapshots()
+        .listen((snapshot) {
+          _cloudPrivacyConsent = snapshot.exists
+              ? PrivacyConsentRecord.fromMap(snapshot.data()!)
+              : null;
+          _hasAcceptedPrivacyPolicy =
+              _cloudPrivacyConsent?.isCurrentHealthConsent ?? false;
+          _privacyAcceptedAt = _hasAcceptedPrivacyPolicy
+              ? _cloudPrivacyConsent?.acceptedAt
+              : null;
+          unawaited(_savePrivacyConsent());
+          notifyListeners();
+        });
 
     // User profile listener
     _userSubscription = FirebaseFirestore.instance
@@ -1321,6 +1344,7 @@ class AppState extends ChangeNotifier {
     _groupResultSummaryPublishTimer?.cancel();
     _incomingGroupRequestsSubscription?.cancel();
     _groupSubscription?.cancel();
+    _privacyConsentSubscription?.cancel();
     _clearGroupPublicationListeners();
 
     _userSubscription = null;
@@ -1358,6 +1382,8 @@ class AppState extends ChangeNotifier {
     _isRefreshingGroupRelationshipOutcome = false;
     _incomingGroupRequestsSubscription = null;
     _groupSubscription = null;
+    _privacyConsentSubscription = null;
+    _cloudPrivacyConsent = null;
     _canonicalGroup = null;
     _canonicalGroups = [];
     _selectedGroupId = null;
@@ -1894,6 +1920,7 @@ class AppState extends ChangeNotifier {
   UserModel? _currentUser;
   bool _hasAcceptedPrivacyPolicy = false;
   DateTime? _privacyAcceptedAt;
+  PrivacyConsentRecord? _cloudPrivacyConsent;
   bool _hasCompletedOnboarding = false;
   bool _isHydrated = false;
   Set<String> _seenUnlockedBadgeKeys = <String>{};
@@ -2174,6 +2201,9 @@ class AppState extends ChangeNotifier {
   bool get isSignedIn => _currentUser != null;
   bool get hasAcceptedPrivacyPolicy => _hasAcceptedPrivacyPolicy;
   DateTime? get privacyAcceptedAt => _privacyAcceptedAt;
+  bool get isPrivacyConsentCloudVerified =>
+      _cloudPrivacyConsent?.isCurrentHealthConsent ?? false;
+  String get privacyPolicyVersion => currentPrivacyPolicyVersion;
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   bool get isHydrated => _isHydrated;
   String get accountProviderLabel {
@@ -4252,8 +4282,20 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> acceptPrivacyPolicy() async {
-    _hasAcceptedPrivacyPolicy = true;
-    _privacyAcceptedAt = DateTime.now();
+    final userId = _currentUser?.id;
+    if (userId == null) {
+      _hasAcceptedPrivacyPolicy = true;
+      _privacyAcceptedAt = DateTime.now();
+    } else {
+      final result = await _privacyConsentGateway.update(
+        accepted: true,
+        clientRequestId:
+            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+      );
+      _cloudPrivacyConsent = result.consent;
+      _hasAcceptedPrivacyPolicy = result.consent.isCurrentHealthConsent;
+      _privacyAcceptedAt = result.consent.acceptedAt;
+    }
     notifyListeners();
     await _savePrivacyConsent();
   }
@@ -4278,11 +4320,22 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> revokePrivacyPolicyConsent() async {
+    final userId = _currentUser?.id;
     _hasAcceptedPrivacyPolicy = false;
     _privacyAcceptedAt = null;
+    _cloudPrivacyConsent = null;
     await clearHealthData();
     notifyListeners();
     await _savePrivacyConsent();
+    if (userId != null) {
+      final result = await _privacyConsentGateway.update(
+        accepted: false,
+        clientRequestId:
+            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+      );
+      _cloudPrivacyConsent = result.consent;
+      notifyListeners();
+    }
   }
 
   Future<void> _loadReminderSettings() async {

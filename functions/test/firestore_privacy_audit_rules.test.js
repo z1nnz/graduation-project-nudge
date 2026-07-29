@@ -1,0 +1,131 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+
+const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST;
+const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+const emulatorEnabled = Boolean(firestoreHost && authHost);
+const projectId = "nudge-discipline-app";
+const firestoreBase =
+  `http://${firestoreHost}/v1/projects/${projectId}` +
+  "/databases/(default)/documents";
+
+function valueOf(value) {
+  if (value === null) return { nullValue: null };
+  if (typeof value === "string") return { stringValue: value };
+  if (typeof value === "boolean") return { booleanValue: value };
+  return { mapValue: { fields: fieldsOf(value) } };
+}
+
+function fieldsOf(data) {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key, valueOf(value)]),
+  );
+}
+
+async function signUp(label) {
+  const response = await fetch(
+    `http://${authHost}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-key`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: `${label}-${Date.now()}-${Math.random()}@example.test`,
+        password: "correct-horse-battery-staple",
+        returnSecureToken: true,
+      }),
+    },
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+  return response.json();
+}
+
+async function request(path, token, options = {}) {
+  return fetch(`${firestoreBase}/${path}`, {
+    ...options,
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+}
+
+test(
+  "privacy consent and audit records are Cloud-written and owner-readable",
+  { skip: !emulatorEnabled },
+  async () => {
+    const app = initializeApp(
+      { projectId },
+      `privacy-audit-rules-${Date.now()}`,
+    );
+    const firestore = getFirestore(app);
+    const owner = await signUp("privacy-owner");
+    const outsider = await signUp("privacy-outsider");
+    const auditId = `privacy-consent--${owner.localId}--request-001`;
+
+    await firestore.collection("privacy_consents").doc(owner.localId).set({
+      schemaVersion: 1,
+      userId: owner.localId,
+      status: "accepted",
+      policyVersion: "2026-07-29",
+      scopes: { healthIngestion: true },
+    });
+    await firestore.collection("audit_events").doc(auditId).set({
+      schemaVersion: 1,
+      auditEventId: auditId,
+      category: "privacy",
+      action: "privacy.health.accept",
+      actorUserId: owner.localId,
+      targetType: "user",
+      targetId: owner.localId,
+    });
+
+    assert.equal(
+      (
+        await request(
+          `privacy_consents/${owner.localId}`,
+          owner.idToken,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `privacy_consents/${owner.localId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (await request(`audit_events/${auditId}`, owner.idToken)).status,
+      200,
+    );
+    assert.equal(
+      (await request(`audit_events/${auditId}`, outsider.idToken)).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `privacy_consents/${owner.localId}`,
+          owner.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                status: "accepted",
+                scopes: { healthIngestion: true },
+              }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+  },
+);

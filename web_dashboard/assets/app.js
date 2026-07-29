@@ -169,6 +169,7 @@ const modules = [
   ["presentation", "專題發表流程", "presentation.html"],
   ["profile", "個人名片", "profile.html"],
   ["notifications", "通知與邀請", "notifications.html"],
+  ["privacy", "隱私與資料", "privacy.html"],
 ];
 
 // Authentication Check
@@ -2068,7 +2069,10 @@ function loadFirebaseSDKs() {
 let db = null;
 let storage = null;
 let functions = null;
+const CURRENT_PRIVACY_POLICY_VERSION = "2026-07-29";
 let webActivityLedgerOutbox = null;
+let webPrivacyConsentSub = null;
+let currentWebPrivacyConsent = null;
 let activeFamilyLink = null;
 let activeFamilyLinks = [];
 let currentFamilySummary = null;
@@ -3882,7 +3886,121 @@ function startListeningToFirestoreData() {
   // are loaded separately and never replace the active account.
   localStorage.setItem("nudgeActiveDemoUserId", loggedInUid);
   listenToUser(loggedInUid);
+  listenToWebPrivacyConsent(loggedInUid);
 }
+
+function listenToWebPrivacyConsent(userId) {
+  if (webPrivacyConsentSub) webPrivacyConsentSub();
+  currentWebPrivacyConsent = null;
+  webPrivacyConsentSub = db.collection("privacy_consents")
+    .doc(userId)
+    .onSnapshot(snapshot => {
+      currentWebPrivacyConsent = snapshot.exists ? snapshot.data() : null;
+      renderWebPrivacyConsent();
+    }, error => {
+      console.error("Privacy consent listen error:", error);
+      currentWebPrivacyConsent = null;
+      renderWebPrivacyConsent(error.message || "無法讀取 Cloud 同意狀態");
+    });
+}
+
+function isCurrentWebHealthConsent() {
+  return (
+    currentWebPrivacyConsent?.status === "accepted" &&
+    currentWebPrivacyConsent?.policyVersion ===
+      CURRENT_PRIVACY_POLICY_VERSION &&
+    currentWebPrivacyConsent?.scopes?.healthIngestion === true
+  );
+}
+
+function renderWebPrivacyConsent(errorMessage = "") {
+  const root = document.querySelector("[data-privacy-consent]");
+  if (!root) return;
+  const accepted = isCurrentWebHealthConsent();
+  const status = root.querySelector("[data-privacy-status]");
+  const version = root.querySelector("[data-privacy-version]");
+  const updated = root.querySelector("[data-privacy-updated]");
+  if (status) status.textContent = accepted ? "已同意並由 Cloud 稽核" : "未同意或已撤回";
+  if (version) {
+    version.textContent =
+      currentWebPrivacyConsent?.policyVersion ||
+      CURRENT_PRIVACY_POLICY_VERSION;
+  }
+  if (updated) {
+    const rawUpdatedAt = currentWebPrivacyConsent?.updatedAt;
+    const updatedAt =
+      typeof rawUpdatedAt?.toDate === "function"
+        ? rawUpdatedAt.toDate()
+        : rawUpdatedAt
+          ? new Date(rawUpdatedAt)
+          : null;
+    updated.textContent = errorMessage || (
+      updatedAt && !Number.isNaN(updatedAt.getTime())
+        ? `最後更新：${updatedAt.toLocaleString("zh-TW")}`
+        : "尚無 Cloud 同意紀錄"
+    );
+  }
+  const acceptButton = root.querySelector("[data-privacy-accept]");
+  const revokeButton = root.querySelector("[data-privacy-revoke]");
+  if (acceptButton) acceptButton.disabled = accepted;
+  if (revokeButton) revokeButton.disabled = !accepted;
+}
+
+async function updateWebPrivacyConsent(accepted) {
+  if (!firebase.auth().currentUser || !functions) {
+    throw new Error("請先登入並完成 Cloud Functions 初始化。");
+  }
+  const clientRequestId =
+    `privacy_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const response = await functions.httpsCallable("recordPrivacyConsent")({
+    action: accepted ? "accept" : "revoke",
+    policyVersion: CURRENT_PRIVACY_POLICY_VERSION,
+    clientRequestId,
+    sourceSurface: "web",
+  });
+  const result = response?.data;
+  if (
+    !result?.auditEventId ||
+    result?.consent?.policyVersion !== CURRENT_PRIVACY_POLICY_VERSION
+  ) {
+    throw new Error("Cloud 同意結果無法驗證。");
+  }
+  currentWebPrivacyConsent = result.consent;
+  renderWebPrivacyConsent();
+  return result;
+}
+
+document.querySelector("[data-privacy-accept]")?.addEventListener(
+  "click",
+  async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const result = await updateWebPrivacyConsent(true);
+      toast(`已記錄健康資料同意 · Audit ${result.auditEventId.slice(-8)}`);
+    } catch (error) {
+      console.error(error);
+      toast(error.message || "隱私同意未完成");
+      renderWebPrivacyConsent();
+    }
+  },
+);
+
+document.querySelector("[data-privacy-revoke]")?.addEventListener(
+  "click",
+  async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const result = await updateWebPrivacyConsent(false);
+      toast(`已撤回後續健康 ingestion · Audit ${result.auditEventId.slice(-8)}`);
+    } catch (error) {
+      console.error(error);
+      toast(error.message || "撤回未完成");
+      renderWebPrivacyConsent();
+    }
+  },
+);
 
 function getOrCreateSidePanel() {
   let panel = $(".demo-user-container");
