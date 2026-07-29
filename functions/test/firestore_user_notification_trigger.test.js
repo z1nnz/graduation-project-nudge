@@ -45,16 +45,18 @@ async function signUp(label) {
   return response.json();
 }
 
-async function waitForNotification(firestore, notificationId) {
+async function waitForDocument(firestore, collection, documentId) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const snapshot = await firestore
-      .collection("user_notifications")
-      .doc(notificationId)
+      .collection(collection)
+      .doc(documentId)
       .get();
-    if (snapshot.exists) return snapshot.data();
+    if (snapshot.exists) return snapshot;
     await new Promise(resolve => setTimeout(resolve, 200));
   }
-  throw new Error("Timed out waiting for the notification trigger.");
+  throw new Error(
+    `Timed out waiting for ${collection}/${documentId}.`,
+  );
 }
 
 test(
@@ -98,28 +100,30 @@ test(
     );
     assert.equal(response.status, 200, await response.clone().text());
 
-    const notification = await waitForNotification(
+    const notificationSnapshot = await waitForDocument(
       firestore,
+      "user_notifications",
       notificationId,
     );
+    const notification = notificationSnapshot.data();
     assert.equal(notification.recipientUserId, child.localId);
     assert.equal(notification.actorUserId, guardian.localId);
     assert.equal(notification.kind, "family_invitation");
     assert.equal(notification.status, "unread");
-    const deliveryJob = await firestore
-      .collection("push_delivery_jobs")
-      .doc(notificationId)
-      .get();
-    assert.equal(deliveryJob.exists, true);
+    const deliveryJob = await waitForDocument(
+      firestore,
+      "push_delivery_jobs",
+      notificationId,
+    );
     assert.equal(deliveryJob.data().recipientUserId, child.localId);
     assert.equal(
       ["pending", "skipped"].includes(deliveryJob.data().status),
       true,
     );
-    const audit = await firestore
-      .collection("audit_events")
-      .doc(`family-request--${requestId}--created`)
-      .get();
-    assert.equal(audit.exists, true);
+    await waitForDocument(
+      firestore,
+      "audit_events",
+      `family-request--${requestId}--created`,
+    );
   },
 );

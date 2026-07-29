@@ -29,6 +29,12 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(png|jpeg|webp)');
     }
 
+    match /privacy_exports/{userId}/{fileName} {
+      // Even the owner must use getPrivacyExportDownload so access is audited.
+      // The callable returns a random token URL; direct SDK reads stay closed.
+      allow read, write: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

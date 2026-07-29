@@ -2123,6 +2123,9 @@ const CURRENT_PRIVACY_POLICY_VERSION = "2026-07-29";
 let webActivityLedgerOutbox = null;
 let webPrivacyConsentSub = null;
 let currentWebPrivacyConsent = null;
+let webPrivacyDataRequestSub = null;
+let currentWebPrivacyDataRequests = [];
+let webPrivacyDataRequestUpdating = false;
 let webNotificationPreferenceSub = null;
 let currentWebNotificationPreferences = null;
 let webNotificationPreferenceUpdating = false;
@@ -3985,6 +3988,7 @@ function startListeningToFirestoreData() {
   localStorage.setItem("nudgeActiveDemoUserId", loggedInUid);
   listenToUser(loggedInUid);
   listenToWebPrivacyConsent(loggedInUid);
+  listenToWebPrivacyDataRequests(loggedInUid);
   listenToWebNotificationPreferences(loggedInUid);
   listenToWebUserNotifications(loggedInUid);
 }
@@ -4379,6 +4383,202 @@ document.querySelector("[data-privacy-revoke]")?.addEventListener(
     }
   },
 );
+
+function webPrivacyRequestDate(value) {
+  if (value && typeof value.toDate === "function") return value.toDate();
+  const parsed = value ? new Date(value) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+}
+
+function webPrivacyRequestStatus(request) {
+  return {
+    processing: "產生中",
+    ready: "可下載",
+    expired: "已到期",
+    failed: "產生失敗",
+    pending: "等待冷靜期",
+    in_review: "承辦審核中",
+    cancelled: "已取消",
+    rejected: "未受理",
+    completed: "已完成並留存證明",
+  }[request.status] || request.status || "未知";
+}
+
+function listenToWebPrivacyDataRequests(userId) {
+  if (webPrivacyDataRequestSub) webPrivacyDataRequestSub();
+  currentWebPrivacyDataRequests = [];
+  webPrivacyDataRequestSub = db.collection("privacy_data_requests")
+    .where("userId", "==", userId)
+    .onSnapshot(snapshot => {
+      currentWebPrivacyDataRequests = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => {
+          const aTime = webPrivacyRequestDate(a.requestedAt)?.getTime() || 0;
+          const bTime = webPrivacyRequestDate(b.requestedAt)?.getTime() || 0;
+          return bTime - aTime;
+        });
+      renderWebPrivacyDataRequests();
+    }, error => {
+      console.error("Privacy data request listen error:", error);
+      const list = document.querySelector("[data-privacy-request-list]");
+      if (list) {
+        list.innerHTML = `<p>申請紀錄讀取失敗：${escapeHtml(error.message || "未知錯誤")}</p>`;
+      }
+    });
+}
+
+function renderWebPrivacyDataRequests() {
+  const root = document.querySelector("[data-privacy-data-rights]");
+  if (!root) return;
+  const list = root.querySelector("[data-privacy-request-list]");
+  const requestButtons = root.querySelectorAll(
+    "[data-privacy-request-export], [data-privacy-request-deletion]",
+  );
+  requestButtons.forEach(button => {
+    button.disabled = webPrivacyDataRequestUpdating;
+  });
+  if (!list) return;
+  if (!currentWebPrivacyDataRequests.length) {
+    list.innerHTML = "<p>尚無正式資料權利申請。</p>";
+    return;
+  }
+  list.innerHTML = currentWebPrivacyDataRequests.slice(0, 10).map(request => {
+    const isExport = request.type === "export";
+    const requestedAt = webPrivacyRequestDate(request.requestedAt);
+    const expiresAt = webPrivacyRequestDate(request.expiresAt);
+    const canDownload =
+      isExport &&
+      request.status === "ready" &&
+      expiresAt &&
+      expiresAt.getTime() > Date.now();
+    const canCancel =
+      request.type === "account_deletion" &&
+      ["pending", "in_review"].includes(request.status);
+    return `
+      <article class="mini-card">
+        <span class="eyebrow">${isExport ? "DATA EXPORT" : "ACCOUNT DELETION"}</span>
+        <h3>${isExport ? "帳號資料匯出" : "帳號刪除申請"} · ${escapeHtml(webPrivacyRequestStatus(request))}</h3>
+        <p>申請：${escapeHtml(requestedAt ? requestedAt.toLocaleString("zh-TW") : "未提供")}
+          ${expiresAt ? `<br>到期：${escapeHtml(expiresAt.toLocaleString("zh-TW"))}` : ""}
+          ${request.caseId ? `<br>案件編號：${escapeHtml(request.caseId)}` : ""}
+          ${request.resolutionNote ? `<br>承辦說明：${escapeHtml(request.resolutionNote)}` : ""}
+        </p>
+        ${canDownload ? `<button class="button primary" type="button" data-privacy-download="${escapeHtml(request.id)}">下載 JSON</button>` : ""}
+        ${canCancel ? `<button class="button ghost" type="button" data-privacy-cancel="${escapeHtml(request.id)}">取消刪除申請</button>` : ""}
+      </article>
+    `;
+  }).join("");
+  list.querySelectorAll("[data-privacy-download]").forEach(button => {
+    button.addEventListener("click", () =>
+      downloadWebPrivacyExport(button.dataset.privacyDownload)
+    );
+  });
+  list.querySelectorAll("[data-privacy-cancel]").forEach(button => {
+    button.addEventListener("click", () =>
+      cancelWebPrivacyRequest(button.dataset.privacyCancel)
+    );
+  });
+}
+
+function webPrivacyClientRequestId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function callWebPrivacyData(name, payload) {
+  if (!firebase.auth().currentUser || !functions) {
+    throw new Error("請先登入並完成 Cloud Functions 初始化。");
+  }
+  const response = await functions.httpsCallable(name)(payload);
+  if (!response?.data?.auditEventId) {
+    throw new Error("Cloud 隱私資料結果缺少稽核事件。");
+  }
+  return response.data;
+}
+
+async function requestWebPrivacyDataAction(action, reason = "") {
+  return callWebPrivacyData("requestPrivacyDataAction", {
+    action,
+    reason,
+    clientRequestId: webPrivacyClientRequestId("privacy_data"),
+    sourceSurface: "web",
+  });
+}
+
+async function withWebPrivacyDataBusy(operation) {
+  if (webPrivacyDataRequestUpdating) return;
+  webPrivacyDataRequestUpdating = true;
+  renderWebPrivacyDataRequests();
+  try {
+    await operation();
+  } catch (error) {
+    console.error(error);
+    toast(error.message || "隱私資料操作未完成");
+  } finally {
+    webPrivacyDataRequestUpdating = false;
+    renderWebPrivacyDataRequests();
+  }
+}
+
+document.querySelector("[data-privacy-request-export]")?.addEventListener(
+  "click",
+  () => withWebPrivacyDataBusy(async () => {
+    const result = await requestWebPrivacyDataAction("request_export");
+    toast(`資料匯出已建立 · Audit ${result.auditEventId.slice(-8)}`);
+  }),
+);
+
+document.querySelector("[data-privacy-request-deletion]")?.addEventListener(
+  "click",
+  () => {
+    if (!window.confirm(
+      "送出後會進入 7 天冷靜期，再由有權限的承辦者核對並留存刪除證明。冷靜期內仍可取消。確定送出？",
+    )) {
+      return;
+    }
+    const reason = window.prompt("刪除原因（選填，最多 1000 字）", "") || "";
+    withWebPrivacyDataBusy(async () => {
+      const result = await requestWebPrivacyDataAction(
+        "request_account_deletion",
+        reason.slice(0, 1000),
+      );
+      toast(`刪除申請已受理 · Audit ${result.auditEventId.slice(-8)}`);
+    });
+  },
+);
+
+function cancelWebPrivacyRequest(requestId) {
+  if (!window.confirm("取消後帳號與雲端資料會維持原狀。確定取消申請？")) return;
+  withWebPrivacyDataBusy(async () => {
+    const result = await callWebPrivacyData("cancelPrivacyDataRequest", {
+      requestId,
+      clientRequestId: webPrivacyClientRequestId("privacy_cancel"),
+      sourceSurface: "web",
+    });
+    toast(`已取消刪除申請 · Audit ${result.auditEventId.slice(-8)}`);
+  });
+}
+
+function downloadWebPrivacyExport(requestId) {
+  withWebPrivacyDataBusy(async () => {
+    const result = await callWebPrivacyData("getPrivacyExportDownload", {
+      requestId,
+      clientRequestId: webPrivacyClientRequestId("privacy_download"),
+      sourceSurface: "web",
+    });
+    if (!/^https:\/\//.test(result.downloadUrl || "")) {
+      throw new Error("Cloud 未提供安全下載連結。");
+    }
+    const link = document.createElement("a");
+    link.href = result.downloadUrl;
+    link.rel = "noopener";
+    link.target = "_blank";
+    link.download = `nudge-data-export-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast(`已開啟資料匯出 · Audit ${result.auditEventId.slice(-8)}`);
+  });
+}
 
 function getOrCreateSidePanel() {
   let panel = $(".demo-user-container");

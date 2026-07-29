@@ -539,7 +539,7 @@
               <span class="eyebrow" style="color: #a78bfa;">Immutable Audit</span>
               <h2 style="margin: 0; font-size: 1.5rem;">Cloud 稽核紀錄</h2>
               <p style="margin-top: 0.5rem; color: var(--c-text-muted);">
-                只讀取由 Cloud Functions 建立的不可變事件。目前正式涵蓋隱私同意、通知偏好、裝置推播註冊與投遞、家庭／團體關係及商城角色上架。
+                只讀取由 Cloud Functions 建立的不可變事件。目前正式涵蓋隱私同意、資料權利申請、通知偏好、裝置推播註冊與投遞、家庭／團體關係及商城角色上架。
               </p>
             </div>
             <div class="hero-card" style="border-color: #8b5cf6; background: transparent; padding: 1rem;">
@@ -547,6 +547,38 @@
               <strong id="adminAuditCount" style="font-size: 2rem; color: white;">0</strong>
             </div>
           </header>
+          <div class="admin-panel" style="margin-bottom: 1.5rem;">
+            <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
+              <div>
+                <span class="eyebrow" style="color:#fca5a5;">Privacy Operations</span>
+                <h2 style="margin:0.35rem 0;">帳號刪除申請承辦佇列</h2>
+                <p style="color:var(--c-text-muted); margin-bottom:0;">
+                  承辦人可開始審核或拒絕；只有冷靜期結束且已完成實際刪除、保留義務核對與案件證明後，才能標記完成。
+                </p>
+              </div>
+              <strong id="adminPrivacyRequestCount" style="font-size:2rem;">0</strong>
+            </div>
+            <div id="adminPrivacyRequestStatus" class="admin-auth-banner" style="display:block; margin-top:1rem;">
+              等待後台權限確認後讀取資料權利申請。
+            </div>
+            <div style="overflow-x:auto; margin-top:1rem;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>申請時間</th>
+                    <th>帳號</th>
+                    <th>狀態</th>
+                    <th>冷靜期至</th>
+                    <th>承辦人</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adminPrivacyRequestTableBody">
+                  <tr><td colspan="6">尚未載入。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
           <div class="admin-panel">
             <div class="admin-grid" style="margin-bottom: 1rem;">
               <div class="admin-form-group">
@@ -1281,10 +1313,12 @@
         }
       });
     </script>
-    <script src="assets/app.js?v=19"></script>
+    <script src="assets/app.js?v=20"></script>
     <script>
       let adminAuditUnsubscribe = null;
       let adminAuditEvents = [];
+      let adminPrivacyRequestUnsubscribe = null;
+      let adminPrivacyRequests = [];
 
       function adminAuditDate(value) {
         if (value && typeof value.toDate === 'function') return value.toDate();
@@ -1354,6 +1388,134 @@
           });
       }
 
+      function adminPrivacyStatusLabel(status) {
+        return {
+          pending: '等待冷靜期',
+          in_review: '承辦審核中',
+          cancelled: '使用者已取消',
+          rejected: '未受理',
+          completed: '完成並留存證明'
+        }[status] || status || '未知';
+      }
+
+      function renderAdminPrivacyRequests() {
+        const tbody = document.getElementById('adminPrivacyRequestTableBody');
+        const count = document.getElementById('adminPrivacyRequestCount');
+        if (!tbody || !count) return;
+        count.textContent = String(adminPrivacyRequests.length);
+        if (!adminPrivacyRequests.length) {
+          tbody.innerHTML = '<tr><td colspan="6">目前沒有帳號刪除申請。</td></tr>';
+          return;
+        }
+        tbody.innerHTML = adminPrivacyRequests.map(request => {
+          const requestedAt = adminAuditDate(request.requestedAt);
+          const reviewAfter = adminAuditDate(request.reviewAfter);
+          const coolingComplete =
+            reviewAfter && reviewAfter.getTime() <= Date.now();
+          const actions = [];
+          if (request.status === 'pending') {
+            actions.push(`<button class="admin-btn" type="button" data-privacy-admin-action="start_review" data-request-id="${escapeHtml(request.id)}">開始審核</button>`);
+            actions.push(`<button class="button ghost" type="button" data-privacy-admin-action="reject" data-request-id="${escapeHtml(request.id)}">拒絕</button>`);
+          } else if (request.status === 'in_review') {
+            actions.push(`<button class="admin-btn" type="button" data-privacy-admin-action="complete" data-request-id="${escapeHtml(request.id)}" ${coolingComplete ? '' : 'disabled title="冷靜期尚未結束"'}>完成</button>`);
+            actions.push(`<button class="button ghost" type="button" data-privacy-admin-action="reject" data-request-id="${escapeHtml(request.id)}">拒絕</button>`);
+          }
+          return `
+            <tr>
+              <td>${escapeHtml(requestedAt ? requestedAt.toLocaleString('zh-TW') : '未提供')}</td>
+              <td><code>${escapeHtml(request.userId || '')}</code></td>
+              <td><span class="status-badge">${escapeHtml(adminPrivacyStatusLabel(request.status))}</span></td>
+              <td>${escapeHtml(reviewAfter ? reviewAfter.toLocaleString('zh-TW') : '不適用')}</td>
+              <td><code>${escapeHtml(request.assignedStaffUserId || '尚未指派')}</code></td>
+              <td><div style="display:flex; gap:0.5rem; flex-wrap:wrap;">${actions.join('') || '—'}</div></td>
+            </tr>
+          `;
+        }).join('');
+        tbody.querySelectorAll('[data-privacy-admin-action]').forEach(button => {
+          button.addEventListener('click', () => {
+            manageAdminPrivacyRequest(
+              button.dataset.privacyAdminAction,
+              button.dataset.requestId
+            ).catch(error => {
+              console.error(error);
+              toast(error.message || '資料權利承辦操作失敗');
+            });
+          });
+        });
+      }
+
+      async function manageAdminPrivacyRequest(action, requestId) {
+        await getDeveloperUserOrThrow();
+        if (!functions) throw new Error('Cloud Functions 尚未初始化。');
+        const actionLabel = {
+          start_review: '開始審核',
+          reject: '拒絕申請',
+          complete: '完成申請'
+        }[action] || action;
+        if (
+          action === 'complete' &&
+          !window.confirm('只有在實際帳號刪除、關係解除、保留義務核對及案件證明都完成後才能繼續。確定？')
+        ) {
+          return;
+        }
+        const note = window.prompt(
+          `${actionLabel}說明${action === 'start_review' ? '（選填）' : '（必填，請含案件編號或正式理由）'}`,
+          ''
+        );
+        if (note === null) return;
+        if (action !== 'start_review' && note.trim().length < 8) {
+          throw new Error('拒絕或完成必須填寫至少 8 個字的正式說明。');
+        }
+        let caseId = '';
+        if (action === 'complete') {
+          const input = window.prompt(
+            '請輸入已完成實際刪除與保留核對的正式案件編號（例如 CASE-2026-0001）',
+            ''
+          );
+          if (input === null) return;
+          caseId = input.trim().toUpperCase();
+          if (!/^CASE-\d{4}-[A-Z0-9][A-Z0-9_-]{3,63}$/.test(caseId)) {
+            throw new Error('完成申請必須提供有效的正式案件編號。');
+          }
+        }
+        const response = await functions.httpsCallable('managePrivacyDataRequest')({
+          action,
+          requestId,
+          clientRequestId:
+            `privacy_admin_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+          sourceSurface: 'admin_web',
+          resolutionNote: note.trim(),
+          caseId
+        });
+        const result = response?.data;
+        if (!result?.auditEventId || result?.request?.requestId !== requestId) {
+          throw new Error('Cloud 回傳的資料權利稽核結果無法驗證。');
+        }
+        toast(`${actionLabel}完成 · Audit ${result.auditEventId.slice(-8)}`);
+      }
+
+      function startAdminPrivacyRequestQueue() {
+        if (!db || adminPrivacyRequestUnsubscribe) return;
+        const status = document.getElementById('adminPrivacyRequestStatus');
+        if (status) status.textContent = '正在讀取帳號刪除申請…';
+        adminPrivacyRequestUnsubscribe = db.collection('privacy_data_requests')
+          .where('type', '==', 'account_deletion')
+          .onSnapshot(snapshot => {
+            adminPrivacyRequests = snapshot.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .sort((a, b) =>
+                (adminAuditDate(b.requestedAt)?.getTime() || 0) -
+                (adminAuditDate(a.requestedAt)?.getTime() || 0)
+              );
+            if (status) {
+              status.textContent = `已載入 ${adminPrivacyRequests.length} 筆正式帳號刪除申請。`;
+            }
+            renderAdminPrivacyRequests();
+          }, error => {
+            if (status) status.textContent = '資料權利申請讀取失敗：' + error.message;
+          });
+      }
+
       document.getElementById('adminAuditCategory')
         ?.addEventListener('change', renderAdminAuditLog);
       document.getElementById('adminAuditSearch')
@@ -1377,6 +1539,7 @@
           if (data.developerAccess === true || allowedRoles.includes(staffRole)) {
             if (banner) banner.style.display = 'none';
             startAdminAuditLog();
+            startAdminPrivacyRequestQueue();
             return;
           }
           if (banner) {

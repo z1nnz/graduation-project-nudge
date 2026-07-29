@@ -62,8 +62,22 @@
             <p>App 的「清除本機資料」只影響裝置。正式匯出與刪除要求仍需經資料權利工作流程處理。</p>
           </article>
         </section>
+
+        <section class="panel page-section" data-privacy-data-rights>
+          <span class="eyebrow">Formal Data Rights Workflow</span>
+          <h2>匯出與刪除都要有申請狀態、承辦人與 Cloud 稽核。</h2>
+          <p>匯出檔由 Cloud 依帳號本人資料產生，排除推播 Token 與伺服器祕密，7 天後自動刪除；帳號刪除先進入 7 天冷靜期，再由後台核對正式刪除作業與證明。</p>
+          <div class="button-row">
+            <button class="button primary" type="button" data-privacy-request-export>匯出我的資料</button>
+            <button class="button ghost" type="button" data-privacy-request-deletion>申請刪除帳號</button>
+          </div>
+          <div class="card-grid-2" data-privacy-request-list>
+            <p>正在讀取正式資料權利申請。</p>
+          </div>
+          <small>「清除本機快取」不會出現在這份申請紀錄，也不會被宣稱成雲端刪除。</small>
+        </section>
       </main>
     </div>
-    <script src="assets/app.js?v=19"></script>
+    <script src="assets/app.js?v=20"></script>
   </body>
 </html>

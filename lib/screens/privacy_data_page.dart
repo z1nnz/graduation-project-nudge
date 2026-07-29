@@ -1,7 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../models/privacy_data_request.dart';
 import '../models/task_model.dart';
+import '../services/cloud_privacy_data_gateway.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
@@ -183,6 +187,8 @@ class PrivacyDataPage extends StatelessWidget {
               acceptedAtText: _formatAcceptedAt(appState.privacyAcceptedAt),
               accentColor: accentColor,
             ),
+            const SizedBox(height: AppUI.cardGap),
+            const _PrivacyDataRightsCard(),
             const SizedBox(height: AppUI.cardGap),
             _card(
               context: context,
@@ -416,6 +422,319 @@ class PrivacyDataPage extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivacyDataRightsCard extends StatefulWidget {
+  const _PrivacyDataRightsCard();
+
+  @override
+  State<_PrivacyDataRightsCard> createState() => _PrivacyDataRightsCardState();
+}
+
+class _PrivacyDataRightsCardState extends State<_PrivacyDataRightsCard> {
+  final CloudPrivacyDataGateway _gateway = CloudPrivacyDataGateway.firebase();
+  Stream<List<PrivacyDataRequest>>? _requests;
+  String? _userId;
+  bool _busy = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (_userId == userId) return;
+    _userId = userId;
+    _requests = userId == null ? null : _gateway.watchRequests(userId);
+  }
+
+  String _requestId(String prefix) {
+    return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
+  }
+
+  String _date(DateTime? value) {
+    if (value == null) return '未提供';
+    final local = value.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '${local.year}/$month/$day $hour:$minute';
+  }
+
+  String _statusLabel(PrivacyDataRequest request) {
+    return switch (request.status) {
+      'processing' => '產生中',
+      'ready' => '可下載',
+      'expired' => '已到期',
+      'failed' => '產生失敗',
+      'pending' => '等待冷靜期',
+      'in_review' => '承辦審核中',
+      'cancelled' => '已取消',
+      'rejected' => '未受理',
+      'completed' => '已完成並留存證明',
+      _ => request.status,
+    };
+  }
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _requestExport() async {
+    setState(() => _busy = true);
+    try {
+      final result = await _gateway.requestExport(
+        clientRequestId: _requestId('privacy_export'),
+      );
+      _toast(
+        '資料匯出已建立 · Audit ${result.auditEventId.substring(result.auditEventId.length - 8)}',
+      );
+    } catch (error) {
+      _toast('資料匯出未完成：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _requestDeletion() async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('提出帳號刪除申請？'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '送出後會進入 7 天冷靜期，再由有權限的承辦者核對關係、Ledger 保留義務與刪除證明。冷靜期內可以取消。',
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              maxLength: 1000,
+              decoration: const InputDecoration(
+                labelText: '原因（選填）',
+                hintText: '例如：不再使用 Nudge',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('送出正式申請'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      controller.dispose();
+      return;
+    }
+    final reason = controller.text.trim();
+    controller.dispose();
+    setState(() => _busy = true);
+    try {
+      final result = await _gateway.requestAccountDeletion(
+        clientRequestId: _requestId('privacy_delete'),
+        reason: reason,
+      );
+      _toast(
+        '刪除申請已受理 · Audit ${result.auditEventId.substring(result.auditEventId.length - 8)}',
+      );
+    } catch (error) {
+      _toast('帳號刪除申請未完成：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _download(PrivacyDataRequest request) async {
+    setState(() => _busy = true);
+    try {
+      final download = await _gateway.getExportDownload(
+        requestId: request.requestId,
+        clientRequestId: _requestId('privacy_download'),
+      );
+      final launched = await launchUrl(
+        download.downloadUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        throw const PrivacyDataException('launch-failed', '裝置無法開啟下載連結。');
+      }
+      _toast('已開啟安全下載連結；檔案將於 ${_date(download.expiresAt)} 到期。');
+    } catch (error) {
+      _toast('無法下載資料匯出：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _cancel(PrivacyDataRequest request) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('取消帳號刪除申請？'),
+        content: const Text('取消後帳號與雲端資料會維持原狀；若之後仍要刪除，需要重新提出申請。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('確認取消'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final result = await _gateway.cancel(
+        requestId: request.requestId,
+        clientRequestId: _requestId('privacy_cancel'),
+      );
+      _toast(
+        '已取消刪除申請 · Audit ${result.auditEventId.substring(result.auditEventId.length - 8)}',
+      );
+    } catch (error) {
+      _toast('取消未完成：$error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _requestTile(PrivacyDataRequest request) {
+    final export = request.isExport;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        export ? Icons.file_download_outlined : Icons.person_remove_outlined,
+        color: export ? AppUI.blue : Colors.redAccent,
+      ),
+      title: Text(export ? '帳號資料匯出' : '帳號刪除申請'),
+      subtitle: Text(
+        '${_statusLabel(request)} · 申請 ${_date(request.requestedAt)}'
+        '${export && request.expiresAt != null ? '\n到期 ${_date(request.expiresAt)}' : ''}'
+        '${request.caseId.isNotEmpty ? '\n案件編號：${request.caseId}' : ''}'
+        '${request.resolutionNote.isNotEmpty ? '\n承辦說明：${request.resolutionNote}' : ''}',
+      ),
+      isThreeLine:
+          (export && request.expiresAt != null) ||
+          request.caseId.isNotEmpty ||
+          request.resolutionNote.isNotEmpty,
+      trailing: request.canDownload
+          ? IconButton(
+              tooltip: '下載 JSON',
+              onPressed: _busy ? null : () => _download(request),
+              icon: const Icon(Icons.download_for_offline_outlined),
+            )
+          : request.canCancel
+          ? TextButton(
+              onPressed: _busy ? null : () => _cancel(request),
+              child: const Text('取消'),
+            )
+          : null,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: AppUI.softCardOf(context, AppUI.blue),
+                  child: const Icon(
+                    Icons.manage_accounts_outlined,
+                    color: AppUI.blue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('正式資料權利', style: AppUI.sectionTitleOf(context)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '匯出檔由 Cloud 依帳號本人資料產生，排除推播 Token 等伺服器祕密，7 天後自動失效；帳號刪除採可取消、可承辦、可稽核的正式流程。',
+              style: AppUI.bodyOf(context),
+            ),
+            const SizedBox(height: 14),
+            if (_userId == null)
+              const Text('請先登入正式帳號，才能建立或追蹤資料權利申請。')
+            else ...[
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _busy ? null : _requestExport,
+                    icon: const Icon(Icons.file_download_outlined),
+                    label: Text(_busy ? '處理中…' : '匯出我的資料'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : _requestDeletion,
+                    icon: const Icon(Icons.person_remove_outlined),
+                    label: const Text('申請刪除帳號'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              StreamBuilder<List<PrivacyDataRequest>>(
+                stream: _requests,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Text(
+                      '申請紀錄讀取失敗：${snapshot.error}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    );
+                  }
+                  if (!snapshot.hasData) {
+                    return const LinearProgressIndicator();
+                  }
+                  final requests = snapshot.data!;
+                  if (requests.isEmpty) {
+                    return Text('尚無正式資料權利申請。', style: AppUI.bodyOf(context));
+                  }
+                  return Column(
+                    children: [
+                      for (final request in requests.take(5)) ...[
+                        _requestTile(request),
+                        if (request != requests.take(5).last)
+                          const Divider(height: 1),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),

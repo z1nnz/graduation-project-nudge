@@ -2029,6 +2029,24 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Data-rights requests are Cloud-created and status transitions are
+    // Cloud-audited. Account owners can track their own case; staff can work
+    // the operations queue without exposing another account's request.
+    match /privacy_data_requests/{requestId} {
+      allow read: if isAuth()
+        && (
+          resource.data.userId == request.auth.uid
+          || isStaff()
+        );
+      allow write: if false;
+    }
+
+    // Download tokens are server-only secrets. The owner obtains a short-lived
+    // action result from getPrivacyExportDownload instead of reading this doc.
+    match /privacy_export_access/{requestId} {
+      allow read, write: if false;
+    }
+
     // Reminder preferences are account-scoped and Cloud-written so App and
     // Web cannot silently diverge or bypass the immutable audit event.
     match /notification_preferences/{userId} {

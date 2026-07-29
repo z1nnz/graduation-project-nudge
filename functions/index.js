@@ -1,8 +1,10 @@
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import { getStorage } from "firebase-admin/storage";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import {
   onDocumentCreatedWithAuthContext,
   onDocumentUpdatedWithAuthContext,
@@ -30,6 +32,13 @@ import {
   createDeliverPushJobHandler,
   createUpdatePushInstallationHandler,
 } from "./src/push-notification-service.js";
+import {
+  createCancelPrivacyDataRequestHandler,
+  createCleanupExpiredPrivacyExportsHandler,
+  createGetPrivacyExportDownloadHandler,
+  createManagePrivacyDataRequestHandler,
+  createRequestPrivacyDataActionHandler,
+} from "./src/privacy-data-request-service.js";
 
 initializeApp();
 setGlobalOptions({
@@ -77,6 +86,35 @@ const handleDeliverPushJob = createDeliverPushJobHandler({
   messaging: getMessaging(),
   clock: () => new Date(),
 });
+const privacyExportBucket = getStorage().bucket();
+const handleRequestPrivacyDataAction =
+  createRequestPrivacyDataActionHandler({
+    firestore: getFirestore(),
+    bucket: privacyExportBucket,
+    clock: () => new Date(),
+  });
+const handleCancelPrivacyDataRequest =
+  createCancelPrivacyDataRequestHandler({
+    firestore: getFirestore(),
+    clock: () => new Date(),
+  });
+const handleGetPrivacyExportDownload =
+  createGetPrivacyExportDownloadHandler({
+    firestore: getFirestore(),
+    bucket: privacyExportBucket,
+    clock: () => new Date(),
+  });
+const handleManagePrivacyDataRequest =
+  createManagePrivacyDataRequestHandler({
+    firestore: getFirestore(),
+    clock: () => new Date(),
+  });
+const handleCleanupExpiredPrivacyExports =
+  createCleanupExpiredPrivacyExportsHandler({
+    firestore: getFirestore(),
+    bucket: privacyExportBucket,
+    clock: () => new Date(),
+  });
 const handleGuardianRequestCreated = createRelationshipRequestCreatedHandler({
   firestore: getFirestore(),
   scopeType: "family",
@@ -256,6 +294,103 @@ export const updatePushInstallation = onCall(
         "internal",
         "The push installation could not be updated.",
       );
+    }
+  },
+);
+
+export const requestPrivacyDataAction = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 120,
+    memory: "512MiB",
+  },
+  async request => {
+    try {
+      return await handleRequestPrivacyDataAction(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("requestPrivacyDataAction failed", error);
+      throw new HttpsError(
+        "internal",
+        "The privacy data request could not be created.",
+      );
+    }
+  },
+);
+
+export const cancelPrivacyDataRequest = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleCancelPrivacyDataRequest(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("cancelPrivacyDataRequest failed", error);
+      throw new HttpsError(
+        "internal",
+        "The privacy data request could not be cancelled.",
+      );
+    }
+  },
+);
+
+export const getPrivacyExportDownload = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleGetPrivacyExportDownload(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("getPrivacyExportDownload failed", error);
+      throw new HttpsError(
+        "internal",
+        "The privacy export could not be downloaded.",
+      );
+    }
+  },
+);
+
+export const managePrivacyDataRequest = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleManagePrivacyDataRequest(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("managePrivacyDataRequest failed", error);
+      throw new HttpsError(
+        "internal",
+        "The privacy data request could not be managed.",
+      );
+    }
+  },
+);
+
+export const cleanupExpiredPrivacyExports = onSchedule(
+  {
+    schedule: "every day 03:00",
+    timeZone: "Asia/Taipei",
+    timeoutSeconds: 120,
+    memory: "256MiB",
+  },
+  async () => {
+    try {
+      return await handleCleanupExpiredPrivacyExports();
+    } catch (error) {
+      console.error("cleanupExpiredPrivacyExports failed", error);
+      throw error;
     }
   },
 );

@@ -132,6 +132,26 @@ test(
       recipientUserId: owner.localId,
       status: "pending",
     });
+    const privacyRequestId = `${owner.localId}--privacy-data-request-001`;
+    await firestore
+      .collection("privacy_data_requests")
+      .doc(privacyRequestId)
+      .set({
+        schemaVersion: 1,
+        requestId: privacyRequestId,
+        userId: owner.localId,
+        type: "export",
+        status: "ready",
+      });
+    await firestore
+      .collection("privacy_export_access")
+      .doc(privacyRequestId)
+      .set({
+        schemaVersion: 1,
+        requestId: privacyRequestId,
+        userId: owner.localId,
+        downloadToken: "server-only-download-token",
+      });
 
     assert.equal(
       (
@@ -154,6 +174,33 @@ test(
     assert.equal(
       (
         await request(
+          `privacy_data_requests/${privacyRequestId}`,
+          owner.idToken,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `privacy_data_requests/${privacyRequestId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `privacy_export_access/${privacyRequestId}`,
+          owner.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
           `user_notifications/${notificationId}`,
           owner.idToken,
         )
@@ -165,6 +212,23 @@ test(
         await request(
           `user_notifications/${notificationId}`,
           outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `privacy_data_requests/${privacyRequestId}`,
+          owner.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                status: "completed",
+              }),
+            }),
+          },
         )
       ).status,
       403,
