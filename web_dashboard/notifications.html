@@ -58,6 +58,21 @@
 
         <section class="page-section" style="max-width: 800px; margin: 34px auto 0;">
           <div class="panel" style="padding: 30px;">
+            <span class="eyebrow">Cloud Inbox</span>
+            <h2>🔔 站內通知</h2>
+            <p style="margin-bottom: 20px; color: var(--muted);">
+              家庭／團體邀請與處理結果由 Cloud Functions 建立；App 與 Web 讀取同一個收件匣。
+            </p>
+            <div id="userNotificationsContainer" data-user-notifications>
+              <div style="text-align: center; padding: 28px; color: var(--muted);">
+                正在讀取 Cloud 站內通知...
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-section" style="max-width: 800px; margin: 34px auto 0;">
+          <div class="panel" style="padding: 30px;">
             <span class="eyebrow">Pending Requests</span>
             <h2>📬 待處理邀請列表</h2>
             <p style="margin-bottom: 24px; color: var(--muted);">您收到的所有雙向同步邀請（如家長陪伴、團體組織）都會顯示在這裡。您可以在此統一進行同意或拒絕。</p>
@@ -72,7 +87,7 @@
         </section>
       </main>
     </div>
-    <script src="assets/app.js?v=13"></script>
+    <script src="assets/app.js?v=18"></script>
     <script>
       // The actual rendering logic will be hooked into app.js
     </script>

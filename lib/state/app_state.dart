@@ -29,6 +29,7 @@ import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
 import '../models/task_model.dart';
+import '../models/user_notification.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
@@ -38,6 +39,7 @@ import '../services/cloud_health_snapshot_gateway.dart';
 import '../services/cloud_notification_preference_gateway.dart';
 import '../services/cloud_privacy_consent_gateway.dart';
 import '../services/cloud_relationship_outcome_gateway.dart';
+import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../theme/app_ui.dart';
 
@@ -101,6 +103,7 @@ class AppState extends ChangeNotifier {
   final CloudRelationshipOutcomeGateway _relationshipOutcomeGateway;
   final CloudPrivacyConsentGateway _privacyConsentGateway;
   final CloudNotificationPreferenceGateway _notificationPreferenceGateway;
+  final CloudUserNotificationGateway _userNotificationGateway;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
@@ -108,6 +111,7 @@ class AppState extends ChangeNotifier {
     CloudRelationshipOutcomeGateway? relationshipOutcomeGateway,
     CloudPrivacyConsentGateway? privacyConsentGateway,
     CloudNotificationPreferenceGateway? notificationPreferenceGateway,
+    CloudUserNotificationGateway? userNotificationGateway,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()),
@@ -121,7 +125,9 @@ class AppState extends ChangeNotifier {
            privacyConsentGateway ?? CloudPrivacyConsentGateway.firebase(),
        _notificationPreferenceGateway =
            notificationPreferenceGateway ??
-           CloudNotificationPreferenceGateway.firebase() {
+           CloudNotificationPreferenceGateway.firebase(),
+       _userNotificationGateway =
+           userNotificationGateway ?? CloudUserNotificationGateway.firebase() {
     _listenToAuthChanges();
   }
 
@@ -163,6 +169,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _groupOutcomeSubscription;
   StreamSubscription? _privacyConsentSubscription;
   StreamSubscription? _notificationPreferenceSubscription;
+  StreamSubscription? _userNotificationSubscription;
   String? _listeningGroupId;
   String? _projectedGroupId;
   final Set<String> _checkedLegacyGroupIds = {};
@@ -282,6 +289,34 @@ class AppState extends ChangeNotifier {
           },
           onError: (error) {
             debugPrint('Notification preference listener failed: $error');
+          },
+        );
+    _userNotificationSubscription = FirebaseFirestore.instance
+        .collection('user_notifications')
+        .where('recipientUserId', isEqualTo: user.uid)
+        .orderBy('createdAt', descending: true)
+        .limit(100)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            _userNotifications = snapshot.docs
+                .map((doc) {
+                  try {
+                    return UserNotification.fromMap(
+                      doc.data(),
+                      documentId: doc.id,
+                    );
+                  } catch (error) {
+                    debugPrint('Skipping invalid user notification: $error');
+                    return null;
+                  }
+                })
+                .whereType<UserNotification>()
+                .toList(growable: false);
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('User notification listener failed: $error');
           },
         );
 
@@ -1387,6 +1422,7 @@ class AppState extends ChangeNotifier {
     _groupSubscription?.cancel();
     _privacyConsentSubscription?.cancel();
     _notificationPreferenceSubscription?.cancel();
+    _userNotificationSubscription?.cancel();
     _clearGroupPublicationListeners();
 
     _userSubscription = null;
@@ -1426,8 +1462,10 @@ class AppState extends ChangeNotifier {
     _groupSubscription = null;
     _privacyConsentSubscription = null;
     _notificationPreferenceSubscription = null;
+    _userNotificationSubscription = null;
     _cloudPrivacyConsent = null;
     _cloudNotificationPreferences = null;
+    _userNotifications = [];
     _canonicalGroup = null;
     _canonicalGroups = [];
     _selectedGroupId = null;
@@ -1955,6 +1993,7 @@ class AppState extends ChangeNotifier {
     _defaultReminderSettings,
   );
   NotificationPreferenceRecord? _cloudNotificationPreferences;
+  List<UserNotification> _userNotifications = [];
   bool _isSyncingNotificationPreferences = false;
 
   AvatarProfile _avatarProfile = AvatarProfile.initial();
@@ -2300,6 +2339,10 @@ class AppState extends ChangeNotifier {
       _cloudNotificationPreferences?.pushConfigured ?? false;
   bool get isSyncingNotificationPreferences =>
       _isSyncingNotificationPreferences;
+  List<UserNotification> get userNotifications =>
+      List<UserNotification>.unmodifiable(_userNotifications);
+  int get unreadUserNotificationCount =>
+      _userNotifications.where((notification) => notification.isUnread).length;
   String get profileTitle {
     if (_profileTitleBadgeKey.isEmpty) return '';
 
@@ -4540,6 +4583,14 @@ class AppState extends ChangeNotifier {
 
   Future<void> _rescheduleLocalReminders() async {
     await NotificationService.scheduleDailyReminders(localReminderRequests);
+  }
+
+  Future<void> markUserNotificationRead(String notificationId) async {
+    final notification = _userNotifications.where(
+      (item) => item.id == notificationId,
+    );
+    if (notification.isEmpty || !notification.first.isUnread) return;
+    await _userNotificationGateway.markRead(notificationId);
   }
 
   Future<void> _saveSocialEncouragementRecords() async {

@@ -38,6 +38,9 @@ test("notification preferences are Cloud audited and shared by App and Web", () 
   const rules = read("firestore.rules");
 
   assert.match(index, /export const updateNotificationPreferences/);
+  assert.match(index, /export const markNotificationRead/);
+  assert.match(index, /notifyGuardianRequestCreated/);
+  assert.match(index, /notifyGroupRequestUpdated/);
   assert.match(service, /notification_preferences/);
   assert.match(service, /audit_events/);
   assert.match(appState, /CloudNotificationPreferenceGateway/);
@@ -46,6 +49,9 @@ test("notification preferences are Cloud audited and shared by App and Web", () 
     rules,
     /match \/notification_preferences\/\{userId\}/,
   );
+  assert.match(rules, /match \/user_notifications\/\{notificationId\}/);
+  assert.match(webApp, /collection\("user_notifications"\)/);
+  assert.match(webApp, /markNotificationRead/);
 });
 
 test("privacy surfaces do not claim local deletion removes Cloud data", () => {

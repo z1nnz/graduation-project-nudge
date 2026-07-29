@@ -100,6 +100,16 @@ test(
           pushConfigured: false,
         },
       });
+    const notificationId = `family-request--request-001--pending`;
+    await firestore.collection("user_notifications").doc(notificationId).set({
+      schemaVersion: 1,
+      notificationId,
+      recipientUserId: owner.localId,
+      category: "relationship",
+      kind: "family_invitation",
+      status: "unread",
+      createdAt: "2026-07-29T02:00:00.000Z",
+    });
 
     assert.equal(
       (
@@ -114,6 +124,24 @@ test(
       (
         await request(
           `privacy_consents/${owner.localId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `user_notifications/${notificationId}`,
+          owner.idToken,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `user_notifications/${notificationId}`,
           outsider.idToken,
         )
       ).status,
@@ -176,6 +204,23 @@ test(
                 channels: {
                   tasks: { enabled: false, timeLabel: "20:30" },
                 },
+              }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `user_notifications/${notificationId}`,
+          owner.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                status: "read",
               }),
             }),
           },

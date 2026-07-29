@@ -23,6 +23,14 @@ The Web notification center reads and updates the same Cloud record. Failed
 Cloud updates are surfaced and the App restores the previous local settings
 instead of claiming cross-device synchronization succeeded.
 
+Firestore triggers with authentication context project family and group
+invitation creation and terminal status changes into deterministic
+`user_notifications/{notificationId}` documents. The recipient can read the
+same inbox from App or Web but cannot write notification records directly.
+Marking an item read goes through an App Check-protected callable that verifies
+the recipient and records an immutable audit event. Trigger retries use
+deterministic notification and audit IDs.
+
 The delivery flags deliberately distinguish local scheduled reminders and
 in-app notifications from remote push. `pushConfigured` remains false until
 Firebase Cloud Messaging, APNs credentials, device token lifecycle, permission

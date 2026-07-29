@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/user_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
@@ -262,6 +263,106 @@ class ReminderCenterPage extends StatelessWidget {
     );
   }
 
+  String _formatNotificationTime(DateTime? value) {
+    if (value == null) return '時間未提供';
+    final local = value.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$month/$day $hour:$minute';
+  }
+
+  Widget _buildUserNotificationCard(
+    BuildContext context,
+    UserNotification notification,
+  ) {
+    final appState = context.read<AppState>();
+    final unread = notification.isUnread == true;
+    return Card(
+      shape: AppUI.cardShape(),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUI.innerPadding),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: AppUI.softCardOf(
+                context,
+                unread ? AppUI.blue : AppUI.green,
+              ),
+              child: Icon(
+                notification.kind.toString().contains('family')
+                    ? Icons.family_restroom_outlined
+                    : Icons.groups_2_outlined,
+                color: unread ? AppUI.blue : AppUI.green,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          style: AppUI.cardTitleOf(context),
+                        ),
+                      ),
+                      Text(
+                        _formatNotificationTime(notification.createdAt),
+                        style: TextStyle(
+                          color: AppUI.textSecondaryOf(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(notification.body, style: AppUI.bodyOf(context)),
+                  const SizedBox(height: 10),
+                  if (unread)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          try {
+                            await appState.markUserNotificationRead(
+                              notification.id,
+                            );
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('更新站內通知失敗：$error')),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.done_all_rounded, size: 18),
+                        label: const Text('標示已讀'),
+                      ),
+                    )
+                  else
+                    Text(
+                      notification.isResolved ? '邀請已處理' : '已讀',
+                      style: TextStyle(
+                        color: AppUI.textSecondaryOf(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -356,6 +457,54 @@ class ReminderCenterPage extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: AppUI.sectionGap),
+          Row(
+            children: [
+              Expanded(
+                child: Text('站內通知', style: AppUI.sectionTitleOf(context)),
+              ),
+              Text(
+                '${appState.unreadUserNotificationCount} 則未讀',
+                style: TextStyle(
+                  color: AppUI.textSecondaryOf(context),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (!appState.isSignedIn)
+            Card(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Text(
+                  '登入後可接收家庭與團體邀請的 Cloud 站內通知。',
+                  style: AppUI.bodyOf(context),
+                ),
+              ),
+            )
+          else if (appState.userNotifications.isEmpty)
+            Card(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Text(
+                  '目前沒有站內通知。新的家庭／團體邀請與處理結果會由 Cloud 顯示在這裡。',
+                  style: AppUI.bodyOf(context),
+                ),
+              ),
+            )
+          else
+            ...appState.userNotifications
+                .take(20)
+                .map(
+                  (notification) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                    child: _buildUserNotificationCard(context, notification),
+                  ),
+                ),
           const SizedBox(height: AppUI.sectionGap),
           Text('即將提醒', style: AppUI.sectionTitleOf(context)),
           const SizedBox(height: 12),

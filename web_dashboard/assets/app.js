@@ -2076,6 +2076,8 @@ let currentWebPrivacyConsent = null;
 let webNotificationPreferenceSub = null;
 let currentWebNotificationPreferences = null;
 let webNotificationPreferenceUpdating = false;
+let webUserNotificationSub = null;
+let currentWebUserNotifications = [];
 const WEB_NOTIFICATION_CHANNELS = {
   tasks: {
     title: "任務提醒",
@@ -3927,7 +3929,115 @@ function startListeningToFirestoreData() {
   listenToUser(loggedInUid);
   listenToWebPrivacyConsent(loggedInUid);
   listenToWebNotificationPreferences(loggedInUid);
+  listenToWebUserNotifications(loggedInUid);
 }
+
+function webNotificationDate(value) {
+  if (value && typeof value.toDate === "function") return value.toDate();
+  const parsed = value ? new Date(value) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+}
+
+function listenToWebUserNotifications(userId) {
+  if (webUserNotificationSub) webUserNotificationSub();
+  currentWebUserNotifications = [];
+  webUserNotificationSub = db.collection("user_notifications")
+    .where("recipientUserId", "==", userId)
+    .orderBy("createdAt", "desc")
+    .limit(100)
+    .onSnapshot(snapshot => {
+      currentWebUserNotifications = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      renderWebUserNotifications();
+    }, error => {
+      console.error("User notification listen error:", error);
+      currentWebUserNotifications = [];
+      renderWebUserNotifications(error.message || "無法讀取站內通知");
+    });
+}
+
+function renderWebUserNotifications(errorMessage = "") {
+  const root = document.querySelector("[data-user-notifications]");
+  if (!root) return;
+  if (errorMessage) {
+    root.innerHTML = `<div style="padding:16px; color:#fca5a5;">${escapeHtml(errorMessage)}</div>`;
+    return;
+  }
+  if (currentWebUserNotifications.length === 0) {
+    root.innerHTML = `
+      <div style="padding:24px; text-align:center; color:var(--muted);">
+        目前沒有站內通知。新的家庭／團體邀請與處理結果會顯示在這裡。
+      </div>
+    `;
+    return;
+  }
+  root.innerHTML = currentWebUserNotifications.slice(0, 30)
+    .map(notification => {
+      const unread = notification.status === "unread";
+      const createdAt = webNotificationDate(notification.createdAt);
+      return `
+        <article style="padding:16px 0; border-top:1px solid rgba(148,163,184,.14); display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:start;">
+          <div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:6px;">
+              <strong style="color:#fff;">${escapeHtml(notification.title || "站內通知")}</strong>
+              <span style="font-size:11px; padding:4px 8px; border-radius:999px; background:${unread ? "rgba(59,130,246,.15)" : "rgba(34,197,94,.12)"}; color:${unread ? "#93c5fd" : "#86efac"};">
+                ${unread ? "未讀" : notification.status === "resolved" ? "邀請已處理" : "已讀"}
+              </span>
+            </div>
+            <p style="margin:0; color:var(--muted); font-size:13px;">${escapeHtml(notification.body || "")}</p>
+            <small style="display:block; margin-top:7px; color:rgba(148,163,184,.75);">
+              ${escapeHtml(createdAt ? createdAt.toLocaleString("zh-TW") : "時間未提供")}
+            </small>
+          </div>
+          ${unread ? `
+            <button
+              type="button"
+              class="secondary-btn"
+              data-user-notification-read="${escapeHtml(notification.id)}"
+              style="white-space:nowrap;"
+            >標示已讀</button>
+          ` : ""}
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function markWebUserNotificationRead(notificationId) {
+  if (!firebase.auth().currentUser || !functions) {
+    throw new Error("請先登入並完成 Cloud Functions 初始化。");
+  }
+  const response = await functions.httpsCallable("markNotificationRead")({
+    notificationId,
+  });
+  const result = response?.data;
+  if (
+    result?.notificationId !== notificationId ||
+    result?.status !== "read" ||
+    !result?.auditEventId
+  ) {
+    throw new Error("站內通知已讀結果無法驗證。");
+  }
+  return result;
+}
+
+document.addEventListener("click", event => {
+  const button = event.target.closest("[data-user-notification-read]");
+  if (!button) return;
+  const notificationId = button.dataset.userNotificationRead || "";
+  button.disabled = true;
+  markWebUserNotificationRead(notificationId)
+    .then(result => {
+      toast(`已標示已讀 · Audit ${result.auditEventId.slice(-8)}`);
+    })
+    .catch(error => {
+      console.error(error);
+      button.disabled = false;
+      toast(error.message || "無法更新站內通知");
+    });
+});
 
 function defaultWebNotificationChannels() {
   return Object.fromEntries(
@@ -5349,7 +5459,7 @@ function approveWebGuardianRequest(requestId) {
 function declineWebGuardianRequest(requestId) {
   if (!db) return;
   db.collection("guardian_requests").doc(requestId).update({
-    status: "declined",
+    status: "cancelled",
     updatedAt: new Date().toISOString()
   }).then(() => {
     toast("已拒絕該綁定申請");
