@@ -220,6 +220,7 @@
           <a class="active" href="#" onclick="switchTab('planet-section', this); return false;">行星控制</a>
           <a href="#" onclick="switchTab('data-section', this); return false;">各項數據分析</a>
           <a href="#" onclick="switchTab('shop-section', this); return false;">商城上架</a>
+          <a href="#" onclick="switchTab('audit-section', this); return false;">Cloud 稽核紀錄</a>
         </nav>
       </aside>
 
@@ -529,6 +530,58 @@
               </div>
               <button type="submit" class="admin-btn" style="margin-top: 1rem;">設定折扣活動</button>
             </form>
+          </div>
+        </div>
+
+        <div id="audit-section" class="tab-content">
+          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+            <div>
+              <span class="eyebrow" style="color: #a78bfa;">Immutable Audit</span>
+              <h2 style="margin: 0; font-size: 1.5rem;">Cloud 稽核紀錄</h2>
+              <p style="margin-top: 0.5rem; color: var(--c-text-muted);">
+                只讀取由 Cloud Functions 建立的不可變事件。目前正式涵蓋隱私同意與 App／Web 通知偏好；後續營運寫入會逐項納入。
+              </p>
+            </div>
+            <div class="hero-card" style="border-color: #8b5cf6; background: transparent; padding: 1rem;">
+              <span>目前載入事件</span>
+              <strong id="adminAuditCount" style="font-size: 2rem; color: white;">0</strong>
+            </div>
+          </header>
+          <div class="admin-panel">
+            <div class="admin-grid" style="margin-bottom: 1rem;">
+              <div class="admin-form-group">
+                <label for="adminAuditCategory">事件類別</label>
+                <select id="adminAuditCategory">
+                  <option value="">全部類別</option>
+                  <option value="privacy">隱私</option>
+                  <option value="notifications">通知</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label for="adminAuditSearch">操作者／動作搜尋</label>
+                <input id="adminAuditSearch" type="search" placeholder="輸入 UID 或 action" />
+              </div>
+            </div>
+            <div id="adminAuditStatus" class="admin-auth-banner" style="display:block;">
+              等待後台權限確認後讀取 Cloud 稽核紀錄。
+            </div>
+            <div style="overflow-x: auto;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>時間</th>
+                    <th>類別</th>
+                    <th>動作</th>
+                    <th>操作者</th>
+                    <th>來源</th>
+                    <th>事件 ID</th>
+                  </tr>
+                </thead>
+                <tbody id="adminAuditTableBody">
+                  <tr><td colspan="6">尚未載入。</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -1222,6 +1275,82 @@
     </script>
     <script src="assets/app.js?v=12"></script>
     <script>
+      let adminAuditUnsubscribe = null;
+      let adminAuditEvents = [];
+
+      function adminAuditDate(value) {
+        if (value && typeof value.toDate === 'function') return value.toDate();
+        const parsed = value ? new Date(value) : null;
+        return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+      }
+
+      function renderAdminAuditLog() {
+        const tbody = document.getElementById('adminAuditTableBody');
+        const count = document.getElementById('adminAuditCount');
+        if (!tbody || !count) return;
+        const category = document.getElementById('adminAuditCategory')?.value || '';
+        const search = (document.getElementById('adminAuditSearch')?.value || '')
+          .trim()
+          .toLowerCase();
+        const filtered = adminAuditEvents.filter(event => {
+          if (category && event.category !== category) return false;
+          if (!search) return true;
+          return [event.actorUserId, event.action, event.auditEventId]
+            .some(value => String(value || '').toLowerCase().includes(search));
+        });
+        count.textContent = String(filtered.length);
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">目前沒有符合條件的 Cloud 稽核事件。</td></tr>';
+          return;
+        }
+        tbody.innerHTML = filtered.map(event => {
+          const createdAt = adminAuditDate(event.createdAt);
+          return `
+            <tr>
+              <td>${escapeHtml(createdAt ? createdAt.toLocaleString('zh-TW') : '未提供')}</td>
+              <td><span class="status-badge">${escapeHtml(event.category || 'unknown')}</span></td>
+              <td>${escapeHtml(event.action || '')}</td>
+              <td><code>${escapeHtml(event.actorUserId || '')}</code></td>
+              <td>${escapeHtml(event.sourceSurface || 'cloud')}</td>
+              <td><code>${escapeHtml(event.auditEventId || event.id || '')}</code></td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function startAdminAuditLog() {
+        if (!db || adminAuditUnsubscribe) return;
+        const status = document.getElementById('adminAuditStatus');
+        if (status) {
+          status.textContent = '正在讀取最近 100 筆 Cloud 稽核事件…';
+          status.style.display = 'block';
+        }
+        adminAuditUnsubscribe = db.collection('audit_events')
+          .orderBy('createdAt', 'desc')
+          .limit(100)
+          .onSnapshot(snapshot => {
+            adminAuditEvents = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            if (status) {
+              status.textContent = `已載入 ${adminAuditEvents.length} 筆不可變 Cloud 事件。`;
+              status.style.display = 'block';
+            }
+            renderAdminAuditLog();
+          }, error => {
+            if (status) {
+              status.textContent = '稽核紀錄讀取失敗：' + error.message;
+              status.style.display = 'block';
+            }
+          });
+      }
+
+      document.getElementById('adminAuditCategory')
+        ?.addEventListener('change', renderAdminAuditLog);
+      document.getElementById('adminAuditSearch')
+        ?.addEventListener('input', renderAdminAuditLog);
+
       async function enforceAdminAccess() {
         const banner = document.getElementById('adminAuthBanner');
         if (typeof firebase === 'undefined' || !firebase.auth || !db) return;
@@ -1239,6 +1368,7 @@
           const allowedRoles = ['developer', 'operator', 'admin'];
           if (data.developerAccess === true || allowedRoles.includes(staffRole)) {
             if (banner) banner.style.display = 'none';
+            startAdminAuditLog();
             return;
           }
           if (banner) {

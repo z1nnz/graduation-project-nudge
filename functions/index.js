@@ -13,6 +13,7 @@ import {
   createHealthConsentChecker,
   createRecordPrivacyConsentHandler,
 } from "./src/privacy-consent-service.js";
+import { createUpdateNotificationPreferencesHandler } from "./src/notification-preference-service.js";
 
 initializeApp();
 setGlobalOptions({
@@ -38,6 +39,11 @@ const handleRecordPrivacyConsent = createRecordPrivacyConsentHandler({
   firestore: getFirestore(),
   clock: () => new Date(),
 });
+const handleUpdateNotificationPreferences =
+  createUpdateNotificationPreferencesHandler({
+    firestore: getFirestore(),
+    clock: () => new Date(),
+  });
 
 export const recordActivity = onCall(
   {
@@ -120,6 +126,26 @@ export const recordPrivacyConsent = onCall(
       throw new HttpsError(
         "internal",
         "The privacy consent could not be recorded.",
+      );
+    }
+  },
+);
+
+export const updateNotificationPreferences = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleUpdateNotificationPreferences(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("updateNotificationPreferences failed", error);
+      throw new HttpsError(
+        "internal",
+        "The notification preferences could not be updated.",
       );
     }
   },

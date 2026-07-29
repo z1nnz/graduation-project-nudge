@@ -88,8 +88,21 @@ class ReminderCenterPage extends StatelessWidget {
                       Switch(
                         value: setting.enabled,
                         activeThumbColor: color,
-                        onChanged: (value) =>
-                            appState.setReminderEnabled(setting.key, value),
+                        onChanged: appState.isSyncingNotificationPreferences
+                            ? null
+                            : (value) async {
+                                try {
+                                  await appState.setReminderEnabled(
+                                    setting.key,
+                                    value,
+                                  );
+                                } catch (error) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('通知設定同步失敗：$error')),
+                                  );
+                                }
+                              },
                       ),
                     ],
                   ),
@@ -128,8 +141,17 @@ class ReminderCenterPage extends StatelessWidget {
                       ),
                       PopupMenuButton<String>(
                         initialValue: setting.timeLabel,
-                        onSelected: (time) =>
-                            appState.setReminderTime(setting.key, time),
+                        enabled: !appState.isSyncingNotificationPreferences,
+                        onSelected: (time) async {
+                          try {
+                            await appState.setReminderTime(setting.key, time);
+                          } catch (error) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('通知設定同步失敗：$error')),
+                            );
+                          }
+                        },
                         itemBuilder: (_) {
                           return _timeOptions
                               .map(
@@ -296,6 +318,33 @@ class ReminderCenterPage extends StatelessWidget {
                         style: TextStyle(color: Colors.white70, height: 1.45),
                       ),
                       const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _statusChip(
+                            context,
+                            appState.isNotificationPreferenceCloudVerified
+                                ? 'App／Web 已同步'
+                                : appState.isSignedIn
+                                ? '等待 Cloud 同步'
+                                : '訪客：僅此裝置',
+                            appState.isNotificationPreferenceCloudVerified
+                                ? Icons.cloud_done_outlined
+                                : Icons.cloud_sync_outlined,
+                          ),
+                          _statusChip(
+                            context,
+                            appState.isPushNotificationConfigured
+                                ? '裝置推播已設定'
+                                : '目前為本機排程／站內通知',
+                            appState.isPushNotificationConfigured
+                                ? Icons.mobile_friendly_outlined
+                                : Icons.phonelink_erase_outlined,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       FilledButton.icon(
                         onPressed: () => _enableSystemNotifications(context),
                         icon: const Icon(Icons.notifications_active_outlined),
@@ -335,6 +384,31 @@ class ReminderCenterPage extends StatelessWidget {
             (setting) => Padding(
               padding: const EdgeInsets.only(bottom: AppUI.cardGap),
               child: _buildReminderChannel(context, setting),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(BuildContext context, String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(AppUI.radiusPill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

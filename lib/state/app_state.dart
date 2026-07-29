@@ -20,6 +20,7 @@ import '../models/family_link_contract.dart';
 import '../models/friend_request.dart';
 import '../models/group_contract.dart';
 import '../models/health_activity_snapshot.dart';
+import '../models/notification_preferences.dart';
 import '../models/privacy_consent.dart';
 import '../models/relationship_membership.dart';
 import '../models/relationship_outcome.dart';
@@ -34,6 +35,7 @@ import '../services/notification_service.dart';
 import '../services/activity_ledger_outbox.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
 import '../services/cloud_health_snapshot_gateway.dart';
+import '../services/cloud_notification_preference_gateway.dart';
 import '../services/cloud_privacy_consent_gateway.dart';
 import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
@@ -98,12 +100,14 @@ class AppState extends ChangeNotifier {
   final HealthSnapshotOutbox _healthSnapshotOutbox;
   final CloudRelationshipOutcomeGateway _relationshipOutcomeGateway;
   final CloudPrivacyConsentGateway _privacyConsentGateway;
+  final CloudNotificationPreferenceGateway _notificationPreferenceGateway;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
     HealthSnapshotOutbox? healthSnapshotOutbox,
     CloudRelationshipOutcomeGateway? relationshipOutcomeGateway,
     CloudPrivacyConsentGateway? privacyConsentGateway,
+    CloudNotificationPreferenceGateway? notificationPreferenceGateway,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()),
@@ -114,7 +118,10 @@ class AppState extends ChangeNotifier {
            relationshipOutcomeGateway ??
            CloudRelationshipOutcomeGateway.firebase(),
        _privacyConsentGateway =
-           privacyConsentGateway ?? CloudPrivacyConsentGateway.firebase() {
+           privacyConsentGateway ?? CloudPrivacyConsentGateway.firebase(),
+       _notificationPreferenceGateway =
+           notificationPreferenceGateway ??
+           CloudNotificationPreferenceGateway.firebase() {
     _listenToAuthChanges();
   }
 
@@ -155,6 +162,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _groupMemberSummariesSubscription;
   StreamSubscription? _groupOutcomeSubscription;
   StreamSubscription? _privacyConsentSubscription;
+  StreamSubscription? _notificationPreferenceSubscription;
   String? _listeningGroupId;
   String? _projectedGroupId;
   final Set<String> _checkedLegacyGroupIds = {};
@@ -243,6 +251,39 @@ class AppState extends ChangeNotifier {
           unawaited(_savePrivacyConsent());
           notifyListeners();
         });
+    _notificationPreferenceSubscription = FirebaseFirestore.instance
+        .collection('notification_preferences')
+        .doc(user.uid)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            if (!snapshot.exists) {
+              _cloudNotificationPreferences = null;
+              notifyListeners();
+              return;
+            }
+            try {
+              final record = NotificationPreferenceRecord.fromMap(
+                snapshot.data()!,
+              );
+              if (record.userId != user.uid) {
+                throw const FormatException(
+                  'Notification preference owner mismatch',
+                );
+              }
+              _cloudNotificationPreferences = record;
+              _applyCloudNotificationPreferences();
+              unawaited(_saveReminderSettings());
+              unawaited(_rescheduleLocalReminders());
+              notifyListeners();
+            } catch (error) {
+              debugPrint('Invalid notification preferences: $error');
+            }
+          },
+          onError: (error) {
+            debugPrint('Notification preference listener failed: $error');
+          },
+        );
 
     // User profile listener
     _userSubscription = FirebaseFirestore.instance
@@ -1345,6 +1386,7 @@ class AppState extends ChangeNotifier {
     _incomingGroupRequestsSubscription?.cancel();
     _groupSubscription?.cancel();
     _privacyConsentSubscription?.cancel();
+    _notificationPreferenceSubscription?.cancel();
     _clearGroupPublicationListeners();
 
     _userSubscription = null;
@@ -1383,7 +1425,9 @@ class AppState extends ChangeNotifier {
     _incomingGroupRequestsSubscription = null;
     _groupSubscription = null;
     _privacyConsentSubscription = null;
+    _notificationPreferenceSubscription = null;
     _cloudPrivacyConsent = null;
+    _cloudNotificationPreferences = null;
     _canonicalGroup = null;
     _canonicalGroups = [];
     _selectedGroupId = null;
@@ -1910,6 +1954,8 @@ class AppState extends ChangeNotifier {
   List<ReminderChannelSetting> _reminderSettings = List.of(
     _defaultReminderSettings,
   );
+  NotificationPreferenceRecord? _cloudNotificationPreferences;
+  bool _isSyncingNotificationPreferences = false;
 
   AvatarProfile _avatarProfile = AvatarProfile.initial();
 
@@ -2248,6 +2294,12 @@ class AppState extends ChangeNotifier {
       List.unmodifiable(_reminderSettings);
   int get enabledReminderCount =>
       _reminderSettings.where((setting) => setting.enabled).length;
+  bool get isNotificationPreferenceCloudVerified =>
+      _cloudNotificationPreferences?.hasCompleteChannelSet ?? false;
+  bool get isPushNotificationConfigured =>
+      _cloudNotificationPreferences?.pushConfigured ?? false;
+  bool get isSyncingNotificationPreferences =>
+      _isSyncingNotificationPreferences;
   String get profileTitle {
     if (_profileTitleBadgeKey.isEmpty) return '';
 
@@ -3730,6 +3782,7 @@ class AppState extends ChangeNotifier {
       await _loadPrivacyConsent();
       await _loadOnboardingState();
       await _loadReminderSettings();
+      _applyCloudNotificationPreferences();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
       await _loadSeenUnlockedBadges();
@@ -3772,6 +3825,7 @@ class AppState extends ChangeNotifier {
       await _loadPrivacyConsent();
       await _loadOnboardingState();
       await _loadReminderSettings();
+      _applyCloudNotificationPreferences();
       await _loadSocialEncouragementRecords();
       await _loadUnlockedBadges();
       await _loadSeenUnlockedBadges();
@@ -4374,7 +4428,64 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  void _applyCloudNotificationPreferences() {
+    final record = _cloudNotificationPreferences;
+    if (record == null) return;
+    _reminderSettings = _defaultReminderSettings
+        .map((fallback) {
+          final channel = record.channels[fallback.key];
+          if (channel == null) return fallback;
+          return fallback.copyWith(
+            timeLabel: channel.timeLabel,
+            enabled: channel.enabled,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  Map<String, NotificationChannelPreference>
+  _notificationPreferenceChannelPayload() {
+    return {
+      for (final setting in _reminderSettings)
+        setting.key: NotificationChannelPreference(
+          enabled: setting.enabled,
+          timeLabel: setting.timeLabel,
+        ),
+    };
+  }
+
+  Future<void> _syncNotificationPreferences() async {
+    final userId = _currentUser?.id;
+    if (userId == null) return;
+    _isSyncingNotificationPreferences = true;
+    notifyListeners();
+    try {
+      final result = await _notificationPreferenceGateway.update(
+        channels: _notificationPreferenceChannelPayload(),
+        clientRequestId:
+            'notification_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+      );
+      if (result.preferences.userId != userId) {
+        throw const NotificationPreferenceException(
+          'protocol-error',
+          '通知設定結果與目前帳號不一致。',
+        );
+      }
+      _cloudNotificationPreferences = result.preferences;
+      _applyCloudNotificationPreferences();
+      await _saveReminderSettings();
+      await _rescheduleLocalReminders();
+    } finally {
+      _isSyncingNotificationPreferences = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> setReminderEnabled(String key, bool enabled) async {
+    if (!_reminderSettings.any((setting) => setting.key == key)) {
+      throw ArgumentError.value(key, 'key', 'Unsupported reminder channel');
+    }
+    final previous = List<ReminderChannelSetting>.of(_reminderSettings);
     _reminderSettings = _reminderSettings.map((setting) {
       if (setting.key != key) return setting;
       return setting.copyWith(enabled: enabled);
@@ -4382,9 +4493,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await _saveReminderSettings();
     await _rescheduleLocalReminders();
+    try {
+      await _syncNotificationPreferences();
+    } catch (_) {
+      _reminderSettings = previous;
+      await _saveReminderSettings();
+      await _rescheduleLocalReminders();
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> setReminderTime(String key, String timeLabel) async {
+    if (!_reminderSettings.any((setting) => setting.key == key)) {
+      throw ArgumentError.value(key, 'key', 'Unsupported reminder channel');
+    }
+    if (!RegExp(r'^(?:[01]\d|2[0-3]):[0-5]\d$').hasMatch(timeLabel)) {
+      throw ArgumentError.value(timeLabel, 'timeLabel', 'Invalid 24-hour time');
+    }
+    final previous = List<ReminderChannelSetting>.of(_reminderSettings);
     _reminderSettings = _reminderSettings.map((setting) {
       if (setting.key != key) return setting;
       return setting.copyWith(timeLabel: timeLabel);
@@ -4392,6 +4519,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await _saveReminderSettings();
     await _rescheduleLocalReminders();
+    try {
+      await _syncNotificationPreferences();
+    } catch (_) {
+      _reminderSettings = previous;
+      await _saveReminderSettings();
+      await _rescheduleLocalReminders();
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<bool> requestNotificationPermissionAndSchedule() async {

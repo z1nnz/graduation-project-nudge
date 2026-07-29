@@ -2029,6 +2029,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Reminder preferences are account-scoped and Cloud-written so App and
+    // Web cannot silently diverge or bypass the immutable audit event.
+    match /notification_preferences/{userId} {
+      allow read: if isOwner(userId) || isStaff();
+      allow write: if false;
+    }
+
     match /audit_events/{auditEventId} {
       allow read: if isAuth()
         && (

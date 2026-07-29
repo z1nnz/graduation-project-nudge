@@ -2073,6 +2073,45 @@ const CURRENT_PRIVACY_POLICY_VERSION = "2026-07-29";
 let webActivityLedgerOutbox = null;
 let webPrivacyConsentSub = null;
 let currentWebPrivacyConsent = null;
+let webNotificationPreferenceSub = null;
+let currentWebNotificationPreferences = null;
+let webNotificationPreferenceUpdating = false;
+const WEB_NOTIFICATION_CHANNELS = {
+  tasks: {
+    title: "任務提醒",
+    description: "提醒尚未完成的今日可執行任務。",
+    enabled: true,
+    timeLabel: "20:30",
+  },
+  sleep: {
+    title: "睡眠提醒",
+    description: "睡前提醒，幫助健康任務穩定累積。",
+    enabled: true,
+    timeLabel: "23:00",
+  },
+  rooms: {
+    title: "自律房提醒",
+    description: "提醒你回到正在共同進步的活動房。",
+    enabled: true,
+    timeLabel: "19:30",
+  },
+  deadline: {
+    title: "截止日提醒",
+    description: "截止日前提醒拆任務與驗收。",
+    enabled: true,
+    timeLabel: "09:00",
+  },
+};
+const WEB_NOTIFICATION_TIME_OPTIONS = [
+  "07:30",
+  "09:00",
+  "12:30",
+  "18:30",
+  "19:30",
+  "20:30",
+  "22:30",
+  "23:00",
+];
 let activeFamilyLink = null;
 let activeFamilyLinks = [];
 let currentFamilySummary = null;
@@ -3887,7 +3926,179 @@ function startListeningToFirestoreData() {
   localStorage.setItem("nudgeActiveDemoUserId", loggedInUid);
   listenToUser(loggedInUid);
   listenToWebPrivacyConsent(loggedInUid);
+  listenToWebNotificationPreferences(loggedInUid);
 }
+
+function defaultWebNotificationChannels() {
+  return Object.fromEntries(
+    Object.entries(WEB_NOTIFICATION_CHANNELS).map(([key, channel]) => [
+      key,
+      {
+        enabled: channel.enabled,
+        timeLabel: channel.timeLabel,
+      },
+    ]),
+  );
+}
+
+function effectiveWebNotificationChannels() {
+  const source = currentWebNotificationPreferences?.channels;
+  const keys = Object.keys(WEB_NOTIFICATION_CHANNELS);
+  if (
+    !source ||
+    keys.some(
+      key =>
+        typeof source[key]?.enabled !== "boolean" ||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(source[key]?.timeLabel || ""),
+    )
+  ) {
+    return defaultWebNotificationChannels();
+  }
+  return Object.fromEntries(
+    keys.map(key => [
+      key,
+      {
+        enabled: source[key].enabled,
+        timeLabel: source[key].timeLabel,
+      },
+    ]),
+  );
+}
+
+function listenToWebNotificationPreferences(userId) {
+  if (webNotificationPreferenceSub) webNotificationPreferenceSub();
+  currentWebNotificationPreferences = null;
+  webNotificationPreferenceSub = db.collection("notification_preferences")
+    .doc(userId)
+    .onSnapshot(snapshot => {
+      currentWebNotificationPreferences = snapshot.exists
+        ? snapshot.data()
+        : null;
+      renderWebNotificationPreferences();
+    }, error => {
+      console.error("Notification preference listen error:", error);
+      currentWebNotificationPreferences = null;
+      renderWebNotificationPreferences(
+        error.message || "無法讀取 Cloud 通知設定",
+      );
+    });
+}
+
+function renderWebNotificationPreferences(errorMessage = "") {
+  const root = document.querySelector("[data-notification-preferences]");
+  if (!root) return;
+  const channels = effectiveWebNotificationChannels();
+  const cloudVerified =
+    currentWebNotificationPreferences?.schemaVersion === 1 &&
+    currentWebNotificationPreferences?.userId ===
+      firebase.auth().currentUser?.uid;
+  const pushConfigured =
+    currentWebNotificationPreferences?.delivery?.pushConfigured === true;
+  const statusText = errorMessage || (
+    cloudVerified
+      ? "App／Web 已同步，變更會寫入 Cloud 稽核"
+      : "尚無 Cloud 紀錄；第一次變更時會建立"
+  );
+
+  root.innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+      <span style="padding:7px 11px; border-radius:999px; background:rgba(16,185,129,.12); color:#34d399; font-size:12px; font-weight:700;">
+        ${escapeHtml(statusText)}
+      </span>
+      <span style="padding:7px 11px; border-radius:999px; background:rgba(99,102,241,.12); color:#a5b4fc; font-size:12px; font-weight:700;">
+        ${pushConfigured ? "裝置推播已配置" : "目前為本機排程／站內通知"}
+      </span>
+    </div>
+    ${Object.entries(WEB_NOTIFICATION_CHANNELS).map(([key, metadata]) => {
+      const channel = channels[key];
+      return `
+        <div style="display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:14px; align-items:center; padding:15px 0; border-top:1px solid rgba(148,163,184,.14);">
+          <div>
+            <strong style="display:block; color:#fff; margin-bottom:4px;">${escapeHtml(metadata.title)}</strong>
+            <span style="font-size:12px; color:var(--muted);">${escapeHtml(metadata.description)}</span>
+          </div>
+          <select
+            data-notification-channel="${escapeHtml(key)}"
+            data-notification-field="timeLabel"
+            ${webNotificationPreferenceUpdating ? "disabled" : ""}
+            style="background:rgba(15,23,42,.75); color:#fff; border:1px solid rgba(148,163,184,.25); border-radius:8px; padding:8px;"
+          >
+            ${WEB_NOTIFICATION_TIME_OPTIONS.map(time => `
+              <option value="${time}" ${channel.timeLabel === time ? "selected" : ""}>${time}</option>
+            `).join("")}
+          </select>
+          <label style="display:flex; align-items:center; gap:7px; color:#e2e8f0; font-size:13px; font-weight:700;">
+            <input
+              type="checkbox"
+              data-notification-channel="${escapeHtml(key)}"
+              data-notification-field="enabled"
+              ${channel.enabled ? "checked" : ""}
+              ${webNotificationPreferenceUpdating ? "disabled" : ""}
+            />
+            ${channel.enabled ? "開啟" : "關閉"}
+          </label>
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+async function updateWebNotificationPreferences(channels) {
+  const user = firebase.auth().currentUser;
+  if (!user || !functions) {
+    throw new Error("請先登入並完成 Cloud Functions 初始化。");
+  }
+  const clientRequestId =
+    `notification_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const response = await functions
+    .httpsCallable("updateNotificationPreferences")({
+      channels,
+      clientRequestId,
+      sourceSurface: "web",
+    });
+  const result = response?.data;
+  if (
+    !result?.auditEventId ||
+    result?.preferences?.userId !== user.uid ||
+    result?.preferences?.schemaVersion !== 1
+  ) {
+    throw new Error("Cloud 通知設定結果無法驗證。");
+  }
+  currentWebNotificationPreferences = result.preferences;
+  return result;
+}
+
+document.addEventListener("change", async event => {
+  const input = event.target.closest(
+    "[data-notification-channel][data-notification-field]",
+  );
+  if (!input || webNotificationPreferenceUpdating) return;
+  const channelKey = input.dataset.notificationChannel;
+  const field = input.dataset.notificationField;
+  const channels = effectiveWebNotificationChannels();
+  if (!channels[channelKey] || !["enabled", "timeLabel"].includes(field)) {
+    return;
+  }
+  channels[channelKey] = {
+    ...channels[channelKey],
+    [field]: field === "enabled" ? input.checked : input.value,
+  };
+
+  webNotificationPreferenceUpdating = true;
+  renderWebNotificationPreferences();
+  try {
+    const result = await updateWebNotificationPreferences(channels);
+    toast(
+      `通知設定已同步 · Audit ${result.auditEventId.slice(-8)}`,
+    );
+  } catch (error) {
+    console.error(error);
+    toast(error.message || "通知設定同步失敗");
+  } finally {
+    webNotificationPreferenceUpdating = false;
+    renderWebNotificationPreferences();
+  }
+});
 
 function listenToWebPrivacyConsent(userId) {
   if (webPrivacyConsentSub) webPrivacyConsentSub();

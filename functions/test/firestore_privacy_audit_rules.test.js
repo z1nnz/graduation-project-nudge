@@ -82,6 +82,24 @@ test(
       targetType: "user",
       targetId: owner.localId,
     });
+    await firestore
+      .collection("notification_preferences")
+      .doc(owner.localId)
+      .set({
+        schemaVersion: 1,
+        userId: owner.localId,
+        channels: {
+          tasks: { enabled: true, timeLabel: "20:30" },
+          sleep: { enabled: true, timeLabel: "23:00" },
+          rooms: { enabled: true, timeLabel: "19:30" },
+          deadline: { enabled: true, timeLabel: "09:00" },
+        },
+        delivery: {
+          localScheduled: true,
+          inApp: true,
+          pushConfigured: false,
+        },
+      });
 
     assert.equal(
       (
@@ -112,6 +130,24 @@ test(
     assert.equal(
       (
         await request(
+          `notification_preferences/${owner.localId}`,
+          owner.idToken,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `notification_preferences/${owner.localId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
           `privacy_consents/${owner.localId}`,
           owner.idToken,
           {
@@ -120,6 +156,26 @@ test(
               fields: fieldsOf({
                 status: "accepted",
                 scopes: { healthIngestion: true },
+              }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `notification_preferences/${owner.localId}`,
+          owner.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                userId: owner.localId,
+                channels: {
+                  tasks: { enabled: false, timeLabel: "20:30" },
+                },
               }),
             }),
           },
