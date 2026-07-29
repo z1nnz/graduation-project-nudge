@@ -19,6 +19,9 @@ tokens are privileged testing credentials and must remain secret.
 
 - GitHub Pages generates `assets/runtime-config.js` during deployment from the
   repository variable `NUDGE_FIREBASE_APP_CHECK_SITE_KEY`.
+- The Firebase Web app uses a score-based reCAPTCHA Enterprise provider. Its
+  public key is restricted to `z1nnz.github.io`, registered with Firebase App
+  Check, and shared by the dashboard and Flutter Web production providers.
 - Deployment fails when that variable is missing or still a placeholder.
 - The generated file contains only public runtime configuration and is not
   committed.

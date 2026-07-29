@@ -27,6 +27,6 @@ class FirebaseAppCheckService {
         'FIREBASE_APP_CHECK_RECAPTCHA_KEY is required for production web.',
       );
     }
-    return ReCaptchaV3Provider(_webRecaptchaSiteKey);
+    return ReCaptchaEnterpriseProvider(_webRecaptchaSiteKey);
   }
 }

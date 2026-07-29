@@ -2224,7 +2224,10 @@ function initializeFirebaseAppCheck() {
     return false;
   }
   try {
-    firebase.appCheck().activate(siteKey, true);
+    firebase.appCheck().activate(
+      new firebase.appCheck.ReCaptchaEnterpriseProvider(siteKey),
+      true,
+    );
     return true;
   } catch (error) {
     if (!String(error?.message || "").includes("already been activated")) {

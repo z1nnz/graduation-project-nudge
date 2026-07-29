@@ -49,6 +49,12 @@ test("Web loads runtime config before Firebase App Check", () => {
     app,
     /window\.NUDGE_RUNTIME_CONFIG\?\.firebaseAppCheckSiteKey/,
   );
+  assert.match(app, /new firebase\.appCheck\.ReCaptchaEnterpriseProvider/);
+  assert.doesNotMatch(app, /appCheck\(\)\.activate\(siteKey/);
+  assert.match(
+    read("lib/services/firebase_app_check_service.dart"),
+    /return ReCaptchaEnterpriseProvider\(_webRecaptchaSiteKey\)/,
+  );
   assert.match(
     workflow,
     /vars\.NUDGE_FIREBASE_APP_CHECK_SITE_KEY/,
