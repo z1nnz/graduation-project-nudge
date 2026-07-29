@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "web_dashboard/**"
+      - "scripts/generate_web_runtime_config.cjs"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -30,6 +31,14 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
+      - name: Generate public Firebase runtime config
+        env:
+          NUDGE_FIREBASE_APP_CHECK_SITE_KEY: ${{ vars.NUDGE_FIREBASE_APP_CHECK_SITE_KEY }}
+          NUDGE_WEB_ENVIRONMENT: production
+        run: >-
+          node scripts/generate_web_runtime_config.cjs
+          --output web_dashboard/assets/runtime-config.js
 
       - name: Upload dashboard artifact
         uses: actions/upload-pages-artifact@v3

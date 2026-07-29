@@ -52,3 +52,6 @@ firebase-service-account.json
 # Scripts Node modules
 scripts/node_modules/
 /scripts/node_modules/
+
+# Generated at Web deployment time from the public App Check site key.
+/web_dashboard/assets/runtime-config.js

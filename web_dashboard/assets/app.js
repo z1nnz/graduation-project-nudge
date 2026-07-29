@@ -184,10 +184,10 @@ function injectModuleMenu() {
   if (window.location.pathname.includes('admin_dashboard.html')) return;
   const sidebar = $(".sidebar");
   if (!sidebar) return;
-  
+
   const nav = sidebar.querySelector(".nav");
   if (!nav) return;
-  
+
   // Determine active category based on URL
   let activeKey = "home";
   const path = window.location.pathname;
@@ -216,7 +216,7 @@ function injectModuleMenu() {
       e.preventDefault();
       localStorage.removeItem("nudgeWebLoggedIn");
       localStorage.removeItem("nudgeActiveDemoUserId");
-      
+
       if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().signOut().then(() => {
           window.location.href = "dashboard.html"; // 登出後回到總覽頁面
@@ -368,7 +368,7 @@ function drawLineChart(canvas, values, color = "#22c7bb") {
   ctx.shadowColor = color;
   ctx.shadowBlur = 12;
   ctx.stroke();
-  
+
   // Reset shadow for points
   ctx.shadowBlur = 0;
 
@@ -376,7 +376,7 @@ function drawLineChart(canvas, values, color = "#22c7bb") {
   values.forEach((value, i) => {
     const x = pad + i * step;
     const y = toY(value);
-    
+
     // Outer glow dot
     ctx.beginPath();
     ctx.arc(x, y, 6, 0, Math.PI * 2);
@@ -388,7 +388,7 @@ function drawLineChart(canvas, values, color = "#22c7bb") {
     ctx.arc(x, y, 3, 0, Math.PI * 2);
     ctx.fillStyle = "#fff";
     ctx.fill();
-    
+
     // Values text (only for every other point or if few points to avoid clutter)
     if (values.length <= 10 || i % 2 === 0 || i === values.length - 1) {
       ctx.fillStyle = "#fff";
@@ -413,7 +413,7 @@ function drawDonut(canvas, values, colors) {
   const total = values.reduce((a, b) => a + b, 0);
   let start = -Math.PI / 2;
   const gap = 0.08; // gap between segments
-  
+
   values.forEach((value, index) => {
     const angle = (value / total) * Math.PI * 2;
     ctx.beginPath();
@@ -421,11 +421,11 @@ function drawDonut(canvas, values, colors) {
     ctx.lineWidth = 20;
     ctx.lineCap = "round";
     ctx.strokeStyle = colors[index];
-    
+
     // Add glowing effect
     ctx.shadowColor = colors[index];
     ctx.shadowBlur = 12;
-    
+
     ctx.stroke();
     // Reset shadow for next draw to avoid compounding issues
     ctx.shadowBlur = 0;
@@ -438,7 +438,7 @@ function drawDonut(canvas, values, colors) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(`${total}`, cx, cy - 8);
-  
+
   ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
   ctx.font = "600 14px 'Inter', system-ui";
   ctx.fillText("總樣本", cx, cy + 20);
@@ -495,7 +495,7 @@ function bindPlanet() {
   const solarView = $(".view-solar-system");
   const cityView = $(".view-city");
   const hudDesc = $("#hudDesc");
-  
+
   // New elements for text swapping
   const hudTitle = $("#hudTitle");
   const planetHud = $("#planetHud");
@@ -529,7 +529,7 @@ function saveDemoState(key, payload) {
   };
   localStorage.setItem("nudgeWebTools", JSON.stringify(current));
   if (isPreviewMode()) return;
-  
+
   // Sync to Firestore if user logged in
   const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
   if (activeUserId && typeof db !== 'undefined' && db) {
@@ -706,7 +706,7 @@ function bindExtensionTools() {
     if (!list) return;
     const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
     const items = store[key] || [];
-    
+
     if (!items.length) {
       list.innerHTML = fallback;
       return;
@@ -759,7 +759,7 @@ function bindExtensionTools() {
     current[`${key}UpdatedAt`] = new Date().toISOString();
     localStorage.setItem("nudgeWebTools", JSON.stringify(current));
     if (isPreviewMode()) return;
-    
+
     // Sync to Firestore if user logged in
     const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
     if (activeUserId && typeof db !== 'undefined' && db) {
@@ -770,7 +770,7 @@ function bindExtensionTools() {
 
     }
   };
-  
+
   renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
   renderSavedList("[data-encourage-list]", "encouragements", "<article><strong>尚未送出</strong><span>送出鼓勵卡後會出現在這裡。</span></article>");
   renderSavedList("[data-study-list]", "studySchedules", "<article><strong>尚未排程</strong><span>新增讀書時段後會出現在這裡。</span></article>");
@@ -807,7 +807,7 @@ function bindExtensionTools() {
       // Animate throwing arc
       const duration = 600;
       const startTime = performance.now();
-      
+
       const animateThrow = (now) => {
         const elapsed = now - startTime;
         let progress = elapsed / duration;
@@ -819,7 +819,7 @@ function bindExtensionTools() {
 
         const x = (1 - progress) * (1 - progress) * startX + 2 * (1 - progress) * progress * controlX + progress * progress * endX;
         const y = (1 - progress) * (1 - progress) * startY + 2 * (1 - progress) * progress * controlY + progress * progress * endY;
-        
+
         capsule.style.transform = `translate(${x - startX}px, ${y - startY}px) rotate(${progress * 720}deg)`;
 
         if (progress < 1) {
@@ -831,10 +831,10 @@ function bindExtensionTools() {
           burst.style.left = endX + "px";
           burst.style.top = endY + "px";
           document.body.appendChild(burst);
-          
+
           setTimeout(() => burst.remove(), 400);
           capsule.remove();
-          
+
           renderSavedList("[data-capsule-list]", "capsules", "<article><strong>尚未保存</strong><span>建立第一個時間膠囊後會出現在這裡。</span></article>");
           toast("時間膠囊已保存");
         }
@@ -860,7 +860,7 @@ function bindExtensionTools() {
         card.classList.remove("toss-animation");
       }, 400);
     }
-    
+
     const type = $('[data-encourage-type]', encouragementTool)?.value || "今天也辛苦了";
     const msg = $('[data-encourage-message]', encouragementTool)?.value.trim() || "";
     try {
@@ -1076,7 +1076,7 @@ function injectAINavigator() {
     body.innerHTML += `<div class="ai-msg user">${text}</div>`;
     input.value = "";
     body.scrollTop = body.scrollHeight;
-    
+
     const loadingId = "msg-" + Date.now();
     body.innerHTML += `<div class="ai-msg" id="${loadingId}">[ 系統讀取中... 與中樞神經連線中 ]</div>`;
     body.scrollTop = body.scrollHeight;
@@ -1122,7 +1122,7 @@ ${summariesContext}
 
       const data = await response.json();
       let reply = data.candidates[0].content.parts[0].text;
-      
+
       const focusMatch = reply.match(/\[ACTION:START_FOCUS:(\d+)\]/);
       if (focusMatch) {
         reply = reply.replace(focusMatch[0], '');
@@ -1188,7 +1188,7 @@ ${summariesContext}
 window.bindMissions = function() {
   const list = document.getElementById("dynamicMissionList");
   if (!list) return; // Not on planet page
-  
+
   const defaultTasks = [
     "完成 2 小時讀書",
     "步行超過 6000 步",
@@ -1205,7 +1205,7 @@ window.bindMissions = function() {
   list.innerHTML = "";
   tasks.slice(0, 36).forEach((task, index) => {
     const sId = "s" + (index + 1);
-    
+
     // Classify task type
     let taskType = "general";
     if (/(專案|期末|大考|挑戰)/.test(task)) {
@@ -1241,7 +1241,7 @@ window.bindMissions = function() {
       const item = e.target.closest('.mission-item');
       const span = item.querySelector('span');
       const taskName = span.innerText;
-      
+
       const ul = document.createElement('ul');
       ul.className = 'micro-steps';
       ul.innerHTML = `
@@ -1263,7 +1263,7 @@ window.bindMissions = function() {
       btn.style.borderColor = "#0f0";
       btn.style.boxShadow = "inset 0 0 5px rgba(0, 255, 0, 0.2)";
       btn.disabled = true;
-      
+
       // Remove critical glitch state since friend was notified
       const item = e.target.closest('.mission-item');
       item.classList.remove('critical-glitch');
@@ -1271,7 +1271,7 @@ window.bindMissions = function() {
       const sId = "s" + (parseInt(idx) + 1);
       const sat = $("." + sId);
       if (sat) sat.classList.remove('critical-glitch-planet');
-      
+
       // Refill energy slightly
       const bar = item.querySelector('.energy-bar');
       if (bar) bar.style.width = '50%';
@@ -1288,17 +1288,17 @@ window.bindMissions = function() {
       $$('.mission-item').forEach(item => {
         const check = item.querySelector('.mission-check');
         if (check && check.checked) return; // Skip completed ones
-        
+
         const bar = item.querySelector('.energy-bar');
         if (bar) {
           bar.style.width = '10%';
           bar.style.background = '#f00';
         }
         item.classList.add('critical-glitch');
-        
+
         const sosBtn = item.querySelector('.sos-btn');
         if (sosBtn) sosBtn.style.display = 'inline-block';
-        
+
         const idx = item.dataset.id;
         const sId = "s" + (parseInt(idx) + 1);
         const sat = $("." + sId);
@@ -1326,7 +1326,7 @@ window.bindMissions = function() {
       const viewSolar = document.querySelector('.view-solar-system');
       const viewGalaxy = document.querySelector('.view-galaxy');
       const viewUniverse = document.querySelector('.view-universe');
-      
+
       let startIdx = 0;
       let endIdx = 36;
       if (viewSolar && viewSolar.style.display !== 'none') {
@@ -1339,7 +1339,7 @@ window.bindMissions = function() {
         startIdx = 0;
         endIdx = 36;
       }
-      
+
       let i = startIdx;
       const interval = setInterval(() => {
         if (i >= endIdx || i >= allChecks.length) {
@@ -1406,15 +1406,15 @@ window.bindMissions = function() {
   function triggerBlackHoleSuction(force = false) {
     const viewGalaxy = document.querySelector('.view-galaxy');
     if (!viewGalaxy || viewGalaxy.style.display === 'none') return;
-    
+
     const overlay = document.getElementById('blackholeOverlay');
     if (!overlay) return;
     overlay.classList.add('active');
-    
+
     // Suck in all active planets and UI elements
     const elements = document.querySelectorAll('.mission-satellite.active, .galaxy-planet.active, .stage-hud, .mission-log-panel');
     elements.forEach(el => el.classList.add('sucked-in'));
-    
+
     setTimeout(() => {
       overlay.classList.remove('active');
       elements.forEach(el => el.classList.remove('sucked-in'));
@@ -1424,14 +1424,14 @@ window.bindMissions = function() {
   function triggerUniverseExplosion(force = false) {
     const viewUniverse = document.querySelector('.view-universe');
     if (!viewUniverse || viewUniverse.style.display === 'none') return;
-    
+
     const overlay = document.getElementById('explosionOverlay');
     if (!overlay) return;
     overlay.classList.add('active');
-    
+
     // Screen shake
     document.body.classList.add('shake-screen');
-    
+
     // Generate debris
     const debrisContainer = document.getElementById('debrisContainer');
     if (debrisContainer) {
@@ -1451,7 +1451,7 @@ window.bindMissions = function() {
     // Blast away all UI elements
     const elements = document.querySelectorAll('.mission-satellite.active, .galaxy-planet.active, .universe-planet.active, .stage-hud, .mission-log-panel');
     elements.forEach(el => el.classList.add('exploded-out'));
-    
+
     setTimeout(() => {
       overlay.classList.remove('active');
       document.body.classList.remove('shake-screen');
@@ -1463,7 +1463,7 @@ window.bindMissions = function() {
   function triggerMeteorShower() {
     const viewSolar = document.querySelector('.view-solar-system');
     if (!viewSolar || viewSolar.style.display === 'none') return;
-    
+
     const container = document.getElementById("meteorShower");
     if (!container) return;
     container.innerHTML = "";
@@ -1480,12 +1480,12 @@ window.bindMissions = function() {
 
   function checkEvolution() {
     const unlockedCount = planetStates.filter(s => s !== null).length;
-    
+
     // Unlock Galaxy at 12
     if (unlockedCount >= 12) {
       document.getElementById('navGalaxy').style.display = 'inline-block';
     }
-    
+
     // Unlock Universe at 24
     if (unlockedCount >= 24) {
       document.getElementById('navUniverse').style.display = 'inline-block';
@@ -1517,7 +1517,7 @@ window.bindMissions = function() {
       const satClass = e.target.dataset.satellite;
       const taskType = e.target.dataset.taskType || "general";
       const plot = satClass ? $("." + satClass.replace("s", "p")) : null; // for city view
-      
+
       if (e.target.checked) {
         if (plot) {
           plot.classList.add("built");
@@ -1545,10 +1545,10 @@ window.bindMissions = function() {
     if (viewSolar) viewSolar.style.display = 'none';
     if (viewGalaxy) viewGalaxy.style.display = 'none';
     if (viewUniverse) viewUniverse.style.display = 'none';
-    
+
     let targetView = null;
     let displayStyle = 'block';
-    
+
     if (stage === 'solar') {
       targetView = viewSolar;
       displayStyle = 'block';
@@ -1559,10 +1559,10 @@ window.bindMissions = function() {
       targetView = viewUniverse;
       displayStyle = 'block';
     }
-    
+
     if (targetView) {
       targetView.style.display = displayStyle;
-      
+
       // Force browser reflow to restart CSS animations (prevents Safari/Chrome 3D transform display:none freeze bug)
       const animatedEls = targetView.querySelectorAll('.starfield, .orbit-line, .mission-satellite, .asteroid, .galaxy-orbit-line, .galaxy-planet, .universe-orbit-line, .universe-planet, .unlocked-planet-node');
       animatedEls.forEach(el => {
@@ -1932,7 +1932,7 @@ function injectAdminSwitch() {
     };
 
     // Secret entry triggers:
-    
+
     // 1. Double Click Brand Mark
     const brandMark = document.querySelector('.brand-mark');
     if (brandMark) {
@@ -2015,6 +2015,56 @@ const firebaseConfig = {
   messagingSenderId: "497972469632",
   appId: "1:497972469632:web:cb87819a70c7cb8f2f6b65"
 };
+
+function loadWebRuntimeConfig() {
+  if (window.nudgeRuntimeConfigPromise) {
+    return window.nudgeRuntimeConfigPromise;
+  }
+  if (window.NUDGE_RUNTIME_CONFIG) {
+    return Promise.resolve(window.NUDGE_RUNTIME_CONFIG);
+  }
+  window.nudgeRuntimeConfigPromise = new Promise(resolve => {
+    const source = "assets/runtime-config.js";
+    const existing = document.querySelector(`script[src="${source}"]`);
+    if (existing) {
+      existing.addEventListener(
+        "load",
+        () => resolve(window.NUDGE_RUNTIME_CONFIG || {}),
+        { once: true },
+      );
+      existing.addEventListener("error", () => resolve({}), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = source;
+    script.onload = () => resolve(window.NUDGE_RUNTIME_CONFIG || {});
+    script.onerror = () => {
+      console.warn(
+        "Web runtime config is missing; App Check protected features are disabled.",
+      );
+      resolve({});
+    };
+    document.head.appendChild(script);
+  });
+  return window.nudgeRuntimeConfigPromise;
+}
+
+function configureFirebaseAppCheckDebugToken() {
+  const localHost = ["localhost", "127.0.0.1", "::1"].includes(
+    window.location.hostname,
+  );
+  const token = window.NUDGE_FIREBASE_APP_CHECK_DEBUG_TOKEN;
+  const validToken =
+    token === true ||
+    (typeof token === "string" && token.trim().length >= 8);
+  if (!localHost || !validToken) {
+    return false;
+  }
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN =
+    token === true ? true : token.trim();
+  console.info("Firebase App Check debug provider enabled for localhost.");
+  return true;
+}
 
 function loadFirebaseSDKs() {
   if (window.nudgeFirebaseSdkPromise) {
@@ -2155,6 +2205,7 @@ let activeWebRoomContribution = null;
 
 function configuredAppCheckSiteKey() {
   return String(
+    window.NUDGE_RUNTIME_CONFIG?.firebaseAppCheckSiteKey ||
     window.NUDGE_FIREBASE_APP_CHECK_SITE_KEY ||
     document.querySelector('meta[name="firebase-app-check-site-key"]')?.content ||
     "",
@@ -3823,97 +3874,103 @@ async function sendWebFamilyGoal(title, message) {
 }
 
 function initializeFirebaseWeb() {
-  loadFirebaseSDKs().then(() => {
-    if (typeof firebase !== 'undefined') {
-      try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-        initializeFirebaseAppCheck();
-        db = firebase.firestore();
-        storage = firebase.storage ? firebase.storage() : null;
-        functions = firebase.functions
-          ? firebase.app().functions("asia-east1")
-          : null;
-        console.log("Firebase initialized successfully on Web Center");
-
-        const auth = firebase.auth();
-        const isPublic = () => {
-          const currentPath = window.location.pathname;
-          return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("dashboard.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
-        };
-        const clearWebSession = () => {
-          localStorage.removeItem("nudgeWebLoggedIn");
-          localStorage.removeItem("nudgeActiveDemoUserId");
-        };
-        const redirectToLogin = () => {
-          const currentPath = window.location.pathname;
-          localStorage.setItem("nudgePostLoginRedirect", currentPath.split("/").pop() || "dashboard.html");
-          window.location.href = "login.html";
-        };
-        const handleUser = (user) => {
-          if (user) {
-            console.log("Authenticated user detected:", user.uid);
-            if (!user.isAnonymous) {
-              localStorage.removeItem("nudgePreviewMode");
-              localStorage.removeItem("nudgePreviewRole");
-              localStorage.setItem("nudgeWebLoggedIn", "true");
-              localStorage.setItem("nudgeActiveDemoUserId", user.uid);
-            }
-            startListeningToFirestoreData();
-            ensureWebActivityLedgerOutbox()
-              .then(outbox => outbox.flush())
-              .catch(error => {
-                console.warn("Activity Ledger resume failed:", error);
-              });
-            document.dispatchEvent(new Event('firebase-ready'));
-            return;
+  loadWebRuntimeConfig()
+    .then(() => {
+      configureFirebaseAppCheckDebugToken();
+      return loadFirebaseSDKs();
+    })
+    .then(() => {
+      if (typeof firebase !== 'undefined') {
+        try {
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
           }
+          initializeFirebaseAppCheck();
+          db = firebase.firestore();
+          storage = firebase.storage ? firebase.storage() : null;
+          functions = firebase.functions
+            ? firebase.app().functions("asia-east1")
+            : null;
+          console.log("Firebase initialized successfully on Web Center");
 
-          console.log("No authenticated user detected.");
-          if (isPreviewMode()) {
-            const previewData = buildPreviewProfile();
-            updateSidebarProfile(previewData);
-            injectPreviewRoleBanner(previewData);
-            document.dispatchEvent(new Event('firebase-ready'));
-            return;
-          }
-          clearWebSession();
-          if (!isPublic()) {
-            redirectToLogin();
-            return;
-          }
-          document.dispatchEvent(new Event('firebase-ready'));
-        };
-
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-          .catch(err => {
-            console.warn("Auth persistence setup failed:", err);
-          })
-          .then(() => {
-            auth.onAuthStateChanged((user) => {
-              if (user || localStorage.getItem("nudgeWebLoggedIn") !== "true") {
-                handleUser(user);
-                return;
+          const auth = firebase.auth();
+          const isPublic = () => {
+            const currentPath = window.location.pathname;
+            return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("dashboard.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
+          };
+          const clearWebSession = () => {
+            localStorage.removeItem("nudgeWebLoggedIn");
+            localStorage.removeItem("nudgeActiveDemoUserId");
+          };
+          const redirectToLogin = () => {
+            const currentPath = window.location.pathname;
+            localStorage.setItem("nudgePostLoginRedirect", currentPath.split("/").pop() || "dashboard.html");
+            window.location.href = "login.html";
+          };
+          const handleUser = (user) => {
+            if (user) {
+              console.log("Authenticated user detected:", user.uid);
+              if (!user.isAnonymous) {
+                localStorage.removeItem("nudgePreviewMode");
+                localStorage.removeItem("nudgePreviewRole");
+                localStorage.setItem("nudgeWebLoggedIn", "true");
+                localStorage.setItem("nudgeActiveDemoUserId", user.uid);
               }
+              startListeningToFirestoreData();
+              ensureWebActivityLedgerOutbox()
+                .then(outbox => outbox.flush())
+                .catch(error => {
+                  console.warn("Activity Ledger resume failed:", error);
+                });
+              document.dispatchEvent(new Event('firebase-ready'));
+              return;
+            }
 
-              setTimeout(() => handleUser(auth.currentUser), 800);
+            console.log("No authenticated user detected.");
+            if (isPreviewMode()) {
+              const previewData = buildPreviewProfile();
+              updateSidebarProfile(previewData);
+              injectPreviewRoleBanner(previewData);
+              document.dispatchEvent(new Event('firebase-ready'));
+              return;
+            }
+            clearWebSession();
+            if (!isPublic()) {
+              redirectToLogin();
+              return;
+            }
+            document.dispatchEvent(new Event('firebase-ready'));
+          };
+
+          auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .catch(err => {
+              console.warn("Auth persistence setup failed:", err);
+            })
+            .then(() => {
+              auth.onAuthStateChanged((user) => {
+                if (user || localStorage.getItem("nudgeWebLoggedIn") !== "true") {
+                  handleUser(user);
+                  return;
+                }
+
+                setTimeout(() => handleUser(auth.currentUser), 800);
+              });
             });
-          });
-      } catch (e) {
-        console.warn("Firebase initialization failed, falling back to mock data: ", e);
+        } catch (e) {
+          console.warn("Firebase initialization failed, falling back to mock data: ", e);
+          startListeningToFirestoreData();
+          document.dispatchEvent(new Event('firebase-ready'));
+        }
+      } else {
+        console.log("Firebase SDK not loaded, using local demo data");
         startListeningToFirestoreData();
         document.dispatchEvent(new Event('firebase-ready'));
       }
-    } else {
-      console.log("Firebase SDK not loaded, using local demo data");
-      startListeningToFirestoreData();
+    })
+    .catch(error => {
+      console.warn("Firebase SDK loading failed:", error);
       document.dispatchEvent(new Event('firebase-ready'));
-    }
-  }).catch(error => {
-    console.warn("Firebase SDK loading failed:", error);
-    document.dispatchEvent(new Event('firebase-ready'));
-  });
+    });
 }
 
 function startListeningToFirestoreData() {
@@ -4343,7 +4400,7 @@ function getOrCreateSidePanel() {
 function injectUserSwitcher(users, activeUserId) {
   const panel = getOrCreateSidePanel();
   if (!panel || $(".demo-user-select").length) return;
-  
+
   const selectHtml = `
     <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;" class="demo-user-select">
       <span class="eyebrow">切換自律帳號</span>
@@ -4353,7 +4410,7 @@ function injectUserSwitcher(users, activeUserId) {
     </div>
   `;
   panel.insertAdjacentHTML('beforeend', selectHtml);
-  
+
   document.getElementById("demoUserSelect")?.addEventListener("change", (e) => {
     const nextUserId = e.target.value;
     localStorage.setItem("nudgeActiveDemoUserId", nextUserId);
@@ -4683,7 +4740,7 @@ function checkPagePermissions(data) {
     }
     return;
   }
-  
+
   if (isGroupsPage) {
     const hasGroup = capabilities.hasGroup;
     const isGroupsLinkPage = window.location.pathname.includes("groups-link.html");
@@ -4878,7 +4935,7 @@ function listenToRequests(userId) {
         docs.push({ id: doc.id, ...doc.data() });
       });
       currentIncomingRequests = docs.filter(d => d.status === 'pending');
-      
+
       const accepted = docs.filter(d => d.status === 'accepted');
       if (accepted.length > 0) {
         autoUpdateWebLinkage(userId, accepted[0]);
@@ -4966,7 +5023,7 @@ function checkAndAutoClearWebLinkage(userId) {
         .get()
         .then(outgoingSnap => {
           if (outgoingSnap.size > 0) return;
-          
+
           db.collection("users").doc(userId).update({
             "webToolsState.guardianInvite": firebase.firestore.FieldValue.delete(),
             "webToolsState.guardianInviteStatus": firebase.firestore.FieldValue.delete()
@@ -4983,7 +5040,7 @@ function refreshWebBindingCardUI() {
   if (document.getElementById("webBindingGatedCard")) {
     renderRequestsList();
   }
-  
+
   if (document.getElementById("notificationsPageContainer")) {
     renderNotificationsPage();
   }
@@ -4991,14 +5048,14 @@ function refreshWebBindingCardUI() {
   // 顯示全域的親屬綁定邀請通知橫幅
   const main = document.querySelector(".main");
   if (!main) return;
-  
+
   let banner = document.getElementById("globalGuardianRequestBanner");
   if (currentIncomingRequests.length > 0) {
     if (!banner) {
       banner = document.createElement("div");
       banner.id = "globalGuardianRequestBanner";
       banner.style.cssText = "background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 12px 20px; margin: 16px 0 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;";
-      
+
       const firstSection = main.querySelector("header.hero, section, .page-section, div:not(#globalGuardianRequestBanner)");
       if (firstSection) {
         firstSection.insertAdjacentElement("beforebegin", banner);
@@ -5006,12 +5063,12 @@ function refreshWebBindingCardUI() {
         main.insertAdjacentElement("afterbegin", banner);
       }
     }
-    
+
     const req = currentIncomingRequests[0];
     const senderName = req.senderNickname || "使用者";
     const senderNudge = req.senderNudgeId || "";
     const senderRole = getRoleLabel(req.senderRole || "personal");
-    
+
     banner.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 24px;">🔔</span>
@@ -5040,7 +5097,7 @@ function refreshWebBindingCardUI() {
       groupBanner = document.createElement("div");
       groupBanner.id = "globalGroupRequestBanner";
       groupBanner.style.cssText = "background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.3); border-radius: 12px; padding: 12px 20px; margin: 16px 0 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;";
-      
+
       const firstSection = main.querySelector("header.hero, section, .page-section, div:not(#globalGuardianRequestBanner):not(#globalGroupRequestBanner)");
       if (firstSection) {
         firstSection.insertAdjacentElement("beforebegin", groupBanner);
@@ -5048,13 +5105,13 @@ function refreshWebBindingCardUI() {
         main.insertAdjacentElement("afterbegin", groupBanner);
       }
     }
-    
+
     const req = currentIncomingGroupRequests[0];
     const senderName = req.senderNickname || "使用者";
     const senderNudge = req.senderNudgeId || "";
     const groupName = req.groupName || "自律團體";
     const groupId = req.groupId || "";
-    
+
     groupBanner.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 24px;">👥</span>
@@ -5244,7 +5301,7 @@ function renderNotificationsPage() {
   }
 
   let html = "";
-  
+
   if (currentIncomingRequests.length > 0) {
     html += `
       <div style="margin-bottom: 32px;">
@@ -5551,7 +5608,7 @@ function showWebRelativeBindingCard(atTop) {
     <div id="webBindingGatedCard" class="web-binding-gated-wrapper" style="margin-bottom: 24px;">
       <h2>🛡️ 親屬帳號連結</h2>
       <p id="webBindingDesc">您還未與家人進行親屬綁定。請在下方輸入對方的 Nudge ID 發送申請，或在列表處理待同意的申請。連結後即可查看對方專注、睡眠與健康數據。</p>
-      
+
       <div id="webRequestsContainer" style="margin-bottom: 20px;"></div>
 
       <div id="webBindingForm" class="web-binding-form">
@@ -5560,7 +5617,7 @@ function showWebRelativeBindingCard(atTop) {
       </div>
     </div>
   `;
-  
+
   if (atTop) {
     // Insert at the very top of main, before any existing sections
     const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
@@ -6103,7 +6160,7 @@ function showWebGroupBindingCard(atTop) {
       </div>
     </div>
   `;
-  
+
   if (atTop) {
     const firstSection = main.querySelector("section, .page-section, div:not(.hero)");
     if (firstSection) {
@@ -6617,7 +6674,7 @@ const SYNC_SERVER_URL = "https://graduation-project-nudge.onrender.com";
 function syncToFlaskServer(data, dailySummaries, tasks) {
   const latestSummary = dailySummaries[dailySummaries.length - 1] || {};
   const completedCount = tasks.filter(t => t.isDone || t.done).length;
-  
+
   // 1. Sync User Profile
   fetch(`${SYNC_SERVER_URL}/api/sync/user`, {
     method: "POST",
@@ -6672,34 +6729,34 @@ let currentChildNudgeId = null;
 function updateParentDashboardWithChildData(childData) {
   const tasks = childData.tasks || [];
   const dailySummaries = childData.dailySummaries || [];
-  
+
   const completedTasksCount = tasks.filter(t => t.isDone || t.done).length;
   const completionRate = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : 0;
-  
+
   const todaySummary = dailySummaries[dailySummaries.length - 1] || {};
   const sleepHours = todaySummary.sleepHours || (childData.sleepHours || 0);
   const steps = todaySummary.steps || (childData.steps || 0);
   const focusMinutes = todaySummary.focusMinutes || (childData.focusSeconds ? Math.floor(childData.focusSeconds / 60) : 0);
-  
+
   const childTasksCountEl = document.getElementById("childTasksCount");
   if (childTasksCountEl) {
     childTasksCountEl.dataset.count = completedTasksCount;
     childTasksCountEl.textContent = `${completedTasksCount} 個`;
   }
-  
+
   const childTasksRingEl = document.getElementById("childTasksRing");
   if (childTasksRingEl) {
     childTasksRingEl.style.setProperty("--p", `${completionRate}%`);
     const ringText = childTasksRingEl.querySelector("strong");
     if (ringText) ringText.textContent = `${completionRate}%`;
   }
-  
+
   const childFocusValEl = document.getElementById("childFocusVal");
   if (childFocusValEl) {
     childFocusValEl.dataset.count = focusMinutes;
     childFocusValEl.textContent = `${focusMinutes} 分`;
   }
-  
+
   const childFocusRingEl = document.getElementById("childFocusRing");
   if (childFocusRingEl) {
     const focusRate = Math.min(Math.round((focusMinutes / 60) * 100), 100);
@@ -6707,12 +6764,12 @@ function updateParentDashboardWithChildData(childData) {
     const ringText = childFocusRingEl.querySelector("strong");
     if (ringText) ringText.textContent = `${focusRate}%`;
   }
-  
+
   const childSleepValEl = document.getElementById("childSleepVal");
   if (childSleepValEl) {
     childSleepValEl.textContent = `${sleepHours.toFixed(1)} 小時`;
   }
-  
+
   const childSleepRingEl = document.getElementById("childSleepRing");
   if (childSleepRingEl) {
     const sleepRate = Math.min(Math.round((sleepHours / 8) * 100), 100);
@@ -6720,13 +6777,13 @@ function updateParentDashboardWithChildData(childData) {
     const ringText = childSleepRingEl.querySelector("strong");
     if (ringText) ringText.textContent = `${sleepRate}%`;
   }
-  
+
   const childStepsValEl = document.getElementById("childStepsVal");
   if (childStepsValEl) {
     childStepsValEl.dataset.count = steps;
     childStepsValEl.textContent = `${steps}`;
   }
-  
+
   const childStepsRingEl = document.getElementById("childStepsRing");
   if (childStepsRingEl) {
     const stepsRate = Math.min(Math.round((steps / 10000) * 100), 100);
@@ -6734,28 +6791,28 @@ function updateParentDashboardWithChildData(childData) {
     const ringText = childStepsRingEl.querySelector("strong");
     if (ringText) ringText.textContent = `${stepsRate}%`;
   }
-  
+
   if (dailySummaries.length > 0) {
     const scoresList = dailySummaries.map(s => s.disciplineScore || 0);
     const sleepList = dailySummaries.map(s => s.sleepHours || 0);
-    
+
     const trendChart = document.getElementById("trendChart");
     if (trendChart && scoresList.length > 0) {
       drawLineChart(trendChart, scoresList.slice(-12));
     }
-    
+
     const sleepChart = document.getElementById("sleepChart");
     if (sleepChart && sleepList.length > 0) {
       drawLineChart(sleepChart, sleepList.slice(-7), "#8d7aff");
     }
   }
-  
+
   const weeklyRateEl = document.querySelector(".hero-card strong");
   if (weeklyRateEl) {
     weeklyRateEl.dataset.count = completionRate;
     weeklyRateEl.textContent = `${completionRate}%`;
   }
-  
+
   const chipA = document.querySelector(".chip-a strong");
   if (chipA) {
     chipA.dataset.count = completionRate;
@@ -6800,7 +6857,7 @@ function checkWeeklyPlanetSettlementWeb(data, activeUserId) {
   if (!db || !activeUserId) return;
   const now = new Date();
   const currentMonday5AM = getMonday5AMOfThisWeek(now);
-  
+
   // The target completed settlement Monday is the last Monday 5:00 AM before now
   const targetSettlementMonday = now < currentMonday5AM
       ? new Date(currentMonday5AM.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -6809,7 +6866,7 @@ function checkWeeklyPlanetSettlementWeb(data, activeUserId) {
   let nextWeekStartMonday;
   const lastSettledStr = data.lastSettledWeekMonday;
   const dailySummaries = data.dailySummaries || [];
-  
+
   if (!lastSettledStr) {
     if (dailySummaries.length > 0) {
       const sorted = [...dailySummaries].sort((a, b) => a.date.localeCompare(b.date));
@@ -6830,13 +6887,13 @@ function checkWeeklyPlanetSettlementWeb(data, activeUserId) {
   let unlockedPlanets = data.unlockedPlanets || ["新手星球"];
   let weeklyPlanetEarned = data.weeklyPlanetEarned || false;
   let lastSettledWeekMonday = lastSettledStr || "";
-  
+
   while (nextWeekStartMonday < targetSettlementMonday || nextWeekStartMonday.getTime() === targetSettlementMonday.getTime()) {
     const weeklyRate = calculateWeeklyTaskCompletionRateWeb(nextWeekStartMonday, dailySummaries);
     if (weeklyRate >= 70.0) {
       planetCount += 1;
       weeklyPlanetEarned = true;
-      
+
       const planetsPool = ["綠洲星球", "熔岩星球", "冰雪星球", "沙漠星球", "水晶星球", "暗物質星球"];
       const available = planetsPool.filter(p => !unlockedPlanets.includes(p));
       if (available.length > 0) {
@@ -6846,13 +6903,13 @@ function checkWeeklyPlanetSettlementWeb(data, activeUserId) {
     } else {
       weeklyPlanetEarned = false;
     }
-    
+
     lastSettledWeekMonday = formatDate(nextWeekStartMonday);
     changed = true;
-    
+
     nextWeekStartMonday.setDate(nextWeekStartMonday.getDate() + 7);
   }
-  
+
   if (changed) {
     db.collection("users").doc(activeUserId).update({
       planetCount: planetCount,
@@ -6990,13 +7047,13 @@ function listenToUser(userId) {
   if (authenticatedUid && authenticatedUid === userId) {
     listenToFamilyLink(userId);
   }
-  
+
   // Check if profile page is viewing a friend's profile
   if (document.body.dataset.page === "profile") {
     const urlParams = new URLSearchParams(window.location.search);
     const viewUserId = urlParams.get('userId');
     const viewNudgeId = urlParams.get('nudgeId');
-    
+
     if (viewUserId && viewUserId !== userId) {
       // Load friend profile by UID
       db.collection("public_profiles").doc(viewUserId).get().then(snap => {
@@ -7054,7 +7111,7 @@ function listenToUser(userId) {
     ensureCanonicalWebMembership(userId, data).catch(error => {
       console.warn("Canonical group membership repair skipped:", error);
     });
-    
+
     updateSidebarProfile(data);
 
     if (document.body.dataset.page === "profile") {
@@ -7062,7 +7119,7 @@ function listenToUser(userId) {
       const urlParams = new URLSearchParams(window.location.search);
       const viewUserId = urlParams.get('userId');
       const viewNudgeId = urlParams.get('nudgeId');
-      
+
       if ((viewUserId && viewUserId !== userId) || viewNudgeId) {
         // Visitor mode: load friend's profile from Firestore (handled separately below)
         // Don't overwrite own data into profile page
@@ -7078,31 +7135,31 @@ function listenToUser(userId) {
     // Group role and shared publications come from the canonical Group record.
     // User-document group fields only locate the record during migration.
     listenToCanonicalWebGroup(userId, data.groupId);
-    
+
     const dailySummaries = data.dailySummaries || [];
     const tasks = data.tasks || [];
     currentUserTasks = tasks;
     currentUserDailySummaries = dailySummaries;
-    
+
     // Settle weekly planets and update lit visual planet orbits
     try {
       checkWeeklyPlanetSettlementWeb(data, userId);
     } catch (e) {
       console.error("Weekly settlement run error on web:", e);
     }
-    
+
     try {
       updateLitPlanets(data.planetCount || 0);
     } catch (e) {
       console.error("Failed to update lit planets from count:", e);
     }
-    
+
     // 如果任務為空，自動在 Firestore 初始化預設自律任務，以達成雙端靜態任務同步
     if (tasks.length === 0) {
       initializeDefaultTasksInFirestore(userId);
       return;
     }
-    
+
     // 📡 網頁端自動偵測任務在手機端達成！
     if (previousTasksState !== null) {
       tasks.forEach(task => {
@@ -7113,22 +7170,22 @@ function listenToUser(userId) {
       });
     }
     previousTasksState = JSON.parse(JSON.stringify(tasks));
-    
+
     if (dailySummaries.length > 0) {
       const scores = dailySummaries.map(s => s.disciplineScore || 0);
       const sleepHours = dailySummaries.map(s => s.sleepHours || 0);
-      
+
       const trendChart = $("#trendChart");
       if (trendChart && scores.length > 0) {
         drawLineChart(trendChart, scores.slice(-12));
       }
-      
+
       const sleepChart = $("#sleepChart");
       if (sleepChart && sleepHours.length > 0) {
         drawLineChart(sleepChart, sleepHours.slice(-7), "#8d7aff");
       }
     }
-    
+
     let completionRate = 0;
     if (tasks.length > 0) {
       const completedCount = tasks.filter(t => t.isDone || t.done).length;
@@ -7138,7 +7195,7 @@ function listenToUser(userId) {
         chipA.dataset.count = completionRate;
         chipA.textContent = `${completionRate}%`;
       }
-      
+
       const prosperityElement = document.querySelector(".hero-card strong");
       if (prosperityElement) {
         if (document.body.dataset.page === "operations") {
@@ -7150,14 +7207,14 @@ function listenToUser(userId) {
           prosperityElement.textContent = `${completionRate}`;
         }
       }
-      
+
       if (document.body.dataset.page === "planet") {
         if (typeof window.bindFirestoreMissions === 'function') {
           window.bindFirestoreMissions(tasks);
         }
       }
     }
-    
+
     if (document.body.dataset.page === "planet") {
       const todaySummary = dailySummaries[dailySummaries.length - 1] || {};
       const completedCount = tasks.filter(t => t.isDone || t.done).length;
@@ -7174,7 +7231,7 @@ function listenToUser(userId) {
 
     // Propagate user, health, and focus stats to local python Flask server
     syncToFlaskServer(data, dailySummaries, tasks);
-    
+
     // 📡 Web端自動偵測並同步來自手機 App 建立的膠囊、信件、家長狀態等
     let store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
     let changed = false;
@@ -7239,7 +7296,7 @@ function isDeadlineTaskReadyForWeb(task) {
 window.bindFirestoreMissions = function(tasks) {
   const list = document.getElementById("dynamicMissionList");
   if (!list) return;
-  
+
   list.innerHTML = "";
   tasks.slice(0, 36).forEach((task, index) => {
     const title = task.title || task.name || "自律任務";
@@ -7249,7 +7306,7 @@ window.bindFirestoreMissions = function(tasks) {
     const canToggle = !isDeadlineTask || deadlineReady || done;
     const taskId = task.id || "";
     const sId = "s" + (index + 1);
-    
+
     let taskType = "general";
     if (/(專案|期末|大考|挑戰)/.test(title)) {
       taskType = "skyscraper";
@@ -7304,7 +7361,7 @@ window.bindFirestoreMissions = function(tasks) {
       const isChecked = e.target.checked;
       const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
       if (!activeUserId || !db) return;
-      
+
       const docRef = db.collection("users").doc(activeUserId);
       docRef.get().then((docSnap) => {
         if (!docSnap.exists) return;
@@ -7344,7 +7401,7 @@ window.bindFirestoreMissions = function(tasks) {
       const taskId = e.target.dataset.taskId;
       const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
       if (!activeUserId || !db) return;
-      
+
       if (confirm("確定要刪除此自律任務並同步至手機端嗎？")) {
         const docRef = db.collection("users").doc(activeUserId);
         docRef.get().then((docSnap) => {
@@ -7408,7 +7465,7 @@ function addFirestoreTask(taskTitle) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      
+
       currentTasks.push(newTask);
       docRef.update({ tasks: currentTasks }).then(() => {
         toast(`已成功新增任務：${taskTitle}`);
@@ -7428,26 +7485,26 @@ function completeFirestoreTask(taskId) {
     if (docSnap.exists) {
       const data = docSnap.data();
       const currentTasks = data.tasks || [];
-      
+
       // Try finding by exact ID first
       let taskIndex = currentTasks.findIndex(t => t.id === taskId);
-      
+
       // If not found, try fuzzy matching by title
       if (taskIndex === -1) {
         taskIndex = currentTasks.findIndex(t => t.title === taskId || t.title.includes(taskId) || taskId.includes(t.title));
       }
-      
+
       if (taskIndex !== -1) {
         if (currentTasks[taskIndex].isDone || currentTasks[taskIndex].done) {
           toast(`📡 星艦回報：任務【${currentTasks[taskIndex].title}】早已是完成狀態！`);
           return;
         }
-        
+
         currentTasks[taskIndex].isDone = true;
         currentTasks[taskIndex].done = true;
         currentTasks[taskIndex].completedAt = new Date().toISOString();
         currentTasks[taskIndex].updatedAt = new Date().toISOString();
-        
+
         docRef.update({ tasks: currentTasks }).then(() => {
           toast(`📡 星艦回報：AI 成功為您標記完成任務【${currentTasks[taskIndex].title}】！`);
         });
@@ -7719,9 +7776,9 @@ function showWebProfileEditModal(data) {
     let swatchesHtml = '';
     colorOptions.forEach(opt => {
       swatchesHtml += `
-        <div class="color-swatch ${currentAccent === opt.name ? 'active' : ''}" 
-             data-color="${opt.name}" 
-             style="background: ${opt.hex}; --swatch-color: ${opt.hex};" 
+        <div class="color-swatch ${currentAccent === opt.name ? 'active' : ''}"
+             data-color="${opt.name}"
+             style="background: ${opt.hex}; --swatch-color: ${opt.hex};"
              title="${opt.label}"></div>
       `;
     });
@@ -7807,7 +7864,7 @@ function showWebProfileEditModal(data) {
   document.getElementById("editProfileNickname").value = data.nickname || '';
   document.getElementById("editProfileSignature").value = data.signature || '';
   document.getElementById("editProfileSelectedColor").value = data.accentColor || 'purple';
-  
+
   const swatchesEl = document.querySelectorAll("#editProfileColors .color-swatch");
   swatchesEl.forEach(sw => {
     if (sw.getAttribute("data-color") === (data.accentColor || 'purple')) {
@@ -8081,7 +8138,7 @@ function renderWebProfilePage(data, isFriend, friendUid) {
     const mainNameEl = document.getElementById("profileMainName");
     const mainSigEl = document.getElementById("profileMainSignature");
     const mainBadgeEl = document.getElementById("profileMainBadge");
-    
+
     const nicknameInput = document.getElementById("editProfileNicknameInline");
     const signatureInput = document.getElementById("editProfileSignatureInline");
     const badgeSelect = document.getElementById("editProfileTitleInline");
@@ -8105,9 +8162,9 @@ function renderWebProfilePage(data, isFriend, friendUid) {
     // Render Swatches
     if (colorSwatchesEl) {
       colorSwatchesEl.innerHTML = colorOptions.map(opt => `
-        <div class="color-swatch ${currentAccent === opt.name ? 'active' : ''}" 
-             data-color="${opt.name}" 
-             style="background: ${opt.hex}; --swatch-color: ${opt.hex};" 
+        <div class="color-swatch ${currentAccent === opt.name ? 'active' : ''}"
+             data-color="${opt.name}"
+             style="background: ${opt.hex}; --swatch-color: ${opt.hex};"
              title="${opt.label}"></div>
       `).join('');
 
@@ -8139,7 +8196,7 @@ function renderWebProfilePage(data, isFriend, friendUid) {
       ];
       const unlockedKeys = Object.keys(unlockedBadgeDates);
       const unlockedBadges = badgeDefinitions.filter(b => unlockedKeys.includes(b.key));
-      
+
       let badgesSelectHtml = `<option value="">不使用稱號</option>`;
       unlockedBadges.forEach(b => {
         badgesSelectHtml += `<option value="${b.key}" ${profileTitleBadgeKey === b.key ? 'selected' : ''}>${b.name}</option>`;
@@ -8244,7 +8301,7 @@ function renderWebProfilePage(data, isFriend, friendUid) {
     const customPosts = data.customPosts || [];
     const tasks = data.tasks || [];
     const completedCount = tasks.filter(t => t.isDone || t.done).length;
-    
+
     // Check if the current user viewing the profile is the owner
     const activeUserId = localStorage.getItem("nudgeActiveDemoUserId") || "an_nudge";
     const profileUserId = new URLSearchParams(window.location.search).get('userId') || new URLSearchParams(window.location.search).get('id') || activeUserId;

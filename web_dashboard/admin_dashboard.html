@@ -999,6 +999,11 @@
 
         try {
           await getDeveloperUserOrThrow();
+          if (!configuredAppCheckSiteKey()) {
+            throw new Error(
+              'Firebase App Check 尚未設定；為避免產生無法上架的孤兒素材，本次上傳已停止。'
+            );
+          }
           const createdAt = Math.floor(Date.now() / 1000);
           const pendingItemId =
             event.target.dataset.pendingCatalogItemId || generateLocalUUID();
@@ -1276,7 +1281,7 @@
         }
       });
     </script>
-    <script src="assets/app.js?v=18"></script>
+    <script src="assets/app.js?v=19"></script>
     <script>
       let adminAuditUnsubscribe = null;
       let adminAuditEvents = [];
