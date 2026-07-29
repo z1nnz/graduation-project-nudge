@@ -23,6 +23,7 @@ import {
   createRelationshipRequestCreatedHandler,
   createRelationshipRequestUpdatedHandler,
 } from "./src/user-notification-service.js";
+import { createManageCatalogItemHandler } from "./src/catalog-management-service.js";
 
 initializeApp();
 setGlobalOptions({
@@ -54,6 +55,10 @@ const handleUpdateNotificationPreferences =
     clock: () => new Date(),
   });
 const handleMarkNotificationRead = createMarkNotificationReadHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
+const handleManageCatalogItem = createManageCatalogItemHandler({
   firestore: getFirestore(),
   clock: () => new Date(),
 });
@@ -195,6 +200,26 @@ export const markNotificationRead = onCall(
       throw new HttpsError(
         "internal",
         "The notification could not be updated.",
+      );
+    }
+  },
+);
+
+export const manageCatalogItem = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleManageCatalogItem(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("manageCatalogItem failed", error);
+      throw new HttpsError(
+        "internal",
+        "The catalog item could not be updated.",
       );
     }
   },

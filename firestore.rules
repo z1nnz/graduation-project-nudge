@@ -2129,11 +2129,14 @@ service cloud.firestore {
     // ─── /shop_items/{itemId} ──────────────────────────────────────────
     match /shop_items/{itemId} {
       allow read: if isAuth();
-      allow create, update, delete: if isStaff();
+      // Catalog mutations must pass through manageCatalogItem so validation,
+      // index allocation and the immutable audit event are transactional.
+      allow create, update, delete: if false;
     }
 
     match /catalog_counters/{counterId} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow write: if false;
     }
   }
 }

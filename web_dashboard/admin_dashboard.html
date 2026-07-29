@@ -358,7 +358,7 @@
                 </div>
                 <div class="admin-form-group">
                   <label>商品描述</label>
-                  <textarea rows="3" id="shopItemDesc" placeholder="輸入商品特色與屬性加成..."></textarea>
+                  <textarea rows="3" id="shopItemDesc" placeholder="輸入商品特色與屬性加成..." required></textarea>
                 </div>
                 <div class="admin-form-group">
                   <label>價格 (自律幣)</label>
@@ -539,7 +539,7 @@
               <span class="eyebrow" style="color: #a78bfa;">Immutable Audit</span>
               <h2 style="margin: 0; font-size: 1.5rem;">Cloud 稽核紀錄</h2>
               <p style="margin-top: 0.5rem; color: var(--c-text-muted);">
-                只讀取由 Cloud Functions 建立的不可變事件。目前正式涵蓋隱私同意與 App／Web 通知偏好；後續營運寫入會逐項納入。
+                只讀取由 Cloud Functions 建立的不可變事件。目前正式涵蓋隱私同意、通知、家庭／團體關係與商城角色上架。
               </p>
             </div>
             <div class="hero-card" style="border-color: #8b5cf6; background: transparent; padding: 1rem;">
@@ -556,6 +556,7 @@
                   <option value="privacy">隱私</option>
                   <option value="notifications">通知</option>
                   <option value="relationship">家庭／團體關係</option>
+                  <option value="catalog">商城／角色圖鑑</option>
                 </select>
               </div>
               <div class="admin-form-group">
@@ -800,37 +801,23 @@
         throw new Error('此帳號沒有商城上架權限，請管理者在 users/' + user.uid + ' 設定 developerAccess: true。');
       }
 
-      async function resolveNextCatalogIndexBase() {
-        const snap = await db.collection('shop_items').get();
-        let legacyNextIndex = 18;
-        snap.forEach((doc) => {
-          const item = doc.data();
-          const base = Number(item.catalog_index_base || 0);
-          const stages = Array.isArray(item.character_stages) ? item.character_stages : [];
-          const maxStageIndex = stages.reduce((max, stage) => {
-            const explicitIndex = Number(stage.catalog_index || 0);
-            return explicitIndex > max ? explicitIndex : max;
-          }, 0);
-          if (base > 0) {
-            legacyNextIndex = Math.max(legacyNextIndex, base + Math.max(stages.length, 1));
-          }
-          if (maxStageIndex > 0) {
-            legacyNextIndex = Math.max(legacyNextIndex, maxStageIndex + 1);
-          }
+      async function manageCatalogItemCommand({ action, itemId, payload, clientRequestId }) {
+        await getDeveloperUserOrThrow();
+        if (!functions) {
+          throw new Error('Cloud Functions 尚未初始化，請重新整理後再試。');
+        }
+        const response = await functions.httpsCallable('manageCatalogItem')({
+          action,
+          itemId,
+          payload: payload || null,
+          clientRequestId,
+          sourceSurface: 'admin_web'
         });
-        const counterRef = db.collection('catalog_counters').doc('avatar_series');
-        return db.runTransaction(async transaction => {
-          const counterSnapshot = await transaction.get(counterRef);
-          const storedNextIndex = counterSnapshot.exists
-            ? Number(counterSnapshot.data().next_index || 18)
-            : 18;
-          const allocatedIndex = Math.max(legacyNextIndex, storedNextIndex);
-          transaction.set(counterRef, {
-            next_index: allocatedIndex + 3,
-            updated_at: Math.floor(Date.now() / 1000)
-          }, { merge: true });
-          return allocatedIndex;
-        });
+        const result = response && response.data;
+        if (!result || result.itemId !== itemId || !result.auditEventId) {
+          throw new Error('Cloud 回傳的商城稽核結果無法驗證。');
+        }
+        return result;
       }
 
       function toggleAdminDays() {
@@ -906,13 +893,16 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                  <td><img src="${imgSrc}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
-                  <td><strong>${item.name}</strong></td>
-                  <td>${typeText}</td>
-                  <td>${item.price}</td>
+                  <td><img src="${escapeHtml(imgSrc)}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
+                  <td><strong>${escapeHtml(item.name)}</strong></td>
+                  <td>${escapeHtml(typeText)}</td>
+                  <td>${Number(item.price) || 0}</td>
                   <td>${expiresHTML}</td>
-                  <td><button class="admin-btn" type="button" style="padding: 0.4rem 0.65rem; font-size: 0.75rem;" onclick="archiveShopItem('${item.id}')">下架</button></td>
+                  <td><button class="admin-btn" data-archive-item="${escapeHtml(item.id)}" type="button" style="padding: 0.4rem 0.65rem; font-size: 0.75rem;">下架</button></td>
                 `;
+                tr.querySelector('[data-archive-item]').addEventListener('click', () => {
+                  archiveShopItem(item.id);
+                });
                 tbody.appendChild(tr);
               });
             }
@@ -968,10 +958,10 @@
       async function archiveShopItem(itemId) {
         if (!confirm('確定要下架這項商品？App 會在同步後移除商城與動態圖鑑資料。')) return;
         try {
-          await getDeveloperUserOrThrow();
-          await db.collection('shop_items').doc(itemId).update({
-            status: 'archived',
-            updated_at: Math.floor(Date.now() / 1000)
+          await manageCatalogItemCommand({
+            action: 'archive',
+            itemId,
+            clientRequestId: `catalog-archive-${itemId}-${Date.now()}`
           });
           await fetchAdminActiveItems();
         } catch (error) {
@@ -1008,17 +998,22 @@
         }
 
         try {
-          const developerUser = await getDeveloperUserOrThrow();
+          await getDeveloperUserOrThrow();
           const createdAt = Math.floor(Date.now() / 1000);
+          const pendingItemId =
+            event.target.dataset.pendingCatalogItemId || generateLocalUUID();
+          const pendingRequestId =
+            event.target.dataset.pendingCatalogRequestId ||
+            `catalog-publish-${pendingItemId}`;
+          event.target.dataset.pendingCatalogItemId = pendingItemId;
+          event.target.dataset.pendingCatalogRequestId = pendingRequestId;
           let payload = {
-            id: generateLocalUUID(),
+            id: pendingItemId,
             type: type,
             name: name,
             price: price,
             description: description,
             created_at: createdAt,
-            created_by: developerUser.uid,
-            created_by_email: developerUser.email || '',
             start_time: startTimeTs,
             end_time: endTimeTs,
             expires_at: endTimeTs,
@@ -1083,7 +1078,6 @@
               return;
             }
 
-            const catalogIndexBase = await resolveNextCatalogIndexBase();
             const uploadStamp = Date.now();
             const uploadedStages = [];
             for (const stage of stageFiles) {
@@ -1109,14 +1103,13 @@
               startAt: startTimeTs,
               endAt: endTimeTs,
               expiresAt: endTimeTs,
-              catalogIndexBase,
+              catalogIndexBase: 0,
               createdAt,
               updatedAt: createdAt,
-              createdBy: developerUser.uid,
+              createdBy: '',
               stages: uploadedStages
             });
-            payload.id = generateLocalUUID();
-            payload.created_by_email = developerUser.email || '';
+            payload.id = pendingItemId;
             payload.start_time = startTimeTs;
             payload.end_time = endTimeTs;
           } else {
@@ -1131,8 +1124,15 @@
             );
           }
 
-          await db.collection("shop_items").add(payload);
-          alert(`「${name}」已成功同步至 Firestore，上架資料會同步到 App 商城。`);
+          const commandResult = await manageCatalogItemCommand({
+            action: 'publish',
+            itemId: pendingItemId,
+            payload,
+            clientRequestId: pendingRequestId
+          });
+          alert(
+            `「${name}」已由 Cloud 驗證並同步至 App 商城。稽核事件：${commandResult.auditEventId}`
+          );
 
           const tbody = document.getElementById('purchaseTableBody');
           if (tbody) {
@@ -1149,6 +1149,8 @@
 
           fetchAdminActiveItems();
           event.target.reset();
+          delete event.target.dataset.pendingCatalogItemId;
+          delete event.target.dataset.pendingCatalogRequestId;
           document.querySelectorAll('.stage-preview-row img').forEach(img => {
             img.removeAttribute('src');
             img.style.display = 'none';

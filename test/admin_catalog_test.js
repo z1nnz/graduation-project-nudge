@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const {
   buildAvatarSeriesPayload,
@@ -95,4 +97,31 @@ test("admin validation rejects incomplete or non-increasing evolution chains", (
   assert.ok(errors.some((message) => message.includes("3 階")));
   assert.ok(errors.some((message) => message.includes("遞增")));
   assert.ok(errors.some((message) => message.includes("圖鑑")));
+});
+
+test("admin catalog mutations use the audited Cloud command only", () => {
+  const adminPage = fs.readFileSync(
+    path.resolve(__dirname, "../web_dashboard/admin_dashboard.html"),
+    "utf8",
+  );
+  const rules = fs.readFileSync(
+    path.resolve(__dirname, "../firestore.rules"),
+    "utf8",
+  );
+
+  assert.match(adminPage, /httpsCallable\('manageCatalogItem'\)/);
+  assert.match(adminPage, /action: 'publish'/);
+  assert.match(adminPage, /action: 'archive'/);
+  assert.doesNotMatch(
+    adminPage,
+    /collection\(['"]shop_items['"]\)\.(?:add|doc\([^)]*\)\.update)/,
+  );
+  assert.doesNotMatch(
+    adminPage,
+    /collection\(['"]catalog_counters['"]\)[\s\S]{0,200}runTransaction/,
+  );
+  assert.match(
+    rules,
+    /match \/shop_items\/\{itemId\}[\s\S]*allow create, update, delete: if false;/,
+  );
 });
