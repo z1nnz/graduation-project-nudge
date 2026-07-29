@@ -11,6 +11,8 @@ import 'screens/statistics_page.dart';
 import 'screens/social_page.dart';
 import 'screens/character_page.dart';
 import 'screens/account_page.dart';
+import 'screens/group_management_page.dart';
+import 'screens/guardian_center_page.dart';
 import 'theme/app_ui.dart';
 import 'screens/onboarding_page.dart';
 
@@ -308,6 +310,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int currentIndex = 0;
+  String? _scheduledPushRoute;
 
   void changeTab(int index) {
     setState(() {
@@ -322,9 +325,38 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  void _schedulePushRoute(AppState appState) {
+    final route = appState.pendingPushNotificationRoute;
+    if (route == null || route == _scheduledPushRoute) return;
+    _scheduledPushRoute = route;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final pendingRoute = appState.takePendingPushNotificationRoute();
+      _scheduledPushRoute = null;
+      if (pendingRoute == null) return;
+      switch (pendingRoute) {
+        case 'guardian':
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GuardianCenterPage()),
+          );
+          break;
+        case 'groups':
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GroupManagementPage()),
+          );
+          break;
+        default:
+          changeTab(3);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    _schedulePushRoute(appState);
     final accentColor = appState.currentIconColor;
 
     final pages = [

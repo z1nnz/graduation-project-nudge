@@ -2045,6 +2045,30 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // FCM registration tokens never cross the client read boundary. Clients
+    // use updatePushInstallation; only the non-secret aggregate is visible.
+    match /push_installations/{installationId} {
+      allow read, write: if false;
+    }
+
+    match /push_token_claims/{claimId} {
+      allow read, write: if false;
+    }
+
+    match /push_delivery_state/{userId} {
+      allow read: if isOwner(userId) || isStaff();
+      allow write: if false;
+    }
+
+    match /push_delivery_jobs/{jobId} {
+      allow read: if isAuth()
+        && (
+          resource.data.recipientUserId == request.auth.uid
+          || isStaff()
+        );
+      allow write: if false;
+    }
+
     match /audit_events/{auditEventId} {
       allow read: if isAuth()
         && (

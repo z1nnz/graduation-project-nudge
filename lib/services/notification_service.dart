@@ -21,6 +21,28 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static void Function(String payload)? _payloadHandler;
+  static String? _pendingPayload;
+
+  static void setPayloadHandler(void Function(String payload) handler) {
+    _payloadHandler = handler;
+    final pending = _pendingPayload;
+    if (pending != null) {
+      _pendingPayload = null;
+      handler(pending);
+    }
+  }
+
+  static void _handlePayload(String? payload) {
+    final normalized = payload?.trim() ?? '';
+    if (normalized.isEmpty) return;
+    final handler = _payloadHandler;
+    if (handler == null) {
+      _pendingPayload = normalized;
+    } else {
+      handler(normalized);
+    }
+  }
 
   static Future<void> initialize() async {
     if (_initialized || kIsWeb) return;
@@ -45,7 +67,26 @@ class NotificationService {
 
       await _plugin.initialize(
         settings: const InitializationSettings(android: android, iOS: darwin),
+        onDidReceiveNotificationResponse: (response) {
+          _handlePayload(response.payload);
+        },
       );
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      await androidPlugin?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'nudge_relationship_updates',
+          'Nudge 關係動態',
+          description: '家庭與團體邀請、邀請結果及成員關係更新',
+          importance: Importance.high,
+        ),
+      );
+      final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+      if (launchDetails?.didNotificationLaunchApp == true) {
+        _handlePayload(launchDetails?.notificationResponse?.payload);
+      }
       _initialized = true;
     } catch (error) {
       if (!kDebugMode) {
@@ -120,6 +161,37 @@ class NotificationService {
         debugPrint('Schedule notification error: $error');
       }
     }
+  }
+
+  static Future<void> showRemoteNotification({
+    required Object? notificationId,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (kIsWeb) return;
+    await initialize();
+    final source = notificationId?.toString() ?? '$title|$body';
+    var stableId = 17;
+    for (final codeUnit in source.codeUnits) {
+      stableId = ((stableId * 37) + codeUnit) & 0x7fffffff;
+    }
+    await _plugin.show(
+      id: stableId,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'nudge_relationship_updates',
+          'Nudge 關係動態',
+          channelDescription: '家庭與團體邀請、邀請結果及成員關係更新',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: payload,
+    );
   }
 
   static tz.TZDateTime _nextInstanceOfTime(String timeLabel) {

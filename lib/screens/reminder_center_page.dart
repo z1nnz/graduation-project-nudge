@@ -210,14 +210,22 @@ class ReminderCenterPage extends StatelessWidget {
   }
 
   Future<void> _enableSystemNotifications(BuildContext context) async {
-    final granted = await context
-        .read<AppState>()
-        .requestNotificationPermissionAndSchedule();
+    final appState = context.read<AppState>();
+    final granted = await appState.requestNotificationPermissionAndSchedule();
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(granted ? '已啟用系統提醒並完成排程' : '尚未取得系統通知權限')),
-    );
+    final message = !granted
+        ? '尚未取得系統通知權限'
+        : appState.isSignedIn &&
+              appState.isDevicePushSupported &&
+              !appState.isCurrentDevicePushConfigured
+        ? '本機提醒已啟用；遠端推播尚未取得裝置 token，請稍後再試'
+        : appState.isCurrentDevicePushConfigured
+        ? '已啟用本機排程與帳號遠端推播'
+        : '已啟用此裝置的本機提醒排程';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildPreviewCard(BuildContext context, ReminderPreview preview) {
@@ -436,8 +444,10 @@ class ReminderCenterPage extends StatelessWidget {
                           ),
                           _statusChip(
                             context,
-                            appState.isPushNotificationConfigured
-                                ? '裝置推播已設定'
+                            appState.isCurrentDevicePushConfigured
+                                ? '此裝置推播已設定'
+                                : appState.isPushNotificationConfigured
+                                ? '帳號其他裝置已設定推播'
                                 : '目前為本機排程／站內通知',
                             appState.isPushNotificationConfigured
                                 ? Icons.mobile_friendly_outlined
@@ -451,6 +461,31 @@ class ReminderCenterPage extends StatelessWidget {
                         icon: const Icon(Icons.notifications_active_outlined),
                         label: const Text('啟用系統提醒'),
                       ),
+                      if (appState.isSignedIn &&
+                          appState.isDevicePushSupported &&
+                          appState.isCurrentDevicePushConfigured) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            try {
+                              await appState.disablePushNotifications();
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('已關閉此裝置的遠端推播；本機提醒排程不受影響'),
+                                ),
+                              );
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('無法關閉遠端推播：$error')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.notifications_off_outlined),
+                          label: const Text('關閉此裝置遠端推播'),
+                        ),
+                      ],
                     ],
                   ),
                 ),

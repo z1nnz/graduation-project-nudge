@@ -41,6 +41,7 @@ import '../services/cloud_privacy_consent_gateway.dart';
 import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
+import '../services/push_notification_service.dart';
 import '../theme/app_ui.dart';
 
 class ReminderChannelSetting {
@@ -104,6 +105,7 @@ class AppState extends ChangeNotifier {
   final CloudPrivacyConsentGateway _privacyConsentGateway;
   final CloudNotificationPreferenceGateway _notificationPreferenceGateway;
   final CloudUserNotificationGateway _userNotificationGateway;
+  final PushNotificationService _pushNotificationService;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
@@ -112,6 +114,7 @@ class AppState extends ChangeNotifier {
     CloudPrivacyConsentGateway? privacyConsentGateway,
     CloudNotificationPreferenceGateway? notificationPreferenceGateway,
     CloudUserNotificationGateway? userNotificationGateway,
+    PushNotificationService? pushNotificationService,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()),
@@ -127,11 +130,16 @@ class AppState extends ChangeNotifier {
            notificationPreferenceGateway ??
            CloudNotificationPreferenceGateway.firebase(),
        _userNotificationGateway =
-           userNotificationGateway ?? CloudUserNotificationGateway.firebase() {
+           userNotificationGateway ?? CloudUserNotificationGateway.firebase(),
+       _pushNotificationService =
+           pushNotificationService ?? PushNotificationService() {
+    _pushNotificationService.setRouteHandler(_handlePushNotificationRoute);
     _listenToAuthChanges();
   }
 
   bool _isGuestMode = false;
+  bool? _pushInstallationConfigured;
+  String? _pendingPushNotificationRoute;
   bool get isGuestMode => _isGuestMode;
 
   void skipSignIn() {
@@ -197,8 +205,11 @@ class AppState extends ChangeNotifier {
           _setupFirestoreListeners(user);
           unawaited(_activityLedgerOutbox.flush());
           unawaited(_healthSnapshotOutbox.flush());
+          unawaited(_syncPushInstallation(user.uid));
         } else {
           _cancelFirestoreListeners();
+          _pushNotificationService.clearSignedInUser();
+          _pushInstallationConfigured = null;
           _currentUser = null;
           notifyListeners();
         }
@@ -1483,6 +1494,7 @@ class AppState extends ChangeNotifier {
     _familySummaryPublishTimer?.cancel();
     _familySummaryPublishTimer = null;
     _cancelFirestoreListeners();
+    unawaited(_pushNotificationService.dispose());
     super.dispose();
   }
 
@@ -2336,7 +2348,11 @@ class AppState extends ChangeNotifier {
   bool get isNotificationPreferenceCloudVerified =>
       _cloudNotificationPreferences?.hasCompleteChannelSet ?? false;
   bool get isPushNotificationConfigured =>
-      _cloudNotificationPreferences?.pushConfigured ?? false;
+      _pushInstallationConfigured ??
+      (_cloudNotificationPreferences?.pushConfigured ?? false);
+  bool get isCurrentDevicePushConfigured => _pushInstallationConfigured == true;
+  bool get isDevicePushSupported => _pushNotificationService.isSupported;
+  String? get pendingPushNotificationRoute => _pendingPushNotificationRoute;
   bool get isSyncingNotificationPreferences =>
       _isSyncingNotificationPreferences;
   List<UserNotification> get userNotifications =>
@@ -4577,8 +4593,44 @@ class AppState extends ChangeNotifier {
     final granted = await NotificationService.requestPermission();
     if (granted) {
       await _rescheduleLocalReminders();
+      final userId = _currentUser?.id;
+      if (userId != null) {
+        _pushInstallationConfigured = await _pushNotificationService
+            .enableForUser(userId);
+        notifyListeners();
+      }
     }
     return granted;
+  }
+
+  Future<void> disablePushNotifications() async {
+    final userId = _currentUser?.id;
+    if (userId == null) return;
+    await _pushNotificationService.disableForUser(userId);
+    _pushInstallationConfigured = false;
+    notifyListeners();
+  }
+
+  Future<void> _syncPushInstallation(String userId) async {
+    if (!_pushNotificationService.isSupported) {
+      _pushInstallationConfigured = null;
+      return;
+    }
+    final configured = await _pushNotificationService.syncIfAuthorized(userId);
+    if (_currentUser?.id != userId) return;
+    _pushInstallationConfigured = configured;
+    notifyListeners();
+  }
+
+  void _handlePushNotificationRoute(String route) {
+    _pendingPushNotificationRoute = route;
+    notifyListeners();
+  }
+
+  String? takePendingPushNotificationRoute() {
+    final route = _pendingPushNotificationRoute;
+    _pendingPushNotificationRoute = null;
+    return route;
   }
 
   Future<void> _rescheduleLocalReminders() async {
@@ -5868,12 +5920,18 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    final userId =
+        _currentUser?.id ?? fb_auth.FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      await _pushNotificationService.revokeForUser(userId);
+    }
     try {
       await fb_auth.FirebaseAuth.instance.signOut();
     } catch (e) {
       debugPrint('Error signing out of Firebase: $e');
     }
     _currentUser = null;
+    _pushInstallationConfigured = null;
     _isGuestMode = false;
     notifyListeners();
     await _saveCurrentUser();

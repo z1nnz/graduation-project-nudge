@@ -5,6 +5,8 @@ import {
   buildRelationshipInvitationNotification,
   buildRelationshipOutcomeNotification,
   createMarkNotificationReadHandler,
+  createRelationshipRequestCreatedHandler,
+  createRelationshipRequestUpdatedHandler,
 } from "../src/user-notification-service.js";
 
 test("family request creates a recipient-owned in-app notification", () => {
@@ -57,6 +59,130 @@ test("accepted group request notifies the sender and resolves once", () => {
       now: "2026-07-29T02:10:00.000Z",
     }),
     null,
+  );
+});
+
+function fakeRelationshipFirestore(seed = {}) {
+  const documents = new Map(
+    Object.entries(seed).map(([path, value]) => [
+      path,
+      structuredClone(value),
+    ]),
+  );
+  const reference = (collection, id) => ({
+    id,
+    path: `${collection}/${id}`,
+  });
+  return {
+    documents,
+    collection: collection => ({
+      doc: id => reference(collection, id),
+    }),
+    runTransaction: async callback =>
+      callback({
+        get: async ref => ({
+          exists: documents.has(ref.path),
+          data: () => structuredClone(documents.get(ref.path)),
+        }),
+        set: (ref, data) => documents.set(ref.path, structuredClone(data)),
+        update: (ref, patch) =>
+          documents.set(ref.path, {
+            ...documents.get(ref.path),
+            ...structuredClone(patch),
+          }),
+      }),
+  };
+}
+
+test("late create trigger does not resurrect a resolved invitation", async () => {
+  const requestId = "family-request-002";
+  const firestore = fakeRelationshipFirestore({
+    [`guardian_requests/${requestId}`]: {
+      senderId: "guardian",
+      receiverId: "child",
+      status: "accepted",
+    },
+  });
+  const handler = createRelationshipRequestCreatedHandler({
+    firestore,
+    scopeType: "family",
+  });
+
+  const result = await handler({
+    data: { data: () => ({ status: "pending" }) },
+    params: { requestId },
+    authId: "guardian",
+    authType: "USER",
+    time: "2026-07-29T02:05:00.000Z",
+  });
+
+  assert.equal(result, null);
+  assert.equal(
+    firestore.documents.has(
+      `user_notifications/family-request--${requestId}--pending`,
+    ),
+    false,
+  );
+});
+
+test("terminal relationship update cancels an unsent invitation job", async () => {
+  const requestId = "group-request-002";
+  const pendingId = `group-request--${requestId}--pending`;
+  const firestore = fakeRelationshipFirestore({
+    [`user_notifications/${pendingId}`]: {
+      notificationId: pendingId,
+      status: "unread",
+    },
+    [`push_delivery_jobs/${pendingId}`]: {
+      jobId: pendingId,
+      status: "pending",
+    },
+  });
+  const handler = createRelationshipRequestUpdatedHandler({
+    firestore,
+    scopeType: "group",
+  });
+
+  await handler({
+    data: {
+      before: {
+        exists: true,
+        data: () => ({
+          senderId: "manager",
+          receiverId: "member",
+          groupName: "同行團",
+          status: "pending",
+        }),
+      },
+      after: {
+        exists: true,
+        data: () => ({
+          senderId: "manager",
+          receiverId: "member",
+          groupName: "同行團",
+          status: "accepted",
+        }),
+      },
+    },
+    params: { requestId },
+    authId: "member",
+    authType: "USER",
+    time: "2026-07-29T02:06:00.000Z",
+  });
+
+  assert.equal(
+    firestore.documents.get(`push_delivery_jobs/${pendingId}`).status,
+    "cancelled",
+  );
+  assert.equal(
+    firestore.documents.get(`user_notifications/${pendingId}`).status,
+    "resolved",
+  );
+  assert.equal(
+    firestore.documents.has(
+      `push_delivery_jobs/group-request--${requestId}--accepted`,
+    ),
+    true,
   );
 });
 

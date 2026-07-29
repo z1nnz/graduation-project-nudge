@@ -112,12 +112,18 @@ export function createUpdateNotificationPreferencesHandler({
     const preferenceRef = firestore
       .collection("notification_preferences")
       .doc(userId);
+    const pushStateRef = firestore
+      .collection("push_delivery_state")
+      .doc(userId);
     const auditRef = firestore
       .collection("audit_events")
       .doc(`notification-preferences--${userId}--${input.clientRequestId}`);
 
     return firestore.runTransaction(async transaction => {
-      const replay = await transaction.get(auditRef);
+      const [replay, pushStateSnapshot] = await Promise.all([
+        transaction.get(auditRef),
+        transaction.get(pushStateRef),
+      ]);
       if (replay.exists) {
         const replayData = replay.data();
         if (
@@ -136,6 +142,11 @@ export function createUpdateNotificationPreferencesHandler({
         };
       }
 
+      const pushConfigured =
+        pushStateSnapshot.exists &&
+        pushStateSnapshot.data().configured === true &&
+        Array.isArray(pushStateSnapshot.data().activeInstallationIds) &&
+        pushStateSnapshot.data().activeInstallationIds.length > 0;
       const result = {
         schemaVersion: NOTIFICATION_PREFERENCE_SCHEMA_VERSION,
         userId,
@@ -143,7 +154,7 @@ export function createUpdateNotificationPreferencesHandler({
         delivery: {
           localScheduled: true,
           inApp: true,
-          pushConfigured: false,
+          pushConfigured,
         },
         updatedAt: timestamp,
         updatedBy: userId,

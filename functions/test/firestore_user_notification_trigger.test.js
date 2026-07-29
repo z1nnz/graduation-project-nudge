@@ -106,6 +106,16 @@ test(
     assert.equal(notification.actorUserId, guardian.localId);
     assert.equal(notification.kind, "family_invitation");
     assert.equal(notification.status, "unread");
+    const deliveryJob = await firestore
+      .collection("push_delivery_jobs")
+      .doc(notificationId)
+      .get();
+    assert.equal(deliveryJob.exists, true);
+    assert.equal(deliveryJob.data().recipientUserId, child.localId);
+    assert.equal(
+      ["pending", "skipped"].includes(deliveryJob.data().status),
+      true,
+    );
     const audit = await firestore
       .collection("audit_events")
       .doc(`family-request--${requestId}--created`)

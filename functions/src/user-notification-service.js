@@ -1,5 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { buildPushDeliveryJob } from "./push-notification-service.js";
+
 const TERMINAL_REQUEST_STATUSES = new Set([
   "accepted",
   "declined",
@@ -158,40 +160,54 @@ export function createRelationshipRequestCreatedHandler({
     const snapshot = event.data;
     if (!snapshot) return null;
     const requestId = event.params.requestId;
-    const requestData = snapshot.data();
-    if (requestData.status !== "pending") return null;
     const now = event.time || new Date().toISOString();
-    const notification = buildRelationshipInvitationNotification({
-      scopeType,
-      requestId,
-      requestData,
-      actorUserId: event.authId,
-      now,
-    });
     const auditEventId = `${scopeType}-request--${requestId}--created`;
-    const batch = firestore.batch();
-    batch.set(
-      firestore.collection("user_notifications").doc(
-        notification.notificationId,
-      ),
-      notification,
-    );
-    batch.set(
-      firestore.collection("audit_events").doc(auditEventId),
-      auditEvent({
-        auditEventId,
+    const requestRef = firestore
+      .collection(scopeType === "family" ? "guardian_requests" : "group_requests")
+      .doc(requestId);
+    return firestore.runTransaction(async transaction => {
+      const currentRequest = await transaction.get(requestRef);
+      if (
+        !currentRequest.exists ||
+        currentRequest.data().status !== "pending"
+      ) {
+        return null;
+      }
+      const notification = buildRelationshipInvitationNotification({
         scopeType,
         requestId,
-        actorUserId: notification.actorUserId,
-        actorPrincipalId: notification.actorPrincipalId,
-        recipientUserId: notification.recipientUserId,
-        action: `relationship.${scopeType}.invitation.created`,
-        authType: event.authType,
+        requestData: currentRequest.data(),
+        actorUserId: event.authId,
         now,
-      }),
-    );
-    await batch.commit();
-    return notification;
+      });
+      transaction.set(
+        firestore
+          .collection("user_notifications")
+          .doc(notification.notificationId),
+        notification,
+      );
+      transaction.set(
+        firestore
+          .collection("push_delivery_jobs")
+          .doc(notification.notificationId),
+        buildPushDeliveryJob(notification),
+      );
+      transaction.set(
+        firestore.collection("audit_events").doc(auditEventId),
+        auditEvent({
+          auditEventId,
+          scopeType,
+          requestId,
+          actorUserId: notification.actorUserId,
+          actorPrincipalId: notification.actorPrincipalId,
+          recipientUserId: notification.recipientUserId,
+          action: `relationship.${scopeType}.invitation.created`,
+          authType: event.authType,
+          now,
+        }),
+      );
+      return notification;
+    });
   };
 }
 
@@ -221,13 +237,22 @@ export function createRelationshipRequestUpdatedHandler({
     const pendingRef = firestore
       .collection("user_notifications")
       .doc(`${scopeType}-request--${requestId}--pending`);
+    const pendingPushDeliveryJobRef = firestore
+      .collection("push_delivery_jobs")
+      .doc(`${scopeType}-request--${requestId}--pending`);
     const notificationRef = firestore
       .collection("user_notifications")
+      .doc(notification.notificationId);
+    const pushDeliveryJobRef = firestore
+      .collection("push_delivery_jobs")
       .doc(notification.notificationId);
     const auditRef = firestore.collection("audit_events").doc(auditEventId);
 
     await firestore.runTransaction(async transaction => {
-      const pending = await transaction.get(pendingRef);
+      const [pending, pendingPushDeliveryJob] = await Promise.all([
+        transaction.get(pendingRef),
+        transaction.get(pendingPushDeliveryJobRef),
+      ]);
       if (pending.exists) {
         transaction.update(pendingRef, {
           status: "resolved",
@@ -235,7 +260,19 @@ export function createRelationshipRequestUpdatedHandler({
           updatedAt: now,
         });
       }
+      if (
+        pendingPushDeliveryJob.exists &&
+        pendingPushDeliveryJob.data().status === "pending"
+      ) {
+        transaction.update(pendingPushDeliveryJobRef, {
+          status: "cancelled",
+          reason: "relationship_request_resolved",
+          completedAt: now,
+          updatedAt: now,
+        });
+      }
       transaction.set(notificationRef, notification);
+      transaction.set(pushDeliveryJobRef, buildPushDeliveryJob(notification));
       transaction.set(
         auditRef,
         auditEvent({

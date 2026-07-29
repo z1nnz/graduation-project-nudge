@@ -54,6 +54,34 @@ test("notification preferences are Cloud audited and shared by App and Web", () 
   assert.match(webApp, /markNotificationRead/);
 });
 
+test("remote push uses secret Cloud installations and audited delivery jobs", () => {
+  const index = read("functions/index.js");
+  const pushService = read("functions/src/push-notification-service.js");
+  const notificationService = read(
+    "functions/src/user-notification-service.js",
+  );
+  const appPushService = read("lib/services/push_notification_service.dart");
+  const appState = read("lib/state/app_state.dart");
+  const rules = read("firestore.rules");
+
+  assert.match(index, /export const updatePushInstallation/);
+  assert.match(index, /export const deliverPushNotification/);
+  assert.match(index, /enforceAppCheck: true/);
+  assert.match(pushService, /push_installations/);
+  assert.match(pushService, /push_token_claims/);
+  assert.match(pushService, /sendEachForMulticast/);
+  assert.match(pushService, /notifications\.push\.deliver/);
+  assert.match(notificationService, /buildPushDeliveryJob/);
+  assert.match(appPushService, /onTokenRefresh/);
+  assert.match(appPushService, /deleteToken/);
+  assert.match(appState, /revokeForUser/);
+  assert.match(rules, /match \/push_installations\/\{installationId\}/);
+  assert.match(
+    rules,
+    /match \/push_delivery_state\/\{userId\}[\s\S]*allow write: if false/,
+  );
+});
+
 test("privacy surfaces do not claim local deletion removes Cloud data", () => {
   const appPrivacy = read("lib/screens/privacy_data_page.dart");
   const webPrivacy = read("web_dashboard/privacy.html");
@@ -71,5 +99,6 @@ test("staff audit page queries immutable Cloud events without demo rows", () => 
   assert.match(admin, /collection\('audit_events'\)/);
   assert.match(admin, /\.orderBy\('createdAt', 'desc'\)/);
   assert.match(admin, /startAdminAuditLog\(\)/);
+  assert.match(admin, /裝置推播註冊與投遞/);
   assert.doesNotMatch(admin, /mockAudit|demoAudit|假稽核/);
 });

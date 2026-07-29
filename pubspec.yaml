@@ -49,6 +49,7 @@ dependencies:
   flutter_facebook_auth: ^7.1.6
   cloud_functions: ^6.3.5
   firebase_app_check: ^0.4.5+2
+  firebase_messaging: ^16.4.3
 
 dev_dependencies:
   flutter_test:

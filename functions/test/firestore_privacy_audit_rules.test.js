@@ -110,6 +110,28 @@ test(
       status: "unread",
       createdAt: "2026-07-29T02:00:00.000Z",
     });
+    const installationId = `${owner.localId}--device_12345678`;
+    await firestore.collection("push_installations").doc(installationId).set({
+      schemaVersion: 1,
+      userId: owner.localId,
+      installationId: "device_12345678",
+      platform: "android",
+      token: "server-only-fcm-token",
+      tokenHash: "server-only-token-hash",
+      status: "active",
+    });
+    await firestore.collection("push_delivery_state").doc(owner.localId).set({
+      schemaVersion: 1,
+      userId: owner.localId,
+      activeInstallationIds: ["device_12345678"],
+      configured: true,
+    });
+    await firestore.collection("push_delivery_jobs").doc(notificationId).set({
+      schemaVersion: 1,
+      jobId: notificationId,
+      recipientUserId: owner.localId,
+      status: "pending",
+    });
 
     assert.equal(
       (
@@ -176,6 +198,51 @@ test(
     assert.equal(
       (
         await request(
+          `push_delivery_state/${owner.localId}`,
+          owner.idToken,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `push_delivery_state/${owner.localId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `push_installations/${installationId}`,
+          owner.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `push_delivery_jobs/${notificationId}`,
+          owner.idToken,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `push_delivery_jobs/${notificationId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
           `privacy_consents/${owner.localId}`,
           owner.idToken,
           {
@@ -221,6 +288,40 @@ test(
             body: JSON.stringify({
               fields: fieldsOf({
                 status: "read",
+              }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `push_delivery_state/${owner.localId}`,
+          owner.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                configured: false,
+              }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `push_installations/${installationId}`,
+          owner.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                token: "attacker-controlled-token",
               }),
             }),
           },

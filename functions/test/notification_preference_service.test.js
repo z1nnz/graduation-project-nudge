@@ -76,6 +76,10 @@ test("notification handler rejects unauthenticated callers", async () => {
 
 test("notification handler writes current state and one idempotent audit", async () => {
   const firestore = fakeFirestore();
+  firestore.documents.set("push_delivery_state/user-one", {
+    configured: true,
+    activeInstallationIds: ["installation-001"],
+  });
   const handler = createUpdateNotificationPreferencesHandler({
     firestore,
     clock: () => new Date("2026-07-29T01:00:00.000Z"),
@@ -98,7 +102,7 @@ test("notification handler writes current state and one idempotent audit", async
   assert.equal(first.replayed, false);
   assert.equal(replay.replayed, true);
   assert.equal(first.preferences.channels.rooms.enabled, false);
-  assert.equal(first.preferences.delivery.pushConfigured, false);
+  assert.equal(first.preferences.delivery.pushConfigured, true);
   assert.equal(
     firestore.documents.get("notification_preferences/user-one").userId,
     "user-one",

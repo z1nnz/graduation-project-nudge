@@ -1,10 +1,12 @@
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import {
   onDocumentCreatedWithAuthContext,
   onDocumentUpdatedWithAuthContext,
+  onDocumentCreated,
 } from "firebase-functions/v2/firestore";
 
 import { ActivityLedgerService } from "./src/activity-ledger-service.js";
@@ -24,6 +26,10 @@ import {
   createRelationshipRequestUpdatedHandler,
 } from "./src/user-notification-service.js";
 import { createManageCatalogItemHandler } from "./src/catalog-management-service.js";
+import {
+  createDeliverPushJobHandler,
+  createUpdatePushInstallationHandler,
+} from "./src/push-notification-service.js";
 
 initializeApp();
 setGlobalOptions({
@@ -60,6 +66,15 @@ const handleMarkNotificationRead = createMarkNotificationReadHandler({
 });
 const handleManageCatalogItem = createManageCatalogItemHandler({
   firestore: getFirestore(),
+  clock: () => new Date(),
+});
+const handleUpdatePushInstallation = createUpdatePushInstallationHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
+const handleDeliverPushJob = createDeliverPushJobHandler({
+  firestore: getFirestore(),
+  messaging: getMessaging(),
   clock: () => new Date(),
 });
 const handleGuardianRequestCreated = createRelationshipRequestCreatedHandler({
@@ -225,6 +240,26 @@ export const manageCatalogItem = onCall(
   },
 );
 
+export const updatePushInstallation = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await handleUpdatePushInstallation(request);
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("updatePushInstallation failed", error);
+      throw new HttpsError(
+        "internal",
+        "The push installation could not be updated.",
+      );
+    }
+  },
+);
+
 export const notifyGuardianRequestCreated =
   onDocumentCreatedWithAuthContext(
     "guardian_requests/{requestId}",
@@ -248,3 +283,13 @@ export const notifyGroupRequestUpdated =
     "group_requests/{requestId}",
     handleGroupRequestUpdated,
   );
+
+export const deliverPushNotification = onDocumentCreated(
+  {
+    document: "push_delivery_jobs/{jobId}",
+    retry: true,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+  },
+  handleDeliverPushJob,
+);

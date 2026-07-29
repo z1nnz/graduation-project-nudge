@@ -32,10 +32,10 @@ the recipient and records an immutable audit event. Trigger retries use
 deterministic notification and audit IDs.
 
 The delivery flags deliberately distinguish local scheduled reminders and
-in-app notifications from remote push. `pushConfigured` remains false until
-Firebase Cloud Messaging, APNs credentials, device token lifecycle, permission
-handling, and real-device delivery acceptance are complete. The UI must not
-label local scheduling as remote push.
+in-app notifications from remote push. ADR 0013 now defines the device-token
+and Cloud-delivery lifecycle. `pushConfigured` may become true only from its
+Cloud-owned active-installation aggregate; local scheduling alone must never
+set it.
 
 Authorized staff can read the latest immutable events in the admin audit
 console and filter them by category, action, or actor. The console never
