@@ -3,6 +3,73 @@ import 'package:nudge/models/activity_ledger.dart';
 import 'package:nudge/services/focus_activity_ledger_controller.dart';
 
 void main() {
+  test('a failed durable start does not leave a phantom session', () async {
+    var attempts = 0;
+    final controller = FocusActivityLedgerController(
+      sessionIdFactory: (_) => 'focus-session-failed',
+      eventSink:
+          ({
+            required sessionId,
+            required eventType,
+            required elapsedSeconds,
+            required occurredAt,
+          }) async {
+            attempts++;
+            throw StateError('outbox unavailable');
+          },
+    );
+
+    await expectLater(
+      controller.startOrResume(elapsedSeconds: 0),
+      throwsStateError,
+    );
+
+    expect(attempts, 1);
+    expect(controller.hasActiveSession, isFalse);
+    expect(controller.sessionId, isNull);
+  });
+
+  test('failed pause and completion preserve the active lifecycle', () async {
+    final events = <ActivityEventType>[];
+    var rejectNext = false;
+    final controller = FocusActivityLedgerController(
+      sessionIdFactory: (_) => 'focus-session-retry',
+      eventSink:
+          ({
+            required sessionId,
+            required eventType,
+            required elapsedSeconds,
+            required occurredAt,
+          }) async {
+            events.add(eventType);
+            if (rejectNext) {
+              rejectNext = false;
+              throw StateError('outbox unavailable');
+            }
+          },
+    );
+
+    await controller.startOrResume(elapsedSeconds: 0);
+    rejectNext = true;
+    await expectLater(controller.pause(elapsedSeconds: 120), throwsStateError);
+    expect(controller.hasActiveSession, isTrue);
+
+    // A failed pause must leave the session active, so startOrResume is a no-op.
+    await controller.startOrResume(elapsedSeconds: 120);
+    expect(events, [ActivityEventType.started, ActivityEventType.paused]);
+
+    rejectNext = true;
+    await expectLater(
+      controller.complete(elapsedSeconds: 180),
+      throwsStateError,
+    );
+    expect(controller.hasActiveSession, isTrue);
+    expect(controller.sessionId, 'focus-session-retry');
+
+    await controller.complete(elapsedSeconds: 180);
+    expect(controller.hasActiveSession, isFalse);
+  });
+
   test(
     'records one stable lifecycle for a paused and completed focus',
     () async {

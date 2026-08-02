@@ -29,38 +29,59 @@ class FocusActivityLedgerController {
   bool get hasActiveSession => _sessionId != null;
   String? get sessionId => _sessionId;
 
-  Future<void> startOrResume({required int elapsedSeconds}) {
+  Future<void> startOrResume({required int elapsedSeconds}) async {
     final now = _clock().toUtc();
     if (_sessionId == null) {
-      _sessionId = _sessionIdFactory(now);
+      final sessionId = _sessionIdFactory(now);
+      _sessionId = sessionId;
       _isPaused = false;
-      return _emit(
-        sessionId: _sessionId!,
-        eventType: ActivityEventType.started,
-        elapsedSeconds: 0,
+      try {
+        await _emit(
+          sessionId: sessionId,
+          eventType: ActivityEventType.started,
+          elapsedSeconds: 0,
+          occurredAt: now,
+        );
+      } catch (_) {
+        if (_sessionId == sessionId) {
+          _sessionId = null;
+          _isPaused = false;
+        }
+        rethrow;
+      }
+      return;
+    }
+    if (!_isPaused) return;
+    final sessionId = _sessionId!;
+    _isPaused = false;
+    try {
+      await _emit(
+        sessionId: sessionId,
+        eventType: ActivityEventType.resumed,
+        elapsedSeconds: elapsedSeconds,
         occurredAt: now,
       );
+    } catch (_) {
+      if (_sessionId == sessionId) _isPaused = true;
+      rethrow;
     }
-    if (!_isPaused) return Future<void>.value();
-    _isPaused = false;
-    return _emit(
-      sessionId: _sessionId!,
-      eventType: ActivityEventType.resumed,
-      elapsedSeconds: elapsedSeconds,
-      occurredAt: now,
-    );
   }
 
-  Future<void> pause({required int elapsedSeconds}) {
+  Future<void> pause({required int elapsedSeconds}) async {
     final sessionId = _sessionId;
-    if (sessionId == null || _isPaused) return Future<void>.value();
+    if (sessionId == null || _isPaused) return;
     _isPaused = true;
-    return _emit(
-      sessionId: sessionId,
-      eventType: ActivityEventType.paused,
-      elapsedSeconds: elapsedSeconds,
-      occurredAt: _clock().toUtc(),
-    );
+    try {
+      await _emit(
+        sessionId: sessionId,
+        eventType: ActivityEventType.paused,
+        elapsedSeconds: elapsedSeconds,
+        occurredAt: _clock().toUtc(),
+      );
+    } catch (_) {
+      if (_sessionId == sessionId) _isPaused = false;
+      rethrow;
+    }
   }
 
   Future<void> complete({required int elapsedSeconds}) {
@@ -80,17 +101,26 @@ class FocusActivityLedgerController {
   Future<void> _finish({
     required ActivityEventType eventType,
     required int elapsedSeconds,
-  }) {
+  }) async {
     final sessionId = _sessionId;
-    if (sessionId == null) return Future<void>.value();
+    if (sessionId == null) return;
+    final wasPaused = _isPaused;
     _sessionId = null;
     _isPaused = false;
-    return _emit(
-      sessionId: sessionId,
-      eventType: eventType,
-      elapsedSeconds: elapsedSeconds,
-      occurredAt: _clock().toUtc(),
-    );
+    try {
+      await _emit(
+        sessionId: sessionId,
+        eventType: eventType,
+        elapsedSeconds: elapsedSeconds,
+        occurredAt: _clock().toUtc(),
+      );
+    } catch (_) {
+      if (_sessionId == null) {
+        _sessionId = sessionId;
+        _isPaused = wasPaused;
+      }
+      rethrow;
+    }
   }
 
   Future<void> _emit({
