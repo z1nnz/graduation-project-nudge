@@ -103,34 +103,54 @@ npm --prefix scripts run migrate:rewards:rollback
 ## Real-account Auth and Rules acceptance
 
 `scripts/production_real_account_e2e.mjs` creates two short-lived Firebase
-Auth accounts and exercises production Firestore Rules. It verifies:
+Auth accounts and exercises production Firestore Rules plus the deployed,
+App-Check-protected Cloud authority path. It verifies:
 
 1. both accounts can create only their own private profile;
 2. a cross-account profile overwrite is denied;
-3. a manager atomically creates a group and manager Membership;
-4. a non-member cannot perform a manager action;
-5. a manager can issue a group invitation;
-6. the member atomically accepts the invitation, joins the group, and creates
-   the member Membership;
-7. the member and manager receive the intended Membership visibility;
-8. leaving and group closure update the parent document and Membership
-   lifecycle atomically; and
-9. test documents and both Auth accounts are deleted and the credentials no
+3. privacy consent is written by Cloud with the current policy and an owner-
+   readable immutable audit event;
+4. the account-deletion privacy workflow enters its cooling period, is safely
+   cancelled by the account owner, and produces both immutable audit events;
+5. notification preferences are written by Cloud with the complete channel
+   contract and an immutable audit event;
+6. one zero-reward focus lifecycle is accepted and settled by the formal
+   Activity Ledger without minting a reward;
+7. a manager atomically creates a group and manager Membership;
+8. a non-member cannot perform a manager action;
+9. a manager can issue a group invitation, the Cloud trigger creates the
+   recipient notification, and marking it read creates an audit event;
+10. the member atomically accepts the invitation, joins the group, creates the
+   member Membership, and the inviter receives the terminal status
+   notification;
+11. the member and manager receive the intended Membership visibility;
+12. Cloud generates a Membership-bound group planet and character outcome;
+13. leaving and group closure update the parent document and Membership
+   lifecycle atomically;
+14. an ordinary account cannot read another user's audit event, while a
+   synthetic operator granted through the administrator channel can;
+15. all Ledger, privacy, notification, outcome, group, Membership and audit
+   documents created by the run are deleted; and
+16. both Auth accounts are deleted and their credentials no
    longer sign in.
 
 Run it only with a short-lived administrator OAuth access token that can clean
-up the synthetic documents:
+up the synthetic documents and a short-lived App Check JWT issued for this
+Firebase project:
 
 ```sh
 NUDGE_FIREBASE_PROJECT_ID=nudge-discipline-app \
 NUDGE_FIREBASE_WEB_API_KEY='<public Firebase Web API key>' \
 NUDGE_FIREBASE_ADMIN_ACCESS_TOKEN='<short-lived OAuth token>' \
+NUDGE_FIREBASE_APP_CHECK_TOKEN='<short-lived App Check JWT>' \
 npm --prefix scripts run e2e:production:accounts
 ```
 
-Never commit, print, or persist the administrator token. The script does not
-print account email addresses, passwords, ID tokens, or the administrator
-token.
+Never commit, print, or persist either token. The script does not print account
+email addresses, passwords, ID tokens, the administrator token, or the App
+Check token. A successful source-level test of this script is not production
+acceptance; the JSON result from an actual run must report every step as
+`passed` and `cleanup` as `completed`.
 
 ## External release gates
 
