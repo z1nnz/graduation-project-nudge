@@ -39,6 +39,8 @@ import '../services/cloud_health_snapshot_gateway.dart';
 import '../services/cloud_notification_preference_gateway.dart';
 import '../services/cloud_privacy_consent_gateway.dart';
 import '../services/cloud_relationship_outcome_gateway.dart';
+import '../services/cloud_reward_avatar_gateway.dart';
+import '../services/cloud_reward_purchase_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/push_notification_service.dart';
@@ -106,6 +108,8 @@ class AppState extends ChangeNotifier {
   final CloudPrivacyConsentGateway _privacyConsentGateway;
   final CloudNotificationPreferenceGateway _notificationPreferenceGateway;
   final CloudUserNotificationGateway _userNotificationGateway;
+  final CloudRewardAvatarGateway _rewardAvatarGateway;
+  final CloudRewardPurchaseGateway _rewardPurchaseGateway;
   final PushNotificationService _pushNotificationService;
 
   AppState({
@@ -115,6 +119,8 @@ class AppState extends ChangeNotifier {
     CloudPrivacyConsentGateway? privacyConsentGateway,
     CloudNotificationPreferenceGateway? notificationPreferenceGateway,
     CloudUserNotificationGateway? userNotificationGateway,
+    CloudRewardAvatarGateway? rewardAvatarGateway,
+    CloudRewardPurchaseGateway? rewardPurchaseGateway,
     PushNotificationService? pushNotificationService,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
@@ -135,6 +141,10 @@ class AppState extends ChangeNotifier {
            CloudNotificationPreferenceGateway.firebase(),
        _userNotificationGateway =
            userNotificationGateway ?? CloudUserNotificationGateway.firebase(),
+       _rewardAvatarGateway =
+           rewardAvatarGateway ?? CloudRewardAvatarGateway.firebase(),
+       _rewardPurchaseGateway =
+           rewardPurchaseGateway ?? CloudRewardPurchaseGateway.firebase(),
        _pushNotificationService =
            pushNotificationService ?? PushNotificationService() {
     _pushNotificationService.setRouteHandler(_handlePushNotificationRoute);
@@ -1691,24 +1701,13 @@ class AppState extends ChangeNotifier {
         'myNudgeId': _myNudgeId,
         'themeMode': _themeModeSetting,
         'accentColor': _iconColorSetting,
-        'backgroundTheme': _backgroundThemeSetting,
         'profileTitleBadgeKey': _profileTitleBadgeKey,
-        'disciplineCoins': _disciplineCoins,
         'planetCount': _planetCount,
         'unlockedPlanets': _unlockedPlanets,
         'weeklyPlanetEarned': _weeklyPlanetEarned,
         'lastSettledWeekMonday': _lastSettledWeekMonday,
-        'rewardedTaskKeys': _rewardedTaskKeys.toList(),
-        'dailyCoinEarned': _dailyCoinEarned,
-        'monthlyDeadlineCoinEarned': _monthlyDeadlineCoinEarned,
         'focusSeconds':
             _focusSeconds, // ← synced for web dashboard real-time stats
-        'avatarProfile': _avatarProfile.toJson(),
-        'avatarExperienceLedger': _avatarExperienceLedger,
-        'avatarExperience': avatarExperience,
-        'avatarLevel': avatarLevel,
-        'avatarSeries': currentAvatarSeries,
-        'unlockedAvatarItems': _unlockedAvatarItemKeys.toList(),
         'dailySummaries': _dailySummaries.map((s) => s.toJson()).toList(),
         'unlockedBadgeDates': _unlockedBadgeDates,
         'userRole': _userRole,
@@ -2572,6 +2571,22 @@ class AppState extends ChangeNotifier {
 
   String avatarItemKey(String category, int index) {
     return '$category:$index';
+  }
+
+  String _avatarEquipmentRequestId(
+    AvatarProfile profile,
+    String backgroundTheme,
+  ) {
+    final canonical = jsonEncode({
+      'avatarProfile': profile.toJson(),
+      'backgroundTheme': backgroundTheme,
+    });
+    var hash = 0xcbf29ce484222325;
+    for (final codeUnit in canonical.codeUnits) {
+      hash ^= codeUnit;
+      hash = (hash * 0x100000001b3) & 0x7fffffffffffffff;
+    }
+    return 'app_equip_${hash.toRadixString(16)}';
   }
 
   bool isAvatarItemUnlocked(String category, int index) {
@@ -3708,7 +3723,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> purchaseAvatarItem(String category, int index) async {
-    if (isAvatarItemUnlocked(category, index)) return true;
+    final user = _currentUser;
+    if (user == null && isAvatarItemUnlocked(category, index)) return true;
     if (category == 'appBackground' &&
         (index < 0 || index >= AppUI.backgroundThemeKeys.length)) {
       return false;
@@ -3721,6 +3737,28 @@ class AppState extends ChangeNotifier {
     }
 
     final price = avatarItemPrice(category, index);
+    if (user != null) {
+      try {
+        final result = await _rewardPurchaseGateway.purchase(
+          category: category,
+          index: index,
+          catalogItemId: category == 'faceShape'
+              ? AvatarCatalog.catalogDocumentIdForStage(index)
+              : null,
+          clientRequestId: 'app_purchase_${category}_$index',
+        );
+        _disciplineCoins = result.disciplineCoins;
+        _unlockedAvatarItemKeys = result.unlockedAvatarItems.toSet();
+        notifyListeners();
+        await _saveRewardState();
+        await _saveAvatarUnlockState();
+        return true;
+      } catch (error) {
+        debugPrint('Cloud reward purchase failed: $error');
+        return false;
+      }
+    }
+
     if (_disciplineCoins < price) return false;
 
     _disciplineCoins -= price;
@@ -5660,7 +5698,28 @@ class AppState extends ChangeNotifier {
   Future<void> setBackgroundThemeSetting(String value) async {
     final index = AppUI.backgroundThemeKeys.indexOf(value);
     if (index < 0 || !isAvatarItemUnlocked('appBackground', index)) return;
-    _backgroundThemeSetting = value;
+    if (_currentUser != null) {
+      try {
+        final result = await _rewardAvatarGateway.equip(
+          avatarProfile: _avatarProfile,
+          backgroundTheme: value,
+          faceCatalogItemId: AvatarCatalog.catalogDocumentIdForStage(
+            _avatarProfile.faceShapeIndex,
+          ),
+          iconCatalogItemId: AvatarCatalog.catalogDocumentIdForStage(
+            _avatarProfile.avatarIconIndex,
+          ),
+          clientRequestId: _avatarEquipmentRequestId(_avatarProfile, value),
+        );
+        _avatarProfile = result.avatarProfile;
+        _backgroundThemeSetting = result.backgroundTheme;
+      } catch (error) {
+        debugPrint('Cloud background equipment failed: $error');
+        return;
+      }
+    } else {
+      _backgroundThemeSetting = value;
+    }
     notifyListeners();
     await _saveAppearanceSettings();
   }
@@ -5844,22 +5903,46 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> updateAvatarProfile(AvatarProfile profile) async {
-    _avatarProfile = profile;
+    if (_currentUser != null) {
+      try {
+        final result = await _rewardAvatarGateway.equip(
+          avatarProfile: profile,
+          backgroundTheme: _backgroundThemeSetting,
+          faceCatalogItemId: AvatarCatalog.catalogDocumentIdForStage(
+            profile.faceShapeIndex,
+          ),
+          iconCatalogItemId: AvatarCatalog.catalogDocumentIdForStage(
+            profile.avatarIconIndex,
+          ),
+          clientRequestId: _avatarEquipmentRequestId(
+            profile,
+            _backgroundThemeSetting,
+          ),
+        );
+        _avatarProfile = result.avatarProfile;
+        _backgroundThemeSetting = result.backgroundTheme;
+      } catch (error) {
+        debugPrint('Cloud avatar equipment failed: $error');
+        return;
+      }
+    } else {
+      _avatarProfile = profile;
+    }
     _normalizeAvatarProfileForCatalog();
     _syncMyFocusSecondsAcrossRooms();
     notifyListeners();
     await _saveAppearanceSettings();
-    await _saveStudyRooms();
+    try {
+      await _saveStudyRooms();
+    } catch (error) {
+      debugPrint('Failed to sync avatar into room projections: $error');
+    }
     await syncDataToFirestore();
   }
 
   Future<void> updateAvatarIconIndex(int index) async {
     if (!isAvatarIconUnlocked(index)) return;
-    _avatarProfile = _avatarProfile.copyWith(avatarIconIndex: index);
-    _normalizeAvatarProfileForCatalog();
-    notifyListeners();
-    await _saveAppearanceSettings();
-    await syncDataToFirestore();
+    await updateAvatarProfile(_avatarProfile.copyWith(avatarIconIndex: index));
   }
 
   SocialFriendProfile? getSocialFriendById(String id) {

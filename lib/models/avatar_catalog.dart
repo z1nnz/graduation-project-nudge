@@ -581,6 +581,15 @@ class AvatarCatalog {
     );
   }
 
+  static String? catalogDocumentIdForStage(int index) {
+    for (final published in _publishedSeries) {
+      if (published.stages.any((stage) => stage.index == index)) {
+        return published.documentId;
+      }
+    }
+    return null;
+  }
+
   static String characterAssetForIndex(int index) {
     return stageForIndex(index).characterAsset;
   }

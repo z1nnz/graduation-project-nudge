@@ -233,7 +233,7 @@ test("App surfaces composable relationship tools and separates growth tracks", (
     read("firestore.rules"),
     /match \/relationship_memberships\/\{membershipId\}/,
   );
-  assert.match(
+  assert.doesNotMatch(
     appState,
     /'avatarExperienceLedger': _avatarExperienceLedger/,
   );

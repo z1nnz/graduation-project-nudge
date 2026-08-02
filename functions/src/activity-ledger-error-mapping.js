@@ -3,6 +3,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import {
   ActivityLedgerAuthenticationError,
   ActivityLedgerAuthorizationError,
+  ActivityLedgerTemporarilyUnavailableError,
   ActivityLedgerValidationError,
 } from "./activity-ledger-service.js";
 
@@ -41,6 +42,9 @@ export function activityLedgerHttpsError(error) {
   }
   if (error instanceof ActivityLedgerValidationError) {
     return new HttpsError("invalid-argument", error.message);
+  }
+  if (error instanceof ActivityLedgerTemporarilyUnavailableError) {
+    return new HttpsError("unavailable", error.message);
   }
   const code = retryableCode(error);
   if (code) {

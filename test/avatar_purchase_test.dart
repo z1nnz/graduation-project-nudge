@@ -1,5 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/models/avatar_catalog.dart';
+import 'package:nudge/models/avatar_profile.dart';
+import 'package:nudge/models/user_model.dart';
+import 'package:nudge/services/cloud_reward_purchase_gateway.dart';
+import 'package:nudge/services/cloud_reward_avatar_gateway.dart';
 import 'package:nudge/state/app_state.dart';
 import 'package:nudge/theme/app_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,6 +80,93 @@ void main() {
       expect(appState.isAvatarEvolutionStageUnlocked(forestStageIndex), isTrue);
     },
   );
+
+  test(
+    'signed-in purchases apply only the Cloud reward ledger result',
+    () async {
+      final now = DateTime.now();
+      final user = UserModel(
+        id: 'user-1',
+        username: 'user-1',
+        nickname: '測試者',
+        signature: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      SharedPreferences.setMockInitialValues({
+        'current_user_setting': jsonEncode(user.toJson()),
+        'discipline_coins_setting': 999,
+        'unlocked_avatar_items_setting': ['faceShape:12'],
+      });
+      var cloudPurchaseCalls = 0;
+      final appState = AppState(
+        rewardPurchaseGateway: CloudRewardPurchaseGateway.withCallable((
+          payload,
+        ) async {
+          cloudPurchaseCalls += 1;
+          expect(payload['category'], 'faceShape');
+          expect(payload['index'], 12);
+          return {
+            'rewardEntryId': 'purchase-cloud-1',
+            'itemKey': 'faceShape:12',
+            'disciplineCoins': 10,
+            'unlockedAvatarItems': ['faceShape:12'],
+            'alreadyUnlocked': false,
+            'replayed': false,
+          };
+        }),
+      );
+      await appState.loadAllLocalData();
+
+      final purchased = await appState.purchaseAvatarItem('faceShape', 12);
+
+      expect(purchased, isTrue);
+      expect(cloudPurchaseCalls, 1);
+      expect(appState.disciplineCoins, 10);
+      expect(appState.isAvatarEvolutionStageUnlocked(12), isTrue);
+    },
+  );
+
+  test('signed-in avatar equipment uses the Cloud ownership result', () async {
+    final now = DateTime.now();
+    final user = UserModel(
+      id: 'user-1',
+      username: 'user-1',
+      nickname: '測試者',
+      signature: '',
+      createdAt: now,
+      updatedAt: now,
+    );
+    SharedPreferences.setMockInitialValues({
+      'current_user_setting': jsonEncode(user.toJson()),
+      'unlocked_avatar_items_setting': ['faceShape:12'],
+    });
+    var equipmentCalls = 0;
+    final target = AvatarProfile.initial().copyWith(
+      faceShapeIndex: 12,
+      avatarIconIndex: 12,
+    );
+    final appState = AppState(
+      rewardAvatarGateway: CloudRewardAvatarGateway.withCallable((
+        payload,
+      ) async {
+        equipmentCalls += 1;
+        return {
+          'rewardEntryId': 'equipment-cloud-1',
+          'avatarProfile': target.toJson(),
+          'avatarSeries': '月影忍者',
+          'backgroundTheme': 'softGlow',
+          'replayed': false,
+        };
+      }),
+    );
+    await appState.loadAllLocalData();
+
+    await appState.updateAvatarProfile(target);
+
+    expect(equipmentCalls, 1);
+    expect(appState.avatarProfile.faceShapeIndex, 12);
+  });
 
   test(
     'background themes can be purchased and applied from shop state',

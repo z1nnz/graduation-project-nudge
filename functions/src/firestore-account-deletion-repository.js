@@ -595,6 +595,8 @@ export class FirestoreAccountDeletionRepository {
     const querySpecs = [
       ["activity_events", "actorUserId"],
       ["activity_receipts", "actorUserId"],
+      ["reward_ledger_entries", "actorUserId"],
+      ["reward_migration_before_images", "actorUserId"],
       ["activity_sessions", "actorUserId"],
       ["room_contributions", "actorUserId"],
       ["push_installations", "userId"],

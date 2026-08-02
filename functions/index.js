@@ -31,6 +31,8 @@ import {
   createRelationshipRequestUpdatedHandler,
 } from "./src/user-notification-service.js";
 import { createManageCatalogItemHandler } from "./src/catalog-management-service.js";
+import { createPurchaseRewardItemHandler } from "./src/reward-purchase-service.js";
+import { createEquipRewardAvatarHandler } from "./src/reward-avatar-service.js";
 import {
   createDeliverPushJobHandler,
   createUpdatePushInstallationHandler,
@@ -152,6 +154,14 @@ const handleMarkNotificationRead = createMarkNotificationReadHandler({
   clock: () => new Date(),
 });
 const handleManageCatalogItem = createManageCatalogItemHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
+const handlePurchaseRewardItem = createPurchaseRewardItemHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
+const handleEquipRewardAvatar = createEquipRewardAvatarHandler({
   firestore: getFirestore(),
   clock: () => new Date(),
 });
@@ -387,6 +397,46 @@ export const manageCatalogItem = onCall(
         "internal",
         "The catalog item could not be updated.",
       );
+    }
+  },
+);
+
+export const purchaseRewardItem = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await withAccountOperation(
+        request,
+        () => handlePurchaseRewardItem(request),
+      );
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("purchaseRewardItem failed", error);
+      throw new HttpsError("internal", "The reward item could not be purchased.");
+    }
+  },
+);
+
+export const equipRewardAvatar = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await withAccountOperation(
+        request,
+        () => handleEquipRewardAvatar(request),
+      );
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("equipRewardAvatar failed", error);
+      throw new HttpsError("internal", "The avatar equipment could not be saved.");
     }
   },
 );

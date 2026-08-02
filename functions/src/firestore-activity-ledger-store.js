@@ -38,6 +38,10 @@ class FirestoreActivityLedgerTransaction {
       .doc(documentId(fingerprint));
   }
 
+  #rewardEntryRef(rewardEntryId) {
+    return this.firestore.collection("reward_ledger_entries").doc(rewardEntryId);
+  }
+
   async #getReferencedEvent(claimSnapshot) {
     if (!claimSnapshot.exists) {
       return null;
@@ -103,6 +107,39 @@ class FirestoreActivityLedgerTransaction {
       ? snapshot.data().tasks
       : [];
     return tasks.find(task => task?.id === taskId) ?? null;
+  }
+
+  async getRewardEntry(rewardEntryId) {
+    const snapshot = await this.transaction.get(
+      this.#rewardEntryRef(rewardEntryId),
+    );
+    return snapshot.exists ? snapshot.data() : null;
+  }
+
+  async getRewardCutover() {
+    const snapshot = await this.transaction.get(
+      this.firestore.collection("system_state").doc("reward_ledger_cutover"),
+    );
+    return snapshot.exists ? snapshot.data() : { writesPaused: false };
+  }
+
+  async getRewardProjection(userId) {
+    const snapshot = await this.transaction.get(
+      this.firestore.collection("users").doc(userId),
+    );
+    return snapshot.exists ? snapshot.data() : null;
+  }
+
+  #writeRewardSettlement(actorUserId, rewardSettlement) {
+    if (!rewardSettlement?.isNew) return;
+    this.transaction.create(
+      this.#rewardEntryRef(rewardSettlement.entry.rewardEntryId),
+      { schemaVersion: 1, ...rewardSettlement.entry },
+    );
+    this.transaction.update(
+      this.firestore.collection("users").doc(actorUserId),
+      rewardSettlement.projection,
+    );
   }
 
   async updateTaskProjection(userId, taskId, completed, occurredAt) {
@@ -184,6 +221,7 @@ class FirestoreActivityLedgerTransaction {
     sourceKey,
     fingerprint,
     session,
+    rewardSettlement = null,
   }) {
     const eventRef = this.#eventRef(eventKey);
     this.transaction.create(eventRef, {
@@ -233,6 +271,7 @@ class FirestoreActivityLedgerTransaction {
         },
       );
     }
+    this.#writeRewardSettlement(event.evidence.actorUserId, rewardSettlement);
   }
 
   async createCorrectionSettlement({
@@ -242,6 +281,7 @@ class FirestoreActivityLedgerTransaction {
     sourceKey,
     fingerprint,
     session,
+    rewardSettlement = null,
   }) {
     const eventRef = this.#eventRef(eventKey);
     this.transaction.create(eventRef, {
@@ -290,6 +330,7 @@ class FirestoreActivityLedgerTransaction {
         },
       );
     }
+    this.#writeRewardSettlement(event.evidence.actorUserId, rewardSettlement);
   }
 
   async mergeSettlement({

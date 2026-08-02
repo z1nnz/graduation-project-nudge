@@ -1980,7 +1980,7 @@ async function bootFirebaseBackedData() {
     signature: localStorage.getItem("nudgeSignatureCache") || "今天也在穩定前進",
     accentColor: localStorage.getItem("nudgeAccentColorCache") || "purple",
     profileTitleBadgeKey: localStorage.getItem("nudgeTitleBadgeCache") || "",
-    disciplineCoins: parseInt(localStorage.getItem("nudgeCoinsCache") || "100"),
+    disciplineCoins: parseInt(localStorage.getItem("nudgeCoinsCache") || "0"),
     planetCount: parseInt(localStorage.getItem("nudgePlanetsCache") || "1"),
     userRole: localStorage.getItem("nudgeRoleCache") || "personal"
   };
@@ -7319,7 +7319,6 @@ function listenToUser(userId) {
         nickname: "新自律使用者",
         myNudgeId: 'NDG_' + userId.substring(0, 6).toUpperCase(),
         username: 'NDG_' + userId.substring(0, 6).toUpperCase(),
-        disciplineCoins: 100,
         planetCount: 0,
         weeklyPlanetEarned: false,
         tasks: [],

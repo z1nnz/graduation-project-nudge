@@ -145,6 +145,44 @@ service cloud.firestore {
       ]);
     }
 
+    function hasProtectedRewardFields() {
+      return request.resource.data.keys().hasAny([
+        'disciplineCoins',
+        'rewardedTaskKeys',
+        'dailyCoinEarned',
+        'monthlyDeadlineCoinEarned',
+        'avatarExperienceLedger',
+        'avatarExperience',
+        'avatarLevel',
+        'unlockedAvatarItems',
+        'rewardLedgerBaselineVersion',
+        'rewardLedgerBaselineId',
+        'rewardLedgerBaselinedAt',
+        'avatarProfile',
+        'avatarSeries',
+        'backgroundTheme'
+      ]);
+    }
+
+    function changesProtectedRewardFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'disciplineCoins',
+        'rewardedTaskKeys',
+        'dailyCoinEarned',
+        'monthlyDeadlineCoinEarned',
+        'avatarExperienceLedger',
+        'avatarExperience',
+        'avatarLevel',
+        'unlockedAvatarItems',
+        'rewardLedgerBaselineVersion',
+        'rewardLedgerBaselineId',
+        'rewardLedgerBaselinedAt',
+        'avatarProfile',
+        'avatarSeries',
+        'backgroundTheme'
+      ]);
+    }
+
     function hasGroupProjectionFields() {
       return request.resource.data.keys().hasAny([
         'groupId', 'groupName', 'isGroupOwner'
@@ -249,10 +287,12 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId)
         && !hasProtectedStaffFields()
+        && !hasProtectedRewardFields()
         && !hasGroupProjectionFields();
       allow update: if (
           isOwner(userId)
           && !changesProtectedStaffFields()
+          && !changesProtectedRewardFields()
           && doesNotAddOrChangeLegacyGroupProjection()
         );
       allow delete: if false;
@@ -353,7 +393,13 @@ service cloud.firestore {
       }
 
       allow read: if isAuth();
-      allow create, update: if isOwner(userId) && validPublicProfile();
+      allow create: if isOwner(userId)
+        && validPublicProfile()
+        && request.resource.data.avatarProfile.faceShapeIndex in [0, 3, 6, 9]
+        && request.resource.data.avatarProfile.avatarIconIndex in [0, 3, 6, 9];
+      allow update: if isOwner(userId)
+        && validPublicProfile()
+        && request.resource.data.avatarProfile == resource.data.avatarProfile;
       allow delete: if false;
     }
 
@@ -2215,6 +2261,12 @@ service cloud.firestore {
     }
 
     match /activity_receipts/{receiptId} {
+      allow read: if isAuth()
+        && (resource.data.actorUserId == request.auth.uid || isStaff());
+      allow write: if false;
+    }
+
+    match /reward_ledger_entries/{rewardEntryId} {
       allow read: if isAuth()
         && (resource.data.actorUserId == request.auth.uid || isStaff());
       allow write: if false;

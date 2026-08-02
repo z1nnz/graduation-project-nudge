@@ -71,6 +71,7 @@ test(
     const roomId = `ledger-room-${unique}`;
     const eventId = `ledger-event-${unique}`;
     const contributionId = `ledger-contribution-${unique}`;
+    const rewardEntryId = `ledger-reward-${unique}`;
 
     await firestore.collection("rooms").doc(roomId).set({
       schemaVersion: 2,
@@ -105,6 +106,50 @@ test(
         roomId,
         metricValue: 25,
       });
+    await firestore.collection("users").doc(actor.localId).set({
+      nickname: "Ledger actor",
+      disciplineCoins: 10,
+      avatarExperience: 25,
+      unlockedAvatarItems: [],
+      avatarProfile: { faceShapeIndex: 0, avatarIconIndex: 0 },
+      avatarSeries: "星辰旅人",
+      backgroundTheme: "softGlow",
+    });
+    const publicAvatar = {
+      skinToneIndex: 0,
+      faceShapeIndex: 0,
+      hairStyleIndex: 0,
+      hairColorIndex: 0,
+      eyeStyleIndex: 0,
+      eyebrowStyleIndex: 0,
+      mouthStyleIndex: 0,
+      outfitStyleIndex: 0,
+      outfitColorIndex: 0,
+      accessoryIndex: 0,
+      backgroundColorIndex: 0,
+      avatarIconIndex: 0,
+    };
+    await firestore.collection("public_profiles").doc(actor.localId).set({
+      schemaVersion: 1,
+      userId: actor.localId,
+      username: "ledger-actor",
+      myNudgeId: "NDG_LEDGER",
+      nickname: "Ledger actor",
+      signature: "",
+      avatarProfile: publicAvatar,
+      accentColor: "purple",
+      planetCount: 0,
+      familyRole: "personal",
+      profileTitleBadgeKey: "",
+      unlockedBadgeDates: {},
+      updatedAt: "2026-08-02T10:00:00.000Z",
+    });
+    await firestore.collection("reward_ledger_entries").doc(rewardEntryId).set({
+      actorUserId: actor.localId,
+      entryType: "activity",
+      disciplineCoinsDelta: 1,
+      characterExperienceDelta: 25,
+    });
 
     assert.equal(
       (await request(`activity_events/${eventId}`, actor.idToken)).status,
@@ -128,6 +173,21 @@ test(
     );
     assert.equal(
       (
+        await request(`reward_ledger_entries/${rewardEntryId}`, actor.idToken)
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `reward_ledger_entries/${rewardEntryId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
         await request(`activity_events/client-write-${unique}`, actor.idToken, {
           method: "PATCH",
           body: JSON.stringify({
@@ -139,6 +199,74 @@ test(
         })
       ).status,
       403,
+    );
+    assert.equal(
+      (
+        await request(
+          `users/${actor.localId}?updateMask.fieldPaths=disciplineCoins`,
+          actor.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({ disciplineCoins: 999999 }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `users/${actor.localId}?updateMask.fieldPaths=avatarProfile`,
+          actor.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                avatarProfile: { faceShapeIndex: 12, avatarIconIndex: 12 },
+              }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `public_profiles/${actor.localId}?updateMask.fieldPaths=avatarProfile`,
+          actor.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                avatarProfile: {
+                  ...publicAvatar,
+                  faceShapeIndex: 12,
+                  avatarIconIndex: 12,
+                },
+              }),
+            }),
+          },
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `public_profiles/${actor.localId}?updateMask.fieldPaths=nickname`,
+          actor.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({ nickname: "Updated actor" }),
+            }),
+          },
+        )
+      ).status,
+      200,
     );
   },
 );

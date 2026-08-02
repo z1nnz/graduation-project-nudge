@@ -57,6 +57,18 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
   可獎勵的 task 事件；正式獎勵必須由後續 Cloud Reward Ledger 結算。
 - App 健康型房間已移除舊式手動投影入口，只能前往 Health Connect／
   Apple Health 同步後由 Ledger 更新房間貢獻。
+- Cloud Reward Ledger 已在 Activity Receipt、個人自律幣、角色 XP 與使用者
+  投影之間提供同一交易結算；每日／每週／每月自律幣上限及每日角色 XP 上限
+  由伺服器計算。App／Web 送出的計時活動必須先有 `started` 生命週期，且申報
+  時數不得超過 Cloud 從首次收到 `started` 起可觀察的經過時間；客戶端回填的
+  歷史時間只供稽核，不能增加獎勵。步數與睡眠只接受受信任健康 Adapter，
+  一般 App／Web 不能自行填值；一般活動的獎勵日期採 Cloud 結算日，不能靠
+  回填日期繞過每日／每週／每月上限。
+- App 與 Web 商城改呼叫 `purchaseRewardItem`；價格、餘額、重送去重及完整三階
+  進化鏈均由 Cloud 驗證，只有第一階可購買。`disciplineCoins`、角色 XP、等級及
+  解鎖欄位已由 Firestore Rules 禁止客戶端寫入；已登入帳號裝備角色與背景也
+  必須呼叫 `equipRewardAvatar`，Cloud 會依正式解鎖與該系列 XP 驗證進化資格，
+  App 的本機快取不能直接套用付費角色。
 
 尚未完成或仍需重構：
 
@@ -70,9 +82,14 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 - 一般活動房仍保留舊 `activity_sessions` 讀取投影供過渡期 UI 使用；需在
   App／Web 都能直接讀取正式 Session／Contribution 後移除。
 - 房間資料與使用者文件中既有投影資料的遷移、封存與清除。
-- Cloud Reward Ledger、伺服器端購買交易與 Firestore 獎勵欄位寫入封鎖尚未
-  完成；目前端點已停止由任務與每日摘要自行增加自律幣／角色 XP，但不能據此
-  宣稱獎勵帳本與防竄改已完成。
+- Reward Ledger 的程式、Rules 與本機測試已完成，但正式環境尚未部署，也尚未
+  執行既有帳號的獎勵基線遷移與真實帳號 callable 驗收；預設 dry-run 的
+  `scripts/migrate_reward_ledger_baselines.js` 已備妥，會建立可重放的開帳項目並
+  清除舊任務獎勵投影。Apply 會先建立 Cloud callable 共同檢查的 cutover fence，
+  每個 runner 以獨立 owner token 接管，且每筆使用者交易都重新驗證 owner、
+  run 與 operation，再寫入基線與 before-image；失敗時 fence 保持關閉，可續跑
+  或執行 rollback。Apply 與 rollback 的本機 Firestore Emulator 驗收已通過。
+  因此目前只能稱為 source/test-ready，不能宣稱正式防竄改切換已上線。
 
 正式 Web 發布前必須透過部署環境設定
 `window.NUDGE_FIREBASE_APP_CHECK_SITE_KEY`，或在 HTML 提供
@@ -309,7 +326,9 @@ Room Membership 角色只影響房間設定與管理，不影響活動控制權�
 只有 `actorUserId`、其已指派裝置或受信任健康 Adapter 可以改變活動狀態。
 `metricSynced` 會建立可稽核的 Receipt 與房間貢獻，但 Session 保持
 `active`，且不具個人獎勵或角色經驗資格；只有經規則確認的 `completed`
-事件可以結束 Session 並進入獎勵判定。
+事件可以結束 Session 並進入獎勵判定。一般 App／Web 計時活動還必須已有
+Cloud 接受的 `started` 事件，且申報時間不超過實際生命週期；受信任的健康
+Adapter 則必須附完整 provider、日期、期間及 data origin 證據。
 
 ### 6.5 Activity Receipt
 
@@ -325,6 +344,7 @@ Cloud 對活動的唯一驗證結果：
 - `characterExperienceEligible`
 - `characterExperienceIssued`：只有 Cloud 已在同一交易建立角色經驗 Ledger
   時才可為 `true`
+- `rewardEntryId`：指向同交易建立或重放的 `reward_ledger_entries` 文件
 - `verifiedAt`
 - `correctionOfReceiptId`
 

@@ -26,6 +26,14 @@ const ACTIVITY_POLICIES = new Map([
   ["sleep", { unit: "hours", maximum: 24, rewardable: true }],
   ["task", { unit: "completion", maximum: 1, rewardable: false }],
 ]);
+const REWARD_POLICY_VERSION = "activity-v1";
+const COIN_DAILY_LIMIT = 15;
+const COIN_WEEKLY_LIMIT = 100;
+const COIN_MONTHLY_LIMIT = 400;
+const CHARACTER_EXPERIENCE_DAILY_LIMIT = 500;
+const AVATAR_MAX_LEVEL = 60;
+const AVATAR_LEVEL_CURVE_A = 5.454899668809663;
+const AVATAR_LEVEL_CURVE_B = 186.63549581141635;
 
 export class ActivityLedgerAuthenticationError extends Error {
   constructor(message) {
@@ -45,6 +53,14 @@ export class ActivityLedgerValidationError extends Error {
   constructor(message) {
     super(message);
     this.name = "ActivityLedgerValidationError";
+  }
+}
+
+export class ActivityLedgerTemporarilyUnavailableError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ActivityLedgerTemporarilyUnavailableError";
+    this.code = "unavailable";
   }
 }
 
@@ -144,18 +160,46 @@ function membershipAllowsContribution(membership, occurredAt) {
   return true;
 }
 
-function rewardEligibility(evidence) {
-  if (evidence.source === "health" && evidence.eventType === "metricSynced") {
+function rewardEligibility(evidence, existingSession) {
+  if (evidence.eventType !== "completed") {
     return false;
   }
   const policy = ACTIVITY_POLICIES.get(evidence.activityType);
   if (!policy?.rewardable || evidence.metricValue <= 0) {
     return false;
   }
-  return (
-    evidence.metricUnit === policy.unit &&
-    evidence.metricValue <= policy.maximum
-  );
+  if (
+    evidence.metricUnit !== policy.unit ||
+    evidence.metricValue > policy.maximum
+  ) {
+    return false;
+  }
+  if (evidence.source === "health") {
+    return evidence.healthContext !== null;
+  }
+  if (
+    !existingSession ||
+    existingSession.lifecycleStarted !== true ||
+    !["active", "paused"].includes(existingSession.status)
+  ) {
+    return false;
+  }
+  const startedAt = new Date(existingSession.startedVerifiedAt).getTime();
+  const completedAt = new Date(evidence.receivedAt).getTime();
+  if (
+    Number.isNaN(startedAt) ||
+    Number.isNaN(completedAt) ||
+    completedAt < startedAt
+  ) {
+    return false;
+  }
+  if (["focus", "study", "exercise"].includes(evidence.activityType)) {
+    const elapsedMinutes = (completedAt - startedAt) / 60_000;
+    if (evidence.metricValue > elapsedMinutes) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function stableTaskKey(value) {
@@ -171,6 +215,220 @@ function stableTaskKey(value) {
 function taipeiTaskDateKey(occurredAt) {
   const shifted = new Date(occurredAt.getTime() + 3 * 60 * 60 * 1000);
   return shifted.toISOString().slice(0, 10);
+}
+
+function rewardDateKey(evidence, verifiedAt) {
+  if (evidence.source === "health" && evidence.healthContext?.localDate) {
+    return evidence.healthContext.localDate;
+  }
+  return taipeiTaskDateKey(new Date(verifiedAt));
+}
+
+function rewardAmounts(evidence) {
+  switch (evidence.activityType) {
+    case "focus":
+    case "study":
+      return {
+        disciplineCoins: Math.min(3, Math.floor(evidence.metricValue / 25)),
+        characterExperience: Math.floor(evidence.metricValue),
+      };
+    case "exercise":
+      return {
+        disciplineCoins: Math.min(3, Math.floor(evidence.metricValue / 15)),
+        characterExperience: Math.floor(evidence.metricValue * 2),
+      };
+    case "steps":
+      return {
+        disciplineCoins: Math.min(3, Math.floor(evidence.metricValue / 3000)),
+        characterExperience: Math.floor(evidence.metricValue / 100),
+      };
+    case "sleep":
+      return {
+        disciplineCoins: evidence.metricValue >= 6 ? 2 : 0,
+        characterExperience: Math.floor(evidence.metricValue * 10),
+      };
+    default:
+      return { disciplineCoins: 0, characterExperience: 0 };
+  }
+}
+
+function mondayDateKey(dateKey) {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  const offset = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function avatarLevelForExperience(experience) {
+  let level = 1;
+  for (let candidate = 2; candidate <= AVATAR_MAX_LEVEL; candidate += 1) {
+    const offset = candidate - 1;
+    const required = Math.round(
+      AVATAR_LEVEL_CURVE_A * offset * offset +
+      AVATAR_LEVEL_CURVE_B * offset,
+    );
+    if (experience < required) break;
+    level = candidate;
+  }
+  return level;
+}
+
+function normalizedNonNegativeInteger(value) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 ? number : 0;
+}
+
+function normalizedDailyCoinLedger(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return Object.fromEntries(
+    Object.entries(raw)
+      .filter(([key]) => /^\d{4}-\d{2}-\d{2}$/.test(key))
+      .map(([key, value]) => [key, normalizedNonNegativeInteger(value)]),
+  );
+}
+
+function normalizedExperienceLedger(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return Object.fromEntries(
+    Object.entries(raw)
+      .filter(([, bySeries]) =>
+        bySeries && typeof bySeries === "object" && !Array.isArray(bySeries))
+      .map(([dateKey, bySeries]) => [
+        dateKey,
+        Object.fromEntries(
+          Object.entries(bySeries)
+            .filter(([series]) => series.length > 0 && series.length <= 128)
+            .map(([series, value]) => [
+              series,
+              normalizedNonNegativeInteger(value),
+            ]),
+        ),
+      ]),
+  );
+}
+
+function normalizeRewardProjection(raw) {
+  const data = raw && typeof raw === "object" ? raw : {};
+  const dailyCoinEarned = normalizedDailyCoinLedger(data.dailyCoinEarned);
+  const avatarExperienceLedger = normalizedExperienceLedger(
+    data.avatarExperienceLedger,
+  );
+  const avatarSeries = typeof data.avatarSeries === "string" && data.avatarSeries
+    ? data.avatarSeries
+    : "default";
+  const recordedSeriesExperience = Object.values(avatarExperienceLedger)
+    .reduce(
+      (sum, bySeries) => sum + normalizedNonNegativeInteger(bySeries[avatarSeries]),
+      0,
+    );
+  const legacyExperience = normalizedNonNegativeInteger(data.avatarExperience);
+  const canInferLegacyBaseline = Object.keys(avatarExperienceLedger).length === 0;
+  if (canInferLegacyBaseline && legacyExperience > recordedSeriesExperience) {
+    avatarExperienceLedger["1970-01-01"] = {
+      ...(avatarExperienceLedger["1970-01-01"] ?? {}),
+      [avatarSeries]: legacyExperience - recordedSeriesExperience,
+    };
+  }
+  return {
+    disciplineCoins: normalizedNonNegativeInteger(data.disciplineCoins),
+    dailyCoinEarned,
+    avatarSeries,
+    avatarExperienceLedger,
+  };
+}
+
+async function prepareRewardSettlement(
+  transaction,
+  evidence,
+  receiptId,
+  fingerprint,
+  verifiedAt,
+  isRewardEligible,
+) {
+  if (!isRewardEligible) return null;
+  const cutover = await transaction.getRewardCutover();
+  if (cutover?.writesPaused === true) {
+    throw new ActivityLedgerTemporarilyUnavailableError(
+      "Reward settlement is temporarily paused for a ledger cutover.",
+    );
+  }
+  const rewardEntryId = `reward_${stableHash(fingerprint).slice(0, 40)}`;
+  const existingEntry = await transaction.getRewardEntry(rewardEntryId);
+  if (existingEntry) {
+    return { entry: existingEntry, projection: null, isNew: false };
+  }
+  const rawProjection = await transaction.getRewardProjection(
+    evidence.actorUserId,
+  );
+  if (rawProjection === null) {
+    throw new ActivityLedgerValidationError(
+      "Reward settlement requires an existing user profile.",
+    );
+  }
+  const projection = normalizeRewardProjection(rawProjection);
+  const dateKey = rewardDateKey(evidence, verifiedAt);
+  const weekKey = mondayDateKey(dateKey);
+  const monthKey = dateKey.slice(0, 7);
+  const dailyCoins = Number(projection.dailyCoinEarned[dateKey] ?? 0);
+  const weeklyCoins = Object.entries(projection.dailyCoinEarned)
+    .filter(([key]) => mondayDateKey(key) === weekKey)
+    .reduce((sum, [, value]) => sum + Number(value ?? 0), 0);
+  const monthlyCoins = Object.entries(projection.dailyCoinEarned)
+    .filter(([key]) => key.startsWith(monthKey))
+    .reduce((sum, [, value]) => sum + Number(value ?? 0), 0);
+  const rawAmounts = rewardAmounts(evidence);
+  const disciplineCoinsDelta = Math.max(0, Math.min(
+    rawAmounts.disciplineCoins,
+    COIN_DAILY_LIMIT - dailyCoins,
+    COIN_WEEKLY_LIMIT - weeklyCoins,
+    COIN_MONTHLY_LIMIT - monthlyCoins,
+  ));
+  const series = projection.avatarSeries;
+  const dateExperienceBySeries =
+    projection.avatarExperienceLedger[dateKey] ?? {};
+  const dateExperience = Object.values(dateExperienceBySeries)
+    .reduce((sum, value) => sum + normalizedNonNegativeInteger(value), 0);
+  const currentSeriesDateExperience = normalizedNonNegativeInteger(
+    dateExperienceBySeries[series],
+  );
+  const characterExperienceDelta = Math.max(0, Math.min(
+    rawAmounts.characterExperience,
+    CHARACTER_EXPERIENCE_DAILY_LIMIT - dateExperience,
+  ));
+  const nextExperienceLedger = clone(projection.avatarExperienceLedger);
+  nextExperienceLedger[dateKey] = {
+    ...(nextExperienceLedger[dateKey] ?? {}),
+    [series]: currentSeriesDateExperience + characterExperienceDelta,
+  };
+  const avatarExperience = Object.values(nextExperienceLedger)
+    .reduce((sum, bySeries) => sum + Number(bySeries?.[series] ?? 0), 0);
+  const nextProjection = {
+    disciplineCoins: projection.disciplineCoins + disciplineCoinsDelta,
+    dailyCoinEarned: {
+      ...projection.dailyCoinEarned,
+      [dateKey]: dailyCoins + disciplineCoinsDelta,
+    },
+    avatarExperienceLedger: nextExperienceLedger,
+    avatarExperience,
+    avatarLevel: avatarLevelForExperience(avatarExperience),
+  };
+  const entry = {
+    rewardEntryId,
+    entryType: "activity",
+    actorUserId: evidence.actorUserId,
+    activityReceiptId: receiptId,
+    activityFingerprint: fingerprint,
+    policyVersion: REWARD_POLICY_VERSION,
+    dateKey,
+    avatarSeries: series,
+    disciplineCoinsDelta,
+    characterExperienceDelta,
+    status: disciplineCoinsDelta === 0 && characterExperienceDelta === 0
+      ? "capped"
+      : "applied",
+    createdAt: verifiedAt,
+  };
+  return { entry, projection: nextProjection, isNew: true };
 }
 
 function isMutableMetricCorrection(existingSettlement, evidence) {
@@ -266,8 +524,17 @@ export class InMemoryActivityLedgerStore {
   #settlements = new Map();
   #sessions = new Map();
   #userTasks = new Map();
+  #rewardEntries = new Map();
+  #rewardProjections = new Map();
+  #rewardCutover;
 
-  constructor({ roomMemberships = [], userTasks = {} } = {}) {
+  constructor({
+    roomMemberships = [],
+    userTasks = {},
+    rewardProjections = {},
+    rewardCutover = { writesPaused: false },
+  } = {}) {
+    this.#rewardCutover = clone(rewardCutover);
     for (const membership of roomMemberships) {
       this.#memberships.set(
         `${membership.roomId}:${membership.userId}`,
@@ -277,10 +544,17 @@ export class InMemoryActivityLedgerStore {
     for (const [userId, tasks] of Object.entries(userTasks)) {
       this.#userTasks.set(userId, clone(tasks));
     }
+    for (const [userId, projection] of Object.entries(rewardProjections)) {
+      this.#rewardProjections.set(userId, clone(projection));
+    }
   }
 
   get receiptCount() {
     return this.#receipts.size;
+  }
+
+  get rewardEntryCount() {
+    return this.#rewardEntries.size;
   }
 
   async runTransaction(callback) {
@@ -319,6 +593,20 @@ export class InMemoryActivityLedgerStore {
     return task ? clone(task) : null;
   }
 
+  async getRewardEntry(rewardEntryId) {
+    const value = this.#rewardEntries.get(rewardEntryId);
+    return value ? clone(value) : null;
+  }
+
+  async getRewardCutover() {
+    return clone(this.#rewardCutover);
+  }
+
+  async getRewardProjection(userId) {
+    const value = this.#rewardProjections.get(userId);
+    return value ? clone(value) : {};
+  }
+
   async updateTaskProjection(userId, taskId, completed, occurredAt) {
     const tasks = this.#userTasks.get(userId) ?? [];
     const index = tasks.findIndex(task => task.id === taskId);
@@ -348,12 +636,23 @@ export class InMemoryActivityLedgerStore {
     sourceKey,
     fingerprint,
     session,
+    rewardSettlement = null,
   }) {
     this.#events.set(eventKey, clone(event));
     this.#receipts.set(receipt.receiptId, clone(receipt));
     this.#sourceRecords.set(sourceKey, clone(event));
     this.#settlements.set(fingerprint, clone(event));
     this.#sessions.set(fingerprint, clone(session));
+    if (rewardSettlement?.isNew) {
+      this.#rewardEntries.set(
+        rewardSettlement.entry.rewardEntryId,
+        clone(rewardSettlement.entry),
+      );
+      this.#rewardProjections.set(
+        event.evidence.actorUserId,
+        clone(rewardSettlement.projection),
+      );
+    }
   }
 
   async createCorrectionSettlement({
@@ -363,12 +662,23 @@ export class InMemoryActivityLedgerStore {
     sourceKey,
     fingerprint,
     session,
+    rewardSettlement = null,
   }) {
     this.#events.set(eventKey, clone(event));
     this.#receipts.set(receipt.receiptId, clone(receipt));
     this.#sourceRecords.set(sourceKey, clone(event));
     this.#settlements.set(fingerprint, clone(event));
     this.#sessions.set(fingerprint, clone(session));
+    if (rewardSettlement?.isNew) {
+      this.#rewardEntries.set(
+        rewardSettlement.entry.rewardEntryId,
+        clone(rewardSettlement.entry),
+      );
+      this.#rewardProjections.set(
+        event.evidence.actorUserId,
+        clone(rewardSettlement.projection),
+      );
+    }
   }
 
   async createActivityEvent({
@@ -476,7 +786,18 @@ export class ActivityLedgerService {
           const receiptId = `receipt_${stableHash(
             `${fingerprint}:${sourceKey}`,
           ).slice(0, 40)}`;
-          const isRewardEligible = rewardEligibility(evidence);
+          const isRewardEligible = rewardEligibility(
+            evidence,
+            existingSession,
+          );
+          const rewardSettlement = await prepareRewardSettlement(
+            transaction,
+            evidence,
+            receiptId,
+            fingerprint,
+            verifiedAt,
+            isRewardEligible,
+          );
           const receipt = {
             receiptId,
             eventId: evidence.eventId,
@@ -489,9 +810,10 @@ export class ActivityLedgerService {
             acceptedMetric: evidence.metricValue,
             metricUnit: evidence.metricUnit,
             rewardEligible: isRewardEligible,
-            rewardIssued: false,
+            rewardIssued: rewardSettlement !== null,
             characterExperienceEligible: isRewardEligible,
-            characterExperienceIssued: false,
+            characterExperienceIssued: rewardSettlement !== null,
+            rewardEntryId: rewardSettlement?.entry.rewardEntryId ?? null,
             verifiedAt,
             correctionOfReceiptId: previousReceipt.receiptId,
           };
@@ -524,6 +846,7 @@ export class ActivityLedgerService {
             receipt,
             contributions,
             session,
+            rewardEntry: rewardSettlement?.entry ?? null,
             wasDuplicate: false,
           };
           if (evidence.activityType === "task") {
@@ -546,6 +869,7 @@ export class ActivityLedgerService {
             sourceKey,
             fingerprint,
             session,
+            rewardSettlement,
           });
           return clone(result);
         }
@@ -659,7 +983,15 @@ export class ActivityLedgerService {
 
       const verifiedAt = this.clock().toISOString();
       const receiptId = `receipt_${stableHash(fingerprint).slice(0, 40)}`;
-      const isRewardEligible = rewardEligibility(evidence);
+      const isRewardEligible = rewardEligibility(evidence, existingSession);
+      const rewardSettlement = await prepareRewardSettlement(
+        transaction,
+        evidence,
+        receiptId,
+        fingerprint,
+        verifiedAt,
+        isRewardEligible,
+      );
       const receipt = {
         receiptId,
         eventId: evidence.eventId,
@@ -672,9 +1004,10 @@ export class ActivityLedgerService {
         acceptedMetric: evidence.metricValue,
         metricUnit: evidence.metricUnit,
         rewardEligible: isRewardEligible,
-        rewardIssued: false,
+        rewardIssued: rewardSettlement !== null,
         characterExperienceEligible: isRewardEligible,
-        characterExperienceIssued: false,
+        characterExperienceIssued: rewardSettlement !== null,
+        rewardEntryId: rewardSettlement?.entry.rewardEntryId ?? null,
         verifiedAt,
         correctionOfReceiptId: null,
       };
@@ -706,6 +1039,7 @@ export class ActivityLedgerService {
         receipt,
         contributions,
         session,
+        rewardEntry: rewardSettlement?.entry ?? null,
         wasDuplicate: false,
       };
       if (evidence.activityType === "task") {
@@ -729,6 +1063,7 @@ export class ActivityLedgerService {
         sourceKey,
         fingerprint,
         session,
+        rewardSettlement,
       });
       return clone(result);
     });
@@ -755,8 +1090,11 @@ export class ActivityLedgerService {
           source: evidence.source,
           sourceDeviceId: evidence.deviceId,
           evidenceRef: evidence.sourceRecordId,
+          lifecycleStarted: evidence.eventType === "started",
           status: "active",
           startedAt: evidence.occurredAt,
+          startedVerifiedAt:
+            evidence.eventType === "started" ? evidence.receivedAt : null,
           endedAt: null,
           metricValue: 0,
           metricUnit: evidence.metricUnit,
@@ -874,6 +1212,14 @@ export class ActivityLedgerService {
     if (isUser && !["app", "web"].includes(evidence.source)) {
       throw new ActivityLedgerAuthorizationError(
         `User ingestion cannot submit ${String(evidence.source)} evidence.`,
+      );
+    }
+    if (
+      isUser &&
+      ["steps", "sleep"].includes(evidence.activityType)
+    ) {
+      throw new ActivityLedgerAuthorizationError(
+        "Step and sleep evidence require a trusted health adapter.",
       );
     }
     if (isHealthAdapter && evidence.source !== "health") {

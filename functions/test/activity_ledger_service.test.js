@@ -21,6 +21,28 @@ const completedFocusEvidence = {
   occurredAt: "2026-07-28T09:25:00.000Z",
 };
 
+function startedFocusEvidence(overrides = {}) {
+  return {
+    ...completedFocusEvidence,
+    eventId: "event-focus-started-1",
+    sourceRecordId: "app-focus-started-1",
+    eventType: "started",
+    metricValue: 0,
+    occurredAt: "2026-07-28T09:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function mutableClock(initial) {
+  let current = initial;
+  return {
+    clock: () => new Date(current),
+    set: value => {
+      current = value;
+    },
+  };
+}
+
 const completedTaskEvidence = {
   eventId: "event-task-completed-1",
   sourceRecordId: "app-task-completed-1",
@@ -237,10 +259,17 @@ test("a completed activity settles once across service restarts", async () => {
       },
     ],
   });
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
   const firstService = new ActivityLedgerService({
     store,
-    clock: () => new Date("2026-07-28T09:25:01.000Z"),
+    clock: serverClock.clock,
   });
+
+  await firstService.record(
+    { kind: "user", userId: "user-1" },
+    startedFocusEvidence(),
+  );
+  serverClock.set("2026-07-28T09:25:01.000Z");
 
   const first = await firstService.record(
     { kind: "user", userId: "user-1" },
@@ -257,14 +286,262 @@ test("a completed activity settles once across service restarts", async () => {
 
   assert.equal(first.status, "settled");
   assert.equal(first.receipt.rewardEligible, true);
-  assert.equal(first.receipt.rewardIssued, false);
+  assert.equal(first.receipt.rewardIssued, true);
   assert.equal(first.receipt.characterExperienceEligible, true);
-  assert.equal(first.receipt.characterExperienceIssued, false);
+  assert.equal(first.receipt.characterExperienceIssued, true);
+  assert.equal(first.rewardEntry.disciplineCoinsDelta, 1);
+  assert.equal(first.rewardEntry.characterExperienceDelta, 25);
+  assert.equal(first.rewardEntry.activityReceiptId, first.receipt.receiptId);
   assert.equal(first.contributions.length, 1);
   assert.equal(first.contributions[0].roomId, "room-study");
   assert.equal(replay.receipt.receiptId, first.receipt.receiptId);
   assert.equal(replay.wasDuplicate, true);
   assert.equal(store.receiptCount, 1);
+  assert.equal(store.rewardEntryCount, 1);
+  const rewardProjection = await store.getRewardProjection("user-1");
+  assert.equal(rewardProjection.disciplineCoins, 1);
+  assert.equal(rewardProjection.avatarExperience, 25);
+  assert.equal(rewardProjection.avatarLevel, 1);
+});
+
+test("one-shot user completion is auditable but cannot mint a reward", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const service = new ActivityLedgerService({
+    store,
+    clock: () => new Date("2026-07-28T09:25:01.000Z"),
+  });
+
+  const result = await service.record(
+    { kind: "user", userId: "user-1" },
+    completedFocusEvidence,
+  );
+
+  assert.equal(result.status, "settled");
+  assert.equal(result.receipt.rewardEligible, false);
+  assert.equal(result.receipt.rewardIssued, false);
+  assert.equal(result.receipt.characterExperienceEligible, false);
+  assert.equal(result.receipt.characterExperienceIssued, false);
+  assert.equal(result.rewardEntry, null);
+  assert.equal(store.receiptCount, 1);
+  assert.equal(store.rewardEntryCount, 0);
+});
+
+test("reported timer duration cannot exceed its observed lifecycle", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const service = new ActivityLedgerService({
+    store,
+    clock: () => new Date("2026-07-28T09:25:01.000Z"),
+  });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    startedFocusEvidence({ occurredAt: "2026-07-27T09:00:00.000Z" }),
+  );
+
+  const result = await service.record(
+    { kind: "user", userId: "user-1" },
+    completedFocusEvidence,
+  );
+
+  assert.equal(result.receipt.rewardEligible, false);
+  assert.equal(result.rewardEntry, null);
+  assert.equal(store.rewardEntryCount, 0);
+});
+
+test("Cloud lifecycle timing grants no five-minute reward grace", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
+  const service = new ActivityLedgerService({
+    store,
+    clock: serverClock.clock,
+  });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    startedFocusEvidence(),
+  );
+  serverClock.set("2026-07-28T09:00:02.000Z");
+
+  const result = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      metricValue: 5,
+      occurredAt: "2026-07-28T09:00:02.000Z",
+    },
+  );
+
+  assert.equal(result.receipt.rewardEligible, false);
+  assert.equal(result.rewardEntry, null);
+  assert.equal(store.rewardEntryCount, 0);
+});
+
+test("reward caps use Cloud settlement date instead of a backdated client date", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
+  const service = new ActivityLedgerService({
+    store,
+    clock: serverClock.clock,
+  });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    startedFocusEvidence({ occurredAt: "2026-07-01T09:00:00.000Z" }),
+  );
+  serverClock.set("2026-07-28T09:25:01.000Z");
+  const result = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      occurredAt: "2026-07-01T09:25:00.000Z",
+    },
+  );
+
+  assert.equal(result.receipt.rewardEligible, true);
+  assert.equal(result.rewardEntry.dateKey, "2026-07-28");
+});
+
+test("first formal reward preserves a legacy experience projection", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    rewardProjections: {
+      "user-1": {
+        disciplineCoins: 9,
+        avatarSeries: "default",
+        avatarExperience: 200,
+        avatarExperienceLedger: {},
+        dailyCoinEarned: { invalid: 999, "2026-07-28": 1 },
+      },
+    },
+  });
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
+  const service = new ActivityLedgerService({
+    store,
+    clock: serverClock.clock,
+  });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    startedFocusEvidence(),
+  );
+  serverClock.set("2026-07-28T09:25:01.000Z");
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    completedFocusEvidence,
+  );
+
+  const projection = await store.getRewardProjection("user-1");
+  assert.equal(projection.disciplineCoins, 10);
+  assert.equal(
+    projection.avatarExperienceLedger["1970-01-01"].default,
+    200,
+  );
+  assert.equal(projection.avatarExperience, 225);
+  assert.equal("invalid" in projection.dailyCoinEarned, false);
+});
+
+test("activity rewards respect daily coin and character experience caps", async () => {
+  const store = new InMemoryActivityLedgerStore();
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
+  const service = new ActivityLedgerService({
+    store,
+    clock: serverClock.clock,
+  });
+
+  for (let index = 0; index < 20; index += 1) {
+    await service.record(
+      { kind: "user", userId: "user-1" },
+      startedFocusEvidence({
+        eventId: `event-focus-cap-start-${index}`,
+        sourceRecordId: `source-focus-cap-start-${index}`,
+        sessionId: `session-focus-cap-${index}`,
+        activityCorrelationId: `focus-cap-${index}`,
+      }),
+    );
+  }
+  serverClock.set("2026-07-28T09:25:01.000Z");
+  for (let index = 0; index < 20; index += 1) {
+    await service.record(
+      { kind: "user", userId: "user-1" },
+      {
+        ...completedFocusEvidence,
+        eventId: `event-focus-cap-${index}`,
+        sourceRecordId: `source-focus-cap-${index}`,
+        sessionId: `session-focus-cap-${index}`,
+        activityCorrelationId: `focus-cap-${index}`,
+      },
+    );
+  }
+
+  const projection = await store.getRewardProjection("user-1");
+  assert.equal(store.rewardEntryCount, 20);
+  assert.equal(projection.disciplineCoins, 15);
+  assert.equal(projection.dailyCoinEarned["2026-07-28"], 15);
+  assert.equal(projection.avatarExperience, 500);
+  assert.equal(
+    projection.avatarExperienceLedger["2026-07-28"].default,
+    500,
+  );
+});
+
+test("daily character experience cap is shared across avatar series", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    rewardProjections: {
+      "user-1": {
+        disciplineCoins: 0,
+        avatarSeries: "series-b",
+        avatarExperienceLedger: {
+          "2026-07-28": { "series-a": 490 },
+        },
+        dailyCoinEarned: {},
+      },
+    },
+  });
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
+  const service = new ActivityLedgerService({
+    store,
+    clock: serverClock.clock,
+  });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    startedFocusEvidence(),
+  );
+  serverClock.set("2026-07-28T09:25:01.000Z");
+  const result = await service.record(
+    { kind: "user", userId: "user-1" },
+    completedFocusEvidence,
+  );
+
+  assert.equal(result.rewardEntry.characterExperienceDelta, 10);
+  const projection = await store.getRewardProjection("user-1");
+  assert.equal(
+    projection.avatarExperienceLedger["2026-07-28"]["series-b"],
+    10,
+  );
+});
+
+test("reward cutover fence defers an otherwise valid settlement", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    rewardCutover: { writesPaused: true },
+  });
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
+  const service = new ActivityLedgerService({
+    store,
+    clock: serverClock.clock,
+  });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    startedFocusEvidence(),
+  );
+  serverClock.set("2026-07-28T09:25:01.000Z");
+
+  await assert.rejects(
+    service.record(
+      { kind: "user", userId: "user-1" },
+      completedFocusEvidence,
+    ),
+    error =>
+      error.name === "ActivityLedgerTemporarilyUnavailableError" &&
+      error.code === "unavailable" &&
+      error.message.includes("cutover"),
+  );
+  assert.equal(store.receiptCount, 0);
+  assert.equal(store.rewardEntryCount, 0);
 });
 
 test("event idempotency is namespaced by actor and source", async () => {
@@ -390,6 +667,28 @@ test("user ingestion rejects spoofed device evidence and invalid dimensions", as
     error =>
       error.name === "ActivityLedgerAuthorizationError" &&
       error.message.includes("health"),
+  );
+  await assert.rejects(
+    service.record(principal, {
+      ...completedFocusEvidence,
+      activityType: "steps",
+      metricValue: 200000,
+      metricUnit: "steps",
+    }),
+    error =>
+      error.name === "ActivityLedgerAuthorizationError" &&
+      error.message.includes("health adapter"),
+  );
+  await assert.rejects(
+    service.record(principal, {
+      ...completedFocusEvidence,
+      activityType: "sleep",
+      metricValue: 24,
+      metricUnit: "hours",
+    }),
+    error =>
+      error.name === "ActivityLedgerAuthorizationError" &&
+      error.message.includes("health adapter"),
   );
   await assert.rejects(
     service.record(principal, {

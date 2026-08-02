@@ -347,33 +347,27 @@
             }
           } catch(e) {}
         }
-      // Fetch and Render Dynamic Shop Items
-      
-        // 備用示範資料 (若後台 fetch 失敗時呈現)
-        const mockShopItems = [
-          { name: "專注精靈 (藍)", type: "permanent", price: 1500, image_path: "assets/character1.png" },
-          { name: "自律法師", type: "permanent", price: 2500, image_path: "assets/character2.png" },
-          { name: "時間刺客", type: "limited", price: 3000, image_path: "assets/character3.png", end_time: Date.now()/1000 + 86400*3 },
-          { name: "聖誕雪人", type: "event_character", price: 800, image_path: "assets/character4.png", end_time: Date.now()/1000 + 86400*7 }
-        ];
-
       let allActiveItems = [];
       let currentShopTab = 'permanent';
 
       async function fetchFrontendShopItems() {
         try {
-          const response = await fetch('/active-shop-items');
-          const result = await response.json();
-          if (result.success && result.items) {
-            if (result.success && result.items && result.items.length > 0) {
-            allActiveItems = result.items;
-          } else {
-            allActiveItems = mockShopItems;
-          }
-          }
+          if (!db) throw new Error('Firestore 尚未初始化');
+          const snapshot = await db.collection('shop_items')
+            .where('status', '==', 'published')
+            .get();
+          const now = Math.floor(Date.now() / 1000);
+          allActiveItems = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(item =>
+              Array.isArray(item.character_stages) &&
+              (item.start_time == null || Number(item.start_time) <= now) &&
+              (item.end_time == null || Number(item.end_time) > now)
+            );
         } catch (error) {
           console.error("無法取得上架商品", error);
-          allActiveItems = mockShopItems;
+          allActiveItems = [];
+          toast('目前無法讀取正式商城資料');
         }
         renderShopItems();
       }
@@ -391,7 +385,11 @@
         const container = document.getElementById('shop-items-container');
         container.innerHTML = '';
 
-        const filteredItems = allActiveItems.filter(item => item.type === currentShopTab);
+        const filteredItems = allActiveItems.filter(item =>
+          currentShopTab === 'permanent'
+            ? ['permanent', 'avatar_series'].includes(item.type)
+            : item.type === currentShopTab
+        );
 
         if (filteredItems.length === 0) {
           container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--c-text-muted);">目前此分類下沒有商品。</div>`;
@@ -399,30 +397,66 @@
         }
 
         filteredItems.forEach(item => {
-          let expiresBadge = '';
-          if (item.end_time) {
-            const endDate = new Date(item.end_time * 1000).toLocaleString('zh-TW');
-            expiresBadge = `<div class="expires-badge">⏳ 期限: ${endDate}</div>`;
-          }
-
+          const stage = item.character_stages.find(value =>
+            Number(value.stage) === 1 && value.shop_eligible === true
+          );
+          if (!stage) return;
           const card = document.createElement('div');
           card.className = 'shop-item-card';
-          // Ensure correct image path based on whether we are in web_dashboard or not
-          let imgPath = item.image_path.startsWith('/') ? item.image_path : '/' + item.image_path;
-          if (!item.image_path.includes('assets/shop')) {
-             // fallback for hardcoded items if they were merged
-             imgPath = 'assets/' + item.image_path;
+          if (item.end_time) {
+            const badge = document.createElement('div');
+            badge.className = 'expires-badge';
+            badge.textContent = `⏳ 期限: ${new Date(item.end_time * 1000).toLocaleString('zh-TW')}`;
+            card.appendChild(badge);
           }
-          
-          card.innerHTML = `
-            ${expiresBadge}
-            <img src="${imgPath}" alt="${item.name}" onerror="this.src='assets/character12.png'" />
-            <strong>${item.name}</strong>
-            <p>這是後台同步的上架商品。點擊兌換將加入背包。</p>
-            <button class="shop-btn" onclick="alert('兌換成功！已將「${item.name}」加入您的背包。')">兌換 (${item.price} 幣)</button>
-          `;
+          const image = document.createElement('img');
+          image.src = stage.character_asset || item.image_path || '';
+          image.alt = item.name || stage.name || '角色';
+          const name = document.createElement('strong');
+          name.textContent = item.name || stage.name || '角色';
+          const description = document.createElement('p');
+          description.textContent = item.description || '由營運後台發布的完整角色進化鏈。';
+          const button = document.createElement('button');
+          button.className = 'shop-btn';
+          button.type = 'button';
+          button.textContent = `兌換 (${stage.coin_price} 幣)`;
+          button.addEventListener('click', () => purchaseCatalogItem(item, stage, button));
+          card.append(image, name, description, button);
           container.appendChild(card);
         });
+      }
+
+      async function purchaseCatalogItem(item, stage, button) {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          toast('請先登入自己的帳號再兌換角色');
+          return;
+        }
+        button.disabled = true;
+        try {
+          const purchase = firebase.functions('asia-east1')
+            .httpsCallable('purchaseRewardItem');
+          const response = await purchase({
+            category: 'faceShape',
+            index: Number(stage.catalog_index),
+            catalogItemId: item.id,
+            clientRequestId: `web-purchase-faceShape-${stage.catalog_index}`,
+            sourceSurface: 'web',
+          });
+          const result = response.data || {};
+          if (result.itemKey !== `faceShape:${stage.catalog_index}` ||
+              !Number.isInteger(result.disciplineCoins)) {
+            throw new Error('Cloud 商城回傳資料不一致');
+          }
+          const coinDisplay = document.querySelector('.hero-card strong');
+          if (coinDisplay) coinDisplay.textContent = String(result.disciplineCoins);
+          button.textContent = result.alreadyUnlocked ? '已擁有' : '兌換完成';
+          toast(result.alreadyUnlocked ? '這個角色已在背包中' : 'Cloud Ledger 已完成扣款與解鎖');
+        } catch (error) {
+          console.error('正式商城兌換失敗', error);
+          button.disabled = false;
+          toast(error?.message || '商城兌換失敗，未扣除自律幣');
+        }
       }
 
       document.addEventListener('DOMContentLoaded', () => {

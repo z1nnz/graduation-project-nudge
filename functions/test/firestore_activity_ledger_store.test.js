@@ -44,6 +44,14 @@ test(
       status: "active",
       sharingConsentRequired: true,
     });
+    await firestore.collection("users").doc(actorUserId).set({
+      disciplineCoins: 0,
+      dailyCoinEarned: {},
+      avatarSeries: "default",
+      avatarExperienceLedger: {},
+      avatarExperience: 0,
+      avatarLevel: 1,
+    });
     await firestore
       .collection("rooms")
       .doc(roomId)
@@ -55,10 +63,23 @@ test(
         sharingConsented: true,
       });
 
+    let serverNow = "2026-07-28T09:00:01.000Z";
     const firstService = new ActivityLedgerService({
       store: new FirestoreActivityLedgerStore({ firestore }),
-      clock: () => new Date("2026-07-28T09:25:01.000Z"),
+      clock: () => new Date(serverNow),
     });
+    await firstService.record(
+      { kind: "user", userId: actorUserId },
+      {
+        ...evidence,
+        eventId: `event-start-${unique}`,
+        sourceRecordId: `source-start-${unique}`,
+        eventType: "started",
+        metricValue: 0,
+        occurredAt: "2026-07-28T09:00:00.000Z",
+      },
+    );
+    serverNow = "2026-07-28T09:25:01.000Z";
     const first = await firstService.record(
       { kind: "user", userId: actorUserId },
       evidence,
@@ -87,10 +108,23 @@ test(
     assert.equal(first.status, "settled");
     assert.equal(first.contributions.length, 1);
     assert.equal(first.receipt.rewardEligible, true);
-    assert.equal(first.receipt.rewardIssued, false);
+    assert.equal(first.receipt.rewardIssued, true);
+    assert.equal(first.receipt.characterExperienceIssued, true);
+    assert.equal(first.rewardEntry.disciplineCoinsDelta, 1);
+    assert.equal(first.rewardEntry.characterExperienceDelta, 25);
     assert.equal(replay.receipt.receiptId, first.receipt.receiptId);
     assert.equal(replay.wasDuplicate, true);
     assert.equal(sourceReplaySnapshot.size, 1);
+    const rewardEntries = await firestore
+      .collection("reward_ledger_entries")
+      .where("actorUserId", "==", actorUserId)
+      .get();
+    assert.equal(rewardEntries.size, 1);
+    const userProjection = (
+      await firestore.collection("users").doc(actorUserId).get()
+    ).data();
+    assert.equal(userProjection.disciplineCoins, 1);
+    assert.equal(userProjection.avatarExperience, 25);
     const persistedReplay = sourceReplaySnapshot.docs[0].data();
     assert.equal(persistedReplay.actorUserId, actorUserId);
     assert.equal(persistedReplay.evidence.eventId, sourceReplayEventId);
@@ -284,6 +318,14 @@ test(
     const service = new ActivityLedgerService({
       store: new FirestoreActivityLedgerStore({ firestore }),
       clock: () => new Date("2026-07-28T12:00:00.000Z"),
+    });
+    await firestore.collection("users").doc(actorUserId).set({
+      disciplineCoins: 0,
+      dailyCoinEarned: {},
+      avatarSeries: "default",
+      avatarExperienceLedger: {},
+      avatarExperience: 0,
+      avatarLevel: 1,
     });
 
     const first = await service.record(principal, evidence);

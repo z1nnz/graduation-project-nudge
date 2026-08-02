@@ -7,6 +7,10 @@
     "backfill:public-profiles": "node backfill_public_profiles.js",
     "backfill:public-profiles:apply": "node backfill_public_profiles.js --apply",
     "e2e:production:accounts": "node production_real_account_e2e.mjs",
+    "migrate:rewards": "node migrate_reward_ledger_baselines.js",
+    "migrate:rewards:apply": "node migrate_reward_ledger_baselines.js --apply",
+    "migrate:rewards:rollback": "node migrate_reward_ledger_baselines.js --rollback",
+    "test:rewards:emulator": "node --test test/reward_migration_execution.test.js",
     "migrate:relationships": "node migrate_relationship_memberships.js",
     "migrate:relationships:apply": "node migrate_relationship_memberships.js --apply"
   },

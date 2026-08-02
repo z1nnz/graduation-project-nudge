@@ -35,6 +35,47 @@ coverage and from release gates that still require external infrastructure.
   is retained as superseded audit data instead of replacing the latest state.
   This is source and test evidence only until the updated Cloud Function is
   deployed and exercised with real accounts.
+- Activity rewards and shop debits now use Cloud-owned
+  `reward_ledger_entries`. A normal App/Web timer completion is rewardable only
+  after an accepted start event and a plausible Cloud-observed elapsed
+  duration. User-submitted steps and sleep are rejected, and normal reward caps
+  use the Cloud settlement date rather than a client-backdated date. Shop prices,
+  balances, idempotency, and the stage-one-only rule for complete three-stage
+  avatar series are transactionally checked by Cloud. Equipping a paid or
+  evolved character also requires a Cloud command that verifies ownership and
+  series XP. Firestore Rules reject direct client writes to coin, XP, level,
+  unlock, and equipped-avatar projections. This remains
+  source/test evidence until Functions and Rules are deployed, legacy reward
+  projections are baselined, and real accounts exercise both settlement and
+  purchase callables.
+
+Before enabling the Cloud-owned reward fields, run the baseline dry-run,
+resolve every issue, apply once, and run the dry-run again. Apply creates a
+server-side fence checked by reward settlement, purchase, and equipment
+callables; every user write has a transaction precondition and a private
+before-image. Each apply/rollback runner owns the fence with a unique token;
+every transaction rechecks that token before writing or releasing the fence.
+The second dry-run must report zero `baselineCreates` and zero issues:
+
+```sh
+npm --prefix scripts run migrate:rewards
+npm --prefix scripts run migrate:rewards:apply
+npm --prefix scripts run migrate:rewards
+```
+
+The local apply/rollback acceptance runs against an isolated Firestore
+Emulator project:
+
+```sh
+firebase emulators:exec --project nudge-reward-migration-test --only firestore \
+  'npm --prefix scripts run test:rewards:emulator'
+```
+
+If apply fails and cannot safely resume, keep the fence active while running:
+
+```sh
+npm --prefix scripts run migrate:rewards:rollback
+```
 
 ## Real-account Auth and Rules acceptance
 

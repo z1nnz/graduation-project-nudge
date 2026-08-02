@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   ActivityLedgerAuthenticationError,
   ActivityLedgerAuthorizationError,
+  ActivityLedgerTemporarilyUnavailableError,
   ActivityLedgerValidationError,
 } from "../src/activity-ledger-service.js";
 import { activityLedgerHttpsError } from "../src/activity-ledger-error-mapping.js";
@@ -26,6 +27,12 @@ test("activity ingestion errors keep auth and retry semantics", () => {
       new ActivityLedgerValidationError("Bad evidence."),
     ).code,
     "invalid-argument",
+  );
+  assert.equal(
+    activityLedgerHttpsError(
+      new ActivityLedgerTemporarilyUnavailableError("Cutover active."),
+    ).code,
+    "unavailable",
   );
   assert.equal(
     activityLedgerHttpsError(
