@@ -59,11 +59,18 @@ class CloudRelationshipOutcomeGateway {
       final result = RelationshipOutcomeRefreshResult.fromMap(
         response.map((key, value) => MapEntry(key.toString(), value)),
       );
-      if (result.outcome.scopeType != scopeType ||
-          result.outcome.scopeId != scopeId.trim()) {
+      if (!result.outcome.isValidFor(
+            expectedScopeType: scopeType,
+            expectedScopeId: scopeId.trim(),
+          ) ||
+          (scopeType == 'family' &&
+              result.memories.any(
+                (memory) => !memory.isValidForFamily(scopeId.trim()),
+              )) ||
+          (scopeType == 'group' && result.memories.isNotEmpty)) {
         throw const RelationshipOutcomeException(
           'protocol-error',
-          '關係成果與目前選取的關係不一致。',
+          '關係成果資料不完整或與目前選取的關係不一致。',
         );
       }
       return result;
@@ -71,6 +78,13 @@ class CloudRelationshipOutcomeGateway {
       throw RelationshipOutcomeException(
         error.code,
         error.message ?? '無法更新關係成果。',
+      );
+    } on RelationshipOutcomeException {
+      rethrow;
+    } catch (_) {
+      throw const RelationshipOutcomeException(
+        'protocol-error',
+        '關係成果服務回傳了無法解析的資料。',
       );
     }
   }

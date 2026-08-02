@@ -1280,7 +1280,11 @@ class AppState extends ChangeNotifier {
         .snapshots()
         .listen((snapshot) {
           _groupRelationshipOutcome = snapshot.exists
-              ? RelationshipOutcome.fromMap(snapshot.data()!)
+              ? RelationshipOutcome.tryFromMap(
+                  snapshot.data()!,
+                  expectedScopeType: 'group',
+                  expectedScopeId: groupId,
+                )
               : null;
           notifyListeners();
         });
@@ -1387,7 +1391,11 @@ class AppState extends ChangeNotifier {
         .doc('family--$linkId');
     _familyOutcomeSubscription = outcomeRef.snapshots().listen((snapshot) {
       _familyRelationshipOutcome = snapshot.exists
-          ? RelationshipOutcome.fromMap(snapshot.data()!)
+          ? RelationshipOutcome.tryFromMap(
+              snapshot.data()!,
+              expectedScopeType: 'family',
+              expectedScopeId: linkId,
+            )
           : null;
       notifyListeners();
     });
@@ -1399,9 +1407,13 @@ class AppState extends ChangeNotifier {
         .listen((snapshot) {
           _familyRelationshipMemories = snapshot.docs
               .map(
-                (doc) =>
-                    RelationshipMemory.fromMap(doc.data(), documentId: doc.id),
+                (doc) => RelationshipMemory.tryFromMap(
+                  doc.data(),
+                  documentId: doc.id,
+                  expectedScopeId: linkId,
+                ),
               )
+              .whereType<RelationshipMemory>()
               .toList(growable: false);
           notifyListeners();
         });

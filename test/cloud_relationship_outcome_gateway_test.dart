@@ -74,4 +74,46 @@ void main() {
       throwsA(isA<RelationshipOutcomeException>()),
     );
   });
+
+  test('rejects unparseable Cloud outcome protocol data', () async {
+    final gateway = CloudRelationshipOutcomeGateway.withCallable((_) async {
+      return {
+        'outcome': {
+          'outcomeId': 'group--group-1',
+          'scopeType': 'group',
+          'scopeId': 'group-1',
+          'scopeName': '晨間自律團',
+          'status': 'active',
+          'growth': {
+            'kind': 'group_planet',
+            'xp': '10',
+            'level': 2,
+            'currentLevelXp': 10,
+            'nextLevelXp': 30,
+            'milestoneKeys': ['group_core', 'group_orbit'],
+          },
+          'metrics': {'memberCount': 2},
+          'characterOutcome': {
+            'kind': 'group_companion',
+            'stage': 2,
+            'title': '協作軌道',
+            'description': '共同成果',
+          },
+          'updatedAt': '2026-07-28T08:00:00.000Z',
+        },
+        'memories': <dynamic>[],
+      };
+    });
+
+    expect(
+      () => gateway.refresh(scopeType: 'group', scopeId: 'group-1'),
+      throwsA(
+        isA<RelationshipOutcomeException>().having(
+          (error) => error.code,
+          'code',
+          'protocol-error',
+        ),
+      ),
+    );
+  });
 }

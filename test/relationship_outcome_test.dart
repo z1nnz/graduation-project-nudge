@@ -51,5 +51,60 @@ void main() {
     expect(result.outcome.metric('completedGoals'), 2);
     expect(result.outcome.characterTitle, '同行嫩芽');
     expect(result.memories.single.points, 8);
+    expect(
+      result.outcome.isValidFor(
+        expectedScopeType: 'family',
+        expectedScopeId: 'family-1',
+      ),
+      isTrue,
+    );
+    expect(result.memories.single.isValidForFamily('family-1'), isTrue);
+  });
+
+  test('rejects legacy or malformed relationship outcome projections', () {
+    final malformed = RelationshipOutcome.fromMap({
+      'outcomeId': 'group--group-1',
+      'scopeType': 'group',
+      'scopeId': 'group-1',
+      'scopeName': '晨間自律團',
+      'status': 'active',
+      'growth': {
+        'kind': 'group_planet',
+        'xp': -1,
+        'level': 2,
+        'currentLevelXp': 10,
+        'nextLevelXp': 30,
+        'milestoneKeys': ['group_core'],
+      },
+      'metrics': {'memberCount': 2},
+      'characterOutcome': {
+        'kind': 'group_companion',
+        'stage': 1,
+        'title': '同行核心',
+        'description': '共同成果',
+      },
+      'updatedAt': '2026-07-28T08:00:00.000Z',
+    });
+
+    expect(
+      malformed.isValidFor(
+        expectedScopeType: 'group',
+        expectedScopeId: 'group-1',
+      ),
+      isFalse,
+    );
+    expect(
+      RelationshipOutcome.tryFromMap(
+        {
+          'outcomeId': 'group--group-1',
+          'scopeType': 'group',
+          'scopeId': 'group-1',
+          'growth': {'xp': 'not-a-number'},
+        },
+        expectedScopeType: 'group',
+        expectedScopeId: 'group-1',
+      ),
+      isNull,
+    );
   });
 }

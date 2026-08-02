@@ -39,6 +39,14 @@ function loadRelationshipMembershipContract() {
   );
 }
 
+function loadRelationshipOutcomeContract() {
+  return loadWindowModule(
+    "NudgeRelationshipOutcomeContract",
+    "assets/relationship_outcome_contract.js?v=1",
+    "關係成果契約模組載入失敗",
+  );
+}
+
 function loadFamilyLinkContract() {
   return loadWindowModule(
     "NudgeFamilyLinkContract",
@@ -1976,6 +1984,7 @@ async function bootFirebaseBackedData() {
     await Promise.all([
       loadRelationshipCapabilities(),
       loadRelationshipMembershipContract(),
+      loadRelationshipOutcomeContract(),
       loadFamilyLinkContract(),
       loadGroupContract(),
     ]);
@@ -3236,9 +3245,18 @@ function listenToFamilyInteractions(linkId) {
   const outcomeRef = db.collection("relationship_outcomes")
     .doc(`family--${linkId}`);
   familyOutcomeSub = outcomeRef.onSnapshot(snapshot => {
-    currentFamilyRelationshipOutcome = snapshot.exists
-      ? snapshot.data()
-      : null;
+    try {
+      currentFamilyRelationshipOutcome = snapshot.exists
+        ? window.NudgeRelationshipOutcomeContract.parseOutcome(
+            "family",
+            linkId,
+            snapshot.data(),
+          )
+        : null;
+    } catch (error) {
+      console.warn("Ignored invalid family relationship outcome:", error);
+      currentFamilyRelationshipOutcome = null;
+    }
     renderFamilyRelationshipOutcome();
   });
   familyMemoriesSub = outcomeRef
@@ -3246,10 +3264,11 @@ function listenToFamilyInteractions(linkId) {
     .orderBy("happenedAt", "desc")
     .limit(30)
     .onSnapshot(snapshot => {
-      currentFamilyRelationshipMemories = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      currentFamilyRelationshipMemories =
+        window.NudgeRelationshipOutcomeContract.filterFamilyMemories(
+          linkId,
+          snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        );
       renderFamilyRelationshipOutcome();
     });
 }
@@ -3505,9 +3524,18 @@ function listenToGroupPublications(groupId) {
   groupOutcomeSub = db.collection("relationship_outcomes")
     .doc(`group--${groupId}`)
     .onSnapshot(snapshot => {
-      currentGroupRelationshipOutcome = snapshot.exists
-        ? snapshot.data()
-        : null;
+      try {
+        currentGroupRelationshipOutcome = snapshot.exists
+          ? window.NudgeRelationshipOutcomeContract.parseOutcome(
+              "group",
+              groupId,
+              snapshot.data(),
+            )
+          : null;
+      } catch (error) {
+        console.warn("Ignored invalid group relationship outcome:", error);
+        currentGroupRelationshipOutcome = null;
+      }
       renderGroupRelationshipOutcome();
     });
 }
@@ -3597,19 +3625,18 @@ async function refreshWebRelationshipOutcome(scopeType, scopeId) {
   const response = await functions.httpsCallable(
     "refreshRelationshipOutcome",
   )({ scopeType, scopeId });
-  const outcome = response?.data?.outcome;
-  if (
-    !outcome ||
-    outcome.scopeType !== scopeType ||
-    outcome.scopeId !== scopeId
-  ) {
-    throw new Error("Cloud 回傳的關係成果與目前情境不一致。");
-  }
+  const outcome = window.NudgeRelationshipOutcomeContract.parseOutcome(
+    scopeType,
+    scopeId,
+    response?.data?.outcome,
+  );
   if (scopeType === "family") {
     currentFamilyRelationshipOutcome = outcome;
-    currentFamilyRelationshipMemories = Array.isArray(response.data.memories)
-      ? response.data.memories
-      : [];
+    currentFamilyRelationshipMemories =
+      window.NudgeRelationshipOutcomeContract.filterFamilyMemories(
+        scopeId,
+        response?.data?.memories,
+      );
     renderFamilyRelationshipOutcome();
   } else {
     currentGroupRelationshipOutcome = outcome;

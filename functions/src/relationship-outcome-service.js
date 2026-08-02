@@ -79,6 +79,56 @@ function outcomeId(scopeType, scopeId) {
   return `${scopeType}--${scopeId}`;
 }
 
+function relationshipMembershipRef(firestore, scopeType, scopeId, userId) {
+  return firestore
+    .collection("relationship_memberships")
+    .doc(`${scopeType}--${scopeId}--${userId}`);
+}
+
+function activeMembershipMatches(
+  snapshot,
+  { scopeType, scopeId, userId, role },
+) {
+  if (!snapshot?.exists) return false;
+  const data = snapshot.data();
+  return data.schemaVersion === 1 &&
+    data.membershipId === `${scopeType}--${scopeId}--${userId}` &&
+    data.scopeType === scopeType &&
+    data.scopeId === scopeId &&
+    data.userId === userId &&
+    data.role === role &&
+    data.status === "active";
+}
+
+function familyRole(link, userId) {
+  if (link.guardianId === userId) return "guardian";
+  if (link.childId === userId) return "child";
+  return null;
+}
+
+function formalFamilyMembershipsMatch(snapshots, link, scopeId, participantIds) {
+  return participantIds.every((participantId, index) => {
+    const role = familyRole(link, participantId);
+    return role !== null && activeMembershipMatches(snapshots[index], {
+      scopeType: "family",
+      scopeId,
+      userId: participantId,
+      role,
+    });
+  });
+}
+
+function formalGroupMembershipsMatch(snapshots, group, scopeId, participantIds) {
+  return participantIds.every((participantId, index) =>
+    activeMembershipMatches(snapshots[index], {
+      scopeType: "group",
+      scopeId,
+      userId: participantId,
+      role: group.ownerId === participantId ? "manager" : "member",
+    })
+  );
+}
+
 export function buildFamilyRelationshipOutcome({
   scopeId,
   scopeName,
@@ -285,6 +335,26 @@ async function refreshFamily({ firestore, userId, scopeId, now }) {
       "The caller is not a family participant.",
     );
   }
+  const membershipRefs = participantIds.map(participantId =>
+    relationshipMembershipRef(firestore, "family", scopeId, participantId)
+  );
+  const membershipSnapshots = await Promise.all(
+    membershipRefs.map(reference => reference.get()),
+  );
+  if (
+    link.status !== "active" ||
+    !formalFamilyMembershipsMatch(
+      membershipSnapshots,
+      link,
+      scopeId,
+      participantIds,
+    )
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "The family outcome requires active formal Memberships.",
+    );
+  }
   const bondEvents = snapshotRows(bondSnapshot).sort((a, b) =>
     String(b.createdAt || "").localeCompare(String(a.createdAt || "")),
   );
@@ -309,14 +379,18 @@ async function refreshFamily({ firestore, userId, scopeId, now }) {
     .collection("relationship_outcomes")
     .doc(outcome.outcomeId);
   await firestore.runTransaction(async transaction => {
-    const [currentLink, ...participantFences] = await Promise.all([
+    const snapshots = await Promise.all([
       transaction.get(linkRef),
+      ...membershipRefs.map(reference => transaction.get(reference)),
       ...participantIds.map(participantId =>
         transaction.get(
           firestore.collection("account_deletion_fences").doc(participantId),
         )
       ),
     ]);
+    const currentLink = snapshots[0];
+    const currentMemberships = snapshots.slice(1, 1 + participantIds.length);
+    const participantFences = snapshots.slice(1 + participantIds.length);
     const currentParticipantIds = currentLink.exists &&
       Array.isArray(currentLink.data().participantIds)
       ? [...currentLink.data().participantIds].sort()
@@ -325,6 +399,12 @@ async function refreshFamily({ firestore, userId, scopeId, now }) {
       !currentLink.exists ||
       JSON.stringify(currentParticipantIds) !==
         JSON.stringify([...participantIds].sort()) ||
+      !formalFamilyMembershipsMatch(
+        currentMemberships,
+        currentLink.data(),
+        scopeId,
+        participantIds,
+      ) ||
       participantFences.some(fence => fence.exists)
     ) {
       throw new HttpsError(
@@ -372,6 +452,25 @@ async function refreshGroup({ firestore, userId, scopeId, now }) {
       "The caller is not an active group member.",
     );
   }
+  const membershipRefs = participantIds.map(participantId =>
+    relationshipMembershipRef(firestore, "group", scopeId, participantId)
+  );
+  const membershipSnapshots = await Promise.all(
+    membershipRefs.map(reference => reference.get()),
+  );
+  if (
+    !formalGroupMembershipsMatch(
+      membershipSnapshots,
+      group,
+      scopeId,
+      participantIds,
+    )
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "The group outcome requires active formal Memberships.",
+    );
+  }
   const outcome = buildGroupRelationshipOutcome({
     scopeId,
     scopeName: normalizedString(group.name, "未命名團體"),
@@ -389,14 +488,18 @@ async function refreshGroup({ firestore, userId, scopeId, now }) {
     .collection("relationship_outcomes")
     .doc(outcome.outcomeId);
   await firestore.runTransaction(async transaction => {
-    const [currentGroup, ...participantFences] = await Promise.all([
+    const snapshots = await Promise.all([
       transaction.get(groupRef),
+      ...membershipRefs.map(reference => transaction.get(reference)),
       ...participantIds.map(participantId =>
         transaction.get(
           firestore.collection("account_deletion_fences").doc(participantId),
         )
       ),
     ]);
+    const currentGroup = snapshots[0];
+    const currentMemberships = snapshots.slice(1, 1 + participantIds.length);
+    const participantFences = snapshots.slice(1 + participantIds.length);
     const currentParticipantIds = currentGroup.exists &&
       Array.isArray(currentGroup.data().memberIds)
       ? [...currentGroup.data().memberIds].sort()
@@ -406,6 +509,12 @@ async function refreshGroup({ firestore, userId, scopeId, now }) {
       currentGroup.data().status !== "active" ||
       JSON.stringify(currentParticipantIds) !==
         JSON.stringify([...participantIds].sort()) ||
+      !formalGroupMembershipsMatch(
+        currentMemberships,
+        currentGroup.data(),
+        scopeId,
+        participantIds,
+      ) ||
       participantFences.some(fence => fence.exists)
     ) {
       throw new HttpsError(

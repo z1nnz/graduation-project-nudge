@@ -62,6 +62,22 @@ async function request(path, token, options = {}) {
   });
 }
 
+async function setRelationshipMembership(
+  firestore,
+  { scopeType, scopeId, userId, role, status = "active" },
+) {
+  const membershipId = `${scopeType}--${scopeId}--${userId}`;
+  await firestore.collection("relationship_memberships").doc(membershipId).set({
+    schemaVersion: 1,
+    membershipId,
+    scopeType,
+    scopeId,
+    userId,
+    role,
+    status,
+  });
+}
+
 test(
   "relationship outcomes and memories are Cloud-written and membership-readable",
   { skip: !emulatorEnabled },
@@ -164,6 +180,79 @@ test(
 );
 
 test(
+  "relationship outcome refresh requires every formal Membership and role",
+  { skip: !emulatorEnabled },
+  async () => {
+    const app = initializeApp(
+      { projectId },
+      `relationship-outcome-membership-${Date.now()}`,
+    );
+    const firestore = getFirestore(app);
+    const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const scopeId = `family-${unique}`;
+    const guardianId = `guardian-${unique}`;
+    const childId = `child-${unique}`;
+
+    await firestore.collection("family_links").doc(scopeId).set({
+      familyLinkId: scopeId,
+      guardianId,
+      childId,
+      participantIds: [guardianId, childId],
+      status: "active",
+    });
+    await setRelationshipMembership(firestore, {
+      scopeType: "family",
+      scopeId,
+      userId: guardianId,
+      role: "guardian",
+    });
+
+    const handler = createRefreshRelationshipOutcomeHandler({
+      firestore,
+      clock: () => new Date("2026-07-29T06:00:00.000Z"),
+    });
+    await assert.rejects(
+      () =>
+        handler({
+          auth: { uid: guardianId },
+          data: { scopeType: "family", scopeId },
+        }),
+      error => error.code === "permission-denied",
+    );
+
+    await setRelationshipMembership(firestore, {
+      scopeType: "family",
+      scopeId,
+      userId: childId,
+      role: "guardian",
+    });
+    await assert.rejects(
+      () =>
+        handler({
+          auth: { uid: guardianId },
+          data: { scopeType: "family", scopeId },
+        }),
+      error => error.code === "permission-denied",
+    );
+
+    await setRelationshipMembership(firestore, {
+      scopeType: "family",
+      scopeId,
+      userId: childId,
+      role: "child",
+    });
+    const result = await handler({
+      auth: { uid: guardianId },
+      data: { scopeType: "family", scopeId },
+    });
+    assert.equal(result.outcome.scopeType, "family");
+    assert.equal(result.outcome.scopeId, scopeId);
+    assert.equal(result.outcome.refreshedBy, guardianId);
+    assert.deepEqual(result.outcome.participantIds, [childId, guardianId]);
+  },
+);
+
+test(
   "relationship outcome refresh aborts when any participant is deleting",
   { skip: !emulatorEnabled },
   async () => {
@@ -181,8 +270,23 @@ test(
       groupId: scopeId,
       name: "刪除競態測試團體",
       status: "active",
+      ownerId: memberId,
       memberIds: [memberId, deletingMemberId],
     });
+    await Promise.all([
+      setRelationshipMembership(firestore, {
+        scopeType: "group",
+        scopeId,
+        userId: memberId,
+        role: "manager",
+      }),
+      setRelationshipMembership(firestore, {
+        scopeType: "group",
+        scopeId,
+        userId: deletingMemberId,
+        role: "member",
+      }),
+    ]);
     await firestore
       .collection("account_deletion_fences")
       .doc(deletingMemberId)

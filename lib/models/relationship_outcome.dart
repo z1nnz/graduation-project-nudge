@@ -60,6 +60,40 @@ class RelationshipOutcome {
 
   int metric(String key) => metrics[key] ?? 0;
 
+  bool isValidFor({
+    required String expectedScopeType,
+    required String expectedScopeId,
+  }) {
+    final expectedGrowthKind = expectedScopeType == 'family'
+        ? 'family_tree'
+        : expectedScopeType == 'group'
+        ? 'group_planet'
+        : '';
+    final expectedCharacterKind = expectedScopeType == 'family'
+        ? 'family_companion'
+        : expectedScopeType == 'group'
+        ? 'group_companion'
+        : '';
+    return expectedGrowthKind.isNotEmpty &&
+        outcomeId == '$expectedScopeType--$expectedScopeId' &&
+        scopeType == expectedScopeType &&
+        scopeId == expectedScopeId &&
+        scopeName.trim().isNotEmpty &&
+        const {'active', 'ended'}.contains(status) &&
+        growthKind == expectedGrowthKind &&
+        growthXp >= 0 &&
+        growthLevel >= 1 &&
+        currentLevelXp >= 0 &&
+        (nextLevelXp == null || nextLevelXp! > currentLevelXp) &&
+        milestoneKeys.isNotEmpty &&
+        metrics.values.every((value) => value >= 0) &&
+        characterKind == expectedCharacterKind &&
+        characterStage == growthLevel &&
+        characterTitle.trim().isNotEmpty &&
+        characterDescription.trim().isNotEmpty &&
+        updatedAt != null;
+  }
+
   factory RelationshipOutcome.fromMap(Map<String, dynamic> map) {
     final growth = _stringMap(map['growth']);
     final rawMetrics = _stringMap(map['metrics']);
@@ -90,6 +124,24 @@ class RelationshipOutcome {
       updatedAt: _parseDateTime(map['updatedAt']),
     );
   }
+
+  static RelationshipOutcome? tryFromMap(
+    Map<String, dynamic> map, {
+    required String expectedScopeType,
+    required String expectedScopeId,
+  }) {
+    try {
+      final outcome = RelationshipOutcome.fromMap(map);
+      return outcome.isValidFor(
+            expectedScopeType: expectedScopeType,
+            expectedScopeId: expectedScopeId,
+          )
+          ? outcome
+          : null;
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 class RelationshipMemory {
@@ -113,6 +165,17 @@ class RelationshipMemory {
   final int points;
   final DateTime? happenedAt;
 
+  bool isValidForFamily(String expectedScopeId) {
+    return id.trim().isNotEmpty &&
+        scopeId == expectedScopeId &&
+        const {'goal_completed', 'encouragement_ack'}.contains(memoryType) &&
+        sourceId.trim().isNotEmpty &&
+        actorId.trim().isNotEmpty &&
+        title.trim().isNotEmpty &&
+        points >= 0 &&
+        happenedAt != null;
+  }
+
   factory RelationshipMemory.fromMap(
     Map<String, dynamic> map, {
     String? documentId,
@@ -127,6 +190,19 @@ class RelationshipMemory {
       points: (map['points'] as num?)?.toInt() ?? 0,
       happenedAt: _parseDateTime(map['happenedAt']),
     );
+  }
+
+  static RelationshipMemory? tryFromMap(
+    Map<String, dynamic> map, {
+    required String documentId,
+    required String expectedScopeId,
+  }) {
+    try {
+      final memory = RelationshipMemory.fromMap(map, documentId: documentId);
+      return memory.isValidForFamily(expectedScopeId) ? memory : null;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
