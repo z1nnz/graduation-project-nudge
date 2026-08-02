@@ -1,4 +1,4 @@
-enum ActivityType { focus, study, exercise, steps, sleep, custom }
+enum ActivityType { focus, study, exercise, steps, sleep, task, custom }
 
 enum ActivitySource { app, health, device, web }
 
@@ -103,6 +103,7 @@ class ActivityEvidence {
   final DateTime occurredAt;
   final DateTime? receivedAt;
   final String? deviceId;
+  final String? taskId;
 
   ActivityEvidence({
     required this.eventId,
@@ -120,6 +121,7 @@ class ActivityEvidence {
     required this.occurredAt,
     this.receivedAt,
     this.deviceId,
+    this.taskId,
   }) : roomIds = List.unmodifiable(roomIds);
 
   Map<String, dynamic> toCloudJson() => {
@@ -136,6 +138,7 @@ class ActivityEvidence {
     'metricUnit': metricUnit,
     'occurredAt': occurredAt.toUtc().toIso8601String(),
     if (deviceId != null) 'deviceId': deviceId,
+    if (taskId != null) 'taskId': taskId,
   };
 
   Map<String, dynamic> toOutboxJson() => {
@@ -178,6 +181,7 @@ class ActivityEvidence {
           ? null
           : _dateValue(data['receivedAt'], 'receivedAt'),
       deviceId: data['deviceId'] as String?,
+      taskId: data['taskId'] as String?,
     );
   }
 }

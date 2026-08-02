@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   buildRoomActivityEvidence,
   buildStandaloneFocusEvidence,
+  buildTaskCompletionEvidence,
   createActivityLedgerOutbox,
 } = require("../web_dashboard/assets/activity_ledger_client.js");
 
@@ -86,6 +87,81 @@ test("standalone Web focus emits one stable lifecycle without room authority", (
   });
 });
 
+test("Web task state changes share the App daily Ledger correlation", () => {
+  const completed = buildTaskCompletionEvidence({
+    userId: "user-1",
+    taskId: "daily-review",
+    activityDateKey: "2026-07-28",
+    completed: true,
+    occurredAt: "2026-07-28T09:25:00.000Z",
+  });
+  const reopened = buildTaskCompletionEvidence({
+    userId: "user-1",
+    taskId: "daily-review",
+    activityDateKey: "2026-07-28",
+    completed: false,
+    occurredAt: "2026-07-28T09:29:00.000Z",
+  });
+
+  assert.equal(
+    completed.activityCorrelationId,
+    "task:user-1:6aac647c1ff1ff95:2026-07-28",
+  );
+  assert.equal(reopened.activityCorrelationId, completed.activityCorrelationId);
+  assert.notEqual(reopened.eventId, completed.eventId);
+  assert.equal(completed.activityType, "task");
+  assert.equal(completed.source, "web");
+  assert.equal(completed.eventType, "metricSynced");
+  assert.equal(completed.metricValue, 1);
+  assert.equal(reopened.metricValue, 0);
+  assert.equal(completed.metricUnit, "completion");
+  assert.deepEqual(completed.roomIds, []);
+});
+
+test("Web task Ledger identifiers stay within the Cloud contract limit", () => {
+  const evidence = buildTaskCompletionEvidence({
+    userId: "user-1",
+    taskId: "x".repeat(256),
+    activityDateKey: "2026-07-28",
+    completed: true,
+    occurredAt: "2026-07-28T09:25:00.000Z",
+  });
+
+  assert.ok(evidence.activityCorrelationId.length <= 256);
+  assert.ok(evidence.sessionId.length <= 256);
+  assert.ok(evidence.eventId.length <= 256);
+  assert.ok(evidence.sourceRecordId.length <= 256);
+  assert.throws(() => buildTaskCompletionEvidence({
+    userId: "user-1",
+    taskId: "x".repeat(257),
+    activityDateKey: "2026-07-28",
+    completed: true,
+    occurredAt: "2026-07-28T09:25:00.000Z",
+  }), /invalid/i);
+});
+
+test("outbox binds evidence to the authenticated Web actor", async () => {
+  const storage = memoryStorage();
+  const calls = [];
+  const outbox = createActivityLedgerOutbox({
+    storage,
+    getActorId: () => "alice",
+    call: async payload => calls.push(payload),
+  });
+  const evidence = buildStandaloneFocusEvidence({
+    sessionId: "personal-focus-actor-bound",
+    eventType: "started",
+    elapsedSeconds: 0,
+    occurredAt: "2026-07-28T11:45:00.000Z",
+  });
+
+  await outbox.enqueue({ ...evidence, actorUserId: "mallory" });
+  await outbox.flush();
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].evidence.actorUserId, "alice");
+});
+
 test("outbox survives retryable callable failure and drains after restart", async () => {
   const storage = memoryStorage();
   const evidence = buildRoomActivityEvidence({
@@ -131,7 +207,12 @@ test("outbox survives retryable callable failure and drains after restart", asyn
   assert.equal(calls, 1);
   assert.equal(drained.succeeded, 1);
   assert.equal(restarted.pendingCount(), 0);
-  assert.deepEqual(received, [{ evidence }]);
+  assert.deepEqual(received, [{
+    evidence: {
+      ...evidence,
+      actorUserId: "alice",
+    },
+  }]);
 });
 
 test("outbox deduplicates stable event IDs and dead-letters invalid evidence", async () => {
@@ -191,4 +272,54 @@ test("outbox never submits another account's queued Web activity", async () => {
   assert.equal(blocked.retryBlocked, false);
   assert.equal(outbox.pendingCount(), 1);
   assert.deepEqual(calls, []);
+});
+
+test("a Web account switch during flush retains the prior actor event", async () => {
+  const storage = memoryStorage();
+  let actorId = "alice";
+  const outbox = createActivityLedgerOutbox({
+    storage,
+    getActorId: () => actorId,
+    call: async () => {
+      actorId = "bob";
+      const error = new Error("account switched");
+      error.code = "functions/permission-denied";
+      throw error;
+    },
+  });
+  await outbox.enqueue(buildStandaloneFocusEvidence({
+    sessionId: "personal-focus-account-switch",
+    eventType: "started",
+    elapsedSeconds: 0,
+    occurredAt: "2026-07-28T14:30:00.000Z",
+  }));
+
+  const report = await outbox.flush();
+
+  assert.equal(report.permanentlyRejected, 0);
+  assert.equal(outbox.pendingCount(), 1);
+});
+
+test("a Web account switch after success removes the submitted actor event", async () => {
+  const storage = memoryStorage();
+  let actorId = "alice";
+  const outbox = createActivityLedgerOutbox({
+    storage,
+    getActorId: () => actorId,
+    call: async () => {
+      actorId = "bob";
+      return { status: "accepted" };
+    },
+  });
+  await outbox.enqueue(buildStandaloneFocusEvidence({
+    sessionId: "personal-focus-successful-account-switch",
+    eventType: "started",
+    elapsedSeconds: 0,
+    occurredAt: "2026-07-28T14:35:00.000Z",
+  }));
+
+  const report = await outbox.flush();
+
+  assert.equal(report.succeeded, 1);
+  assert.equal(outbox.pendingCount(), 0);
 });

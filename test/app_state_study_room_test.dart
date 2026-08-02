@@ -5,6 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/models/room_activity_session.dart';
 import 'package:nudge/models/study_room_models.dart';
 import 'package:nudge/models/task_model.dart';
+import 'package:nudge/models/user_model.dart';
+import 'package:nudge/services/activity_ledger_outbox.dart';
+import 'package:nudge/services/cloud_activity_ledger_gateway.dart';
 import 'package:nudge/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -46,7 +49,7 @@ void main() {
 
   test(
     'sleep room start marks local user as active without requiring focus',
-    () {
+    () async {
       final appState = AppState();
 
       appState.createStudyRoom(
@@ -409,7 +412,7 @@ void main() {
 
   test(
     'future deadline tasks do not affect weighted score or allow completion',
-    () {
+    () async {
       final appState = AppState();
       final future = DateTime.now().add(
         const Duration(days: AppState.deadlineTaskMinLeadDays),
@@ -433,8 +436,8 @@ void main() {
         (task) => task.title == '完成期末報告',
       );
 
-      appState.toggleTask(fixedIndex, true);
-      appState.toggleTask(deadlineIndex, true);
+      await appState.toggleTask(fixedIndex, true);
+      await appState.toggleTask(deadlineIndex, true);
 
       final deadlineTask = appState.taskModels[deadlineIndex];
       expect(appState.todayWeightedDisciplineScore, 100);
@@ -451,7 +454,7 @@ void main() {
     },
   );
 
-  test('ready deadline tasks award a one-time bonus coin reward', () {
+  test('task completion does not mint coins or avatar XP before Cloud', () async {
     final appState = AppState();
     final now = DateTime.now();
     final todayDate =
@@ -469,20 +472,60 @@ void main() {
       (task) => task.title == '交出期末報告',
     );
     final beforeCoins = appState.disciplineCoins;
+    final beforeExperience = appState.avatarExperience;
 
-    appState.toggleTask(index, true);
-    appState.toggleTask(index, false);
-    appState.toggleTask(index, true);
+    await appState.toggleTask(index, true);
+    await appState.toggleTask(index, false);
+    await appState.toggleTask(index, true);
 
     expect(appState.taskModels[index].isDone, isTrue);
-    expect(
-      appState.disciplineCoins - beforeCoins,
-      AppState.deadlineTaskBonusCoins,
-    );
+    expect(appState.disciplineCoins - beforeCoins, 0);
+    expect(appState.avatarExperience - beforeExperience, 0);
     expect(appState.todayCoinEarned, 0);
   });
 
-  test('deadline task bonus rewards have a monthly cap', () {
+  test(
+    'task mutation re-resolves its identity after durable enqueue',
+    () async {
+      final now = DateTime.now();
+      final user = UserModel(
+        id: 'user-1',
+        username: 'user-1',
+        nickname: '測試者',
+        signature: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      SharedPreferences.setMockInitialValues({
+        'current_user_setting': jsonEncode(user.toJson()),
+      });
+      final outbox = ActivityLedgerOutbox(
+        gateway: CloudActivityLedgerGateway.withCallable(
+          (_) async => {'status': 'settled'},
+        ),
+      );
+      final appState = AppState(activityLedgerOutbox: outbox);
+      await appState.loadAllLocalData();
+      appState.addTask('任務 A', '讀書', taskType: 'fixed');
+      appState.addTask('任務 B', '讀書', taskType: 'fixed');
+      final firstIndex = appState.taskModels.indexWhere(
+        (task) => task.title == '任務 A',
+      );
+
+      final mutation = appState.toggleTask(firstIndex, true);
+      appState.deleteTask(firstIndex);
+      final changed = await mutation;
+
+      expect(changed, isFalse);
+      expect(await outbox.pendingCount(), 0);
+      expect(
+        appState.taskModels.singleWhere((task) => task.title == '任務 B').isDone,
+        isFalse,
+      );
+    },
+  );
+
+  test('repeated deadline tasks cannot mutate client reward counters', () async {
     final appState = AppState();
     final now = DateTime.now();
     final todayDate =
@@ -504,22 +547,19 @@ void main() {
     );
     for (final entry in deadlineIndexes) {
       final i = entry.key;
-      appState.toggleTask(i, true);
+      await appState.toggleTask(i, true);
     }
 
-    expect(
-      appState.disciplineCoins - beforeCoins,
-      AppState.deadlineTaskMonthlyCoinLimit,
-    );
+    expect(appState.disciplineCoins - beforeCoins, 0);
     expect(appState.todayCoinEarned, 0);
+    expect(appState.currentMonthDeadlineCoinEarned, 0);
     expect(
-      appState.currentMonthDeadlineCoinEarned,
+      appState.currentMonthDeadlineCoinRemaining,
       AppState.deadlineTaskMonthlyCoinLimit,
     );
-    expect(appState.currentMonthDeadlineCoinRemaining, 0);
   });
 
-  test('badges stay unlocked after the current condition drops', () {
+  test('badges stay unlocked after the current condition drops', () async {
     final appState = AppState();
 
     appState.addTask('整理書桌', '家事', taskType: 'fixed');
@@ -527,12 +567,12 @@ void main() {
       (task) => task.title == '整理書桌',
     );
 
-    appState.toggleTask(taskIndex, true);
+    await appState.toggleTask(taskIndex, true);
     final unlocked = appState.badgeRecords.firstWhere(
       (badge) => badge.badgeKey == 'task_starter',
     );
 
-    appState.toggleTask(taskIndex, false);
+    await appState.toggleTask(taskIndex, false);
     final stillUnlocked = appState.badgeRecords.firstWhere(
       (badge) => badge.badgeKey == 'task_starter',
     );
@@ -542,35 +582,38 @@ void main() {
     expect(stillUnlocked.progress, stillUnlocked.target);
   });
 
-  test('daily summary stores weighted score coins and tracked sources', () {
-    final appState = AppState();
+  test(
+    'daily summary stores weighted score coins and tracked sources',
+    () async {
+      final appState = AppState();
 
-    appState.addTask(
-      '睡眠 7 小時',
-      '健康',
-      taskType: 'fixed',
-      priority: '高',
-      isAutoTracked: true,
-      sourceType: TaskSourceType.sleepHours,
-      targetValue: 7,
-      unitLabel: '小時',
-    );
-    appState.addTask('整理房間', '自定義', taskType: 'fixed');
+      appState.addTask(
+        '睡眠 7 小時',
+        '健康',
+        taskType: 'fixed',
+        priority: '高',
+        isAutoTracked: true,
+        sourceType: TaskSourceType.sleepHours,
+        targetValue: 7,
+        unitLabel: '小時',
+      );
+      appState.addTask('整理房間', '自定義', taskType: 'fixed');
 
-    appState.updateHealthData(
-      isConnected: true,
-      sleepHours: 7.5,
-      steps: 0,
-      exerciseMinutes: 0,
-    );
-    appState.toggleTask(1, true);
+      appState.updateHealthData(
+        isConnected: true,
+        sleepHours: 7.5,
+        steps: 0,
+        exerciseMinutes: 0,
+      );
+      await appState.toggleTask(1, true);
 
-    final summary = appState.dailySummaries.last;
+      final summary = appState.dailySummaries.last;
 
-    expect(summary.disciplineScore, appState.todayWeightedDisciplineScore);
-    expect(summary.coinsEarned, AppState.coinDailyLimit);
-    expect(summary.autoTrackedCompleted, 1);
-    expect(summary.healthCompleted, 1);
-    expect(summary.autoTrackedSources, contains('睡眠'));
-  });
+      expect(summary.disciplineScore, appState.todayWeightedDisciplineScore);
+      expect(summary.coinsEarned, 0);
+      expect(summary.autoTrackedCompleted, 1);
+      expect(summary.healthCompleted, 1);
+      expect(summary.autoTrackedSources, contains('睡眠'));
+    },
+  );
 }

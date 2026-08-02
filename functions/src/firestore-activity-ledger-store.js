@@ -94,6 +94,37 @@ class FirestoreActivityLedgerTransaction {
     return snapshot.exists ? snapshot.data() : null;
   }
 
+  async getTaskProjection(userId, taskId) {
+    const snapshot = await this.transaction.get(
+      this.firestore.collection("users").doc(userId),
+    );
+    if (!snapshot.exists) return null;
+    const tasks = Array.isArray(snapshot.data().tasks)
+      ? snapshot.data().tasks
+      : [];
+    return tasks.find(task => task?.id === taskId) ?? null;
+  }
+
+  async updateTaskProjection(userId, taskId, completed, occurredAt) {
+    const userRef = this.firestore.collection("users").doc(userId);
+    const snapshot = await this.transaction.get(userRef);
+    if (!snapshot.exists) return null;
+    const tasks = Array.isArray(snapshot.data().tasks)
+      ? snapshot.data().tasks.map(task => ({ ...task }))
+      : [];
+    const index = tasks.findIndex(task => task?.id === taskId);
+    if (index < 0) return null;
+    tasks[index] = {
+      ...tasks[index],
+      done: completed,
+      isDone: completed,
+      completedAt: completed ? occurredAt : null,
+      updatedAt: occurredAt,
+    };
+    this.transaction.update(userRef, { tasks });
+    return tasks[index];
+  }
+
   async rememberDuplicateEvent(eventKey, event, sourceKey = null) {
     const eventRef = this.#eventRef(eventKey);
     this.transaction.create(eventRef, {

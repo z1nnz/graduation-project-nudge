@@ -124,6 +124,59 @@
     };
   }
 
+  function stableTaskKey(value) {
+    let hash = 14695981039346656037n;
+    const prime = 1099511628211n;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= BigInt(value.charCodeAt(index));
+      hash = BigInt.asUintN(64, hash * prime);
+    }
+    return hash.toString(16).padStart(16, "0");
+  }
+
+  function buildTaskCompletionEvidence({
+    userId,
+    taskId,
+    activityDateKey,
+    completed,
+    occurredAt,
+  }) {
+    const normalizedUserId = String(userId || "").trim();
+    const normalizedTaskId = String(taskId || "").trim();
+    const normalizedDateKey = String(activityDateKey || "").trim();
+    const occurrence = new Date(occurredAt);
+    if (
+      !normalizedUserId ||
+      !normalizedTaskId ||
+      normalizedTaskId.length > 256 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(normalizedDateKey) ||
+      typeof completed !== "boolean" ||
+      Number.isNaN(occurrence.getTime())
+    ) {
+      throw new Error("Task activity evidence is invalid.");
+    }
+    const normalizedOccurredAt = occurrence.toISOString();
+    const correlationId =
+      `task:${normalizedUserId}:${stableTaskKey(normalizedTaskId)}:${normalizedDateKey}`;
+    const stableId =
+      `${correlationId}:${completed ? "1" : "0"}:${normalizedOccurredAt}`;
+    return {
+      eventId: stableId,
+      sourceRecordId: stableId,
+      sessionId: correlationId,
+      activityCorrelationId: correlationId,
+      actorUserId: normalizedUserId,
+      taskId: normalizedTaskId,
+      roomIds: [],
+      activityType: "task",
+      source: "web",
+      eventType: "metricSynced",
+      metricValue: completed ? 1 : 0,
+      metricUnit: "completion",
+      occurredAt: normalizedOccurredAt,
+    };
+  }
+
   function normalizedErrorCode(error) {
     return String(error?.code || "")
       .replace(/^functions\//, "")
@@ -171,21 +224,27 @@
       if (!actorUserId) {
         throw new Error("Sign in before recording Web activity.");
       }
+      const actorBoundEvidence = {
+        ...evidence,
+        actorUserId,
+      };
       const entries = pendingEntries();
       const existing = entries.find(
         entry =>
           entry.actorUserId === actorUserId &&
-          entry.evidence?.eventId === evidence.eventId,
+          entry.evidence?.eventId === actorBoundEvidence.eventId,
       );
       if (existing) {
-        if (JSON.stringify(existing.evidence) !== JSON.stringify(evidence)) {
+        if (
+          JSON.stringify(existing.evidence) !== JSON.stringify(actorBoundEvidence)
+        ) {
           throw new Error("An event ID cannot be reused for different evidence.");
         }
         return;
       }
       entries.push({
         actorUserId,
-        evidence,
+        evidence: actorBoundEvidence,
         queuedAt: clock().toISOString(),
         attempts: 0,
         lastError: null,
@@ -193,8 +252,7 @@
       writeList(storage, pendingKey, entries);
     }
 
-    function removePending(eventId) {
-      const actorUserId = String(getActorId() || "").trim();
+    function removePending(actorUserId, eventId) {
       writeList(
         storage,
         pendingKey,
@@ -231,7 +289,7 @@
         failedAt: clock().toISOString(),
       });
       writeList(storage, deadLetterKey, rejected.slice(-100));
-      removePending(entry.evidence.eventId);
+      removePending(entry.actorUserId, entry.evidence.eventId);
     }
 
     async function flushInternal() {
@@ -252,9 +310,14 @@
         }
         try {
           await call({ evidence: entry.evidence });
-          removePending(entry.evidence.eventId);
+          removePending(entry.actorUserId, entry.evidence.eventId);
           succeeded += 1;
         } catch (error) {
+          const currentActorUserId = String(getActorId() || "").trim();
+          if (currentActorUserId !== entry.actorUserId) {
+            retainFailure(entry, error);
+            return { succeeded, permanentlyRejected, retryBlocked: false };
+          }
           if (isPermanent(error)) {
             deadLetter(entry, error);
             permanentlyRejected += 1;
@@ -285,6 +348,7 @@
   return {
     buildRoomActivityEvidence,
     buildStandaloneFocusEvidence,
+    buildTaskCompletionEvidence,
     createActivityLedgerOutbox,
   };
 });

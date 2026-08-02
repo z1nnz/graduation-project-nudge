@@ -6,6 +6,7 @@ const ACTIVITY_TYPES = new Set([
   "exercise",
   "steps",
   "sleep",
+  "task",
   "custom",
 ]);
 const ACTIVITY_SOURCES = new Set(["app", "health", "device", "web"]);
@@ -17,12 +18,13 @@ const ACTIVITY_EVENT_TYPES = new Set([
   "metricSynced",
   "discarded",
 ]);
-const REWARD_POLICIES = new Map([
-  ["focus", { unit: "minutes", maximum: 1440 }],
-  ["study", { unit: "minutes", maximum: 1440 }],
-  ["exercise", { unit: "minutes", maximum: 1440 }],
-  ["steps", { unit: "steps", maximum: 200000 }],
-  ["sleep", { unit: "hours", maximum: 24 }],
+const ACTIVITY_POLICIES = new Map([
+  ["focus", { unit: "minutes", maximum: 1440, rewardable: true }],
+  ["study", { unit: "minutes", maximum: 1440, rewardable: true }],
+  ["exercise", { unit: "minutes", maximum: 1440, rewardable: true }],
+  ["steps", { unit: "steps", maximum: 200000, rewardable: true }],
+  ["sleep", { unit: "hours", maximum: 24, rewardable: true }],
+  ["task", { unit: "completion", maximum: 1, rewardable: false }],
 ]);
 
 export class ActivityLedgerAuthenticationError extends Error {
@@ -146,8 +148,8 @@ function rewardEligibility(evidence) {
   if (evidence.source === "health" && evidence.eventType === "metricSynced") {
     return false;
   }
-  const policy = REWARD_POLICIES.get(evidence.activityType);
-  if (!policy || evidence.metricValue <= 0) {
+  const policy = ACTIVITY_POLICIES.get(evidence.activityType);
+  if (!policy?.rewardable || evidence.metricValue <= 0) {
     return false;
   }
   return (
@@ -156,12 +158,36 @@ function rewardEligibility(evidence) {
   );
 }
 
-function isHealthCorrection(existingSettlement, evidence) {
-  return (
+function stableTaskKey(value) {
+  let hash = 14695981039346656037n;
+  const prime = 1099511628211n;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= BigInt(value.charCodeAt(index));
+    hash = BigInt.asUintN(64, hash * prime);
+  }
+  return hash.toString(16).padStart(16, "0");
+}
+
+function taipeiTaskDateKey(occurredAt) {
+  const shifted = new Date(occurredAt.getTime() + 3 * 60 * 60 * 1000);
+  return shifted.toISOString().slice(0, 10);
+}
+
+function isMutableMetricCorrection(existingSettlement, evidence) {
+  const isHealthCorrection =
     existingSettlement.evidence.source === "health" &&
     existingSettlement.evidence.eventType === "metricSynced" &&
     evidence.source === "health" &&
-    ["metricSynced", "completed"].includes(evidence.eventType)
+    ["metricSynced", "completed"].includes(evidence.eventType);
+  const isTaskCorrection =
+    existingSettlement.evidence.activityType === "task" &&
+    existingSettlement.evidence.eventType === "metricSynced" &&
+    evidence.activityType === "task" &&
+    ["app", "web"].includes(evidence.source) &&
+    evidence.eventType === "metricSynced";
+  return (
+    isHealthCorrection ||
+    isTaskCorrection
   );
 }
 
@@ -239,13 +265,17 @@ export class InMemoryActivityLedgerStore {
   #sourceRecords = new Map();
   #settlements = new Map();
   #sessions = new Map();
+  #userTasks = new Map();
 
-  constructor({ roomMemberships = [] } = {}) {
+  constructor({ roomMemberships = [], userTasks = {} } = {}) {
     for (const membership of roomMemberships) {
       this.#memberships.set(
         `${membership.roomId}:${membership.userId}`,
         clone(membership),
       );
+    }
+    for (const [userId, tasks] of Object.entries(userTasks)) {
+      this.#userTasks.set(userId, clone(tasks));
     }
   }
 
@@ -280,6 +310,28 @@ export class InMemoryActivityLedgerStore {
   async getSession(fingerprint) {
     const value = this.#sessions.get(fingerprint);
     return value ? clone(value) : null;
+  }
+
+  async getTaskProjection(userId, taskId) {
+    const task = (this.#userTasks.get(userId) ?? []).find(
+      candidate => candidate.id === taskId,
+    );
+    return task ? clone(task) : null;
+  }
+
+  async updateTaskProjection(userId, taskId, completed, occurredAt) {
+    const tasks = this.#userTasks.get(userId) ?? [];
+    const index = tasks.findIndex(task => task.id === taskId);
+    if (index < 0) return null;
+    tasks[index] = {
+      ...tasks[index],
+      done: completed,
+      isDone: completed,
+      completedAt: completed ? occurredAt : null,
+      updatedAt: occurredAt,
+    };
+    this.#userTasks.set(userId, tasks);
+    return clone(tasks[index]);
   }
 
   async rememberDuplicateEvent(eventKey, event, sourceKey = null) {
@@ -398,7 +450,25 @@ export class ActivityLedgerService {
       const fingerprint = activityFingerprint(evidence);
       const existingSettlement = await transaction.getSettlement(fingerprint);
       if (existingSettlement) {
-        if (isHealthCorrection(existingSettlement, evidence)) {
+        if (isMutableMetricCorrection(existingSettlement, evidence)) {
+          if (
+            new Date(evidence.occurredAt).getTime() <
+            new Date(existingSettlement.evidence.occurredAt).getTime()
+          ) {
+            const result = {
+              ...clone(existingSettlement.result),
+              status: "superseded",
+              acknowledgedEventId: evidence.eventId,
+              acknowledgedSourceRecordId: evidence.sourceRecordId,
+              wasDuplicate: false,
+            };
+            await transaction.rememberDuplicateEvent(
+              eventKey,
+              { signature, evidence, result },
+              sourceKey,
+            );
+            return clone(result);
+          }
           const existingSession = await transaction.getSession(fingerprint);
           const session = this.#transitionSession(existingSession, evidence);
           const verifiedAt = this.clock().toISOString();
@@ -456,6 +526,19 @@ export class ActivityLedgerService {
             session,
             wasDuplicate: false,
           };
+          if (evidence.activityType === "task") {
+            const projected = await transaction.updateTaskProjection(
+              evidence.actorUserId,
+              evidence.taskId,
+              evidence.metricValue === 1,
+              evidence.occurredAt,
+            );
+            if (!projected) {
+              throw new ActivityLedgerValidationError(
+                "Task activity requires an existing canonical task projection.",
+              );
+            }
+          }
           await transaction.createCorrectionSettlement({
             eventKey,
             event: { signature, evidence, result },
@@ -625,6 +708,19 @@ export class ActivityLedgerService {
         session,
         wasDuplicate: false,
       };
+      if (evidence.activityType === "task") {
+        const projected = await transaction.updateTaskProjection(
+          evidence.actorUserId,
+          evidence.taskId,
+          evidence.metricValue === 1,
+          evidence.occurredAt,
+        );
+        if (!projected) {
+          throw new ActivityLedgerValidationError(
+            "Task activity requires an existing canonical task projection.",
+          );
+        }
+      }
       await transaction.createSettlement({
         eventKey,
         eventId: evidence.eventId,
@@ -753,6 +849,7 @@ export class ActivityLedgerService {
       sourceRecordId: rawEvidence.sourceRecordId,
       sessionId: rawEvidence.sessionId,
       activityCorrelationId: rawEvidence.activityCorrelationId ?? null,
+      taskId: rawEvidence.taskId ?? null,
       submittedByUserId: isUser ? principal.userId : null,
       submittedByServiceId: isHealthAdapter ? principal.adapterId : null,
       actorUserId: rawEvidence.actorUserId,
@@ -873,7 +970,7 @@ export class ActivityLedgerService {
         "Activity metrics must be finite and non-negative.",
       );
     }
-    const rewardPolicy = REWARD_POLICIES.get(evidence.activityType);
+    const rewardPolicy = ACTIVITY_POLICIES.get(evidence.activityType);
     if (
       (rewardPolicy &&
         (evidence.metricUnit !== rewardPolicy.unit ||
@@ -882,6 +979,26 @@ export class ActivityLedgerService {
     ) {
       throw new ActivityLedgerValidationError(
         "Activity metric unit or range is invalid for this activity type.",
+      );
+    }
+    if (
+      evidence.activityType === "task" &&
+      (evidence.eventType !== "metricSynced" ||
+        ![0, 1].includes(evidence.metricValue))
+    ) {
+      throw new ActivityLedgerValidationError(
+        "Task activity must synchronize a binary completion metric.",
+      );
+    }
+    if (
+      evidence.activityType === "task" &&
+      (evidence.roomIds.length > 0 ||
+        !evidence.activityCorrelationId?.startsWith(
+          `task:${evidence.actorUserId}:`,
+        ))
+    ) {
+      throw new ActivityLedgerValidationError(
+        "Task activity must remain personal and use its daily correlation.",
       );
     }
     if (
@@ -895,6 +1012,28 @@ export class ActivityLedgerService {
     if (Number.isNaN(occurredAt.getTime())) {
       throw new ActivityLedgerValidationError(
         "Activity occurrence time must be a valid timestamp.",
+      );
+    }
+    if (evidence.activityType === "task") {
+      const taskId = typeof evidence.taskId === "string"
+        ? evidence.taskId.trim()
+        : "";
+      const expectedCorrelation = taskId && taskId.length <= 256
+        ? `task:${evidence.actorUserId}:${stableTaskKey(taskId)}:${taipeiTaskDateKey(occurredAt)}`
+        : null;
+      if (
+        !expectedCorrelation ||
+        evidence.activityCorrelationId !== expectedCorrelation ||
+        evidence.sessionId !== expectedCorrelation
+      ) {
+        throw new ActivityLedgerValidationError(
+          "Task activity must use its verified task, session and 05:00 daily correlation.",
+        );
+      }
+      evidence.taskId = taskId;
+    } else if (evidence.taskId !== null) {
+      throw new ActivityLedgerValidationError(
+        "Only task activity can include a task identifier.",
       );
     }
     const receivedAt = new Date(evidence.receivedAt);

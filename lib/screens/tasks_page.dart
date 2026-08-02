@@ -1647,34 +1647,23 @@ class _TasksPageState extends State<TasksPage> {
                                 isSystemTask ||
                                 (isDeadlineTask && !isDeadlineReady)
                             ? null
-                            : (value) {
+                            : (value) async {
                                 final appState = context.read<AppState>();
-                                final beforeScore =
-                                    appState.todayWeightedDisciplineScore;
-                                final beforeCoins = appState.disciplineCoins;
-                                appState.toggleTask(
+                                final messenger = ScaffoldMessenger.of(context);
+                                final changed = await appState.toggleTask(
                                   originalIndex,
                                   value ?? false,
                                 );
-                                final afterScore =
-                                    appState.todayWeightedDisciplineScore;
-                                final afterCoins = appState.disciplineCoins;
-                                final scoreDelta = afterScore - beforeScore;
-                                final coinDelta = afterCoins - beforeCoins;
-
-                                if ((value ?? false) &&
-                                    (scoreDelta > 0 || coinDelta > 0)) {
-                                  final coinText = coinDelta > 0
-                                      ? '，獲得 +$coinDelta 自律幣'
-                                      : '';
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '自律分數 +$scoreDelta$coinText',
-                                      ),
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      changed
+                                          ? '任務狀態已安全保存，正式獎勵等待 Cloud 驗證'
+                                          : '任務狀態未變更，請確認登入與 Ledger 儲存狀態',
                                     ),
-                                  );
-                                }
+                                  ),
+                                );
                               },
                       ),
                     ),

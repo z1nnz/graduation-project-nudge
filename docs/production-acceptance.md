@@ -28,6 +28,13 @@ coverage and from release gates that still require external infrastructure.
 - The relationship cutover is accepted only after a production dry-run reports
   zero issues, the apply completes, and a second dry-run reports zero legacy
   projection cleanup.
+- App and Web task completion now have local test coverage for actor-bound,
+  durable Activity Ledger submission before projection updates. Task receipts
+  are non-rewardable, atomically update the canonical task projection, and
+  support ordered immutable corrections across clients. Older offline evidence
+  is retained as superseded audit data instead of replacing the latest state.
+  This is source and test evidence only until the updated Cloud Function is
+  deployed and exercised with real accounts.
 
 ## Real-account Auth and Rules acceptance
 

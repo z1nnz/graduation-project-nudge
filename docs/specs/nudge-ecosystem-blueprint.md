@@ -49,6 +49,12 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
   不覆寫舊 Receipt。
 - Web 的個人專注與一般自律房活動也已使用耐久 outbox 提交 Ledger；健康型
   房間不接受 Web 手動輸入，只顯示 Cloud 驗證後的 Room Contribution。
+- App 與 Web 的手動任務完成／撤銷，會先以目前登入帳號寫入耐久 outbox，
+  再更新任務投影；Cloud 將同一天、同一任務的跨端變更寫成不可變 correction
+  Receipt，並在同一交易更新正式任務投影。任務同步本身不可發獎，避免 App
+  與 Web 重複鑄造自律幣或角色 XP。任務日界線固定採臺北時間 05:00。
+- 健康資料自動完成的任務仍是 Health Ledger 快照的衍生投影，不另提交一份
+  可獎勵的 task 事件；正式獎勵必須由後續 Cloud Reward Ledger 結算。
 - App 健康型房間已移除舊式手動投影入口，只能前往 Health Connect／
   Apple Health 同步後由 Ledger 更新房間貢獻。
 
@@ -64,6 +70,9 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 - 一般活動房仍保留舊 `activity_sessions` 讀取投影供過渡期 UI 使用；需在
   App／Web 都能直接讀取正式 Session／Contribution 後移除。
 - 房間資料與使用者文件中既有投影資料的遷移、封存與清除。
+- Cloud Reward Ledger、伺服器端購買交易與 Firestore 獎勵欄位寫入封鎖尚未
+  完成；目前端點已停止由任務與每日摘要自行增加自律幣／角色 XP，但不能據此
+  宣稱獎勵帳本與防竄改已完成。
 
 正式 Web 發布前必須透過部署環境設定
 `window.NUDGE_FIREBASE_APP_CHECK_SITE_KEY`，或在 HTML 提供

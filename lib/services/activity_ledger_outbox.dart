@@ -72,11 +72,16 @@ class ActivityLedgerOutbox {
 
   final CloudActivityLedgerGateway gateway;
   final DateTime Function() _clock;
+  final String? Function()? _getActorId;
   Future<ActivityLedgerFlushReport>? _activeFlush;
   Future<void> _operationTail = Future<void>.value();
 
-  ActivityLedgerOutbox({required this.gateway, DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  ActivityLedgerOutbox({
+    required this.gateway,
+    DateTime Function()? clock,
+    String? Function()? getActorId,
+  }) : _clock = clock ?? DateTime.now,
+       _getActorId = getActorId;
 
   Future<T> _runExclusive<T>(Future<T> Function() operation) {
     final completer = Completer<T>();
@@ -92,6 +97,28 @@ class ActivityLedgerOutbox {
 
   Future<int> pendingCount() {
     return _runExclusive(() async => (await _loadPending()).length);
+  }
+
+  Future<void> cancel(ActivityEvidence evidence) {
+    final identity = _OutboxEntry(
+      evidence: evidence,
+      queuedAt: _clock().toUtc(),
+    ).identity;
+    return _runExclusive(() async {
+      final pending = await _loadPending();
+      await _savePending(
+        pending.where((entry) => entry.identity != identity).toList(),
+      );
+    });
+  }
+
+  bool _belongsToCurrentActor(_OutboxEntry entry) {
+    final actorId = _getActorId?.call()?.trim();
+    return _getActorId == null ||
+        (actorId != null &&
+            actorId.isNotEmpty &&
+            entry.evidence.actorUserId == actorId &&
+            entry.evidence.submittedByUserId == actorId);
   }
 
   Future<void> enqueue(ActivityEvidence evidence) {
@@ -143,18 +170,34 @@ class ActivityLedgerOutbox {
         );
       }
 
+      final batch = _getActorId == null
+          ? pending
+          : pending.where(_belongsToCurrentActor).toList();
+      if (batch.isEmpty) {
+        return ActivityLedgerFlushReport(
+          succeeded: List.unmodifiable(succeeded),
+          permanentlyRejected: permanentlyRejected,
+          retryBlocked: false,
+        );
+      }
+
       final retained = <_OutboxEntry>[];
       var retryBlocked = false;
-      for (var index = 0; index < pending.length; index++) {
-        final entry = pending[index];
+      for (var index = 0; index < batch.length; index++) {
+        final entry = batch[index];
         try {
           succeeded.add(await gateway.recordActivity(entry.evidence));
         } on ActivityCloudRetryableException catch (error) {
           retained.add(entry.failed(error));
-          retained.addAll(pending.skip(index + 1));
+          retained.addAll(batch.skip(index + 1));
           retryBlocked = true;
           break;
         } on ActivityAuthorizationException catch (error) {
+          if (!_belongsToCurrentActor(entry)) {
+            retained.add(entry.failed(error));
+            retained.addAll(batch.skip(index + 1));
+            break;
+          }
           await _deadLetter(entry, error);
           permanentlyRejected++;
         } on ActivityValidationException catch (error) {
@@ -165,16 +208,14 @@ class ActivityLedgerOutbox {
           permanentlyRejected++;
         } catch (error) {
           retained.add(entry.failed(error));
-          retained.addAll(pending.skip(index + 1));
+          retained.addAll(batch.skip(index + 1));
           retryBlocked = true;
           break;
         }
       }
       await _runExclusive(() async {
         final current = await _loadPending();
-        final flushedIdentities = pending
-            .map((entry) => entry.identity)
-            .toSet();
+        final flushedIdentities = batch.map((entry) => entry.identity).toSet();
         final queuedDuringFlush = current
             .where((entry) => !flushedIdentities.contains(entry.identity))
             .toList();

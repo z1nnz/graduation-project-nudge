@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/models/activity_ledger.dart';
+import 'package:nudge/services/activity_ingestion.dart';
 import 'package:nudge/services/activity_ledger_outbox.dart';
 import 'package:nudge/services/cloud_activity_ledger_gateway.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -108,6 +109,70 @@ void main() {
 
     expect(await outbox.pendingCount(), 20);
   });
+
+  test(
+    'a queued event can be cancelled before its local mutation commits',
+    () async {
+      final outbox = ActivityLedgerOutbox(
+        gateway: CloudActivityLedgerGateway.withCallable((_) async {
+          return acceptedResult();
+        }),
+      );
+      final evidence = queuedEvidence(suffix: 'cancelled-before-commit');
+
+      await outbox.enqueue(evidence);
+      await outbox.cancel(evidence);
+
+      expect(await outbox.pendingCount(), 0);
+    },
+  );
+
+  test('pending activity is flushed only by its authenticated actor', () async {
+    var activeActorId = 'user-2';
+    var calls = 0;
+    final outbox = ActivityLedgerOutbox(
+      gateway: CloudActivityLedgerGateway.withCallable((_) async {
+        calls++;
+        return acceptedResult();
+      }),
+      getActorId: () => activeActorId,
+    );
+    await outbox.enqueue(queuedEvidence());
+
+    final otherAccount = await outbox.flush();
+
+    expect(otherAccount.retryBlocked, isFalse);
+    expect(otherAccount.succeeded, isEmpty);
+    expect(calls, 0);
+    expect(await outbox.pendingCount(), 1);
+
+    activeActorId = 'user-1';
+    final owner = await outbox.flush();
+
+    expect(owner.succeeded, hasLength(1));
+    expect(calls, 1);
+    expect(await outbox.pendingCount(), 0);
+  });
+
+  test(
+    'an account switch during flush never dead-letters prior activity',
+    () async {
+      var activeActorId = 'user-1';
+      final outbox = ActivityLedgerOutbox(
+        gateway: CloudActivityLedgerGateway.withCallable((_) async {
+          activeActorId = 'user-2';
+          throw const ActivityAuthorizationException('account switched');
+        }),
+        getActorId: () => activeActorId,
+      );
+      await outbox.enqueue(queuedEvidence());
+
+      final report = await outbox.flush();
+
+      expect(report.permanentlyRejected, 0);
+      expect(await outbox.pendingCount(), 1);
+    },
+  );
 
   test(
     'a flush drains an event queued while its first call is in flight',

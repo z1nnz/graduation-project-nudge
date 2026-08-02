@@ -21,6 +21,211 @@ const completedFocusEvidence = {
   occurredAt: "2026-07-28T09:25:00.000Z",
 };
 
+const completedTaskEvidence = {
+  eventId: "event-task-completed-1",
+  sourceRecordId: "app-task-completed-1",
+  sessionId: "task:user-1:6aac647c1ff1ff95:2026-07-28",
+  activityCorrelationId: "task:user-1:6aac647c1ff1ff95:2026-07-28",
+  taskId: "daily-review",
+  actorUserId: "user-1",
+  roomIds: [],
+  activityType: "task",
+  source: "app",
+  eventType: "metricSynced",
+  metricValue: 1,
+  metricUnit: "completion",
+  occurredAt: "2026-07-28T09:25:00.000Z",
+};
+
+function taskStore() {
+  return new InMemoryActivityLedgerStore({
+    userTasks: {
+      "user-1": [{ id: "daily-review", done: false, isDone: false }],
+    },
+  });
+}
+
+test("App task completion can be corrected from Web without a reward", async () => {
+  const store = taskStore();
+  const service = new ActivityLedgerService({
+    store,
+    clock: () => new Date("2026-07-28T09:30:00.000Z"),
+  });
+
+  const completed = await service.record(
+    { kind: "user", userId: "user-1" },
+    completedTaskEvidence,
+  );
+  const corrected = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedTaskEvidence,
+      eventId: "event-task-incomplete-1",
+      sourceRecordId: "web-task-incomplete-1",
+      source: "web",
+      metricValue: 0,
+      occurredAt: "2026-07-28T09:29:00.000Z",
+    },
+  );
+
+  assert.equal(completed.status, "settled");
+  assert.equal(completed.receipt.acceptedMetric, 1);
+  assert.equal(completed.receipt.rewardEligible, false);
+  assert.equal(completed.receipt.rewardIssued, false);
+  assert.equal(corrected.receipt.acceptedMetric, 0);
+  assert.equal(
+    corrected.receipt.correctionOfReceiptId,
+    completed.receipt.receiptId,
+  );
+  assert.equal(corrected.receipt.rewardEligible, false);
+  assert.equal(corrected.receipt.rewardIssued, false);
+  assert.equal(corrected.session.status, "active");
+  assert.equal(corrected.session.metricValue, 0);
+  assert.equal(store.receiptCount, 2);
+  assert.equal((await store.getTaskProjection("user-1", "daily-review")).done, false);
+});
+
+test("task evidence is a binary metric synchronization", async () => {
+  const service = new ActivityLedgerService({
+    store: new InMemoryActivityLedgerStore(),
+  });
+  const principal = { kind: "user", userId: "user-1" };
+
+  await assert.rejects(
+    service.record(principal, {
+      ...completedTaskEvidence,
+      eventType: "completed",
+    }),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.toLowerCase().includes("task"),
+  );
+  await assert.rejects(
+    service.record(principal, {
+      ...completedTaskEvidence,
+      eventId: "event-task-fractional",
+      sourceRecordId: "app-task-fractional",
+      metricValue: 0.5,
+    }),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.toLowerCase().includes("task"),
+  );
+});
+
+test("task evidence settles only when its canonical task projection exists", async () => {
+  const service = new ActivityLedgerService({
+    store: new InMemoryActivityLedgerStore(),
+  });
+
+  await assert.rejects(
+    service.record(
+      { kind: "user", userId: "user-1" },
+      completedTaskEvidence,
+    ),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.toLowerCase().includes("canonical task"),
+  );
+});
+
+test("task evidence is personal and requires one daily correlation", async () => {
+  const service = new ActivityLedgerService({
+    store: new InMemoryActivityLedgerStore({
+      roomMemberships: [
+        {
+          roomId: "room-study",
+          userId: "user-1",
+          status: "active",
+          sharingConsented: true,
+        },
+      ],
+    }),
+  });
+  const principal = { kind: "user", userId: "user-1" };
+
+  await assert.rejects(
+    service.record(principal, {
+      ...completedTaskEvidence,
+      roomIds: ["room-study"],
+    }),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.toLowerCase().includes("task"),
+  );
+  await assert.rejects(
+    service.record(principal, {
+      ...completedTaskEvidence,
+      eventId: "event-task-uncorrelated",
+      sourceRecordId: "app-task-uncorrelated",
+      activityCorrelationId: null,
+    }),
+    error =>
+      error.name === "ActivityLedgerValidationError" &&
+      error.message.toLowerCase().includes("task"),
+  );
+  for (const invalidEvidence of [
+    {
+      sessionId: "task:user-1:6aac647c1ff1ff95:2026-07-27",
+      activityCorrelationId: "task:user-1:6aac647c1ff1ff95:2026-07-27",
+    },
+    {
+      sessionId: "task:user-1:not-a-hash:2026-07-28",
+      activityCorrelationId: "task:user-1:not-a-hash:2026-07-28",
+    },
+    { sessionId: "another-session" },
+    { taskId: "another-task" },
+  ]) {
+    await assert.rejects(
+      service.record(principal, {
+        ...completedTaskEvidence,
+        eventId: `event-task-invalid-${JSON.stringify(invalidEvidence)}`,
+        sourceRecordId: `source-task-invalid-${JSON.stringify(invalidEvidence)}`,
+        ...invalidEvidence,
+      }),
+      error =>
+        error.name === "ActivityLedgerValidationError" &&
+        error.message.toLowerCase().includes("task"),
+    );
+  }
+});
+
+test("an older task event is audited without overwriting newer task state", async () => {
+  const store = taskStore();
+  const service = new ActivityLedgerService({
+    store,
+    clock: () => new Date("2026-07-28T09:30:00.000Z"),
+  });
+  await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedTaskEvidence,
+      eventId: "event-task-newer-reopened",
+      sourceRecordId: "web-task-newer-reopened",
+      source: "web",
+      metricValue: 0,
+      occurredAt: "2026-07-28T09:29:00.000Z",
+    },
+  );
+
+  const stale = await service.record(
+    { kind: "user", userId: "user-1" },
+    completedTaskEvidence,
+  );
+  assert.equal(stale.status, "superseded");
+  assert.equal(stale.receipt.acceptedMetric, 0);
+  assert.equal(stale.session.metricValue, 0);
+  assert.equal((await store.getTaskProjection("user-1", "daily-review")).done, false);
+  assert.equal(store.receiptCount, 1);
+
+  const replay = await service.record(
+    { kind: "user", userId: "user-1" },
+    completedTaskEvidence,
+  );
+  assert.equal(replay.status, "superseded");
+  assert.equal(replay.wasDuplicate, true);
+});
+
 test("a completed activity settles once across service restarts", async () => {
   const store = new InMemoryActivityLedgerStore({
     roomMemberships: [

@@ -2311,6 +2311,41 @@ window.queueWebStandaloneFocusLedgerEvent = async ({
   return { queued: true };
 };
 
+function webActivityDateKey(occurredAt = new Date()) {
+  const shifted = new Date(occurredAt.getTime() + 3 * 60 * 60 * 1000);
+  return shifted.toISOString().slice(0, 10);
+}
+
+window.queueWebTaskLedgerEvent = async ({
+  userId,
+  taskId,
+  completed,
+  occurredAt = new Date(),
+}) => {
+  const authenticatedUserId = firebase.auth().currentUser?.uid || "";
+  if (!authenticatedUserId || authenticatedUserId !== userId) {
+    throw new Error("只能同步目前登入帳號自己的任務活動。");
+  }
+  const ledger = await loadActivityLedgerClient();
+  const evidence = ledger.buildTaskCompletionEvidence({
+    userId: authenticatedUserId,
+    taskId,
+    activityDateKey: webActivityDateKey(occurredAt),
+    completed,
+    occurredAt,
+  });
+  const outbox = await ensureWebActivityLedgerOutbox();
+  await outbox.enqueue(evidence);
+  outbox.flush().then(report => {
+    if (report.retryBlocked) {
+      toast("任務狀態已保存，Cloud Ledger 將在連線恢復後重送");
+    }
+  }).catch(error => {
+    console.warn("Task Activity Ledger flush failed:", error);
+  });
+  return { queued: true };
+};
+
 function roomUsesTrustedHealthAdapter(room = {}) {
   return Boolean(
     window.NudgeRoomActivitySessionContract
@@ -7565,34 +7600,46 @@ window.bindFirestoreMissions = function(tasks) {
       const taskId = e.target.dataset.taskId;
       const isChecked = e.target.checked;
       const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
-      if (!activeUserId || !db) return;
+      const authenticatedUserId = firebase.auth().currentUser?.uid || null;
+      if (!activeUserId || activeUserId !== authenticatedUserId || !db) {
+        e.target.checked = !isChecked;
+        toast("請先登入要更新任務的本人帳號。");
+        return;
+      }
 
       const docRef = db.collection("users").doc(activeUserId);
       docRef.get().then((docSnap) => {
-        if (!docSnap.exists) return;
+        if (!docSnap.exists) {
+          e.target.checked = !isChecked;
+          return;
+        }
         const data = docSnap.data();
         const currentTasks = data.tasks || [];
         const selectedTask = currentTasks.find(t => t.id === taskId);
+        const wasDone = Boolean(selectedTask?.isDone || selectedTask?.done);
+        if (!selectedTask || wasDone === isChecked) return;
         if (isChecked && selectedTask && !isDeadlineTaskReadyForWeb(selectedTask)) {
           e.target.checked = false;
           toast("截止日任務尚未到驗收日，暫時不能勾選完成");
           return;
         }
-        const updatedTasks = currentTasks.map(t => {
-          if (t.id === taskId) {
-            return {
-              ...t,
-              isDone: isChecked,
-              done: isChecked,
-              completedAt: isChecked ? new Date().toISOString() : null,
-              updatedAt: new Date().toISOString()
-            };
-          }
-          return t;
+        const occurredAt = new Date();
+        window.queueWebTaskLedgerEvent({
+          userId: authenticatedUserId,
+          taskId,
+          completed: isChecked,
+          occurredAt,
+        }).then(() => {
+          toast(isChecked ? "任務完成已提交 Ledger" : "取消完成已提交 Ledger");
+        }).catch(error => {
+          e.target.checked = !isChecked;
+          console.warn("Unable to durably queue task state:", error);
+          toast("Ledger 尚未安全保存，任務狀態沒有變更。");
         });
-        docRef.update({ tasks: updatedTasks }).then(() => {
-          toast(isChecked ? "任務已標記為完成！" : "任務取消完成");
-        });
+      }).catch(error => {
+        e.target.checked = !isChecked;
+        console.warn("Unable to load Firestore task:", error);
+        toast("無法載入任務，請稍後重試。");
       });
     });
   });
@@ -7681,8 +7728,10 @@ function addFirestoreTask(taskTitle) {
 
 function completeFirestoreTask(taskId) {
   const activeUserId = localStorage.getItem("nudgeActiveDemoUserId");
-  if (!activeUserId || !db) {
+  const authenticatedUserId = firebase.auth().currentUser?.uid || null;
+  if (!activeUserId || activeUserId !== authenticatedUserId || !db) {
     console.warn("Firebase not initialized or user missing");
+    toast("請先登入要更新任務的本人帳號。");
     return;
   }
   const docRef = db.collection("users").doc(activeUserId);
@@ -7705,13 +7754,17 @@ function completeFirestoreTask(taskId) {
           return;
         }
 
-        currentTasks[taskIndex].isDone = true;
-        currentTasks[taskIndex].done = true;
-        currentTasks[taskIndex].completedAt = new Date().toISOString();
-        currentTasks[taskIndex].updatedAt = new Date().toISOString();
-
-        docRef.update({ tasks: currentTasks }).then(() => {
-          toast(`📡 星艦回報：AI 成功為您標記完成任務【${currentTasks[taskIndex].title}】！`);
+        const occurredAt = new Date();
+        window.queueWebTaskLedgerEvent({
+          userId: authenticatedUserId,
+          taskId: currentTasks[taskIndex].id,
+          completed: true,
+          occurredAt,
+        }).then(() => {
+          toast(`📡 星艦回報：任務【${currentTasks[taskIndex].title}】已提交 Ledger！`);
+        }).catch(error => {
+          console.warn("Unable to durably queue completed task:", error);
+          toast("Ledger 尚未安全保存，任務狀態沒有變更。");
         });
       } else {
         toast(`📡 星艦警告：找不到與「${taskId}」匹配的任務。`);

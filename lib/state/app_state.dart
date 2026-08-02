@@ -42,6 +42,7 @@ import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/push_notification_service.dart';
+import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
 
 class ReminderChannelSetting {
@@ -117,7 +118,10 @@ class AppState extends ChangeNotifier {
     PushNotificationService? pushNotificationService,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
-           ActivityLedgerOutbox(gateway: CloudActivityLedgerGateway.firebase()),
+           ActivityLedgerOutbox(
+             gateway: CloudActivityLedgerGateway.firebase(),
+             getActorId: () => fb_auth.FirebaseAuth.instance.currentUser?.uid,
+           ),
        _healthSnapshotOutbox =
            healthSnapshotOutbox ??
            HealthSnapshotOutbox(gateway: CloudHealthSnapshotGateway.firebase()),
@@ -1705,7 +1709,6 @@ class AppState extends ChangeNotifier {
         'avatarLevel': avatarLevel,
         'avatarSeries': currentAvatarSeries,
         'unlockedAvatarItems': _unlockedAvatarItemKeys.toList(),
-        'tasks': _tasks,
         'dailySummaries': _dailySummaries.map((s) => s.toJson()).toList(),
         'unlockedBadgeDates': _unlockedBadgeDates,
         'userRole': _userRole,
@@ -3569,33 +3572,6 @@ class AppState extends ChangeNotifier {
     return !today.isBefore(due);
   }
 
-  String _deadlineTaskRewardKey(Map<String, dynamic> task) {
-    final id = task['id'] as String? ?? task['title'] as String? ?? 'unknown';
-    return 'deadline:$id';
-  }
-
-  int _awardDeadlineTaskBonus(Map<String, dynamic> task) {
-    final rewardKey = _deadlineTaskRewardKey(task);
-    if (_rewardedTaskKeys.contains(rewardKey)) return 0;
-
-    final monthlyRemaining = currentMonthDeadlineCoinRemaining;
-    final rewardAmount = deadlineTaskBonusCoins > monthlyRemaining
-        ? monthlyRemaining
-        : deadlineTaskBonusCoins;
-    _rewardedTaskKeys.add(rewardKey);
-    if (rewardAmount <= 0) {
-      _saveRewardState();
-      return 0;
-    }
-
-    final month = _monthKey();
-    _disciplineCoins += rewardAmount;
-    _monthlyDeadlineCoinEarned[month] =
-        (_monthlyDeadlineCoinEarned[month] ?? 0) + rewardAmount;
-    _saveRewardState();
-    return rewardAmount;
-  }
-
   void _syncAutoTrackedTasks() {
     final now = DateTime.now().toIso8601String();
 
@@ -3717,34 +3693,7 @@ class AppState extends ChangeNotifier {
   }
 
   void _syncTaskRewards() {
-    bool changed = false;
-    final score = _weightedTaskScore();
-
-    for (final entry in scoreCoinMilestones.entries) {
-      final threshold = entry.key;
-      final coinAmount = entry.value;
-      if (score < threshold) continue;
-
-      final rewardKey = _scoreMilestoneRewardKey(threshold);
-      if (_rewardedTaskKeys.contains(rewardKey)) continue;
-
-      final remaining = scoreCoinRemaining;
-      final rewardAmount = coinAmount > remaining ? remaining : coinAmount;
-      _rewardedTaskKeys.add(rewardKey);
-      if (rewardAmount <= 0) {
-        changed = true;
-        continue;
-      }
-
-      final today = _todayKey();
-      _disciplineCoins += rewardAmount;
-      _dailyCoinEarned[today] = (_dailyCoinEarned[today] ?? 0) + rewardAmount;
-      changed = true;
-    }
-
-    if (changed) {
-      _saveRewardState();
-    }
+    // Formal rewards are applied only from Cloud Reward Ledger receipts.
   }
 
   void _unlockCurrentAvatarProfile() {
@@ -4058,7 +4007,20 @@ class AppState extends ChangeNotifier {
 
   Future<void> _saveTasks() async {
     await LocalStorageService.saveTasks(_tasks);
-    await syncDataToFirestore();
+    final user = _currentUser;
+    if (user == null) return;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.id).update({
+        'tasks': _tasks,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (error) {
+      debugPrint('Failed to save the task catalog projection: $error');
+    }
+  }
+
+  Future<void> _saveTasksLocally() {
+    return LocalStorageService.saveTasks(_tasks);
   }
 
   Future<void> _saveFocusTime() async {
@@ -5295,7 +5257,6 @@ class AppState extends ChangeNotifier {
     }
 
     _saveDailySummaries();
-    _syncAvatarExperienceLedgerForSummary(summary);
   }
 
   void _checkDailyResetSync() {
@@ -5554,7 +5515,6 @@ class AppState extends ChangeNotifier {
     }
 
     _saveDailySummaries();
-    _syncAvatarExperienceLedgerForSummary(summary);
     _scheduleFamilySummaryPublish();
     _scheduleGroupResultSummaryPublish();
   }
@@ -5683,60 +5643,6 @@ class AppState extends ChangeNotifier {
       };
     }
     return payload;
-  }
-
-  void _syncAvatarExperienceLedgerForSummary(DailySummary summary) {
-    final expectedExperience = avatarExperienceForSummary(summary);
-    final seriesExperience = Map<String, int>.from(
-      _avatarExperienceLedger[summary.date] ?? const <String, int>{},
-    );
-    final recordedExperience = seriesExperience.values.fold<int>(
-      0,
-      (acc, value) => acc + value,
-    );
-    final delta = expectedExperience - recordedExperience;
-    if (delta == 0) return;
-
-    if (delta > 0) {
-      final series = currentAvatarSeries;
-      seriesExperience[series] = (seriesExperience[series] ?? 0) + delta;
-    } else {
-      _removeAvatarExperienceFromLedgerEntry(
-        seriesExperience,
-        amount: -delta,
-        preferredSeries: currentAvatarSeries,
-      );
-    }
-
-    seriesExperience.removeWhere((_, experience) => experience <= 0);
-    if (seriesExperience.isEmpty) {
-      _avatarExperienceLedger.remove(summary.date);
-    } else {
-      _avatarExperienceLedger[summary.date] = seriesExperience;
-    }
-    _saveAvatarExperienceLedger();
-  }
-
-  void _removeAvatarExperienceFromLedgerEntry(
-    Map<String, int> seriesExperience, {
-    required int amount,
-    required String preferredSeries,
-  }) {
-    var remaining = amount;
-
-    void consume(String series) {
-      if (remaining <= 0) return;
-      final available = seriesExperience[series] ?? 0;
-      if (available <= 0) return;
-      final used = math.min(available, remaining);
-      seriesExperience[series] = available - used;
-      remaining -= used;
-    }
-
-    consume(preferredSeries);
-    for (final series in seriesExperience.keys.toList()) {
-      consume(series);
-    }
   }
 
   Future<void> setThemeModeSetting(String value) async {
@@ -6360,37 +6266,71 @@ class AppState extends ChangeNotifier {
     await _saveSocialEncouragementRecords();
   }
 
-  void toggleTask(int index, bool value) {
+  Future<bool> toggleTask(int index, bool value) async {
     _checkDailyResetSync();
-    if (index < 0 || index >= _tasks.length) return;
+    if (index < 0 || index >= _tasks.length) return false;
     final task = _tasks[index];
     final isDeadlineTask = task['taskType'] == 'deadline';
     final wasDone = task['done'] as bool? ?? false;
+    final wasIsDone = task['isDone'] as bool? ?? wasDone;
 
     if (value && isDeadlineTask && !_isDeadlineTaskReady(task)) {
-      return;
+      return false;
     }
     if (value &&
         GroupChallengeTaskPlan.isGroupChallengeTask(task) &&
         !GroupChallengeTaskPlan.isAvailable(task, now: DateTime.now())) {
-      return;
+      return false;
     }
+    if (wasDone == value && wasIsDone == value) return false;
 
-    _tasks[index]['done'] = value;
-    _tasks[index]['isDone'] = value;
-    _tasks[index]['updatedAt'] = DateTime.now().toIso8601String();
-    _tasks[index]['completedAt'] = value
-        ? DateTime.now().toIso8601String()
-        : null;
-    if (value && !wasDone && isDeadlineTask) {
-      _awardDeadlineTaskBonus(_tasks[index]);
+    final occurredAt = DateTime.now();
+    ActivityEvidence? queuedEvidence;
+    if (_currentUser != null) {
+      try {
+        queuedEvidence = await _enqueueTaskActivityLedgerEvent(
+          task,
+          completed: value,
+          occurredAt: occurredAt,
+        );
+      } catch (error) {
+        debugPrint(
+          'Unable to durably enqueue Task Activity Ledger event: $error',
+        );
+        return false;
+      }
     }
-    _syncTaskRewards();
+    final taskId = task['id']?.toString();
+    final currentIndex = _tasks.indexWhere(
+      (candidate) => candidate['id']?.toString() == taskId,
+    );
+    if (taskId == null || taskId.isEmpty || currentIndex < 0) {
+      if (queuedEvidence != null) {
+        await _activityLedgerOutbox.cancel(queuedEvidence);
+      }
+      return false;
+    }
+    final currentTask = _tasks[currentIndex];
+    final currentDone = currentTask['done'] as bool? ?? false;
+    final currentIsDone = currentTask['isDone'] as bool? ?? currentDone;
+    if (currentDone == value && currentIsDone == value) return false;
+    _tasks[currentIndex]['done'] = value;
+    _tasks[currentIndex]['isDone'] = value;
+    _tasks[currentIndex]['updatedAt'] = occurredAt.toIso8601String();
+    _tasks[currentIndex]['completedAt'] = value
+        ? occurredAt.toIso8601String()
+        : null;
     _syncTodaySummary();
     checkWeeklyPlanetSettlement();
     notifyListeners();
-    _saveTasks();
+    try {
+      await _saveTasksLocally();
+    } catch (error) {
+      debugPrint('Task projection save is pending reconciliation: $error');
+    }
     _scheduleCurrentGroupChallengeProgressSync();
+    if (queuedEvidence != null) unawaited(_flushActivityLedgerOutboxSafely());
+    return true;
   }
 
   void addTask(
@@ -7914,6 +7854,35 @@ class AppState extends ChangeNotifier {
       ),
     );
     unawaited(_activityLedgerOutbox.flush());
+  }
+
+  Future<ActivityEvidence?> _enqueueTaskActivityLedgerEvent(
+    Map<String, dynamic> task, {
+    required bool completed,
+    required DateTime occurredAt,
+  }) async {
+    final user = _currentUser;
+    final taskId = task['id']?.toString().trim() ?? '';
+    if (user == null || taskId.isEmpty) return null;
+    final evidence = TaskActivityEvidenceFactory.build(
+      userId: user.id,
+      taskId: taskId,
+      activityDateKey: TaskActivityEvidenceFactory.activityDateKeyFor(
+        occurredAt,
+      ),
+      completed: completed,
+      occurredAt: occurredAt,
+    );
+    await _activityLedgerOutbox.enqueue(evidence);
+    return evidence;
+  }
+
+  Future<void> _flushActivityLedgerOutboxSafely() async {
+    try {
+      await _activityLedgerOutbox.flush();
+    } catch (error) {
+      debugPrint('Activity Ledger flush remains queued: $error');
+    }
   }
 
   List<String> _eligibleRoomIdsForHealthSnapshot(
