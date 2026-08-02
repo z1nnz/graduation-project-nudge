@@ -31,6 +31,14 @@ function loadRelationshipCapabilities() {
   );
 }
 
+function loadRelationshipMembershipContract() {
+  return loadWindowModule(
+    "NudgeRelationshipMembershipContract",
+    "assets/relationship_membership_contract.js?v=1",
+    "Membership 契約模組載入失敗",
+  );
+}
+
 function loadFamilyLinkContract() {
   return loadWindowModule(
     "NudgeFamilyLinkContract",
@@ -101,10 +109,17 @@ function buildRelationshipCapabilityInput(data = {}) {
   const canonicalMember =
     !preview &&
     groupLoaded &&
-    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId);
-  const canonicalManager =
-    canonicalMember &&
-    window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId);
+    Boolean(activeWebMembership("group", activeWebGroup?.id, userId));
+  const groupMembership = activeWebMembership(
+    "group",
+    activeWebGroup?.id,
+    userId,
+  );
+  const familyMembership = activeWebMembership(
+    "family",
+    activeFamilyLink?.id,
+    userId,
+  );
 
   return {
     rawRole: data.userRole,
@@ -114,13 +129,13 @@ function buildRelationshipCapabilityInput(data = {}) {
     hasGroup: preview ? Boolean(data.groupId) : Boolean(canonicalMember),
     isGroupOwner: preview
       ? Boolean(data.isGroupOwner)
-      : Boolean(canonicalManager),
+      : groupMembership?.role === "manager",
     isFamilyGuardian: preview
       ? data.userRole === "guardian"
-      : activeFamilyLink?.guardianId === userId,
+      : familyMembership?.role === "guardian",
     isFamilyChild: preview
       ? data.userRole === "child"
-      : activeFamilyLink?.childId === userId,
+      : familyMembership?.role === "child",
     isAuthenticated: localStorage.getItem("nudgeWebLoggedIn") === "true",
     isPreview: preview,
   };
@@ -1960,6 +1975,7 @@ async function bootFirebaseBackedData() {
   try {
     await Promise.all([
       loadRelationshipCapabilities(),
+      loadRelationshipMembershipContract(),
       loadFamilyLinkContract(),
       loadGroupContract(),
     ]);
@@ -2169,6 +2185,7 @@ const WEB_NOTIFICATION_TIME_OPTIONS = [
 ];
 let activeFamilyLink = null;
 let activeFamilyLinks = [];
+let discoveredFamilyLinks = [];
 let currentFamilySummary = null;
 let currentFamilyRelationshipOutcome = null;
 let currentFamilyRelationshipMemories = [];
@@ -2176,11 +2193,14 @@ let currentWebUserData = null;
 let familyLinkLoaded = false;
 let activeWebGroup = null;
 let activeWebGroups = [];
+let discoveredWebGroups = [];
+let formalWebMemberships = [];
 let activeWebGroupSummaries = [];
 let activeWebGroupChallengeParticipants = [];
 let currentGroupRelationshipOutcome = null;
 let groupLoaded = false;
 let familyLinkSub = null;
+let relationshipMembershipSub = null;
 let familyEncouragementSub = null;
 let familyGoalSub = null;
 let familySummarySub = null;
@@ -2194,6 +2214,7 @@ let groupTemplatesSub = null;
 let groupMemberSummariesSub = null;
 let groupOutcomeSub = null;
 let listeningWebGroupId = undefined;
+let projectedWebGroupId = null;
 let webRoomsSub = null;
 let webRoomMemberSub = null;
 let webRoomSessionsSub = null;
@@ -2986,14 +3007,21 @@ function relationshipSelectionKey(scope, userId) {
 }
 
 function relationshipMembershipDocumentId(scopeType, scopeId, userId) {
-  const values = [scopeType, scopeId, userId].map(value => String(value || ""));
-  if (
-    !["family", "group"].includes(values[0]) ||
-    values.some(value => !value || value.includes("/"))
-  ) {
-    throw new Error("Membership 識別碼不完整");
-  }
-  return `${values[0]}--${values[1]}--${values[2]}`;
+  return window.NudgeRelationshipMembershipContract.documentId(
+    scopeType,
+    scopeId,
+    userId,
+  );
+}
+
+function activeWebMembership(scopeType, scopeId, userId) {
+  if (!scopeId || !userId) return null;
+  return window.NudgeRelationshipMembershipContract?.activeFor(
+    formalWebMemberships,
+    scopeType,
+    scopeId,
+    userId,
+  ) || null;
 }
 
 function buildWebRelationshipMembership({
@@ -3029,49 +3057,15 @@ function buildWebRelationshipMembership({
   };
 }
 
-async function syncMyWebRelationshipMemberships(userId) {
-  if (!db || firebase.auth().currentUser?.uid !== userId) return;
-  const now = new Date().toISOString();
-  const memberships = [
-    ...activeFamilyLinks.map(link =>
-      buildWebRelationshipMembership({
-        scopeType: "family",
-        scopeId: link.id,
-        scopeName: `家庭連結 ${link.id.slice(-8)}`,
-        userId,
-        role: link.guardianId === userId ? "guardian" : "child",
-        now,
-      }),
-    ),
-    ...activeWebGroups.map(group =>
-      buildWebRelationshipMembership({
-        scopeType: "group",
-        scopeId: group.id,
-        scopeName: group.name || "未命名團體",
-        userId,
-        role: group.ownerId === userId ? "manager" : "member",
-        now,
-      }),
-    ),
-  ];
-  if (!memberships.length) return;
-  const batch = db.batch();
-  memberships.forEach(membership => {
-    batch.set(
-      db.collection("relationship_memberships").doc(membership.membershipId),
-      membership,
-      { merge: true },
-    );
-  });
-  await batch.commit();
-}
-
 function activateWebFamilyLink(link, userId) {
   const changed = activeFamilyLink?.id !== link?.id;
   activeFamilyLink = link || null;
   window.activeFamilyLink = activeFamilyLink;
   window.linkedChildUid =
-    activeFamilyLink?.guardianId === userId ? activeFamilyLink.childId : null;
+    activeWebMembership("family", activeFamilyLink?.id, userId)?.role ===
+      "guardian"
+      ? activeFamilyLink.childId
+      : null;
   if (changed) {
     stopFamilyInteractionListeners();
     currentFamilySummary = null;
@@ -3084,12 +3078,85 @@ function activateWebFamilyLink(link, userId) {
   if (currentWebUserData) updateSidebarProfile(currentWebUserData);
 }
 
+function reconcileWebFamilyRelationships(userId) {
+  activeFamilyLinks =
+    window.NudgeRelationshipMembershipContract.filterParents(
+      discoveredFamilyLinks,
+      formalWebMemberships,
+      "family",
+      userId,
+    );
+  if (activeFamilyLinks.length === 0) {
+    activateWebFamilyLink(null, userId);
+    return;
+  }
+  const selectedId = localStorage.getItem(
+    relationshipSelectionKey("family", userId),
+  );
+  const selected =
+    activeFamilyLinks.find(link => link.id === selectedId) ||
+    activeFamilyLinks[0];
+  activateWebFamilyLink(selected, userId);
+}
+
+function reconcileWebGroupRelationships(userId, projectedGroupId = null) {
+  activeWebGroups = window.NudgeRelationshipMembershipContract.filterParents(
+    discoveredWebGroups,
+    formalWebMemberships,
+    "group",
+    userId,
+  );
+  if (activeWebGroups.length === 0) {
+    activateWebGroup(null, userId);
+    return;
+  }
+  const selectedId = localStorage.getItem(
+    relationshipSelectionKey("group", userId),
+  );
+  const selected =
+    activeWebGroups.find(group => group.id === selectedId) ||
+    activeWebGroups.find(group => group.id === projectedGroupId) ||
+    activeWebGroups[0];
+  activateWebGroup(selected, userId);
+}
+
+function listenToWebRelationshipMemberships(userId) {
+  if (!db) return;
+  if (relationshipMembershipSub) relationshipMembershipSub();
+  formalWebMemberships = [];
+  relationshipMembershipSub = db.collection("relationship_memberships")
+    .where("userId", "==", userId)
+    .onSnapshot(snapshot => {
+      formalWebMemberships = snapshot.docs.flatMap(document => {
+        try {
+          return [window.NudgeRelationshipMembershipContract.parse(
+            document.id,
+            document.data(),
+            userId,
+          )];
+        } catch (error) {
+          console.warn("Skipping invalid formal Membership:", error);
+          return [];
+        }
+      });
+      reconcileWebFamilyRelationships(userId);
+      reconcileWebGroupRelationships(userId, projectedWebGroupId);
+      if (currentWebUserData) updateSidebarProfile(currentWebUserData);
+    }, error => {
+      console.error("Formal Membership listen error:", error);
+      formalWebMemberships = [];
+      reconcileWebFamilyRelationships(userId);
+      reconcileWebGroupRelationships(userId, projectedWebGroupId);
+    });
+}
+
 function listenToFamilyLink(userId) {
   if (!db) return;
   if (familyLinkSub) familyLinkSub();
   stopFamilyInteractionListeners();
   activeFamilyLink = null;
   activeFamilyLinks = [];
+  discoveredFamilyLinks = [];
   familyLinkLoaded = false;
   window.activeFamilyLink = null;
 
@@ -3097,36 +3164,13 @@ function listenToFamilyLink(userId) {
     .where("participantIds", "array-contains", userId)
     .onSnapshot(snapshot => {
       familyLinkLoaded = true;
-      activeFamilyLinks = snapshot.docs
+      discoveredFamilyLinks = snapshot.docs
         .filter(doc => doc.data().status === "active")
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .sort((a, b) =>
           String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")),
         );
-      syncMyWebRelationshipMemberships(userId).catch(error => {
-        console.warn("Formal family membership sync failed:", error);
-      });
-      if (activeFamilyLinks.length === 0) {
-        activeFamilyLink = null;
-        currentFamilySummary = null;
-        window.activeFamilyLink = null;
-        window.linkedChildUid = null;
-        stopFamilyInteractionListeners();
-        renderWebRelationshipContextSwitcher(userId);
-        renderFamilyLinkState();
-        renderFamilyReportState();
-        renderFamilyRelationshipOutcome();
-        if (currentWebUserData) updateSidebarProfile(currentWebUserData);
-        return;
-      }
-
-      const selectedId = localStorage.getItem(
-        relationshipSelectionKey("family", userId),
-      );
-      const selected =
-        activeFamilyLinks.find(link => link.id === selectedId) ||
-        activeFamilyLinks[0];
-      activateWebFamilyLink(selected, userId);
+      reconcileWebFamilyRelationships(userId);
     }, error => {
       console.error("Family link listen error:", error);
     });
@@ -3232,8 +3276,12 @@ function effectiveWebGroupProfile() {
   const data = currentWebUserData || {};
   const userId =
     typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
-  const isMember =
-    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId) === true;
+  const membership = activeWebMembership(
+    "group",
+    activeWebGroup?.id,
+    userId,
+  );
+  const isMember = Boolean(membership);
   if (!isMember) {
     return {
       ...data,
@@ -3246,8 +3294,7 @@ function effectiveWebGroupProfile() {
     ...data,
     groupId: activeWebGroup.id,
     groupName: activeWebGroup.name,
-    isGroupOwner:
-      window.NudgeGroupContract.isGroupManager(activeWebGroup, userId),
+    isGroupOwner: membership.role === "manager",
   };
 }
 
@@ -3468,6 +3515,7 @@ function listenToGroupPublications(groupId) {
 function listenToCanonicalWebGroup(userId, projectedGroupId) {
   if (!db) return;
   const nextGroupId = projectedGroupId || null;
+  projectedWebGroupId = nextGroupId;
   const listenerKey = `${userId}:${nextGroupId || ""}`;
   if (
     listeningWebGroupId === listenerKey &&
@@ -3480,6 +3528,7 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
   stopGroupPublicationListeners();
   activeWebGroup = null;
   activeWebGroups = [];
+  discoveredWebGroups = [];
   groupLoaded = false;
   clearCanonicalGroupPublications();
 
@@ -3489,7 +3538,7 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
     .onSnapshot(
     snapshot => {
       groupLoaded = true;
-      const activeGroups = snapshot.docs
+      discoveredWebGroups = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(group =>
           window.NudgeGroupContract?.isGroupMember(group, userId),
@@ -3497,32 +3546,14 @@ function listenToCanonicalWebGroup(userId, projectedGroupId) {
         .sort((a, b) =>
           String(a.name || "").localeCompare(String(b.name || "")),
         );
-      activeWebGroups = activeGroups;
-      syncMyWebRelationshipMemberships(userId).catch(error => {
-        console.warn("Formal group membership sync failed:", error);
-      });
-      if (activeGroups.length === 0) {
-        activeWebGroup = null;
-        renderWebRelationshipContextSwitcher(userId);
-        stopGroupPublicationListeners();
-        clearCanonicalGroupPublications();
-        refreshCanonicalGroupUi();
-        return;
-      }
-      const selectedId = localStorage.getItem(
-        relationshipSelectionKey("group", userId),
-      );
-      const group =
-        activeGroups.find(candidate => candidate.id === selectedId) ||
-        activeGroups.find(candidate => candidate.id === nextGroupId) ||
-        activeGroups[0];
-      activateWebGroup(group, userId);
+      reconcileWebGroupRelationships(userId, nextGroupId);
     },
     error => {
       console.error("Canonical group listen error:", error);
       groupLoaded = true;
       activeWebGroup = null;
       activeWebGroups = [];
+      discoveredWebGroups = [];
       renderWebRelationshipContextSwitcher(userId);
       stopGroupPublicationListeners();
       clearCanonicalGroupPublications();
@@ -3546,10 +3577,13 @@ function activateWebGroup(group, userId) {
 }
 
 function webRelationshipRole(scope, relationship, userId) {
-  if (scope === "family") {
-    return relationship.guardianId === userId ? "家長" : "孩子";
-  }
-  return relationship.ownerId === userId ? "團體管理者" : "團體成員";
+  const membership = activeWebMembership(scope, relationship?.id, userId);
+  return {
+    guardian: "家長",
+    child: "孩子",
+    manager: "團體管理者",
+    member: "團體成員",
+  }[membership?.role] || "未驗證身分";
 }
 
 async function refreshWebRelationshipOutcome(scopeType, scopeId) {
@@ -3588,8 +3622,11 @@ function renderFamilyRelationshipOutcome() {
   const root = document.querySelector("[data-family-outcome]");
   if (!root) return;
   const userId = firebase.auth().currentUser?.uid;
-  const isGuardian =
-    Boolean(activeFamilyLink) && activeFamilyLink.guardianId === userId;
+  const isGuardian = activeWebMembership(
+    "family",
+    activeFamilyLink?.id,
+    userId,
+  )?.role === "guardian";
   const role = document.querySelector("[data-family-role]");
   if (role) {
     role.textContent = activeFamilyLink
@@ -3668,8 +3705,11 @@ function renderGroupRelationshipOutcome() {
   const root = document.querySelector("[data-group-outcome]");
   if (!root) return;
   const userId = firebase.auth().currentUser?.uid;
-  const isManager =
-    Boolean(activeWebGroup) && activeWebGroup.ownerId === userId;
+  const isManager = activeWebMembership(
+    "group",
+    activeWebGroup?.id,
+    userId,
+  )?.role === "manager";
   const role = document.querySelector("[data-group-role]");
   if (role) {
     role.textContent = activeWebGroup
@@ -3880,7 +3920,10 @@ function requireGuardianFamilyLink() {
   if (!activeFamilyLink || !userId) {
     throw new Error("請先建立有效的家庭連結");
   }
-  if (activeFamilyLink.guardianId !== userId) {
+  if (
+    activeWebMembership("family", activeFamilyLink.id, userId)?.role !==
+    "guardian"
+  ) {
     throw new Error("只有此連結的家長可以使用這項功能");
   }
   return activeFamilyLink;
@@ -5989,7 +6032,10 @@ function requireCanonicalWebGroupManager() {
   if (!userId || !activeWebGroup) {
     throw new Error("請先加入有效團體");
   }
-  if (!window.NudgeGroupContract?.isGroupManager(activeWebGroup, userId)) {
+  if (
+    activeWebMembership("group", activeWebGroup.id, userId)?.role !==
+    "manager"
+  ) {
     throw new Error("只有目前團體的管理者可以發布團體內容");
   }
   return { group: activeWebGroup, userId };
@@ -6020,7 +6066,7 @@ async function joinCanonicalWebGroupChallenge(challenge) {
   if (
     !userId ||
     !activeWebGroup ||
-    !window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId)
+    !activeWebMembership("group", activeWebGroup.id, userId)
   ) {
     throw new Error("請先加入有效團體");
   }
@@ -6462,9 +6508,10 @@ function renderWebGroupInfo(data) {
   const isMainGroupsPage = path.includes("groups.html") || path.endsWith("/groups") || (document.body.getAttribute("data-page") === "groups" && !path.includes("groups-"));
   if (!isMainGroupsPage) return;
 
-  const isOwner = data.isGroupOwner;
-  const groupName = data.groupName || "自律小組";
-  const groupId = data.groupId || "";
+  const groupProfile = isPreviewMode() ? data : effectiveWebGroupProfile();
+  const isOwner = groupProfile.isGroupOwner;
+  const groupName = groupProfile.groupName || "自律小組";
+  const groupId = groupProfile.groupId || "";
 
   const cardHtml = `
     <div id="webGroupInfoCard" class="web-binding-gated-wrapper" style="text-align: left; max-width: 800px; margin-top: 10px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.25); box-shadow: var(--shadow); border-radius: 16px; padding: 20px 24px;">
@@ -7285,6 +7332,7 @@ function listenToUser(userId) {
   }
   const authenticatedUid = firebase.auth().currentUser?.uid;
   if (authenticatedUid && authenticatedUid === userId) {
+    listenToWebRelationshipMemberships(userId);
     listenToFamilyLink(userId);
   }
 
@@ -8159,18 +8207,23 @@ function renderWebGrowthTracks(data = {}, isFriend = false) {
   const showFamily = !isFriend && Boolean(activeFamilyLink);
   if (familyTrack) familyTrack.hidden = !showFamily;
   if (showFamily && familyValue) {
-    familyValue.textContent =
-      activeFamilyLink.guardianId === userId
-        ? "家長 · 已建立家庭連結"
-        : "孩子 · 已建立家庭連結";
+    const familyRole = activeWebMembership(
+      "family",
+      activeFamilyLink.id,
+      userId,
+    )?.role;
+    familyValue.textContent = `${familyRole === "guardian" ? "家長" : "孩子"} · 已建立家庭連結`;
   }
 
-  const showGroup =
-    !isFriend &&
-    window.NudgeGroupContract?.isGroupMember(activeWebGroup, userId) === true;
+  const groupMembership = activeWebMembership(
+    "group",
+    activeWebGroup?.id,
+    userId,
+  );
+  const showGroup = !isFriend && Boolean(groupMembership);
   if (groupTrack) groupTrack.hidden = !showGroup;
   if (showGroup && groupValue) {
-    const role = window.NudgeGroupContract.isGroupManager(activeWebGroup, userId)
+    const role = groupMembership.role === "manager"
       ? "管理者"
       : "成員";
     groupValue.textContent = `${role} · ${activeWebGroup.name || "已加入團體"}`;

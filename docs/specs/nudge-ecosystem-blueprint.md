@@ -73,12 +73,15 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
 尚未完成或仍需重構：
 
 - ESP32 韌體、BLE 配對、Wi-Fi 同步、裝置事件及裝置模擬器。
-- 所有 App 與 Web 頁面共用的完整細粒度權限判斷。
-- 將既有 `family_links.participantIds`、`groups.memberIds` 與
-  `users.groupId/groupName/isGroupOwner` 從過渡期查詢／偏好投影遷移完畢，
-  再停止用父文件陣列推導 Membership。
-- 已備妥預設 dry-run 的 `scripts/migrate_relationship_memberships.js`；
-  正式環境尚未執行，因此目前不能把舊投影清理標示為完成。
+- 尚需逐頁完成管理操作的細粒度權限驗收；目前 App 與 Web 的家庭／團體情境、
+  角色介面與多關係切換已改由 active `relationship_memberships` fail closed，
+  不再由父文件或 users 舊欄位自行推導角色。
+- `family_links.participantIds` 與 `groups.memberIds` 暫時保留為父資料查詢橋接，
+  `users.groupId/groupName/isGroupOwner` 與舊家庭邀請投影則由 migration 清除。
+- `scripts/migrate_relationship_memberships.js` 已有預設 dry-run、逐筆父資料與
+  projection fingerprint、獨佔 runner token、可續跑的部分失敗行為，以及本機
+  Firestore Emulator apply 驗收；正式環境尚未執行，因此仍不能把舊投影清理
+  標示為完成。
 - 一般活動房仍保留舊 `activity_sessions` 讀取投影供過渡期 UI 使用；需在
   App／Web 都能直接讀取正式 Session／Contribution 後移除。
 - 房間資料與使用者文件中既有投影資料的遷移、封存與清除。

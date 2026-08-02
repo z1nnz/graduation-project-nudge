@@ -227,8 +227,15 @@ test("App surfaces composable relationship tools and separates growth tracks", (
   assert.match(webApp, /activeWebGroups/);
   assert.match(webApp, /relationshipSelectionKey/);
   assert.match(webApp, /function buildWebRelationshipMembership/);
+  assert.match(webApp, /function listenToWebRelationshipMemberships/);
+  assert.match(webApp, /formalWebMemberships/);
+  assert.match(webApp, /activeWebMembership/);
   assert.match(webApp, /collection\("relationship_memberships"\)/);
   assert.match(appState, /collection\('relationship_memberships'\)/);
+  assert.match(appState, /_formalRelationshipMemberships/);
+  assert.match(appState, /_setupRelationshipMembershipListener/);
+  assert.doesNotMatch(appState, /_syncMyRelationshipMembershipDocuments/);
+  assert.doesNotMatch(webApp, /syncMyWebRelationshipMemberships/);
   assert.match(
     read("firestore.rules"),
     /match \/relationship_memberships\/\{membershipId\}/,

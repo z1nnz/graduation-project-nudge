@@ -27,7 +27,9 @@ coverage and from release gates that still require external infrastructure.
   Storage, so a billing failure cannot hide their release state.
 - The relationship cutover is accepted only after a production dry-run reports
   zero issues, the apply completes, and a second dry-run reports zero legacy
-  projection cleanup.
+  projection cleanup. App and Web authorize relationship context, role-specific
+  UI and context switching from active `relationship_memberships`; parent
+  participant/member arrays are only the parent-data query bridge.
 - App and Web task completion now have local test coverage for actor-bound,
   durable Activity Ledger submission before projection updates. Task receipts
   are non-rewardable, atomically update the canonical task projection, and
@@ -35,6 +37,27 @@ coverage and from release gates that still require external infrastructure.
   is retained as superseded audit data instead of replacing the latest state.
   This is source and test evidence only until the updated Cloud Function is
   deployed and exercised with real accounts.
+
+## Relationship Membership cutover
+
+The migration fails closed on invalid parents and validates the cutover owner,
+the current parent fingerprint, the existing Membership fingerprint, and the
+legacy user projection in each transaction. A failed partial run keeps its
+runner fence active and is safe to resume; a later runner atomically takes
+ownership so the earlier process cannot release the fence or continue writing.
+
+```sh
+npm --prefix scripts run migrate:relationships
+npm --prefix scripts run migrate:relationships:apply
+npm --prefix scripts run migrate:relationships
+```
+
+The isolated Firestore Emulator acceptance is:
+
+```sh
+firebase emulators:exec --project nudge-relationship-migration-test \
+  --only firestore 'npm --prefix scripts run test:relationships:emulator'
+```
 - Activity rewards and shop debits now use Cloud-owned
   `reward_ledger_entries`. A normal App/Web timer completion is rewardable only
   after an accepted start event and a plausible Cloud-observed elapsed

@@ -175,6 +175,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
   StreamSubscription? _familyLinkSubscription;
+  StreamSubscription? _relationshipMembershipSubscription;
   StreamSubscription? _familyEncouragementSubscription;
   StreamSubscription? _familyGoalSubscription;
   StreamSubscription? _familyBondEventSubscription;
@@ -246,6 +247,7 @@ class AppState extends ChangeNotifier {
 
   FamilyLinkContract? _familyLink;
   List<FamilyLinkContract> _familyLinks = [];
+  List<RelationshipMembership> _formalRelationshipMemberships = [];
   String? _selectedFamilyLinkId;
   String? _listeningFamilyLinkId;
   List<Map<String, dynamic>> _familyEncouragements = [];
@@ -267,6 +269,7 @@ class AppState extends ChangeNotifier {
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
     unawaited(_restoreRelationshipSelections(user.uid));
+    _setupRelationshipMembershipListener(user.uid);
     _privacyConsentSubscription = FirebaseFirestore.instance
         .collection('privacy_consents')
         .doc(user.uid)
@@ -920,7 +923,6 @@ class AppState extends ChangeNotifier {
                   return updated == 0 ? a.id.compareTo(b.id) : updated;
                 });
           _familyLinks = activeLinks;
-          unawaited(_syncMyRelationshipMembershipDocuments(userId));
           if (activeLinks.isEmpty) {
             _familyLink = null;
             _selectedFamilyLinkId = null;
@@ -963,7 +965,6 @@ class AppState extends ChangeNotifier {
                     return name == 0 ? a.id.compareTo(b.id) : name;
                   });
             _canonicalGroups = activeGroups;
-            unawaited(_syncMyRelationshipMembershipDocuments(userId));
             if (activeGroups.isEmpty) {
               _canonicalGroup = null;
               _selectedGroupId = null;
@@ -989,6 +990,66 @@ class AppState extends ChangeNotifier {
   String _relationshipSelectionKey(String scope, String userId) =>
       'selected_${scope}_relationship_$userId';
 
+  void _setupRelationshipMembershipListener(String userId) {
+    _relationshipMembershipSubscription?.cancel();
+    _relationshipMembershipSubscription = FirebaseFirestore.instance
+        .collection('relationship_memberships')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            final memberships = <RelationshipMembership>[];
+            for (final document in snapshot.docs) {
+              try {
+                memberships.add(
+                  RelationshipMembership.fromMap(
+                    document.id,
+                    document.data(),
+                    expectedUserId: userId,
+                  ),
+                );
+              } catch (error) {
+                debugPrint(
+                  'Skipping invalid formal relationship membership: $error',
+                );
+              }
+            }
+            memberships.sort((left, right) {
+              final scope = left.scope.index.compareTo(right.scope.index);
+              if (scope != 0) return scope;
+              final name = left.scopeName.compareTo(right.scopeName);
+              return name == 0 ? left.scopeId.compareTo(right.scopeId) : name;
+            });
+            _formalRelationshipMemberships = memberships;
+            _activateSelectedFamilyLink(userId);
+            _activateSelectedGroup(userId);
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('Error listening to formal memberships: $error');
+            _formalRelationshipMemberships = [];
+            _activateSelectedFamilyLink(userId);
+            _activateSelectedGroup(userId);
+            notifyListeners();
+          },
+        );
+  }
+
+  RelationshipMembership? _activeRelationshipMembership(
+    RelationshipScope scope,
+    String? scopeId,
+  ) {
+    if (scopeId == null) return null;
+    for (final membership in _formalRelationshipMemberships) {
+      if (membership.scope == scope &&
+          membership.scopeId == scopeId &&
+          membership.isActive) {
+        return membership;
+      }
+    }
+    return null;
+  }
+
   Future<void> _restoreRelationshipSelections(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     if (_currentUser?.id != userId) return;
@@ -1010,13 +1071,28 @@ class AppState extends ChangeNotifier {
   }
 
   void _activateSelectedFamilyLink(String userId) {
-    if (_familyLinks.isEmpty) return;
+    final eligibleLinks = _familyLinks
+        .where(
+          (link) =>
+              _activeRelationshipMembership(
+                RelationshipScope.family,
+                link.id,
+              ) !=
+              null,
+        )
+        .toList(growable: false);
+    if (eligibleLinks.isEmpty) {
+      _familyLink = null;
+      _selectedFamilyLinkId = null;
+      _clearFamilyInteractionListeners();
+      return;
+    }
     final selectedId = _selectedFamilyLinkId;
     final selected = selectedId == null
-        ? _familyLinks.first
-        : _familyLinks.firstWhere(
+        ? eligibleLinks.first
+        : eligibleLinks.firstWhere(
             (link) => link.id == selectedId,
-            orElse: () => _familyLinks.first,
+            orElse: () => eligibleLinks.first,
           );
     _selectedFamilyLinkId = selected.id;
     _familyLink = selected;
@@ -1028,13 +1104,29 @@ class AppState extends ChangeNotifier {
   }
 
   void _activateSelectedGroup(String userId) {
-    if (_canonicalGroups.isEmpty) return;
+    final eligibleGroups = _canonicalGroups
+        .where(
+          (group) =>
+              _activeRelationshipMembership(
+                RelationshipScope.group,
+                group.id,
+              ) !=
+              null,
+        )
+        .toList(growable: false);
+    if (eligibleGroups.isEmpty) {
+      _canonicalGroup = null;
+      _selectedGroupId = null;
+      _listeningGroupId = null;
+      _clearGroupPublicationListeners();
+      return;
+    }
     final preferredId = _selectedGroupId ?? _projectedGroupId;
     final selected = preferredId == null
-        ? _canonicalGroups.first
-        : _canonicalGroups.firstWhere(
+        ? eligibleGroups.first
+        : eligibleGroups.firstWhere(
             (group) => group.id == preferredId,
-            orElse: () => _canonicalGroups.first,
+            orElse: () => eligibleGroups.first,
           );
     _selectedGroupId = selected.id;
     if (_listeningGroupId != selected.id) {
@@ -1050,7 +1142,9 @@ class AppState extends ChangeNotifier {
   Future<void> selectFamilyRelationship(String familyLinkId) async {
     final userId = _currentUser?.id;
     if (userId == null) throw StateError('請先登入');
-    if (!_familyLinks.any((link) => link.id == familyLinkId)) {
+    if (!_familyLinks.any((link) => link.id == familyLinkId) ||
+        _activeRelationshipMembership(RelationshipScope.family, familyLinkId) ==
+            null) {
       throw ArgumentError('目前帳號沒有這個家庭關係');
     }
     _selectedFamilyLinkId = familyLinkId;
@@ -1066,7 +1160,9 @@ class AppState extends ChangeNotifier {
   Future<void> selectGroupRelationship(String groupId) async {
     final userId = _currentUser?.id;
     if (userId == null) throw StateError('請先登入');
-    if (!_canonicalGroups.any((group) => group.id == groupId)) {
+    if (!_canonicalGroups.any((group) => group.id == groupId) ||
+        _activeRelationshipMembership(RelationshipScope.group, groupId) ==
+            null) {
       throw ArgumentError('目前帳號不是這個團體的有效成員');
     }
     _selectedGroupId = groupId;
@@ -1165,36 +1261,6 @@ class AppState extends ChangeNotifier {
   String _relationshipOutcomeErrorText(Object error) {
     if (error is RelationshipOutcomeException) return error.message;
     return '關係成果暫時無法更新，請稍後再試。';
-  }
-
-  Future<void> _syncMyRelationshipMembershipDocuments(String userId) async {
-    if (_currentUser?.id != userId) return;
-    final memberships = <RelationshipMembership>[
-      ..._familyLinks.map(
-        (link) =>
-            RelationshipMembership.fromFamilyLink(link: link, userId: userId),
-      ),
-      ..._canonicalGroups.map(
-        (group) =>
-            RelationshipMembership.fromGroup(group: group, userId: userId),
-      ),
-    ];
-    if (memberships.isEmpty) return;
-    final firestore = FirebaseFirestore.instance;
-    final batch = firestore.batch();
-    final now = DateTime.now();
-    for (final membership in memberships) {
-      batch.set(
-        firestore.collection('relationship_memberships').doc(membership.id),
-        membership.toFirestoreMap(now: now),
-        SetOptions(merge: true),
-      );
-    }
-    try {
-      await batch.commit();
-    } catch (error) {
-      debugPrint('Failed to sync formal relationship memberships: $error');
-    }
   }
 
   void _setupGroupPublicationListeners(String groupId) {
@@ -1435,6 +1501,7 @@ class AppState extends ChangeNotifier {
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
     _familyLinkSubscription?.cancel();
+    _relationshipMembershipSubscription?.cancel();
     _familyEncouragementSubscription?.cancel();
     _familyGoalSubscription?.cancel();
     _familyBondEventSubscription?.cancel();
@@ -1460,6 +1527,7 @@ class AppState extends ChangeNotifier {
     _incomingGuardianRequestsSubscription = null;
     _outgoingGuardianRequestsSubscription = null;
     _familyLinkSubscription = null;
+    _relationshipMembershipSubscription = null;
     _familyEncouragementSubscription = null;
     _familyGoalSubscription = null;
     _familyBondEventSubscription = null;
@@ -1471,6 +1539,7 @@ class AppState extends ChangeNotifier {
     _listeningFamilyLinkId = null;
     _familyLink = null;
     _familyLinks = [];
+    _formalRelationshipMemberships = [];
     _selectedFamilyLinkId = null;
     _familyEncouragements = [];
     _familyGoals = [];
@@ -2051,9 +2120,17 @@ class AppState extends ChangeNotifier {
   String? get groupId => _canonicalGroup?.id;
   String? get groupName => _canonicalGroup?.name;
   bool get isGroupOwner =>
-      _canonicalGroup?.isManager(_currentUser?.id ?? '') ?? false;
+      _activeRelationshipMembership(
+        RelationshipScope.group,
+        _selectedGroupId,
+      )?.role ==
+      RelationshipRole.manager;
   bool get hasActiveGroupMembership =>
-      _canonicalGroup?.isMember(_currentUser?.id ?? '') ?? false;
+      _activeRelationshipMembership(
+        RelationshipScope.group,
+        _selectedGroupId,
+      ) !=
+      null;
   List<GroupResultSummaryContract> get groupMemberSummaries =>
       List<GroupResultSummaryContract>.unmodifiable(_groupMemberSummaries);
   bool get isGroupResultSharingEnabled => _groupResultSharingEnabled;
@@ -2062,29 +2139,34 @@ class AppState extends ChangeNotifier {
   bool get isRefreshingGroupRelationshipOutcome =>
       _isRefreshingGroupRelationshipOutcome;
   String? get groupRelationshipOutcomeError => _groupRelationshipOutcomeError;
-  bool get isGuardianLinked => _familyLink?.status == FamilyLinkStatus.active;
+  bool get isGuardianLinked =>
+      _activeRelationshipMembership(
+        RelationshipScope.family,
+        _selectedFamilyLinkId,
+      ) !=
+      null;
   FamilyLinkContract? get familyLink => _familyLink;
   List<FamilyLinkContract> get familyLinks =>
       List<FamilyLinkContract>.unmodifiable(_familyLinks);
   String? get selectedFamilyLinkId => _selectedFamilyLinkId;
   bool get isCurrentFamilyGuardian =>
-      _familyLink != null && _currentUser?.id == _familyLink!.guardianId;
+      _activeRelationshipMembership(
+        RelationshipScope.family,
+        _selectedFamilyLinkId,
+      )?.role ==
+      RelationshipRole.guardian;
   bool get isCurrentFamilyChild =>
-      _familyLink != null && _currentUser?.id == _familyLink!.childId;
-  List<RelationshipMembership> get relationshipMemberships {
-    final userId = _currentUser?.id;
-    if (userId == null) return const [];
-    return List<RelationshipMembership>.unmodifiable([
-      ..._familyLinks.map(
-        (link) =>
-            RelationshipMembership.fromFamilyLink(link: link, userId: userId),
-      ),
-      ..._canonicalGroups.map(
-        (group) =>
-            RelationshipMembership.fromGroup(group: group, userId: userId),
-      ),
-    ]);
-  }
+      _activeRelationshipMembership(
+        RelationshipScope.family,
+        _selectedFamilyLinkId,
+      )?.role ==
+      RelationshipRole.child;
+  List<RelationshipMembership> get relationshipMemberships =>
+      List<RelationshipMembership>.unmodifiable(
+        _formalRelationshipMemberships.where(
+          (membership) => membership.isActive,
+        ),
+      );
 
   List<Map<String, dynamic>> get familyGoals => List.unmodifiable(_familyGoals);
   Map<String, dynamic>? get activeFamilyGoal {

@@ -67,6 +67,45 @@ void main() {
     );
   });
 
+  test('formal membership parsing binds document, user and scoped role', () {
+    final membership = RelationshipMembership.fromMap(
+      'family--family-1--user-1',
+      {
+        'schemaVersion': 1,
+        'membershipId': 'family--family-1--user-1',
+        'scopeType': 'family',
+        'scopeId': 'family-1',
+        'scopeName': '家庭連結 family-1',
+        'userId': 'user-1',
+        'role': 'child',
+        'status': 'active',
+      },
+      expectedUserId: 'user-1',
+    );
+
+    expect(membership.role, RelationshipRole.child);
+    expect(membership.isActive, isTrue);
+    expect(
+      () => RelationshipMembership.fromMap(
+        'family--family-1--user-1',
+        {
+          ...membership.toMap(),
+          'role': 'manager',
+        },
+        expectedUserId: 'user-1',
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => RelationshipMembership.fromMap(
+        'family--family-1--user-1',
+        membership.toMap(),
+        expectedUserId: 'another-user',
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('ended membership keeps its scoped role and audit actor', () {
     const group = GroupContract(
       id: 'group-1',

@@ -30,6 +30,63 @@ class RelationshipMembership {
   bool get isManager =>
       role == RelationshipRole.manager || role == RelationshipRole.guardian;
 
+  factory RelationshipMembership.fromMap(
+    String documentId,
+    Map<String, dynamic> map, {
+    String? expectedUserId,
+  }) {
+    if (map['schemaVersion'] != 1) {
+      throw const FormatException(
+        'Unsupported relationship membership schema.',
+      );
+    }
+    final scope = switch (map['scopeType']) {
+      'family' => RelationshipScope.family,
+      'group' => RelationshipScope.group,
+      _ => throw const FormatException('Invalid relationship scope.'),
+    };
+    final role = switch (map['role']) {
+      'guardian' => RelationshipRole.guardian,
+      'child' => RelationshipRole.child,
+      'manager' => RelationshipRole.manager,
+      'member' => RelationshipRole.member,
+      _ => throw const FormatException('Invalid relationship role.'),
+    };
+    final status = switch (map['status']) {
+      'active' => RelationshipMembershipStatus.active,
+      'ended' => RelationshipMembershipStatus.ended,
+      _ => throw const FormatException('Invalid relationship status.'),
+    };
+    final scopeId = map['scopeId'] as String? ?? '';
+    final scopeName = map['scopeName'] as String? ?? '';
+    final userId = map['userId'] as String? ?? '';
+    final membershipId = map['membershipId'] as String? ?? '';
+    final expectedDocumentId = RelationshipMembership.documentId(
+      scope: scope,
+      scopeId: scopeId,
+      userId: userId,
+    );
+    final roleMatchesScope = scope == RelationshipScope.family
+        ? role == RelationshipRole.guardian || role == RelationshipRole.child
+        : role == RelationshipRole.manager || role == RelationshipRole.member;
+    if (scopeName.trim().isEmpty ||
+        membershipId != documentId ||
+        expectedDocumentId != documentId ||
+        (expectedUserId != null && userId != expectedUserId) ||
+        !roleMatchesScope) {
+      throw const FormatException('Invalid relationship membership identity.');
+    }
+    return RelationshipMembership(
+      id: documentId,
+      scope: scope,
+      scopeId: scopeId,
+      scopeName: scopeName,
+      userId: userId,
+      role: role,
+      status: status,
+    );
+  }
+
   RelationshipMembership copyWith({
     RelationshipRole? role,
     RelationshipMembershipStatus? status,

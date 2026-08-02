@@ -65,19 +65,25 @@ test("relationship migration backfills scoped roles and plans legacy cleanup", a
       ["group--GRP-ONE--guardian", "manager"],
     ],
   );
-  assert.deepEqual(plan.userProjectionCleanup, [
-    {
-      userId: "guardian",
-      clearFields: [
-        "groupId",
-        "groupName",
-        "isGroupOwner",
-        "webToolsState.guardianInvite",
-        "webToolsState.guardianInviteStatus",
-      ],
-      setFields: { userRole: "individual" },
-    },
+  assert.equal(plan.userProjectionCleanup.length, 1);
+  assert.deepEqual(plan.userProjectionCleanup[0].clearFields, [
+    "groupId",
+    "groupName",
+    "isGroupOwner",
+    "webToolsState.guardianInvite",
+    "webToolsState.guardianInviteStatus",
   ]);
+  assert.deepEqual(plan.userProjectionCleanup[0].setFields, {
+    userRole: "individual",
+  });
+  assert.match(
+    plan.userProjectionCleanup[0].expectedProjectionFingerprint,
+    /^[a-f0-9]{64}$/,
+  );
+  assert.match(
+    plan.membershipUpserts[0].expectedParentFingerprint,
+    /^[a-f0-9]{64}$/,
+  );
 });
 
 test("relationship migration preserves original active audit timestamps", async () => {
@@ -138,4 +144,47 @@ test("relationship migration reports invalid parent data before apply", async ()
       reason: "invalid_group_parent",
     },
   ]);
+});
+
+test("relationship migration ends stale active Memberships", async () => {
+  const { buildRelationshipMigrationPlan } = await planner();
+  const plan = buildRelationshipMigrationPlan({
+    now: "2026-07-29T00:00:00.000Z",
+    groups: [
+      {
+        id: "GRP-ACTIVE",
+        data: {
+          name: "目前團體",
+          ownerId: "owner",
+          memberIds: ["owner"],
+          status: "active",
+        },
+      },
+    ],
+    existingMemberships: [
+      {
+        id: "group--GRP-ACTIVE--removed-user",
+        data: {
+          schemaVersion: 1,
+          membershipId: "group--GRP-ACTIVE--removed-user",
+          scopeType: "group",
+          scopeId: "GRP-ACTIVE",
+          scopeName: "目前團體",
+          userId: "removed-user",
+          role: "member",
+          status: "active",
+          createdAt: "2026-07-01T00:00:00.000Z",
+          activeFrom: "2026-07-01T00:00:00.000Z",
+        },
+      },
+    ],
+  });
+
+  const stale = plan.membershipUpserts.find(
+    operation => operation.id === "group--GRP-ACTIVE--removed-user",
+  );
+  assert.equal(plan.issues.length, 0);
+  assert.equal(stale.data.status, "ended");
+  assert.equal(stale.data.endedBy, "relationship-migration");
+  assert.equal(stale.data.activeUntil, "2026-07-29T00:00:00.000Z");
 });

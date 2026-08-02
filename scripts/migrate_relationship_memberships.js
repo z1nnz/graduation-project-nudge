@@ -1,4 +1,5 @@
 import admin from "firebase-admin";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -32,6 +33,59 @@ function membershipId(scopeType, scopeId, userId) {
   return `${scopeType}--${scopeId}--${userId}`;
 }
 
+function fingerprint(value) {
+  function canonical(input) {
+    if (Array.isArray(input)) return input.map(canonical);
+    if (input && typeof input === "object") {
+      return Object.fromEntries(
+        Object.keys(input)
+          .sort()
+          .filter(key => input[key] !== undefined)
+          .map(key => [key, canonical(input[key])]),
+      );
+    }
+    return input;
+  }
+  return createHash("sha256")
+    .update(JSON.stringify(canonical(value)))
+    .digest("hex");
+}
+
+function legacyProjectionFingerprint(data) {
+  const webToolsState =
+    data.webToolsState &&
+    typeof data.webToolsState === "object" &&
+    !Array.isArray(data.webToolsState)
+      ? data.webToolsState
+      : {};
+  return fingerprint({
+    groupId: {
+      present: Object.hasOwn(data, "groupId"),
+      value: data.groupId,
+    },
+    groupName: {
+      present: Object.hasOwn(data, "groupName"),
+      value: data.groupName,
+    },
+    isGroupOwner: {
+      present: Object.hasOwn(data, "isGroupOwner"),
+      value: data.isGroupOwner,
+    },
+    userRole: {
+      present: Object.hasOwn(data, "userRole"),
+      value: data.userRole,
+    },
+    guardianInvite: {
+      present: Object.hasOwn(webToolsState, "guardianInvite"),
+      value: webToolsState.guardianInvite,
+    },
+    guardianInviteStatus: {
+      present: Object.hasOwn(webToolsState, "guardianInviteStatus"),
+      value: webToolsState.guardianInviteStatus,
+    },
+  });
+}
+
 function existingMembershipMap(existingMemberships) {
   return new Map(
     existingMemberships.map(record => [record.id, record.data || {}]),
@@ -46,6 +100,7 @@ function buildMembership({
   role,
   status,
   parent,
+  parentCollection,
   existing,
   now,
 }) {
@@ -88,6 +143,9 @@ function buildMembership({
   return {
     id,
     data,
+    parentCollection,
+    expectedParentFingerprint: fingerprint(parent),
+    expectedExistingFingerprint: fingerprint(existing ?? null),
     clearEndedFields: status === "active",
   };
 }
@@ -101,6 +159,8 @@ export function buildRelationshipMigrationPlan({
 } = {}) {
   const normalizedNow = asIso(now, new Date().toISOString());
   const existingById = existingMembershipMap(existingMemberships);
+  const familyById = new Map(familyLinks.map(record => [record.id, record]));
+  const groupById = new Map(groups.map(record => [record.id, record]));
   const membershipUpserts = [];
   const userProjectionCleanup = [];
   const issues = [];
@@ -143,6 +203,7 @@ export function buildRelationshipMigrationPlan({
           role,
           status,
           parent: data,
+          parentCollection: "family_links",
           existing: existingById.get(id),
           now: normalizedNow,
         }),
@@ -187,6 +248,7 @@ export function buildRelationshipMigrationPlan({
           role: userId === ownerId ? "manager" : "member",
           status,
           parent: data,
+          parentCollection: "groups",
           existing: existingById.get(id),
           now: normalizedNow,
         }),
@@ -215,8 +277,72 @@ export function buildRelationshipMigrationPlan({
     if (clearFields.length === 0 && data.userRole !== "group") continue;
     userProjectionCleanup.push({
       userId: record.id,
+      expectedProjectionFingerprint: legacyProjectionFingerprint(data),
       clearFields,
       setFields: data.userRole === "group" ? { userRole: "individual" } : {},
+    });
+  }
+
+  const desiredMembershipIds = new Set(
+    membershipUpserts.map(operation => operation.id),
+  );
+  for (const record of existingMemberships) {
+    const data = record.data ?? {};
+    if (desiredMembershipIds.has(record.id) || data.status === "ended") {
+      continue;
+    }
+    const scopeType = normalizedString(data.scopeType);
+    const scopeId = normalizedString(data.scopeId);
+    const userId = normalizedString(data.userId);
+    const role = normalizedString(data.role);
+    const roleMatchesScope = scopeType === "family"
+      ? ["guardian", "child"].includes(role)
+      : scopeType === "group"
+        ? ["manager", "member"].includes(role)
+        : false;
+    if (
+      !record.id ||
+      record.id !== membershipId(scopeType, scopeId, userId) ||
+      !scopeId ||
+      !userId ||
+      !roleMatchesScope ||
+      data.status !== "active"
+    ) {
+      issues.push({
+        scopeType: scopeType || null,
+        scopeId: scopeId || null,
+        reason: "invalid_existing_membership",
+      });
+      continue;
+    }
+    const parentRecord = scopeType === "family"
+      ? familyById.get(scopeId)
+      : groupById.get(scopeId);
+    membershipUpserts.push({
+      id: record.id,
+      data: {
+        schemaVersion: 1,
+        membershipId: record.id,
+        scopeType,
+        scopeId,
+        scopeName: normalizedString(data.scopeName) ||
+          `${scopeType === "family" ? "家庭連結" : "團體"} ${scopeId}`,
+        userId,
+        role,
+        status: "ended",
+        createdAt: asIso(data.createdAt, normalizedNow),
+        updatedAt: normalizedNow,
+        ...(data.activeFrom
+          ? { activeFrom: asIso(data.activeFrom, normalizedNow) }
+          : {}),
+        activeUntil: normalizedNow,
+        endedBy: "relationship-migration",
+      },
+      parentCollection: scopeType === "family" ? "family_links" : "groups",
+      expectedParentFingerprint: fingerprint(parentRecord?.data ?? null),
+      expectedExistingFingerprint: fingerprint(data),
+      allowMissingParent: true,
+      clearEndedFields: false,
     });
   }
 
@@ -239,18 +365,6 @@ export function buildRelationshipMigrationPlan({
   };
 }
 
-async function commitInChunks(db, operations, applyOperation) {
-  let completed = 0;
-  for (let offset = 0; offset < operations.length; offset += 350) {
-    const batch = db.batch();
-    const chunk = operations.slice(offset, offset + 350);
-    for (const operation of chunk) applyOperation(batch, operation);
-    await batch.commit();
-    completed += chunk.length;
-  }
-  return completed;
-}
-
 async function initializeAdmin() {
   if (admin.apps.length > 0) return admin.apps[0];
   const serviceAccountPath = path.join(
@@ -271,7 +385,162 @@ async function initializeAdmin() {
   });
 }
 
-async function runMigration({ apply, allowIssues }) {
+function ownsCutover(fence, runId, ownerToken) {
+  return fence?.active === true &&
+    fence.runId === runId &&
+    fence.ownerToken === ownerToken;
+}
+
+async function acquireCutover(db) {
+  const fenceRef = db
+    .collection("system_state")
+    .doc("relationship_membership_cutover");
+  const proposedRunRef = db.collection("migration_runs").doc();
+  const ownerToken = randomUUID();
+  const startedAt = new Date().toISOString();
+  return db.runTransaction(async transaction => {
+    const fenceSnapshot = await transaction.get(fenceRef);
+    if (fenceSnapshot.exists && fenceSnapshot.data().active === true) {
+      const fence = fenceSnapshot.data();
+      if (typeof fence.runId !== "string" || !fence.runId) {
+        throw new Error("既有 Relationship cutover fence 無法安全續跑。");
+      }
+      const runRef = db.collection("migration_runs").doc(fence.runId);
+      transaction.update(fenceRef, { ownerToken, updatedAt: startedAt });
+      transaction.set(runRef, {
+        status: "running",
+        resumedAt: startedAt,
+      }, { merge: true });
+      return { fenceRef, runRef, ownerToken };
+    }
+    transaction.set(fenceRef, {
+      active: true,
+      runId: proposedRunRef.id,
+      ownerToken,
+      startedAt,
+      updatedAt: startedAt,
+    });
+    transaction.create(proposedRunRef, {
+      type: "relationship_membership_projection_cutover",
+      status: "running",
+      startedAt,
+    });
+    return { fenceRef, runRef: proposedRunRef, ownerToken };
+  });
+}
+
+async function applyMembershipOperation(
+  db,
+  fenceRef,
+  runRef,
+  ownerToken,
+  operation,
+) {
+  const parentRef = db
+    .collection(operation.parentCollection)
+    .doc(operation.data.scopeId);
+  const membershipRef = db
+    .collection("relationship_memberships")
+    .doc(operation.id);
+  await db.runTransaction(async transaction => {
+    const [fenceSnapshot, parentSnapshot, membershipSnapshot] =
+      await Promise.all([
+        transaction.get(fenceRef),
+        transaction.get(parentRef),
+        transaction.get(membershipRef),
+      ]);
+    if (
+      !fenceSnapshot.exists ||
+      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+    ) {
+      throw new Error("Relationship cutover ownership changed.");
+    }
+    const currentParent = parentSnapshot.exists ? parentSnapshot.data() : null;
+    if (
+      (!operation.allowMissingParent && !parentSnapshot.exists) ||
+      fingerprint(currentParent) !== operation.expectedParentFingerprint
+    ) {
+      throw new Error(`Relationship parent changed: ${operation.data.scopeId}`);
+    }
+    const currentMembership = membershipSnapshot.exists
+      ? membershipSnapshot.data()
+      : null;
+    if (
+      fingerprint(currentMembership) !== operation.expectedExistingFingerprint
+    ) {
+      throw new Error(`Relationship Membership changed: ${operation.id}`);
+    }
+    const payload = { ...operation.data };
+    if (operation.clearEndedFields) {
+      payload.activeUntil = admin.firestore.FieldValue.delete();
+      payload.endedBy = admin.firestore.FieldValue.delete();
+    }
+    transaction.set(membershipRef, payload, { merge: true });
+    transaction.update(fenceRef, { updatedAt: new Date().toISOString() });
+  });
+}
+
+async function applyUserCleanup(
+  db,
+  fenceRef,
+  runRef,
+  ownerToken,
+  operation,
+) {
+  const userRef = db.collection("users").doc(operation.userId);
+  await db.runTransaction(async transaction => {
+    const [fenceSnapshot, userSnapshot] = await Promise.all([
+      transaction.get(fenceRef),
+      transaction.get(userRef),
+    ]);
+    if (
+      !fenceSnapshot.exists ||
+      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+    ) {
+      throw new Error("Relationship cutover ownership changed.");
+    }
+    if (!userSnapshot.exists) {
+      throw new Error(`Relationship cleanup user missing: ${operation.userId}`);
+    }
+    if (
+      legacyProjectionFingerprint(userSnapshot.data()) !==
+      operation.expectedProjectionFingerprint
+    ) {
+      throw new Error(`Legacy relationship projection changed: ${operation.userId}`);
+    }
+    const update = {
+      ...operation.setFields,
+      relationshipProjectionMigratedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    for (const field of operation.clearFields) {
+      update[field] = admin.firestore.FieldValue.delete();
+    }
+    transaction.update(userRef, update);
+    transaction.update(fenceRef, { updatedAt: new Date().toISOString() });
+  });
+}
+
+async function updateOwnedRun(
+  db,
+  fenceRef,
+  runRef,
+  ownerToken,
+  values,
+) {
+  await db.runTransaction(async transaction => {
+    const fenceSnapshot = await transaction.get(fenceRef);
+    if (
+      !fenceSnapshot.exists ||
+      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+    ) {
+      throw new Error("Relationship cutover ownership changed.");
+    }
+    transaction.set(runRef, values, { merge: true });
+  });
+}
+
+export async function runRelationshipMigration({ apply }) {
   await initializeAdmin();
   const db = admin.firestore();
   const [familySnapshot, groupSnapshot, userSnapshot, membershipSnapshot] =
@@ -300,67 +569,80 @@ async function runMigration({ apply, allowIssues }) {
     );
     return plan;
   }
-  if (plan.issues.length > 0 && !allowIssues) {
-    throw new Error(
-      "存在無效父關係資料；修正後重跑，或明確加入 --allow-issues。",
-    );
+  if (plan.issues.length > 0) {
+    throw new Error("存在無效父關係資料；修正後才能執行 migration。");
   }
 
-  const runRef = db.collection("migration_runs").doc();
-  await runRef.set({
-    type: "relationship_membership_projection_cutover",
-    status: "running",
-    startedAt: admin.firestore.FieldValue.serverTimestamp(),
-    counts: plan.counts,
-  });
+  const { fenceRef, runRef, ownerToken } = await acquireCutover(db);
   try {
-    const membershipWrites = await commitInChunks(
+    await updateOwnedRun(
       db,
-      plan.membershipUpserts,
-      (batch, operation) => {
-        const payload = { ...operation.data };
-        if (operation.clearEndedFields) {
-          payload.activeUntil = admin.firestore.FieldValue.delete();
-          payload.endedBy = admin.firestore.FieldValue.delete();
-        }
-        batch.set(
-          db.collection("relationship_memberships").doc(operation.id),
-          payload,
-          { merge: true },
-        );
-      },
+      fenceRef,
+      runRef,
+      ownerToken,
+      { counts: plan.counts },
     );
-    const cleanupWrites = await commitInChunks(
-      db,
-      plan.userProjectionCleanup,
-      (batch, operation) => {
-        const update = {
-          ...operation.setFields,
-          relationshipProjectionMigratedAt:
-            admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        };
-        for (const field of operation.clearFields) {
-          update[field] = admin.firestore.FieldValue.delete();
-        }
-        batch.update(db.collection("users").doc(operation.userId), update);
-      },
-    );
-    await runRef.update({
-      status: "completed",
-      membershipWrites,
-      cleanupWrites,
-      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    let membershipWrites = 0;
+    for (const operation of plan.membershipUpserts) {
+      await applyMembershipOperation(
+        db,
+        fenceRef,
+        runRef,
+        ownerToken,
+        operation,
+      );
+      membershipWrites += 1;
+    }
+    let cleanupWrites = 0;
+    for (const operation of plan.userProjectionCleanup) {
+      await applyUserCleanup(
+        db,
+        fenceRef,
+        runRef,
+        ownerToken,
+        operation,
+      );
+      cleanupWrites += 1;
+    }
+    await db.runTransaction(async transaction => {
+      const fenceSnapshot = await transaction.get(fenceRef);
+      if (
+        !fenceSnapshot.exists ||
+        !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+      ) {
+        throw new Error("Relationship cutover ownership changed before release.");
+      }
+      const completedAt = new Date().toISOString();
+      transaction.update(fenceRef, {
+        active: false,
+        ownerToken: null,
+        completedAt,
+        updatedAt: completedAt,
+      });
+      transaction.set(runRef, {
+        status: "completed",
+        membershipWrites,
+        cleanupWrites,
+        completedAt,
+      }, { merge: true });
     });
     console.log(
       `完成：${membershipWrites} 筆 Membership、${cleanupWrites} 筆舊投影清理。`,
     );
     return plan;
   } catch (error) {
-    await runRef.update({
-      status: "failed",
-      error: String(error?.message || error).slice(0, 500),
-      failedAt: admin.firestore.FieldValue.serverTimestamp(),
+    await db.runTransaction(async transaction => {
+      const fenceSnapshot = await transaction.get(fenceRef);
+      if (
+        fenceSnapshot.exists &&
+        ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+      ) {
+        transaction.set(runRef, {
+          status: "failed",
+          error: String(error?.message || error).slice(0, 500),
+          failedAt: new Date().toISOString(),
+        }, { merge: true });
+      }
     });
     throw error;
   }
@@ -371,9 +653,8 @@ const isDirectRun =
   import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (isDirectRun) {
-  runMigration({
+  runRelationshipMigration({
     apply: process.argv.includes("--apply"),
-    allowIssues: process.argv.includes("--allow-issues"),
   }).catch(error => {
     console.error(error.message);
     process.exitCode = 1;
