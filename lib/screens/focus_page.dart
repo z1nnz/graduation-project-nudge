@@ -42,7 +42,7 @@ class _FocusPageState extends State<FocusPage> {
     super.initState();
     if (widget.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) startTimer();
+        if (mounted) unawaited(startTimer());
       });
     }
   }
@@ -125,12 +125,18 @@ class _FocusPageState extends State<FocusPage> {
     });
   }
 
-  void startTimer() {
+  Future<void> startTimer() async {
     if (isRunning) return;
     if (isFocusPhase) {
-      unawaited(
-        _ledgerController?.startOrResume(elapsedSeconds: elapsedSeconds),
-      );
+      try {
+        await _ledgerController?.startOrResume(elapsedSeconds: elapsedSeconds);
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('專注事件尚未安全保存，請稍後重試')));
+        return;
+      }
     }
 
     setState(() {
@@ -220,7 +226,7 @@ class _FocusPageState extends State<FocusPage> {
     );
 
     if (shouldStartNext == true && mounted) {
-      startTimer();
+      unawaited(startTimer());
     }
   }
 
@@ -283,7 +289,7 @@ class _FocusPageState extends State<FocusPage> {
 
       if (!mounted) return;
       if (shouldSkipRest != true) {
-        if (wasRunning) startTimer();
+        if (wasRunning) unawaited(startTimer());
         return;
       }
 
@@ -299,7 +305,7 @@ class _FocusPageState extends State<FocusPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('目前還沒有可記錄的專注時間')));
-      if (wasRunning) startTimer();
+      if (wasRunning) unawaited(startTimer());
       return;
     }
 
@@ -331,7 +337,7 @@ class _FocusPageState extends State<FocusPage> {
 
     if (!mounted) return;
     if (shouldSave != true) {
-      if (wasRunning) startTimer();
+      if (wasRunning) unawaited(startTimer());
       return;
     }
 

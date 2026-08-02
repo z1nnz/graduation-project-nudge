@@ -2,14 +2,118 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nudge/models/activity_ledger.dart';
 import 'package:nudge/models/room_activity_session.dart';
+import 'package:nudge/models/health_activity_snapshot.dart';
 import 'package:nudge/models/study_room_models.dart';
 import 'package:nudge/models/task_model.dart';
 import 'package:nudge/models/user_model.dart';
 import 'package:nudge/services/activity_ledger_outbox.dart';
 import 'package:nudge/services/cloud_activity_ledger_gateway.dart';
+import 'package:nudge/services/cloud_health_snapshot_gateway.dart';
+import 'package:nudge/services/health_snapshot_outbox.dart';
+import 'package:nudge/services/room_activity_projection_gateway.dart';
 import 'package:nudge/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class _RejectingHealthSnapshotOutbox extends HealthSnapshotOutbox {
+  _RejectingHealthSnapshotOutbox()
+    : super(
+        gateway: CloudHealthSnapshotGateway.withCallable(
+          (_) async => throw StateError('Cloud should not be called'),
+        ),
+      );
+
+  @override
+  Future<void> enqueueAll(List<HealthActivitySnapshot> snapshots) {
+    return Future<void>.error(StateError('outbox unavailable'));
+  }
+}
+
+class _RejectingActivityLedgerOutbox extends ActivityLedgerOutbox {
+  _RejectingActivityLedgerOutbox()
+    : super(
+        gateway: CloudActivityLedgerGateway.withCallable(
+          (_) async => throw StateError('Cloud should not be called'),
+        ),
+      );
+
+  int enqueueAttempts = 0;
+
+  @override
+  Future<void> enqueue(ActivityEvidence evidence) {
+    enqueueAttempts++;
+    return Future<void>.error(StateError('outbox unavailable'));
+  }
+}
+
+class _RejectingSecondActivityLedgerOutbox extends ActivityLedgerOutbox {
+  _RejectingSecondActivityLedgerOutbox()
+    : super(
+        gateway: CloudActivityLedgerGateway.withCallable(
+          (_) async => throw StateError('Cloud should not be called'),
+        ),
+      );
+
+  int enqueueAttempts = 0;
+
+  @override
+  Future<void> enqueue(ActivityEvidence evidence) async {
+    enqueueAttempts++;
+    if (enqueueAttempts == 2) throw StateError('transition unavailable');
+  }
+
+  @override
+  Future<ActivityLedgerFlushReport> flush() async {
+    return const ActivityLedgerFlushReport(
+      succeeded: [],
+      permanentlyRejected: 0,
+      retryBlocked: false,
+    );
+  }
+}
+
+class _NoopRoomActivityProjectionGateway
+    implements RoomActivityProjectionGateway {
+  @override
+  Future<void> persistStarted({
+    required String userId,
+    required RoomActivitySession session,
+  }) async {}
+
+  @override
+  Future<void> persistTransition({
+    required String userId,
+    required RoomActivitySession session,
+  }) async {}
+}
+
+StudyRoomData signedInRoomFixture(UserModel user) {
+  return StudyRoomData(
+    id: 'room-ledger-first',
+    name: 'Ledger-first 房間',
+    description: '先保存活動證據',
+    accentColor: const Color(0xFF7C6AE6),
+    ownerId: user.id,
+    ownerName: user.nickname,
+    roomType: StudyRoomType.study,
+    goalSourceType: TaskSourceType.focusMinutes,
+    dailyGoalValue: 25,
+    goalUnitLabel: '分鐘',
+    members: [
+      StudyMemberData(
+        memberId: user.id,
+        name: user.nickname,
+        roomNickname: user.nickname,
+        status: StudyMemberStatus.offline,
+        sessionSeconds: 0,
+        todayFocusSeconds: 0,
+        avatarColor: const Color(0xFF7C6AE6),
+        role: 'owner',
+      ),
+    ],
+  );
+}
 
 void main() {
   setUp(() {
@@ -122,6 +226,94 @@ void main() {
     expect(completed.status, RoomActivitySessionStatus.completed);
     expect(appState.activeRoomActivitySession(roomId), isNull);
   });
+
+  test(
+    'signed-in room start does not project before durable Ledger enqueue',
+    () async {
+      final now = DateTime.now();
+      final user = UserModel(
+        id: 'room-user-1',
+        username: 'room-user-1',
+        nickname: '房間測試者',
+        signature: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      const roomId = 'room-ledger-first';
+      final room = signedInRoomFixture(user);
+      SharedPreferences.setMockInitialValues({
+        'current_user_setting': jsonEncode(user.toJson()),
+        'study_rooms_setting': jsonEncode([room.toJson()]),
+      });
+      final outbox = _RejectingActivityLedgerOutbox();
+      final appState = AppState(activityLedgerOutbox: outbox);
+      await appState.loadAllLocalData();
+
+      await expectLater(
+        appState.startRoomActivitySession(roomId: roomId),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'outbox unavailable',
+          ),
+        ),
+      );
+
+      expect(outbox.enqueueAttempts, 1);
+      expect(appState.activeRoomActivitySession(roomId), isNull);
+      expect(appState.roomActivitySessions, isEmpty);
+    },
+  );
+
+  test(
+    'room transition keeps the prior state when Ledger enqueue fails',
+    () async {
+      final now = DateTime.now();
+      final user = UserModel(
+        id: 'room-user-2',
+        username: 'room-user-2',
+        nickname: '房間轉換測試者',
+        signature: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final room = signedInRoomFixture(user);
+      SharedPreferences.setMockInitialValues({
+        'current_user_setting': jsonEncode(user.toJson()),
+        'study_rooms_setting': jsonEncode([room.toJson()]),
+      });
+      final outbox = _RejectingSecondActivityLedgerOutbox();
+      final appState = AppState(
+        activityLedgerOutbox: outbox,
+        roomActivityProjectionGateway: _NoopRoomActivityProjectionGateway(),
+      );
+      await appState.loadAllLocalData();
+      final started = await appState.startRoomActivitySession(roomId: room.id);
+
+      await expectLater(
+        appState.transitionRoomActivitySession(
+          sessionId: started.sessionId,
+          status: RoomActivitySessionStatus.paused,
+          metricValue: 10,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'transition unavailable',
+          ),
+        ),
+      );
+
+      expect(outbox.enqueueAttempts, 2);
+      expect(
+        appState.activeRoomActivitySession(room.id)?.status,
+        RoomActivitySessionStatus.active,
+      );
+      expect(appState.roomActivitySessions.single.metricValue, 0);
+    },
+  );
 
   test('health progress becomes a member-owned room activity', () async {
     final appState = AppState();
@@ -599,7 +791,7 @@ void main() {
       );
       appState.addTask('整理房間', '自定義', taskType: 'fixed');
 
-      appState.updateHealthData(
+      await appState.updateHealthData(
         isConnected: true,
         sleepHours: 7.5,
         steps: 0,
@@ -614,6 +806,64 @@ void main() {
       expect(summary.autoTrackedCompleted, 1);
       expect(summary.healthCompleted, 1);
       expect(summary.autoTrackedSources, contains('睡眠'));
+    },
+  );
+
+  test(
+    'health projection stays unchanged when durable Ledger enqueue fails',
+    () async {
+      final now = DateTime.now();
+      final user = UserModel(
+        id: 'health-user-1',
+        username: 'health-user-1',
+        nickname: '健康測試者',
+        signature: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      SharedPreferences.setMockInitialValues({
+        'current_user_setting': jsonEncode(user.toJson()),
+      });
+      final appState = AppState(
+        healthSnapshotOutbox: _RejectingHealthSnapshotOutbox(),
+      );
+      await appState.loadAllLocalData();
+      appState.addTask(
+        '睡眠 7 小時',
+        '健康',
+        taskType: 'fixed',
+        isAutoTracked: true,
+        sourceType: TaskSourceType.sleepHours,
+        targetValue: 7,
+        unitLabel: '小時',
+      );
+      final taskIndex = appState.taskModels.indexWhere(
+        (task) => task.title == '睡眠 7 小時',
+      );
+      final snapshot = HealthActivitySnapshot(
+        provider: HealthSnapshotProvider.appleHealth,
+        activityType: ActivityType.sleep,
+        metricValue: 7.5,
+        metricUnit: 'hours',
+        localDate: '2026-08-02',
+        periodStart: DateTime.utc(2026, 8, 1, 16),
+        periodEnd: DateTime.utc(2026, 8, 2, 0),
+        observedAt: DateTime.utc(2026, 8, 2, 0),
+        dataOrigins: const ['com.apple.health'],
+      );
+
+      final accepted = await appState.updateHealthData(
+        isConnected: true,
+        sleepHours: 7.5,
+        steps: 0,
+        exerciseMinutes: 0,
+        snapshots: [snapshot],
+      );
+
+      expect(accepted, isFalse);
+      expect(appState.isHealthConnected, isFalse);
+      expect(appState.sleepHours, 0);
+      expect(appState.taskModels[taskIndex].isDone, isFalse);
     },
   );
 }

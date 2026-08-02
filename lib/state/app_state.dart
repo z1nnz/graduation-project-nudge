@@ -33,6 +33,7 @@ import '../models/user_notification.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
+import '../services/activity_ingestion.dart';
 import '../services/activity_ledger_outbox.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
 import '../services/cloud_health_snapshot_gateway.dart';
@@ -44,6 +45,7 @@ import '../services/cloud_reward_purchase_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/push_notification_service.dart';
+import '../services/room_activity_projection_gateway.dart';
 import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
 
@@ -111,6 +113,7 @@ class AppState extends ChangeNotifier {
   final CloudRewardAvatarGateway _rewardAvatarGateway;
   final CloudRewardPurchaseGateway _rewardPurchaseGateway;
   final PushNotificationService _pushNotificationService;
+  final RoomActivityProjectionGateway _roomActivityProjectionGateway;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
@@ -122,6 +125,7 @@ class AppState extends ChangeNotifier {
     CloudRewardAvatarGateway? rewardAvatarGateway,
     CloudRewardPurchaseGateway? rewardPurchaseGateway,
     PushNotificationService? pushNotificationService,
+    RoomActivityProjectionGateway? roomActivityProjectionGateway,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(
@@ -146,7 +150,10 @@ class AppState extends ChangeNotifier {
        _rewardPurchaseGateway =
            rewardPurchaseGateway ?? CloudRewardPurchaseGateway.firebase(),
        _pushNotificationService =
-           pushNotificationService ?? PushNotificationService() {
+           pushNotificationService ?? PushNotificationService(),
+       _roomActivityProjectionGateway =
+           roomActivityProjectionGateway ??
+           FirestoreRoomActivityProjectionGateway() {
     _pushNotificationService.setRouteHandler(_handlePushNotificationRoute);
     _listenToAuthChanges();
   }
@@ -6700,14 +6707,25 @@ class AppState extends ChangeNotifier {
     _saveTasks();
   }
 
-  void updateHealthData({
+  Future<bool> updateHealthData({
     required bool isConnected,
     required double sleepHours,
     required int steps,
     required int exerciseMinutes,
     List<HealthActivitySnapshot> snapshots = const [],
-  }) {
+  }) async {
     _checkDailyResetSync();
+
+    if (snapshots.isNotEmpty) {
+      try {
+        await _queueHealthSnapshots(snapshots);
+      } catch (error) {
+        debugPrint(
+          'Unable to durably enqueue Health Activity Ledger snapshots: $error',
+        );
+        return false;
+      }
+    }
 
     _isHealthConnected = isConnected;
     _sleepHours = sleepHours;
@@ -6721,9 +6739,7 @@ class AppState extends ChangeNotifier {
     _saveHealthData();
     _saveStudyRooms();
     _saveTasks();
-    if (snapshots.isNotEmpty) {
-      unawaited(_queueHealthSnapshots(snapshots));
-    }
+    return true;
   }
 
   Future<void> clearHealthData() async {
@@ -7865,6 +7881,10 @@ class AppState extends ChangeNotifier {
       source: source,
       now: now,
     );
+    final queuedEvidence = await _enqueueRoomActivityLedgerEvent(
+      session,
+      ActivityEventType.started,
+    );
     _roomActivitySessions[session.sessionId] = session;
     _roomActiveSessionIds[roomId] = session.sessionId;
     notifyListeners();
@@ -7872,26 +7892,23 @@ class AppState extends ChangeNotifier {
     final user = _currentUser;
     if (user != null) {
       try {
-        final firestore = FirebaseFirestore.instance;
-        final roomRef = firestore.collection('rooms').doc(roomId);
-        final batch = firestore.batch();
-        batch.update(roomRef.collection('members').doc(user.id), {
-          'activeSessionId': session.sessionId,
-          'updatedAt': now.toIso8601String(),
-        });
-        batch.set(
-          roomRef.collection('activity_sessions').doc(session.sessionId),
-          session.toJson(),
+        await _roomActivityProjectionGateway.persistStarted(
+          userId: user.id,
+          session: session,
         );
-        await batch.commit();
       } catch (_) {
         _roomActivitySessions.remove(session.sessionId);
         _roomActiveSessionIds.remove(roomId);
         notifyListeners();
+        if (queuedEvidence != null) {
+          await _activityLedgerOutbox.cancel(queuedEvidence);
+        }
         rethrow;
       }
     }
-    await _queueRoomActivityLedgerEvent(session, ActivityEventType.started);
+    if (queuedEvidence != null) {
+      unawaited(_flushActivityLedgerOutboxSafely());
+    }
     return session;
   }
 
@@ -7908,6 +7925,16 @@ class AppState extends ChangeNotifier {
       metricValue: metricValue,
       now: DateTime.now().toUtc(),
     );
+    final eventType = switch (status) {
+      RoomActivitySessionStatus.active => ActivityEventType.resumed,
+      RoomActivitySessionStatus.paused => ActivityEventType.paused,
+      RoomActivitySessionStatus.completed => ActivityEventType.completed,
+      RoomActivitySessionStatus.cancelled => ActivityEventType.discarded,
+    };
+    final queuedEvidence = await _enqueueRoomActivityLedgerEvent(
+      next,
+      eventType,
+    );
     _roomActivitySessions[sessionId] = next;
     if (next.isTerminal) {
       _roomActiveSessionIds.remove(current.roomId);
@@ -7917,47 +7944,32 @@ class AppState extends ChangeNotifier {
     final user = _currentUser;
     if (user != null) {
       try {
-        final firestore = FirebaseFirestore.instance;
-        final roomRef = firestore.collection('rooms').doc(current.roomId);
-        if (next.isTerminal) {
-          final batch = firestore.batch();
-          batch.update(roomRef.collection('members').doc(user.id), {
-            'activeSessionId': null,
-            'updatedAt': next.updatedAt.toIso8601String(),
-          });
-          batch.set(
-            roomRef.collection('activity_sessions').doc(sessionId),
-            next.toJson(),
-          );
-          await batch.commit();
-        } else {
-          await roomRef
-              .collection('activity_sessions')
-              .doc(sessionId)
-              .set(next.toJson());
-        }
+        await _roomActivityProjectionGateway.persistTransition(
+          userId: user.id,
+          session: next,
+        );
       } catch (_) {
         _roomActivitySessions[sessionId] = current;
         _roomActiveSessionIds[current.roomId] = current.sessionId;
         notifyListeners();
+        if (queuedEvidence != null) {
+          await _activityLedgerOutbox.cancel(queuedEvidence);
+        }
         rethrow;
       }
     }
-    await _queueRoomActivityLedgerEvent(next, switch (status) {
-      RoomActivitySessionStatus.active => ActivityEventType.resumed,
-      RoomActivitySessionStatus.paused => ActivityEventType.paused,
-      RoomActivitySessionStatus.completed => ActivityEventType.completed,
-      RoomActivitySessionStatus.cancelled => ActivityEventType.discarded,
-    });
+    if (queuedEvidence != null) {
+      unawaited(_flushActivityLedgerOutboxSafely());
+    }
     return next;
   }
 
-  Future<void> _queueRoomActivityLedgerEvent(
+  Future<ActivityEvidence?> _enqueueRoomActivityLedgerEvent(
     RoomActivitySession session,
     ActivityEventType eventType,
   ) async {
     final user = _currentUser;
-    if (user == null) return;
+    if (user == null) return null;
     final source = switch (session.source) {
       RoomActivitySource.app => ActivitySource.app,
       RoomActivitySource.web => ActivitySource.web,
@@ -7965,7 +7977,9 @@ class AppState extends ChangeNotifier {
       RoomActivitySource.device => ActivitySource.device,
     };
     if (source != ActivitySource.app && source != ActivitySource.web) {
-      return;
+      throw const ActivityValidationException(
+        'Health and device room activity require trusted Cloud ingestion.',
+      );
     }
     final activityType = switch (session.activityKind) {
       RoomActivityKind.focus => ActivityType.focus,
@@ -7979,24 +7993,23 @@ class AppState extends ChangeNotifier {
       eventType.name,
       session.updatedAt.microsecondsSinceEpoch,
     ].join('_');
-    await _activityLedgerOutbox.enqueue(
-      ActivityEvidence(
-        eventId: eventId,
-        sourceRecordId: eventId,
-        sessionId: session.sessionId,
-        activityCorrelationId: session.sessionId,
-        submittedByUserId: user.id,
-        actorUserId: user.id,
-        roomIds: [session.roomId],
-        activityType: activityType,
-        source: source,
-        eventType: eventType,
-        metricValue: session.metricValue,
-        metricUnit: session.metricUnit,
-        occurredAt: session.updatedAt,
-      ),
+    final evidence = ActivityEvidence(
+      eventId: eventId,
+      sourceRecordId: eventId,
+      sessionId: session.sessionId,
+      activityCorrelationId: session.sessionId,
+      submittedByUserId: user.id,
+      actorUserId: user.id,
+      roomIds: [session.roomId],
+      activityType: activityType,
+      source: source,
+      eventType: eventType,
+      metricValue: session.metricValue,
+      metricUnit: session.metricUnit,
+      occurredAt: session.updatedAt,
     );
-    unawaited(_activityLedgerOutbox.flush());
+    await _activityLedgerOutbox.enqueue(evidence);
+    return evidence;
   }
 
   Future<void> queuePersonalFocusLedgerEvent({
