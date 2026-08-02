@@ -366,7 +366,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       let value = statistics?.sumQuantity()?.doubleValue(for: HKUnit.count()) ?? 0
 
-      let origins = statistics?.sources
+      let origins = statistics?.sources?
         .map(\.bundleIdentifier)
         .sorted() ?? []
 
@@ -414,7 +414,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
       let value = statistics?.sumQuantity()?.doubleValue(for: HKUnit.minute()) ?? 0
 
-      let origins = statistics?.sources
+      let origins = statistics?.sources?
         .map(\.bundleIdentifier)
         .sorted() ?? []
 
