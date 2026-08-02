@@ -3,6 +3,9 @@
 This runbook separates deployed production evidence from local/emulator
 coverage and from release gates that still require external infrastructure.
 
+The latest dated execution record is
+[`acceptance/2026-08-02-productization-status.md`](acceptance/2026-08-02-productization-status.md).
+
 ## Current verified state
 
 - GitHub Pages publishes `web_dashboard/` through
