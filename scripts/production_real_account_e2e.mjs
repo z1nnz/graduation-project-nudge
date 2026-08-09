@@ -22,6 +22,7 @@ if (!apiKey || !adminAccessToken || !appCheckToken) {
 const runId = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
 const groupId = `E2E-GROUP-${runId}`;
 const requestId = `E2E-REQUEST-${runId}`;
+const familyId = `E2E-FAMILY-${runId}`;
 const identityBase = "https://identitytoolkit.googleapis.com/v1";
 const firestoreResourceBase =
   `projects/${projectId}/databases/(default)/documents`;
@@ -300,6 +301,28 @@ function activeMembership({
     membershipId,
     scopeType: "group",
     scopeId: groupId,
+    scopeName,
+    userId,
+    role,
+    status: "active",
+    createdAt,
+    updatedAt: createdAt,
+    activeFrom: createdAt,
+  };
+}
+
+function activeFamilyMembership({
+  scopeName,
+  userId,
+  role,
+  createdAt,
+}) {
+  const membershipId = `family--${familyId}--${userId}`;
+  return {
+    schemaVersion: 1,
+    membershipId,
+    scopeType: "family",
+    scopeId: familyId,
     scopeName,
     userId,
     role,
@@ -599,7 +622,11 @@ try {
   });
 
   const requestedAt = new Date().toISOString();
-  rememberCleanup(`group_requests/${requestId}`);
+  rememberCleanup(
+    `group_requests/${requestId}`,
+    `audit_events/group-request--${requestId}--created`,
+    `audit_events/group-request--${requestId}--accepted`,
+  );
   await commit(accountA.idToken, [
     updateWrite(
       `group_requests/${requestId}`,
@@ -722,6 +749,345 @@ try {
     status: "passed",
   });
 
+  await commit(
+    accountB.idToken,
+    [
+      updateWrite(
+        `groups/${groupId}`,
+        { name: "member cannot rename" },
+        ["name"],
+      ),
+    ],
+    403,
+  );
+  steps.push({
+    step: "group.member_manager_action_denied",
+    status: "passed",
+  });
+
+  const familyScopeName = `家庭連結 ${familyId.slice(-8)}`;
+  const familyRequestedAt = new Date().toISOString();
+  const familyPendingNotificationId =
+    `family-request--${familyId}--pending`;
+  const familyAcceptedNotificationId =
+    `family-request--${familyId}--accepted`;
+  rememberCleanup(
+    `guardian_requests/${familyId}`,
+    `family_links/${familyId}`,
+    `user_notifications/${familyPendingNotificationId}`,
+    `push_delivery_jobs/${familyPendingNotificationId}`,
+    `user_notifications/${familyAcceptedNotificationId}`,
+    `push_delivery_jobs/${familyAcceptedNotificationId}`,
+    `audit_events/family-request--${familyId}--created`,
+    `audit_events/family-request--${familyId}--accepted`,
+    `audit_events/notification-read--${accountB.uid}--${familyPendingNotificationId}`,
+  );
+  await commit(accountA.idToken, [
+    updateWrite(
+      `guardian_requests/${familyId}`,
+      {
+        senderId: accountA.uid,
+        senderNudgeId: `e2e_${runId}_guardian`,
+        senderNickname: "E2E guardian",
+        senderRole: "guardian",
+        receiverId: accountB.uid,
+        receiverNudgeId: `e2e_${runId}_child`,
+        receiverRole: "child",
+        status: "pending",
+        createdAt: familyRequestedAt,
+        updatedAt: familyRequestedAt,
+      },
+      null,
+    ),
+  ]);
+  steps.push({ step: "family.invitation_create", status: "passed" });
+
+  await waitForDocument(
+    accountB.idToken,
+    `user_notifications/${familyPendingNotificationId}`,
+  );
+  const familyReadNotification = await callable(
+    accountB,
+    "markNotificationRead",
+    { notificationId: familyPendingNotificationId },
+  );
+  if (familyReadNotification.status !== "read") {
+    throw new Error("The family invitation notification was not marked read.");
+  }
+  await readDocument(
+    accountB.idToken,
+    `audit_events/notification-read--${accountB.uid}--${familyPendingNotificationId}`,
+  );
+  steps.push({ step: "family.notification_audited", status: "passed" });
+
+  const familyAcceptedAt = new Date().toISOString();
+  const guardianMembership = activeFamilyMembership({
+    scopeName: familyScopeName,
+    userId: accountA.uid,
+    role: "guardian",
+    createdAt: familyAcceptedAt,
+  });
+  const childMembership = activeFamilyMembership({
+    scopeName: familyScopeName,
+    userId: accountB.uid,
+    role: "child",
+    createdAt: familyAcceptedAt,
+  });
+  rememberCleanup(
+    `relationship_memberships/family--${familyId}--${accountA.uid}`,
+    `relationship_memberships/family--${familyId}--${accountB.uid}`,
+  );
+  await commit(accountB.idToken, [
+    updateWrite(
+      `guardian_requests/${familyId}`,
+      { status: "accepted", updatedAt: familyAcceptedAt },
+      ["status", "updatedAt"],
+    ),
+    updateWrite(
+      `family_links/${familyId}`,
+      {
+        schemaVersion: 1,
+        guardianId: accountA.uid,
+        childId: accountB.uid,
+        participantIds: [accountA.uid, accountB.uid],
+        status: "active",
+        consentScopes: {
+          summary: false,
+          weeklyReport: false,
+          taskCategories: false,
+          healthTrends: false,
+        },
+        createdAt: familyAcceptedAt,
+        updatedAt: familyAcceptedAt,
+      },
+      null,
+    ),
+    updateWrite(
+      `relationship_memberships/${guardianMembership.membershipId}`,
+      guardianMembership,
+      null,
+    ),
+    updateWrite(
+      `relationship_memberships/${childMembership.membershipId}`,
+      childMembership,
+      null,
+    ),
+  ]);
+  await waitForDocument(
+    accountA.idToken,
+    `user_notifications/${familyAcceptedNotificationId}`,
+  );
+  steps.push({
+    step: "family.child_atomic_accept_with_memberships",
+    status: "passed",
+  });
+
+  for (const [account, membershipPaths] of [
+    [accountA, [managerMembership.membershipId, guardianMembership.membershipId]],
+    [accountB, [memberMembership.membershipId, childMembership.membershipId]],
+  ]) {
+    for (const membershipPath of membershipPaths) {
+      await readDocument(
+        account.idToken,
+        `relationship_memberships/${membershipPath}`,
+      );
+    }
+  }
+  steps.push({
+    step: "membership.family_and_group_coexist",
+    status: "passed",
+  });
+
+  const encouragementId = `encouragement-${runId}`;
+  const encouragementAt = new Date().toISOString();
+  rememberCleanup(
+    `family_links/${familyId}/encouragements/${encouragementId}`,
+    `family_links/${familyId}/bond_events/encouragement_${encouragementId}`,
+  );
+  await commit(accountA.idToken, [
+    updateWrite(
+      `family_links/${familyId}/encouragements/${encouragementId}`,
+      {
+        schemaVersion: 1,
+        senderId: accountA.uid,
+        recipientId: accountB.uid,
+        title: "今天也辛苦了",
+        message: "慢慢來就好",
+        status: "sent",
+        createdAt: encouragementAt,
+      },
+      null,
+    ),
+  ]);
+  await commit(accountB.idToken, [
+    updateWrite(
+      `family_links/${familyId}/encouragements/${encouragementId}`,
+      { status: "acknowledged", acknowledgedAt: new Date().toISOString() },
+      ["status", "acknowledgedAt"],
+    ),
+    updateWrite(
+      `family_links/${familyId}/bond_events/encouragement_${encouragementId}`,
+      {
+        schemaVersion: 1,
+        type: "acknowledgement",
+        sourceId: encouragementId,
+        actorId: accountB.uid,
+        points: 3,
+        createdAt: new Date().toISOString(),
+      },
+      null,
+    ),
+  ]);
+  steps.push({
+    step: "family.encouragement_acknowledged",
+    status: "passed",
+  });
+
+  const familyGoalId = `goal-${runId}`;
+  const goalProposedAt = new Date().toISOString();
+  rememberCleanup(
+    `family_links/${familyId}/goals/${familyGoalId}`,
+    `family_links/${familyId}/bond_events/goal_${familyGoalId}`,
+  );
+  await commit(accountA.idToken, [
+    updateWrite(
+      `family_links/${familyId}/goals/${familyGoalId}`,
+      {
+        schemaVersion: 1,
+        title: "每天專注 30 分鐘",
+        message: "一起建立節奏",
+        status: "proposed",
+        proposedBy: accountA.uid,
+        decisionBy: accountB.uid,
+        createdAt: goalProposedAt,
+        updatedAt: goalProposedAt,
+      },
+      null,
+    ),
+  ]);
+  await commit(
+    accountA.idToken,
+    [
+      updateWrite(
+        `family_links/${familyId}/goals/${familyGoalId}`,
+        {
+          status: "accepted",
+          acceptedAt: goalProposedAt,
+          updatedAt: goalProposedAt,
+        },
+        ["status", "acceptedAt", "updatedAt"],
+      ),
+    ],
+    403,
+  );
+  steps.push({ step: "family.child_role_boundary", status: "passed" });
+  const goalAcceptedAt = new Date().toISOString();
+  await commit(accountB.idToken, [
+    updateWrite(
+      `family_links/${familyId}/goals/${familyGoalId}`,
+      {
+        status: "accepted",
+        acceptedAt: goalAcceptedAt,
+        updatedAt: goalAcceptedAt,
+      },
+      ["status", "acceptedAt", "updatedAt"],
+    ),
+  ]);
+  const goalCompletedAt = new Date().toISOString();
+  await commit(accountB.idToken, [
+    updateWrite(
+      `family_links/${familyId}/goals/${familyGoalId}`,
+      {
+        status: "completed",
+        completedAt: goalCompletedAt,
+        updatedAt: goalCompletedAt,
+      },
+      ["status", "completedAt", "updatedAt"],
+    ),
+    updateWrite(
+      `family_links/${familyId}/bond_events/goal_${familyGoalId}`,
+      {
+        schemaVersion: 1,
+        type: "goalCompleted",
+        sourceId: familyGoalId,
+        actorId: accountB.uid,
+        points: 10,
+        createdAt: goalCompletedAt,
+      },
+      null,
+    ),
+  ]);
+  steps.push({ step: "family.goal_completed", status: "passed" });
+
+  rememberCleanup(
+    `relationship_outcomes/family--${familyId}`,
+    `relationship_outcomes/family--${familyId}/memories/encouragement_ack--encouragement_${encouragementId}`,
+    `relationship_outcomes/family--${familyId}/memories/goal_completed--goal_${familyGoalId}`,
+  );
+  const familyOutcome = await callable(
+    accountB,
+    "refreshRelationshipOutcome",
+    { scopeType: "family", scopeId: familyId },
+  );
+  const familyMemoryTypes = new Set(
+    (familyOutcome.memories || []).map(familyMemory => {
+      rememberCleanup(
+        `relationship_outcomes/family--${familyId}/memories/${familyMemory.memoryId}`,
+      );
+      return familyMemory.memoryType;
+    }),
+  );
+  if (
+    familyOutcome.outcome?.outcomeId !== `family--${familyId}` ||
+    familyOutcome.outcome?.growth?.kind !== "family_tree" ||
+    familyOutcome.outcome?.characterOutcome?.kind !== "family_companion" ||
+    !familyMemoryTypes.has("encouragement_ack") ||
+    !familyMemoryTypes.has("goal_completed")
+  ) {
+    throw new Error("Formal family outcome or shared memories are invalid.");
+  }
+  await readDocument(
+    accountA.idToken,
+    `relationship_outcomes/family--${familyId}`,
+  );
+  steps.push({
+    step: "cloud.family_outcome_and_memories",
+    status: "passed",
+  });
+
+  const familyEndedAt = new Date().toISOString();
+  await commit(accountA.idToken, [
+    updateWrite(
+      `family_links/${familyId}`,
+      {
+        status: "ended",
+        endedBy: accountA.uid,
+        endedAt: familyEndedAt,
+        updatedAt: familyEndedAt,
+      },
+      ["status", "endedBy", "endedAt", "updatedAt"],
+    ),
+    updateWrite(
+      `guardian_requests/${familyId}`,
+      { status: "ended", updatedAt: familyEndedAt },
+      ["status", "updatedAt"],
+    ),
+    updateWrite(
+      `relationship_memberships/${guardianMembership.membershipId}`,
+      endedMembership(guardianMembership, accountA.uid, familyEndedAt),
+      null,
+    ),
+    updateWrite(
+      `relationship_memberships/${childMembership.membershipId}`,
+      endedMembership(childMembership, accountA.uid, familyEndedAt),
+      null,
+    ),
+  ]);
+  steps.push({
+    step: "family.atomic_end_with_membership_end",
+    status: "passed",
+  });
+
   const leftAt = new Date().toISOString();
   await commit(accountB.idToken, [
     updateWrite(
@@ -776,12 +1142,14 @@ try {
       ? [
           `users/${accountA.uid}`,
           `relationship_memberships/group--${groupId}--${accountA.uid}`,
+          `relationship_memberships/family--${familyId}--${accountA.uid}`,
         ]
       : []),
     ...(accountB
       ? [
           `users/${accountB.uid}`,
           `relationship_memberships/group--${groupId}--${accountB.uid}`,
+          `relationship_memberships/family--${familyId}--${accountB.uid}`,
         ]
       : []),
   ];

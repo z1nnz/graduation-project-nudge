@@ -73,3 +73,34 @@ test("production real-account E2E covers role and membership boundaries", () => 
     assert.ok(script.includes(step), `missing production E2E step: ${step}`);
   }
 });
+
+test("production real-account E2E covers family roles and multi-context outcomes", () => {
+  for (const step of [
+    "family.invitation_create",
+    "family.notification_audited",
+    "family.child_atomic_accept_with_memberships",
+    "membership.family_and_group_coexist",
+    "group.member_manager_action_denied",
+    "family.child_role_boundary",
+    "family.encouragement_acknowledged",
+    "family.goal_completed",
+    "cloud.family_outcome_and_memories",
+    "family.atomic_end_with_membership_end",
+  ]) {
+    assert.ok(script.includes(step), `missing production E2E step: ${step}`);
+  }
+  assert.match(script, /relationship_outcomes\/family--/);
+  assert.match(script, /family_tree/);
+  assert.match(script, /family_companion/);
+  assert.match(script, /relationship_memberships\/family--/);
+  assert.match(script, /audit_events\/family-request--/);
+  assert.match(script, /familyMemory\.memoryId/);
+  assert.match(
+    script,
+    /memories\/encouragement_ack--encouragement_\$\{encouragementId\}/,
+  );
+  assert.match(
+    script,
+    /memories\/goal_completed--goal_\$\{familyGoalId\}/,
+  );
+});

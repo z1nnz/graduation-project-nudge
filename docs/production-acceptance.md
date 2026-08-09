@@ -4,7 +4,7 @@ This runbook separates deployed production evidence from local/emulator
 coverage and from release gates that still require external infrastructure.
 
 The latest dated execution record is
-[`acceptance/2026-08-02-productization-status.md`](acceptance/2026-08-02-productization-status.md).
+[`acceptance/2026-08-09-ledger-room-ci-status.md`](acceptance/2026-08-09-ledger-room-ci-status.md).
 
 ## Current verified state
 
@@ -128,14 +128,25 @@ App-Check-protected Cloud authority path. It verifies:
    notification;
 11. the member and manager receive the intended Membership visibility;
 12. Cloud generates a Membership-bound group planet and character outcome;
-13. leaving and group closure update the parent document and Membership
-   lifecycle atomically;
-14. an ordinary account cannot read another user's audit event, while a
-   synthetic operator granted through the administrator channel can;
-15. all Ledger, privacy, notification, outcome, group, Membership and audit
-   documents created by the run are deleted; and
-16. both Auth accounts are deleted and their credentials no
-   longer sign in.
+13. the same two accounts concurrently hold group manager/member and family
+    guardian/child Memberships without either role replacing the other;
+14. a guardian creates a family invitation, the child accepts it atomically
+    with both scoped Memberships, and both invitation outcomes are notified and
+    audited;
+15. child-only acknowledgement and shared-goal decisions reject guardian
+    impersonation, then create the validated Family Bond events;
+16. Cloud generates a Membership-bound family tree, family companion and both
+    deterministic shared-memory projections;
+17. ending the family link updates the parent, request and both Membership
+    lifecycles atomically;
+18. leaving and group closure update the parent document and Membership
+    lifecycle atomically;
+19. an ordinary account cannot read another user's audit event, while a
+    synthetic operator granted through the administrator channel can;
+20. all Ledger, privacy, notification, outcome, family, group, Membership,
+    shared-memory and audit documents created by the run are deleted; and
+21. both Auth accounts are deleted and their credentials no
+    longer sign in.
 
 Run it only with a short-lived administrator OAuth access token that can clean
 up the synthetic documents and a short-lived App Check JWT issued for this
