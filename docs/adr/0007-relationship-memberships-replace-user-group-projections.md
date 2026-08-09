@@ -21,15 +21,26 @@ Before deployment, run the migration from `scripts/`:
 ```text
 npm run migrate:relationships
 npm run migrate:relationships:apply
+npm run migrate:relationships:rollback
 ```
 
 The first command is read-only. It reports malformed parent relationships,
 planned Membership upserts, and users with legacy projections. The apply
-command refuses to continue while issues exist unless an operator explicitly
-uses `--allow-issues`; successful and failed runs are recorded in
-`migration_runs`. It preserves existing Membership creation/activation audit
+command refuses to continue while issues exist; successful, failed,
+rolling-back and rolled-back runs are
+recorded in `migration_runs`. It preserves existing Membership
+creation/activation audit
 timestamps, removes only the retired group and guardian-invite projection
 fields, and leaves unrelated `webToolsState` content intact.
+
+Every applied Membership and user cleanup transaction first writes one private,
+run-owned `relationship_migration_before_images` record. If a cutover fails and
+cannot safely resume, rollback atomically restores pre-existing Memberships,
+deletes Memberships created by that run, and restores only the user fields the
+migration touched. It verifies the post-apply fingerprint before every restore,
+so an operator must resolve later changes instead of overwriting them. The
+rollback keeps the fence active on any mismatch and is safe to resume under a
+new owner token.
 
 Legacy projection reads and lazy repair remain temporarily so an older account
 can be recovered before the one-time production migration. They must be removed

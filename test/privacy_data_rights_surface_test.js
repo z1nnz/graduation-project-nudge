@@ -41,6 +41,9 @@ test("App and Web expose the same formal privacy data-rights workflow", () => {
 
 test("privacy export secrets stay outside client-readable Firestore", () => {
   const service = read("functions/src/privacy-data-request-service.js");
+  const deletionRepository = read(
+    "functions/src/firestore-account-deletion-repository.js",
+  );
   const rules = read("firestore.rules");
   const storageRules = read("storage.rules");
 
@@ -51,6 +54,11 @@ test("privacy export secrets stay outside client-readable Firestore", () => {
     /match \/privacy_export_access\/\{requestId\}[\s\S]*allow read, write: if false/,
   );
   assert.match(rules, /account_deletion_fences/);
+  assert.match(service, /relationship_migration_before_images/);
+  assert.match(
+    deletionRepository,
+    /\["relationship_migration_before_images", "actorUserId"\]/,
+  );
   assert.match(
     storageRules,
     /match \/privacy_exports\/\{userId\}\/\{fileName\}[\s\S]*allow read, write: if false/,

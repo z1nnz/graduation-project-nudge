@@ -12,6 +12,15 @@ const LEGACY_GUARDIAN_FIELDS = [
   "webToolsState.guardianInvite",
   "webToolsState.guardianInviteStatus",
 ];
+const USER_MIGRATION_FIELDS = [
+  ...LEGACY_GROUP_FIELDS,
+  "userRole",
+  ...LEGACY_GUARDIAN_FIELDS,
+  "relationshipProjectionMigratedAt",
+  "updatedAt",
+];
+const RELATIONSHIP_BEFORE_IMAGE_COLLECTION =
+  "relationship_migration_before_images";
 
 function asRecord(doc) {
   return { id: doc.id, data: doc.data() };
@@ -49,6 +58,94 @@ function fingerprint(value) {
   return createHash("sha256")
     .update(JSON.stringify(canonical(value)))
     .digest("hex");
+}
+
+function nestedFieldState(data, fieldPath) {
+  const segments = fieldPath.split(".");
+  let current = data;
+  for (let index = 0; index < segments.length; index += 1) {
+    if (
+      !current ||
+      typeof current !== "object" ||
+      Array.isArray(current) ||
+      !Object.hasOwn(current, segments[index])
+    ) {
+      return { path: fieldPath, present: false };
+    }
+    current = current[segments[index]];
+  }
+  return { path: fieldPath, present: true, value: current };
+}
+
+function userMigrationFieldStates(data) {
+  return USER_MIGRATION_FIELDS.map(fieldPath =>
+    nestedFieldState(data, fieldPath)
+  );
+}
+
+function userMigrationStateFingerprint(data) {
+  return fingerprint(userMigrationFieldStates(data));
+}
+
+function appliedUserFieldStates(data, operation, appliedAt) {
+  const byPath = new Map(
+    userMigrationFieldStates(data).map(state => [state.path, state]),
+  );
+  for (const fieldPath of operation.clearFields) {
+    byPath.set(fieldPath, { path: fieldPath, present: false });
+  }
+  for (const [fieldPath, value] of Object.entries(operation.setFields)) {
+    byPath.set(fieldPath, { path: fieldPath, present: true, value });
+  }
+  for (const fieldPath of ["relationshipProjectionMigratedAt", "updatedAt"]) {
+    byPath.set(fieldPath, { path: fieldPath, present: true, value: appliedAt });
+  }
+  return USER_MIGRATION_FIELDS.map(fieldPath => byPath.get(fieldPath));
+}
+
+function migrationBeforeImageRef(db, runId, entityPath) {
+  return db.collection(RELATIONSHIP_BEFORE_IMAGE_COLLECTION).doc(
+    `${runId}--${fingerprint(entityPath).slice(0, 32)}`,
+  );
+}
+
+function assertBeforeImageIdentity(beforeImage, runId, entityPath, entityType) {
+  if (
+    beforeImage.migrationRunId !== runId ||
+    beforeImage.entityPath !== entityPath ||
+    beforeImage.entityType !== entityType
+  ) {
+    throw new Error(`Relationship before-image mismatch: ${entityPath}`);
+  }
+}
+
+function validatedUserBeforeFields(beforeImage) {
+  if (!Array.isArray(beforeImage.beforeFields)) {
+    throw new Error(
+      `Relationship user before-image is incomplete: ${beforeImage.entityPath}`,
+    );
+  }
+  const byPath = new Map();
+  for (const state of beforeImage.beforeFields) {
+    if (
+      !state ||
+      !USER_MIGRATION_FIELDS.includes(state.path) ||
+      typeof state.present !== "boolean" ||
+      byPath.has(state.path) ||
+      (state.present && !Object.hasOwn(state, "value"))
+    ) {
+      throw new Error(
+        `Relationship user before-image is invalid: ${beforeImage.entityPath}`,
+      );
+    }
+    byPath.set(state.path, state);
+  }
+  if (byPath.size !== USER_MIGRATION_FIELDS.length) {
+    throw new Error(
+      `Relationship user before-image fields are incomplete: ${beforeImage.entityPath}`,
+    );
+  }
+  return USER_MIGRATION_FIELDS.map(fieldPath => byPath.get(fieldPath));
 }
 
 function legacyProjectionFingerprint(data) {
@@ -385,10 +482,11 @@ async function initializeAdmin() {
   });
 }
 
-function ownsCutover(fence, runId, ownerToken) {
+function ownsCutover(fence, runId, ownerToken, operation) {
   return fence?.active === true &&
     fence.runId === runId &&
-    fence.ownerToken === ownerToken;
+    fence.ownerToken === ownerToken &&
+    fence.operation === operation;
 }
 
 async function acquireCutover(db) {
@@ -405,8 +503,15 @@ async function acquireCutover(db) {
       if (typeof fence.runId !== "string" || !fence.runId) {
         throw new Error("既有 Relationship cutover fence 無法安全續跑。");
       }
+      if (fence.operation === "rollback") {
+        throw new Error("Relationship cutover 正在回滾，不能切換回 apply。");
+      }
       const runRef = db.collection("migration_runs").doc(fence.runId);
-      transaction.update(fenceRef, { ownerToken, updatedAt: startedAt });
+      transaction.update(fenceRef, {
+        ownerToken,
+        operation: "apply",
+        updatedAt: startedAt,
+      });
       transaction.set(runRef, {
         status: "running",
         resumedAt: startedAt,
@@ -417,6 +522,7 @@ async function acquireCutover(db) {
       active: true,
       runId: proposedRunRef.id,
       ownerToken,
+      operation: "apply",
       startedAt,
       updatedAt: startedAt,
     });
@@ -442,16 +548,19 @@ async function applyMembershipOperation(
   const membershipRef = db
     .collection("relationship_memberships")
     .doc(operation.id);
+  const entityPath = membershipRef.path;
+  const beforeRef = migrationBeforeImageRef(db, runRef.id, entityPath);
   await db.runTransaction(async transaction => {
-    const [fenceSnapshot, parentSnapshot, membershipSnapshot] =
+    const [fenceSnapshot, parentSnapshot, membershipSnapshot, beforeSnapshot] =
       await Promise.all([
         transaction.get(fenceRef),
         transaction.get(parentRef),
         transaction.get(membershipRef),
+        transaction.get(beforeRef),
       ]);
     if (
       !fenceSnapshot.exists ||
-      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken, "apply")
     ) {
       throw new Error("Relationship cutover ownership changed.");
     }
@@ -475,6 +584,36 @@ async function applyMembershipOperation(
       payload.activeUntil = admin.firestore.FieldValue.delete();
       payload.endedBy = admin.firestore.FieldValue.delete();
     }
+    const afterData = { ...(currentMembership ?? {}), ...operation.data };
+    if (operation.clearEndedFields) {
+      delete afterData.activeUntil;
+      delete afterData.endedBy;
+    }
+    const beforeImage = {
+      schemaVersion: 1,
+      migrationRunId: runRef.id,
+      entityType: "membership",
+      entityPath,
+      actorUserId: operation.data.userId,
+      beforeExists: membershipSnapshot.exists,
+      beforeData: currentMembership,
+      afterFingerprint: fingerprint(afterData),
+      capturedAt: new Date().toISOString(),
+    };
+    if (beforeSnapshot.exists) {
+      assertBeforeImageIdentity(
+        beforeSnapshot.data(),
+        runRef.id,
+        entityPath,
+        "membership",
+      );
+      transaction.update(beforeRef, {
+        afterFingerprint: beforeImage.afterFingerprint,
+        updatedAt: beforeImage.capturedAt,
+      });
+    } else {
+      transaction.create(beforeRef, beforeImage);
+    }
     transaction.set(membershipRef, payload, { merge: true });
     transaction.update(fenceRef, { updatedAt: new Date().toISOString() });
   });
@@ -488,14 +627,17 @@ async function applyUserCleanup(
   operation,
 ) {
   const userRef = db.collection("users").doc(operation.userId);
+  const entityPath = userRef.path;
+  const beforeRef = migrationBeforeImageRef(db, runRef.id, entityPath);
   await db.runTransaction(async transaction => {
-    const [fenceSnapshot, userSnapshot] = await Promise.all([
+    const [fenceSnapshot, userSnapshot, beforeSnapshot] = await Promise.all([
       transaction.get(fenceRef),
       transaction.get(userRef),
+      transaction.get(beforeRef),
     ]);
     if (
       !fenceSnapshot.exists ||
-      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken, "apply")
     ) {
       throw new Error("Relationship cutover ownership changed.");
     }
@@ -508,13 +650,41 @@ async function applyUserCleanup(
     ) {
       throw new Error(`Legacy relationship projection changed: ${operation.userId}`);
     }
+    const appliedAt = new Date().toISOString();
+    const currentUser = userSnapshot.data();
     const update = {
       ...operation.setFields,
-      relationshipProjectionMigratedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      relationshipProjectionMigratedAt: appliedAt,
+      updatedAt: appliedAt,
     };
     for (const field of operation.clearFields) {
       update[field] = admin.firestore.FieldValue.delete();
+    }
+    const beforeImage = {
+      schemaVersion: 1,
+      migrationRunId: runRef.id,
+      entityType: "user_projection",
+      entityPath,
+      actorUserId: operation.userId,
+      beforeFields: userMigrationFieldStates(currentUser),
+      afterFingerprint: fingerprint(
+        appliedUserFieldStates(currentUser, operation, appliedAt),
+      ),
+      capturedAt: appliedAt,
+    };
+    if (beforeSnapshot.exists) {
+      assertBeforeImageIdentity(
+        beforeSnapshot.data(),
+        runRef.id,
+        entityPath,
+        "user_projection",
+      );
+      transaction.update(beforeRef, {
+        afterFingerprint: beforeImage.afterFingerprint,
+        updatedAt: appliedAt,
+      });
+    } else {
+      transaction.create(beforeRef, beforeImage);
     }
     transaction.update(userRef, update);
     transaction.update(fenceRef, { updatedAt: new Date().toISOString() });
@@ -532,7 +702,7 @@ async function updateOwnedRun(
     const fenceSnapshot = await transaction.get(fenceRef);
     if (
       !fenceSnapshot.exists ||
-      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+      !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken, "apply")
     ) {
       throw new Error("Relationship cutover ownership changed.");
     }
@@ -608,7 +778,7 @@ export async function runRelationshipMigration({ apply }) {
       const fenceSnapshot = await transaction.get(fenceRef);
       if (
         !fenceSnapshot.exists ||
-        !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+        !ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken, "apply")
       ) {
         throw new Error("Relationship cutover ownership changed before release.");
       }
@@ -616,6 +786,7 @@ export async function runRelationshipMigration({ apply }) {
       transaction.update(fenceRef, {
         active: false,
         ownerToken: null,
+        operation: null,
         completedAt,
         updatedAt: completedAt,
       });
@@ -635,7 +806,7 @@ export async function runRelationshipMigration({ apply }) {
       const fenceSnapshot = await transaction.get(fenceRef);
       if (
         fenceSnapshot.exists &&
-        ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken)
+        ownsCutover(fenceSnapshot.data(), runRef.id, ownerToken, "apply")
       ) {
         transaction.set(runRef, {
           status: "failed",
@@ -648,14 +819,226 @@ export async function runRelationshipMigration({ apply }) {
   }
 }
 
+export async function rollbackActiveRelationshipCutover() {
+  await initializeAdmin();
+  const db = admin.firestore();
+  const fenceRef = db
+    .collection("system_state")
+    .doc("relationship_membership_cutover");
+  const ownerToken = randomUUID();
+  const { runRef, runId } = await db.runTransaction(async transaction => {
+    const fenceSnapshot = await transaction.get(fenceRef);
+    const fence = fenceSnapshot.exists ? fenceSnapshot.data() : null;
+    if (
+      fence?.active !== true ||
+      typeof fence.runId !== "string" ||
+      !fence.runId
+    ) {
+      throw new Error(
+        "目前沒有可回滾的 active Relationship cutover fence。",
+      );
+    }
+    const activeRunRef = db.collection("migration_runs").doc(fence.runId);
+    const runSnapshot = await transaction.get(activeRunRef);
+    if (!runSnapshot.exists) {
+      throw new Error("Relationship cutover migration run 不存在。");
+    }
+    const run = runSnapshot.data();
+    const rollbackStartedAt = new Date().toISOString();
+    transaction.update(fenceRef, {
+      ownerToken,
+      operation: "rollback",
+      updatedAt: rollbackStartedAt,
+    });
+    transaction.update(activeRunRef, {
+      status: "rolling_back",
+      rollbackStartedAt,
+      restoredMemberships: Number.isSafeInteger(run.restoredMemberships)
+        ? run.restoredMemberships
+        : 0,
+      restoredUsers: Number.isSafeInteger(run.restoredUsers)
+        ? run.restoredUsers
+        : 0,
+    });
+    return { runRef: activeRunRef, runId: fence.runId };
+  });
+
+  try {
+    const beforeSnapshot = await db
+      .collection(RELATIONSHIP_BEFORE_IMAGE_COLLECTION)
+      .where("migrationRunId", "==", runId)
+      .get();
+    const beforeDocuments = [...beforeSnapshot.docs].sort((left, right) =>
+      left.id.localeCompare(right.id)
+    );
+    for (const beforeDocument of beforeDocuments) {
+      await db.runTransaction(async transaction => {
+        const [latestFence, latestBefore] = await Promise.all([
+          transaction.get(fenceRef),
+          transaction.get(beforeDocument.ref),
+        ]);
+        if (
+          !latestFence.exists ||
+          !ownsCutover(
+            latestFence.data(),
+            runId,
+            ownerToken,
+            "rollback",
+          )
+        ) {
+          throw new Error("Relationship cutover rollback ownership changed.");
+        }
+        if (!latestBefore.exists) return;
+        const before = latestBefore.data();
+        assertBeforeImageIdentity(
+          before,
+          runId,
+          before.entityPath,
+          before.entityType,
+        );
+        const pathSegments = String(before.entityPath || "").split("/");
+        if (
+          pathSegments.length !== 2 ||
+          !["relationship_memberships", "users"].includes(pathSegments[0])
+        ) {
+          throw new Error(
+            `Relationship rollback target is invalid: ${before.entityPath}`,
+          );
+        }
+        const targetRef = db.doc(before.entityPath);
+        const targetSnapshot = await transaction.get(targetRef);
+        if (before.entityType === "membership") {
+          if (
+            pathSegments[0] !== "relationship_memberships" ||
+            fingerprint(targetSnapshot.exists ? targetSnapshot.data() : null) !==
+              before.afterFingerprint
+          ) {
+            throw new Error(
+              `Relationship Membership changed after apply: ${before.entityPath}`,
+            );
+          }
+          if (before.beforeExists === true) {
+            if (
+              !before.beforeData ||
+              typeof before.beforeData !== "object" ||
+              Array.isArray(before.beforeData)
+            ) {
+              throw new Error(
+                `Relationship Membership before-image is invalid: ${before.entityPath}`,
+              );
+            }
+            transaction.set(targetRef, before.beforeData, { merge: false });
+          } else {
+            transaction.delete(targetRef);
+          }
+          transaction.update(runRef, {
+            restoredMemberships: admin.firestore.FieldValue.increment(1),
+          });
+        } else if (before.entityType === "user_projection") {
+          if (
+            pathSegments[0] !== "users" ||
+            before.actorUserId !== pathSegments[1] ||
+            !targetSnapshot.exists ||
+            userMigrationStateFingerprint(targetSnapshot.data()) !==
+              before.afterFingerprint
+          ) {
+            throw new Error(
+              `Relationship user projection changed after apply: ${before.entityPath}`,
+            );
+          }
+          const updateArguments = [];
+          for (const state of validatedUserBeforeFields(before)) {
+            updateArguments.push(
+              state.path,
+              state.present
+                ? state.value
+                : admin.firestore.FieldValue.delete(),
+            );
+          }
+          transaction.update(targetRef, ...updateArguments);
+          transaction.update(runRef, {
+            restoredUsers: admin.firestore.FieldValue.increment(1),
+          });
+        } else {
+          throw new Error(
+            `Unknown Relationship before-image type: ${before.entityType}`,
+          );
+        }
+        transaction.delete(beforeDocument.ref);
+        transaction.update(fenceRef, { updatedAt: new Date().toISOString() });
+      });
+    }
+
+    const remainingBeforeImages = await db
+      .collection(RELATIONSHIP_BEFORE_IMAGE_COLLECTION)
+      .where("migrationRunId", "==", runId)
+      .get();
+    if (!remainingBeforeImages.empty) {
+      throw new Error("Relationship rollback 尚有 before-image 未還原。");
+    }
+    await db.runTransaction(async transaction => {
+      const latestFence = await transaction.get(fenceRef);
+      if (
+        !latestFence.exists ||
+        !ownsCutover(
+          latestFence.data(),
+          runId,
+          ownerToken,
+          "rollback",
+        )
+      ) {
+        throw new Error(
+          "Relationship cutover fence ownership changed during rollback.",
+        );
+      }
+      const rolledBackAt = new Date().toISOString();
+      transaction.update(fenceRef, {
+        active: false,
+        ownerToken: null,
+        operation: null,
+        rolledBackAt,
+        updatedAt: rolledBackAt,
+      });
+      transaction.update(runRef, {
+        status: "rolled_back",
+        rolledBackAt,
+      });
+    });
+    console.log("Relationship cutover 已還原並解除 fence。");
+  } catch (error) {
+    await db.runTransaction(async transaction => {
+      const latestFence = await transaction.get(fenceRef);
+      if (
+        latestFence.exists &&
+        ownsCutover(
+          latestFence.data(),
+          runId,
+          ownerToken,
+          "rollback",
+        )
+      ) {
+        transaction.update(runRef, {
+          status: "rollback_failed",
+          error: String(error?.message || error).slice(0, 500),
+          failedAt: new Date().toISOString(),
+        });
+      }
+    });
+    throw error;
+  }
+}
+
 const isDirectRun =
   process.argv[1] &&
   import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (isDirectRun) {
-  runRelationshipMigration({
-    apply: process.argv.includes("--apply"),
-  }).catch(error => {
+  const action = process.argv.includes("--rollback")
+    ? rollbackActiveRelationshipCutover()
+    : runRelationshipMigration({
+        apply: process.argv.includes("--apply"),
+      });
+  action.catch(error => {
     console.error(error.message);
     process.exitCode = 1;
   });

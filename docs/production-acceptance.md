@@ -4,7 +4,7 @@ This runbook separates deployed production evidence from local/emulator
 coverage and from release gates that still require external infrastructure.
 
 The latest dated execution record is
-[`acceptance/2026-08-09-ledger-room-ci-status.md`](acceptance/2026-08-09-ledger-room-ci-status.md).
+[`acceptance/2026-08-10-relationship-migration-rollback-status.md`](acceptance/2026-08-10-relationship-migration-rollback-status.md).
 
 ## Current verified state
 
@@ -61,6 +61,22 @@ The isolated Firestore Emulator acceptance is:
 firebase emulators:exec --project nudge-relationship-migration-test \
   --only firestore 'npm --prefix scripts run test:relationships:emulator'
 ```
+
+If apply fails and cannot safely resume, keep the active fence in place and
+run:
+
+```sh
+npm --prefix scripts run migrate:relationships:rollback
+```
+
+Rollback accepts only an active cutover run. It claims the run with a new
+owner token, verifies every applied Membership or user projection against its
+before-image fingerprint, restores only unchanged migration-owned fields, and
+releases the fence only after no before-images remain. A mismatch records
+`rollback_failed` and deliberately leaves the fence active. Relationship
+before-images participate in privacy export and account deletion by
+`actorUserId`; they are not client-readable application state.
+
 - Activity rewards and shop debits now use Cloud-owned
   `reward_ledger_entries`. A normal App/Web timer completion is rewardable only
   after an accepted start event and a plausible Cloud-observed elapsed

@@ -1,9 +1,24 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 
 async function planner() {
   return import("../scripts/migrate_relationship_memberships.js");
 }
+
+test("relationship migration exposes an explicit emergency rollback command", () => {
+  const packageJson = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, "../scripts/package.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(
+    packageJson.scripts["migrate:relationships:rollback"],
+    "node migrate_relationship_memberships.js --rollback",
+  );
+});
 
 test("relationship migration backfills scoped roles and plans legacy cleanup", async () => {
   const { buildRelationshipMigrationPlan } = await planner();
