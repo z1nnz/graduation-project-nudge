@@ -2294,7 +2294,7 @@ async function ensureWebActivityLedgerOutbox() {
   return webActivityLedgerOutbox;
 }
 
-async function queueWebRoomLedgerTransition({
+async function recordWebRoomLedgerTransition({
   session,
   previousStatus = null,
   nextStatus,
@@ -2305,15 +2305,36 @@ async function queueWebRoomLedgerTransition({
     previousStatus,
     nextStatus,
   });
-  const outbox = await ensureWebActivityLedgerOutbox();
-  await outbox.enqueue(evidence);
-  outbox.flush().then(report => {
-    if (report.retryBlocked) {
-      toast("活動已保存，Cloud Ledger 將在連線恢復後重送");
-    }
-  }).catch(error => {
-    console.warn("Activity Ledger flush failed:", error);
+  const actorUserId = firebase.auth().currentUser?.uid;
+  if (!functions || !actorUserId) {
+    throw new Error("請先登入再操作活動房");
+  }
+  if (!configuredAppCheckSiteKey()) {
+    throw new Error("活動房等待 Firebase App Check 正式設定");
+  }
+  const response = await functions.httpsCallable("recordActivity")({
+    evidence: {
+      ...evidence,
+      actorUserId,
+      roomSession: session,
+    },
   });
+  const result = response?.data;
+  if (!result || !["accepted", "settled"].includes(result.status)) {
+    throw new Error("Cloud Ledger 未接受活動房狀態");
+  }
+  return result;
+}
+
+async function recordWebRoomEventBestEffort(roomRef, event) {
+  try {
+    await roomRef.collection("events").doc(event.id).set(event);
+  } catch (error) {
+    console.warn(
+      "Room activity was accepted by Cloud, but its activity-feed event was not written:",
+      error,
+    );
+  }
 }
 
 window.queueWebStandaloneFocusLedgerEvent = async ({
@@ -2920,25 +2941,15 @@ async function startWebRoomSession() {
     now: new Date(),
   });
   const roomRef = db.collection("rooms").doc(activeWebRoom.id);
-  const batch = db.batch();
-  batch.update(roomRef.collection("members").doc(userId), {
-    activeSessionId: session.sessionId,
-    updatedAt: session.updatedAt,
-  });
-  batch.set(
-    roomRef.collection("activity_sessions").doc(session.sessionId),
-    session,
-  );
   const event = buildWebRoomEvent(
     "start",
     `${activeWebRoomMember.displayName || "成員"} 開始活動`,
   );
-  batch.set(roomRef.collection("events").doc(event.id), event);
-  await queueWebRoomLedgerTransition({
+  await recordWebRoomLedgerTransition({
     session,
     nextStatus: "active",
   });
-  await batch.commit();
+  await recordWebRoomEventBestEffort(roomRef, event);
   toast("已開始你的活動紀錄");
 }
 
@@ -2970,29 +2981,12 @@ async function transitionWebRoomSession(nextStatus) {
           : "start",
     `${activeWebRoomMember.displayName || "成員"} ${roomSessionStatusLabel(nextStatus)}`,
   );
-  const batch = db.batch();
-  if (["completed", "cancelled"].includes(next.status)) {
-    batch.update(roomRef.collection("members").doc(userId), {
-      activeSessionId: null,
-      updatedAt: next.updatedAt,
-    });
-    batch.set(
-      roomRef.collection("activity_sessions").doc(next.sessionId),
-      next,
-    );
-  } else {
-    batch.set(
-      roomRef.collection("activity_sessions").doc(next.sessionId),
-      next,
-    );
-  }
-  batch.set(roomRef.collection("events").doc(event.id), event);
-  await queueWebRoomLedgerTransition({
+  await recordWebRoomLedgerTransition({
     session: next,
     previousStatus: activeWebRoomSession.status,
     nextStatus,
   });
-  await batch.commit();
+  await recordWebRoomEventBestEffort(roomRef, event);
   toast(nextStatus === "completed" ? "這輪活動已完成" : "活動狀態已同步");
 }
 

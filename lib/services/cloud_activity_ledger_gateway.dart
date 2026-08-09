@@ -41,9 +41,14 @@ class CloudActivityLedgerGateway {
     });
   }
 
-  Future<ActivityRecordResult> recordActivity(ActivityEvidence evidence) async {
+  Future<ActivityRecordResult> recordActivity(
+    ActivityEvidence evidence, {
+    Map<String, dynamic>? roomSession,
+  }) async {
     try {
-      final response = await _call({'evidence': evidence.toCloudJson()});
+      final response = await _call({
+        'evidence': {...evidence.toCloudJson(), 'roomSession': ?roomSession},
+      });
       if (response is! Map) {
         throw const ActivityCloudProtocolException(
           'recordActivity returned a non-object response.',

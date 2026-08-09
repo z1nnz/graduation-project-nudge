@@ -74,7 +74,7 @@
       eventId: stableId,
       sourceRecordId: stableId,
       sessionId,
-      activityCorrelationId: null,
+      activityCorrelationId: sessionId,
       roomIds: [roomId],
       activityType,
       source: "web",

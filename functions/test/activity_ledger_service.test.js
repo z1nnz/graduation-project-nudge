@@ -33,6 +33,30 @@ function startedFocusEvidence(overrides = {}) {
   };
 }
 
+const startedRoomSession = {
+  schemaVersion: 1,
+  sessionId: "room-session-1",
+  roomId: "room-study",
+  actorId: "user-1",
+  activityKind: "focus",
+  metricUnit: "minutes",
+  targetValue: 25,
+  metricValue: 0,
+  source: "app",
+  status: "active",
+  startedAt: "2026-07-28T09:00:00.000Z",
+  updatedAt: "2026-07-28T09:00:00.000Z",
+  endedAt: null,
+};
+
+const startedRoomEvidence = {
+  ...startedFocusEvidence({
+    sessionId: startedRoomSession.sessionId,
+    activityCorrelationId: startedRoomSession.sessionId,
+  }),
+  roomSession: startedRoomSession,
+};
+
 function mutableClock(initial) {
   let current = initial;
   return {
@@ -66,6 +90,103 @@ function taskStore() {
     },
   });
 }
+
+test("room activity atomically advances its Ledger and member projection", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    roomMemberships: [{
+      roomId: "room-study",
+      userId: "user-1",
+      status: "active",
+      sharingConsented: true,
+    }],
+  });
+  const serverClock = mutableClock("2026-07-28T09:00:01.000Z");
+  const service = new ActivityLedgerService({ store, clock: serverClock.clock });
+
+  const started = await service.record(
+    { kind: "user", userId: "user-1" },
+    startedRoomEvidence,
+  );
+
+  assert.equal(started.status, "accepted");
+  assert.deepEqual(
+    await store.getRoomActivityProjection("room-study", "room-session-1"),
+    startedRoomSession,
+  );
+  assert.equal(
+    await store.getRoomActiveSessionId("room-study", "user-1"),
+    "room-session-1",
+  );
+
+  serverClock.set("2026-07-28T09:25:01.000Z");
+  const completedRoomSession = {
+    ...startedRoomSession,
+    metricValue: 25,
+    status: "completed",
+    updatedAt: "2026-07-28T09:25:00.000Z",
+    endedAt: "2026-07-28T09:25:00.000Z",
+  };
+  const completed = await service.record(
+    { kind: "user", userId: "user-1" },
+    {
+      ...completedFocusEvidence,
+      sessionId: "room-session-1",
+      activityCorrelationId: "room-session-1",
+      roomSession: completedRoomSession,
+    },
+  );
+
+  assert.equal(completed.status, "settled");
+  assert.deepEqual(
+    await store.getRoomActivityProjection("room-study", "room-session-1"),
+    completedRoomSession,
+  );
+  assert.equal(
+    await store.getRoomActiveSessionId("room-study", "user-1"),
+    null,
+  );
+});
+
+test("room activity rejects a forged or inactive member projection", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    roomMemberships: [{
+      roomId: "room-study",
+      userId: "user-1",
+      status: "inactive",
+      sharingConsented: true,
+    }],
+  });
+  const service = new ActivityLedgerService({ store });
+
+  await assert.rejects(
+    service.record(
+      { kind: "user", userId: "user-1" },
+      startedRoomEvidence,
+    ),
+    /approved active room member/i,
+  );
+  await assert.rejects(
+    new ActivityLedgerService({
+      store: new InMemoryActivityLedgerStore({
+        roomMemberships: [{
+          roomId: "room-study",
+          userId: "user-1",
+          status: "active",
+          sharingConsented: true,
+        }],
+      }),
+    }).record(
+      { kind: "user", userId: "user-1" },
+      {
+        ...startedRoomEvidence,
+        eventId: "event-forged-room-session",
+        sourceRecordId: "source-forged-room-session",
+        roomSession: { ...startedRoomSession, actorId: "mallory" },
+      },
+    ),
+    /room activity session/i,
+  );
+});
 
 test("App task completion can be corrected from Web without a reward", async () => {
   const store = taskStore();

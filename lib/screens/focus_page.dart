@@ -26,6 +26,7 @@ class _FocusPageState extends State<FocusPage> {
   bool isRunning = false;
   int completedPomodoros = 0;
   FocusActivityLedgerController? _ledgerController;
+  AppState? _ledgerAppState;
 
   bool get isFocusPhase => currentPhase == _PomodoroPhase.focus;
 
@@ -50,6 +51,7 @@ class _FocusPageState extends State<FocusPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _ledgerAppState ??= context.read<AppState>();
     _ledgerController ??= FocusActivityLedgerController(
       eventSink:
           ({
@@ -58,7 +60,7 @@ class _FocusPageState extends State<FocusPage> {
             required elapsedSeconds,
             required occurredAt,
           }) {
-            return context.read<AppState>().queuePersonalFocusLedgerEvent(
+            return _ledgerAppState!.queuePersonalFocusLedgerEvent(
               sessionId: sessionId,
               eventType: eventType,
               elapsedSeconds: elapsedSeconds,
@@ -109,13 +111,26 @@ class _FocusPageState extends State<FocusPage> {
     return isFocusPhase ? '開始專注' : '開始休息';
   }
 
-  void changePomodoroPreset({
+  void _showLedgerFailure(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> changePomodoroPreset({
     required int focusMinutes,
     required int restMinutes,
-  }) {
+  }) async {
     if (isRunning) return;
-    unawaited(_ledgerController?.discard(elapsedSeconds: elapsedSeconds));
+    try {
+      await _ledgerController?.discard(elapsedSeconds: elapsedSeconds);
+    } catch (_) {
+      _showLedgerFailure('模式變更尚未安全保存，請稍後重試');
+      return;
+    }
 
+    if (!mounted) return;
     setState(() {
       selectedFocusMinutes = focusMinutes;
       selectedRestMinutes = restMinutes;
@@ -158,7 +173,7 @@ class _FocusPageState extends State<FocusPage> {
         });
       } else {
         timer.cancel();
-        completeCurrentPhase();
+        unawaited(completeCurrentPhase());
       }
     });
   }
@@ -169,7 +184,18 @@ class _FocusPageState extends State<FocusPage> {
     final finishedRestMinutes = selectedRestMinutes;
 
     if (finishedPhase == _PomodoroPhase.focus) {
-      unawaited(_ledgerController?.complete(elapsedSeconds: focusSeconds));
+      if (mounted) {
+        setState(() {
+          isRunning = false;
+        });
+      }
+      try {
+        await _ledgerController?.complete(elapsedSeconds: focusSeconds);
+      } catch (_) {
+        _showLedgerFailure('完成事件尚未安全保存，專注進度未變更');
+        return;
+      }
+      if (!mounted) return;
       context.read<AppState>().addFocusSeconds(focusSeconds);
     }
 
@@ -230,19 +256,31 @@ class _FocusPageState extends State<FocusPage> {
     }
   }
 
-  void pauseTimer() {
-    timer?.cancel();
+  Future<void> pauseTimer() async {
     if (isFocusPhase) {
-      unawaited(_ledgerController?.pause(elapsedSeconds: elapsedSeconds));
+      try {
+        await _ledgerController?.pause(elapsedSeconds: elapsedSeconds);
+      } catch (_) {
+        _showLedgerFailure('暫停事件尚未安全保存，計時會繼續');
+        return;
+      }
     }
+    timer?.cancel();
+    if (!mounted) return;
     setState(() {
       isRunning = false;
     });
   }
 
-  void resetTimer() {
+  Future<void> resetTimer() async {
+    try {
+      await _ledgerController?.discard(elapsedSeconds: elapsedSeconds);
+    } catch (_) {
+      _showLedgerFailure('重設事件尚未安全保存，原有計時狀態已保留');
+      return;
+    }
     timer?.cancel();
-    unawaited(_ledgerController?.discard(elapsedSeconds: elapsedSeconds));
+    if (!mounted) return;
     setState(() {
       currentPhase = _PomodoroPhase.focus;
       remainingSeconds = focusSeconds;
@@ -255,9 +293,6 @@ class _FocusPageState extends State<FocusPage> {
     final wasRunning = isRunning;
     if (wasRunning) {
       timer?.cancel();
-      if (isFocusPhase) {
-        unawaited(_ledgerController?.pause(elapsedSeconds: elapsedSeconds));
-      }
       setState(() {
         isRunning = false;
       });
@@ -344,7 +379,14 @@ class _FocusPageState extends State<FocusPage> {
     timer?.cancel();
 
     final appState = context.read<AppState>();
-    unawaited(_ledgerController?.complete(elapsedSeconds: savedSeconds));
+    try {
+      await _ledgerController?.complete(elapsedSeconds: savedSeconds);
+    } catch (_) {
+      _showLedgerFailure('完成事件尚未安全保存，專注進度未變更');
+      if (wasRunning && mounted) unawaited(startTimer());
+      return;
+    }
+    if (!mounted) return;
     appState.addFocusSeconds(savedSeconds);
 
     setState(() {
@@ -362,7 +404,16 @@ class _FocusPageState extends State<FocusPage> {
   void dispose() {
     timer?.cancel();
     if (isFocusPhase) {
-      unawaited(_ledgerController?.discard(elapsedSeconds: elapsedSeconds));
+      final pendingDiscard = _ledgerController?.discard(
+        elapsedSeconds: elapsedSeconds,
+      );
+      if (pendingDiscard != null) {
+        unawaited(
+          pendingDiscard.catchError((Object error, StackTrace stackTrace) {
+            debugPrint('Unable to durably discard the focus session: $error');
+          }),
+        );
+      }
     }
     super.dispose();
   }
@@ -434,7 +485,7 @@ class _FocusPageState extends State<FocusPage> {
     restController.dispose();
 
     if (customMinutes != null) {
-      changePomodoroPreset(
+      await changePomodoroPreset(
         focusMinutes: customMinutes.focus,
         restMinutes: customMinutes.rest,
       );
@@ -637,8 +688,9 @@ class _FocusPageState extends State<FocusPage> {
                 title: '25 + 5',
                 isSelected:
                     selectedFocusMinutes == 25 && selectedRestMinutes == 5,
-                onTap: () =>
-                    changePomodoroPreset(focusMinutes: 25, restMinutes: 5),
+                onTap: () => unawaited(
+                  changePomodoroPreset(focusMinutes: 25, restMinutes: 5),
+                ),
                 accentColor: accentColor,
               ),
               const SizedBox(width: 10),
@@ -646,8 +698,9 @@ class _FocusPageState extends State<FocusPage> {
                 title: '50 + 10',
                 isSelected:
                     selectedFocusMinutes == 50 && selectedRestMinutes == 10,
-                onTap: () =>
-                    changePomodoroPreset(focusMinutes: 50, restMinutes: 10),
+                onTap: () => unawaited(
+                  changePomodoroPreset(focusMinutes: 50, restMinutes: 10),
+                ),
                 accentColor: accentColor,
               ),
               const SizedBox(width: 10),

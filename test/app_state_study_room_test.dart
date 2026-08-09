@@ -12,7 +12,7 @@ import 'package:nudge/services/activity_ledger_outbox.dart';
 import 'package:nudge/services/cloud_activity_ledger_gateway.dart';
 import 'package:nudge/services/cloud_health_snapshot_gateway.dart';
 import 'package:nudge/services/health_snapshot_outbox.dart';
-import 'package:nudge/services/room_activity_projection_gateway.dart';
+import 'package:nudge/services/room_activity_session_ledger_gateway.dart';
 import 'package:nudge/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,62 +30,74 @@ class _RejectingHealthSnapshotOutbox extends HealthSnapshotOutbox {
   }
 }
 
-class _RejectingActivityLedgerOutbox extends ActivityLedgerOutbox {
-  _RejectingActivityLedgerOutbox()
+class _CloudRejectedHealthSnapshotOutbox extends HealthSnapshotOutbox {
+  _CloudRejectedHealthSnapshotOutbox()
     : super(
-        gateway: CloudActivityLedgerGateway.withCallable(
+        gateway: CloudHealthSnapshotGateway.withCallable(
           (_) async => throw StateError('Cloud should not be called'),
         ),
       );
 
-  int enqueueAttempts = 0;
+  int enqueued = 0;
 
   @override
-  Future<void> enqueue(ActivityEvidence evidence) {
-    enqueueAttempts++;
-    return Future<void>.error(StateError('outbox unavailable'));
-  }
-}
-
-class _RejectingSecondActivityLedgerOutbox extends ActivityLedgerOutbox {
-  _RejectingSecondActivityLedgerOutbox()
-    : super(
-        gateway: CloudActivityLedgerGateway.withCallable(
-          (_) async => throw StateError('Cloud should not be called'),
-        ),
-      );
-
-  int enqueueAttempts = 0;
-
-  @override
-  Future<void> enqueue(ActivityEvidence evidence) async {
-    enqueueAttempts++;
-    if (enqueueAttempts == 2) throw StateError('transition unavailable');
+  Future<void> enqueueAll(List<HealthActivitySnapshot> snapshots) async {
+    enqueued += snapshots.length;
   }
 
   @override
-  Future<ActivityLedgerFlushReport> flush() async {
-    return const ActivityLedgerFlushReport(
+  Future<HealthSnapshotFlushReport> flush() async {
+    return const HealthSnapshotFlushReport(
       succeeded: [],
-      permanentlyRejected: 0,
+      permanentlyRejected: 1,
       retryBlocked: false,
     );
   }
 }
 
-class _NoopRoomActivityProjectionGateway
-    implements RoomActivityProjectionGateway {
-  @override
-  Future<void> persistStarted({
-    required String userId,
-    required RoomActivitySession session,
-  }) async {}
+ActivityRecordResult acceptedRoomActivity(ActivityEvidence evidence) {
+  return ActivityRecordResult(
+    status: ActivityRecordStatus.accepted,
+    acknowledgedEventId: evidence.eventId,
+    acknowledgedSourceRecordId: evidence.sourceRecordId,
+    canonicalSessionId: evidence.sessionId,
+    receipt: null,
+    contributions: const [],
+    wasDuplicate: false,
+  );
+}
+
+class _RejectingRoomActivitySessionLedgerGateway
+    implements RoomActivitySessionLedgerGateway {
+  int recordAttempts = 0;
 
   @override
-  Future<void> persistTransition({
-    required String userId,
+  Future<ActivityRecordResult> record({
+    required ActivityEvidence evidence,
     required RoomActivitySession session,
-  }) async {}
+  }) {
+    recordAttempts++;
+    return Future<ActivityRecordResult>.error(
+      StateError('Cloud room command unavailable'),
+    );
+  }
+}
+
+class _RejectingSecondRoomActivitySessionLedgerGateway
+    implements RoomActivitySessionLedgerGateway {
+  int recordAttempts = 0;
+
+  @override
+  Future<ActivityRecordResult> record({
+    required ActivityEvidence evidence,
+    required RoomActivitySession session,
+  }) async {
+    recordAttempts++;
+    if (recordAttempts == 2) {
+      throw StateError('Cloud room transition unavailable');
+    }
+    return acceptedRoomActivity(evidence);
+  }
 }
 
 StudyRoomData signedInRoomFixture(UserModel user) {
@@ -228,7 +240,7 @@ void main() {
   });
 
   test(
-    'signed-in room start does not project before durable Ledger enqueue',
+    'signed-in room start does not project before Cloud Ledger acceptance',
     () async {
       final now = DateTime.now();
       final user = UserModel(
@@ -245,8 +257,8 @@ void main() {
         'current_user_setting': jsonEncode(user.toJson()),
         'study_rooms_setting': jsonEncode([room.toJson()]),
       });
-      final outbox = _RejectingActivityLedgerOutbox();
-      final appState = AppState(activityLedgerOutbox: outbox);
+      final gateway = _RejectingRoomActivitySessionLedgerGateway();
+      final appState = AppState(roomActivitySessionLedgerGateway: gateway);
       await appState.loadAllLocalData();
 
       await expectLater(
@@ -255,19 +267,19 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            'outbox unavailable',
+            'Cloud room command unavailable',
           ),
         ),
       );
 
-      expect(outbox.enqueueAttempts, 1);
+      expect(gateway.recordAttempts, 1);
       expect(appState.activeRoomActivitySession(roomId), isNull);
       expect(appState.roomActivitySessions, isEmpty);
     },
   );
 
   test(
-    'room transition keeps the prior state when Ledger enqueue fails',
+    'room transition keeps prior state when Cloud Ledger command fails',
     () async {
       final now = DateTime.now();
       final user = UserModel(
@@ -283,11 +295,8 @@ void main() {
         'current_user_setting': jsonEncode(user.toJson()),
         'study_rooms_setting': jsonEncode([room.toJson()]),
       });
-      final outbox = _RejectingSecondActivityLedgerOutbox();
-      final appState = AppState(
-        activityLedgerOutbox: outbox,
-        roomActivityProjectionGateway: _NoopRoomActivityProjectionGateway(),
-      );
+      final gateway = _RejectingSecondRoomActivitySessionLedgerGateway();
+      final appState = AppState(roomActivitySessionLedgerGateway: gateway);
       await appState.loadAllLocalData();
       final started = await appState.startRoomActivitySession(roomId: room.id);
 
@@ -301,12 +310,12 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            'transition unavailable',
+            'Cloud room transition unavailable',
           ),
         ),
       );
 
-      expect(outbox.enqueueAttempts, 2);
+      expect(gateway.recordAttempts, 2);
       expect(
         appState.activeRoomActivitySession(room.id)?.status,
         RoomActivitySessionStatus.active,
@@ -864,6 +873,82 @@ void main() {
       expect(appState.isHealthConnected, isFalse);
       expect(appState.sleepHours, 0);
       expect(appState.taskModels[taskIndex].isDone, isFalse);
+    },
+  );
+
+  test(
+    'health projection stays unchanged when Cloud rejects Ledger ingestion',
+    () async {
+      final now = DateTime.now();
+      final user = UserModel(
+        id: 'health-user-cloud-rejected',
+        username: 'health-user-cloud-rejected',
+        nickname: '健康拒絕測試者',
+        signature: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      SharedPreferences.setMockInitialValues({
+        'current_user_setting': jsonEncode(user.toJson()),
+      });
+      final outbox = _CloudRejectedHealthSnapshotOutbox();
+      final appState = AppState(healthSnapshotOutbox: outbox);
+      await appState.loadAllLocalData();
+      final snapshot = HealthActivitySnapshot(
+        provider: HealthSnapshotProvider.appleHealth,
+        activityType: ActivityType.sleep,
+        metricValue: 7.5,
+        metricUnit: 'hours',
+        localDate: '2026-08-02',
+        periodStart: DateTime.utc(2026, 8, 1, 16),
+        periodEnd: DateTime.utc(2026, 8, 2, 0),
+        observedAt: DateTime.utc(2026, 8, 2, 0),
+        dataOrigins: const ['com.apple.health'],
+      );
+
+      final accepted = await appState.updateHealthData(
+        isConnected: true,
+        sleepHours: 7.5,
+        steps: 0,
+        exerciseMinutes: 0,
+        snapshots: [snapshot],
+      );
+
+      expect(outbox.enqueued, 1);
+      expect(accepted, isFalse);
+      expect(appState.isHealthConnected, isFalse);
+      expect(appState.sleepHours, 0);
+    },
+  );
+
+  test(
+    'signed-in health metrics require snapshots before projection',
+    () async {
+      final now = DateTime.now();
+      final user = UserModel(
+        id: 'health-user-missing-snapshot',
+        username: 'health-user-missing-snapshot',
+        nickname: '健康缺資料測試者',
+        signature: '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      SharedPreferences.setMockInitialValues({
+        'current_user_setting': jsonEncode(user.toJson()),
+      });
+      final appState = AppState();
+      await appState.loadAllLocalData();
+
+      final accepted = await appState.updateHealthData(
+        isConnected: true,
+        sleepHours: 7.5,
+        steps: 0,
+        exerciseMinutes: 0,
+      );
+
+      expect(accepted, isFalse);
+      expect(appState.isHealthConnected, isFalse);
+      expect(appState.sleepHours, 0);
     },
   );
 }

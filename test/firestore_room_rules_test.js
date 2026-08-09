@@ -256,7 +256,11 @@ async function run() {
     ],
     alice.idToken,
   );
-  assert.equal(response.status, 200, await response.clone().text());
+  assert.equal(
+    response.status,
+    403,
+    "Room sessions and active pointers are Cloud Ledger projections",
+  );
 
   response = await commit(
     [
@@ -281,7 +285,7 @@ async function run() {
   assert.equal(
     response.status,
     403,
-    "A member cannot replace a non-terminal active session",
+    "A member cannot create another canonical room session",
   );
 
   response = await createDoc(
@@ -316,7 +320,7 @@ async function run() {
   assert.equal(
     response.status,
     403,
-    "A room owner cannot complete another member's activity",
+    "A room owner cannot update another member's canonical activity",
   );
 
   response = await commit(
@@ -334,7 +338,11 @@ async function run() {
     ],
     alice.idToken,
   );
-  assert.equal(response.status, 200, await response.clone().text());
+  assert.equal(
+    response.status,
+    403,
+    "A member cannot pause a canonical room session directly",
+  );
 
   response = await commit(
     [
@@ -361,8 +369,8 @@ async function run() {
   );
   assert.equal(
     response.status,
-    200,
-    "The actor can atomically complete and clear their active session",
+    403,
+    "The actor must complete through the Cloud Activity Ledger",
   );
 
   response = await request(sessionPath, stranger.idToken);

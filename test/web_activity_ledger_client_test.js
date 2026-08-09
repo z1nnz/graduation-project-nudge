@@ -37,7 +37,7 @@ test("room session transitions map to the Cloud Activity Ledger contract", () =>
     eventId: "web-session-1_completed_2026-07-28T10:25:00.000Z",
     sourceRecordId: "web-session-1_completed_2026-07-28T10:25:00.000Z",
     sessionId: "web-session-1",
-    activityCorrelationId: null,
+    activityCorrelationId: "web-session-1",
     roomIds: ["room-focus"],
     activityType: "focus",
     source: "web",

@@ -45,7 +45,7 @@ import '../services/cloud_reward_purchase_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/push_notification_service.dart';
-import '../services/room_activity_projection_gateway.dart';
+import '../services/room_activity_session_ledger_gateway.dart';
 import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
 
@@ -113,7 +113,7 @@ class AppState extends ChangeNotifier {
   final CloudRewardAvatarGateway _rewardAvatarGateway;
   final CloudRewardPurchaseGateway _rewardPurchaseGateway;
   final PushNotificationService _pushNotificationService;
-  final RoomActivityProjectionGateway _roomActivityProjectionGateway;
+  final RoomActivitySessionLedgerGateway _roomActivitySessionLedgerGateway;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
@@ -125,7 +125,7 @@ class AppState extends ChangeNotifier {
     CloudRewardAvatarGateway? rewardAvatarGateway,
     CloudRewardPurchaseGateway? rewardPurchaseGateway,
     PushNotificationService? pushNotificationService,
-    RoomActivityProjectionGateway? roomActivityProjectionGateway,
+    RoomActivitySessionLedgerGateway? roomActivitySessionLedgerGateway,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(
@@ -151,9 +151,9 @@ class AppState extends ChangeNotifier {
            rewardPurchaseGateway ?? CloudRewardPurchaseGateway.firebase(),
        _pushNotificationService =
            pushNotificationService ?? PushNotificationService(),
-       _roomActivityProjectionGateway =
-           roomActivityProjectionGateway ??
-           FirestoreRoomActivityProjectionGateway() {
+       _roomActivitySessionLedgerGateway =
+           roomActivitySessionLedgerGateway ??
+           CloudRoomActivitySessionLedgerGateway() {
     _pushNotificationService.setRouteHandler(_handlePushNotificationRoute);
     _listenToAuthChanges();
   }
@@ -6716,13 +6716,36 @@ class AppState extends ChangeNotifier {
   }) async {
     _checkDailyResetSync();
 
+    final hasReportedMetrics =
+        sleepHours > 0 || steps > 0 || exerciseMinutes > 0;
+    if (_currentUser != null && hasReportedMetrics && snapshots.isEmpty) {
+      debugPrint(
+        'Signed-in health metrics were not projected because no canonical '
+        'Health Activity Ledger snapshots were supplied.',
+      );
+      return false;
+    }
+
     if (snapshots.isNotEmpty) {
-      try {
-        await _queueHealthSnapshots(snapshots);
-      } catch (error) {
+      if (_currentUser == null) {
         debugPrint(
-          'Unable to durably enqueue Health Activity Ledger snapshots: $error',
+          'Health Activity Ledger ingestion requires a signed-in user.',
         );
+        return false;
+      }
+      try {
+        final report = await _queueHealthSnapshots(snapshots);
+        if (report.retryBlocked ||
+            report.permanentlyRejected > 0 ||
+            report.succeeded.length < snapshots.length) {
+          debugPrint(
+            'Health Activity Ledger ingestion was not fully accepted by '
+            'Cloud; the local projection remains unchanged.',
+          );
+          return false;
+        }
+      } catch (error) {
+        debugPrint('Unable to ingest Health Activity Ledger snapshots: $error');
         return false;
       }
     }
@@ -7881,34 +7904,19 @@ class AppState extends ChangeNotifier {
       source: source,
       now: now,
     );
-    final queuedEvidence = await _enqueueRoomActivityLedgerEvent(
+    final evidence = _roomActivityLedgerEvidence(
       session,
       ActivityEventType.started,
     );
+    if (evidence != null) {
+      await _roomActivitySessionLedgerGateway.record(
+        evidence: evidence,
+        session: session,
+      );
+    }
     _roomActivitySessions[session.sessionId] = session;
     _roomActiveSessionIds[roomId] = session.sessionId;
     notifyListeners();
-
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        await _roomActivityProjectionGateway.persistStarted(
-          userId: user.id,
-          session: session,
-        );
-      } catch (_) {
-        _roomActivitySessions.remove(session.sessionId);
-        _roomActiveSessionIds.remove(roomId);
-        notifyListeners();
-        if (queuedEvidence != null) {
-          await _activityLedgerOutbox.cancel(queuedEvidence);
-        }
-        rethrow;
-      }
-    }
-    if (queuedEvidence != null) {
-      unawaited(_flushActivityLedgerOutboxSafely());
-    }
     return session;
   }
 
@@ -7931,43 +7939,25 @@ class AppState extends ChangeNotifier {
       RoomActivitySessionStatus.completed => ActivityEventType.completed,
       RoomActivitySessionStatus.cancelled => ActivityEventType.discarded,
     };
-    final queuedEvidence = await _enqueueRoomActivityLedgerEvent(
-      next,
-      eventType,
-    );
+    final evidence = _roomActivityLedgerEvidence(next, eventType);
+    if (evidence != null) {
+      await _roomActivitySessionLedgerGateway.record(
+        evidence: evidence,
+        session: next,
+      );
+    }
     _roomActivitySessions[sessionId] = next;
     if (next.isTerminal) {
       _roomActiveSessionIds.remove(current.roomId);
     }
     notifyListeners();
-
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        await _roomActivityProjectionGateway.persistTransition(
-          userId: user.id,
-          session: next,
-        );
-      } catch (_) {
-        _roomActivitySessions[sessionId] = current;
-        _roomActiveSessionIds[current.roomId] = current.sessionId;
-        notifyListeners();
-        if (queuedEvidence != null) {
-          await _activityLedgerOutbox.cancel(queuedEvidence);
-        }
-        rethrow;
-      }
-    }
-    if (queuedEvidence != null) {
-      unawaited(_flushActivityLedgerOutboxSafely());
-    }
     return next;
   }
 
-  Future<ActivityEvidence?> _enqueueRoomActivityLedgerEvent(
+  ActivityEvidence? _roomActivityLedgerEvidence(
     RoomActivitySession session,
     ActivityEventType eventType,
-  ) async {
+  ) {
     final user = _currentUser;
     if (user == null) return null;
     final source = switch (session.source) {
@@ -7993,7 +7983,7 @@ class AppState extends ChangeNotifier {
       eventType.name,
       session.updatedAt.microsecondsSinceEpoch,
     ].join('_');
-    final evidence = ActivityEvidence(
+    return ActivityEvidence(
       eventId: eventId,
       sourceRecordId: eventId,
       sessionId: session.sessionId,
@@ -8008,8 +7998,6 @@ class AppState extends ChangeNotifier {
       metricUnit: session.metricUnit,
       occurredAt: session.updatedAt,
     );
-    await _activityLedgerOutbox.enqueue(evidence);
-    return evidence;
   }
 
   Future<void> queuePersonalFocusLedgerEvent({
@@ -8102,10 +8090,14 @@ class AppState extends ChangeNotifier {
         .toList(growable: false);
   }
 
-  Future<void> _queueHealthSnapshots(
+  Future<HealthSnapshotFlushReport> _queueHealthSnapshots(
     List<HealthActivitySnapshot> snapshots,
   ) async {
-    if (_currentUser == null) return;
+    if (_currentUser == null) {
+      throw const ActivityAuthorizationException(
+        'Health Activity Ledger ingestion requires a signed-in user.',
+      );
+    }
     final enriched = snapshots
         .map(
           (snapshot) => snapshot.copyWith(
@@ -8114,7 +8106,7 @@ class AppState extends ChangeNotifier {
         )
         .toList(growable: false);
     await _healthSnapshotOutbox.enqueueAll(enriched);
-    unawaited(_healthSnapshotOutbox.flush());
+    return _healthSnapshotOutbox.flush();
   }
 
   void clearMyStudyRoomPresence(String roomId) {

@@ -83,6 +83,22 @@ class FirestoreActivityLedgerTransaction {
     };
   }
 
+  async projectRoomActivitySession(roomSession) {
+    if (!roomSession) return;
+    const roomRef = this.firestore.collection("rooms").doc(roomSession.roomId);
+    const memberRef = roomRef.collection("members").doc(roomSession.actorId);
+    this.transaction.set(
+      roomRef.collection("activity_sessions").doc(roomSession.sessionId),
+      roomSession,
+    );
+    this.transaction.update(memberRef, {
+      activeSessionId: ["completed", "cancelled"].includes(roomSession.status)
+        ? null
+        : roomSession.sessionId,
+      updatedAt: roomSession.updatedAt,
+    });
+  }
+
   async getSourceRecord(sourceKey) {
     const claim = await this.transaction.get(this.#sourceRecordRef(sourceKey));
     return this.#getReferencedEvent(claim);

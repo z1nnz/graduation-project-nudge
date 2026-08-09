@@ -10,6 +10,10 @@ const read = relativePath =>
 test("web exposes a real member-controlled activity room hub", () => {
   const html = read("web_dashboard/rooms.html");
   const app = read("web_dashboard/assets/app.js");
+  const roomCommands = app.slice(
+    app.indexOf("async function startWebRoomSession"),
+    app.indexOf("function stopFamilyInteractionListeners"),
+  );
 
   assert.match(html, /data-room-list/);
   assert.match(html, /data-room-session-panel/);
@@ -20,6 +24,21 @@ test("web exposes a real member-controlled activity room hub", () => {
   assert.match(app, /function listenToWebRooms/);
   assert.match(app, /function startWebRoomSession/);
   assert.match(app, /function transitionWebRoomSession/);
+  assert.match(app, /recordWebRoomLedgerTransition/);
+  assert.match(app, /recordWebRoomEventBestEffort/);
+  assert.match(
+    app,
+    /Room activity was accepted by Cloud, but its activity-feed event was not written/,
+  );
+  assert.match(app, /roomSession:\s*session/);
+  assert.doesNotMatch(
+    roomCommands,
+    /batch\.set\(\s*roomRef\.collection\("activity_sessions"\)/,
+  );
+  assert.doesNotMatch(
+    roomCommands,
+    /activeSessionId\s*:/,
+  );
   assert.match(app, /function listenToWebRoomInteractions/);
   assert.match(app, /function sendWebRoomMessage/);
   assert.match(app, /function buildWebRoomEvent/);

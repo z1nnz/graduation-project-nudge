@@ -16,7 +16,14 @@ void main() {
       'truncatedCollections': <String>[],
     });
     expect(export.isExport, isTrue);
-    expect(export.canDownload, isTrue);
+    expect(
+      export.canDownloadAt(DateTime.parse('2026-08-01T03:00:00.000Z')),
+      isTrue,
+    );
+    expect(
+      export.canDownloadAt(DateTime.parse('2026-08-06T03:00:00.000Z')),
+      isFalse,
+    );
     expect(export.exportBytes, 2048);
 
     final deletion = PrivacyDataRequest.fromMap({
@@ -75,7 +82,12 @@ void main() {
     final requested = await gateway.requestExport(
       clientRequestId: 'privacy-data-001',
     );
-    expect(requested.request.canDownload, isTrue);
+    expect(
+      requested.request.canDownloadAt(
+        DateTime.parse('2026-08-01T03:00:00.000Z'),
+      ),
+      isTrue,
+    );
     expect(requested.auditEventId, isNotEmpty);
 
     final download = await gateway.getExportDownload(
