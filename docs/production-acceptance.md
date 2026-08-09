@@ -75,7 +75,10 @@ before-image fingerprint, restores only unchanged migration-owned fields, and
 releases the fence only after no before-images remain. A mismatch records
 `rollback_failed` and deliberately leaves the fence active. Relationship
 before-images participate in privacy export and account deletion by
-`actorUserId`; they are not client-readable application state.
+`actorUserId`; they are not client-readable application state. Account
+deletion claims are paused while either the Relationship or Reward cutover
+fence is active, so privacy cleanup cannot remove evidence required by an
+in-progress rollback.
 
 - Activity rewards and shop debits now use Cloud-owned
   `reward_ledger_entries`. A normal App/Web timer completion is rewardable only

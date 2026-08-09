@@ -16,6 +16,8 @@ data has been migrated.
   fence still active and the migration run marked `rollback_failed`.
 - Before-images are included in the subject account's privacy export and are
   included in formal account-deletion cleanup by `actorUserId`.
+- Account deletion refuses to start while the Relationship or Reward cutover
+  fence is active, preventing privacy cleanup from deleting rollback evidence.
 
 The isolated Firestore Emulator scenario performs apply, simulates a failed
 runner before fence release, rolls the run back, and validates the restored

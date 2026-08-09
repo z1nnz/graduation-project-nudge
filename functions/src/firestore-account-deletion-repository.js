@@ -194,6 +194,12 @@ export class FirestoreAccountDeletionRepository {
     const pushDeliveryLeaseRef = this.firestore
       .collection("push_delivery_leases")
       .doc(request.userId);
+    const relationshipCutoverRef = this.firestore
+      .collection("system_state")
+      .doc("relationship_membership_cutover");
+    const rewardCutoverRef = this.firestore
+      .collection("system_state")
+      .doc("reward_ledger_cutover");
     const leaseExpiresAt = laterIso(now, EXECUTION_LEASE_MS);
     return this.firestore.runTransaction(async transaction => {
       const [
@@ -202,12 +208,16 @@ export class FirestoreAccountDeletionRepository {
         fenceSnapshot,
         operationLeaseSnapshot,
         pushDeliveryLeaseSnapshot,
+        relationshipCutoverSnapshot,
+        rewardCutoverSnapshot,
       ] = await Promise.all([
         transaction.get(requestRef),
         transaction.get(executionRef),
         transaction.get(fenceRef),
         transaction.get(operationLeaseRef),
         transaction.get(pushDeliveryLeaseRef),
+        transaction.get(relationshipCutoverRef),
+        transaction.get(rewardCutoverRef),
       ]);
       if (
         fenceSnapshot.exists &&
@@ -228,6 +238,24 @@ export class FirestoreAccountDeletionRepository {
         throw new HttpsError(
           "aborted",
           "The account still has an active push delivery.",
+        );
+      }
+      if (
+        relationshipCutoverSnapshot.exists &&
+        relationshipCutoverSnapshot.data().active === true
+      ) {
+        throw new HttpsError(
+          "aborted",
+          "Account deletion is paused during the Relationship cutover.",
+        );
+      }
+      if (
+        rewardCutoverSnapshot.exists &&
+        rewardCutoverSnapshot.data().writesPaused === true
+      ) {
+        throw new HttpsError(
+          "aborted",
+          "Account deletion is paused during the Reward cutover.",
         );
       }
       if (executionSnapshot.exists) {

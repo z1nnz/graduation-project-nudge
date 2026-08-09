@@ -472,6 +472,44 @@ test(
         error => error.code === "aborted",
       );
 
+      await firestore.collection("system_state")
+        .doc("relationship_membership_cutover")
+        .set({ active: true, runId: `relationship-${suffix}` });
+      await assert.rejects(
+        () =>
+          repository.claimExecution({
+            request: { requestId, userId: subjectUserId },
+            staffUserId,
+            input,
+            plan,
+            now: "2026-08-06T00:11:00.000Z",
+            caseId: input.caseId,
+          }),
+        error => error.code === "aborted",
+      );
+      await firestore.collection("system_state")
+        .doc("relationship_membership_cutover")
+        .delete();
+
+      await firestore.collection("system_state")
+        .doc("reward_ledger_cutover")
+        .set({ writesPaused: true, runId: `reward-${suffix}` });
+      await assert.rejects(
+        () =>
+          repository.claimExecution({
+            request: { requestId, userId: subjectUserId },
+            staffUserId,
+            input,
+            plan,
+            now: "2026-08-06T00:11:00.000Z",
+            caseId: input.caseId,
+          }),
+        error => error.code === "aborted",
+      );
+      await firestore.collection("system_state")
+        .doc("reward_ledger_cutover")
+        .delete();
+
       await firestore
         .collection("account_operation_leases")
         .doc(subjectUserId)
