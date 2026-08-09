@@ -17,6 +17,26 @@ test("reward baseline apply and rollback keep an owned cutover fence", {
   t.after(async () => app.delete());
   const db = admin.firestore();
 
+  const maintenanceGuardRef = db.collection("system_state")
+    .doc("destructive_operation_guard");
+  await maintenanceGuardRef.set({
+    schemaVersion: 1,
+    active: true,
+    operationKind: "account_deletion",
+    operationId: "expired-but-still-running-deletion",
+    leaseExpiresAt: "2020-01-01T00:00:00.000Z",
+  });
+  await assert.rejects(
+    runRewardBaselineMigration({ apply: true }),
+    /account deletion/i,
+  );
+  assert.equal(
+    (await db.collection("system_state").doc("reward_ledger_cutover").get())
+      .exists,
+    false,
+  );
+  await maintenanceGuardRef.delete();
+
   await db.collection("users").doc("apply-user").set({
     disciplineCoins: 120,
     avatarSeries: "forest",
@@ -79,6 +99,7 @@ test("reward baseline apply and rollback keep an owned cutover fence", {
       baselineCreatedByRun: true,
     });
   await db.collection("migration_runs").doc(rollbackRunId).set({
+    type: "reward_ledger_baseline_cutover",
     status: "failed",
   });
   await db.collection("system_state").doc("reward_ledger_cutover").set({
@@ -87,6 +108,14 @@ test("reward baseline apply and rollback keep an owned cutover fence", {
     ownerToken: "stale-owner",
     operation: "apply",
     cutoffAt: "2026-08-02T00:00:00.000Z",
+  });
+  await db.collection("system_state").doc("destructive_operation_guard").set({
+    schemaVersion: 1,
+    active: true,
+    operationKind: "reward_cutover",
+    operationId: rollbackRunId,
+    ownerToken: "stale-owner",
+    phase: "apply",
   });
 
   await rollbackActiveRewardCutover();

@@ -10,7 +10,7 @@ import {
 
 const emulatorAvailable = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 
-test("relationship migration writes formal roles and clears legacy projections", {
+test("relationship migration is resumable, reversible, and fails closed on drift", {
   skip: !emulatorAvailable,
 }, async t => {
   const app = admin.initializeApp({
@@ -49,7 +49,33 @@ test("relationship migration writes formal roles and clears legacy projections",
   });
   await db.collection("users").doc("child").set({ userRole: "child" });
 
-  await runRelationshipMigration({ apply: true });
+  const maintenanceGuardRef = db.collection("system_state")
+    .doc("destructive_operation_guard");
+  await maintenanceGuardRef.set({
+    schemaVersion: 1,
+    active: true,
+    operationKind: "account_deletion",
+    operationId: "deletion-first",
+    leaseExpiresAt: "2020-01-01T00:00:00.000Z",
+  });
+  await assert.rejects(
+    runRelationshipMigration({ apply: true }),
+    /account deletion/i,
+  );
+  assert.equal(
+    (await db.collection("system_state")
+      .doc("relationship_membership_cutover").get()).exists,
+    false,
+  );
+  await maintenanceGuardRef.delete();
+
+  await assert.rejects(
+    runRelationshipMigration({
+      apply: true,
+      testFailAfterOperations: 5,
+    }),
+    /Injected relationship migration failure after 5 operations/,
+  );
 
   const memberships = await db.collection("relationship_memberships").get();
   assert.equal(memberships.size, 4);
@@ -79,8 +105,9 @@ test("relationship migration writes formal roles and clears legacy projections",
       .doc("relationship_membership_cutover")
       .get()
   ).data();
-  assert.equal(fence.active, false);
-  assert.equal(fence.ownerToken, null);
+  assert.equal(fence.active, true);
+  assert.equal(fence.operation, "apply");
+  assert.ok(fence.ownerToken);
 
   const migrationRunId = fence.runId;
   const beforeImages = await db
@@ -88,22 +115,43 @@ test("relationship migration writes formal roles and clears legacy projections",
     .where("migrationRunId", "==", migrationRunId)
     .get();
   assert.equal(beforeImages.size, 5);
+  assert.ok(beforeImages.docs.every(document =>
+    document.data().retentionPolicy === "until_fresh_install_acceptance"
+  ));
+  const failedApplyRun = (
+    await db.collection("migration_runs").doc(migrationRunId).get()
+  ).data();
+  assert.equal(failedApplyRun.status, "failed");
+  assert.equal(failedApplyRun.capturedMembershipBeforeImages, 4);
+  assert.equal(failedApplyRun.capturedUserBeforeImages, 1);
 
   await db.collection("users").doc("guardian").update({
     "webToolsState.futureLetter": { title: "遷移後更新也要保留" },
     nickname: "仍可編輯的暱稱",
   });
 
-  await db.collection("system_state")
-    .doc("relationship_membership_cutover")
-    .update({
-      active: true,
-      ownerToken: "failed-runner",
-      operation: "apply",
-    });
-  await db.collection("migration_runs").doc(migrationRunId).set({
-    status: "failed",
-  }, { merge: true });
+  await assert.rejects(
+    rollbackActiveRelationshipCutover({ testFailAfterRestores: 2 }),
+    /Injected relationship rollback failure after 2 restores/,
+  );
+  const interruptedRollbackFence = (
+    await db.collection("system_state")
+      .doc("relationship_membership_cutover").get()
+  ).data();
+  assert.equal(interruptedRollbackFence.active, true);
+  assert.equal(interruptedRollbackFence.operation, "rollback");
+  const interruptedRollbackOwner = interruptedRollbackFence.ownerToken;
+  const interruptedRollbackRun = (
+    await db.collection("migration_runs").doc(migrationRunId).get()
+  ).data();
+  assert.equal(interruptedRollbackRun.status, "rollback_failed");
+  assert.equal(interruptedRollbackRun.restoredMemberships, 2);
+  assert.equal(interruptedRollbackRun.restoredUsers, 0);
+  assert.equal(
+    (await db.collection("relationship_migration_before_images")
+      .where("migrationRunId", "==", migrationRunId).get()).size,
+    3,
+  );
 
   await rollbackActiveRelationshipCutover();
 
@@ -150,26 +198,34 @@ test("relationship migration writes formal roles and clears legacy projections",
   assert.equal(rolledBackRun.status, "rolled_back");
   assert.equal(rolledBackRun.restoredMemberships, 4);
   assert.equal(rolledBackRun.restoredUsers, 1);
+  assert.equal(rolledBackRun.rollbackAttempts, 2);
+  assert.notEqual(rolledBackRun.lastRollbackOwnerToken, interruptedRollbackOwner);
 
-  await runRelationshipMigration({ apply: true });
+  await assert.rejects(
+    runRelationshipMigration({
+      apply: true,
+      testFailAfterOperations: 1,
+    }),
+    /Injected relationship migration failure after 1 operations/,
+  );
   const tamperedFenceRef = db.collection("system_state")
     .doc("relationship_membership_cutover");
   const tamperedFence = (await tamperedFenceRef.get()).data();
   const tamperedRunRef = db.collection("migration_runs").doc(
     tamperedFence.runId,
   );
-  const tamperedMemberships = await db
-    .collection("relationship_memberships")
-    .get();
-  for (const membership of tamperedMemberships.docs) {
-    await membership.ref.update({ scopeName: "遷移後遭到外部修改" });
-  }
-  await tamperedFenceRef.update({
-    active: true,
-    ownerToken: "failed-runner",
-    operation: "apply",
-  });
-  await tamperedRunRef.set({ status: "failed" }, { merge: true });
+  const tamperedMembership = (
+    await db.collection("relationship_memberships").get()
+  ).docs[0];
+  const originalScopeName = tamperedMembership.data().scopeName;
+  await tamperedMembership.ref.update({ scopeName: "遷移後遭到外部修改" });
+
+  await assert.rejects(
+    runRelationshipMigration({ apply: true }),
+    /Membership changed after apply/,
+  );
+  const rejectedResumeRun = (await tamperedRunRef.get()).data();
+  assert.equal(rejectedResumeRun.status, "failed");
 
   await assert.rejects(
     rollbackActiveRelationshipCutover(),
@@ -186,4 +242,58 @@ test("relationship migration writes formal roles and clears legacy projections",
       .where("migrationRunId", "==", tamperedFence.runId)
       .get()).size > 0,
   );
+
+  await tamperedMembership.ref.update({ scopeName: originalScopeName });
+  await rollbackActiveRelationshipCutover();
+
+  await assert.rejects(
+    runRelationshipMigration({
+      apply: true,
+      testFailAfterOperations: 5,
+    }),
+    /Injected relationship migration failure after 5 operations/,
+  );
+  const userDriftFence = (await tamperedFenceRef.get()).data();
+  const userDriftRunRef = db.collection("migration_runs").doc(
+    userDriftFence.runId,
+  );
+  const userBeforeDrift = (
+    await db.collection("users").doc("guardian").get()
+  ).data();
+  await db.collection("users").doc("guardian").update({
+    updatedAt: "2099-01-01T00:00:00.000Z",
+  });
+  await assert.rejects(
+    runRelationshipMigration({ apply: true }),
+    /user projection changed after apply/,
+  );
+  assert.equal((await userDriftRunRef.get()).data().status, "failed");
+  await db.collection("users").doc("guardian").update({
+    updatedAt: userBeforeDrift.updatedAt,
+  });
+  await rollbackActiveRelationshipCutover();
+
+  await assert.rejects(
+    runRelationshipMigration({
+      apply: true,
+      testFailAfterOperations: 1,
+    }),
+    /Injected relationship migration failure after 1 operations/,
+  );
+  const missingEvidenceFence = (await tamperedFenceRef.get()).data();
+  const missingEvidence = await db
+    .collection("relationship_migration_before_images")
+    .where("migrationRunId", "==", missingEvidenceFence.runId)
+    .get();
+  assert.equal(missingEvidence.size, 1);
+  await missingEvidence.docs[0].ref.delete();
+  await assert.rejects(
+    rollbackActiveRelationshipCutover(),
+    /before-image count mismatch/,
+  );
+  const missingEvidenceRun = (
+    await db.collection("migration_runs").doc(missingEvidenceFence.runId).get()
+  ).data();
+  assert.equal(missingEvidenceRun.status, "rollback_failed");
+  assert.equal((await tamperedFenceRef.get()).data().active, true);
 });

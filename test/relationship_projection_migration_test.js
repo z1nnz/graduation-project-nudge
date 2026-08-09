@@ -18,6 +18,12 @@ test("relationship migration exposes an explicit emergency rollback command", ()
     packageJson.scripts["migrate:relationships:rollback"],
     "node migrate_relationship_memberships.js --rollback",
   );
+  const workflow = fs.readFileSync(
+    path.resolve(__dirname, "../.github/workflows/ci.yml"),
+    "utf8",
+  );
+  assert.match(workflow, /npm --prefix scripts run test:relationships:emulator/);
+  assert.match(workflow, /'set -e;/);
 });
 
 test("relationship migration backfills scoped roles and plans legacy cleanup", async () => {

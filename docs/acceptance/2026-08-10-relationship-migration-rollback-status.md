@@ -14,15 +14,23 @@ data has been migrated.
 - Unrelated user updates made after apply remain intact during rollback.
 - A changed post-apply Membership makes rollback fail closed with the cutover
   fence still active and the migration run marked `rollback_failed`.
+- Apply resume rejects drift in either an already-applied Membership or the
+  touched user projection instead of replacing its immutable after-fingerprint.
+- Captured/restored counters prevent a deleted before-image from being treated
+  as a successful rollback.
 - Before-images are included in the subject account's privacy export and are
   included in formal account-deletion cleanup by `actorUserId`.
-- Account deletion refuses to start while the Relationship or Reward cutover
-  fence is active, preventing privacy cleanup from deleting rollback evidence.
+- A shared transactional destructive-operation guard covers both acquisition
+  orders: deletion cannot start during a cutover, and a Relationship or Reward
+  cutover cannot start during an active deletion execution.
+- Before-images use the explicit `until_fresh_install_acceptance` retention
+  policy. Their audited post-acceptance purge remains an open production gate.
 
-The isolated Firestore Emulator scenario performs apply, simulates a failed
-runner before fence release, rolls the run back, and validates the restored
-documents and run counters. It then applies again, tampers with the canonical
-Memberships, and verifies rollback refusal:
+The isolated Firestore Emulator injects failures after deterministic apply and
+rollback operation counts, resumes with new owner tokens, and validates the
+restored documents and counters. It separately tampers with an applied
+Membership and touched user projection, deletes rollback evidence, and starts
+with an active deletion guard to verify every path fails closed:
 
 ```sh
 firebase emulators:exec --project nudge-relationship-migration-test \
@@ -42,3 +50,5 @@ On an authenticated release machine, the operator must still run a production
 dry-run, resolve every issue, apply the cutover, and run the dry-run again. The
 rollback command is an emergency path for an active failed run, not a substitute
 for the second clean dry-run or real-account App/Web context-switch acceptance.
+After fresh-install acceptance, an audited before-image purge command/job must
+be implemented and exercised before the retention gate is closed.

@@ -72,13 +72,17 @@ npm --prefix scripts run migrate:relationships:rollback
 Rollback accepts only an active cutover run. It claims the run with a new
 owner token, verifies every applied Membership or user projection against its
 before-image fingerprint, restores only unchanged migration-owned fields, and
-releases the fence only after no before-images remain. A mismatch records
+releases the fence only after no before-images remain and the atomically
+captured/restored counters match. A mismatch records
 `rollback_failed` and deliberately leaves the fence active. Relationship
 before-images participate in privacy export and account deletion by
 `actorUserId`; they are not client-readable application state. Account
-deletion claims are paused while either the Relationship or Reward cutover
-fence is active, so privacy cleanup cannot remove evidence required by an
-in-progress rollback.
+deletion and both cutovers transactionally claim the shared
+`system_state/destructive_operation_guard`, covering either acquisition order
+so privacy cleanup cannot remove evidence required by an in-progress rollback.
+Before-images are retained under `until_fresh_install_acceptance`, with no TTL
+before acceptance. Implementing and exercising their audited post-acceptance
+purge remains a production deployment gate.
 
 - Activity rewards and shop debits now use Cloud-owned
   `reward_ledger_entries`. A normal App/Web timer completion is rewardable only

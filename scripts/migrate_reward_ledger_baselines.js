@@ -7,6 +7,7 @@ import admin from "firebase-admin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const DESTRUCTIVE_OPERATION_GUARD_ID = "destructive_operation_guard";
 const BASELINE_VERSION = 1;
 const LEGACY_REWARD_FIELDS = [
   "rewardedTaskKeys",
@@ -353,11 +354,25 @@ async function readPlan(db, now = new Date().toISOString()) {
 
 async function acquireCutoverFence(db) {
   const fenceRef = db.collection("system_state").doc("reward_ledger_cutover");
+  const guardRef = db.collection("system_state")
+    .doc(DESTRUCTIVE_OPERATION_GUARD_ID);
   const proposedRunRef = db.collection("migration_runs").doc();
   const proposedCutoffAt = new Date().toISOString();
   const ownerToken = randomUUID();
   return db.runTransaction(async transaction => {
-    const fenceSnapshot = await transaction.get(fenceRef);
+    const [fenceSnapshot, guardSnapshot] = await Promise.all([
+      transaction.get(fenceRef),
+      transaction.get(guardRef),
+    ]);
+    const guard = guardSnapshot.exists ? guardSnapshot.data() : null;
+    if (
+      guard?.active === true &&
+      guard.operationKind === "account_deletion"
+    ) {
+      throw new Error(
+        "Reward cutover cannot start while account deletion is active.",
+      );
+    }
     if (fenceSnapshot.exists && fenceSnapshot.data().writesPaused === true) {
       const fence = fenceSnapshot.data();
       if (
@@ -371,6 +386,15 @@ async function acquireCutoverFence(db) {
       if (fence.operation === "rollback") {
         throw new Error("Reward cutover 正在回滾，不能切換回 apply。");
       }
+      if (
+        guard?.active === true &&
+        (
+          guard.operationKind !== "reward_cutover" ||
+          guard.operationId !== fence.runId
+        )
+      ) {
+        throw new Error("另一個 destructive operation 仍持有 maintenance guard。");
+      }
       const runRef = db.collection("migration_runs").doc(fence.runId);
       transaction.update(fenceRef, {
         ownerToken,
@@ -381,12 +405,25 @@ async function acquireCutoverFence(db) {
         status: "running",
         resumedAt: proposedCutoffAt,
       }, { merge: true });
+      transaction.set(guardRef, {
+        schemaVersion: 1,
+        active: true,
+        operationKind: "reward_cutover",
+        operationId: runRef.id,
+        ownerToken,
+        phase: "apply",
+        updatedAt: proposedCutoffAt,
+      }, { merge: false });
       return {
         fenceRef,
+        guardRef,
         runRef,
         cutoffAt: new Date(fence.cutoffAt).toISOString(),
         ownerToken,
       };
+    }
+    if (guard?.active === true) {
+      throw new Error("另一個 destructive operation 仍持有 maintenance guard。");
     }
     transaction.set(fenceRef, {
       writesPaused: true,
@@ -401,8 +438,18 @@ async function acquireCutoverFence(db) {
       status: "running",
       startedAt: proposedCutoffAt,
     });
+    transaction.set(guardRef, {
+      schemaVersion: 1,
+      active: true,
+      operationKind: "reward_cutover",
+      operationId: proposedRunRef.id,
+      ownerToken,
+      phase: "apply",
+      updatedAt: proposedCutoffAt,
+    }, { merge: false });
     return {
       fenceRef,
+      guardRef,
       runRef: proposedRunRef,
       cutoffAt: proposedCutoffAt,
       ownerToken,
@@ -565,7 +612,7 @@ export async function runRewardBaselineMigration({ apply }) {
     );
     return plan;
   }
-  const { fenceRef, runRef, cutoffAt, ownerToken } =
+  const { fenceRef, guardRef, runRef, cutoffAt, ownerToken } =
     await acquireCutoverFence(db);
   try {
     const plan = await readPlan(db, cutoffAt);
@@ -601,7 +648,10 @@ export async function runRewardBaselineMigration({ apply }) {
     }
     const baselineWrites = plan.baselineCreates.length;
     await db.runTransaction(async transaction => {
-      const fenceSnapshot = await transaction.get(fenceRef);
+      const [fenceSnapshot, guardSnapshot] = await Promise.all([
+        transaction.get(fenceRef),
+        transaction.get(guardRef),
+      ]);
       if (
         !fenceSnapshot.exists ||
         !ownsCutover(
@@ -609,7 +659,12 @@ export async function runRewardBaselineMigration({ apply }) {
           runRef.id,
           ownerToken,
           "apply",
-        )
+        ) ||
+        !guardSnapshot.exists ||
+        guardSnapshot.data().active !== true ||
+        guardSnapshot.data().operationKind !== "reward_cutover" ||
+        guardSnapshot.data().operationId !== runRef.id ||
+        guardSnapshot.data().ownerToken !== ownerToken
       ) {
         throw new Error("Reward cutover fence ownership changed.");
       }
@@ -620,6 +675,15 @@ export async function runRewardBaselineMigration({ apply }) {
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+      transaction.set(guardRef, {
+        schemaVersion: 1,
+        active: false,
+        operationKind: null,
+        operationId: null,
+        ownerToken: null,
+        phase: null,
+        updatedAt: new Date().toISOString(),
+      }, { merge: false });
       transaction.set(runRef, {
         status: "completed",
         baselineWrites,
@@ -646,9 +710,14 @@ export async function rollbackActiveRewardCutover() {
   await initializeAdmin();
   const db = admin.firestore();
   const fenceRef = db.collection("system_state").doc("reward_ledger_cutover");
+  const guardRef = db.collection("system_state")
+    .doc(DESTRUCTIVE_OPERATION_GUARD_ID);
   const ownerToken = randomUUID();
   const { runRef, runId } = await db.runTransaction(async transaction => {
-    const fenceSnapshot = await transaction.get(fenceRef);
+    const [fenceSnapshot, guardSnapshot] = await Promise.all([
+      transaction.get(fenceRef),
+      transaction.get(guardRef),
+    ]);
     const fence = fenceSnapshot.exists ? fenceSnapshot.data() : null;
     if (
       fence?.writesPaused !== true ||
@@ -657,6 +726,14 @@ export async function rollbackActiveRewardCutover() {
     ) {
       throw new Error("目前沒有可回滾的 active Reward cutover fence。");
     }
+    if (
+      !guardSnapshot.exists ||
+      guardSnapshot.data().active !== true ||
+      guardSnapshot.data().operationKind !== "reward_cutover" ||
+      guardSnapshot.data().operationId !== fence.runId
+    ) {
+      throw new Error("Reward maintenance guard 不屬於 active cutover run。");
+    }
     const activeRunRef = db.collection("migration_runs").doc(fence.runId);
     const claimedAt = new Date().toISOString();
     transaction.update(fenceRef, {
@@ -664,6 +741,15 @@ export async function rollbackActiveRewardCutover() {
       operation: "rollback",
       updatedAt: claimedAt,
     });
+    transaction.set(guardRef, {
+      schemaVersion: 1,
+      active: true,
+      operationKind: "reward_cutover",
+      operationId: fence.runId,
+      ownerToken,
+      phase: "rollback",
+      updatedAt: claimedAt,
+    }, { merge: false });
     transaction.set(activeRunRef, {
       status: "rolling_back",
       rollbackStartedAt: claimedAt,
@@ -739,6 +825,15 @@ export async function rollbackActiveRewardCutover() {
         rolledBackAt: completedAt,
         updatedAt: completedAt,
       });
+      transaction.set(guardRef, {
+        schemaVersion: 1,
+        active: false,
+        operationKind: null,
+        operationId: null,
+        ownerToken: null,
+        phase: null,
+        updatedAt: completedAt,
+      }, { merge: false });
       transaction.set(runRef, {
         status: "rolled_back",
         restoredUsers: restored,
