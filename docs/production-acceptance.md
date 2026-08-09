@@ -129,7 +129,9 @@ App-Check-protected Cloud authority path. It verifies:
 11. the member and manager receive the intended Membership visibility;
 12. Cloud generates a Membership-bound group planet and character outcome;
 13. the same two accounts concurrently hold group manager/member and family
-    guardian/child Memberships without either role replacing the other;
+    guardian/child Memberships without either backend role replacing the
+    other; App/Web context-selector behavior remains covered by the separate
+    surface contract tests until signed-device/browser acceptance can run;
 14. a guardian creates a family invitation, the child accepts it atomically
     with both scoped Memberships, and both invitation outcomes are notified and
     audited;
@@ -144,7 +146,8 @@ App-Check-protected Cloud authority path. It verifies:
 19. an ordinary account cannot read another user's audit event, while a
     synthetic operator granted through the administrator channel can;
 20. all Ledger, privacy, notification, outcome, family, group, Membership,
-    shared-memory and audit documents created by the run are deleted; and
+    shared-memory and audit documents created by the run are deleted through
+    de-duplicated atomic commits and verified absent before Auth cleanup; and
 21. both Auth accounts are deleted and their credentials no
     longer sign in.
 

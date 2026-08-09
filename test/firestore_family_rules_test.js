@@ -417,6 +417,32 @@ async function run() {
           schemaVersion: 1,
           type: "acknowledgement",
           sourceId: cardId,
+          actorId: guardian.localId,
+          points: 3,
+          createdAt: now,
+        },
+      ),
+    ],
+    guardian.idToken,
+  );
+  assert.equal(
+    response.status,
+    403,
+    "A guardian must not acknowledge a child's encouragement atomically",
+  );
+
+  response = await commit(
+    [
+      updateWrite(
+        `family_links/${requestId}/encouragements/${cardId}`,
+        { status: "acknowledged", acknowledgedAt: now },
+      ),
+      createWrite(
+        `family_links/${requestId}/bond_events/encouragement_${cardId}`,
+        {
+          schemaVersion: 1,
+          type: "acknowledgement",
+          sourceId: cardId,
           actorId: child.localId,
           points: 3,
           createdAt: now,

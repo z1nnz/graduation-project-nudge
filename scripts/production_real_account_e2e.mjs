@@ -1,4 +1,10 @@
 import crypto from "node:crypto";
+import cleanupHelpers from "./production_e2e_cleanup.cjs";
+
+const {
+  buildCleanupDocumentNames,
+  chunkCleanupDocumentNames,
+} = cleanupHelpers;
 
 const projectId =
   process.env.NUDGE_FIREBASE_PROJECT_ID?.trim() || "nudge-discipline-app";
@@ -208,23 +214,47 @@ async function readDocument(idToken, name, expectedStatus = 200) {
   return body;
 }
 
-async function adminDeleteDocuments(names) {
-  const writes = names.map(name => ({
-    delete: `${firestoreResourceBase}/${name}`,
-  }));
-  const { response, body } = await jsonRequest(`${firestoreBase}:batchWrite`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${adminAccessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ writes }),
+async function adminReadDocument(name, expectedStatus = 200) {
+  const { response, body } = await jsonRequest(`${firestoreBase}/${name}`, {
+    headers: { Authorization: `Bearer ${adminAccessToken}` },
   });
-  if (!response.ok) {
+  if (response.status !== expectedStatus) {
     throw new Error(
-      `Admin cleanup failed: ${response.status} ` +
-        `${body.error?.status || body.error?.message || "unknown"}`,
+      `Admin Firestore read ${name} expected ${expectedStatus}, received ` +
+        `${response.status}: ${body.error?.status || body.error?.message || "unknown"}`,
     );
+  }
+  return body;
+}
+
+async function waitForAdminDocument(name, attempts = 20) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const { response, body } = await jsonRequest(`${firestoreBase}/${name}`, {
+      headers: { Authorization: `Bearer ${adminAccessToken}` },
+    });
+    if (response.status === 200) return body;
+    if (response.status !== 404) {
+      throw new Error(
+        `Admin Firestore wait ${name} failed: ${response.status} ` +
+          `${body.error?.status || body.error?.message || "unknown"}`,
+      );
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new Error(`Timed out waiting for admin Firestore document ${name}.`);
+}
+
+async function adminDeleteDocuments(names) {
+  const uniqueNames = buildCleanupDocumentNames(names);
+  for (const chunk of chunkCleanupDocumentNames(uniqueNames)) {
+    await adminCommit(
+      chunk.map(name => ({
+        delete: `${firestoreResourceBase}/${name}`,
+      })),
+    );
+  }
+  for (const name of uniqueNames) {
+    await adminReadDocument(name, 404);
   }
 }
 
@@ -290,39 +320,19 @@ async function verifyAccountDeleted(account) {
 }
 
 function activeMembership({
+  scopeType,
+  scopeId,
   scopeName,
   userId,
   role,
   createdAt,
 }) {
-  const membershipId = `group--${groupId}--${userId}`;
+  const membershipId = `${scopeType}--${scopeId}--${userId}`;
   return {
     schemaVersion: 1,
     membershipId,
-    scopeType: "group",
-    scopeId: groupId,
-    scopeName,
-    userId,
-    role,
-    status: "active",
-    createdAt,
-    updatedAt: createdAt,
-    activeFrom: createdAt,
-  };
-}
-
-function activeFamilyMembership({
-  scopeName,
-  userId,
-  role,
-  createdAt,
-}) {
-  const membershipId = `family--${familyId}--${userId}`;
-  return {
-    schemaVersion: 1,
-    membershipId,
-    scopeType: "family",
-    scopeId: familyId,
+    scopeType,
+    scopeId,
     scopeName,
     userId,
     role,
@@ -570,6 +580,8 @@ try {
   });
 
   const managerMembership = activeMembership({
+    scopeType: "group",
+    scopeId: groupId,
     scopeName: groupName,
     userId: accountA.uid,
     role: "manager",
@@ -672,6 +684,8 @@ try {
 
   const joinedAt = new Date().toISOString();
   const memberMembership = activeMembership({
+    scopeType: "group",
+    scopeId: groupId,
     scopeName: groupName,
     userId: accountB.uid,
     role: "member",
@@ -736,6 +750,7 @@ try {
   );
   if (
     relationshipOutcome.outcome?.outcomeId !== `group--${groupId}` ||
+    relationshipOutcome.outcome?.growth?.kind !== "group_planet" ||
     relationshipOutcome.outcome?.characterOutcome?.kind !== "group_companion"
   ) {
     throw new Error("Formal group relationship outcome is invalid.");
@@ -806,6 +821,16 @@ try {
     accountB.idToken,
     `user_notifications/${familyPendingNotificationId}`,
   );
+  const familyCreatedAudit = await waitForAdminDocument(
+    `audit_events/family-request--${familyId}--created`,
+  );
+  if (
+    familyCreatedAudit.fields?.action?.stringValue !==
+      "relationship.family.invitation.created" ||
+    familyCreatedAudit.fields?.targetId?.stringValue !== familyId
+  ) {
+    throw new Error("The family invitation-created audit is invalid.");
+  }
   const familyReadNotification = await callable(
     accountB,
     "markNotificationRead",
@@ -821,13 +846,17 @@ try {
   steps.push({ step: "family.notification_audited", status: "passed" });
 
   const familyAcceptedAt = new Date().toISOString();
-  const guardianMembership = activeFamilyMembership({
+  const guardianMembership = activeMembership({
+    scopeType: "family",
+    scopeId: familyId,
     scopeName: familyScopeName,
     userId: accountA.uid,
     role: "guardian",
     createdAt: familyAcceptedAt,
   });
-  const childMembership = activeFamilyMembership({
+  const childMembership = activeMembership({
+    scopeType: "family",
+    scopeId: familyId,
     scopeName: familyScopeName,
     userId: accountB.uid,
     role: "child",
@@ -877,6 +906,16 @@ try {
     accountA.idToken,
     `user_notifications/${familyAcceptedNotificationId}`,
   );
+  const familyAcceptedAudit = await waitForAdminDocument(
+    `audit_events/family-request--${familyId}--accepted`,
+  );
+  if (
+    familyAcceptedAudit.fields?.action?.stringValue !==
+      "relationship.family.invitation.accepted" ||
+    familyAcceptedAudit.fields?.targetId?.stringValue !== familyId
+  ) {
+    throw new Error("The family invitation-accepted audit is invalid.");
+  }
   steps.push({
     step: "family.child_atomic_accept_with_memberships",
     status: "passed",
@@ -919,6 +958,33 @@ try {
       null,
     ),
   ]);
+  await commit(
+    accountA.idToken,
+    [
+      updateWrite(
+        `family_links/${familyId}/encouragements/${encouragementId}`,
+        { status: "acknowledged", acknowledgedAt: new Date().toISOString() },
+        ["status", "acknowledgedAt"],
+      ),
+      updateWrite(
+        `family_links/${familyId}/bond_events/encouragement_${encouragementId}`,
+        {
+          schemaVersion: 1,
+          type: "acknowledgement",
+          sourceId: encouragementId,
+          actorId: accountA.uid,
+          points: 3,
+          createdAt: new Date().toISOString(),
+        },
+        null,
+      ),
+    ],
+    403,
+  );
+  steps.push({
+    step: "family.guardian_acknowledgement_denied",
+    status: "passed",
+  });
   await commit(accountB.idToken, [
     updateWrite(
       `family_links/${familyId}/encouragements/${encouragementId}`,
@@ -980,7 +1046,10 @@ try {
     ],
     403,
   );
-  steps.push({ step: "family.child_role_boundary", status: "passed" });
+  steps.push({
+    step: "family.guardian_goal_decision_denied",
+    status: "passed",
+  });
   const goalAcceptedAt = new Date().toISOString();
   await commit(accountB.idToken, [
     updateWrite(
@@ -1050,6 +1119,34 @@ try {
     accountA.idToken,
     `relationship_outcomes/family--${familyId}`,
   );
+  for (const expectedMemory of [
+    {
+      memoryId: `encouragement_ack--encouragement_${encouragementId}`,
+      memoryType: "encouragement_ack",
+      sourceId: `encouragement_${encouragementId}`,
+    },
+    {
+      memoryId: `goal_completed--goal_${familyGoalId}`,
+      memoryType: "goal_completed",
+      sourceId: `goal_${familyGoalId}`,
+    },
+  ]) {
+    const memoryDocument = await readDocument(
+      accountA.idToken,
+      `relationship_outcomes/family--${familyId}/memories/${expectedMemory.memoryId}`,
+    );
+    if (
+      memoryDocument.fields?.memoryId?.stringValue !== expectedMemory.memoryId ||
+      memoryDocument.fields?.scopeId?.stringValue !== familyId ||
+      memoryDocument.fields?.memoryType?.stringValue !== expectedMemory.memoryType ||
+      memoryDocument.fields?.sourceId?.stringValue !== expectedMemory.sourceId ||
+      !memoryDocument.fields?.actorId?.stringValue
+    ) {
+      throw new Error(
+        `Persisted family memory ${expectedMemory.memoryId} is invalid.`,
+      );
+    }
+  }
   steps.push({
     step: "cloud.family_outcome_and_memories",
     status: "passed",
@@ -1136,38 +1233,46 @@ try {
 } catch (error) {
   testError = error;
 } finally {
-  const documentsToDelete = [
-    ...cleanupDocuments,
-    ...(accountA
+  const documentsToDelete = buildCleanupDocumentNames(
+    cleanupDocuments,
+    accountA
       ? [
           `users/${accountA.uid}`,
           `relationship_memberships/group--${groupId}--${accountA.uid}`,
           `relationship_memberships/family--${familyId}--${accountA.uid}`,
         ]
-      : []),
-    ...(accountB
+      : [],
+    accountB
       ? [
           `users/${accountB.uid}`,
           `relationship_memberships/group--${groupId}--${accountB.uid}`,
           `relationship_memberships/family--${familyId}--${accountB.uid}`,
         ]
-      : []),
-  ];
+      : [],
+  );
   const cleanupFailures = [];
+  let documentsCleaned = false;
   try {
     await adminDeleteDocuments(documentsToDelete);
+    documentsCleaned = true;
   } catch (error) {
     cleanupFailures.push(`documents: ${error.message}`);
   }
-  try {
-    await adminDeleteAccounts(accounts);
-  } catch (error) {
-    cleanupFailures.push(`accounts: ${error.message}`);
-  }
-  try {
-    for (const account of accounts) await verifyAccountDeleted(account);
-  } catch (error) {
-    cleanupFailures.push(`verification: ${error.message}`);
+  if (documentsCleaned) {
+    try {
+      await adminDeleteAccounts(accounts);
+    } catch (error) {
+      cleanupFailures.push(`accounts: ${error.message}`);
+    }
+    try {
+      for (const account of accounts) await verifyAccountDeleted(account);
+    } catch (error) {
+      cleanupFailures.push(`verification: ${error.message}`);
+    }
+  } else {
+    cleanupFailures.push(
+      "accounts: skipped to preserve recoverability after document cleanup failed",
+    );
   }
   if (cleanupFailures.length > 0) {
     cleanupError = new Error(cleanupFailures.join("; "));
