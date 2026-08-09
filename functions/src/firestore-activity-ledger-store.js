@@ -83,6 +83,17 @@ class FirestoreActivityLedgerTransaction {
     };
   }
 
+  async getRoomActivityProjection(roomId, sessionId) {
+    const snapshot = await this.transaction.get(
+      this.firestore
+        .collection("rooms")
+        .doc(roomId)
+        .collection("activity_sessions")
+        .doc(sessionId),
+    );
+    return snapshot.exists ? snapshot.data() : null;
+  }
+
   async projectRoomActivitySession(roomSession) {
     if (!roomSession) return;
     const roomRef = this.firestore.collection("rooms").doc(roomSession.roomId);

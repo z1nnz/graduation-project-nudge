@@ -17,17 +17,25 @@ completed in production.
 - Firestore Rules deny direct client writes to canonical room Activity Sessions
   and active-session pointers. Approved members still control their own
   lifecycle through Cloud; room managers cannot fabricate member evidence.
+- Cloud rejects a second concurrent active session, invalid lifecycle changes,
+  immutable-field replacement, non-advancing timestamps, and decreasing room
+  progress before it writes any projection.
+- A session retains its original evidence source when a member continues it on
+  another App/Web surface. A rejected room command restores the live timer and
+  does not project resting/completed state.
+- Health sync timestamps advance only after the full Cloud Ledger batch is
+  accepted.
 - Pull requests now have shared Flutter, Web, Cloud, and Firestore emulator
   checks, a CODEOWNERS default reviewer, and a contributor/PR checklist.
-- Privacy export expiry tests use a fixed clock instead of a calendar-dependent
-  future date.
+- Privacy export expiry tests generate a bounded future expiry instead of using
+  a calendar date that eventually breaks CI.
 
 ## Local verification evidence
 
 - Flutter Analyze: no issues.
 - Flutter tests: 136 passed, 0 failed.
-- Root Node/Web tests: 79 passed, 0 failed.
-- Cloud Functions unit suite: 93 passed, 0 failed, 22 emulator-gated skips.
+- Root Node/Web tests: 81 passed, 0 failed.
+- Cloud Functions unit suite: 94 passed, 0 failed, 22 emulator-gated skips.
 - Exact CI Firestore/Auth emulator suite passed all family, friend, group, and
   room Rules integrations plus 5 Activity Ledger transaction tests.
 - `git diff --check` and CI workflow YAML parsing passed.

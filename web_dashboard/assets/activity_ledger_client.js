@@ -77,7 +77,7 @@
       activityCorrelationId: sessionId,
       roomIds: [roomId],
       activityType,
-      source: "web",
+      source: String(session.source || "web").trim(),
       eventType,
       metricValue,
       metricUnit,

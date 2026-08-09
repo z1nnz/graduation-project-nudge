@@ -145,6 +145,115 @@ test("room activity atomically advances its Ledger and member projection", async
     await store.getRoomActiveSessionId("room-study", "user-1"),
     null,
   );
+
+  await assert.rejects(
+    service.record(
+      { kind: "user", userId: "user-1" },
+      {
+        ...completedFocusEvidence,
+        eventId: "event-room-completed-again",
+        sourceRecordId: "source-room-completed-again",
+        sessionId: "room-session-1",
+        activityCorrelationId: "room-session-1",
+        roomSession: completedRoomSession,
+      },
+    ),
+    /no longer active|room activity transition/i,
+  );
+});
+
+test("room activity enforces one active session and its canonical lifecycle", async () => {
+  const store = new InMemoryActivityLedgerStore({
+    roomMemberships: [{
+      roomId: "room-study",
+      userId: "user-1",
+      status: "active",
+      sharingConsented: true,
+    }],
+  });
+  const service = new ActivityLedgerService({
+    store,
+    clock: () => new Date("2026-07-28T09:30:00.000Z"),
+  });
+  const principal = { kind: "user", userId: "user-1" };
+  await service.record(principal, startedRoomEvidence);
+
+  const secondSession = {
+    ...startedRoomSession,
+    sessionId: "room-session-2",
+    startedAt: "2026-07-28T09:01:00.000Z",
+    updatedAt: "2026-07-28T09:01:00.000Z",
+  };
+  await assert.rejects(
+    service.record(principal, {
+      ...startedRoomEvidence,
+      eventId: "event-second-room-session",
+      sourceRecordId: "source-second-room-session",
+      sessionId: secondSession.sessionId,
+      activityCorrelationId: secondSession.sessionId,
+      occurredAt: secondSession.updatedAt,
+      roomSession: secondSession,
+    }),
+    /active room activity session/i,
+  );
+  assert.equal(
+    await store.getRoomActiveSessionId("room-study", "user-1"),
+    startedRoomSession.sessionId,
+  );
+
+  const pausedAt = "2026-07-28T09:05:00.000Z";
+  const pausedSession = {
+    ...startedRoomSession,
+    metricValue: 5,
+    status: "paused",
+    updatedAt: pausedAt,
+  };
+  await service.record(principal, {
+    ...startedRoomEvidence,
+    eventId: "event-room-paused",
+    sourceRecordId: "source-room-paused",
+    eventType: "paused",
+    metricValue: 5,
+    occurredAt: pausedAt,
+    roomSession: pausedSession,
+  });
+
+  const invalidPausedAt = "2026-07-28T09:06:00.000Z";
+  await assert.rejects(
+    service.record(principal, {
+      ...startedRoomEvidence,
+      eventId: "event-room-paused-again",
+      sourceRecordId: "source-room-paused-again",
+      eventType: "paused",
+      metricValue: 6,
+      occurredAt: invalidPausedAt,
+      roomSession: {
+        ...pausedSession,
+        metricValue: 6,
+        updatedAt: invalidPausedAt,
+      },
+    }),
+    /room activity transition/i,
+  );
+
+  const invalidResumeAt = "2026-07-28T09:07:00.000Z";
+  await assert.rejects(
+    service.record(principal, {
+      ...startedRoomEvidence,
+      eventId: "event-room-resume-decrease",
+      sourceRecordId: "source-room-resume-decrease",
+      eventType: "resumed",
+      metricValue: 4,
+      occurredAt: invalidResumeAt,
+      roomSession: {
+        ...pausedSession,
+        status: "active",
+        metricValue: 4,
+        updatedAt: invalidResumeAt,
+      },
+    }),
+    /progress cannot decrease/i,
+  );
 });
 
 test("room activity rejects a forged or inactive member projection", async () => {

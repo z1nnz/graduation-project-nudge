@@ -51,13 +51,11 @@ class PrivacyDataRequest {
 
   bool get isExport => type == 'export';
   bool get isAccountDeletion => type == 'account_deletion';
-  bool get canDownload => canDownloadAt(DateTime.now());
-
-  bool canDownloadAt(DateTime now) =>
+  bool get canDownload =>
       isExport &&
       status == 'ready' &&
       expiresAt != null &&
-      expiresAt!.isAfter(now);
+      expiresAt!.isAfter(DateTime.now());
   bool get canCancel =>
       isAccountDeletion && const {'pending', 'in_review'}.contains(status);
 

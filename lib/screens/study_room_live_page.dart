@@ -39,7 +39,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   @override
   void dispose() {
     _timer?.cancel();
-    _commitSessionAsResting();
+    unawaited(_commitSessionAsResting());
     _chatController.dispose();
     if (_voiceJoined) {
       try {
@@ -109,17 +109,36 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
       sessionSeconds: _elapsedSeconds,
     );
 
+    _scheduleSessionTimer(appState, room);
+  }
+
+  void _scheduleSessionTimer(
+    AppState appState,
+    StudyRoomData room, {
+    bool autoComplete = true,
+  }) {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      if (_remainingSeconds <= 1) {
+      if (_remainingSeconds <= 1 && autoComplete) {
+        _timer?.cancel();
         unawaited(_completeSession(appState, room));
         return;
       }
       setState(() {
-        _remainingSeconds--;
+        if (_remainingSeconds > 0) _remainingSeconds--;
         _elapsedSeconds++;
       });
     });
+  }
+
+  void _restartSessionTimer(
+    AppState appState,
+    StudyRoomData room, {
+    bool autoComplete = true,
+  }) {
+    if (!mounted || !_isRunning) return;
+    _scheduleSessionTimer(appState, room, autoComplete: autoComplete);
   }
 
   Future<void> _pauseSession(AppState appState, StudyRoomData room) async {
@@ -135,7 +154,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         );
       } catch (error) {
         if (!mounted) return;
-        setState(() => _isRunning = false);
+        _restartSessionTimer(appState, room);
         _showSessionSyncError(error);
         return;
       }
@@ -173,7 +192,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         );
       } catch (error) {
         if (!mounted) return;
-        setState(() => _isRunning = false);
+        _restartSessionTimer(appState, room, autoComplete: false);
         _showSessionSyncError(error);
         return;
       }
@@ -216,7 +235,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         );
       } catch (error) {
         if (!mounted) return;
-        setState(() => _isRunning = false);
+        _restartSessionTimer(appState, room);
         _showSessionSyncError(error);
         return;
       }
@@ -243,33 +262,32 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     });
   }
 
-  void _commitSessionAsResting() {
+  Future<void> _commitSessionAsResting() async {
     if (!_isRunning || _elapsedSeconds <= 0) return;
     final appState = context.read<AppState>();
     final room = appState.getStudyRoomById(widget.roomId);
     if (room == null) return;
     final sessionId = _roomActivitySessionId;
+    final elapsedSeconds = _elapsedSeconds;
+    final metricValue = _sessionMetricValue(room);
+    final endTime = DateTime.now();
+    final startTime =
+        _sessionStartTime ??
+        endTime.subtract(Duration(seconds: elapsedSeconds));
     if (sessionId != null) {
-      unawaited(
-        (() async {
-          try {
-            await appState.transitionRoomActivitySession(
-              sessionId: sessionId,
-              status: RoomActivitySessionStatus.paused,
-              metricValue: _sessionMetricValue(room),
-            );
-          } catch (error) {
-            debugPrint('Failed to pause room activity during dispose: $error');
-          }
-        })(),
-      );
+      try {
+        await appState.transitionRoomActivitySession(
+          sessionId: sessionId,
+          status: RoomActivitySessionStatus.paused,
+          metricValue: metricValue,
+        );
+      } catch (error) {
+        debugPrint('Failed to pause room activity during dispose: $error');
+        return;
+      }
     }
     if (_isFocusRoom(room)) {
-      final endTime = DateTime.now();
-      final startTime =
-          _sessionStartTime ??
-          endTime.subtract(Duration(seconds: _elapsedSeconds));
-      appState.addSecureFocusSeconds(_elapsedSeconds, startTime, endTime);
+      appState.addSecureFocusSeconds(elapsedSeconds, startTime, endTime);
     }
     appState.updateMyStudyRoomPresence(
       roomId: room.id,

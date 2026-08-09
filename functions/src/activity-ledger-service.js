@@ -671,10 +671,13 @@ export class InMemoryActivityLedgerStore {
       clone(roomSession),
     );
     const memberKey = `${roomSession.roomId}:${roomSession.actorId}`;
+    const membership = this.#memberships.get(memberKey);
     if (["completed", "cancelled"].includes(roomSession.status)) {
       this.#roomActiveSessionIds.delete(memberKey);
+      if (membership) membership.activeSessionId = null;
     } else {
       this.#roomActiveSessionIds.set(memberKey, roomSession.sessionId);
+      if (membership) membership.activeSessionId = roomSession.sessionId;
     }
   }
 
@@ -865,6 +868,22 @@ export class ActivityLedgerService {
       }
 
       const fingerprint = activityFingerprint(evidence);
+      if (evidence.roomSession) {
+        const membership = await transaction.getRoomMembership(
+          evidence.roomSession.roomId,
+          evidence.actorUserId,
+        );
+        if (!membershipAllowsContribution(membership, evidence.occurredAt)) {
+          throw new ActivityLedgerAuthorizationError(
+            "Room activity requires an approved active room member.",
+          );
+        }
+        await this.#validateRoomActivityTransition(
+          transaction,
+          evidence,
+          membership,
+        );
+      }
       const existingSettlement = await transaction.getSettlement(fingerprint);
       if (existingSettlement) {
         if (isMutableMetricCorrection(existingSettlement, evidence)) {
@@ -1063,17 +1082,6 @@ export class ActivityLedgerService {
 
       const existingSession = await transaction.getSession(fingerprint);
       const session = this.#transitionSession(existingSession, evidence);
-      if (evidence.roomSession) {
-        const membership = await transaction.getRoomMembership(
-          evidence.roomSession.roomId,
-          evidence.actorUserId,
-        );
-        if (!membershipAllowsContribution(membership, evidence.occurredAt)) {
-          throw new ActivityLedgerAuthorizationError(
-            "Room activity requires an approved active room member.",
-          );
-        }
-      }
       const isSettlement = ["completed", "metricSynced"].includes(
         evidence.eventType,
       );
@@ -1272,6 +1280,78 @@ export class ActivityLedgerService {
         );
     }
     return session;
+  }
+
+  async #validateRoomActivityTransition(transaction, evidence, membership) {
+    const next = evidence.roomSession;
+    const existing = await transaction.getRoomActivityProjection(
+      next.roomId,
+      next.sessionId,
+    );
+    const activeSessionId = typeof membership.activeSessionId === "string" &&
+      membership.activeSessionId.length > 0
+      ? membership.activeSessionId
+      : null;
+
+    if (evidence.eventType === "started") {
+      if (existing) {
+        throw new ActivityLedgerValidationError(
+          "A room activity session can only be started once.",
+        );
+      }
+      if (activeSessionId !== null) {
+        throw new ActivityLedgerValidationError(
+          "The member already has an active room activity session.",
+        );
+      }
+      return;
+    }
+
+    if (!existing || activeSessionId !== next.sessionId) {
+      throw new ActivityLedgerValidationError(
+        "The canonical room activity session is no longer active.",
+      );
+    }
+    const immutableFields = [
+      "schemaVersion",
+      "sessionId",
+      "roomId",
+      "actorId",
+      "activityKind",
+      "metricUnit",
+      "targetValue",
+      "source",
+      "startedAt",
+    ];
+    if (immutableFields.some(field => existing[field] !== next[field])) {
+      throw new ActivityLedgerValidationError(
+        "A room activity transition cannot replace session identity or configuration.",
+      );
+    }
+    const allowed = {
+      active: ["paused", "completed", "cancelled"],
+      paused: ["active", "completed", "cancelled"],
+      completed: [],
+      cancelled: [],
+    }[existing.status] ?? [];
+    if (!allowed.includes(next.status)) {
+      throw new ActivityLedgerValidationError(
+        `Invalid room activity transition from ${existing.status} to ${next.status}.`,
+      );
+    }
+    if (next.metricValue < existing.metricValue) {
+      throw new ActivityLedgerValidationError(
+        "Room activity progress cannot decrease.",
+      );
+    }
+    if (
+      new Date(next.updatedAt).getTime() <=
+      new Date(existing.updatedAt).getTime()
+    ) {
+      throw new ActivityLedgerValidationError(
+        "Room activity transitions must advance the canonical timestamp.",
+      );
+    }
   }
 
   #validateAndNormalize(principal, rawEvidence) {

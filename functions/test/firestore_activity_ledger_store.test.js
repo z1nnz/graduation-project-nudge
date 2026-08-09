@@ -74,6 +74,38 @@ test(
       startedSession,
     );
 
+    const secondSessionId = `room-session-second-${unique}`;
+    const secondStartedAt = "2026-08-09T09:00:00.500Z";
+    const secondSession = {
+      ...startedSession,
+      sessionId: secondSessionId,
+      startedAt: secondStartedAt,
+      updatedAt: secondStartedAt,
+    };
+    await assert.rejects(
+      service.record(
+        { kind: "user", userId: actorUserId },
+        {
+          ...baseEvidence,
+          eventId: `room-start-second-${unique}`,
+          sourceRecordId: `room-source-start-second-${unique}`,
+          sessionId: secondSessionId,
+          activityCorrelationId: secondSessionId,
+          occurredAt: secondStartedAt,
+          roomSession: secondSession,
+        },
+      ),
+      /active room activity session/i,
+    );
+    assert.equal((await memberRef.get()).data().activeSessionId, sessionId);
+    assert.equal(
+      (await roomRef
+        .collection("activity_sessions")
+        .doc(secondSessionId)
+        .get()).exists,
+      false,
+    );
+
     const discardedAt = "2026-08-09T09:00:01.000Z";
     const discardedSession = {
       ...startedSession,

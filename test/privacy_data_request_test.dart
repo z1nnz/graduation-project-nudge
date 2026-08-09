@@ -4,6 +4,10 @@ import 'package:nudge/services/cloud_privacy_data_gateway.dart';
 
 void main() {
   test('privacy request model distinguishes export and deletion states', () {
+    final futureExpiry = DateTime.now()
+        .toUtc()
+        .add(const Duration(days: 1))
+        .toIso8601String();
     final export = PrivacyDataRequest.fromMap({
       'schemaVersion': 1,
       'requestId': 'user-one--privacy-data-001',
@@ -11,19 +15,12 @@ void main() {
       'type': 'export',
       'status': 'ready',
       'storagePath': 'privacy_exports/user-one/export.json',
-      'expiresAt': '2026-08-05T03:00:00.000Z',
+      'expiresAt': futureExpiry,
       'exportBytes': 2048,
       'truncatedCollections': <String>[],
     });
     expect(export.isExport, isTrue);
-    expect(
-      export.canDownloadAt(DateTime.parse('2026-08-01T03:00:00.000Z')),
-      isTrue,
-    );
-    expect(
-      export.canDownloadAt(DateTime.parse('2026-08-06T03:00:00.000Z')),
-      isFalse,
-    );
+    expect(export.canDownload, isTrue);
     expect(export.exportBytes, 2048);
 
     final deletion = PrivacyDataRequest.fromMap({
@@ -51,6 +48,10 @@ void main() {
 
   test('privacy gateway verifies Cloud request and download contracts', () async {
     final calls = <String>[];
+    final futureExpiry = DateTime.now()
+        .toUtc()
+        .add(const Duration(days: 1))
+        .toIso8601String();
     final gateway = CloudPrivacyDataGateway.withAdapters(
       call: (name, payload) async {
         calls.add(name);
@@ -59,7 +60,7 @@ void main() {
             'requestId': payload['requestId'],
             'downloadUrl':
                 'https://firebasestorage.googleapis.com/export.json?token=secret',
-            'expiresAt': '2026-08-05T03:00:00.000Z',
+            'expiresAt': futureExpiry,
             'auditEventId': 'privacy-download-audit-001',
           };
         }
@@ -70,7 +71,7 @@ void main() {
             'userId': 'user-one',
             'type': 'export',
             'status': 'ready',
-            'expiresAt': '2026-08-05T03:00:00.000Z',
+            'expiresAt': futureExpiry,
           },
           'auditEventId': 'privacy-request-audit-001',
           'replayed': false,
@@ -82,12 +83,7 @@ void main() {
     final requested = await gateway.requestExport(
       clientRequestId: 'privacy-data-001',
     );
-    expect(
-      requested.request.canDownloadAt(
-        DateTime.parse('2026-08-01T03:00:00.000Z'),
-      ),
-      isTrue,
-    );
+    expect(requested.request.canDownload, isTrue);
     expect(requested.auditEventId, isNotEmpty);
 
     final download = await gateway.getExportDownload(

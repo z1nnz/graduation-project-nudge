@@ -66,3 +66,44 @@ test("app discovery no longer ships fabricated public rooms", () => {
   assert.match(livePage, /MaterialPageRoute\(builder: \(_\) => const HealthPage\(\)\)/);
   assert.match(livePage, /活動帳本/);
 });
+
+test("App room commands preserve the running session when Cloud rejects", () => {
+  const livePage = read("lib/screens/study_room_live_page.dart");
+  const pause = livePage.slice(
+    livePage.indexOf("Future<void> _pauseSession"),
+    livePage.indexOf("Future<void> _completeSession"),
+  );
+  const complete = livePage.slice(
+    livePage.indexOf("Future<void> _completeSession"),
+    livePage.indexOf("Future<void> _stopSession"),
+  );
+  const stop = livePage.slice(
+    livePage.indexOf("Future<void> _stopSession"),
+    livePage.indexOf("Future<void> _commitSessionAsResting"),
+  );
+
+  assert.match(livePage, /void _restartSessionTimer/);
+  for (const command of [pause, complete, stop]) {
+    assert.match(command, /catch \(error\)[\s\S]*_restartSessionTimer/);
+    assert.doesNotMatch(
+      command.match(/catch \(error\)[\s\S]*?return;/)?.[0] || "",
+      /_isRunning = false/,
+    );
+  }
+  assert.match(
+    livePage,
+    /await appState\.transitionRoomActivitySession[\s\S]*addSecureFocusSeconds/,
+  );
+});
+
+test("Health last-sync time advances only after Cloud accepts the Ledger batch", () => {
+  const healthPage = read("lib/screens/health_page.dart");
+  const sync = healthPage.slice(
+    healthPage.indexOf("Future<void> syncHealthData"),
+    healthPage.indexOf("void showConnectInfoDialog"),
+  );
+  assert.ok(sync.indexOf("if (!accepted)") >= 0);
+  assert.ok(
+    sync.indexOf("lastSyncTime = formatNow()") > sync.indexOf("if (!accepted)"),
+  );
+});

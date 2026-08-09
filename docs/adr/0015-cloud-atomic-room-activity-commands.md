@@ -26,6 +26,8 @@ App and Web submit each room start or transition as one authenticated
 - the caller is the session actor and an approved, active room member;
 - the room, actor, session, activity, metric, source, status, and timestamps
   agree with the Activity Ledger evidence;
+- the session source remains its original evidence source when another surface
+  continues it; the submitting UI is not allowed to rewrite provenance;
 - the Activity correlation ID is the room session ID; and
 - the transition preserves the member-controlled lifecycle from ADR 0006.
 

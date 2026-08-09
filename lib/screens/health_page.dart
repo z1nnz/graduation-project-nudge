@@ -132,7 +132,6 @@ class _HealthPageState extends State<HealthPage> {
     setState(() {
       isSyncing = false;
       statusMessage = normalized;
-      lastSyncTime = formatNow();
     });
 
     if (result.success) {
@@ -155,6 +154,10 @@ class _HealthPageState extends State<HealthPage> {
         );
         return;
       }
+
+      setState(() {
+        lastSyncTime = formatNow();
+      });
 
       final hasData = getHasAnyHealthData(
         sleepHours: result.sleepHours,
