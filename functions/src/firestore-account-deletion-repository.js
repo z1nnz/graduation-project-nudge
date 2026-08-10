@@ -672,7 +672,6 @@ export class FirestoreAccountDeletionRepository {
 
     deletedDocuments += await this.#deleteRelationshipMigrationBeforeImages(
       userId,
-      request.requestId,
       now,
     );
 
@@ -780,7 +779,6 @@ export class FirestoreAccountDeletionRepository {
 
   async #deleteRelationshipMigrationBeforeImages(
     userId,
-    deletionRequestId,
     now,
   ) {
     const candidates = await querySnapshots(
@@ -849,7 +847,6 @@ export class FirestoreAccountDeletionRepository {
           evidenceId: evidenceRef.id,
           migrationRunId: runId,
           beforeImageId: candidate.id,
-          deletionRequestId,
           deletedAt: now,
         });
         transaction.delete(candidate.ref);

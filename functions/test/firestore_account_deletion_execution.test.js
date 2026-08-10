@@ -32,7 +32,7 @@ test(
   async () => {
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const subjectUserId = `privacy-before-image-${suffix}`;
-    const requestId = `privacy-delete-before-image-${suffix}`;
+    const requestId = `${subjectUserId}--privacy-delete-before-image-${suffix}`;
     const runId = `relationship-run-${suffix}`;
     const entityPath =
       `relationship_memberships/family--privacy--${subjectUserId}`;
@@ -101,8 +101,18 @@ test(
       ).data();
       assert.equal(evidence.migrationRunId, runId);
       assert.equal(evidence.beforeImageId, beforeImageDocumentId);
-      assert.equal(evidence.deletionRequestId, requestId);
       assert.equal(Object.hasOwn(evidence, "actorUserId"), false);
+      assert.equal(Object.hasOwn(evidence, "deletionRequestId"), false);
+      assert.equal(
+        Object.hasOwn(evidence, "deletionRequestFingerprint"),
+        false,
+      );
+      assert.equal(
+        Object.values(evidence).some(value =>
+          typeof value === "string" && value.includes(subjectUserId)
+        ),
+        false,
+      );
     } finally {
       await Promise.all([
         firestore.collection("migration_runs").doc(runId).delete()

@@ -415,7 +415,6 @@ test("privacy-deleted before-images reconcile with the final purge audit", {
   const evidenceId = "acceptance-after-privacy-delete";
   const subjectUserId = "privacy-delete-subject";
   const entityPath = `relationship_memberships/family--privacy--${subjectUserId}`;
-  const deletionRequestId = "privacy-delete-request-001";
   await seedReleaseOwner(db);
   await seedCompletedRun(db, { runId, entityPath });
   const beforeRef = db.collection("relationship_migration_before_images")
@@ -431,7 +430,6 @@ test("privacy-deleted before-images reconcile with the final purge audit", {
       evidenceId: privacyEvidenceRef.id,
       migrationRunId: runId,
       beforeImageId: beforeRef.id,
-      deletionRequestId,
       deletedAt: "2026-08-10T00:45:00.000Z",
     });
     transaction.update(db.collection("migration_runs").doc(runId), {
@@ -449,8 +447,12 @@ test("privacy-deleted before-images reconcile with the final purge audit", {
     .where("migrationRunId", "==", runId)
     .get();
   assert.equal(deletionEvidence.size, 1);
-  assert.equal(deletionEvidence.docs[0].data().deletionRequestId,
-    deletionRequestId);
+  assert.equal(
+    Object.values(deletionEvidence.docs[0].data()).some(value =>
+      typeof value === "string" && value.includes(subjectUserId)
+    ),
+    false,
+  );
 
   await recordProductionAcceptanceEvidence(acceptedEvidence({
     runId,

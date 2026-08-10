@@ -66,8 +66,6 @@ function assertPrivacyDeletionEvidence(snapshot, runId, expectedCount) {
       evidence.evidenceId !== document.id ||
       evidence.migrationRunId !== runId ||
       evidence.beforeImageId !== document.id ||
-      typeof evidence.deletionRequestId !== "string" ||
-      !evidence.deletionRequestId ||
       typeof evidence.deletedAt !== "string" ||
       Number.isNaN(Date.parse(evidence.deletedAt))
     ) {
