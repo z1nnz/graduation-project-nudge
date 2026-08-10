@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildRelationshipScopeExport,
+  collectPrivacyExportData,
   collectQueryDocuments,
   createCancelPrivacyDataRequestHandler,
   createCleanupExpiredPrivacyExportsHandler,
@@ -11,6 +12,57 @@ import {
   createRequestPrivacyDataActionHandler,
   normalizePrivacyDataRequest,
 } from "../src/privacy-data-request-service.js";
+
+function fakeExportFirestore(seed = {}) {
+  const snapshot = record => ({
+    id: record.id,
+    exists: true,
+    data: () => structuredClone(record.data),
+  });
+  const queryFor = records => ({
+    orderBy() {
+      return {
+        limit(limit) {
+          return {
+            async get() {
+              const docs = records.slice(0, limit).map(snapshot);
+              return { docs, size: docs.length };
+            },
+          };
+        },
+      };
+    },
+  });
+  return {
+    collection(name) {
+      const records = seed[name] ?? [];
+      return {
+        ...queryFor(records),
+        doc(id) {
+          return {
+            async get() {
+              const record = records.find(item => item.id === id);
+              return record
+                ? snapshot(record)
+                : { id, exists: false, data: () => undefined };
+            },
+          };
+        },
+        where(field, operator, value) {
+          const filtered = records.filter(record => {
+            if (operator === "==") return record.data[field] === value;
+            if (operator === "array-contains") {
+              return Array.isArray(record.data[field]) &&
+                record.data[field].includes(value);
+            }
+            throw new Error(`Unsupported fake export operator: ${operator}`);
+          });
+          return queryFor(filtered);
+        },
+      };
+    },
+  };
+}
 
 function fakePagedQuery(count) {
   const source = Array.from({ length: count }, (_, index) => ({
@@ -191,6 +243,50 @@ test("relationship export DTO omits other participants and private fields", () =
   });
   assert.equal(JSON.stringify(exported).includes("other-user"), false);
   assert.equal(JSON.stringify(exported).includes("private-code"), false);
+});
+
+test("privacy export includes only the requester's relationship migration before-images", async () => {
+  const firestore = fakeExportFirestore({
+    relationship_migration_before_images: [
+      {
+        id: "run--owned",
+        data: {
+          migrationRunId: "run-1",
+          actorUserId: "user-one",
+          entityType: "user_projection",
+          beforeFields: [{ path: "groupId", present: true, value: "group-1" }],
+        },
+      },
+      {
+        id: "run--other",
+        data: {
+          migrationRunId: "run-1",
+          actorUserId: "other-user",
+          entityType: "membership",
+        },
+      },
+    ],
+  });
+
+  const result = await collectPrivacyExportData({
+    firestore,
+    userId: "user-one",
+  });
+
+  assert.deepEqual(
+    result.collections.relationship_migration_before_images,
+    [
+      {
+        id: "run--owned",
+        data: {
+          migrationRunId: "run-1",
+          actorUserId: "user-one",
+          entityType: "user_projection",
+          beforeFields: [{ path: "groupId", present: true, value: "group-1" }],
+        },
+      },
+    ],
+  );
 });
 
 test("export request creates a private artifact, owner state and immutable audit", async () => {

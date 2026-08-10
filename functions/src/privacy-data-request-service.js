@@ -184,6 +184,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     activityReceipts,
     rewardLedgerEntries,
     rewardMigrationBeforeImages,
+    relationshipMigrationBeforeImages,
     activitySessions,
     roomContributions,
     rooms,
@@ -212,6 +213,13 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     readQuery(
       firestore,
       "reward_migration_before_images",
+      "actorUserId",
+      "==",
+      userId,
+    ),
+    readQuery(
+      firestore,
+      "relationship_migration_before_images",
       "actorUserId",
       "==",
       userId,
@@ -256,6 +264,8 @@ export async function collectPrivacyExportData({ firestore, userId }) {
       reward_ledger_entries: rewardLedgerEntries.documents,
       reward_migration_before_images:
         rewardMigrationBeforeImages.documents,
+      relationship_migration_before_images:
+        relationshipMigrationBeforeImages.documents,
       activity_sessions: activitySessions.documents,
       room_contributions: roomContributions.documents,
       rooms: rooms.documents,

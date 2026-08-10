@@ -4,6 +4,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 const PAGE_SIZE = 400;
 const EXECUTION_LEASE_MS = 15 * 60 * 1000;
 const EVIDENCE_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
+const DESTRUCTIVE_OPERATION_GUARD_ID = "destructive_operation_guard";
 
 async function querySnapshots(query) {
   const documents = [];
@@ -65,6 +66,12 @@ function hasActiveAccountOperation(lease, now) {
 
 function hasActivePushDelivery(lease, now) {
   return Date.parse(lease?.leaseUntil) > Date.parse(now);
+}
+
+function ownsAccountDeletionGuard(guard, executionId) {
+  return guard?.active === true &&
+    guard.operationKind === "account_deletion" &&
+    guard.operationId === executionId;
 }
 
 export class FirestoreAccountDeletionRepository {
@@ -194,6 +201,15 @@ export class FirestoreAccountDeletionRepository {
     const pushDeliveryLeaseRef = this.firestore
       .collection("push_delivery_leases")
       .doc(request.userId);
+    const relationshipCutoverRef = this.firestore
+      .collection("system_state")
+      .doc("relationship_membership_cutover");
+    const rewardCutoverRef = this.firestore
+      .collection("system_state")
+      .doc("reward_ledger_cutover");
+    const maintenanceGuardRef = this.firestore
+      .collection("system_state")
+      .doc(DESTRUCTIVE_OPERATION_GUARD_ID);
     const leaseExpiresAt = laterIso(now, EXECUTION_LEASE_MS);
     return this.firestore.runTransaction(async transaction => {
       const [
@@ -202,12 +218,18 @@ export class FirestoreAccountDeletionRepository {
         fenceSnapshot,
         operationLeaseSnapshot,
         pushDeliveryLeaseSnapshot,
+        relationshipCutoverSnapshot,
+        rewardCutoverSnapshot,
+        maintenanceGuardSnapshot,
       ] = await Promise.all([
         transaction.get(requestRef),
         transaction.get(executionRef),
         transaction.get(fenceRef),
         transaction.get(operationLeaseRef),
         transaction.get(pushDeliveryLeaseRef),
+        transaction.get(relationshipCutoverRef),
+        transaction.get(rewardCutoverRef),
+        transaction.get(maintenanceGuardRef),
       ]);
       if (
         fenceSnapshot.exists &&
@@ -228,6 +250,40 @@ export class FirestoreAccountDeletionRepository {
         throw new HttpsError(
           "aborted",
           "The account still has an active push delivery.",
+        );
+      }
+      if (
+        relationshipCutoverSnapshot.exists &&
+        relationshipCutoverSnapshot.data().active === true
+      ) {
+        throw new HttpsError(
+          "aborted",
+          "Account deletion is paused during the Relationship cutover.",
+        );
+      }
+      if (
+        rewardCutoverSnapshot.exists &&
+        rewardCutoverSnapshot.data().writesPaused === true
+      ) {
+        throw new HttpsError(
+          "aborted",
+          "Account deletion is paused during the Reward cutover.",
+        );
+      }
+      const maintenanceGuard = maintenanceGuardSnapshot.exists
+        ? maintenanceGuardSnapshot.data()
+        : null;
+      if (
+        maintenanceGuard?.active === true &&
+        !ownsAccountDeletionGuard(maintenanceGuard, executionRef.id) &&
+        (
+          maintenanceGuard.operationKind !== "account_deletion" ||
+          Date.parse(maintenanceGuard.leaseExpiresAt) > Date.parse(now)
+        )
+      ) {
+        throw new HttpsError(
+          "aborted",
+          "Another destructive operation owns the maintenance guard.",
         );
       }
       if (executionSnapshot.exists) {
@@ -301,6 +357,15 @@ export class FirestoreAccountDeletionRepository {
         createdAt: fenceSnapshot.exists
           ? fenceSnapshot.data().createdAt ?? now
           : now,
+      }, { merge: false });
+      transaction.set(maintenanceGuardRef, {
+        schemaVersion: 1,
+        active: true,
+        operationKind: "account_deletion",
+        operationId: executionRef.id,
+        subjectUserId: request.userId,
+        leaseExpiresAt,
+        updatedAt: now,
       }, { merge: false });
       if (executionSnapshot.exists) {
         transaction.update(executionRef, {
@@ -597,6 +662,7 @@ export class FirestoreAccountDeletionRepository {
       ["activity_receipts", "actorUserId"],
       ["reward_ledger_entries", "actorUserId"],
       ["reward_migration_before_images", "actorUserId"],
+      ["relationship_migration_before_images", "actorUserId"],
       ["activity_sessions", "actorUserId"],
       ["room_contributions", "actorUserId"],
       ["push_installations", "userId"],
@@ -859,12 +925,21 @@ export class FirestoreAccountDeletionRepository {
     const fenceRef = this.firestore
       .collection("account_deletion_fences")
       .doc(request.userId);
+    const maintenanceGuardRef = this.firestore
+      .collection("system_state")
+      .doc(DESTRUCTIVE_OPERATION_GUARD_ID);
     return this.firestore.runTransaction(async transaction => {
-      const [currentSnapshot, executionSnapshot, fenceSnapshot] =
+      const [
+        currentSnapshot,
+        executionSnapshot,
+        fenceSnapshot,
+        maintenanceGuardSnapshot,
+      ] =
         await Promise.all([
         transaction.get(requestRef),
         transaction.get(executionRef),
         transaction.get(fenceRef),
+        transaction.get(maintenanceGuardRef),
       ]);
       if (!currentSnapshot.exists) {
         throw new HttpsError(
@@ -886,7 +961,12 @@ export class FirestoreAccountDeletionRepository {
         execution.attemptCount !== executionAttempt ||
         !fenceSnapshot.exists ||
         fenceSnapshot.data().requestId !== request.requestId ||
-        fenceSnapshot.data().executionId !== executionRef.id
+        fenceSnapshot.data().executionId !== executionRef.id ||
+        !maintenanceGuardSnapshot.exists ||
+        !ownsAccountDeletionGuard(
+          maintenanceGuardSnapshot.data(),
+          executionRef.id,
+        )
       ) {
         throw new HttpsError(
           "failed-precondition",
@@ -933,6 +1013,15 @@ export class FirestoreAccountDeletionRepository {
         updatedAt: now,
         createdAt: execution.createdAt ?? now,
       }, { merge: false });
+      transaction.set(maintenanceGuardRef, {
+        schemaVersion: 1,
+        active: false,
+        operationKind: null,
+        operationId: null,
+        subjectUserId: null,
+        leaseExpiresAt: null,
+        updatedAt: now,
+      }, { merge: false });
       transaction.create(completionAuditRef, {
         schemaVersion: 1,
         auditEventId: completionAuditRef.id,
@@ -975,12 +1064,17 @@ export class FirestoreAccountDeletionRepository {
     const fenceRef = this.firestore
       .collection("account_deletion_fences")
       .doc(request.userId);
+    const maintenanceGuardRef = this.firestore
+      .collection("system_state")
+      .doc(DESTRUCTIVE_OPERATION_GUARD_ID);
     await this.firestore.runTransaction(async transaction => {
-      const [current, execution, failureAudit, fence] = await Promise.all([
+      const [current, execution, failureAudit, fence, maintenanceGuard] =
+        await Promise.all([
         transaction.get(requestRef),
         transaction.get(executionRef),
         transaction.get(failureAuditRef),
         transaction.get(fenceRef),
+        transaction.get(maintenanceGuardRef),
       ]);
       if (
         current.exists &&
@@ -1013,6 +1107,20 @@ export class FirestoreAccountDeletionRepository {
           failureCode,
           updatedAt: now,
         });
+        if (
+          maintenanceGuard.exists &&
+          ownsAccountDeletionGuard(maintenanceGuard.data(), executionRef.id)
+        ) {
+          transaction.set(maintenanceGuardRef, {
+            schemaVersion: 1,
+            active: false,
+            operationKind: null,
+            operationId: null,
+            subjectUserId: null,
+            leaseExpiresAt: null,
+            updatedAt: now,
+          }, { merge: false });
+        }
       }
       if (!failureAudit.exists) {
         transaction.create(failureAuditRef, {

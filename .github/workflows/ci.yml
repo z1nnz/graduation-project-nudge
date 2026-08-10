@@ -96,7 +96,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: functions/package-lock.json
+          cache-dependency-path: |
+            functions/package-lock.json
+            scripts/package-lock.json
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -107,6 +109,7 @@ jobs:
       - name: Install Cloud and Firebase tooling
         run: |
           npm ci --prefix functions
+          npm ci --prefix scripts
           npm install --global firebase-tools@15.18.0
 
       - name: Run Firestore rules and transaction integration tests
@@ -114,7 +117,10 @@ jobs:
           firebase emulators:exec
           --only auth,firestore
           --project nudge-discipline-app
-          'for test_file in test/firestore_*_rules_test.js;
+          'set -e;
+          for test_file in test/firestore_*_rules_test.js;
           do node "$test_file";
           done;
-          node --test functions/test/firestore_activity_ledger_store.test.js'
+          node --test functions/test/firestore_activity_ledger_store.test.js;
+          npm --prefix scripts run test:relationships:emulator;
+          npm --prefix scripts run test:rewards:emulator'

@@ -21,15 +21,40 @@ Before deployment, run the migration from `scripts/`:
 ```text
 npm run migrate:relationships
 npm run migrate:relationships:apply
+npm run migrate:relationships:rollback
 ```
 
 The first command is read-only. It reports malformed parent relationships,
 planned Membership upserts, and users with legacy projections. The apply
-command refuses to continue while issues exist unless an operator explicitly
-uses `--allow-issues`; successful and failed runs are recorded in
-`migration_runs`. It preserves existing Membership creation/activation audit
+command refuses to continue while issues exist; successful, failed,
+rolling-back and rolled-back runs are
+recorded in `migration_runs`. It preserves existing Membership
+creation/activation audit
 timestamps, removes only the retired group and guardian-invite projection
 fields, and leaves unrelated `webToolsState` content intact.
+
+Every applied Membership and user cleanup transaction first writes one private,
+run-owned `relationship_migration_before_images` record. If a cutover fails and
+cannot safely resume, rollback atomically restores pre-existing Memberships,
+deletes Memberships created by that run, and restores only the user fields the
+migration touched. It verifies the post-apply fingerprint before every restore,
+so an operator must resolve later changes instead of overwriting them. The
+rollback keeps the fence active on any mismatch and is safe to resume under a
+new owner token. Apply resume never replaces an existing before-image: it skips
+an already-applied entity only when the current fingerprint still equals the
+immutable post-apply fingerprint. Captured and restored before-image counters
+are updated in the same transactions as their records, so missing evidence
+cannot be mistaken for a completed rollback.
+
+Relationship and Reward cutovers share
+`system_state/destructive_operation_guard` with formal account deletion. The
+shared document is claimed and checked transactionally in both directions, so
+neither a cutover nor deletion can start after the other has acquired the
+guard. Relationship before-images carry the explicit retention policy
+`until_fresh_install_acceptance`; there is deliberately no time-based TTL that
+could destroy rollback evidence before production acceptance. Their audited
+purge remains a required post-acceptance operation and must not run while a
+cutover fence is active.
 
 Legacy projection reads and lazy repair remain temporarily so an older account
 can be recovered before the one-time production migration. They must be removed

@@ -13,7 +13,8 @@
     "test:rewards:emulator": "node --test test/reward_migration_execution.test.js",
     "test:relationships:emulator": "node --test test/relationship_migration_execution.test.js",
     "migrate:relationships": "node migrate_relationship_memberships.js",
-    "migrate:relationships:apply": "node migrate_relationship_memberships.js --apply"
+    "migrate:relationships:apply": "node migrate_relationship_memberships.js --apply",
+    "migrate:relationships:rollback": "node migrate_relationship_memberships.js --rollback"
   },
   "dependencies": {
     "firebase-admin": "^12.0.0"
