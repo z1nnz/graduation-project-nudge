@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "acceptanceEvidenceId": "release-YYYYMMDD-HHMM",
+  "status": "accepted",
+  "environment": "production",
+  "projectId": "your-production-firebase-project-id",
+  "relationshipMigrationRunId": "migration_runs document id",
+  "realAccountE2e": {
+    "accepted": true,
+    "runId": "production real-account E2E run id",
+    "artifactSha256": "64-character lowercase SHA-256"
+  },
+  "freshInstall": {
+    "ios": {
+      "accepted": true,
+      "artifactSha256": "64-character lowercase SHA-256"
+    },
+    "android": {
+      "accepted": true,
+      "artifactSha256": "64-character lowercase SHA-256"
+    }
+  },
+  "acceptedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+  "acceptedBy": "release owner Firebase user id"
+}

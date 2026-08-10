@@ -60,6 +60,14 @@ test("privacy export secrets stay outside client-readable Firestore", () => {
     /\["relationship_migration_before_images", "actorUserId"\]/,
   );
   assert.match(
+    rules,
+    /match \/relationship_migration_before_images\/\{beforeImageId\}[\s\S]*allow read, write: if false/,
+  );
+  assert.match(
+    rules,
+    /match \/production_acceptance_evidence\/\{evidenceId\}[\s\S]*allow read, write: if false/,
+  );
+  assert.match(
     storageRules,
     /match \/privacy_exports\/\{userId\}\/\{fileName\}[\s\S]*allow read, write: if false/,
   );
