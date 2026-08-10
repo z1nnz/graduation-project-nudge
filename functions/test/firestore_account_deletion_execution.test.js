@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
 import { deleteApp, initializeApp } from "firebase-admin/app";
@@ -17,6 +18,115 @@ const emulatorEnabled = Boolean(
   process.env.FIREBASE_AUTH_EMULATOR_HOST,
 );
 const projectId = "nudge-discipline-app";
+
+function relationshipBeforeImageId(runId, entityPath) {
+  const digest = createHash("sha256")
+    .update(JSON.stringify(entityPath))
+    .digest("hex");
+  return `${runId}--${digest.slice(0, 32)}`;
+}
+
+test(
+  "account deletion atomically records removed Relationship rollback evidence",
+  { skip: !emulatorEnabled, timeout: 30_000 },
+  async () => {
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const subjectUserId = `privacy-before-image-${suffix}`;
+    const requestId = `${subjectUserId}--privacy-delete-before-image-${suffix}`;
+    const runId = `relationship-run-${suffix}`;
+    const entityPath =
+      `relationship_memberships/family--privacy--${subjectUserId}`;
+    const beforeImageDocumentId = relationshipBeforeImageId(runId, entityPath);
+    const app = initializeApp(
+      { projectId },
+      `account-deletion-before-image-${suffix}`,
+    );
+    const firestore = getFirestore(app);
+    const repository = new FirestoreAccountDeletionRepository({
+      firestore,
+      auth: getAuth(app),
+      bucket: null,
+    });
+    const plan = {
+      operations: {
+        leaveGroupIds: [],
+        deleteOwnedRoomIds: [],
+        deleteFamilyLinkIds: [],
+        redactEndedFamilyLinkIds: [],
+        deleteOwnedGroupIds: [],
+      },
+    };
+    const beforeRef = firestore
+      .collection("relationship_migration_before_images")
+      .doc(beforeImageDocumentId);
+    try {
+      await Promise.all([
+        firestore.collection("users").doc(subjectUserId)
+          .set({ nickname: "remove" }),
+        firestore.collection("migration_runs").doc(runId).set({
+          type: "relationship_membership_projection_cutover",
+          status: "completed",
+          capturedMembershipBeforeImages: 1,
+          capturedUserBeforeImages: 0,
+        }),
+        beforeRef.set({
+          schemaVersion: 1,
+          migrationRunId: runId,
+          entityType: "membership",
+          entityPath,
+          actorUserId: subjectUserId,
+          retentionPolicy: "until_fresh_install_acceptance",
+        }),
+      ]);
+
+      const input = {
+        userId: subjectUserId,
+        request: { requestId },
+        plan,
+        now: "2026-08-10T00:45:00.000Z",
+      };
+      await repository.eraseAccountData(input);
+      await repository.eraseAccountData(input);
+
+      assert.equal((await beforeRef.get()).exists, false);
+      const run = (
+        await firestore.collection("migration_runs").doc(runId).get()
+      ).data();
+      assert.equal(run.privacyDeletedBeforeImageCount, 1);
+      const evidence = (
+        await firestore
+          .collection("relationship_before_image_privacy_deletions")
+          .doc(beforeImageDocumentId)
+          .get()
+      ).data();
+      assert.equal(evidence.migrationRunId, runId);
+      assert.equal(evidence.beforeImageId, beforeImageDocumentId);
+      assert.equal(Object.hasOwn(evidence, "actorUserId"), false);
+      assert.equal(Object.hasOwn(evidence, "deletionRequestId"), false);
+      assert.equal(
+        Object.hasOwn(evidence, "deletionRequestFingerprint"),
+        false,
+      );
+      assert.equal(
+        Object.values(evidence).some(value =>
+          typeof value === "string" && value.includes(subjectUserId)
+        ),
+        false,
+      );
+    } finally {
+      await Promise.all([
+        firestore.collection("migration_runs").doc(runId).delete()
+          .catch(() => {}),
+        firestore
+          .collection("relationship_before_image_privacy_deletions")
+          .doc(beforeImageDocumentId)
+          .delete()
+          .catch(() => {}),
+      ]);
+      await deleteApp(app);
+    }
+  },
+);
 
 test(
   "account deletion executor removes Auth, Ledger and relationship data",

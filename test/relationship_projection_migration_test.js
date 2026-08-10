@@ -18,6 +18,19 @@ test("relationship migration exposes an explicit emergency rollback command", ()
     packageJson.scripts["migrate:relationships:rollback"],
     "node migrate_relationship_memberships.js --rollback",
   );
+  assert.equal(
+    packageJson.scripts["migrate:relationships:purge-before-images"],
+    "node purge_relationship_migration_before_images.js",
+  );
+  assert.equal(
+    packageJson.scripts["record:production-acceptance"],
+    "node purge_relationship_migration_before_images.js --record-acceptance",
+  );
+  assert.equal(
+    packageJson.scripts["test:relationships:emulator"],
+    "node --test test/relationship_migration_execution.test.js " +
+      "test/relationship_migration_purge_execution.test.js",
+  );
   const workflow = fs.readFileSync(
     path.resolve(__dirname, "../.github/workflows/ci.yml"),
     "utf8",

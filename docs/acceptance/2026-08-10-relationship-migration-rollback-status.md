@@ -50,5 +50,23 @@ On an authenticated release machine, the operator must still run a production
 dry-run, resolve every issue, apply the cutover, and run the dry-run again. The
 rollback command is an emergency path for an active failed run, not a substitute
 for the second clean dry-run or real-account App/Web context-switch acceptance.
-After fresh-install acceptance, an audited before-image purge command/job must
-be implemented and exercised before the retention gate is closed.
+The post-acceptance command is now implemented locally. It requires a
+project/run-bound production acceptance manifest with successful real-account
+E2E plus both iOS and Android fresh-install artifact hashes. Recording that
+manifest and purging are separate, idempotent, audited operations; the purge is
+resumable and verifies its atomic
+`captured = privacyDeleted + purged` counters before release. Account deletion
+records any earlier privacy removal without retaining the subject user ID:
+
+```sh
+npm --prefix scripts run record:production-acceptance -- \
+  --manifest=/absolute/path/to/production-acceptance.json
+
+npm --prefix scripts run migrate:relationships:purge-before-images -- \
+  --run-id=RELATIONSHIP_MIGRATION_RUN_ID \
+  --acceptance-evidence-id=ACCEPTANCE_EVIDENCE_ID
+```
+
+Use `production-acceptance-evidence.example.json` as the schema reference. The
+commands have passed isolated Emulator acceptance but have not been run against
+production; the retention gate therefore remains open.

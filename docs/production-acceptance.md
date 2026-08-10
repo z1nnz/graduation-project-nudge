@@ -81,8 +81,33 @@ deletion and both cutovers transactionally claim the shared
 `system_state/destructive_operation_guard`, covering either acquisition order
 so privacy cleanup cannot remove evidence required by an in-progress rollback.
 Before-images are retained under `until_fresh_install_acceptance`, with no TTL
-before acceptance. Implementing and exercising their audited post-acceptance
-purge remains a production deployment gate.
+before acceptance. After the production migration, real-account E2E, and both
+fresh-install artifacts are accepted, prepare the versioned manifest described
+by
+[`acceptance/production-acceptance-evidence.example.json`](acceptance/production-acceptance-evidence.example.json),
+then run:
+
+```sh
+npm --prefix scripts run record:production-acceptance -- \
+  --manifest=/absolute/path/to/production-acceptance.json
+npm --prefix scripts run migrate:relationships:purge-before-images -- \
+  --run-id=RELATIONSHIP_MIGRATION_RUN_ID \
+  --acceptance-evidence-id=ACCEPTANCE_EVIDENCE_ID
+```
+
+The first command immutably records a project/run-bound acceptance document and
+audit; `acceptedBy` must resolve to an existing Firebase user with
+`developerAccess` or the `developer`, `operator`, or `admin` staff role. One
+migration run can bind only one acceptance evidence ID, and evidence timestamped
+before migration completion or in the future is rejected. The second
+claims the shared destructive-operation guard, supports restart after partial
+deletion, and verifies `captured = privacyDeleted + purged` before writing one
+immutable purge audit and releasing the guard. If an accepted account-deletion
+request removes a user's rollback evidence first, that removal and a
+non-identifying operational evidence record are committed atomically so the
+later purge can reconcile the canonical captured total. Both commands are
+locally Emulator-verified but
+must still be exercised in production before the retention gate is closed.
 
 - Activity rewards and shop debits now use Cloud-owned
   `reward_ledger_entries`. A normal App/Web timer completion is rewardable only

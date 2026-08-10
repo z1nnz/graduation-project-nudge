@@ -2063,6 +2063,24 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Migration rollback evidence and release acceptance records are
+    // server-only operational state. User exports are produced by Cloud.
+    match /relationship_migration_before_images/{beforeImageId} {
+      allow read, write: if false;
+    }
+
+    match /relationship_before_image_privacy_deletions/{evidenceId} {
+      allow read, write: if false;
+    }
+
+    match /production_acceptance_evidence/{evidenceId} {
+      allow read, write: if false;
+    }
+
+    match /migration_runs/{migrationRunId} {
+      allow read, write: if false;
+    }
+
     match /push_delivery_state/{userId} {
       allow read: if isOwner(userId) || isStaff();
       allow write: if false;
