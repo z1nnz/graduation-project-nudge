@@ -1580,37 +1580,6 @@ service cloud.firestore {
             && request.resource.data.updatedAt is string;
         }
 
-        function validActiveSessionPointerChange() {
-          let beforeId = resource.data.keys().hasAny(['activeSessionId'])
-            ? resource.data.activeSessionId
-            : null;
-          let afterId = request.resource.data.activeSessionId;
-          return beforeId == afterId
-            || (
-              beforeId == null
-              && afterId is string
-              && existsAfter(
-                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(afterId)
-              )
-              && getAfter(
-                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(afterId)
-              ).data.actorId == memberId
-              && getAfter(
-                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(afterId)
-              ).data.status == 'active'
-            )
-            || (
-              beforeId is string
-              && afterId == null
-              && existsAfter(
-                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(beforeId)
-              )
-              && getAfter(
-                /databases/$(database)/documents/rooms/$(roomId)/activity_sessions/$(beforeId)
-              ).data.status in ['completed', 'cancelled']
-            );
-        }
-
         function ownerChangesApproval() {
           return roomDocument().data.ownerId == request.auth.uid
             && memberId != roomDocument().data.ownerId
@@ -1672,7 +1641,8 @@ service cloud.firestore {
               && request.resource.data.role == resource.data.role
               && request.resource.data.approvalStatus
                 == resource.data.approvalStatus
-              && validActiveSessionPointerChange()
+              && request.resource.data.activeSessionId
+                == resource.data.activeSessionId
             )
             || ownerChangesApproval()
             || ownerChangesRoleDuringTransfer()
@@ -1688,106 +1658,10 @@ service cloud.firestore {
       }
 
       match /activity_sessions/{sessionId} {
-        function validRoomSession() {
-          return request.resource.data.keys().hasOnly([
-              'schemaVersion', 'sessionId', 'roomId', 'actorId',
-              'activityKind', 'metricUnit', 'targetValue', 'metricValue',
-              'source', 'status', 'startedAt', 'updatedAt', 'endedAt'
-            ])
-            && request.resource.data.keys().hasAll([
-              'schemaVersion', 'sessionId', 'roomId', 'actorId',
-              'activityKind', 'metricUnit', 'targetValue', 'metricValue',
-              'source', 'status', 'startedAt', 'updatedAt', 'endedAt'
-            ])
-            && request.resource.data.schemaVersion == 1
-            && request.resource.data.sessionId == sessionId
-            && request.resource.data.roomId == roomId
-            && request.resource.data.actorId is string
-            && request.resource.data.activityKind in [
-              'focus', 'sleep', 'exercise', 'steps', 'custom'
-            ]
-            && request.resource.data.metricUnit is string
-            && request.resource.data.metricUnit.size() > 0
-            && request.resource.data.metricUnit.size() <= 20
-            && request.resource.data.targetValue is number
-            && request.resource.data.targetValue > 0
-            && request.resource.data.metricValue is number
-            && request.resource.data.metricValue >= 0
-            && request.resource.data.source in [
-              'app', 'web', 'health', 'device'
-            ]
-            && request.resource.data.status in [
-              'active', 'paused', 'completed', 'cancelled'
-            ]
-            && request.resource.data.startedAt is string
-            && request.resource.data.updatedAt is string
-            && (
-              request.resource.data.endedAt == null
-              || request.resource.data.endedAt is string
-            );
-        }
-
-        function validSessionTransition() {
-          return request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['status', 'metricValue', 'updatedAt', 'endedAt'])
-            && request.resource.data.metricValue >= resource.data.metricValue
-            && (
-              (
-                resource.data.status == 'active'
-                && request.resource.data.status in [
-                  'paused', 'completed', 'cancelled'
-                ]
-              )
-              || (
-                resource.data.status == 'paused'
-                && request.resource.data.status in [
-                  'active', 'completed', 'cancelled'
-                ]
-              )
-            )
-            && (
-              (
-                request.resource.data.status in ['active', 'paused']
-                && request.resource.data.endedAt == null
-              )
-              || (
-                request.resource.data.status in ['completed', 'cancelled']
-                && request.resource.data.endedAt is string
-              )
-            );
-        }
-
         allow read: if isApprovedRoomParticipant();
-        allow create: if isApprovedActiveRoomParticipant()
-          && validRoomSession()
-          && request.resource.data.actorId == request.auth.uid
-          && getAfter(
-            /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
-          ).data.activeSessionId == sessionId
-          && request.resource.data.status == 'active'
-          && request.resource.data.metricValue == 0
-          && request.resource.data.endedAt == null;
-        allow update: if isApprovedActiveRoomParticipant()
-          && resource.data.actorId == request.auth.uid
-          && request.resource.data.actorId == resource.data.actorId
-          && request.resource.data.sessionId == resource.data.sessionId
-          && request.resource.data.roomId == resource.data.roomId
-          && validRoomSession()
-          && validSessionTransition()
-          && (
-            (
-              request.resource.data.status in ['active', 'paused']
-              && getAfter(
-                /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
-              ).data.activeSessionId == sessionId
-            )
-            || (
-              request.resource.data.status in ['completed', 'cancelled']
-              && getAfter(
-                /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
-              ).data.activeSessionId == null
-            )
-          );
+        // Canonical room sessions and member pointers are written only by the
+        // Cloud Activity Ledger transaction. Clients call recordActivity.
+        allow create, update: if false;
         allow delete: if false;
       }
 

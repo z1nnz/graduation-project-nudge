@@ -10,6 +10,131 @@ import { FirestoreActivityLedgerStore } from "../src/firestore-activity-ledger-s
 const emulatorEnabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 
 test(
+  "Firestore commits room Ledger and member session projection together",
+  { skip: !emulatorEnabled },
+  async () => {
+    const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const app = initializeApp(
+      { projectId: process.env.GCLOUD_PROJECT || "nudge-discipline-app" },
+      `activity-room-ledger-${unique}`,
+    );
+    const firestore = getFirestore(app);
+    const actorUserId = `room-actor-${unique}`;
+    const roomId = `room-ledger-${unique}`;
+    const sessionId = `room-session-${unique}`;
+    const roomRef = firestore.collection("rooms").doc(roomId);
+    const memberRef = roomRef.collection("members").doc(actorUserId);
+    await roomRef.set({ status: "active" });
+    await memberRef.set({
+      memberId: actorUserId,
+      approvalStatus: "approved",
+      sharingConsented: true,
+      activeSessionId: null,
+    });
+    const service = new ActivityLedgerService({
+      store: new FirestoreActivityLedgerStore({ firestore }),
+      clock: () => new Date("2026-08-09T09:00:01.000Z"),
+    });
+    const startedSession = {
+      schemaVersion: 1,
+      sessionId,
+      roomId,
+      actorId: actorUserId,
+      activityKind: "focus",
+      metricUnit: "minutes",
+      targetValue: 25,
+      metricValue: 0,
+      source: "app",
+      status: "active",
+      startedAt: "2026-08-09T09:00:00.000Z",
+      updatedAt: "2026-08-09T09:00:00.000Z",
+      endedAt: null,
+    };
+    const baseEvidence = {
+      eventId: `room-start-${unique}`,
+      sourceRecordId: `room-source-start-${unique}`,
+      sessionId,
+      activityCorrelationId: sessionId,
+      actorUserId,
+      roomIds: [roomId],
+      activityType: "focus",
+      source: "app",
+      eventType: "started",
+      metricValue: 0,
+      metricUnit: "minutes",
+      occurredAt: startedSession.updatedAt,
+      roomSession: startedSession,
+    };
+
+    await service.record({ kind: "user", userId: actorUserId }, baseEvidence);
+
+    assert.equal((await memberRef.get()).data().activeSessionId, sessionId);
+    assert.deepEqual(
+      (await roomRef.collection("activity_sessions").doc(sessionId).get()).data(),
+      startedSession,
+    );
+
+    const secondSessionId = `room-session-second-${unique}`;
+    const secondStartedAt = "2026-08-09T09:00:00.500Z";
+    const secondSession = {
+      ...startedSession,
+      sessionId: secondSessionId,
+      startedAt: secondStartedAt,
+      updatedAt: secondStartedAt,
+    };
+    await assert.rejects(
+      service.record(
+        { kind: "user", userId: actorUserId },
+        {
+          ...baseEvidence,
+          eventId: `room-start-second-${unique}`,
+          sourceRecordId: `room-source-start-second-${unique}`,
+          sessionId: secondSessionId,
+          activityCorrelationId: secondSessionId,
+          occurredAt: secondStartedAt,
+          roomSession: secondSession,
+        },
+      ),
+      /active room activity session/i,
+    );
+    assert.equal((await memberRef.get()).data().activeSessionId, sessionId);
+    assert.equal(
+      (await roomRef
+        .collection("activity_sessions")
+        .doc(secondSessionId)
+        .get()).exists,
+      false,
+    );
+
+    const discardedAt = "2026-08-09T09:00:01.000Z";
+    const discardedSession = {
+      ...startedSession,
+      status: "cancelled",
+      updatedAt: discardedAt,
+      endedAt: discardedAt,
+    };
+    await service.record(
+      { kind: "user", userId: actorUserId },
+      {
+        ...baseEvidence,
+        eventId: `room-discard-${unique}`,
+        sourceRecordId: `room-source-discard-${unique}`,
+        eventType: "discarded",
+        occurredAt: discardedAt,
+        roomSession: discardedSession,
+      },
+    );
+
+    assert.equal((await memberRef.get()).data().activeSessionId, null);
+    assert.deepEqual(
+      (await roomRef.collection("activity_sessions").doc(sessionId).get()).data(),
+      discardedSession,
+    );
+    await deleteApp(app);
+  },
+);
+
+test(
   "Firestore persists one settlement and room contribution atomically",
   { skip: !emulatorEnabled },
   async () => {

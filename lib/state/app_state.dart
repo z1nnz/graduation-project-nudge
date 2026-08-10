@@ -33,6 +33,7 @@ import '../models/user_notification.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
+import '../services/activity_ingestion.dart';
 import '../services/activity_ledger_outbox.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
 import '../services/cloud_health_snapshot_gateway.dart';
@@ -44,6 +45,7 @@ import '../services/cloud_reward_purchase_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/push_notification_service.dart';
+import '../services/room_activity_session_ledger_gateway.dart';
 import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
 
@@ -111,6 +113,7 @@ class AppState extends ChangeNotifier {
   final CloudRewardAvatarGateway _rewardAvatarGateway;
   final CloudRewardPurchaseGateway _rewardPurchaseGateway;
   final PushNotificationService _pushNotificationService;
+  final RoomActivitySessionLedgerGateway _roomActivitySessionLedgerGateway;
 
   AppState({
     ActivityLedgerOutbox? activityLedgerOutbox,
@@ -122,6 +125,7 @@ class AppState extends ChangeNotifier {
     CloudRewardAvatarGateway? rewardAvatarGateway,
     CloudRewardPurchaseGateway? rewardPurchaseGateway,
     PushNotificationService? pushNotificationService,
+    RoomActivitySessionLedgerGateway? roomActivitySessionLedgerGateway,
   }) : _activityLedgerOutbox =
            activityLedgerOutbox ??
            ActivityLedgerOutbox(
@@ -146,7 +150,10 @@ class AppState extends ChangeNotifier {
        _rewardPurchaseGateway =
            rewardPurchaseGateway ?? CloudRewardPurchaseGateway.firebase(),
        _pushNotificationService =
-           pushNotificationService ?? PushNotificationService() {
+           pushNotificationService ?? PushNotificationService(),
+       _roomActivitySessionLedgerGateway =
+           roomActivitySessionLedgerGateway ??
+           CloudRoomActivitySessionLedgerGateway() {
     _pushNotificationService.setRouteHandler(_handlePushNotificationRoute);
     _listenToAuthChanges();
   }
@@ -6700,14 +6707,48 @@ class AppState extends ChangeNotifier {
     _saveTasks();
   }
 
-  void updateHealthData({
+  Future<bool> updateHealthData({
     required bool isConnected,
     required double sleepHours,
     required int steps,
     required int exerciseMinutes,
     List<HealthActivitySnapshot> snapshots = const [],
-  }) {
+  }) async {
     _checkDailyResetSync();
+
+    final hasReportedMetrics =
+        sleepHours > 0 || steps > 0 || exerciseMinutes > 0;
+    if (_currentUser != null && hasReportedMetrics && snapshots.isEmpty) {
+      debugPrint(
+        'Signed-in health metrics were not projected because no canonical '
+        'Health Activity Ledger snapshots were supplied.',
+      );
+      return false;
+    }
+
+    if (snapshots.isNotEmpty) {
+      if (_currentUser == null) {
+        debugPrint(
+          'Health Activity Ledger ingestion requires a signed-in user.',
+        );
+        return false;
+      }
+      try {
+        final report = await _queueHealthSnapshots(snapshots);
+        if (report.retryBlocked ||
+            report.permanentlyRejected > 0 ||
+            report.succeeded.length < snapshots.length) {
+          debugPrint(
+            'Health Activity Ledger ingestion was not fully accepted by '
+            'Cloud; the local projection remains unchanged.',
+          );
+          return false;
+        }
+      } catch (error) {
+        debugPrint('Unable to ingest Health Activity Ledger snapshots: $error');
+        return false;
+      }
+    }
 
     _isHealthConnected = isConnected;
     _sleepHours = sleepHours;
@@ -6721,9 +6762,7 @@ class AppState extends ChangeNotifier {
     _saveHealthData();
     _saveStudyRooms();
     _saveTasks();
-    if (snapshots.isNotEmpty) {
-      unawaited(_queueHealthSnapshots(snapshots));
-    }
+    return true;
   }
 
   Future<void> clearHealthData() async {
@@ -7865,33 +7904,19 @@ class AppState extends ChangeNotifier {
       source: source,
       now: now,
     );
+    final evidence = _roomActivityLedgerEvidence(
+      session,
+      ActivityEventType.started,
+    );
+    if (evidence != null) {
+      await _roomActivitySessionLedgerGateway.record(
+        evidence: evidence,
+        session: session,
+      );
+    }
     _roomActivitySessions[session.sessionId] = session;
     _roomActiveSessionIds[roomId] = session.sessionId;
     notifyListeners();
-
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        final firestore = FirebaseFirestore.instance;
-        final roomRef = firestore.collection('rooms').doc(roomId);
-        final batch = firestore.batch();
-        batch.update(roomRef.collection('members').doc(user.id), {
-          'activeSessionId': session.sessionId,
-          'updatedAt': now.toIso8601String(),
-        });
-        batch.set(
-          roomRef.collection('activity_sessions').doc(session.sessionId),
-          session.toJson(),
-        );
-        await batch.commit();
-      } catch (_) {
-        _roomActivitySessions.remove(session.sessionId);
-        _roomActiveSessionIds.remove(roomId);
-        notifyListeners();
-        rethrow;
-      }
-    }
-    await _queueRoomActivityLedgerEvent(session, ActivityEventType.started);
     return session;
   }
 
@@ -7908,56 +7933,33 @@ class AppState extends ChangeNotifier {
       metricValue: metricValue,
       now: DateTime.now().toUtc(),
     );
+    final eventType = switch (status) {
+      RoomActivitySessionStatus.active => ActivityEventType.resumed,
+      RoomActivitySessionStatus.paused => ActivityEventType.paused,
+      RoomActivitySessionStatus.completed => ActivityEventType.completed,
+      RoomActivitySessionStatus.cancelled => ActivityEventType.discarded,
+    };
+    final evidence = _roomActivityLedgerEvidence(next, eventType);
+    if (evidence != null) {
+      await _roomActivitySessionLedgerGateway.record(
+        evidence: evidence,
+        session: next,
+      );
+    }
     _roomActivitySessions[sessionId] = next;
     if (next.isTerminal) {
       _roomActiveSessionIds.remove(current.roomId);
     }
     notifyListeners();
-
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        final firestore = FirebaseFirestore.instance;
-        final roomRef = firestore.collection('rooms').doc(current.roomId);
-        if (next.isTerminal) {
-          final batch = firestore.batch();
-          batch.update(roomRef.collection('members').doc(user.id), {
-            'activeSessionId': null,
-            'updatedAt': next.updatedAt.toIso8601String(),
-          });
-          batch.set(
-            roomRef.collection('activity_sessions').doc(sessionId),
-            next.toJson(),
-          );
-          await batch.commit();
-        } else {
-          await roomRef
-              .collection('activity_sessions')
-              .doc(sessionId)
-              .set(next.toJson());
-        }
-      } catch (_) {
-        _roomActivitySessions[sessionId] = current;
-        _roomActiveSessionIds[current.roomId] = current.sessionId;
-        notifyListeners();
-        rethrow;
-      }
-    }
-    await _queueRoomActivityLedgerEvent(next, switch (status) {
-      RoomActivitySessionStatus.active => ActivityEventType.resumed,
-      RoomActivitySessionStatus.paused => ActivityEventType.paused,
-      RoomActivitySessionStatus.completed => ActivityEventType.completed,
-      RoomActivitySessionStatus.cancelled => ActivityEventType.discarded,
-    });
     return next;
   }
 
-  Future<void> _queueRoomActivityLedgerEvent(
+  ActivityEvidence? _roomActivityLedgerEvidence(
     RoomActivitySession session,
     ActivityEventType eventType,
-  ) async {
+  ) {
     final user = _currentUser;
-    if (user == null) return;
+    if (user == null) return null;
     final source = switch (session.source) {
       RoomActivitySource.app => ActivitySource.app,
       RoomActivitySource.web => ActivitySource.web,
@@ -7965,7 +7967,9 @@ class AppState extends ChangeNotifier {
       RoomActivitySource.device => ActivitySource.device,
     };
     if (source != ActivitySource.app && source != ActivitySource.web) {
-      return;
+      throw const ActivityValidationException(
+        'Health and device room activity require trusted Cloud ingestion.',
+      );
     }
     final activityType = switch (session.activityKind) {
       RoomActivityKind.focus => ActivityType.focus,
@@ -7979,24 +7983,21 @@ class AppState extends ChangeNotifier {
       eventType.name,
       session.updatedAt.microsecondsSinceEpoch,
     ].join('_');
-    await _activityLedgerOutbox.enqueue(
-      ActivityEvidence(
-        eventId: eventId,
-        sourceRecordId: eventId,
-        sessionId: session.sessionId,
-        activityCorrelationId: session.sessionId,
-        submittedByUserId: user.id,
-        actorUserId: user.id,
-        roomIds: [session.roomId],
-        activityType: activityType,
-        source: source,
-        eventType: eventType,
-        metricValue: session.metricValue,
-        metricUnit: session.metricUnit,
-        occurredAt: session.updatedAt,
-      ),
+    return ActivityEvidence(
+      eventId: eventId,
+      sourceRecordId: eventId,
+      sessionId: session.sessionId,
+      activityCorrelationId: session.sessionId,
+      submittedByUserId: user.id,
+      actorUserId: user.id,
+      roomIds: [session.roomId],
+      activityType: activityType,
+      source: source,
+      eventType: eventType,
+      metricValue: session.metricValue,
+      metricUnit: session.metricUnit,
+      occurredAt: session.updatedAt,
     );
-    unawaited(_activityLedgerOutbox.flush());
   }
 
   Future<void> queuePersonalFocusLedgerEvent({
@@ -8089,10 +8090,14 @@ class AppState extends ChangeNotifier {
         .toList(growable: false);
   }
 
-  Future<void> _queueHealthSnapshots(
+  Future<HealthSnapshotFlushReport> _queueHealthSnapshots(
     List<HealthActivitySnapshot> snapshots,
   ) async {
-    if (_currentUser == null) return;
+    if (_currentUser == null) {
+      throw const ActivityAuthorizationException(
+        'Health Activity Ledger ingestion requires a signed-in user.',
+      );
+    }
     final enriched = snapshots
         .map(
           (snapshot) => snapshot.copyWith(
@@ -8101,7 +8106,7 @@ class AppState extends ChangeNotifier {
         )
         .toList(growable: false);
     await _healthSnapshotOutbox.enqueueAll(enriched);
-    unawaited(_healthSnapshotOutbox.flush());
+    return _healthSnapshotOutbox.flush();
   }
 
   void clearMyStudyRoomPresence(String roomId) {

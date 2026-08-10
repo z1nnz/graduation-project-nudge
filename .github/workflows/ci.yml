@@ -1,0 +1,120 @@
+name: Nudge Pull Request Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nudge-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Flutter analyze and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.7
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze Flutter
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
+
+  web-contracts:
+    name: Web and shared contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install script dependencies
+        run: npm ci --prefix scripts
+
+      - name: Run Web and shared contract tests
+        run: node --test test/*.js
+
+  cloud-functions:
+    name: Cloud Functions tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Cloud dependencies
+        run: npm ci --prefix functions
+
+      - name: Run Cloud unit tests
+        run: npm --prefix functions test
+
+  firestore-rules:
+    name: Firestore rules and transaction tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Cloud and Firebase tooling
+        run: |
+          npm ci --prefix functions
+          npm install --global firebase-tools@15.18.0
+
+      - name: Run Firestore rules and transaction integration tests
+        run: >-
+          firebase emulators:exec
+          --only auth,firestore
+          --project nudge-discipline-app
+          'for test_file in test/firestore_*_rules_test.js;
+          do node "$test_file";
+          done;
+          node --test functions/test/firestore_activity_ledger_store.test.js'

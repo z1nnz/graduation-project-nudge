@@ -85,6 +85,7 @@ function evidenceSignature(evidence) {
     evidence.occurredAt,
     evidence.deviceId,
     evidence.healthContext,
+    evidence.roomSession,
   ]);
 }
 
@@ -516,6 +517,87 @@ function normalizeHealthContext(rawContext) {
   };
 }
 
+function normalizeRoomSession(rawSession, evidence) {
+  if (rawSession === null || rawSession === undefined) return null;
+  if (
+    rawSession === null ||
+    typeof rawSession !== "object" ||
+    Array.isArray(rawSession)
+  ) {
+    throw new ActivityLedgerValidationError(
+      "Room activity session must be an object.",
+    );
+  }
+  const requiredStrings = [
+    rawSession.sessionId,
+    rawSession.roomId,
+    rawSession.actorId,
+    rawSession.activityKind,
+    rawSession.metricUnit,
+    rawSession.source,
+    rawSession.status,
+    rawSession.startedAt,
+    rawSession.updatedAt,
+  ];
+  const expectedStatus = {
+    started: "active",
+    paused: "paused",
+    resumed: "active",
+    completed: "completed",
+    discarded: "cancelled",
+  }[evidence.eventType];
+  const startedAt = new Date(rawSession.startedAt);
+  const updatedAt = new Date(rawSession.updatedAt);
+  const endedAt = rawSession.endedAt === null || rawSession.endedAt === undefined
+    ? null
+    : new Date(rawSession.endedAt);
+  const terminal = ["completed", "cancelled"].includes(expectedStatus);
+  if (
+    rawSession.schemaVersion !== 1 ||
+    requiredStrings.some(value =>
+      typeof value !== "string" || value.trim().length === 0) ||
+    rawSession.sessionId !== evidence.sessionId ||
+    evidence.activityCorrelationId !== evidence.sessionId ||
+    evidence.roomIds.length !== 1 ||
+    rawSession.roomId !== evidence.roomIds[0] ||
+    rawSession.actorId !== evidence.actorUserId ||
+    rawSession.activityKind !== evidence.activityType ||
+    rawSession.metricUnit !== evidence.metricUnit ||
+    rawSession.metricValue !== evidence.metricValue ||
+    rawSession.source !== evidence.source ||
+    rawSession.status !== expectedStatus ||
+    typeof rawSession.targetValue !== "number" ||
+    !Number.isFinite(rawSession.targetValue) ||
+    rawSession.targetValue <= 0 ||
+    Number.isNaN(startedAt.getTime()) ||
+    Number.isNaN(updatedAt.getTime()) ||
+    startedAt.getTime() > updatedAt.getTime() ||
+    updatedAt.getTime() !== new Date(evidence.occurredAt).getTime() ||
+    (terminal &&
+      (endedAt === null || endedAt.getTime() !== updatedAt.getTime())) ||
+    (!terminal && endedAt !== null)
+  ) {
+    throw new ActivityLedgerValidationError(
+      "Room activity session does not match its Ledger evidence.",
+    );
+  }
+  return {
+    schemaVersion: 1,
+    sessionId: rawSession.sessionId.trim(),
+    roomId: rawSession.roomId.trim(),
+    actorId: rawSession.actorId.trim(),
+    activityKind: rawSession.activityKind.trim(),
+    metricUnit: rawSession.metricUnit.trim(),
+    targetValue: rawSession.targetValue,
+    metricValue: rawSession.metricValue,
+    source: rawSession.source.trim(),
+    status: rawSession.status.trim(),
+    startedAt: startedAt.toISOString(),
+    updatedAt: updatedAt.toISOString(),
+    endedAt: endedAt?.toISOString() ?? null,
+  };
+}
+
 export class InMemoryActivityLedgerStore {
   #events = new Map();
   #receipts = new Map();
@@ -526,6 +608,8 @@ export class InMemoryActivityLedgerStore {
   #userTasks = new Map();
   #rewardEntries = new Map();
   #rewardProjections = new Map();
+  #roomActivityProjections = new Map();
+  #roomActiveSessionIds = new Map();
   #rewardCutover;
 
   constructor({
@@ -569,6 +653,32 @@ export class InMemoryActivityLedgerStore {
   async getRoomMembership(roomId, userId) {
     const value = this.#memberships.get(`${roomId}:${userId}`);
     return value ? clone(value) : null;
+  }
+
+  async getRoomActivityProjection(roomId, sessionId) {
+    const value = this.#roomActivityProjections.get(`${roomId}:${sessionId}`);
+    return value ? clone(value) : null;
+  }
+
+  async getRoomActiveSessionId(roomId, userId) {
+    return this.#roomActiveSessionIds.get(`${roomId}:${userId}`) ?? null;
+  }
+
+  async projectRoomActivitySession(roomSession) {
+    if (!roomSession) return;
+    this.#roomActivityProjections.set(
+      `${roomSession.roomId}:${roomSession.sessionId}`,
+      clone(roomSession),
+    );
+    const memberKey = `${roomSession.roomId}:${roomSession.actorId}`;
+    const membership = this.#memberships.get(memberKey);
+    if (["completed", "cancelled"].includes(roomSession.status)) {
+      this.#roomActiveSessionIds.delete(memberKey);
+      if (membership) membership.activeSessionId = null;
+    } else {
+      this.#roomActiveSessionIds.set(memberKey, roomSession.sessionId);
+      if (membership) membership.activeSessionId = roomSession.sessionId;
+    }
   }
 
   async getSourceRecord(key) {
@@ -758,6 +868,22 @@ export class ActivityLedgerService {
       }
 
       const fingerprint = activityFingerprint(evidence);
+      if (evidence.roomSession) {
+        const membership = await transaction.getRoomMembership(
+          evidence.roomSession.roomId,
+          evidence.actorUserId,
+        );
+        if (!membershipAllowsContribution(membership, evidence.occurredAt)) {
+          throw new ActivityLedgerAuthorizationError(
+            "Room activity requires an approved active room member.",
+          );
+        }
+        await this.#validateRoomActivityTransition(
+          transaction,
+          evidence,
+          membership,
+        );
+      }
       const existingSettlement = await transaction.getSettlement(fingerprint);
       if (existingSettlement) {
         if (isMutableMetricCorrection(existingSettlement, evidence)) {
@@ -970,6 +1096,7 @@ export class ActivityLedgerService {
           session,
           wasDuplicate: false,
         };
+        await transaction.projectRoomActivitySession(evidence.roomSession);
         await transaction.createActivityEvent({
           eventKey,
           eventId: evidence.eventId,
@@ -1055,6 +1182,7 @@ export class ActivityLedgerService {
           );
         }
       }
+      await transaction.projectRoomActivitySession(evidence.roomSession);
       await transaction.createSettlement({
         eventKey,
         eventId: evidence.eventId,
@@ -1152,6 +1280,78 @@ export class ActivityLedgerService {
         );
     }
     return session;
+  }
+
+  async #validateRoomActivityTransition(transaction, evidence, membership) {
+    const next = evidence.roomSession;
+    const existing = await transaction.getRoomActivityProjection(
+      next.roomId,
+      next.sessionId,
+    );
+    const activeSessionId = typeof membership.activeSessionId === "string" &&
+      membership.activeSessionId.length > 0
+      ? membership.activeSessionId
+      : null;
+
+    if (evidence.eventType === "started") {
+      if (existing) {
+        throw new ActivityLedgerValidationError(
+          "A room activity session can only be started once.",
+        );
+      }
+      if (activeSessionId !== null) {
+        throw new ActivityLedgerValidationError(
+          "The member already has an active room activity session.",
+        );
+      }
+      return;
+    }
+
+    if (!existing || activeSessionId !== next.sessionId) {
+      throw new ActivityLedgerValidationError(
+        "The canonical room activity session is no longer active.",
+      );
+    }
+    const immutableFields = [
+      "schemaVersion",
+      "sessionId",
+      "roomId",
+      "actorId",
+      "activityKind",
+      "metricUnit",
+      "targetValue",
+      "source",
+      "startedAt",
+    ];
+    if (immutableFields.some(field => existing[field] !== next[field])) {
+      throw new ActivityLedgerValidationError(
+        "A room activity transition cannot replace session identity or configuration.",
+      );
+    }
+    const allowed = {
+      active: ["paused", "completed", "cancelled"],
+      paused: ["active", "completed", "cancelled"],
+      completed: [],
+      cancelled: [],
+    }[existing.status] ?? [];
+    if (!allowed.includes(next.status)) {
+      throw new ActivityLedgerValidationError(
+        `Invalid room activity transition from ${existing.status} to ${next.status}.`,
+      );
+    }
+    if (next.metricValue < existing.metricValue) {
+      throw new ActivityLedgerValidationError(
+        "Room activity progress cannot decrease.",
+      );
+    }
+    if (
+      new Date(next.updatedAt).getTime() <=
+      new Date(existing.updatedAt).getTime()
+    ) {
+      throw new ActivityLedgerValidationError(
+        "Room activity transitions must advance the canonical timestamp.",
+      );
+    }
   }
 
   #validateAndNormalize(principal, rawEvidence) {
@@ -1388,7 +1588,7 @@ export class ActivityLedgerService {
         "Activity occurrence time cannot be in the future.",
       );
     }
-    return {
+    const normalized = {
       ...evidence,
       eventId: evidence.eventId.trim(),
       sourceRecordId: evidence.sourceRecordId.trim(),
@@ -1401,6 +1601,10 @@ export class ActivityLedgerService {
       occurredAt: occurredAt.toISOString(),
       activityCorrelationId: evidence.activityCorrelationId?.trim() ?? null,
       roomIds: [...new Set(evidence.roomIds.map(roomId => roomId.trim()))],
+    };
+    return {
+      ...normalized,
+      roomSession: normalizeRoomSession(rawEvidence.roomSession, normalized),
     };
   }
 }

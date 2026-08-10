@@ -81,4 +81,22 @@ void main() {
       throwsA(isA<ActivityCloudProtocolException>()),
     );
   });
+
+  test('gateway includes the canonical room session in one callable', () async {
+    Map<String, dynamic>? captured;
+    final gateway = CloudActivityLedgerGateway.withCallable((payload) async {
+      captured = payload;
+      return cloudResult();
+    });
+    final roomSession = <String, dynamic>{
+      'schemaVersion': 1,
+      'sessionId': 'session-1',
+      'roomId': 'room-a',
+      'actorId': 'user-1',
+    };
+
+    await gateway.recordActivity(evidence(), roomSession: roomSession);
+
+    expect(captured?['evidence']['roomSession'], roomSession);
+  });
 }

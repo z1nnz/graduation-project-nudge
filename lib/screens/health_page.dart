@@ -132,17 +132,32 @@ class _HealthPageState extends State<HealthPage> {
     setState(() {
       isSyncing = false;
       statusMessage = normalized;
-      lastSyncTime = formatNow();
     });
 
     if (result.success) {
-      context.read<AppState>().updateHealthData(
+      final accepted = await context.read<AppState>().updateHealthData(
         isConnected: true,
         sleepHours: result.sleepHours,
         steps: result.steps,
         exerciseMinutes: result.exerciseMinutes,
         snapshots: result.snapshots,
       );
+
+      if (!mounted) return;
+      if (!accepted) {
+        setState(() {
+          statusMessage = '健康資料尚未安全保存，原有進度未變更';
+        });
+        showMessageDialog(
+          title: '同步尚未完成',
+          content: '無法先保存到 Activity Ledger，已保留原有健康資料與任務狀態，請稍後重試。',
+        );
+        return;
+      }
+
+      setState(() {
+        lastSyncTime = formatNow();
+      });
 
       final hasData = getHasAnyHealthData(
         sleepHours: result.sleepHours,
