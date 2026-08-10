@@ -41,6 +41,27 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
+  ios-dependencies:
+    name: iOS dependency lock
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.7
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Verify CocoaPods lockfile
+        run: pod install --deployment --project-directory=ios
+
   web-contracts:
     name: Web and shared contract tests
     runs-on: ubuntu-latest
