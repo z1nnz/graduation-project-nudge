@@ -208,8 +208,23 @@ NUDGE_FIREBASE_PROJECT_ID=nudge-discipline-app \
 NUDGE_FIREBASE_WEB_API_KEY='<public Firebase Web API key>' \
 NUDGE_FIREBASE_ADMIN_ACCESS_TOKEN='<short-lived OAuth token>' \
 NUDGE_FIREBASE_APP_CHECK_TOKEN='<short-lived App Check JWT>' \
+NUDGE_GOOGLE_QUOTA_PROJECT=nudge-discipline-app \
 npm --prefix scripts run e2e:production:accounts
 ```
+
+On an authorized release workstation with `gcloud` and ADC already configured,
+the preferred command creates a UUID4 App Check debug token, exchanges it for
+one short-lived JWT, runs the same E2E, and revokes the debug token in `finally`:
+
+```sh
+npm --prefix scripts run e2e:production:accounts:ephemeral
+```
+
+Set `NUDGE_GCLOUD_BIN=/absolute/path/to/gcloud` only when the CLI is not on
+`PATH`. The operator must have permission to create and delete App Check debug
+tokens. The wrapper keeps the administrator, App Check, account and password
+credentials in process memory and prints only the redacted E2E result plus the
+debug-token revocation status.
 
 Never commit, print, or persist either token. The script does not print account
 email addresses, passwords, ID tokens, the administrator token, or the App
