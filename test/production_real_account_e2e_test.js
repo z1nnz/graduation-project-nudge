@@ -2,6 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const {
+  buildCleanupDocumentNames,
+  chunkCleanupDocumentNames,
+} = require("../scripts/production_e2e_cleanup.cjs");
 
 const root = path.resolve(__dirname, "..");
 const script = fs.readFileSync(
@@ -22,9 +26,31 @@ test("production real-account E2E is explicit and cleanup-safe", () => {
   assert.match(script, /NUDGE_FIREBASE_APP_CHECK_TOKEN/);
   assert.match(script, /finally\s*\{/);
   assert.match(script, /adminDeleteDocuments\(documentsToDelete\)/);
+  assert.match(script, /adminReadDocument\(name, 404\)/);
+  assert.match(script, /if \(documentsCleaned\)/);
   assert.match(script, /adminDeleteAccounts\(accounts\)/);
   assert.match(script, /verifyAccountDeleted\(account\)/);
+  assert.doesNotMatch(script, /:batchWrite/);
   assert.doesNotMatch(script, /console\.log\([^)]*(email|password|idToken)/);
+});
+
+test("production cleanup de-duplicates paths and respects commit limits", () => {
+  assert.deepEqual(
+    buildCleanupDocumentNames(
+      new Set(["users/a", "memberships/a"]),
+      ["users/a", "users/b"],
+    ),
+    ["users/a", "memberships/a", "users/b"],
+  );
+  assert.deepEqual(
+    chunkCleanupDocumentNames(
+      ["users/a", "users/a", "users/b", "users/c"],
+      2,
+    ),
+    [["users/a", "users/b"], ["users/c"]],
+  );
+  assert.throws(() => buildCleanupDocumentNames(["users/a", ""]));
+  assert.throws(() => chunkCleanupDocumentNames(["users/a"], 0));
 });
 
 test("production real-account E2E covers Cloud authority and audit paths", () => {
@@ -72,4 +98,38 @@ test("production real-account E2E covers role and membership boundaries", () => 
   ]) {
     assert.ok(script.includes(step), `missing production E2E step: ${step}`);
   }
+});
+
+test("production real-account E2E covers family roles and multi-context outcomes", () => {
+  for (const step of [
+    "family.invitation_create",
+    "family.notification_audited",
+    "family.child_atomic_accept_with_memberships",
+    "membership.family_and_group_coexist",
+    "group.member_manager_action_denied",
+    "family.guardian_acknowledgement_denied",
+    "family.guardian_goal_decision_denied",
+    "family.encouragement_acknowledged",
+    "family.goal_completed",
+    "cloud.family_outcome_and_memories",
+    "family.atomic_end_with_membership_end",
+  ]) {
+    assert.ok(script.includes(step), `missing production E2E step: ${step}`);
+  }
+  assert.match(script, /relationship_outcomes\/family--/);
+  assert.match(script, /family_tree/);
+  assert.match(script, /family_companion/);
+  assert.match(script, /relationship_memberships\/family--/);
+  assert.match(script, /audit_events\/family-request--/);
+  assert.match(script, /waitForAdminDocument/);
+  assert.match(script, /familyMemory\.memoryId/);
+  assert.match(script, /memoryDocument\.fields\?\.memoryType/);
+  assert.match(
+    script,
+    /memories\/encouragement_ack--encouragement_\$\{encouragementId\}/,
+  );
+  assert.match(
+    script,
+    /memories\/goal_completed--goal_\$\{familyGoalId\}/,
+  );
 });
