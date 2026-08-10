@@ -54,7 +54,9 @@ The post-acceptance command is now implemented locally. It requires a
 project/run-bound production acceptance manifest with successful real-account
 E2E plus both iOS and Android fresh-install artifact hashes. Recording that
 manifest and purging are separate, idempotent, audited operations; the purge is
-resumable and verifies its atomic captured/deleted counters before release:
+resumable and verifies its atomic
+`captured = privacyDeleted + purged` counters before release. Account deletion
+records any earlier privacy removal without retaining the subject user ID:
 
 ```sh
 npm --prefix scripts run record:production-acceptance -- \

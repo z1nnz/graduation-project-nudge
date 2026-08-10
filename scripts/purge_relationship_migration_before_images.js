@@ -11,6 +11,8 @@ const RELATIONSHIP_MIGRATION_RUN_TYPE =
   "relationship_membership_projection_cutover";
 const ACCEPTANCE_EVIDENCE_COLLECTION = "production_acceptance_evidence";
 const BEFORE_IMAGE_COLLECTION = "relationship_migration_before_images";
+const PRIVACY_DELETION_EVIDENCE_COLLECTION =
+  "relationship_before_image_privacy_deletions";
 const GUARD_ID = "destructive_operation_guard";
 const RETENTION_POLICY = "until_fresh_install_acceptance";
 const MAX_ACCEPTANCE_CLOCK_SKEW_MS = 5 * 60 * 1000;
@@ -43,6 +45,37 @@ function capturedBeforeImageCount(run) {
     throw new Error("Relationship migration captured counts are invalid.");
   }
   return membershipCount + userCount;
+}
+
+function privacyDeletedBeforeImageCount(run) {
+  const count = run?.privacyDeletedBeforeImageCount ?? 0;
+  if (!Number.isSafeInteger(count) || count < 0) {
+    throw new Error("Relationship migration privacy-deleted count is invalid.");
+  }
+  return count;
+}
+
+function assertPrivacyDeletionEvidence(snapshot, runId, expectedCount) {
+  if (snapshot.size !== expectedCount) {
+    throw new Error("Relationship privacy-deletion evidence count mismatch.");
+  }
+  for (const document of snapshot.docs) {
+    const evidence = document.data();
+    if (
+      evidence.schemaVersion !== 1 ||
+      evidence.evidenceId !== document.id ||
+      evidence.migrationRunId !== runId ||
+      evidence.beforeImageId !== document.id ||
+      typeof evidence.deletionRequestId !== "string" ||
+      !evidence.deletionRequestId ||
+      typeof evidence.deletedAt !== "string" ||
+      Number.isNaN(Date.parse(evidence.deletedAt))
+    ) {
+      throw new Error(
+        `Relationship privacy-deletion evidence is invalid: ${document.id}`,
+      );
+    }
+  }
 }
 
 function assertBeforeImage(document, runId) {
@@ -212,13 +245,18 @@ function assertCompletedPurgeReplay({
   acceptanceEvidenceId,
   auditEventId,
 }) {
+  const capturedCount = capturedBeforeImageCount(run);
+  const privacyDeletedCount = privacyDeletedBeforeImageCount(run);
   const expectedCount = run?.purgeExpectedCount;
   if (
     run?.purgeStatus !== "completed" ||
     run.purgeAcceptanceEvidenceId !== acceptanceEvidenceId ||
     run.purgeAuditEventId !== auditEventId ||
+    run.purgeCapturedCount !== capturedCount ||
+    run.purgePrivacyDeletedCount !== privacyDeletedCount ||
     !Number.isSafeInteger(expectedCount) ||
     expectedCount < 0 ||
+    expectedCount !== capturedCount - privacyDeletedCount ||
     run.purgedBeforeImageCount !== expectedCount ||
     audit?.schemaVersion !== 1 ||
     audit.auditEventId !== auditEventId ||
@@ -228,6 +266,8 @@ function assertCompletedPurgeReplay({
     audit.sourceSurface !== "release_cli" ||
     audit.clientRequestId !== acceptanceEvidenceId ||
     audit.result?.acceptanceEvidenceId !== acceptanceEvidenceId ||
+    audit.result?.capturedCount !== capturedCount ||
+    audit.result?.privacyDeletedCount !== privacyDeletedCount ||
     audit.result?.purgedCount !== expectedCount
   ) {
     throw new Error("Relationship purge audit or count is invalid.");
@@ -466,6 +506,9 @@ export async function purgeRelationshipMigrationBeforeImages({
     .doc(`relationship-before-image-purge--${normalizedRunId}`);
   const acceptanceAuditRef = db.collection("audit_events")
     .doc(`production-acceptance-recorded--${normalizedEvidenceId}`);
+  const privacyDeletionEvidenceQuery = db
+    .collection(PRIVACY_DELETION_EVIDENCE_COLLECTION)
+    .where("migrationRunId", "==", normalizedRunId);
   const ownerToken = randomUUID();
   const claimedAt = new Date().toISOString();
   const claim = await db.runTransaction(async transaction => {
@@ -477,6 +520,7 @@ export async function purgeRelationshipMigrationBeforeImages({
       guardSnapshot,
       auditSnapshot,
       acceptanceAuditSnapshot,
+      privacyDeletionEvidenceSnapshot,
     ] = await Promise.all([
       transaction.get(runRef),
       transaction.get(evidenceRef),
@@ -485,6 +529,7 @@ export async function purgeRelationshipMigrationBeforeImages({
       transaction.get(guardRef),
       transaction.get(auditRef),
       transaction.get(acceptanceAuditRef),
+      transaction.get(privacyDeletionEvidenceQuery),
     ]);
     const run = runSnapshot.exists ? runSnapshot.data() : null;
     if (
@@ -511,6 +556,11 @@ export async function purgeRelationshipMigrationBeforeImages({
         run,
         normalizedEvidenceId,
         acceptanceAuditRef.id,
+      );
+      assertPrivacyDeletionEvidence(
+        privacyDeletionEvidenceSnapshot,
+        normalizedRunId,
+        privacyDeletedBeforeImageCount(run),
       );
       return {
         replayed: true,
@@ -546,6 +596,16 @@ export async function purgeRelationshipMigrationBeforeImages({
       normalizedEvidenceId,
       acceptanceAuditRef.id,
     );
+    const capturedCount = capturedBeforeImageCount(run);
+    const privacyDeletedCount = privacyDeletedBeforeImageCount(run);
+    if (privacyDeletedCount > capturedCount) {
+      throw new Error("Relationship privacy-deleted count exceeds captured count.");
+    }
+    assertPrivacyDeletionEvidence(
+      privacyDeletionEvidenceSnapshot,
+      normalizedRunId,
+      privacyDeletedCount,
+    );
     if (auditSnapshot.exists) {
       throw new Error("Relationship purge audit already exists.");
     }
@@ -572,10 +632,17 @@ export async function purgeRelationshipMigrationBeforeImages({
     ) {
       throw new Error("Purge is blocked by an active destructive operation.");
     }
+    const canonicalExpectedCount = capturedCount - privacyDeletedCount;
     const expectedCount = Number.isSafeInteger(run.purgeExpectedCount)
       ? run.purgeExpectedCount
-      : capturedBeforeImageCount(run);
-    if (expectedCount !== capturedBeforeImageCount(run)) {
+      : canonicalExpectedCount;
+    if (
+      expectedCount !== canonicalExpectedCount ||
+      (run.purgeCapturedCount !== undefined &&
+        run.purgeCapturedCount !== capturedCount) ||
+      (run.purgePrivacyDeletedCount !== undefined &&
+        run.purgePrivacyDeletedCount !== privacyDeletedCount)
+    ) {
       throw new Error("Relationship purge expected count changed.");
     }
     const purgedCount = Number.isSafeInteger(run.purgedBeforeImageCount)
@@ -596,13 +663,21 @@ export async function purgeRelationshipMigrationBeforeImages({
     }, { merge: false });
     transaction.set(runRef, {
       purgeStatus: "running",
+      purgeCapturedCount: capturedCount,
+      purgePrivacyDeletedCount: privacyDeletedCount,
       purgeExpectedCount: expectedCount,
       purgedBeforeImageCount: purgedCount,
       purgeAcceptanceEvidenceId: normalizedEvidenceId,
       purgeStartedAt: run.purgeStartedAt ?? claimedAt,
       purgeResumedAt: run.purgeStartedAt ? claimedAt : null,
     }, { merge: true });
-    return { replayed: false, expectedCount, purgedCount };
+    return {
+      replayed: false,
+      capturedCount,
+      privacyDeletedCount,
+      expectedCount,
+      purgedCount,
+    };
   });
   const result = {
     migrationRunId: normalizedRunId,
@@ -692,6 +767,7 @@ export async function purgeRelationshipMigrationBeforeImages({
         evidenceSnapshot,
         auditSnapshot,
         acceptanceAuditSnapshot,
+        privacyDeletionEvidenceSnapshot,
       ] =
         await Promise.all([
           transaction.get(guardRef),
@@ -699,6 +775,7 @@ export async function purgeRelationshipMigrationBeforeImages({
           transaction.get(evidenceRef),
           transaction.get(auditRef),
           transaction.get(acceptanceAuditRef),
+          transaction.get(privacyDeletionEvidenceQuery),
         ]);
       if (
         !guardSnapshot.exists ||
@@ -722,7 +799,16 @@ export async function purgeRelationshipMigrationBeforeImages({
         },
       );
       const run = runSnapshot.data();
+      assertPrivacyDeletionEvidence(
+        privacyDeletionEvidenceSnapshot,
+        normalizedRunId,
+        claim.privacyDeletedCount,
+      );
       if (
+        capturedBeforeImageCount(run) !== claim.capturedCount ||
+        privacyDeletedBeforeImageCount(run) !== claim.privacyDeletedCount ||
+        run.purgeCapturedCount !== claim.capturedCount ||
+        run.purgePrivacyDeletedCount !== claim.privacyDeletedCount ||
         run.purgeExpectedCount !== claim.expectedCount ||
         run.purgedBeforeImageCount !== claim.expectedCount
       ) {
@@ -743,6 +829,8 @@ export async function purgeRelationshipMigrationBeforeImages({
         clientRequestId: normalizedEvidenceId,
         result: {
           acceptanceEvidenceId: normalizedEvidenceId,
+          capturedCount: claim.capturedCount,
+          privacyDeletedCount: claim.privacyDeletedCount,
           purgedCount: claim.expectedCount,
         },
         createdAt: completedAt,

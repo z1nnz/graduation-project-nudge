@@ -47,6 +47,7 @@ async function run() {
   const account = await signUp();
   for (const path of [
     "relationship_migration_before_images/client-write",
+    "relationship_before_image_privacy_deletions/client-write",
     "production_acceptance_evidence/client-write",
     "migration_runs/client-write",
   ]) {

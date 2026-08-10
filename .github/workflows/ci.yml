@@ -122,5 +122,6 @@ jobs:
           do node "$test_file";
           done;
           node --test functions/test/firestore_activity_ledger_store.test.js;
+          node --test functions/test/firestore_account_deletion_execution.test.js;
           npm --prefix scripts run test:relationships:emulator;
           npm --prefix scripts run test:rewards:emulator'

@@ -287,6 +287,8 @@ test("purge resumes after interruption and writes one immutable audit", {
   assert.equal(audit.clientRequestId, evidenceId);
   assert.deepEqual(audit.result, {
     acceptanceEvidenceId: evidenceId,
+    capturedCount: 1,
+    privacyDeletedCount: 0,
     purgedCount: 1,
   });
 
@@ -349,6 +351,15 @@ test("purge resumes after interruption and writes one immutable audit", {
     /purge audit/i,
   );
   await runRef.update({ purgeAuditEventId: result.auditEventId });
+  await runRef.update({ capturedMembershipBeforeImages: 2 });
+  await assert.rejects(
+    purgeRelationshipMigrationBeforeImages({
+      migrationRunId: runId,
+      acceptanceEvidenceId: evidenceId,
+    }),
+    /purge audit/i,
+  );
+  await runRef.update({ capturedMembershipBeforeImages: 1 });
 });
 
 test("pre-existing purge audit fails before evidence is deleted", {
@@ -392,4 +403,79 @@ test("pre-existing purge audit fails before evidence is deleted", {
     .doc("destructive_operation_guard").get()).data();
   assert.equal(run.purgeStatus, undefined);
   assert.notEqual(guard?.active, true);
+});
+
+test("privacy-deleted before-images reconcile with the final purge audit", {
+  skip: !emulatorAvailable,
+}, async t => {
+  const app = admin.initializeApp({ projectId });
+  t.after(async () => app.delete());
+  const db = admin.firestore();
+  const runId = "relationship-run-privacy-delete";
+  const evidenceId = "acceptance-after-privacy-delete";
+  const subjectUserId = "privacy-delete-subject";
+  const entityPath = `relationship_memberships/family--privacy--${subjectUserId}`;
+  const deletionRequestId = "privacy-delete-request-001";
+  await seedReleaseOwner(db);
+  await seedCompletedRun(db, { runId, entityPath });
+  const beforeRef = db.collection("relationship_migration_before_images")
+    .doc(beforeImageId(runId, entityPath));
+  await beforeRef.update({ actorUserId: subjectUserId });
+  const privacyEvidenceRef = db
+    .collection("relationship_before_image_privacy_deletions")
+    .doc(beforeRef.id);
+  await db.runTransaction(async transaction => {
+    transaction.delete(beforeRef);
+    transaction.create(privacyEvidenceRef, {
+      schemaVersion: 1,
+      evidenceId: privacyEvidenceRef.id,
+      migrationRunId: runId,
+      beforeImageId: beforeRef.id,
+      deletionRequestId,
+      deletedAt: "2026-08-10T00:45:00.000Z",
+    });
+    transaction.update(db.collection("migration_runs").doc(runId), {
+      privacyDeletedBeforeImageCount: 1,
+    });
+  });
+
+  assert.equal((await beforeRef.get()).exists, false);
+  const migrationRunAfterDeletion = (
+    await db.collection("migration_runs").doc(runId).get()
+  ).data();
+  assert.equal(migrationRunAfterDeletion.privacyDeletedBeforeImageCount, 1);
+  const deletionEvidence = await db
+    .collection("relationship_before_image_privacy_deletions")
+    .where("migrationRunId", "==", runId)
+    .get();
+  assert.equal(deletionEvidence.size, 1);
+  assert.equal(deletionEvidence.docs[0].data().deletionRequestId,
+    deletionRequestId);
+
+  await recordProductionAcceptanceEvidence(acceptedEvidence({
+    runId,
+    evidenceId,
+    acceptedAt: "2026-08-10T01:00:00.000Z",
+  }));
+  const result = await purgeRelationshipMigrationBeforeImages({
+    migrationRunId: runId,
+    acceptanceEvidenceId: evidenceId,
+  });
+  assert.equal(result.purgedCount, 0);
+  const audit = (
+    await db.collection("audit_events")
+      .doc(`relationship-before-image-purge--${runId}`).get()
+  ).data();
+  assert.deepEqual(audit.result, {
+    acceptanceEvidenceId: evidenceId,
+    capturedCount: 1,
+    privacyDeletedCount: 1,
+    purgedCount: 0,
+  });
+  const completedRun = (
+    await db.collection("migration_runs").doc(runId).get()
+  ).data();
+  assert.equal(completedRun.purgeCapturedCount, 1);
+  assert.equal(completedRun.purgePrivacyDeletedCount, 1);
+  assert.equal(completedRun.purgeExpectedCount, 0);
 });

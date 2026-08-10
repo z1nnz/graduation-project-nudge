@@ -58,8 +58,12 @@ the Firebase project and migration run. The record must carry artifact hashes
 for production real-account E2E plus iOS and Android fresh installs and must be
 timestamped after migration completion by an authorized release staff account;
 each migration run binds exactly one acceptance evidence ID. Purge claims the
-shared destructive guard, is resumable by counted progress, and writes one immutable audit before
-releasing the guard; it must not run while a cutover fence is active.
+shared destructive guard, is resumable by counted progress, and writes one
+immutable audit before releasing the guard; it must not run while a cutover
+fence is active. Privacy account deletion atomically replaces each removed
+before-image with server-only operational evidence and increments the migration
+run's privacy-deleted count. Final purge reconciliation requires the canonical
+captured total to equal privacy-deleted plus purge-deleted evidence.
 
 Legacy projection reads and lazy repair remain temporarily so an older account
 can be recovered before the one-time production migration. They must be removed

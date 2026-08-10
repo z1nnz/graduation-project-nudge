@@ -2069,6 +2069,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /relationship_before_image_privacy_deletions/{evidenceId} {
+      allow read, write: if false;
+    }
+
     match /production_acceptance_evidence/{evidenceId} {
       allow read, write: if false;
     }

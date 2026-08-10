@@ -1,10 +1,23 @@
-import { FieldPath } from "firebase-admin/firestore";
+import { createHash } from "node:crypto";
+
+import { FieldPath, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 const PAGE_SIZE = 400;
 const EXECUTION_LEASE_MS = 15 * 60 * 1000;
 const EVIDENCE_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
 const DESTRUCTIVE_OPERATION_GUARD_ID = "destructive_operation_guard";
+const RELATIONSHIP_MIGRATION_RUN_TYPE =
+  "relationship_membership_projection_cutover";
+const RELATIONSHIP_BEFORE_IMAGE_RETENTION =
+  "until_fresh_install_acceptance";
+
+function relationshipBeforeImageId(runId, entityPath) {
+  const digest = createHash("sha256")
+    .update(JSON.stringify(entityPath))
+    .digest("hex");
+  return `${runId}--${digest.slice(0, 32)}`;
+}
 
 async function querySnapshots(query) {
   const documents = [];
@@ -657,12 +670,17 @@ export class FirestoreAccountDeletionRepository {
         .map(document => document.ref),
     );
 
+    deletedDocuments += await this.#deleteRelationshipMigrationBeforeImages(
+      userId,
+      request.requestId,
+      now,
+    );
+
     const querySpecs = [
       ["activity_events", "actorUserId"],
       ["activity_receipts", "actorUserId"],
       ["reward_ledger_entries", "actorUserId"],
       ["reward_migration_before_images", "actorUserId"],
-      ["relationship_migration_before_images", "actorUserId"],
       ["activity_sessions", "actorUserId"],
       ["room_contributions", "actorUserId"],
       ["push_installations", "userId"],
@@ -758,6 +776,91 @@ export class FirestoreAccountDeletionRepository {
   async freezeAuthUser(userId) {
     await this.auth.updateUser(userId, { disabled: true });
     await this.auth.revokeRefreshTokens(userId);
+  }
+
+  async #deleteRelationshipMigrationBeforeImages(
+    userId,
+    deletionRequestId,
+    now,
+  ) {
+    const candidates = await querySnapshots(
+      this.firestore
+        .collection("relationship_migration_before_images")
+        .where("actorUserId", "==", userId),
+    );
+    let deleted = 0;
+    for (const candidate of candidates) {
+      const removed = await this.firestore.runTransaction(async transaction => {
+        const beforeSnapshot = await transaction.get(candidate.ref);
+        if (!beforeSnapshot.exists) return false;
+        const before = beforeSnapshot.data();
+        const runId = typeof before.migrationRunId === "string"
+          ? before.migrationRunId
+          : "";
+        const entityPath = typeof before.entityPath === "string"
+          ? before.entityPath
+          : "";
+        if (
+          before.schemaVersion !== 1 ||
+          !runId ||
+          !entityPath ||
+          before.actorUserId !== userId ||
+          before.retentionPolicy !== RELATIONSHIP_BEFORE_IMAGE_RETENTION ||
+          candidate.id !== relationshipBeforeImageId(runId, entityPath)
+        ) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Relationship rollback evidence is invalid.",
+          );
+        }
+        const runRef = this.firestore.collection("migration_runs").doc(runId);
+        const evidenceRef = this.firestore
+          .collection("relationship_before_image_privacy_deletions")
+          .doc(candidate.id);
+        const [runSnapshot, evidenceSnapshot] = await Promise.all([
+          transaction.get(runRef),
+          transaction.get(evidenceRef),
+        ]);
+        const run = runSnapshot.exists ? runSnapshot.data() : null;
+        const capturedMemberships = run?.capturedMembershipBeforeImages;
+        const capturedUsers = run?.capturedUserBeforeImages;
+        const privacyDeleted = run?.privacyDeletedBeforeImageCount ?? 0;
+        const capturedTotal = capturedMemberships + capturedUsers;
+        if (
+          run?.type !== RELATIONSHIP_MIGRATION_RUN_TYPE ||
+          run.status !== "completed" ||
+          run.purgeStatus !== undefined ||
+          !Number.isSafeInteger(capturedMemberships) ||
+          capturedMemberships < 0 ||
+          !Number.isSafeInteger(capturedUsers) ||
+          capturedUsers < 0 ||
+          !Number.isSafeInteger(privacyDeleted) ||
+          privacyDeleted < 0 ||
+          privacyDeleted >= capturedTotal ||
+          evidenceSnapshot.exists
+        ) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Relationship rollback evidence cannot be privacy-deleted safely.",
+          );
+        }
+        transaction.create(evidenceRef, {
+          schemaVersion: 1,
+          evidenceId: evidenceRef.id,
+          migrationRunId: runId,
+          beforeImageId: candidate.id,
+          deletionRequestId,
+          deletedAt: now,
+        });
+        transaction.delete(candidate.ref);
+        transaction.update(runRef, {
+          privacyDeletedBeforeImageCount: FieldValue.increment(1),
+        });
+        return true;
+      });
+      if (removed) deleted += 1;
+    }
+    return deleted;
   }
 
   async #deleteScopeMemberships(scopeType, scopeId) {

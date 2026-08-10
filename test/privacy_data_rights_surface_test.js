@@ -57,11 +57,21 @@ test("privacy export secrets stay outside client-readable Firestore", () => {
   assert.match(service, /relationship_migration_before_images/);
   assert.match(
     deletionRepository,
-    /\["relationship_migration_before_images", "actorUserId"\]/,
+    /#deleteRelationshipMigrationBeforeImages/,
+  );
+  assert.match(deletionRepository, /privacyDeletedBeforeImageCount/);
+  const workflow = read(".github/workflows/ci.yml");
+  assert.match(
+    workflow,
+    /node --test functions\/test\/firestore_account_deletion_execution\.test\.js/,
   );
   assert.match(
     rules,
     /match \/relationship_migration_before_images\/\{beforeImageId\}[\s\S]*allow read, write: if false/,
+  );
+  assert.match(
+    rules,
+    /match \/relationship_before_image_privacy_deletions\/\{evidenceId\}[\s\S]*allow read, write: if false/,
   );
   assert.match(
     rules,

@@ -101,8 +101,12 @@ audit; `acceptedBy` must resolve to an existing Firebase user with
 migration run can bind only one acceptance evidence ID, and evidence timestamped
 before migration completion or in the future is rejected. The second
 claims the shared destructive-operation guard, supports restart after partial
-deletion, verifies captured/deleted counts, writes one immutable purge audit,
-and then releases the guard. Both commands are locally Emulator-verified but
+deletion, and verifies `captured = privacyDeleted + purged` before writing one
+immutable purge audit and releasing the guard. If an accepted account-deletion
+request removes a user's rollback evidence first, that removal and a
+non-identifying operational evidence record are committed atomically so the
+later purge can reconcile the canonical captured total. Both commands are
+locally Emulator-verified but
 must still be exercised in production before the retention gate is closed.
 
 - Activity rewards and shop debits now use Cloud-owned
