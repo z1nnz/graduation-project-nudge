@@ -59,8 +59,11 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
+      - name: Install pinned CocoaPods
+        run: sudo gem install cocoapods -v 1.16.2 --no-document
+
       - name: Verify CocoaPods lockfile
-        run: pod install --deployment --project-directory=ios
+        run: pod _1.16.2_ install --deployment --project-directory=ios
 
   web-contracts:
     name: Web and shared contract tests
