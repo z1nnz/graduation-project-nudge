@@ -56,8 +56,9 @@ could destroy rollback evidence before production acceptance. Their audited
 purge requires an immutable `production_acceptance_evidence` record bound to
 the Firebase project and migration run. The record must carry artifact hashes
 for production real-account E2E plus iOS and Android fresh installs and must be
-timestamped after migration completion. Purge claims the shared destructive
-guard, is resumable by counted progress, and writes one immutable audit before
+timestamped after migration completion by an authorized release staff account;
+each migration run binds exactly one acceptance evidence ID. Purge claims the
+shared destructive guard, is resumable by counted progress, and writes one immutable audit before
 releasing the guard; it must not run while a cutover fence is active.
 
 Legacy projection reads and lazy repair remain temporarily so an older account

@@ -14,6 +14,7 @@ const BEFORE_IMAGE_COLLECTION = "relationship_migration_before_images";
 const GUARD_ID = "destructive_operation_guard";
 const RETENTION_POLICY = "until_fresh_install_acceptance";
 const MAX_ACCEPTANCE_CLOCK_SKEW_MS = 5 * 60 * 1000;
+const RELEASE_STAFF_ROLES = new Set(["developer", "operator", "admin"]);
 
 function beforeImageId(runId, entityPath) {
   const pathHash = createHash("sha256")
@@ -186,6 +187,54 @@ function assertRecordedAcceptanceEvidence(
   }
 }
 
+function isAuthorizedReleaseOperator(profile) {
+  return profile?.developerAccess === true ||
+    RELEASE_STAFF_ROLES.has(
+      typeof profile?.staffRole === "string" ? profile.staffRole.trim() : "",
+    );
+}
+
+function assertAcceptanceRunBinding(run, acceptanceEvidenceId, auditEventId) {
+  if (
+    run?.productionAcceptanceEvidenceId !== acceptanceEvidenceId ||
+    run.productionAcceptanceAuditEventId !== auditEventId
+  ) {
+    throw new Error(
+      "Relationship migration run is not bound to this acceptance evidence.",
+    );
+  }
+}
+
+function assertCompletedPurgeReplay({
+  run,
+  audit,
+  migrationRunId,
+  acceptanceEvidenceId,
+  auditEventId,
+}) {
+  const expectedCount = run?.purgeExpectedCount;
+  if (
+    run?.purgeStatus !== "completed" ||
+    run.purgeAcceptanceEvidenceId !== acceptanceEvidenceId ||
+    run.purgeAuditEventId !== auditEventId ||
+    !Number.isSafeInteger(expectedCount) ||
+    expectedCount < 0 ||
+    run.purgedBeforeImageCount !== expectedCount ||
+    audit?.schemaVersion !== 1 ||
+    audit.auditEventId !== auditEventId ||
+    audit.action !== "migration.relationship_before_images.purged" ||
+    audit.targetType !== "migration_run" ||
+    audit.targetId !== migrationRunId ||
+    audit.sourceSurface !== "release_cli" ||
+    audit.clientRequestId !== acceptanceEvidenceId ||
+    audit.result?.acceptanceEvidenceId !== acceptanceEvidenceId ||
+    audit.result?.purgedCount !== expectedCount
+  ) {
+    throw new Error("Relationship purge audit or count is invalid.");
+  }
+  return expectedCount;
+}
+
 async function initializeAdmin() {
   if (admin.apps.length > 0) return admin.apps[0];
   const serviceAccountPath = path.join(
@@ -253,6 +302,7 @@ export async function recordProductionAcceptanceEvidence(evidence) {
   const guardRef = db.collection("system_state").doc(GUARD_ID);
   const auditRef = db.collection("audit_events")
     .doc(`production-acceptance-recorded--${acceptanceEvidenceId}`);
+  const operatorRef = db.collection("users").doc(normalized.acceptedBy);
   const recordedAt = new Date().toISOString();
   if (
     Date.parse(normalized.acceptedAt) >
@@ -268,6 +318,7 @@ export async function recordProductionAcceptanceEvidence(evidence) {
       rewardFenceSnapshot,
       guardSnapshot,
       auditSnapshot,
+      operatorSnapshot,
     ] = await Promise.all([
       transaction.get(evidenceRef),
       transaction.get(runRef),
@@ -275,7 +326,9 @@ export async function recordProductionAcceptanceEvidence(evidence) {
       transaction.get(rewardFenceRef),
       transaction.get(guardRef),
       transaction.get(auditRef),
+      transaction.get(operatorRef),
     ]);
+    const run = runSnapshot.exists ? runSnapshot.data() : null;
     if (evidenceSnapshot.exists) {
       const stored = evidenceSnapshot.data();
       try {
@@ -290,9 +343,9 @@ export async function recordProductionAcceptanceEvidence(evidence) {
       if (stored.evidenceFingerprint !== evidenceFingerprint) {
         throw new Error("Production acceptance evidence identity conflict.");
       }
+      assertAcceptanceRunBinding(run, acceptanceEvidenceId, auditRef.id);
       return true;
     }
-    const run = runSnapshot.exists ? runSnapshot.data() : null;
     if (
       run?.type !== RELATIONSHIP_MIGRATION_RUN_TYPE ||
       run.status !== "completed"
@@ -300,6 +353,22 @@ export async function recordProductionAcceptanceEvidence(evidence) {
       throw new Error(
         "Production acceptance requires a completed Relationship migration run.",
       );
+    }
+    if (
+      (run.productionAcceptanceEvidenceId &&
+        run.productionAcceptanceEvidenceId !== acceptanceEvidenceId) ||
+      (run.purgeAcceptanceEvidenceId &&
+        run.purgeAcceptanceEvidenceId !== acceptanceEvidenceId)
+    ) {
+      throw new Error(
+        "Relationship migration run is already bound to another acceptance evidence.",
+      );
+    }
+    if (
+      !operatorSnapshot.exists ||
+      !isAuthorizedReleaseOperator(operatorSnapshot.data())
+    ) {
+      throw new Error("Production acceptance requires an authorized release operator.");
     }
     if (
       typeof run.completedAt !== "string" ||
@@ -355,6 +424,11 @@ export async function recordProductionAcceptanceEvidence(evidence) {
         relationshipMigrationRunId: migrationRunId,
       },
       createdAt: recordedAt,
+    });
+    transaction.update(runRef, {
+      productionAcceptanceEvidenceId: acceptanceEvidenceId,
+      productionAcceptanceAuditEventId: auditRef.id,
+      productionAcceptanceRecordedAt: recordedAt,
     });
     return false;
   });
@@ -433,15 +507,21 @@ export async function purgeRelationshipMigrationBeforeImages({
           projectId,
         },
       );
-      if (
-        audit.action !== "migration.relationship_before_images.purged" ||
-        audit.targetId !== normalizedRunId ||
-        audit.clientRequestId !== normalizedEvidenceId ||
-        !Number.isSafeInteger(audit.result?.purgedCount)
-      ) {
-        throw new Error("Relationship purge audit identity is invalid.");
-      }
-      return { replayed: true, purgedCount: audit.result.purgedCount };
+      assertAcceptanceRunBinding(
+        run,
+        normalizedEvidenceId,
+        acceptanceAuditRef.id,
+      );
+      return {
+        replayed: true,
+        purgedCount: assertCompletedPurgeReplay({
+          run,
+          audit,
+          migrationRunId: normalizedRunId,
+          acceptanceEvidenceId: normalizedEvidenceId,
+          auditEventId: auditRef.id,
+        }),
+      };
     }
     if (
       run?.type !== RELATIONSHIP_MIGRATION_RUN_TYPE ||
@@ -461,6 +541,14 @@ export async function purgeRelationshipMigrationBeforeImages({
         projectId,
       },
     );
+    assertAcceptanceRunBinding(
+      run,
+      normalizedEvidenceId,
+      acceptanceAuditRef.id,
+    );
+    if (auditSnapshot.exists) {
+      throw new Error("Relationship purge audit already exists.");
+    }
     if (
       relationshipFenceSnapshot.exists &&
       relationshipFenceSnapshot.data().active === true
@@ -523,7 +611,15 @@ export async function purgeRelationshipMigrationBeforeImages({
     auditEventId: auditRef.id,
     replayed: claim.replayed,
   };
-  if (claim.replayed) return result;
+  if (claim.replayed) {
+    const remaining = await db.collection(BEFORE_IMAGE_COLLECTION)
+      .where("migrationRunId", "==", normalizedRunId)
+      .get();
+    if (!remaining.empty) {
+      throw new Error("Relationship purge replay found remaining before-images.");
+    }
+    return result;
+  }
 
   try {
     const beforeSnapshot = await db.collection(BEFORE_IMAGE_COLLECTION)

@@ -96,7 +96,10 @@ npm --prefix scripts run migrate:relationships:purge-before-images -- \
 ```
 
 The first command immutably records a project/run-bound acceptance document and
-audit; it rejects evidence timestamped before migration completion. The second
+audit; `acceptedBy` must resolve to an existing Firebase user with
+`developerAccess` or the `developer`, `operator`, or `admin` staff role. One
+migration run can bind only one acceptance evidence ID, and evidence timestamped
+before migration completion or in the future is rejected. The second
 claims the shared destructive-operation guard, supports restart after partial
 deletion, verifies captured/deleted counts, writes one immutable purge audit,
 and then releases the guard. Both commands are locally Emulator-verified but

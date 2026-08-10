@@ -21,14 +21,42 @@ function beforeImageId(runId, entityPath) {
   return `${runId}--${pathHash.slice(0, 32)}`;
 }
 
-test("purge rejects incomplete production acceptance and preserves evidence", {
-  skip: !emulatorAvailable,
-}, async t => {
-  const app = admin.initializeApp({ projectId });
-  t.after(async () => app.delete());
-  const db = admin.firestore();
+function acceptedEvidence({ runId, evidenceId, acceptedAt }) {
+  return {
+    schemaVersion: 1,
+    acceptanceEvidenceId: evidenceId,
+    status: "accepted",
+    environment: "production",
+    projectId,
+    relationshipMigrationRunId: runId,
+    realAccountE2e: {
+      accepted: true,
+      runId: `real-account-e2e--${runId}`,
+      artifactSha256: "a".repeat(64),
+    },
+    freshInstall: {
+      ios: {
+        accepted: true,
+        artifactSha256: "b".repeat(64),
+      },
+      android: {
+        accepted: true,
+        artifactSha256: "c".repeat(64),
+      },
+    },
+    acceptedAt,
+    acceptedBy: "release-owner",
+  };
+}
 
-  await db.collection("migration_runs").doc(migrationRunId).set({
+async function seedReleaseOwner(db) {
+  await db.collection("users").doc("release-owner").set({
+    staffRole: "operator",
+  });
+}
+
+async function seedCompletedRun(db, { runId, entityPath }) {
+  await db.collection("migration_runs").doc(runId).set({
     type: "relationship_membership_projection_cutover",
     status: "completed",
     completedAt: "2026-08-10T00:30:00.000Z",
@@ -36,18 +64,29 @@ test("purge rejects incomplete production acceptance and preserves evidence", {
     capturedUserBeforeImages: 0,
   });
   await db.collection("relationship_migration_before_images")
-    .doc(beforeImageId(
-      migrationRunId,
-      "relationship_memberships/family--one--child",
-    ))
+    .doc(beforeImageId(runId, entityPath))
     .set({
       schemaVersion: 1,
-      migrationRunId,
+      migrationRunId: runId,
       entityType: "membership",
-      entityPath: "relationship_memberships/family--one--child",
+      entityPath,
       actorUserId: "child",
       retentionPolicy: "until_fresh_install_acceptance",
     });
+}
+
+test("purge rejects incomplete production acceptance and preserves evidence", {
+  skip: !emulatorAvailable,
+}, async t => {
+  const app = admin.initializeApp({ projectId });
+  t.after(async () => app.delete());
+  const db = admin.firestore();
+
+  await seedReleaseOwner(db);
+  await seedCompletedRun(db, {
+    runId: migrationRunId,
+    entityPath: "relationship_memberships/family--one--child",
+  });
   const incompleteEvidence = {
     schemaVersion: 1,
     acceptanceEvidenceId,
@@ -117,6 +156,14 @@ test("purge rejects incomplete production acceptance and preserves evidence", {
     ...evidence,
     acceptedAt: "2026-08-10T01:00:00.000Z",
   };
+  await assert.rejects(
+    recordProductionAcceptanceEvidence({
+      ...evidence,
+      acceptanceEvidenceId: "acceptance-unknown-operator",
+      acceptedBy: "unknown-release-operator",
+    }),
+    /authorized release operator/i,
+  );
   const recorded = await recordProductionAcceptanceEvidence(evidence);
   assert.equal(recorded.acceptanceEvidenceId, acceptanceEvidenceId);
   assert.equal(recorded.auditEventId,
@@ -149,7 +196,8 @@ test("purge rejects incomplete production acceptance and preserves evidence", {
     /active Relationship cutover/,
   );
   assert.equal(
-    (await db.collection("relationship_migration_before_images").get()).size,
+    (await db.collection("relationship_migration_before_images")
+      .where("migrationRunId", "==", migrationRunId).get()).size,
     1,
   );
   await db.collection("system_state")
@@ -163,21 +211,34 @@ test("purge resumes after interruption and writes one immutable audit", {
   const app = admin.initializeApp({ projectId });
   t.after(async () => app.delete());
   const db = admin.firestore();
+  const runId = "relationship-run-resume";
+  const evidenceId = "acceptance-resume";
+  await seedReleaseOwner(db);
+  await seedCompletedRun(db, {
+    runId,
+    entityPath: "relationship_memberships/family--resume--child",
+  });
+  const evidence = acceptedEvidence({
+    runId,
+    evidenceId,
+    acceptedAt: "2026-08-10T01:00:00.000Z",
+  });
+  await recordProductionAcceptanceEvidence(evidence);
   await db.collection("system_state")
     .doc("relationship_membership_cutover")
-    .set({ active: false, runId: migrationRunId });
+    .set({ active: false, runId });
 
   await assert.rejects(
     purgeRelationshipMigrationBeforeImages({
-      migrationRunId,
-      acceptanceEvidenceId,
+      migrationRunId: runId,
+      acceptanceEvidenceId: evidenceId,
       testFailAfterDeletes: 1,
     }),
     /Injected Relationship evidence purge failure after 1 deletes/,
   );
 
   const failedRun = (
-    await db.collection("migration_runs").doc(migrationRunId).get()
+    await db.collection("migration_runs").doc(runId).get()
   ).data();
   assert.equal(failedRun.purgeStatus, "failed");
   assert.equal(failedRun.purgedBeforeImageCount, 1);
@@ -189,28 +250,29 @@ test("purge resumes after interruption and writes one immutable audit", {
   assert.equal(failedGuard.operationKind, "relationship_evidence_purge");
 
   const result = await purgeRelationshipMigrationBeforeImages({
-    migrationRunId,
-    acceptanceEvidenceId,
+    migrationRunId: runId,
+    acceptanceEvidenceId: evidenceId,
   });
   assert.deepEqual(result, {
-    migrationRunId,
-    acceptanceEvidenceId,
+    migrationRunId: runId,
+    acceptanceEvidenceId: evidenceId,
     purgedCount: 1,
-    auditEventId: `relationship-before-image-purge--${migrationRunId}`,
+    auditEventId: `relationship-before-image-purge--${runId}`,
     replayed: false,
   });
   assert.equal(
-    (await db.collection("relationship_migration_before_images").get()).size,
+    (await db.collection("relationship_migration_before_images")
+      .where("migrationRunId", "==", runId).get()).size,
     0,
   );
   const completedRun = (
-    await db.collection("migration_runs").doc(migrationRunId).get()
+    await db.collection("migration_runs").doc(runId).get()
   ).data();
   assert.equal(completedRun.status, "completed");
   assert.equal(completedRun.purgeStatus, "completed");
   assert.equal(completedRun.purgeExpectedCount, 1);
   assert.equal(completedRun.purgedBeforeImageCount, 1);
-  assert.equal(completedRun.purgeAcceptanceEvidenceId, acceptanceEvidenceId);
+  assert.equal(completedRun.purgeAcceptanceEvidenceId, evidenceId);
   const completedGuard = (
     await db.collection("system_state")
       .doc("destructive_operation_guard").get()
@@ -218,21 +280,116 @@ test("purge resumes after interruption and writes one immutable audit", {
   assert.equal(completedGuard.active, false);
   const audit = (
     await db.collection("audit_events")
-      .doc(`relationship-before-image-purge--${migrationRunId}`).get()
+      .doc(`relationship-before-image-purge--${runId}`).get()
   ).data();
   assert.equal(audit.action, "migration.relationship_before_images.purged");
-  assert.equal(audit.targetId, migrationRunId);
-  assert.equal(audit.clientRequestId, acceptanceEvidenceId);
+  assert.equal(audit.targetId, runId);
+  assert.equal(audit.clientRequestId, evidenceId);
   assert.deepEqual(audit.result, {
-    acceptanceEvidenceId,
+    acceptanceEvidenceId: evidenceId,
     purgedCount: 1,
   });
 
   assert.deepEqual(
     await purgeRelationshipMigrationBeforeImages({
-      migrationRunId,
-      acceptanceEvidenceId,
+      migrationRunId: runId,
+      acceptanceEvidenceId: evidenceId,
     }),
     { ...result, replayed: true },
   );
+
+  await assert.rejects(
+    recordProductionAcceptanceEvidence(acceptedEvidence({
+      runId,
+      evidenceId: "acceptance-resume-alternate",
+      acceptedAt: "2026-08-10T01:30:00.000Z",
+    })),
+    /already bound/i,
+  );
+  const unchangedRun = (
+    await db.collection("migration_runs").doc(runId).get()
+  ).data();
+  const unchangedGuard = (
+    await db.collection("system_state")
+      .doc("destructive_operation_guard").get()
+  ).data();
+  assert.equal(unchangedRun.purgeStatus, "completed");
+  assert.equal(unchangedRun.purgeAcceptanceEvidenceId, evidenceId);
+  assert.equal(unchangedGuard.active, false);
+
+  const purgeAuditRef = db.collection("audit_events")
+    .doc(`relationship-before-image-purge--${runId}`);
+  await purgeAuditRef.update({ "result.purgedCount": 2 });
+  await assert.rejects(
+    purgeRelationshipMigrationBeforeImages({
+      migrationRunId: runId,
+      acceptanceEvidenceId: evidenceId,
+    }),
+    /purge audit/i,
+  );
+  await purgeAuditRef.update({ "result.purgedCount": 1 });
+  await purgeAuditRef.update({
+    "result.acceptanceEvidenceId": "wrong-evidence",
+  });
+  await assert.rejects(
+    purgeRelationshipMigrationBeforeImages({
+      migrationRunId: runId,
+      acceptanceEvidenceId: evidenceId,
+    }),
+    /purge audit/i,
+  );
+  await purgeAuditRef.update({ "result.acceptanceEvidenceId": evidenceId });
+  const runRef = db.collection("migration_runs").doc(runId);
+  await runRef.update({ purgeAuditEventId: "wrong-audit" });
+  await assert.rejects(
+    purgeRelationshipMigrationBeforeImages({
+      migrationRunId: runId,
+      acceptanceEvidenceId: evidenceId,
+    }),
+    /purge audit/i,
+  );
+  await runRef.update({ purgeAuditEventId: result.auditEventId });
+});
+
+test("pre-existing purge audit fails before evidence is deleted", {
+  skip: !emulatorAvailable,
+}, async t => {
+  const app = admin.initializeApp({ projectId });
+  t.after(async () => app.delete());
+  const db = admin.firestore();
+  const runId = "relationship-run-audit-collision";
+  const evidenceId = "acceptance-audit-collision";
+  const entityPath = "relationship_memberships/family--collision--child";
+  await seedReleaseOwner(db);
+  await seedCompletedRun(db, { runId, entityPath });
+  await recordProductionAcceptanceEvidence(acceptedEvidence({
+    runId,
+    evidenceId,
+    acceptedAt: "2026-08-10T01:00:00.000Z",
+  }));
+  await db.collection("audit_events")
+    .doc(`relationship-before-image-purge--${runId}`)
+    .set({
+      action: "unexpected.preexisting.audit",
+      targetId: runId,
+    });
+
+  await assert.rejects(
+    purgeRelationshipMigrationBeforeImages({
+      migrationRunId: runId,
+      acceptanceEvidenceId: evidenceId,
+    }),
+    /purge audit already exists/i,
+  );
+
+  assert.equal(
+    (await db.collection("relationship_migration_before_images")
+      .doc(beforeImageId(runId, entityPath)).get()).exists,
+    true,
+  );
+  const run = (await db.collection("migration_runs").doc(runId).get()).data();
+  const guard = (await db.collection("system_state")
+    .doc("destructive_operation_guard").get()).data();
+  assert.equal(run.purgeStatus, undefined);
+  assert.notEqual(guard?.active, true);
 });
