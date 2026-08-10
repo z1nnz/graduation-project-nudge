@@ -12,6 +12,10 @@ const script = fs.readFileSync(
   path.join(root, "scripts/production_real_account_e2e.mjs"),
   "utf8",
 );
+const ephemeralRunner = fs.readFileSync(
+  path.join(root, "scripts/run_production_real_account_e2e_ephemeral.mjs"),
+  "utf8",
+);
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(root, "scripts/package.json"), "utf8"),
 );
@@ -24,6 +28,13 @@ test("production real-account E2E is explicit and cleanup-safe", () => {
   assert.match(script, /NUDGE_FIREBASE_WEB_API_KEY/);
   assert.match(script, /NUDGE_FIREBASE_ADMIN_ACCESS_TOKEN/);
   assert.match(script, /NUDGE_FIREBASE_APP_CHECK_TOKEN/);
+  assert.match(script, /NUDGE_GOOGLE_QUOTA_PROJECT/);
+  assert.match(script, /"x-goog-user-project": quotaProject/);
+  assert.match(script, /headers: adminHeaders\(\)/);
+  assert.match(
+    script,
+    /headers: adminHeaders\(\{ "Content-Type": "application\/json" \}\)/,
+  );
   assert.match(script, /finally\s*\{/);
   assert.match(script, /adminDeleteDocuments\(documentsToDelete\)/);
   assert.match(script, /adminReadDocument\(name, 404\)/);
@@ -51,6 +62,23 @@ test("production cleanup de-duplicates paths and respects commit limits", () => 
   );
   assert.throws(() => buildCleanupDocumentNames(["users/a", ""]));
   assert.throws(() => chunkCleanupDocumentNames(["users/a"], 0));
+});
+
+test("production E2E can use a revocable in-memory App Check credential", () => {
+  assert.equal(
+    packageJson.scripts["e2e:production:accounts:ephemeral"],
+    "node run_production_real_account_e2e_ephemeral.mjs",
+  );
+  assert.match(ephemeralRunner, /randomUUID\(\)/);
+  assert.match(ephemeralRunner, /\/debugTokens/);
+  assert.match(ephemeralRunner, /:exchangeDebugToken/);
+  assert.match(ephemeralRunner, /finally\s*\{/);
+  assert.match(ephemeralRunner, /method: "DELETE"/);
+  assert.match(ephemeralRunner, /NUDGE_GOOGLE_QUOTA_PROJECT: projectId/);
+  assert.doesNotMatch(
+    ephemeralRunner,
+    /console\.(log|error)\([^)]*(administratorToken|appCheckToken|debugTokenSecret)/,
+  );
 });
 
 test("production real-account E2E covers Cloud authority and audit paths", () => {

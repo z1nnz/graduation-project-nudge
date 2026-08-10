@@ -13,6 +13,8 @@ const adminAccessToken =
   process.env.NUDGE_FIREBASE_ADMIN_ACCESS_TOKEN?.trim() || "";
 const appCheckToken =
   process.env.NUDGE_FIREBASE_APP_CHECK_TOKEN?.trim() || "";
+const quotaProject =
+  process.env.NUDGE_GOOGLE_QUOTA_PROJECT?.trim() || projectId;
 const functionsRegion =
   process.env.NUDGE_FIREBASE_FUNCTIONS_REGION?.trim() || "asia-east1";
 const privacyPolicyVersion =
@@ -102,6 +104,14 @@ async function jsonRequest(url, options = {}) {
     body = { raw: text.slice(0, 500) };
   }
   return { response, body };
+}
+
+function adminHeaders(extra = {}) {
+  return {
+    Authorization: `Bearer ${adminAccessToken}`,
+    "x-goog-user-project": quotaProject,
+    ...extra,
+  };
 }
 
 async function identity(method, payload) {
@@ -216,7 +226,7 @@ async function readDocument(idToken, name, expectedStatus = 200) {
 
 async function adminReadDocument(name, expectedStatus = 200) {
   const { response, body } = await jsonRequest(`${firestoreBase}/${name}`, {
-    headers: { Authorization: `Bearer ${adminAccessToken}` },
+    headers: adminHeaders(),
   });
   if (response.status !== expectedStatus) {
     throw new Error(
@@ -230,7 +240,7 @@ async function adminReadDocument(name, expectedStatus = 200) {
 async function waitForAdminDocument(name, attempts = 20) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const { response, body } = await jsonRequest(`${firestoreBase}/${name}`, {
-      headers: { Authorization: `Bearer ${adminAccessToken}` },
+      headers: adminHeaders(),
     });
     if (response.status === 200) return body;
     if (response.status !== 404) {
@@ -261,10 +271,7 @@ async function adminDeleteDocuments(names) {
 async function adminCommit(writes) {
   const { response, body } = await jsonRequest(`${firestoreBase}:commit`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${adminAccessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers: adminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ writes }),
   });
   if (!response.ok) {
@@ -282,10 +289,7 @@ async function adminDeleteAccounts(targets) {
     `${identityBase}/projects/${projectId}/accounts:batchDelete`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${adminAccessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: adminHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         localIds: targets.map(account => account.uid),
         force: true,

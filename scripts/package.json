@@ -7,6 +7,7 @@
     "backfill:public-profiles": "node backfill_public_profiles.js",
     "backfill:public-profiles:apply": "node backfill_public_profiles.js --apply",
     "e2e:production:accounts": "node production_real_account_e2e.mjs",
+    "e2e:production:accounts:ephemeral": "node run_production_real_account_e2e_ephemeral.mjs",
     "record:production-acceptance": "node purge_relationship_migration_before_images.js --record-acceptance",
     "migrate:rewards": "node migrate_reward_ledger_baselines.js",
     "migrate:rewards:apply": "node migrate_reward_ledger_baselines.js --apply",
