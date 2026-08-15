@@ -63,12 +63,17 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Set up project Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
+
       - name: Install Flutter dependencies
         run: flutter pub get
 
       - name: Compile Android Kotlin
         working-directory: android
-        run: ./gradlew :app:compileDebugKotlin --no-daemon
+        run: gradle :app:compileDebugKotlin --no-daemon
 
   ios-dependencies:
     name: iOS dependency lock
