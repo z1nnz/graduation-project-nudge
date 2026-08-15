@@ -11,6 +11,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
+#include <algorithm>
 #include <deque>
 #include <memory>
 #include <string>
@@ -34,6 +35,7 @@ constexpr std::uint32_t kLongPressMs = 1200;
 struct PendingMessage {
   std::string event_id;
   std::string json;
+  std::uint32_t sequence;
 };
 
 struct CommandMessage {
@@ -58,6 +60,7 @@ std::uint64_t epoch_anchor_ms = 0;
 std::uint32_t monotonic_anchor_ms = 0;
 std::string device_id;
 QueueHandle_t command_queue = nullptr;
+std::uint32_t loaded_queue_sequence = 0;
 
 std::uint64_t epoch_now() {
   if (epoch_anchor_ms == 0) return 0;
@@ -65,7 +68,6 @@ std::uint64_t epoch_now() {
 }
 
 void save_pending_events() {
-  preferences.putUChar("eventCount", pending_events.size());
   for (std::size_t index = 0; index < kMaximumPendingEvents; ++index) {
     const String key = "event" + String(index);
     if (index < pending_events.size()) {
@@ -74,6 +76,9 @@ void save_pending_events() {
       preferences.remove(key.c_str());
     }
   }
+  // The count is the commit marker. A reset during the earlier key writes may
+  // retain the previous queue, but cannot expose a half-written larger queue.
+  preferences.putUChar("eventCount", pending_events.size());
 }
 
 void load_pending_events() {
@@ -85,8 +90,11 @@ void load_pending_events() {
     JsonDocument document;
     if (!json.isEmpty() && deserializeJson(document, json) == DeserializationError::Ok) {
       const char* event_id = document["eventId"] | "";
-      if (*event_id != '\0') {
-        pending_events.push_back(PendingMessage{event_id, json.c_str()});
+      const std::uint32_t sequence = document["sequence"] | 0U;
+      if (*event_id != '\0' && sequence > 0) {
+        pending_events.push_back(
+            PendingMessage{event_id, json.c_str(), sequence});
+        loaded_queue_sequence = std::max(loaded_queue_sequence, sequence);
       }
     }
   }
@@ -123,9 +131,13 @@ void queue_event(const nudge::ActivityEvent& event) {
     return;
   }
   pending_events.push_back(
-      PendingMessage{event.event_id, nudge::encode_activity_event(event)});
-  preferences.putUInt("sequence", focus_session->sequence());
+      PendingMessage{event.event_id, nudge::encode_activity_event(event),
+                     event.sequence});
   save_pending_events();
+  // Queue evidence is committed before the high-water mark. On reboot the
+  // sequence is also recovered from queued messages, so a reset between these
+  // writes cannot reuse an existing event identity.
+  preferences.putUInt("sequence", focus_session->sequence());
   publish_state();
 }
 
@@ -276,7 +288,8 @@ void handle_encoder_button() {
   } else if (!pressed && button_down) {
     button_down = false;
     if (long_press_handled) return;
-    if (pending_events.size() >= kMaximumPendingEvents) return;
+    // Preserve one queue slot for the eventual terminal completion event.
+    if (pending_events.size() >= kMaximumPendingEvents - 1) return;
     const auto phase = focus_session->snapshot(millis()).phase;
     if (phase == nudge::FocusPhase::idle) {
       apply_transition(focus_session->start(millis(), epoch_now()));
@@ -304,9 +317,10 @@ void setup() {
   Wire.begin();
   preferences.begin("nudge-device", false);
   device_id = build_device_id();
-  focus_session = std::make_unique<nudge::FocusSession>(
-      device_id, preferences.getUInt("sequence", 0));
   load_pending_events();
+  focus_session = std::make_unique<nudge::FocusSession>(
+      device_id,
+      std::max(preferences.getUInt("sequence", 0), loaded_queue_sequence));
   command_queue = xQueueCreate(8, sizeof(CommandMessage));
 
   display.begin();
@@ -330,12 +344,17 @@ void loop() {
          xQueueReceive(command_queue, &command, 0) == pdTRUE) {
     const String payload(command.payload);
     JsonDocument document;
-    const bool emits_event =
-        deserializeJson(document, payload) == DeserializationError::Ok &&
-        document["type"].is<const char*>() &&
-        strcmp(document["type"].as<const char*>(), "configure") != 0 &&
-        strcmp(document["type"].as<const char*>(), "ack") != 0;
-    if (!emits_event || pending_events.size() < kMaximumPendingEvents) {
+    const bool valid_json =
+        deserializeJson(document, payload) == DeserializationError::Ok;
+    const char* type = valid_json ? document["type"] | "" : "";
+    const bool emits_event = strcmp(type, "start") == 0 ||
+                             strcmp(type, "pause") == 0 ||
+                             strcmp(type, "resume") == 0 ||
+                             strcmp(type, "complete") == 0;
+    const bool terminal_event = strcmp(type, "complete") == 0;
+    const auto capacity_limit = terminal_event ? kMaximumPendingEvents
+                                               : kMaximumPendingEvents - 1;
+    if (!emits_event || pending_events.size() < capacity_limit) {
       handle_command(payload);
     }
   }

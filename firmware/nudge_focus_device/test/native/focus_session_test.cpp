@@ -63,6 +63,25 @@ void invalid_transitions_do_not_consume_sequence_numbers() {
   assert(session.sequence() == 11);
 }
 
+void identifiers_fit_the_cloud_ledger_contract() {
+  nudge::FocusSession long_device(std::string(97, 'd'));
+  assert(!long_device
+              .configure(nudge::FocusConfiguration{"focus-42", "", 1500})
+              .accepted());
+
+  nudge::FocusSession valid_device("desk-bounds");
+  assert(!valid_device
+              .configure(
+                  nudge::FocusConfiguration{std::string(97, 's'), "", 1500})
+              .accepted());
+  assert(valid_device
+             .configure(nudge::FocusConfiguration{std::string(96, 's'),
+                                                   std::string(96, 'c'), 1500})
+             .accepted());
+  const auto event = valid_device.start(0, 1000).event.value();
+  assert(event.event_id.size() <= 256);
+}
+
 void protocol_json_matches_the_app_contract() {
   nudge::FocusSession session("desk-json");
   configure(session, 1500);
@@ -86,6 +105,7 @@ int main() {
   pause_and_resume_excludes_paused_time();
   automatic_completion_emits_once();
   invalid_transitions_do_not_consume_sequence_numbers();
+  identifiers_fit_the_cloud_ledger_contract();
   protocol_json_matches_the_app_contract();
   std::cout << "nudge_focus_device native tests passed\n";
   return 0;

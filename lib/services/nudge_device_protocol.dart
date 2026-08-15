@@ -105,11 +105,11 @@ class NudgeDeviceActivityEvent {
         'occurredAtEpochMs must be a positive integer.',
       );
     }
-    final eventId = _nonEmptyString(json['eventId'], 'eventId', 512);
+    final eventId = _nonEmptyString(json['eventId'], 'eventId', 256);
     final sourceRecordId = _nonEmptyString(
       json['sourceRecordId'],
       'sourceRecordId',
-      512,
+      256,
     );
     final expectedEventId =
         '$deviceId:$sessionId:${eventType.name}:$sequenceValue';
@@ -151,24 +151,26 @@ class NudgeDeviceActivityEvent {
       sourceRecordId: sourceRecordId,
       sessionId: sessionId,
       activityCorrelationId: activityCorrelationId,
-      submittedByUserId: 'device:$deviceId',
+      submittedByUserId: normalizedActor,
       actorUserId: normalizedActor,
       roomIds: List.unmodifiable(roomIds),
       activityType: activityType,
-      source: ActivitySource.device,
+      // The signed-in App is the authenticated Cloud submitter. The stable
+      // sourceRecordId retains the device provenance without asking the
+      // user-ingestion endpoint to trust an unauthenticated BLE identity.
+      source: ActivitySource.app,
       eventType: eventType,
       metricValue: metricValue,
       metricUnit: metricUnit,
       occurredAt: occurredAt,
-      deviceId: deviceId,
     );
   }
 }
 
-final _identifierPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$');
+final _identifierPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$');
 
 String _boundedIdentifier(Object? value, String field) {
-  final result = _nonEmptyString(value, field, 128);
+  final result = _nonEmptyString(value, field, 96);
   if (!_identifierPattern.hasMatch(result)) {
     throw DeviceMessageFormatException('$field has an invalid format.');
   }

@@ -31,11 +31,11 @@ void main() {
     expect(evidence.sourceRecordId, payload['sourceRecordId']);
     expect(evidence.sessionId, 'focus-42');
     expect(evidence.activityCorrelationId, 'focus-cloud-42');
-    expect(evidence.submittedByUserId, 'device:desk-1');
+    expect(evidence.submittedByUserId, 'alice');
     expect(evidence.actorUserId, 'alice');
     expect(evidence.roomIds, const ['room-study']);
     expect(evidence.activityType, ActivityType.focus);
-    expect(evidence.source, ActivitySource.device);
+    expect(evidence.source, ActivitySource.app);
     expect(evidence.eventType, ActivityEventType.completed);
     expect(evidence.metricValue, 25);
     expect(evidence.metricUnit, 'minutes');
@@ -43,7 +43,7 @@ void main() {
       evidence.occurredAt,
       DateTime.fromMillisecondsSinceEpoch(1786759200000, isUtc: true),
     );
-    expect(evidence.deviceId, 'desk-1');
+    expect(evidence.deviceId, isNull);
   });
 
   test('rejects unsupported protocol versions', () {
@@ -88,6 +88,21 @@ void main() {
     expect(
       () => event.toEvidence(actorUserId: ' ', roomIds: const []),
       throwsArgumentError,
+    );
+  });
+
+  test('rejects identifiers whose composed Ledger identity exceeds 256', () {
+    final longId = 'a' * 96;
+    expect(
+      () => NudgeDeviceActivityEvent.fromJson({
+        ...payload,
+        'deviceId': longId,
+        'sessionId': longId,
+        'eventId': '$longId:$longId:completed:${'9' * 60}',
+        'sourceRecordId': '$longId:$longId:completed:${'9' * 60}',
+        'sequence': int.parse('9' * 18),
+      }),
+      throwsA(isA<DeviceMessageFormatException>()),
     );
   });
 }

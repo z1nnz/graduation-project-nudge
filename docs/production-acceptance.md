@@ -239,9 +239,10 @@ acceptance; the JSON result from an actual run must report every step as
 
 The graduation-project acceptance suite does not require installing Nudge on a
 physical iPhone. iOS acceptance uses a clean iOS Simulator install, launch and
-first-run smoke artifact; Android acceptance may use a clean emulator install.
-Those artifacts satisfy the `freshInstall.ios` and `freshInstall.android`
-evidence slots used by the relationship-migration purge gate.
+first-run smoke artifact. Android keeps its existing clean fresh-install gate
+on an Android device or emulator. Those artifacts satisfy the
+`freshInstall.ios` and `freshInstall.android` evidence slots used by the
+relationship-migration purge gate.
 
 Apple App Attest token exchange, APNs delivery receipts, App Store signing and
 physical-iPhone behavior are explicitly deferred release-hardening work. They

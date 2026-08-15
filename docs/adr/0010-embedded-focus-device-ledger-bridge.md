@@ -12,10 +12,12 @@ group projections directly.
 
 The device emits version-1 activity events over BLE. The signed-in App resolves
 the canonical `DeviceAssignment`, supplies the trusted actor and consented room
-context, converts the event to `ActivityEvidence`, and uses the existing
-Activity Ledger outbox/Cloud ingestion path. Web observes the resulting Cloud
-state. This preserves the same authorization, settlement receipt, deduplication
-and reward rules already used by App, Web, Health and rooms.
+context, converts the event to App-submitted `ActivityEvidence`, and uses the
+existing Activity Ledger outbox/Cloud ingestion path. The Cloud source is
+therefore `app`, not `device`: the stable source record still includes the
+device identity, but the existing user endpoint never trusts a caller-supplied
+`deviceId`. Web observes the resulting Cloud state. This preserves the current
+authorization, settlement receipt, deduplication and reward rules.
 
 An event ID is deterministic for one device sequence:
 
@@ -47,10 +49,19 @@ characteristics. A notification announces pending work; the App reads the full
 event and acknowledges the queue head. This avoids assuming every phone has a
 BLE MTU large enough for the Ledger JSON in one notification.
 
-The first vertical slice is BLE-to-App. Direct Wi-Fi Cloud ingestion is delayed
+The pure App bridge now validates protocol and assignment, durably enqueues, and
+only then creates the ACK command. Binding that bridge to a production Android
+BLE library and the Cloud-backed assignment repository remains a hardware-stage
+integration gate. Direct Wi-Fi Cloud ingestion is delayed
 until device claim credentials, secure provisioning, certificate rotation and
 server-side device authentication are designed. Adding Wi-Fi earlier would
 create a second, weaker authorization boundary.
+
+Version 1 does not contain a device signature. It inherits the signed-in App's
+trust boundary, just like a focus session entered directly in the App. Signed
+device proof, timestamp-attestation policy and Cloud-side device ingestion are
+explicitly not accepted until claim credentials and key rotation exist; this
+prototype must not be presented as cryptographically proving physical activity.
 
 ## Hardware constraints
 
@@ -66,8 +77,9 @@ Host C++ tests and Flutter protocol tests are required on every change. Once
 parts arrive, the hardware gate adds PlatformIO compilation, USB upload, I2C
 scan, display/encoder/LED checks, disconnect/reconnect replay and duplicate ACK
 tests. A physical iPhone install is not required; iOS app acceptance remains a
-clean Simulator smoke test, while embedded BLE may be exercised from Android
-or a desktop BLE client.
+clean Simulator smoke test. Android retains its existing clean
+device-or-emulator App gate; embedded BLE itself requires Android hardware or a
+desktop BLE client because an emulator cannot exercise the peripheral.
 
 App Attest, APNs receipts, App Store signing, signed OTA, battery operation,
 direct Wi-Fi ingestion and family/group shared devices remain explicitly

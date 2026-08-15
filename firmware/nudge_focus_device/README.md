@@ -81,8 +81,8 @@ Service UUID: `7df10000-4e55-4447-4500-4e5544474531`
 | event | `0003` | read | full JSON for the oldest unacknowledged event |
 
 The state notification stays small enough for conservative BLE MTUs. When
-`pending > 0`, the App reads the event characteristic, validates it, durably
-queues it into the App Activity Ledger outbox, then writes:
+`pending > 0`, the App reads the event characteristic, validates the active
+assignment, durably queues App-submitted Activity Ledger evidence, then writes:
 
 ```json
 {
@@ -94,6 +94,13 @@ queues it into the App Activity Ledger outbox, then writes:
 
 Only the queue head can be acknowledged. A lost ACK causes the same stable
 event to be read again, so Cloud idempotency prevents duplicate rewards.
+
+`lib/services/nudge_device_bridge.dart` is the transport-neutral consumer. The
+Cloud user endpoint accepts authenticated App/Web evidence, so this bridge uses
+`source=app`; the device-prefixed source record preserves provenance and
+deduplication without trusting a BLE-provided Cloud `deviceId`. The production
+Android BLE adapter and Cloud-backed assignment resolver are the next
+hardware-stage integration step.
 
 Configure before allowing local controls:
 

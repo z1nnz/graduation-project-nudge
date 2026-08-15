@@ -8,7 +8,7 @@ namespace nudge {
 namespace {
 
 bool valid_identifier(const std::string& value) {
-  if (value.empty() || value.size() > 128 ||
+  if (value.empty() || value.size() > 96 ||
       !std::isalnum(static_cast<unsigned char>(value.front()))) {
     return false;
   }
@@ -31,7 +31,8 @@ Transition FocusSession::configure(const FocusConfiguration& configuration) {
   if ((phase_ == FocusPhase::running || phase_ == FocusPhase::paused)) {
     return rejected(TransitionStatus::invalid_transition);
   }
-  if (!valid_identifier(configuration.session_id) ||
+  if (!valid_identifier(device_id_) ||
+      !valid_identifier(configuration.session_id) ||
       (!configuration.activity_correlation_id.empty() &&
        !valid_identifier(configuration.activity_correlation_id)) ||
       configuration.duration_seconds < 60 ||
