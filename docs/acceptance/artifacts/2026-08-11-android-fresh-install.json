@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "environment": "production-client",
+  "platform": "android-emulator",
+  "acceptedAt": "2026-08-10T17:08:50Z",
+  "sourceCommit": "c7641debdcfaa0e1773ef689708ff9c80552c15c",
+  "device": {
+    "name": "Android SDK built for arm64",
+    "serial": "emulator-5554",
+    "runtime": "Android 16",
+    "apiLevel": 36,
+    "architecture": "arm64-v8a"
+  },
+  "application": {
+    "applicationId": "com.example.nudge",
+    "versionName": "1.0.0",
+    "versionCode": 2001,
+    "minSdk": 26,
+    "targetSdk": 36,
+    "buildConfiguration": "Debug",
+    "apkSha256": "7943ebfa34564a758b0f39c2c968d472b26aafe5c401f318696979ac2cb60e31"
+  },
+  "freshInstall": {
+    "preinstallPackageAbsent": true,
+    "installSucceeded": true,
+    "launchState": "COLD",
+    "launchPid": 2410,
+    "foregroundActivityObserved": true,
+    "firstRunOnboardingObserved": true,
+    "fatalExceptionObserved": false
+  },
+  "screenshot": {
+    "path": "docs/acceptance/artifacts/2026-08-11-android-fresh-install.png",
+    "sha256": "93f309c0e3ffbb0da56bc843e7b2f137cec14f0c5b3568a96ea7bee73be81b27",
+    "width": 1080,
+    "height": 2400
+  },
+  "scope": {
+    "accepted": "debug Emulator fresh install and first-run launch",
+    "notAccepted": [
+      "Play Integrity token exchange",
+      "Health Connect data on real hardware",
+      "FCM delivery to a real device",
+      "Play Store release signing"
+    ]
+  }
+}

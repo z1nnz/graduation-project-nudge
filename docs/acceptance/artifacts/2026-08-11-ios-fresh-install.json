@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "environment": "production-client",
+  "platform": "ios-simulator",
+  "acceptedAt": "2026-08-10T16:24:31Z",
+  "sourceCommit": "2b59549734bc39eaaf69753801652c18ddc69393",
+  "device": {
+    "name": "iPhone 16 Plus",
+    "udid": "69BA4BBE-5E6E-499E-9308-7996F32BD753",
+    "runtime": "iOS 18.6",
+    "architecture": "arm64"
+  },
+  "application": {
+    "bundleId": "com.example.nudge",
+    "displayName": "Nudge",
+    "buildConfiguration": "Debug",
+    "appFrameworkSha256": "47f3207fa2745fc85f2cceb1eb6572da81884f300516d8a2fbfbcbdd3d2f68e2"
+  },
+  "freshInstall": {
+    "preinstallBundleAbsent": true,
+    "newContainerResolved": true,
+    "launchPid": 56306,
+    "processObservedAfterLaunch": true,
+    "firstRunOnboardingObserved": true
+  },
+  "screenshot": {
+    "path": "docs/acceptance/artifacts/2026-08-11-ios-fresh-install.png",
+    "sha256": "95b910e11275285e369e86273d14be7b26d8d12cfbdc50afc8de7d7d44733723",
+    "width": 1290,
+    "height": 2796
+  },
+  "scope": {
+    "accepted": "debug Simulator fresh install and first-run launch",
+    "notAccepted": [
+      "App Attest",
+      "APNs delivery",
+      "Apple Health on real hardware",
+      "App Store release signing"
+    ]
+  }
+}

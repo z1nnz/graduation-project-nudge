@@ -4,7 +4,7 @@ This runbook separates deployed production evidence from local/emulator
 coverage and from release gates that still require external infrastructure.
 
 The latest dated execution record is
-[`acceptance/2026-08-10-relationship-migration-rollback-status.md`](acceptance/2026-08-10-relationship-migration-rollback-status.md).
+[`acceptance/2026-08-11-production-cutover-status.md`](acceptance/2026-08-11-production-cutover-status.md).
 
 ## Current verified state
 
@@ -38,8 +38,8 @@ The latest dated execution record is
   are non-rewardable, atomically update the canonical task projection, and
   support ordered immutable corrections across clients. Older offline evidence
   is retained as superseded audit data instead of replacing the latest state.
-  This is source and test evidence only until the updated Cloud Function is
-  deployed and exercised with real accounts.
+  The updated Cloud authority is deployed, and the production real-account E2E
+  accepted an App-Check-protected zero-reward focus lifecycle with cleanup.
 
 ## Relationship Membership cutover
 
@@ -118,10 +118,11 @@ must still be exercised in production before the retention gate is closed.
   avatar series are transactionally checked by Cloud. Equipping a paid or
   evolved character also requires a Cloud command that verifies ownership and
   series XP. Firestore Rules reject direct client writes to coin, XP, level,
-  unlock, and equipped-avatar projections. This remains
-  source/test evidence until Functions and Rules are deployed, legacy reward
-  projections are baselined, and real accounts exercise both settlement and
-  purchase callables.
+  unlock, and equipped-avatar projections. Functions and Rules are deployed,
+  and the Reward Ledger baseline run completed with zero issues. The production
+  E2E accepted the non-rewardable focus settlement boundary; a real-account
+  paid purchase and evolved-character equipment exercise remains a separate
+  store-release acceptance item.
 
 Before enabling the Cloud-owned reward fields, run the baseline dry-run,
 resolve every issue, apply once, and run the dry-run again. Apply creates a
@@ -234,19 +235,17 @@ acceptance; the JSON result from an actual run must report every step as
 
 ## External release gates
 
-- Cloud Functions deployment requires the Firebase Blaze plan because the
-  deployment must enable Artifact Registry.
-- Provisioning a new default Cloud Storage for Firebase bucket also requires
-  the Blaze plan. Storage Rules cannot be released until that bucket exists.
-- Functions and Storage/App Check enforcement should be enabled only after the
-  deployed clients and real-account callable tests pass.
+- Blaze, the default Storage bucket, Storage Rules, Functions, Firestore Rules,
+  indexes, and the App-Check-protected production account harness are now
+  provisioned and exercised. Keep enforcement changes staged so older clients
+  are not locked out before a signed mobile rollout.
 - The Android package name and Apple bundle ID are still
   `com.example.nudge`. A production identifier must be selected before store
   release. Firebase package and bundle identifiers are immutable, so this
   requires registering replacement Firebase mobile apps and regenerating the
   platform configuration rather than editing only the local project.
-- Android fresh-install acceptance requires an Android SDK and device or
-  emulator.
+- Debug fresh installs are accepted on an iOS Simulator and Android Emulator;
+  these do not replace signed physical-device acceptance.
 - Apple App Attest acceptance requires a signed build on a real Apple device;
   a simulator build cannot prove App Attest.
 - Push delivery needs a real device token and delivery receipt.
