@@ -49,8 +49,10 @@ completed in production.
    dry-runs, apply only clean migrations, then repeat the dry-runs.
 4. Run the cleanup-safe real-account production E2E with short-lived Admin and
    App Check credentials.
-5. Replace development bundle identifiers, create signed iOS and Android
-   builds, and complete fresh-install tests on real devices.
+5. Complete a clean iOS Simulator smoke artifact and the existing clean Android
+   device-or-emulator fresh-install artifact. A physical iPhone, App Attest
+   exchange, APNs receipt and App Store signing are deferred release-hardening
+   work, not graduation-project gates.
 6. Configure and activate the GitHub `main` ruleset after this CI workflow has
    produced its first successful pull-request run; require the four stable job
    names documented in `CONTRIBUTING.md`.
