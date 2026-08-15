@@ -6,6 +6,7 @@ import 'today_advice_page.dart';
 import 'statistics_page.dart';
 import 'weekly_report_page.dart';
 import 'tasks_page.dart';
+import 'discipline_identity_page.dart';
 
 class PersonalAnalysisPage extends StatefulWidget {
   final int initialTabIndex;
@@ -24,7 +25,7 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 3,
+      length: 4,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
@@ -93,6 +94,7 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
               ),
               tabs: const [
                 Tab(text: '今日建議'),
+                Tab(text: '自律人格'),
                 Tab(text: '數據統計'),
                 Tab(text: '每週報告'),
               ],
@@ -112,6 +114,7 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
               Navigator.pop(context);
             },
           ),
+          const DisciplineIdentityPage(),
           StatisticsPage(showAppBar: false),
           WeeklyReportPage(showAppBar: false),
         ],

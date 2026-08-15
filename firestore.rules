@@ -2151,6 +2151,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /discipline_identity_snapshots/{userId} {
+      allow read: if isOwner(userId) || isStaff();
+      allow write: if false;
+    }
+
     match /activity_receipts/{receiptId} {
       allow read: if isAuth()
         && (resource.data.actorUserId == request.auth.uid || isStaff());

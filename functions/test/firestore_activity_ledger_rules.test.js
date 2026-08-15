@@ -150,6 +150,14 @@ test(
       disciplineCoinsDelta: 1,
       characterExperienceDelta: 25,
     });
+    await firestore
+      .collection("discipline_identity_snapshots")
+      .doc(actor.localId)
+      .set({
+        schemaVersion: 1,
+        userId: actor.localId,
+        visibility: "private",
+      });
 
     assert.equal(
       (await request(`activity_events/${eventId}`, actor.idToken)).status,
@@ -182,6 +190,43 @@ test(
         await request(
           `reward_ledger_entries/${rewardEntryId}`,
           outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `discipline_identity_snapshots/${actor.localId}`,
+          actor.idToken,
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request(
+          `discipline_identity_snapshots/${actor.localId}`,
+          outsider.idToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          `discipline_identity_snapshots/${actor.localId}`,
+          actor.idToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              fields: fieldsOf({
+                schemaVersion: 1,
+                userId: actor.localId,
+                visibility: "summary",
+              }),
+            }),
+          },
         )
       ).status,
       403,

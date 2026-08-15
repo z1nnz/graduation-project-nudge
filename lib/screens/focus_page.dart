@@ -9,17 +9,22 @@ enum _PomodoroPhase { focus, rest }
 
 class FocusPage extends StatefulWidget {
   final bool autoStart;
+  final int initialFocusMinutes;
 
-  const FocusPage({super.key, this.autoStart = false});
+  const FocusPage({
+    super.key,
+    this.autoStart = false,
+    this.initialFocusMinutes = 25,
+  }) : assert(initialFocusMinutes >= 1 && initialFocusMinutes <= 120);
 
   @override
   State<FocusPage> createState() => _FocusPageState();
 }
 
 class _FocusPageState extends State<FocusPage> {
-  int selectedFocusMinutes = 25;
+  late int selectedFocusMinutes;
   int selectedRestMinutes = 5;
-  int remainingSeconds = 25 * 60;
+  late int remainingSeconds;
   _PomodoroPhase currentPhase = _PomodoroPhase.focus;
 
   Timer? timer;
@@ -41,6 +46,8 @@ class _FocusPageState extends State<FocusPage> {
   @override
   void initState() {
     super.initState();
+    selectedFocusMinutes = widget.initialFocusMinutes;
+    remainingSeconds = selectedFocusMinutes * 60;
     if (widget.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(startTimer());

@@ -724,6 +724,7 @@ export class FirestoreAccountDeletionRepository {
       "public_profiles",
       "privacy_consents",
       "notification_preferences",
+      "discipline_identity_snapshots",
       "push_delivery_state",
       "account_operation_leases",
       "push_delivery_leases",

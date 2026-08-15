@@ -25,6 +25,15 @@
         { "fieldPath": "recipientUserId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "activity_sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "actorUserId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "endedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

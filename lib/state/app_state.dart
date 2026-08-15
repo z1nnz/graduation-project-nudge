@@ -15,6 +15,7 @@ import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
 import '../models/daily_summary.dart';
+import '../models/discipline_identity_snapshot.dart';
 import '../models/experience_capabilities.dart';
 import '../models/family_link_contract.dart';
 import '../models/friend_request.dart';
@@ -36,6 +37,7 @@ import '../services/notification_service.dart';
 import '../services/activity_ingestion.dart';
 import '../services/activity_ledger_outbox.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
+import '../services/cloud_discipline_identity_gateway.dart';
 import '../services/cloud_health_snapshot_gateway.dart';
 import '../services/cloud_notification_preference_gateway.dart';
 import '../services/cloud_privacy_consent_gateway.dart';
@@ -107,6 +109,7 @@ class AppState extends ChangeNotifier {
   final ActivityLedgerOutbox _activityLedgerOutbox;
   final HealthSnapshotOutbox _healthSnapshotOutbox;
   final CloudRelationshipOutcomeGateway _relationshipOutcomeGateway;
+  final CloudDisciplineIdentityGateway _disciplineIdentityGateway;
   final CloudPrivacyConsentGateway _privacyConsentGateway;
   final CloudNotificationPreferenceGateway _notificationPreferenceGateway;
   final CloudUserNotificationGateway _userNotificationGateway;
@@ -119,6 +122,7 @@ class AppState extends ChangeNotifier {
     ActivityLedgerOutbox? activityLedgerOutbox,
     HealthSnapshotOutbox? healthSnapshotOutbox,
     CloudRelationshipOutcomeGateway? relationshipOutcomeGateway,
+    CloudDisciplineIdentityGateway? disciplineIdentityGateway,
     CloudPrivacyConsentGateway? privacyConsentGateway,
     CloudNotificationPreferenceGateway? notificationPreferenceGateway,
     CloudUserNotificationGateway? userNotificationGateway,
@@ -138,6 +142,9 @@ class AppState extends ChangeNotifier {
        _relationshipOutcomeGateway =
            relationshipOutcomeGateway ??
            CloudRelationshipOutcomeGateway.firebase(),
+       _disciplineIdentityGateway =
+           disciplineIdentityGateway ??
+           CloudDisciplineIdentityGateway.firebase(),
        _privacyConsentGateway =
            privacyConsentGateway ?? CloudPrivacyConsentGateway.firebase(),
        _notificationPreferenceGateway =
@@ -197,6 +204,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _groupTemplateSubscription;
   StreamSubscription? _groupMemberSummariesSubscription;
   StreamSubscription? _groupOutcomeSubscription;
+  StreamSubscription? _disciplineIdentitySubscription;
   StreamSubscription? _privacyConsentSubscription;
   StreamSubscription? _notificationPreferenceSubscription;
   StreamSubscription? _userNotificationSubscription;
@@ -265,6 +273,9 @@ class AppState extends ChangeNotifier {
   RelationshipOutcome? _familyRelationshipOutcome;
   List<RelationshipMemory> _familyRelationshipMemories = [];
   RelationshipOutcome? _groupRelationshipOutcome;
+  DisciplineIdentitySnapshot? _disciplineIdentitySnapshot;
+  bool _isRefreshingDisciplineIdentity = false;
+  String? _disciplineIdentityError;
   bool _isRefreshingFamilyRelationshipOutcome = false;
   bool _isRefreshingGroupRelationshipOutcome = false;
   String? _familyRelationshipOutcomeError;
@@ -278,6 +289,28 @@ class AppState extends ChangeNotifier {
     _cancelFirestoreListeners();
     unawaited(_restoreRelationshipSelections(user.uid));
     _setupRelationshipMembershipListener(user.uid);
+    _disciplineIdentitySubscription = FirebaseFirestore.instance
+        .collection('discipline_identity_snapshots')
+        .doc(user.uid)
+        .snapshots()
+        .listen((snapshot) {
+          if (!snapshot.exists) {
+            _disciplineIdentitySnapshot = null;
+            notifyListeners();
+            return;
+          }
+          try {
+            _disciplineIdentitySnapshot = DisciplineIdentitySnapshot.fromMap(
+              snapshot.data()!,
+              expectedUserId: user.uid,
+            );
+            _disciplineIdentityError = null;
+          } catch (_) {
+            _disciplineIdentitySnapshot = null;
+            _disciplineIdentityError = '自律人格資料不完整，請重新整理。';
+          }
+          notifyListeners();
+        });
     _privacyConsentSubscription = FirebaseFirestore.instance
         .collection('privacy_consents')
         .doc(user.uid)
@@ -1218,6 +1251,40 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<DisciplineIdentitySnapshot> refreshDisciplineIdentity() async {
+    final userId = _currentUser?.id;
+    if (userId == null || userId == 'local_user') {
+      throw StateError('請先登入後再更新自律人格');
+    }
+    if (_isRefreshingDisciplineIdentity) {
+      return _disciplineIdentitySnapshot ?? (throw StateError('自律人格正在更新，請稍候'));
+    }
+    _isRefreshingDisciplineIdentity = true;
+    _disciplineIdentityError = null;
+    notifyListeners();
+    try {
+      final snapshot = await _disciplineIdentityGateway.refresh(
+        expectedUserId: userId,
+      );
+      if (_currentUser?.id == userId) {
+        _disciplineIdentitySnapshot = snapshot;
+      }
+      return snapshot;
+    } catch (error) {
+      if (_currentUser?.id == userId) {
+        _disciplineIdentityError = error is DisciplineIdentityException
+            ? error.message
+            : '自律人格暫時無法更新，請稍後再試。';
+      }
+      rethrow;
+    } finally {
+      if (_currentUser?.id == userId) {
+        _isRefreshingDisciplineIdentity = false;
+        notifyListeners();
+      }
+    }
+  }
+
   Future<RelationshipOutcome> refreshGroupRelationshipOutcome() async {
     final scopeId = _selectedGroupId;
     if (scopeId == null || _canonicalGroup == null) {
@@ -1536,6 +1603,7 @@ class AppState extends ChangeNotifier {
     _privacyConsentSubscription?.cancel();
     _notificationPreferenceSubscription?.cancel();
     _userNotificationSubscription?.cancel();
+    _disciplineIdentitySubscription?.cancel();
     _clearGroupPublicationListeners();
 
     _userSubscription = null;
@@ -1579,9 +1647,13 @@ class AppState extends ChangeNotifier {
     _privacyConsentSubscription = null;
     _notificationPreferenceSubscription = null;
     _userNotificationSubscription = null;
+    _disciplineIdentitySubscription = null;
     _cloudPrivacyConsent = null;
     _cloudNotificationPreferences = null;
     _userNotifications = [];
+    _disciplineIdentitySnapshot = null;
+    _disciplineIdentityError = null;
+    _isRefreshingDisciplineIdentity = false;
     _canonicalGroup = null;
     _canonicalGroups = [];
     _selectedGroupId = null;
@@ -2152,6 +2224,10 @@ class AppState extends ChangeNotifier {
   bool get isGroupResultSharingEnabled => _groupResultSharingEnabled;
   RelationshipOutcome? get groupRelationshipOutcome =>
       _groupRelationshipOutcome;
+  DisciplineIdentitySnapshot? get disciplineIdentitySnapshot =>
+      _disciplineIdentitySnapshot;
+  bool get isRefreshingDisciplineIdentity => _isRefreshingDisciplineIdentity;
+  String? get disciplineIdentityError => _disciplineIdentityError;
   bool get isRefreshingGroupRelationshipOutcome =>
       _isRefreshingGroupRelationshipOutcome;
   String? get groupRelationshipOutcomeError => _groupRelationshipOutcomeError;
