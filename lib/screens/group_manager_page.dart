@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/relationship_membership.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../widgets/relationship_role_surface_card.dart';
 
 class GroupManagerPage extends StatefulWidget {
   const GroupManagerPage({super.key});
@@ -259,6 +261,9 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
               ],
             ),
           ),
+          const SizedBox(height: AppUI.sectionGap),
+
+          const RelationshipRoleSurfaceCard(role: RelationshipRole.manager),
           const SizedBox(height: AppUI.sectionGap),
 
           Text(

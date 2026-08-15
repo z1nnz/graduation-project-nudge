@@ -2142,18 +2142,11 @@ class AppState extends ChangeNotifier {
   String? get selectedGroupId => _selectedGroupId;
   String? get groupId => _canonicalGroup?.id;
   String? get groupName => _canonicalGroup?.name;
+  RelationshipMembership? get currentGroupMembership =>
+      _activeRelationshipMembership(RelationshipScope.group, _selectedGroupId);
   bool get isGroupOwner =>
-      _activeRelationshipMembership(
-        RelationshipScope.group,
-        _selectedGroupId,
-      )?.role ==
-      RelationshipRole.manager;
-  bool get hasActiveGroupMembership =>
-      _activeRelationshipMembership(
-        RelationshipScope.group,
-        _selectedGroupId,
-      ) !=
-      null;
+      currentGroupMembership?.role == RelationshipRole.manager;
+  bool get hasActiveGroupMembership => currentGroupMembership != null;
   List<GroupResultSummaryContract> get groupMemberSummaries =>
       List<GroupResultSummaryContract>.unmodifiable(_groupMemberSummaries);
   bool get isGroupResultSharingEnabled => _groupResultSharingEnabled;
@@ -2172,18 +2165,15 @@ class AppState extends ChangeNotifier {
   List<FamilyLinkContract> get familyLinks =>
       List<FamilyLinkContract>.unmodifiable(_familyLinks);
   String? get selectedFamilyLinkId => _selectedFamilyLinkId;
+  RelationshipMembership? get currentFamilyMembership =>
+      _activeRelationshipMembership(
+        RelationshipScope.family,
+        _selectedFamilyLinkId,
+      );
   bool get isCurrentFamilyGuardian =>
-      _activeRelationshipMembership(
-        RelationshipScope.family,
-        _selectedFamilyLinkId,
-      )?.role ==
-      RelationshipRole.guardian;
+      currentFamilyMembership?.role == RelationshipRole.guardian;
   bool get isCurrentFamilyChild =>
-      _activeRelationshipMembership(
-        RelationshipScope.family,
-        _selectedFamilyLinkId,
-      )?.role ==
-      RelationshipRole.child;
+      currentFamilyMembership?.role == RelationshipRole.child;
   List<RelationshipMembership> get relationshipMemberships =>
       List<RelationshipMembership>.unmodifiable(
         _formalRelationshipMemberships.where(
