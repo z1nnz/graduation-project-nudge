@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/relationship_membership.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../widgets/relationship_role_surface_card.dart';
 
 class GuardianParentPage extends StatefulWidget {
   const GuardianParentPage({super.key});
@@ -131,6 +133,10 @@ class _GuardianParentPageState extends State<GuardianParentPage> {
             ),
           ),
           const SizedBox(height: AppUI.sectionGap),
+          if (canInteract) ...[
+            const RelationshipRoleSurfaceCard(role: RelationshipRole.guardian),
+            const SizedBox(height: AppUI.sectionGap),
+          ],
           _buildRelationshipCard(
             context,
             appState,

@@ -5,6 +5,7 @@ import '../models/family_link_contract.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/relationship_context_switcher.dart';
+import '../widgets/relationship_role_surface_card.dart';
 import '../models/relationship_membership.dart';
 
 class GuardianCenterPage extends StatelessWidget {
@@ -16,7 +17,8 @@ class GuardianCenterPage extends StatelessWidget {
     final accentColor = appState.currentIconColor;
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
-    final isChild = appState.isCurrentFamilyChild;
+    final familyMembership = appState.currentFamilyMembership;
+    final isChild = familyMembership?.role == RelationshipRole.child;
     final link = appState.familyLink;
     final activeGoal = appState.activeFamilyGoal;
     final encouragements = appState.guardianEncouragements;
@@ -62,8 +64,11 @@ class GuardianCenterPage extends StatelessWidget {
           ),
           const SizedBox(height: AppUI.sectionGap),
           const RelationshipContextSwitcher(scope: RelationshipScope.family),
-          if (appState.familyLinks.isNotEmpty)
+          if (familyMembership != null) ...[
             const SizedBox(height: AppUI.sectionGap),
+            RelationshipRoleSurfaceCard(role: familyMembership.role),
+            const SizedBox(height: AppUI.sectionGap),
+          ],
           if (link != null)
             _buildActiveLinkCard(context, appState, isChild, accentColor)
           else
