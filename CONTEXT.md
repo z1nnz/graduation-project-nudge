@@ -96,6 +96,15 @@
 - **Recovery Step**: A small, user-chosen action offered after an activity gap.
   It does not punish missed days, rewrite history, or require the user to make
   up the missed amount.
+- **Room Resonance Preference**: A member-owned, per-room opt-in that permits
+  one bounded Resonance Signal to be shared with approved room members. It
+  never grants access to Activity Ledger details or precise health metrics.
+- **Resonance Signal**: One fixed, non-diagnostic cue a member voluntarily
+  shares for at most 24 hours, such as restarting gently or wanting company.
+  It is not a progress report, ranking entry, manager instruction, or reward.
+- **Support Acknowledgement**: One fixed response from another approved room
+  member to the current Resonance Signal. It expresses support but cannot
+  change the signal owner's Activity Session, goal, score, or character.
 
 ## Product boundary
 

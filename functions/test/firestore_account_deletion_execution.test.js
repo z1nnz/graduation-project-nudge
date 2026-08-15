@@ -149,6 +149,10 @@ test(
     const oldExportAuditId = `privacy-export-audit-${suffix}`;
     const friendMessageId = `friend-message-${suffix}`;
     const notificationId = `notification-${suffix}`;
+    const resonancePreferenceId = `${roomId}--${subjectUserId}`;
+    const resonanceSignalId = `${roomId}--${subjectUserId}`;
+    const authoredResonanceAckId = `resonance-authored-${suffix}`;
+    const receivedResonanceAckId = `resonance-received-${suffix}`;
     const preservedStaffAuditId = `staff-audit-${suffix}`;
     const recipientAuditId = `recipient-audit-${suffix}`;
     const principalAuditId = `principal-audit-${suffix}`;
@@ -181,6 +185,37 @@ test(
             userId: subjectUserId,
             visibility: "private",
             personaKey: "steady_builder",
+          }),
+        firestore.collection("room_resonance_preferences")
+          .doc(resonancePreferenceId)
+          .set({
+            roomId,
+            userId: subjectUserId,
+            enabled: true,
+          }),
+        firestore.collection("room_resonance_signals")
+          .doc(resonanceSignalId)
+          .set({
+            signalId: resonanceSignalId,
+            roomId,
+            ownerUserId: subjectUserId,
+            cueKey: "gentle_restart",
+          }),
+        firestore.collection("room_resonance_acknowledgements")
+          .doc(authoredResonanceAckId)
+          .set({
+            roomId,
+            signalOwnerUserId: otherUserId,
+            actorUserId: subjectUserId,
+            responseKey: "with_you",
+          }),
+        firestore.collection("room_resonance_acknowledgements")
+          .doc(receivedResonanceAckId)
+          .set({
+            roomId,
+            signalOwnerUserId: subjectUserId,
+            actorUserId: otherUserId,
+            responseKey: "cheer",
           }),
         firestore.collection("privacy_data_requests").doc(requestId).set({
           schemaVersion: 1,
@@ -423,6 +458,10 @@ test(
         `users/${subjectUserId}`,
         `public_profiles/${subjectUserId}`,
         `discipline_identity_snapshots/${subjectUserId}`,
+        `room_resonance_preferences/${resonancePreferenceId}`,
+        `room_resonance_signals/${resonanceSignalId}`,
+        `room_resonance_acknowledgements/${authoredResonanceAckId}`,
+        `room_resonance_acknowledgements/${receivedResonanceAckId}`,
         `activity_events/${eventId}`,
         `activity_source_records/${eventId}`,
         `family_links/${familyLinkId}`,

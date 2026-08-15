@@ -26,6 +26,7 @@ import '../models/privacy_consent.dart';
 import '../models/relationship_membership.dart';
 import '../models/relationship_outcome.dart';
 import '../models/room_activity_session.dart';
+import '../models/room_resonance.dart';
 import '../models/social_encouragement_record.dart';
 import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
@@ -42,6 +43,7 @@ import '../services/cloud_health_snapshot_gateway.dart';
 import '../services/cloud_notification_preference_gateway.dart';
 import '../services/cloud_privacy_consent_gateway.dart';
 import '../services/cloud_relationship_outcome_gateway.dart';
+import '../services/cloud_room_resonance_gateway.dart';
 import '../services/cloud_reward_avatar_gateway.dart';
 import '../services/cloud_reward_purchase_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
@@ -110,6 +112,7 @@ class AppState extends ChangeNotifier {
   final HealthSnapshotOutbox _healthSnapshotOutbox;
   final CloudRelationshipOutcomeGateway _relationshipOutcomeGateway;
   final CloudDisciplineIdentityGateway _disciplineIdentityGateway;
+  final CloudRoomResonanceGateway _roomResonanceGateway;
   final CloudPrivacyConsentGateway _privacyConsentGateway;
   final CloudNotificationPreferenceGateway _notificationPreferenceGateway;
   final CloudUserNotificationGateway _userNotificationGateway;
@@ -123,6 +126,7 @@ class AppState extends ChangeNotifier {
     HealthSnapshotOutbox? healthSnapshotOutbox,
     CloudRelationshipOutcomeGateway? relationshipOutcomeGateway,
     CloudDisciplineIdentityGateway? disciplineIdentityGateway,
+    CloudRoomResonanceGateway? roomResonanceGateway,
     CloudPrivacyConsentGateway? privacyConsentGateway,
     CloudNotificationPreferenceGateway? notificationPreferenceGateway,
     CloudUserNotificationGateway? userNotificationGateway,
@@ -145,6 +149,8 @@ class AppState extends ChangeNotifier {
        _disciplineIdentityGateway =
            disciplineIdentityGateway ??
            CloudDisciplineIdentityGateway.firebase(),
+       _roomResonanceGateway =
+           roomResonanceGateway ?? CloudRoomResonanceGateway.firebase(),
        _privacyConsentGateway =
            privacyConsentGateway ?? CloudPrivacyConsentGateway.firebase(),
        _notificationPreferenceGateway =
@@ -185,6 +191,9 @@ class AppState extends ChangeNotifier {
   final Map<String, StreamSubscription> _roomMemberSubscriptions = {};
   final Map<String, StreamSubscription> _roomMessageSubscriptions = {};
   final Map<String, StreamSubscription> _roomEventSubscriptions = {};
+  final Map<String, StreamSubscription> _roomResonancePreferenceSubscriptions =
+      {};
+  final Map<String, StreamSubscription> _roomResonanceSignalSubscriptions = {};
   StreamSubscription? _shopSubscription;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
@@ -220,6 +229,8 @@ class AppState extends ChangeNotifier {
   final Map<String, RoomActivitySession> _roomActivitySessions = {};
   final Map<String, String> _roomActiveSessionIds = {};
   List<Map<String, dynamic>> _canonicalActivitySessionDocuments = [];
+  final Map<String, RoomResonancePreference> _roomResonancePreferences = {};
+  final Map<String, List<RoomResonanceSignal>> _roomResonanceSignals = {};
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -819,7 +830,11 @@ class AppState extends ChangeNotifier {
       _roomMemberSubscriptions.remove(roomId)?.cancel();
       _roomMessageSubscriptions.remove(roomId)?.cancel();
       _roomEventSubscriptions.remove(roomId)?.cancel();
+      _roomResonancePreferenceSubscriptions.remove(roomId)?.cancel();
+      _roomResonanceSignalSubscriptions.remove(roomId)?.cancel();
       _roomActiveSessionIds.remove(roomId);
+      _roomResonancePreferences.remove(roomId);
+      _roomResonanceSignals.remove(roomId);
       _roomActivitySessions.removeWhere(
         (_, session) => session.roomId == roomId,
       );
@@ -867,6 +882,10 @@ class AppState extends ChangeNotifier {
               _roomActiveSessionIds.remove(roomId);
               _roomMessageSubscriptions.remove(roomId)?.cancel();
               _roomEventSubscriptions.remove(roomId)?.cancel();
+              _roomResonancePreferenceSubscriptions.remove(roomId)?.cancel();
+              _roomResonanceSignalSubscriptions.remove(roomId)?.cancel();
+              _roomResonancePreferences.remove(roomId);
+              _roomResonanceSignals.remove(roomId);
               _roomActivitySessions.removeWhere(
                 (_, session) => session.roomId == roomId,
               );
@@ -895,6 +914,58 @@ class AppState extends ChangeNotifier {
 
   void _ensureRoomInteractionListeners(String roomId) {
     final roomRef = FirebaseFirestore.instance.collection('rooms').doc(roomId);
+    final userId = _currentUser?.id;
+    if (userId != null &&
+        !_roomResonancePreferenceSubscriptions.containsKey(roomId)) {
+      _roomResonancePreferenceSubscriptions[roomId] = FirebaseFirestore.instance
+          .collection('room_resonance_preferences')
+          .doc('$roomId--$userId')
+          .snapshots()
+          .listen((snapshot) {
+            if (!snapshot.exists) {
+              _roomResonancePreferences.remove(roomId);
+            } else {
+              try {
+                _roomResonancePreferences[roomId] =
+                    RoomResonancePreference.fromMap(
+                      snapshot.data()!,
+                      expectedRoomId: roomId,
+                      expectedUserId: userId,
+                    );
+              } catch (error) {
+                debugPrint(
+                  'Skipping invalid room resonance preference: $error',
+                );
+                _roomResonancePreferences.remove(roomId);
+              }
+            }
+            notifyListeners();
+          });
+    }
+    if (!_roomResonanceSignalSubscriptions.containsKey(roomId)) {
+      _roomResonanceSignalSubscriptions[roomId] = FirebaseFirestore.instance
+          .collection('room_resonance_signals')
+          .where('roomId', isEqualTo: roomId)
+          .snapshots()
+          .listen((snapshot) {
+            final signals = <RoomResonanceSignal>[];
+            for (final document in snapshot.docs) {
+              try {
+                signals.add(
+                  RoomResonanceSignal.fromMap(
+                    document.data(),
+                    expectedRoomId: roomId,
+                  ),
+                );
+              } catch (error) {
+                debugPrint('Skipping invalid room resonance signal: $error');
+              }
+            }
+            signals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            _roomResonanceSignals[roomId] = signals;
+            notifyListeners();
+          });
+    }
     if (!_roomMessageSubscriptions.containsKey(roomId)) {
       _roomMessageSubscriptions[roomId] = roomRef
           .collection('messages')
@@ -1582,9 +1653,17 @@ class AppState extends ChangeNotifier {
     for (final subscription in _roomEventSubscriptions.values) {
       subscription.cancel();
     }
+    for (final subscription in _roomResonancePreferenceSubscriptions.values) {
+      subscription.cancel();
+    }
+    for (final subscription in _roomResonanceSignalSubscriptions.values) {
+      subscription.cancel();
+    }
     _roomMemberSubscriptions.clear();
     _roomMessageSubscriptions.clear();
     _roomEventSubscriptions.clear();
+    _roomResonancePreferenceSubscriptions.clear();
+    _roomResonanceSignalSubscriptions.clear();
     _shopSubscription?.cancel();
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
@@ -1663,6 +1742,8 @@ class AppState extends ChangeNotifier {
     _canonicalActivitySessionDocuments = [];
     _roomActivitySessions.clear();
     _roomActiveSessionIds.clear();
+    _roomResonancePreferences.clear();
+    _roomResonanceSignals.clear();
   }
 
   @override
@@ -7931,6 +8012,98 @@ class AppState extends ChangeNotifier {
 
   List<RoomActivitySession> get roomActivitySessions =>
       List.unmodifiable(_roomActivitySessions.values);
+
+  bool roomResonanceSharingEnabled(String roomId) =>
+      _roomResonancePreferences[roomId]?.enabled == true;
+
+  List<RoomResonanceSignal> roomResonanceSignals(String roomId) {
+    final now = DateTime.now().toUtc();
+    return List<RoomResonanceSignal>.unmodifiable(
+      (_roomResonanceSignals[roomId] ?? const <RoomResonanceSignal>[]).where(
+        (signal) => signal.isVisibleAt(now),
+      ),
+    );
+  }
+
+  RoomResonanceSignal? myRoomResonanceSignal(String roomId) {
+    final userId = _currentUser?.id;
+    if (userId == null) return null;
+    for (final signal in roomResonanceSignals(roomId)) {
+      if (signal.ownerUserId == userId) return signal;
+    }
+    return null;
+  }
+
+  void _replaceRoomResonanceSignal(RoomResonanceSignal signal) {
+    final current = List<RoomResonanceSignal>.from(
+      _roomResonanceSignals[signal.roomId] ?? const [],
+    )..removeWhere((item) => item.ownerUserId == signal.ownerUserId);
+    current.add(signal);
+    current.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _roomResonanceSignals[signal.roomId] = current;
+  }
+
+  Future<void> setRoomResonanceSharing({
+    required String roomId,
+    required bool enabled,
+  }) async {
+    final userId = _currentUser?.id;
+    if (userId == null) throw StateError('請先登入後再調整共振分享');
+    final preference = await _roomResonanceGateway.setPreference(
+      roomId: roomId,
+      userId: userId,
+      enabled: enabled,
+    );
+    _roomResonancePreferences[roomId] = preference;
+    if (!enabled) {
+      final current = _roomResonanceSignals[roomId];
+      current?.removeWhere((signal) => signal.ownerUserId == userId);
+    }
+    notifyListeners();
+  }
+
+  Future<RoomResonanceSignal> publishRoomResonance({
+    required String roomId,
+    required RoomResonanceCue cue,
+  }) async {
+    if (_currentUser == null) throw StateError('請先登入後再分享共振訊號');
+    final signal = await _roomResonanceGateway.publish(
+      roomId: roomId,
+      cue: cue,
+    );
+    _replaceRoomResonanceSignal(signal);
+    notifyListeners();
+    return signal;
+  }
+
+  Future<void> withdrawRoomResonance(String roomId) async {
+    final userId = _currentUser?.id;
+    if (userId == null) throw StateError('請先登入後再撤回共振訊號');
+    await _roomResonanceGateway.withdraw(roomId: roomId);
+    _roomResonanceSignals[roomId]?.removeWhere(
+      (signal) => signal.ownerUserId == userId,
+    );
+    notifyListeners();
+  }
+
+  Future<RoomResonanceSignal> acknowledgeRoomResonance({
+    required RoomResonanceSignal signal,
+    required RoomResonanceResponse response,
+  }) async {
+    final userId = _currentUser?.id;
+    if (userId == null || userId == signal.ownerUserId) {
+      throw StateError('只能回應其他成員的共振訊號');
+    }
+    final updated = await _roomResonanceGateway.acknowledge(
+      roomId: signal.roomId,
+      ownerUserId: signal.ownerUserId,
+      generationId: signal.generationId,
+      response: response,
+    );
+    _replaceRoomResonanceSignal(updated);
+    notifyListeners();
+    return updated;
+  }
 
   RoomActivitySession? activeRoomActivitySession(String roomId) {
     final activeSessionId = _roomActiveSessionIds[roomId];
