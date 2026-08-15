@@ -55,7 +55,8 @@ guard. Relationship before-images carry the explicit retention policy
 could destroy rollback evidence before production acceptance. Their audited
 purge requires an immutable `production_acceptance_evidence` record bound to
 the Firebase project and migration run. The record must carry artifact hashes
-for production real-account E2E plus iOS and Android fresh installs and must be
+for production real-account E2E plus clean iOS Simulator and Android emulator
+fresh installs and must be
 timestamped after migration completion by an authorized release staff account;
 each migration run binds exactly one acceptance evidence ID. Purge claims the
 shared destructive guard, is resumable by counted progress, and writes one
@@ -67,5 +68,6 @@ captured total to equal privacy-deleted plus purge-deleted evidence.
 
 Legacy projection reads and lazy repair remain temporarily so an older account
 can be recovered before the one-time production migration. They must be removed
-only after migration metrics show no unresolved records and the fresh-install
-acceptance suite passes against real accounts.
+only after migration metrics show no unresolved records, production real-account
+E2E passes, and the clean Simulator/emulator fresh-install artifacts pass. This
+gate does not claim physical-iPhone, App Attest or APNs acceptance.

@@ -235,6 +235,20 @@ acceptance; the JSON result from an actual run must report every step as
 
 ## External release gates
 
+### Mobile acceptance scope adopted 2026-08-15
+
+The graduation-project acceptance suite does not require installing Nudge on a
+physical iPhone. iOS acceptance uses a clean iOS Simulator install, launch and
+first-run smoke artifact; Android acceptance may use a clean emulator install.
+Those artifacts satisfy the `freshInstall.ios` and `freshInstall.android`
+evidence slots used by the relationship-migration purge gate.
+
+Apple App Attest token exchange, APNs delivery receipts, App Store signing and
+physical-iPhone behavior are explicitly deferred release-hardening work. They
+must remain labelled **not accepted** and must not be inferred from Simulator,
+unit-test, Firebase configuration or source-level evidence. Production
+real-account Cloud E2E remains required.
+
 - Blaze, the default Storage bucket, Storage Rules, Functions, Firestore Rules,
   indexes, and the App-Check-protected production account harness are now
   provisioned and exercised. Keep enforcement changes staged so older clients
@@ -244,11 +258,15 @@ acceptance; the JSON result from an actual run must report every step as
   release. Firebase package and bundle identifiers are immutable, so this
   requires registering replacement Firebase mobile apps and regenerating the
   platform configuration rather than editing only the local project.
-- Debug fresh installs are accepted on an iOS Simulator and Android Emulator;
-  these do not replace signed physical-device acceptance.
+- Debug fresh installs are accepted on an iOS Simulator and Android Emulator
+  for the graduation-project gate; they do not prove signed store-release or
+  physical-device behavior.
 - Apple App Attest acceptance requires a signed build on a real Apple device;
-  a simulator build cannot prove App Attest.
-- Push delivery needs a real device token and delivery receipt.
+  it is outside the graduation-project gate and a simulator build must not be
+  described as proving it.
+- APNs delivery needs a real device token and delivery receipt; it is outside
+  the graduation-project gate. Notification preference, audit and Cloud job
+  behavior remain covered by automated and real-account Cloud tests.
 
 ## 2026-07-30 mobile build evidence
 
