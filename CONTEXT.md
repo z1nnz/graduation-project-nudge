@@ -75,9 +75,10 @@
   approval, presence, and summarized progress. The Room metadata stores only
   membership IDs; it does not embed writable member profiles.
 - **Activity Session**: One member's bounded attempt toward a Study Room goal.
-  It is stored under `rooms/{roomId}/activity_sessions/{sessionId}` and is
-  shared by App and Web. Only the member or their assigned device controls its
-  lifecycle.
+  Its user-visible canonical record is
+  `activity_sessions/{activitySessionId}` and is shared by App and Web. The
+  room-nested record is a Cloud-only transactional command aggregate, not a UI
+  projection. Only the member or their assigned device controls its lifecycle.
 - **Room Interaction**: An append-only message or event stored under the Study
   Room. App and Web read the same history, and the authenticated participant
   must be the sender or actor of every new record. Display names come from the
@@ -95,8 +96,8 @@
 The App owns daily action, purchase, Codex, evolution, Child consent, and Child
 goal decisions. The Web Dashboard owns long-term analysis, group
 administration, Guardian proposals, family consent summaries, and catalog
-operations. Study Room membership and member-controlled Activity Sessions are
+operations. Study Room membership and canonical Activity Ledger Sessions are
 cross-surface records, so a member may continue the same activity from App or
 Web. Both surfaces use the same Firestore records; neither surface maintains an
-independent binding or catalog truth. Family relationship growth does not
-advance personal Character evolution.
+independent binding, Session, or catalog truth. Family relationship growth does
+not advance personal Character evolution.

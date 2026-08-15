@@ -17,6 +17,18 @@
     return metric;
   }
 
+  function requireCanonicalMetric(value, label, { positive = false } = {}) {
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      (positive && value <= 0)
+    ) {
+      throw new Error(`${label} is invalid`);
+    }
+    return value;
+  }
+
   function start(input) {
     if (!activityKinds.includes(input.activityKind)) {
       throw new Error("Unsupported room activity kind");
@@ -78,6 +90,69 @@
     };
   }
 
+  function fromCanonicalLedger(input, expectedRoomId, fallbackTargetValue) {
+    const roomId = requireText(expectedRoomId, "expectedRoomId");
+    if (!Array.isArray(input?.roomIds) || !input.roomIds.includes(roomId)) {
+      throw new Error("Canonical activity session belongs to another room");
+    }
+    const status = input.status === "discarded" ? "cancelled" : input.status;
+    if (!statuses.includes(status)) {
+      throw new Error("Unsupported canonical room session status");
+    }
+    if (!activityKinds.includes(input.activityType)) {
+      throw new Error("Unsupported canonical room activity kind");
+    }
+    if (!sources.includes(input.source)) {
+      throw new Error("Unsupported canonical room activity source");
+    }
+    const hasUpdatedAt = Object.prototype.hasOwnProperty.call(
+      input,
+      "updatedAt",
+    );
+    const hasTargetValue = Object.prototype.hasOwnProperty.call(
+      input,
+      "roomTargetValue",
+    );
+    if (
+      typeof input.startedAt !== "string" ||
+      (hasUpdatedAt && typeof input.updatedAt !== "string") ||
+      (input.endedAt != null && typeof input.endedAt !== "string")
+    ) {
+      throw new Error("Canonical room activity timestamps are invalid");
+    }
+    const startedAt = new Date(input.startedAt);
+    const updatedAt = new Date(hasUpdatedAt ? input.updatedAt : input.startedAt);
+    const endedAt = input.endedAt == null ? null : new Date(input.endedAt);
+    const terminal = ["completed", "cancelled"].includes(status);
+    if (
+      Number.isNaN(startedAt.getTime()) ||
+      Number.isNaN(updatedAt.getTime()) ||
+      (endedAt && Number.isNaN(endedAt.getTime())) ||
+      terminal !== Boolean(endedAt)
+    ) {
+      throw new Error("Canonical room activity timestamps are invalid");
+    }
+    return {
+      schemaVersion: 1,
+      sessionId: requireText(input.activitySessionId, "activitySessionId"),
+      roomId,
+      actorId: requireText(input.actorUserId, "actorUserId"),
+      activityKind: input.activityType,
+      metricUnit: requireText(input.metricUnit, "metricUnit"),
+      targetValue: requireCanonicalMetric(
+        hasTargetValue ? input.roomTargetValue : fallbackTargetValue,
+        "roomTargetValue",
+        { positive: true },
+      ),
+      metricValue: requireCanonicalMetric(input.metricValue, "metricValue"),
+      source: input.source,
+      status,
+      startedAt: startedAt.toISOString(),
+      updatedAt: updatedAt.toISOString(),
+      endedAt: endedAt?.toISOString() || null,
+    };
+  }
+
   function requiresTrustedHealthAdapter(room = {}) {
     return ["sleepHours", "steps", "exerciseMinutes"].includes(
       String(room.goalSourceType || ""),
@@ -87,6 +162,7 @@
   const contract = {
     start,
     transition,
+    fromCanonicalLedger,
     requiresTrustedHealthAdapter,
     statuses,
     activityKinds,

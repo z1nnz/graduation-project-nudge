@@ -5,8 +5,8 @@
 Accepted — 2026-08-09
 
 Supersedes the direct App/Web write path described in ADR 0006. The
-member-controlled lifecycle and shared projection defined there remain in
-force.
+member-controlled lifecycle defined there remains in force. ADR 0016
+supersedes the client-observation part of this decision.
 
 ## Context
 
@@ -35,7 +35,7 @@ Cloud writes the Activity Ledger event or settlement, the room Activity
 Session, and the member's `activeSessionId` in the same Firestore transaction.
 App and Web clients cannot write room Activity Sessions or the active-session
 pointer directly. They update user-visible local state only after Cloud accepts
-the command and continue to observe the shared Firestore projection.
+the command. The current user-visible Session source is defined by ADR 0016.
 
 Room activity-feed events are non-canonical presentation records. A failure to
 append one after an accepted Cloud command is logged but does not turn the

@@ -75,6 +75,13 @@ async function createDoc(path, data, token) {
   });
 }
 
+async function adminCreateDoc(path, data) {
+  return request(path, "owner", {
+    method: "PATCH",
+    body: JSON.stringify({ fields: fieldsOf(data) }),
+  });
+}
+
 async function commit(writes, token) {
   return fetch(commitUrl, {
     method: "POST",
@@ -158,6 +165,24 @@ function session(roomId, actorId, now) {
     metricValue: 0,
     source: "app",
     status: "active",
+    startedAt: now,
+    updatedAt: now,
+    endedAt: null,
+  };
+}
+
+function canonicalSession(roomId, actorId, now) {
+  return {
+    schemaVersion: 1,
+    activitySessionId: "session-alice-focus",
+    actorUserId: actorId,
+    activityType: "focus",
+    source: "app",
+    status: "active",
+    roomIds: [roomId],
+    roomTargetValue: 25,
+    metricUnit: "minutes",
+    metricValue: 0,
     startedAt: now,
     updatedAt: now,
     endedAt: null,
@@ -300,6 +325,45 @@ async function run() {
     response.status,
     403,
     "A room owner cannot create another member's activity",
+  );
+
+  response = await adminCreateDoc(
+    sessionPath,
+    session(roomId, alice.localId, now),
+  );
+  assert.equal(
+    response.status,
+    200,
+    "The Cloud service can persist its transactional room aggregate",
+  );
+
+  response = await request(sessionPath, alice.idToken);
+  assert.equal(
+    response.status,
+    403,
+    "A member reads the canonical top-level Ledger session, not the Cloud room aggregate",
+  );
+
+  const canonicalSessionPath =
+    "activity_sessions/session-alice-focus";
+  response = await adminCreateDoc(
+    canonicalSessionPath,
+    canonicalSession(roomId, alice.localId, now),
+  );
+  assert.equal(response.status, 200, await response.clone().text());
+
+  response = await request(canonicalSessionPath, alice.idToken);
+  assert.equal(
+    response.status,
+    200,
+    "The actor can read the canonical Ledger session used by App and Web",
+  );
+
+  response = await request(canonicalSessionPath, owner.idToken);
+  assert.equal(
+    response.status,
+    403,
+    "Room ownership does not reveal another member's canonical Ledger session",
   );
 
   response = await commit(

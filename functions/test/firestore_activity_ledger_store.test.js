@@ -73,6 +73,44 @@ test(
       (await roomRef.collection("activity_sessions").doc(sessionId).get()).data(),
       startedSession,
     );
+    let canonicalSnapshots = await firestore
+      .collection("activity_sessions")
+      .where("actorUserId", "==", actorUserId)
+      .get();
+    assert.equal(canonicalSnapshots.size, 1);
+    let canonicalSession = canonicalSnapshots.docs[0].data();
+    assert.deepEqual(
+      {
+        activitySessionId: canonicalSession.activitySessionId,
+        actorUserId: canonicalSession.actorUserId,
+        activityType: canonicalSession.activityType,
+        source: canonicalSession.source,
+        lifecycleStarted: canonicalSession.lifecycleStarted,
+        status: canonicalSession.status,
+        startedAt: canonicalSession.startedAt,
+        updatedAt: canonicalSession.updatedAt,
+        endedAt: canonicalSession.endedAt,
+        metricValue: canonicalSession.metricValue,
+        metricUnit: canonicalSession.metricUnit,
+        roomIds: canonicalSession.roomIds,
+        roomTargetValue: canonicalSession.roomTargetValue,
+      },
+      {
+        activitySessionId: sessionId,
+        actorUserId,
+        activityType: "focus",
+        source: "app",
+        lifecycleStarted: true,
+        status: "active",
+        startedAt: startedSession.startedAt,
+        updatedAt: startedSession.updatedAt,
+        endedAt: null,
+        metricValue: 0,
+        metricUnit: "minutes",
+        roomIds: [roomId],
+        roomTargetValue: 25,
+      },
+    );
 
     const secondSessionId = `room-session-second-${unique}`;
     const secondStartedAt = "2026-08-09T09:00:00.500Z";
@@ -129,6 +167,30 @@ test(
     assert.deepEqual(
       (await roomRef.collection("activity_sessions").doc(sessionId).get()).data(),
       discardedSession,
+    );
+    canonicalSnapshots = await firestore
+      .collection("activity_sessions")
+      .where("actorUserId", "==", actorUserId)
+      .get();
+    assert.equal(canonicalSnapshots.size, 1);
+    canonicalSession = canonicalSnapshots.docs[0].data();
+    assert.deepEqual(
+      {
+        activitySessionId: canonicalSession.activitySessionId,
+        status: canonicalSession.status,
+        updatedAt: canonicalSession.updatedAt,
+        endedAt: canonicalSession.endedAt,
+        roomIds: canonicalSession.roomIds,
+        roomTargetValue: canonicalSession.roomTargetValue,
+      },
+      {
+        activitySessionId: sessionId,
+        status: "discarded",
+        updatedAt: discardedAt,
+        endedAt: discardedAt,
+        roomIds: [roomId],
+        roomTargetValue: 25,
+      },
     );
     await deleteApp(app);
   },

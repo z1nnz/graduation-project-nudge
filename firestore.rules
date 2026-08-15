@@ -1658,11 +1658,10 @@ service cloud.firestore {
       }
 
       match /activity_sessions/{sessionId} {
-        allow read: if isApprovedRoomParticipant();
-        // Canonical room sessions and member pointers are written only by the
-        // Cloud Activity Ledger transaction. Clients call recordActivity.
-        allow create, update: if false;
-        allow delete: if false;
+        // This is the Cloud-only transactional room aggregate. App and Web
+        // display the actor-owned top-level Activity Ledger session instead,
+        // so clients cannot accidentally depend on a second session truth.
+        allow read, write: if false;
       }
 
       match /messages/{messageId} {

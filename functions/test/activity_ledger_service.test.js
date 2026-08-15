@@ -109,6 +109,10 @@ test("room activity atomically advances its Ledger and member projection", async
   );
 
   assert.equal(started.status, "accepted");
+  assert.deepEqual(started.session.roomIds, ["room-study"]);
+  assert.equal(started.session.source, "app");
+  assert.equal(started.session.roomTargetValue, 25);
+  assert.equal(started.session.updatedAt, "2026-07-28T09:00:00.000Z");
   assert.deepEqual(
     await store.getRoomActivityProjection("room-study", "room-session-1"),
     startedRoomSession,
@@ -137,6 +141,8 @@ test("room activity atomically advances its Ledger and member projection", async
   );
 
   assert.equal(completed.status, "settled");
+  assert.equal(completed.session.roomTargetValue, 25);
+  assert.equal(completed.session.updatedAt, "2026-07-28T09:25:00.000Z");
   assert.deepEqual(
     await store.getRoomActivityProjection("room-study", "room-session-1"),
     completedRoomSession,

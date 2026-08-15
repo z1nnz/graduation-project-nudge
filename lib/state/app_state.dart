@@ -174,8 +174,8 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _outgoingRequestsSubscription;
   StreamSubscription? _roomsSubscription;
   StreamSubscription? _roomDiscoverySubscription;
+  StreamSubscription? _activitySessionsSubscription;
   final Map<String, StreamSubscription> _roomMemberSubscriptions = {};
-  final Map<String, StreamSubscription> _roomSessionSubscriptions = {};
   final Map<String, StreamSubscription> _roomMessageSubscriptions = {};
   final Map<String, StreamSubscription> _roomEventSubscriptions = {};
   StreamSubscription? _shopSubscription;
@@ -211,6 +211,7 @@ class AppState extends ChangeNotifier {
   List<StudyRoomData> _discoverableStudyRooms = [];
   final Map<String, RoomActivitySession> _roomActivitySessions = {};
   final Map<String, String> _roomActiveSessionIds = {};
+  List<Map<String, dynamic>> _canonicalActivitySessionDocuments = [];
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -574,6 +575,22 @@ class AppState extends ChangeNotifier {
               .toList();
           notifyListeners();
         });
+    _activitySessionsSubscription = FirebaseFirestore.instance
+        .collection('activity_sessions')
+        .where('actorUserId', isEqualTo: user.uid)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            _canonicalActivitySessionDocuments = snapshot.docs
+                .map((document) => document.data())
+                .toList(growable: false);
+            _rebuildRoomActivitySessionsFromLedger();
+            notifyListeners();
+          },
+          onError: (error) {
+            debugPrint('Activity Ledger session sync failed: $error');
+          },
+        );
 
     // Shop items listener (dynamic character series)
     _shopSubscription = FirebaseFirestore.instance
@@ -729,6 +746,7 @@ class AppState extends ChangeNotifier {
     _syncAutoTrackedTasks();
     _syncTaskRewards();
     _syncTodaySummary();
+    _rebuildRoomActivitySessionsFromLedger();
     notifyListeners();
   }
 
@@ -766,7 +784,6 @@ class AppState extends ChangeNotifier {
             .where((id) => !roomIds.contains(id))
             .toList()) {
       _roomMemberSubscriptions.remove(roomId)?.cancel();
-      _roomSessionSubscriptions.remove(roomId)?.cancel();
       _roomMessageSubscriptions.remove(roomId)?.cancel();
       _roomEventSubscriptions.remove(roomId)?.cancel();
       _roomActiveSessionIds.remove(roomId);
@@ -812,11 +829,9 @@ class AppState extends ChangeNotifier {
               } else {
                 _roomActiveSessionIds[roomId] = activeSessionId;
               }
-              _ensureRoomSessionListener(roomId);
               _ensureRoomInteractionListeners(roomId);
             } else {
               _roomActiveSessionIds.remove(roomId);
-              _roomSessionSubscriptions.remove(roomId)?.cancel();
               _roomMessageSubscriptions.remove(roomId)?.cancel();
               _roomEventSubscriptions.remove(roomId)?.cancel();
               _roomActivitySessions.removeWhere(
@@ -832,27 +847,17 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void _ensureRoomSessionListener(String roomId) {
-    if (_roomSessionSubscriptions.containsKey(roomId)) return;
-    _roomSessionSubscriptions[roomId] = FirebaseFirestore.instance
-        .collection('rooms')
-        .doc(roomId)
-        .collection('activity_sessions')
-        .snapshots()
-        .listen((snapshot) {
-          _roomActivitySessions.removeWhere(
-            (_, session) => session.roomId == roomId,
-          );
-          for (final doc in snapshot.docs) {
-            try {
-              final session = RoomActivitySession.fromJson(doc.data());
-              _roomActivitySessions[session.sessionId] = session;
-            } catch (error) {
-              debugPrint('Skipping invalid room activity session: $error');
-            }
-          }
-          notifyListeners();
-        });
+  void _rebuildRoomActivitySessionsFromLedger() {
+    final sessions = RoomActivitySessionLedgerProjection.restore(
+      documents: _canonicalActivitySessionDocuments,
+      actorUserId: _myId,
+      roomTargetValues: {
+        for (final room in _studyRooms) room.id: _roomActivityTargetValue(room),
+      },
+    );
+    _roomActivitySessions
+      ..clear()
+      ..addAll(sessions);
   }
 
   void _ensureRoomInteractionListeners(String roomId) {
@@ -1500,10 +1505,8 @@ class AppState extends ChangeNotifier {
     _outgoingRequestsSubscription?.cancel();
     _roomsSubscription?.cancel();
     _roomDiscoverySubscription?.cancel();
+    _activitySessionsSubscription?.cancel();
     for (final subscription in _roomMemberSubscriptions.values) {
-      subscription.cancel();
-    }
-    for (final subscription in _roomSessionSubscriptions.values) {
       subscription.cancel();
     }
     for (final subscription in _roomMessageSubscriptions.values) {
@@ -1513,7 +1516,6 @@ class AppState extends ChangeNotifier {
       subscription.cancel();
     }
     _roomMemberSubscriptions.clear();
-    _roomSessionSubscriptions.clear();
     _roomMessageSubscriptions.clear();
     _roomEventSubscriptions.clear();
     _shopSubscription?.cancel();
@@ -1542,6 +1544,7 @@ class AppState extends ChangeNotifier {
     _outgoingRequestsSubscription = null;
     _roomsSubscription = null;
     _roomDiscoverySubscription = null;
+    _activitySessionsSubscription = null;
     _shopSubscription = null;
     _incomingGuardianRequestsSubscription = null;
     _outgoingGuardianRequestsSubscription = null;
@@ -1585,6 +1588,7 @@ class AppState extends ChangeNotifier {
     _listeningGroupId = null;
     _projectedGroupId = null;
     _discoverableStudyRooms = [];
+    _canonicalActivitySessionDocuments = [];
     _roomActivitySessions.clear();
     _roomActiveSessionIds.clear();
   }
@@ -4333,6 +4337,13 @@ class AppState extends ChangeNotifier {
       TaskSourceType.steps => 'steps',
       TaskSourceType.manual || TaskSourceType.system => room.goalUnitLabel,
     };
+  }
+
+  double _roomActivityTargetValue(StudyRoomData room) {
+    if (room.goalSourceType == TaskSourceType.studyRoom) {
+      return room.dailyGoalValue * 60;
+    }
+    return room.dailyGoalValue;
   }
 
   double _roomMemberMetricValue(StudyRoomData room, StudyMemberData member) {
@@ -7858,7 +7869,11 @@ class AppState extends ChangeNotifier {
   RoomActivitySession? activeRoomActivitySession(String roomId) {
     final activeSessionId = _roomActiveSessionIds[roomId];
     if (activeSessionId == null) return null;
-    final pointedSession = _roomActivitySessions[activeSessionId];
+    final pointedSession =
+        _roomActivitySessions[RoomActivitySessionLedgerProjection.key(
+          roomId,
+          activeSessionId,
+        )];
     if (pointedSession == null || pointedSession.isTerminal) return null;
     return pointedSession;
   }
@@ -7900,7 +7915,7 @@ class AppState extends ChangeNotifier {
       actorId: actorId,
       activityKind: _activityKindForRoom(room),
       metricUnit: _roomMetricUnit(room),
-      targetValue: targetValue ?? room.dailyGoalValue,
+      targetValue: targetValue ?? _roomActivityTargetValue(room),
       source: source,
       now: now,
     );
@@ -7914,18 +7929,27 @@ class AppState extends ChangeNotifier {
         session: session,
       );
     }
-    _roomActivitySessions[session.sessionId] = session;
+    _roomActivitySessions[RoomActivitySessionLedgerProjection.key(
+          room.id,
+          session.sessionId,
+        )] =
+        session;
     _roomActiveSessionIds[roomId] = session.sessionId;
     notifyListeners();
     return session;
   }
 
   Future<RoomActivitySession> transitionRoomActivitySession({
+    required String roomId,
     required String sessionId,
     required RoomActivitySessionStatus status,
     required double metricValue,
   }) async {
-    final current = _roomActivitySessions[sessionId];
+    final sessionKey = RoomActivitySessionLedgerProjection.key(
+      roomId,
+      sessionId,
+    );
+    final current = _roomActivitySessions[sessionKey];
     if (current == null) throw StateError('Room activity session not found');
     final next = current.transition(
       actorId: _myId,
@@ -7946,7 +7970,7 @@ class AppState extends ChangeNotifier {
         session: next,
       );
     }
-    _roomActivitySessions[sessionId] = next;
+    _roomActivitySessions[sessionKey] = next;
     if (next.isTerminal) {
       _roomActiveSessionIds.remove(current.roomId);
     }
