@@ -10,6 +10,7 @@ import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import '../widgets/room_resonance_panel.dart';
 import 'health_page.dart';
 
 class StudyRoomLivePage extends StatefulWidget {
@@ -565,6 +566,9 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                   )
                   .length;
         final currentMemberId = appState.currentUser?.id ?? 'local_user';
+        final hasApprovedMembership = approvedMembers.any(
+          (member) => member.memberId == currentMemberId,
+        );
         final me = approvedMembers.firstWhere(
           (member) => member.memberId == currentMemberId,
           orElse: () => StudyMemberData(
@@ -709,6 +713,40 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                     );
                   },
                 ),
+              const SizedBox(height: AppUI.sectionGap),
+              RoomResonancePanel(
+                accent: accent,
+                currentUserId: currentMemberId,
+                available:
+                    appState.currentUser != null &&
+                    !appState.isGuestMode &&
+                    hasApprovedMembership,
+                sharingEnabled: appState.roomResonanceSharingEnabled(room.id),
+                signals: appState.roomResonanceSignals(room.id),
+                memberNames: {
+                  for (final member in approvedMembers)
+                    member.memberId: member.roomNickname.isEmpty
+                        ? member.name
+                        : member.roomNickname,
+                },
+                onSharingChanged: (enabled) => appState.setRoomResonanceSharing(
+                  roomId: room.id,
+                  enabled: enabled,
+                ),
+                onPublish: (cue) async {
+                  await appState.publishRoomResonance(
+                    roomId: room.id,
+                    cue: cue,
+                  );
+                },
+                onWithdraw: () => appState.withdrawRoomResonance(room.id),
+                onAcknowledge: (signal, response) async {
+                  await appState.acknowledgeRoomResonance(
+                    signal: signal,
+                    response: response,
+                  );
+                },
+              ),
               const SizedBox(height: AppUI.sectionGap),
               _StickerPanel(
                 accent: accent,

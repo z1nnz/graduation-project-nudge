@@ -58,6 +58,18 @@
           </article>
         </section>
 
+        <section class="panel page-section room-resonance-panel">
+          <div class="room-panel-heading">
+            <div><span class="eyebrow">Asynchronous Resonance</span><h2>非同步共振</h2></div>
+            <label class="room-resonance-toggle"><input type="checkbox" data-room-resonance-enabled /><span>選擇分享</span></label>
+          </div>
+          <p class="room-resonance-privacy">由你選擇是否分享一個 24 小時內有效的有限提示；同房成員看不到精確健康、專注數值或 Ledger 明細。關閉後目前訊號會立即撤回。</p>
+          <div class="room-resonance-cues" data-room-resonance-cues></div>
+          <div class="room-resonance-list" data-room-resonance-list>
+            <p class="room-inline-empty">選擇已核准的活動房後載入共振訊號。</p>
+          </div>
+        </section>
+
         <section class="room-interaction-grid page-section">
           <article class="panel room-conversation-panel">
             <div class="room-panel-heading">
@@ -115,6 +127,7 @@
       </main>
     </div>
     <script src="assets/room_activity_session_contract.js?v=2"></script>
+    <script src="assets/room_resonance_contract.js?v=1"></script>
     <script src="assets/app.js?v=22"></script>
   </body>
 </html>

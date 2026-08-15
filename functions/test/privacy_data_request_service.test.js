@@ -334,6 +334,65 @@ test("privacy export includes the requester's private discipline identity", asyn
   ]);
 });
 
+test("privacy export includes only resonance records associated with the requester", async () => {
+  const firestore = fakeExportFirestore({
+    room_resonance_preferences: [
+      { id: "room-one--user-one", data: { userId: "user-one", enabled: true } },
+      { id: "room-one--other", data: { userId: "other", enabled: true } },
+    ],
+    room_resonance_signals: [
+      {
+        id: "room-one--user-one",
+        data: { ownerUserId: "user-one", cueKey: "gentle_restart" },
+      },
+      {
+        id: "room-one--other",
+        data: { ownerUserId: "other", cueKey: "completed_step" },
+      },
+    ],
+    room_resonance_acknowledgements: [
+      {
+        id: "ack-user-one",
+        data: { actorUserId: "user-one", responseKey: "with_you" },
+      },
+      {
+        id: "ack-received",
+        data: {
+          actorUserId: "other",
+          signalOwnerUserId: "user-one",
+          responseKey: "cheer",
+        },
+      },
+      {
+        id: "ack-unrelated",
+        data: {
+          actorUserId: "other",
+          signalOwnerUserId: "another-user",
+          responseKey: "take_your_time",
+        },
+      },
+    ],
+  });
+
+  const result = await collectPrivacyExportData({
+    firestore,
+    userId: "user-one",
+  });
+
+  assert.deepEqual(
+    result.collections.room_resonance_preferences.map(item => item.id),
+    ["room-one--user-one"],
+  );
+  assert.deepEqual(
+    result.collections.room_resonance_signals.map(item => item.id),
+    ["room-one--user-one"],
+  );
+  assert.deepEqual(
+    result.collections.room_resonance_acknowledgements.map(item => item.id),
+    ["ack-user-one", "ack-received"],
+  );
+});
+
 test("export request creates a private artifact, owner state and immutable audit", async () => {
   const firestore = fakeFirestore();
   const bucket = fakeBucket();

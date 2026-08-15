@@ -2162,6 +2162,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /room_resonance_preferences/{preferenceId} {
+      allow read: if isAuth()
+        && (resource.data.userId == request.auth.uid || isStaff());
+      allow write: if false;
+    }
+
+    match /room_resonance_signals/{signalId} {
+      allow read: if isApprovedRoomMember(resource.data.roomId);
+      allow write: if false;
+    }
+
+    match /room_resonance_acknowledgements/{acknowledgementId} {
+      allow read: if isApprovedRoomMember(resource.data.roomId);
+      allow write: if false;
+    }
+
     match /reward_ledger_entries/{rewardEntryId} {
       allow read: if isAuth()
         && (resource.data.actorUserId == request.auth.uid || isStaff());

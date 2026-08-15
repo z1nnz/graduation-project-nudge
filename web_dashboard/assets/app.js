@@ -2239,11 +2239,211 @@ let webRoomSessionsSub = null;
 let webRoomContributionsSub = null;
 let webRoomMessagesSub = null;
 let webRoomEventsSub = null;
+let webRoomResonancePreferenceSub = null;
+let webRoomResonanceSignalsSub = null;
 let activeWebRoom = null;
 let activeWebRoomMember = null;
 let activeWebRoomMembers = [];
 let activeWebRoomSession = null;
 let activeWebRoomContribution = null;
+let activeWebRoomResonancePreference = null;
+let activeWebRoomResonanceSignals = [];
+
+const webRoomResonanceCueLabels = Object.freeze({
+  gentle_restart: "我正溫柔地重新開始",
+  open_to_company: "想找人一起做一小段",
+  starting_small: "我準備從小步驟開始",
+  completed_step: "我完成了一個小步驟",
+});
+const webRoomResonanceResponseLabels = Object.freeze({
+  with_you: "我陪你",
+  cheer: "替你加油",
+  take_your_time: "慢慢來也可以",
+});
+
+function webRoomResonanceRequestId() {
+  const suffix = globalThis.crypto?.randomUUID?.() ||
+    `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  return `resonance_${suffix}`;
+}
+
+function visibleWebRoomResonanceSignals() {
+  const contract = window.NudgeRoomResonanceContract;
+  return activeWebRoomResonanceSignals.filter(signal =>
+    contract.isVisible(signal, new Date())
+  );
+}
+
+function renderWebRoomResonance() {
+  const toggle = $("[data-room-resonance-enabled]");
+  const cues = $("[data-room-resonance-cues]");
+  const list = $("[data-room-resonance-list]");
+  if (!toggle || !cues || !list) return;
+  const userId = firebase.auth().currentUser?.uid;
+  const approved = activeWebRoomMember?.approvalStatus === "approved";
+  const enabled = activeWebRoomResonancePreference?.enabled === true;
+  toggle.checked = enabled;
+  toggle.disabled = !approved;
+  toggle.onchange = async () => {
+    const next = toggle.checked;
+    toggle.disabled = true;
+    try {
+      await manageWebRoomResonance("set_preference", { enabled: next });
+    } catch (error) {
+      toast(error.message || "共振分享設定失敗");
+      toggle.checked = enabled;
+    } finally {
+      toggle.disabled = !approved;
+    }
+  };
+  if (!approved || !userId || !activeWebRoom) {
+    cues.innerHTML = "";
+    list.innerHTML =
+      `<p class="room-inline-empty">成員資格核准後才能選擇分享。</p>`;
+    return;
+  }
+  const signals = visibleWebRoomResonanceSignals();
+  const ownSignal = signals.find(signal => signal.ownerUserId === userId);
+  cues.innerHTML = !enabled
+    ? ""
+    : ownSignal
+      ? `<article class="room-resonance-card">
+          <small>你目前分享</small>
+          <strong>${escapeHtml(webRoomResonanceCueLabels[ownSignal.cueKey])}</strong>
+          <button class="room-resonance-withdraw" type="button" data-room-resonance-withdraw>立即撤回</button>
+        </article>`
+      : window.NudgeRoomResonanceContract.cueKeys.map(cueKey =>
+          `<button type="button" data-room-resonance-cue="${cueKey}">${escapeHtml(webRoomResonanceCueLabels[cueKey])}</button>`
+        ).join("");
+  $$('[data-room-resonance-cue]', cues).forEach(button => {
+    button.addEventListener("click", () => {
+      manageWebRoomResonance("publish", {
+        cueKey: button.dataset.roomResonanceCue,
+      }).catch(error => toast(error.message || "共振訊號發送失敗"));
+    });
+  });
+  $("[data-room-resonance-withdraw]", cues)?.addEventListener("click", () => {
+    manageWebRoomResonance("withdraw")
+      .catch(error => toast(error.message || "共振訊號撤回失敗"));
+  });
+
+  const peers = signals.filter(signal => signal.ownerUserId !== userId);
+  list.innerHTML = peers.length
+    ? peers.map(signal => {
+        const member = activeWebRoomMembers.find(
+          candidate => candidate.memberId === signal.ownerUserId,
+        );
+        const displayName = member?.displayName || "自律夥伴";
+        return `<article class="room-resonance-card">
+          <small>${escapeHtml(displayName)}</small>
+          <strong>${escapeHtml(webRoomResonanceCueLabels[signal.cueKey])}</strong>
+          <div class="room-resonance-actions">
+            ${window.NudgeRoomResonanceContract.responseKeys.map(responseKey =>
+              `<button type="button" data-room-resonance-ack="${responseKey}" data-owner-user-id="${escapeHtml(signal.ownerUserId)}" data-generation-id="${escapeHtml(signal.generationId)}">${escapeHtml(webRoomResonanceResponseLabels[responseKey])}</button>`
+            ).join("")}
+          </div>
+          <span>${signal.acknowledgementCount} 個支持回應</span>
+        </article>`;
+      }).join("")
+    : `<p class="room-inline-empty">目前沒有其他共振訊號。</p>`;
+  $$('[data-room-resonance-ack]', list).forEach(button => {
+    button.addEventListener("click", () => {
+      manageWebRoomResonance("acknowledge", {
+        ownerUserId: button.dataset.ownerUserId,
+        generationId: button.dataset.generationId,
+        responseKey: button.dataset.roomResonanceAck,
+      }).catch(error => toast(error.message || "支持回應失敗"));
+    });
+  });
+}
+
+async function manageWebRoomResonance(action, fields = {}) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!functions || !userId || !activeWebRoom) {
+    throw new Error("請先登入並選擇活動房");
+  }
+  if (activeWebRoomMember?.approvalStatus !== "approved") {
+    throw new Error("成員資格尚未核准");
+  }
+  const response = await functions.httpsCallable("manageRoomResonance")({
+    action,
+    roomId: activeWebRoom.id,
+    sourceSurface: "web",
+    clientRequestId: webRoomResonanceRequestId(),
+    ...fields,
+  });
+  const result = response?.data || {};
+  const contract = window.NudgeRoomResonanceContract;
+  if (action === "set_preference") {
+    activeWebRoomResonancePreference = contract.parsePreference(
+      activeWebRoom.id,
+      userId,
+      result.preference,
+    );
+    if (!activeWebRoomResonancePreference.enabled) {
+      activeWebRoomResonanceSignals = activeWebRoomResonanceSignals.filter(
+        signal => signal.ownerUserId !== userId,
+      );
+    }
+  } else {
+    const signal = contract.parseSignal(activeWebRoom.id, result.signal);
+    activeWebRoomResonanceSignals = activeWebRoomResonanceSignals
+      .filter(item => item.ownerUserId !== signal.ownerUserId)
+      .concat(signal);
+  }
+  renderWebRoomResonance();
+  return result;
+}
+
+function stopWebRoomResonanceListeners() {
+  if (webRoomResonancePreferenceSub) webRoomResonancePreferenceSub();
+  if (webRoomResonanceSignalsSub) webRoomResonanceSignalsSub();
+  webRoomResonancePreferenceSub = null;
+  webRoomResonanceSignalsSub = null;
+  activeWebRoomResonancePreference = null;
+  activeWebRoomResonanceSignals = [];
+  renderWebRoomResonance();
+}
+
+function listenToWebRoomResonance(roomId) {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !roomId || webRoomResonancePreferenceSub) return;
+  webRoomResonancePreferenceSub = db
+    .collection("room_resonance_preferences")
+    .doc(`${roomId}--${userId}`)
+    .onSnapshot(snapshot => {
+      try {
+        activeWebRoomResonancePreference = snapshot.exists
+          ? window.NudgeRoomResonanceContract.parsePreference(
+              roomId,
+              userId,
+              snapshot.data(),
+            )
+          : null;
+      } catch (error) {
+        console.warn("Room resonance preference is invalid:", error);
+        activeWebRoomResonancePreference = null;
+      }
+      renderWebRoomResonance();
+    }, error => console.warn("Room resonance preference sync failed:", error));
+  webRoomResonanceSignalsSub = db
+    .collection("room_resonance_signals")
+    .where("roomId", "==", roomId)
+    .onSnapshot(snapshot => {
+      activeWebRoomResonanceSignals = snapshot.docs.flatMap(document => {
+        try {
+          return [window.NudgeRoomResonanceContract.parseSignal(
+            roomId,
+            document.data(),
+          )];
+        } catch (error) {
+          console.warn("Skipping invalid room resonance signal:", error);
+          return [];
+        }
+      });
+      renderWebRoomResonance();
+    }, error => console.warn("Room resonance signal sync failed:", error));
+}
 
 function configuredAppCheckSiteKey() {
   return String(
@@ -2563,6 +2763,7 @@ function stopWebRoomDetailListeners() {
   webRoomSessionsSub = null;
   webRoomContributionsSub = null;
   stopWebRoomInteractionListeners();
+  stopWebRoomResonanceListeners();
 }
 
 function renderWebRoomMembers() {
@@ -2823,8 +3024,10 @@ function selectWebRoom(roomId, room) {
         if (webRoomSessionsSub) webRoomSessionsSub();
         webRoomSessionsSub = null;
         stopWebRoomInteractionListeners();
+        stopWebRoomResonanceListeners();
         return;
       }
+      listenToWebRoomResonance(roomId);
       if (!webRoomContributionsSub) {
         webRoomContributionsSub = db.collection("room_contributions")
           .where("actorUserId", "==", userId)

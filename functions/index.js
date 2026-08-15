@@ -20,6 +20,7 @@ import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-st
 import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshots-handler.js";
 import { createRecordActivityHandler } from "./src/record-activity-handler.js";
 import { createRefreshRelationshipOutcomeHandler } from "./src/relationship-outcome-service.js";
+import { createManageRoomResonanceHandler } from "./src/room-resonance-service.js";
 import {
   createRefreshDisciplineIdentityHandler,
   FirestoreDisciplineIdentityRepository,
@@ -150,6 +151,10 @@ const handleRefreshDisciplineIdentity =
       firestore: getFirestore(),
     }),
   });
+const handleManageRoomResonance = createManageRoomResonanceHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
 const handleRecordPrivacyConsent = createRecordPrivacyConsentHandler({
   firestore: getFirestore(),
   clock: () => new Date(),
@@ -340,6 +345,29 @@ export const refreshDisciplineIdentity = onCall(
       throw new HttpsError(
         "internal",
         "The discipline identity could not be refreshed.",
+      );
+    }
+  },
+);
+
+export const manageRoomResonance = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await withAccountOperation(
+        request,
+        () => handleManageRoomResonance(request),
+      );
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("manageRoomResonance failed", error);
+      throw new HttpsError(
+        "internal",
+        "The room resonance command could not be completed.",
       );
     }
   },
