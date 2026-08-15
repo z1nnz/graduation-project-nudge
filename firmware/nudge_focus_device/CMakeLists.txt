@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(nudge_focus_core
   src/focus_session.cpp
+  src/pending_event_store.cpp
   src/protocol_json.cpp
 )
 target_include_directories(nudge_focus_core PUBLIC include)

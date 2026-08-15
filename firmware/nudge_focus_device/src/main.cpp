@@ -19,6 +19,7 @@
 #include "driver.h"
 #include <TFT_eSPI.h>
 #include "nudge/focus_session.h"
+#include "nudge/pending_event_store.h"
 #include "nudge/protocol_json.h"
 
 namespace {
@@ -42,10 +43,38 @@ struct CommandMessage {
   char payload[512];
 };
 
+class PreferencesJournalStore final : public nudge::JournalKeyValueStore {
+ public:
+  explicit PreferencesJournalStore(Preferences& preferences)
+      : preferences_(preferences) {}
+
+  std::string get_string(const char* key) const override {
+    return preferences_.getString(key, "").c_str();
+  }
+
+  std::uint32_t get_uint(const char* key,
+                         std::uint32_t fallback) const override {
+    return preferences_.getUInt(key, fallback);
+  }
+
+  bool put_string(const char* key, const std::string& value) override {
+    return preferences_.putString(key, value.c_str()) == value.size();
+  }
+
+  bool put_uint(const char* key, std::uint32_t value) override {
+    return preferences_.putUInt(key, value) == sizeof(value);
+  }
+
+ private:
+  Preferences& preferences_;
+};
+
 TFT_eSPI display;
 Adafruit_seesaw encoder;
 Adafruit_NeoPixel pixels(10, NUDGE_LED_PIN, NEO_GRB + NEO_KHZ800);
 Preferences preferences;
+std::unique_ptr<PreferencesJournalStore> journal_storage;
+std::unique_ptr<nudge::PendingEventStore> pending_event_store;
 std::unique_ptr<nudge::FocusSession> focus_session;
 std::deque<PendingMessage> pending_events;
 BLECharacteristic* state_characteristic = nullptr;
@@ -60,44 +89,36 @@ std::uint64_t epoch_anchor_ms = 0;
 std::uint32_t monotonic_anchor_ms = 0;
 std::string device_id;
 QueueHandle_t command_queue = nullptr;
-std::uint32_t loaded_queue_sequence = 0;
 
 std::uint64_t epoch_now() {
   if (epoch_anchor_ms == 0) return 0;
   return epoch_anchor_ms + (millis() - monotonic_anchor_ms);
 }
 
-void save_pending_events() {
-  for (std::size_t index = 0; index < kMaximumPendingEvents; ++index) {
-    const String key = "event" + String(index);
-    if (index < pending_events.size()) {
-      preferences.putString(key.c_str(), pending_events[index].json.c_str());
-    } else {
-      preferences.remove(key.c_str());
-    }
-  }
-  // The count is the commit marker. A reset during the earlier key writes may
-  // retain the previous queue, but cannot expose a half-written larger queue.
-  preferences.putUChar("eventCount", pending_events.size());
+bool save_pending_events(const std::deque<PendingMessage>& events,
+                         std::uint32_t sequence_high_water) {
+  nudge::PendingEventSnapshot snapshot;
+  snapshot.sequence_high_water = sequence_high_water;
+  for (const auto& event : events) snapshot.event_json.push_back(event.json);
+  return pending_event_store->commit(snapshot);
 }
 
-void load_pending_events() {
-  const auto count = std::min<std::size_t>(preferences.getUChar("eventCount", 0),
-                                           kMaximumPendingEvents);
-  for (std::size_t index = 0; index < count; ++index) {
-    const String key = "event" + String(index);
-    const String json = preferences.getString(key.c_str(), "");
+std::uint32_t load_pending_events() {
+  const auto snapshot = pending_event_store->load();
+  std::uint32_t sequence_high_water = snapshot.sequence_high_water;
+  for (const auto& json : snapshot.event_json) {
     JsonDocument document;
-    if (!json.isEmpty() && deserializeJson(document, json) == DeserializationError::Ok) {
+    if (!json.empty() && deserializeJson(document, json) == DeserializationError::Ok) {
       const char* event_id = document["eventId"] | "";
       const std::uint32_t sequence = document["sequence"] | 0U;
       if (*event_id != '\0' && sequence > 0) {
         pending_events.push_back(
-            PendingMessage{event_id, json.c_str(), sequence});
-        loaded_queue_sequence = std::max(loaded_queue_sequence, sequence);
+            PendingMessage{event_id, json, sequence});
+        sequence_high_water = std::max(sequence_high_water, sequence);
       }
     }
   }
+  return sequence_high_water;
 }
 
 void expose_pending_head() {
@@ -130,14 +151,12 @@ void queue_event(const nudge::ActivityEvent& event) {
     publish_state();
     return;
   }
-  pending_events.push_back(
+  auto candidate = pending_events;
+  candidate.push_back(
       PendingMessage{event.event_id, nudge::encode_activity_event(event),
                      event.sequence});
-  save_pending_events();
-  // Queue evidence is committed before the high-water mark. On reboot the
-  // sequence is also recovered from queued messages, so a reset between these
-  // writes cannot reuse an existing event identity.
-  preferences.putUInt("sequence", focus_session->sequence());
+  if (!save_pending_events(candidate, focus_session->sequence())) return;
+  pending_events = std::move(candidate);
   publish_state();
 }
 
@@ -153,8 +172,10 @@ void acknowledge_event(const char* event_id) {
   if (pending_events.empty() || pending_events.front().event_id != event_id) {
     return;
   }
-  pending_events.pop_front();
-  save_pending_events();
+  auto candidate = pending_events;
+  candidate.pop_front();
+  if (!save_pending_events(candidate, focus_session->sequence())) return;
+  pending_events = std::move(candidate);
   publish_state();
 }
 
@@ -316,11 +337,13 @@ void setup() {
   Serial.begin(115200);
   Wire.begin();
   preferences.begin("nudge-device", false);
+  journal_storage = std::make_unique<PreferencesJournalStore>(preferences);
+  pending_event_store =
+      std::make_unique<nudge::PendingEventStore>(*journal_storage);
   device_id = build_device_id();
-  load_pending_events();
+  const auto loaded_queue_sequence = load_pending_events();
   focus_session = std::make_unique<nudge::FocusSession>(
-      device_id,
-      std::max(preferences.getUInt("sequence", 0), loaded_queue_sequence));
+      device_id, loaded_queue_sequence);
   command_queue = xQueueCreate(8, sizeof(CommandMessage));
 
   display.begin();

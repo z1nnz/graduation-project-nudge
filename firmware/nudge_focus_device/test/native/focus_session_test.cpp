@@ -1,12 +1,45 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <string>
 
 #include "nudge/focus_session.h"
+#include "nudge/pending_event_store.h"
 #include "nudge/protocol_json.h"
 
 namespace {
+
+class MemoryJournalStore final : public nudge::JournalKeyValueStore {
+ public:
+  std::string get_string(const char* key) const override {
+    const auto value = strings.find(key);
+    return value == strings.end() ? "" : value->second;
+  }
+
+  std::uint32_t get_uint(const char* key,
+                         std::uint32_t fallback) const override {
+    const auto value = integers.find(key);
+    return value == integers.end() ? fallback : value->second;
+  }
+
+  bool put_string(const char* key, const std::string& value) override {
+    if (writes++ == fail_on_write) return false;
+    strings[key] = value;
+    return true;
+  }
+
+  bool put_uint(const char* key, std::uint32_t value) override {
+    if (writes++ == fail_on_write) return false;
+    integers[key] = value;
+    return true;
+  }
+
+  std::map<std::string, std::string> strings;
+  std::map<std::string, std::uint32_t> integers;
+  std::size_t writes = 0;
+  std::size_t fail_on_write = static_cast<std::size_t>(-1);
+};
 
 void configure(nudge::FocusSession& session, std::uint32_t duration = 1500) {
   const auto result = session.configure(
@@ -99,6 +132,34 @@ void protocol_json_matches_the_app_contract() {
          std::string::npos);
 }
 
+void pending_event_journal_is_atomic_at_every_write_boundary() {
+  const nudge::PendingEventSnapshot first{7, {"event-7"}};
+  const nudge::PendingEventSnapshot second{8, {"event-7", "event-8"}};
+
+  for (std::size_t boundary = 0; boundary < 3; ++boundary) {
+    MemoryJournalStore storage;
+    nudge::PendingEventStore initial_store(storage);
+    assert(initial_store.commit(first));
+    storage.fail_on_write = storage.writes + boundary;
+    assert(!initial_store.commit(second));
+
+    nudge::PendingEventStore reopened(storage);
+    const auto recovered = reopened.load();
+    assert(recovered.sequence_high_water == 7);
+    assert(recovered.event_json == std::vector<std::string>{"event-7"});
+  }
+
+  MemoryJournalStore storage;
+  nudge::PendingEventStore store(storage);
+  assert(store.commit(first));
+  assert(store.commit(second));
+  nudge::PendingEventStore reopened(storage);
+  const auto recovered = reopened.load();
+  assert(recovered.sequence_high_water == 8);
+  assert(recovered.event_json ==
+         (std::vector<std::string>{"event-7", "event-8"}));
+}
+
 }  // namespace
 
 int main() {
@@ -107,6 +168,7 @@ int main() {
   invalid_transitions_do_not_consume_sequence_numbers();
   identifiers_fit_the_cloud_ledger_contract();
   protocol_json_matches_the_app_contract();
+  pending_event_journal_is_atomic_at_every_write_boundary();
   std::cout << "nudge_focus_device native tests passed\n";
   return 0;
 }

@@ -97,10 +97,21 @@ event to be read again, so Cloud idempotency prevents duplicate rewards.
 
 `lib/services/nudge_device_bridge.dart` is the transport-neutral consumer. The
 Cloud user endpoint accepts authenticated App/Web evidence, so this bridge uses
-`source=app`; the device-prefixed source record preserves provenance and
-deduplication without trusting a BLE-provided Cloud `deviceId`. The production
+`source=app`; the unauthenticated device-prefixed source record preserves
+correlation and idempotency, not cryptographic provenance. The production
 Android BLE adapter and Cloud-backed assignment resolver are the next
 hardware-stage integration step.
+
+## Named hardware gates still open
+
+- encoder rotation for room selection;
+- current room, personal goal and approved character snapshot display;
+- ready, active, paused, rest, complete and offline LED states;
+- persisted last-character snapshot;
+- production Android BLE characteristic adapter and Cloud assignment binding;
+- signed device claim, timestamp proof and Wi-Fi/Cloud device ingestion.
+
+These are not implied by the successful host or PlatformIO build.
 
 Configure before allowing local controls:
 

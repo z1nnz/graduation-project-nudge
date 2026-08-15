@@ -431,6 +431,11 @@ stateDiagram-v2
 - 裝置離線時保存事件，重連後按事件順序補傳。
 - Cloud 驗證裝置指派、事件簽章、時間與重複狀態。
 
+2026-08-15 個人專注樣機例外：第一版 BLE 事件由已登入 App 依正式
+`DeviceAssignment` 轉為 `source=app` 的 Ledger evidence；因此目前只繼承
+App 身分驗證，尚未構成裝置簽章或實體活動證明。Cloud-side device source、
+簽章、時間證明與金鑰輪替仍是未驗收的 production gate，詳見 ADR 0010。
+
 ## 8. 房主、團體、家庭與個人權限
 
 | 行為 | 房主 | 團體管理者 | 一般成員 | 家長 | 孩子 |
@@ -784,11 +789,12 @@ session 不自動合併，避免誤把兩個合法並行活動算成同一筆。
 
 ### Phase 3：ESP32 個人裝置
 
-- OLED、LED、按鍵／旋鈕。
-- BLE Claim 與 Wi-Fi 設定。
-- 個人 Activity Session 控制。
-- 離線事件佇列與 Cloud Receipt。
-- 角色快照顯示。
+- 已建立 Round Display、LED、按壓旋鈕與個人 Activity Session 韌體骨架。
+- 已建立 BLE 事件協定、App outbox bridge 與離線事件佇列；實體 BLE adapter、
+  Cloud assignment repository、斷電 fault-injection 與 Receipt 回讀尚未驗收。
+- 旋轉選房、目前房間／個人目標／角色快照，以及準備、活動、暫停、休息、
+  完成、離線六態 LED 尚未驗收。
+- BLE Claim、事件簽章、Wi-Fi 設定與 Cloud device-source ingestion 尚未驗收。
 
 ### Phase 4：團體與家庭實體延伸
 
