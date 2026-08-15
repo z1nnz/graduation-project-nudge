@@ -156,8 +156,8 @@ class NudgeDeviceActivityEvent {
       roomIds: List.unmodifiable(roomIds),
       activityType: activityType,
       // The signed-in App is the authenticated Cloud submitter. The stable
-      // sourceRecordId retains the device provenance without asking the
-      // user-ingestion endpoint to trust an unauthenticated BLE identity.
+      // sourceRecordId retains device correlation and idempotency without
+      // asking the user-ingestion endpoint to trust a BLE identity.
       source: ActivitySource.app,
       eventType: eventType,
       metricValue: metricValue,

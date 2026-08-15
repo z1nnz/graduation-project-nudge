@@ -30,6 +30,12 @@ acknowledges only after it has durably accepted the event into its own Ledger
 outbox. Cloud confirmation remains the point at which formal rewards and room
 contributions become visible.
 
+Before `configure`, the App durably enqueues a `started` event, waits for Cloud
+to return the canonical Activity Session correlation, and only then sends that
+correlation to the device. If an App focus session is already active, its
+correlation is flushed and reused. Offline or rejected preparation does not
+configure the device, so App and hardware cannot silently create two sessions.
+
 ## Authority boundary
 
 - Device ownership and assignment come from Cloud, not from BLE payloads.
@@ -41,6 +47,16 @@ contributions become visible.
   and safe aggregate context.
 - Reset, transfer, Wi-Fi credentials and future OTA require a claimed-owner
   capability; the prototype BLE service is not yet that production claim flow.
+  Consequently Cloud rejects every cross-account reassignment, even after
+  revoke, until a verified empty queue and hardware-wipe receipt are designed.
+  Account deletion removes the user-bearing assignment but atomically leaves a
+  PII-free `device_transfer_locks/{deviceId}` wipe requirement, so deletion
+  cannot erase this safety boundary.
+- Protocol version 1 also rejects room-scope changes on an active assignment
+  and rejects reactivation after revoke. Without a queue-empty receipt or
+  versioned room-scope history, either operation could retroactively share old
+  offline events into a newly allowed room. Revoke is therefore terminal until
+  the verified wipe flow exists.
 
 ## Transport
 
@@ -49,10 +65,22 @@ characteristics. A notification announces pending work; the App reads the full
 event and acknowledges the queue head. This avoids assuming every phone has a
 BLE MTU large enough for the Ledger JSON in one notification.
 
-The pure App bridge now validates protocol and assignment, durably enqueues, and
-only then creates the ACK command. Binding that bridge to a production Android
-BLE library and the Cloud-backed assignment repository remains a hardware-stage
-integration gate. Direct Wi-Fi Cloud ingestion is delayed
+Android requests a 517-byte MTU and bounds every one-shot command to the actual
+negotiated ATT payload (`MTU - 3`, capped at 512 bytes). The peripheral also
+advertises a 517-byte local MTU. A smaller negotiated payload fails closed with
+an explicit App error; command chunking is not part of protocol version 1.
+
+The App bridge now validates protocol and assignment, durably enqueues, and
+only then creates the ACK command. Android now binds that bridge to platform
+BLE channels, the App resolves the signed-in user's Cloud assignment, and the
+Admin Web surface uses an audited Cloud callable to assign or revoke a device.
+The App revalidates the Cloud assignment before every configure, start, pause,
+resume and complete command; revocation disconnects the existing BLE control
+path before the action reaches hardware.
+Firestore denies client writes, while privacy export and account deletion both
+cover the assignment lifecycle. Real peripheral connection, reconnect/replay
+and Cloud Receipt observation remain hardware-stage acceptance gates. Direct
+Wi-Fi Cloud ingestion is delayed
 until device claim credentials, secure provisioning, certificate rotation and
 server-side device authentication are designed. Adding Wi-Fi earlier would
 create a second, weaker authorization boundary.
@@ -73,7 +101,8 @@ prototype source, with firmware brightness limiting.
 
 ## Acceptance boundary
 
-Host C++ tests and Flutter protocol tests are required on every change. Once
+Host C++ tests, Flutter protocol/runtime tests, Cloud assignment tests and
+Firestore rules tests are required on every change. Once
 parts arrive, the hardware gate adds PlatformIO compilation, USB upload, I2C
 scan, display/encoder/LED checks, disconnect/reconnect replay and duplicate ACK
 tests. A physical iPhone install is not required; iOS app acceptance remains a

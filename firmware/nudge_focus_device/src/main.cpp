@@ -252,7 +252,7 @@ class ServerCallbacks final : public BLEServerCallbacks {
 
 void configure_ble() {
   BLEDevice::init(("Nudge " + device_id).c_str());
-  BLEDevice::setMTU(247);
+  BLEDevice::setMTU(517);
   auto* server = BLEDevice::createServer();
   server->setCallbacks(new ServerCallbacks());
   auto* service = server->createService(kServiceUuid);

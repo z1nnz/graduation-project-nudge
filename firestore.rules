@@ -2156,6 +2156,25 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Device assignments are provisioned and revoked by audited Cloud
+    // operations. The assigned account may resolve only its own device before
+    // accepting BLE evidence; clients can never claim or transfer a device.
+    match /device_assignments/{deviceId} {
+      allow read: if isAuth()
+        && (
+          resource.data.assignedUserId == request.auth.uid
+          || isStaff()
+        );
+      allow write: if false;
+    }
+
+    // A privacy-safe lock survives account deletion so an unwiped device can
+    // never be reassigned while it may still hold the prior actor's events.
+    match /device_transfer_locks/{deviceId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
     match /activity_receipts/{receiptId} {
       allow read: if isAuth()
         && (resource.data.actorUserId == request.auth.uid || isStaff());

@@ -70,6 +70,7 @@ class DeviceAssignmentGrant {
   final bool isActive;
   final DateTime? validFrom;
   final DateTime? validUntil;
+  final List<String> allowedRoomIds;
 
   const DeviceAssignmentGrant({
     required this.deviceId,
@@ -77,6 +78,7 @@ class DeviceAssignmentGrant {
     this.isActive = true,
     this.validFrom,
     this.validUntil,
+    this.allowedRoomIds = const [],
   });
 
   bool allowsActivityAt(DateTime occurredAt) {

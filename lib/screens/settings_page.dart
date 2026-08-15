@@ -7,7 +7,9 @@ import 'account_page.dart';
 import 'onboarding_page.dart';
 import 'privacy_data_page.dart';
 import 'reminder_center_page.dart';
+import 'nudge_device_page.dart';
 import '../widgets/role_pill.dart';
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -231,6 +233,28 @@ class SettingsPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AccountPage()),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+          _sectionCard(
+            context: context,
+            title: '實體專注裝置',
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.sensors_outlined, color: accentColor),
+              title: const Text('Nudge 專注裝置'),
+              subtitle: Text(
+                appState.isNudgeDeviceSupported
+                    ? '連接已指派的 Android BLE 裝置並同步活動帳本'
+                    : 'BLE 控制需使用 Android 實體裝置',
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NudgeDevicePage()),
                 );
               },
             ),

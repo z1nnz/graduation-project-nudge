@@ -220,6 +220,7 @@
           <a class="active" href="#" onclick="switchTab('planet-section', this); return false;">行星控制</a>
           <a href="#" onclick="switchTab('data-section', this); return false;">各項數據分析</a>
           <a href="#" onclick="switchTab('shop-section', this); return false;">商城上架</a>
+          <a href="#" onclick="switchTab('device-section', this); return false;">實體裝置</a>
           <a href="#" onclick="switchTab('audit-section', this); return false;">Cloud 稽核紀錄</a>
         </nav>
       </aside>
@@ -533,13 +534,62 @@
           </div>
         </div>
 
+        <div id="device-section" class="tab-content">
+          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+            <div>
+              <span class="eyebrow" style="color:#38bdf8;">Device Assignment</span>
+              <h2 style="margin:0; font-size:1.5rem;">Nudge 實體專注裝置指派</h2>
+              <p style="margin-top:0.5rem; color:var(--c-text-muted);">
+                裝置只接受 Cloud 擁有的正式指派。可限制能同步的自律房；App 會在 BLE 連線時重新驗證登入者、有效期與房間範圍。
+              </p>
+            </div>
+          </header>
+          <div class="admin-panel">
+            <h2>指派或撤銷裝置</h2>
+            <form id="deviceAssignmentForm">
+              <div class="admin-grid">
+                <div class="admin-form-group">
+                  <label for="deviceAssignmentAction">操作</label>
+                  <select id="deviceAssignmentAction" required>
+                    <option value="assign">指派／更新</option>
+                    <option value="revoke">撤銷</option>
+                  </select>
+                </div>
+                <div class="admin-form-group">
+                  <label for="deviceAssignmentId">裝置 ID</label>
+                  <input id="deviceAssignmentId" required placeholder="nudge-desk-001" autocomplete="off" />
+                </div>
+                <div class="admin-form-group">
+                  <label for="deviceAssignedUserId">使用者 Firebase UID</label>
+                  <input id="deviceAssignedUserId" required placeholder="使用者 UID" autocomplete="off" />
+                </div>
+                <div class="admin-form-group">
+                  <label for="deviceAllowedRoomIds">允許的房間 ID（逗號或換行分隔）</label>
+                  <textarea id="deviceAllowedRoomIds" rows="4" placeholder="room-study, room-fitness"></textarea>
+                </div>
+              </div>
+              <p style="color:var(--c-text-muted);">
+                Cloud 會確認使用者存在，且使用者是每個房間的已核准成員；撤銷時房間清單會自動清空。每次操作都會建立不可變稽核事件。為避免舊離線活動被算到新帳號或回溯分享給今天才新增的房間，跨帳號轉移、房間集合變更及撤銷後重新啟用，都必須先有可驗證的佇列清空與硬體抹除；第一版後台會直接拒絕這些操作。
+              </p>
+              <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+                <button type="submit" class="admin-btn">送交 Cloud 驗證</button>
+                <button type="button" id="loadDeviceAssignment" class="admin-btn">讀取 Cloud 現有指派</button>
+              </div>
+            </form>
+            <div id="deviceAssignmentStatus" class="admin-auth-banner" style="display:block; margin-top:1rem;">
+              尚未送出裝置指派。
+            </div>
+            <pre id="deviceAssignmentReadback" class="admin-auth-banner" style="display:block; white-space:pre-wrap; margin-top:1rem;">尚未讀取 Cloud 指派。</pre>
+          </div>
+        </div>
+
         <div id="audit-section" class="tab-content">
           <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
             <div>
               <span class="eyebrow" style="color: #a78bfa;">Immutable Audit</span>
               <h2 style="margin: 0; font-size: 1.5rem;">Cloud 稽核紀錄</h2>
               <p style="margin-top: 0.5rem; color: var(--c-text-muted);">
-                只讀取由 Cloud 與正式 release 工具建立的不可變事件。目前正式涵蓋隱私同意、資料權利申請、通知偏好、裝置推播註冊與投遞、家庭／團體關係、商城角色上架，以及 production acceptance 與遷移證據清除。
+                只讀取由 Cloud 與正式 release 工具建立的不可變事件。目前正式涵蓋隱私同意、資料權利申請、通知偏好、裝置推播註冊與投遞、實體裝置指派、家庭／團體關係、商城角色上架，以及 production acceptance 與遷移證據清除。
               </p>
             </div>
             <div class="hero-card" style="border-color: #8b5cf6; background: transparent; padding: 1rem;">
@@ -589,6 +639,7 @@
                   <option value="notifications">通知</option>
                   <option value="relationship">家庭／團體關係</option>
                   <option value="catalog">商城／角色圖鑑</option>
+                  <option value="device">實體裝置</option>
                 </select>
               </div>
               <div class="admin-form-group">
@@ -624,6 +675,7 @@
 
     <!-- UI Interaction Scripts -->
     <script src="assets/admin_catalog.js?v=1"></script>
+    <script src="assets/admin_device_assignments.js?v=1"></script>
     <script>
       // Tab Switching Logic
       function switchTab(tabId, element) {
@@ -851,6 +903,93 @@
         }
         return result;
       }
+
+      async function handleDeviceAssignment(event) {
+        event.preventDefault();
+        await getDeveloperUserOrThrow();
+        if (!functions) {
+          throw new Error('Cloud Functions 尚未初始化，請重新整理後再試。');
+        }
+        const form = event.currentTarget;
+        const status = document.getElementById('deviceAssignmentStatus');
+        const requestId = form.dataset.pendingRequestId ||
+          `device_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        form.dataset.pendingRequestId = requestId;
+        const command = NudgeAdminDeviceAssignments.buildDeviceAssignmentCommand({
+          action: document.getElementById('deviceAssignmentAction').value,
+          deviceId: document.getElementById('deviceAssignmentId').value,
+          assignedUserId: document.getElementById('deviceAssignedUserId').value,
+          allowedRoomIds: document.getElementById('deviceAllowedRoomIds').value,
+          clientRequestId: requestId,
+        });
+        status.textContent = 'Cloud 正在驗證帳號、房間成員資格與裝置指派…';
+        status.style.display = 'block';
+        const response = await functions.httpsCallable('manageDeviceAssignment')(command);
+        const result = response?.data;
+        if (
+          !result ||
+          result.deviceId !== command.deviceId ||
+          result.assignedUserId !== command.assignedUserId ||
+          !result.auditEventId
+        ) {
+          throw new Error('Cloud 回傳的裝置指派稽核結果無法驗證。');
+        }
+        status.textContent =
+          `${result.status === 'active' ? '已指派' : '已撤銷'} ${result.deviceId} ` +
+          `→ ${result.assignedUserId}；房間 ${result.allowedRoomIds.length} 個；` +
+          `Audit ${result.auditEventId}${result.replayed ? '（安全重送）' : ''}`;
+        delete form.dataset.pendingRequestId;
+      }
+
+      async function loadDeviceAssignment() {
+        await getDeveloperUserOrThrow();
+        const deviceId = document.getElementById('deviceAssignmentId').value.trim();
+        const validation = NudgeAdminDeviceAssignments.validateDeviceAssignmentDraft({
+          action: 'assign',
+          deviceId,
+          assignedUserId: document.getElementById('deviceAssignedUserId').value.trim() || 'lookup-user',
+          allowedRoomIds: '',
+          clientRequestId: 'device_lookup_0001',
+        });
+        const deviceError = validation.find(message => message.includes('裝置 ID'));
+        if (deviceError) throw new Error(deviceError);
+        const output = document.getElementById('deviceAssignmentReadback');
+        output.textContent = `正在讀取 device_assignments/${deviceId}…`;
+        const snapshot = await db.collection('device_assignments').doc(deviceId).get();
+        if (!snapshot.exists) {
+          output.textContent = `Cloud 尚無 ${deviceId} 的正式指派。`;
+          return;
+        }
+        const assignment = NudgeAdminDeviceAssignments.normalizeDeviceAssignmentRecord(
+          snapshot.data(),
+          deviceId,
+        );
+        output.textContent = [
+          `裝置：${assignment.deviceId}`,
+          `使用者：${assignment.assignedUserId}`,
+          `狀態：${assignment.status}`,
+          `允許房間：${assignment.allowedRoomIds.join(', ') || '無'}`,
+          `有效起點：${assignment.validFrom}`,
+          `有效終點：${assignment.validUntil || '持續有效'}`,
+          `Cloud 更新：${assignment.updatedAt}`,
+        ].join('\n');
+      }
+
+      document.getElementById('deviceAssignmentForm')?.addEventListener(
+        'submit',
+        event => {
+          handleDeviceAssignment(event).catch(error => {
+            const status = document.getElementById('deviceAssignmentStatus');
+            if (status) status.textContent = '操作失敗：' + (error.message || error);
+          });
+        },
+      );
+      document.getElementById('loadDeviceAssignment')?.addEventListener('click', () => {
+        loadDeviceAssignment().catch(error => {
+          const output = document.getElementById('deviceAssignmentReadback');
+          if (output) output.textContent = '讀取失敗：' + (error.message || error);
+        });
+      });
 
       function toggleAdminDays() {
         const type = document.getElementById('shopItemType').value;

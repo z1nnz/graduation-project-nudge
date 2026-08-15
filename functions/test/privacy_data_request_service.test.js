@@ -334,6 +334,48 @@ test("privacy export includes the requester's private discipline identity", asyn
   ]);
 });
 
+test("privacy export includes only devices assigned to the requester", async () => {
+  const firestore = fakeExportFirestore({
+    device_assignments: [
+      {
+        id: "nudge-desk-one",
+        data: {
+          deviceId: "nudge-desk-one",
+          assignedUserId: "user-one",
+          status: "active",
+          allowedRoomIds: ["room-study"],
+        },
+      },
+      {
+        id: "nudge-desk-other",
+        data: {
+          deviceId: "nudge-desk-other",
+          assignedUserId: "other-user",
+          status: "active",
+          allowedRoomIds: [],
+        },
+      },
+    ],
+  });
+
+  const result = await collectPrivacyExportData({
+    firestore,
+    userId: "user-one",
+  });
+
+  assert.deepEqual(result.collections.device_assignments, [
+    {
+      id: "nudge-desk-one",
+      data: {
+        deviceId: "nudge-desk-one",
+        assignedUserId: "user-one",
+        status: "active",
+        allowedRoomIds: ["room-study"],
+      },
+    },
+  ]);
+});
+
 test("privacy export includes only resonance records associated with the requester", async () => {
   const firestore = fakeExportFirestore({
     room_resonance_preferences: [

@@ -144,6 +144,7 @@ test(
     const leftRoomId = `room-left-${suffix}`;
     const membershipId = `group--${groupId}--${subjectUserId}`;
     const eventId = `activity-delete-${suffix}`;
+    const deviceId = `nudge-delete-${suffix}`;
     const outcomeId = `group--${groupId}`;
     const oldExportRequestId = `${subjectUserId}--privacy-export-old`;
     const oldExportAuditId = `privacy-export-audit-${suffix}`;
@@ -156,6 +157,7 @@ test(
     const preservedStaffAuditId = `staff-audit-${suffix}`;
     const recipientAuditId = `recipient-audit-${suffix}`;
     const principalAuditId = `principal-audit-${suffix}`;
+    const deviceAuditId = `device-audit-${suffix}`;
     const app = initializeApp(
       { projectId },
       `account-deletion-execution-${suffix}`,
@@ -233,6 +235,13 @@ test(
         firestore.collection("activity_source_records").doc(eventId).set({
           schemaVersion: 1,
           eventPath: `activity_events/${eventId}`,
+        }),
+        firestore.collection("device_assignments").doc(deviceId).set({
+          schemaVersion: 1,
+          deviceId,
+          assignedUserId: subjectUserId,
+          status: "active",
+          allowedRoomIds: [],
         }),
         firestore.collection("groups").doc(groupId).set({
           ownerId: otherUserId,
@@ -427,6 +436,12 @@ test(
           result: { recipientUserId: otherUserId },
           action: "relationship.family.invitation.accepted",
         }),
+        firestore.collection("audit_events").doc(deviceAuditId).set({
+          actorUserId: staffUserId,
+          sourceSurface: "admin_web",
+          result: { assignedUserId: subjectUserId, deviceId },
+          action: "device.assignment.assign",
+        }),
       ]);
 
       const handler = createExecuteAccountDeletionHandler({
@@ -464,6 +479,7 @@ test(
         `room_resonance_acknowledgements/${receivedResonanceAckId}`,
         `activity_events/${eventId}`,
         `activity_source_records/${eventId}`,
+        `device_assignments/${deviceId}`,
         `family_links/${familyLinkId}`,
         `relationship_memberships/${membershipId}`,
         `relationship_memberships/family--${familyLinkId}--${subjectUserId}`,
@@ -486,9 +502,16 @@ test(
         `audit_events/${oldExportAuditId}`,
         `audit_events/${recipientAuditId}`,
         `audit_events/${principalAuditId}`,
+        `audit_events/${deviceAuditId}`,
       ]) {
         assert.equal((await firestore.doc(path).get()).exists, false, path);
       }
+      const deviceTransferLock = (
+        await firestore.collection("device_transfer_locks").doc(deviceId).get()
+      ).data();
+      assert.equal(deviceTransferLock.status, "wipe_required");
+      assert.equal(deviceTransferLock.deviceId, deviceId);
+      assert.equal("assignedUserId" in deviceTransferLock, false);
       assert.deepEqual(
         (await firestore.collection("groups").doc(groupId).get()).data().memberIds,
         [otherUserId],

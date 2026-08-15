@@ -36,6 +36,7 @@ import {
   createRelationshipRequestUpdatedHandler,
 } from "./src/user-notification-service.js";
 import { createManageCatalogItemHandler } from "./src/catalog-management-service.js";
+import { createManageDeviceAssignmentHandler } from "./src/device-assignment-service.js";
 import { createPurchaseRewardItemHandler } from "./src/reward-purchase-service.js";
 import { createEquipRewardAvatarHandler } from "./src/reward-avatar-service.js";
 import {
@@ -169,6 +170,10 @@ const handleMarkNotificationRead = createMarkNotificationReadHandler({
   clock: () => new Date(),
 });
 const handleManageCatalogItem = createManageCatalogItemHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
+const handleManageDeviceAssignment = createManageDeviceAssignmentHandler({
   firestore: getFirestore(),
   clock: () => new Date(),
 });
@@ -457,6 +462,29 @@ export const manageCatalogItem = onCall(
       throw new HttpsError(
         "internal",
         "The catalog item could not be updated.",
+      );
+    }
+  },
+);
+
+export const manageDeviceAssignment = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await withAccountOperation(
+        request,
+        () => handleManageDeviceAssignment(request),
+      );
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("manageDeviceAssignment failed", error);
+      throw new HttpsError(
+        "internal",
+        "The device assignment could not be updated.",
       );
     }
   },

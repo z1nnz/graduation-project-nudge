@@ -95,12 +95,38 @@ assignment, durably queues App-submitted Activity Ledger evidence, then writes:
 Only the queue head can be acknowledged. A lost ACK causes the same stable
 event to be read again, so Cloud idempotency prevents duplicate rewards.
 
+Android requests MTU 517 and limits each command to the negotiated ATT payload
+(`MTU - 3`, at most 512 bytes). Firmware sets its local MTU to 517. If the phone
+negotiates less than a complete command, the App rejects that command instead
+of reporting a partial write; protocol v1 does not chunk command JSON.
+
 `lib/services/nudge_device_bridge.dart` is the transport-neutral consumer. The
 Cloud user endpoint accepts authenticated App/Web evidence, so this bridge uses
 `source=app`; the unauthenticated device-prefixed source record preserves
-correlation and idempotency, not cryptographic provenance. The production
-Android BLE adapter and Cloud-backed assignment resolver are the next
-hardware-stage integration step.
+correlation and idempotency, not cryptographic provenance. Android now provides
+the characteristic adapter, while the App resolves the Cloud-backed assignment
+and writes through its durable Activity Ledger outbox. The Admin Web surface
+provisions or revokes assignments through an audited Cloud callable; clients
+cannot write assignment documents directly. These paths are code- and
+emulator-verified, but still require the purchased peripheral for real BLE
+acceptance.
+
+The App also waits for Cloud to accept or recognize the focus start and returns
+the canonical session correlation before sending `configure`. If Cloud is
+offline or rejects the start, the device remains unconfigured. Admin Web can
+read the current canonical assignment after refresh. Cross-account transfer is
+blocked until a verified device queue wipe/reset receipt exists; revoke plus a
+new UID is deliberately insufficient. Account deletion replaces the
+user-bearing assignment with a PII-free wipe-required lock, so deleting the old
+account cannot make the same physical device transferable. The App also
+revalidates assignment before every lifecycle command and disconnects when a
+revocation is observed.
+
+Protocol v1 permits an idempotent update only when the active assignment keeps
+the same room set. Adding/removing rooms and reactivating a revoked assignment
+are rejected until Cloud can verify an empty device queue and preserve
+time-versioned room scope. This prevents yesterday's offline event from being
+shared to a room added today.
 
 ## Named hardware gates still open
 
@@ -108,7 +134,10 @@ hardware-stage integration step.
 - current room, personal goal and approved character snapshot display;
 - ready, active, paused, rest, complete and offline LED states;
 - persisted last-character snapshot;
-- production Android BLE characteristic adapter and Cloud assignment binding;
+- real Android-to-peripheral BLE connection, reconnect/replay and Receipt
+  observation;
+- ambient-light auto dimming, buzzer, power/level protection and final
+  enclosure integration for the selected top-spec sample;
 - signed device claim, timestamp proof and Wi-Fi/Cloud device ingestion.
 
 These are not implied by the successful host or PlatformIO build.
