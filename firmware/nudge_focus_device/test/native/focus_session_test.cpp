@@ -5,6 +5,7 @@
 #include <string>
 
 #include "nudge/focus_session.h"
+#include "nudge/durable_focus_transition.h"
 #include "nudge/pending_event_store.h"
 #include "nudge/protocol_json.h"
 
@@ -160,6 +161,69 @@ void pending_event_journal_is_atomic_at_every_write_boundary() {
          (std::vector<std::string>{"event-7", "event-8"}));
 }
 
+void transition_failure_keeps_session_retryable(
+    const nudge::FocusSession& initial,
+    const std::vector<std::string>& pending_json,
+    const nudge::FocusTransitionOperation& operation,
+    std::uint32_t snapshot_time) {
+  for (std::size_t boundary = 0; boundary < 3; ++boundary) {
+    MemoryJournalStore storage;
+    nudge::PendingEventStore store(storage);
+    assert(store.commit(
+        nudge::PendingEventSnapshot{initial.sequence(), pending_json}));
+    storage.fail_on_write = storage.writes + boundary;
+
+    auto session = initial;
+    const auto prior_phase = session.snapshot(snapshot_time).phase;
+    const auto prior_sequence = session.sequence();
+    const auto failed = nudge::apply_durable_focus_transition(
+        session, store, pending_json, operation);
+    assert(failed.status == nudge::TransitionStatus::persistence_failed);
+    assert(session.sequence() == prior_sequence);
+    assert(session.snapshot(snapshot_time).phase == prior_phase);
+
+    storage.fail_on_write = static_cast<std::size_t>(-1);
+    const auto retried = nudge::apply_durable_focus_transition(
+        session, store, pending_json, operation);
+    assert(retried.accepted());
+    assert(session.sequence() == prior_sequence + 1);
+  }
+}
+
+void focus_transitions_commit_before_mutating_live_state() {
+  nudge::FocusSession idle("desk-transaction");
+  configure(idle, 60);
+  transition_failure_keeps_session_retryable(
+      idle, {}, [](auto& session) { return session.start(0, 1000); }, 0);
+
+  auto running = idle;
+  const auto started = running.start(0, 1000).event.value();
+  const std::vector<std::string> started_json{
+      nudge::encode_activity_event(started)};
+  transition_failure_keeps_session_retryable(
+      running, started_json,
+      [](auto& session) { return session.pause(10000, 11000); }, 10000);
+  transition_failure_keeps_session_retryable(
+      running, started_json,
+      [](auto& session) { return session.complete(10000, 11000); }, 10000);
+
+  auto paused = running;
+  const auto paused_event = paused.pause(10000, 11000).event.value();
+  const std::vector<std::string> paused_json{
+      started_json.front(), nudge::encode_activity_event(paused_event)};
+  transition_failure_keeps_session_retryable(
+      paused, paused_json,
+      [](auto& session) { return session.resume(12000, 13000); }, 12000);
+
+  transition_failure_keeps_session_retryable(
+      running, started_json,
+      [](auto& session) {
+        const auto event = session.tick(60000, 61000);
+        return nudge::Transition{nudge::TransitionStatus::accepted, event};
+      },
+      60000);
+}
+
 }  // namespace
 
 int main() {
@@ -169,6 +233,7 @@ int main() {
   identifiers_fit_the_cloud_ledger_contract();
   protocol_json_matches_the_app_contract();
   pending_event_journal_is_atomic_at_every_write_boundary();
+  focus_transitions_commit_before_mutating_live_state();
   std::cout << "nudge_focus_device native tests passed\n";
   return 0;
 }

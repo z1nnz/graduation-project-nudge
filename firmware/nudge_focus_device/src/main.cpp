@@ -18,6 +18,7 @@
 
 #include "driver.h"
 #include <TFT_eSPI.h>
+#include "nudge/durable_focus_transition.h"
 #include "nudge/focus_session.h"
 #include "nudge/pending_event_store.h"
 #include "nudge/protocol_json.h"
@@ -144,28 +145,26 @@ void publish_state() {
   expose_pending_head();
 }
 
-void queue_event(const nudge::ActivityEvent& event) {
+std::vector<std::string> pending_event_json() {
+  std::vector<std::string> result;
+  result.reserve(pending_events.size());
+  for (const auto& event : pending_events) result.push_back(event.json);
+  return result;
+}
+
+void apply_transition(const nudge::FocusTransitionOperation& operation) {
   if (pending_events.size() >= kMaximumPendingEvents) {
-    // Callers reserve capacity before changing session state. Keep this guard
-    // as a final fail-closed boundary.
     publish_state();
     return;
   }
-  auto candidate = pending_events;
-  candidate.push_back(
-      PendingMessage{event.event_id, nudge::encode_activity_event(event),
-                     event.sequence});
-  if (!save_pending_events(candidate, focus_session->sequence())) return;
-  pending_events = std::move(candidate);
-  publish_state();
-}
-
-void apply_transition(const nudge::Transition& transition) {
+  const auto transition = nudge::apply_durable_focus_transition(
+      *focus_session, *pending_event_store, pending_event_json(), operation);
   if (transition.accepted() && transition.event.has_value()) {
-    queue_event(*transition.event);
-  } else {
-    publish_state();
+    const auto& event = *transition.event;
+    pending_events.push_back(PendingMessage{
+        event.event_id, nudge::encode_activity_event(event), event.sequence});
   }
+  publish_state();
 }
 
 void acknowledge_event(const char* event_id) {
@@ -193,21 +192,35 @@ void handle_command(const String& payload) {
     const std::uint32_t duration = command["durationSeconds"] | 0;
     const std::uint64_t epoch = command["clockEpochMs"] | 0ULL;
     if (epoch == 0) return;
-    const auto transition = focus_session->configure(
+    auto candidate = *focus_session;
+    const auto transition = candidate.configure(
         nudge::FocusConfiguration{session_id, correlation_id, duration});
     if (transition.accepted()) {
+      *focus_session = std::move(candidate);
       epoch_anchor_ms = epoch;
       monotonic_anchor_ms = millis();
     }
-    apply_transition(transition);
+    publish_state();
   } else if (strcmp(type, "start") == 0) {
-    apply_transition(focus_session->start(millis(), epoch_now()));
+    const auto now = millis();
+    const auto epoch = epoch_now();
+    apply_transition(
+        [now, epoch](auto& session) { return session.start(now, epoch); });
   } else if (strcmp(type, "pause") == 0) {
-    apply_transition(focus_session->pause(millis(), epoch_now()));
+    const auto now = millis();
+    const auto epoch = epoch_now();
+    apply_transition(
+        [now, epoch](auto& session) { return session.pause(now, epoch); });
   } else if (strcmp(type, "resume") == 0) {
-    apply_transition(focus_session->resume(millis(), epoch_now()));
+    const auto now = millis();
+    const auto epoch = epoch_now();
+    apply_transition(
+        [now, epoch](auto& session) { return session.resume(now, epoch); });
   } else if (strcmp(type, "complete") == 0) {
-    apply_transition(focus_session->complete(millis(), epoch_now()));
+    const auto now = millis();
+    const auto epoch = epoch_now();
+    apply_transition(
+        [now, epoch](auto& session) { return session.complete(now, epoch); });
   } else if (strcmp(type, "ack") == 0) {
     acknowledge_event(command["eventId"] | "");
   }
@@ -304,7 +317,10 @@ void handle_encoder_button() {
              millis() - button_down_at >= kLongPressMs) {
     long_press_handled = true;
     if (pending_events.size() < kMaximumPendingEvents) {
-      apply_transition(focus_session->complete(millis(), epoch_now()));
+      const auto now = millis();
+      const auto epoch = epoch_now();
+      apply_transition(
+          [now, epoch](auto& session) { return session.complete(now, epoch); });
     }
   } else if (!pressed && button_down) {
     button_down = false;
@@ -313,11 +329,20 @@ void handle_encoder_button() {
     if (pending_events.size() >= kMaximumPendingEvents - 1) return;
     const auto phase = focus_session->snapshot(millis()).phase;
     if (phase == nudge::FocusPhase::idle) {
-      apply_transition(focus_session->start(millis(), epoch_now()));
+      const auto now = millis();
+      const auto epoch = epoch_now();
+      apply_transition(
+          [now, epoch](auto& session) { return session.start(now, epoch); });
     } else if (phase == nudge::FocusPhase::running) {
-      apply_transition(focus_session->pause(millis(), epoch_now()));
+      const auto now = millis();
+      const auto epoch = epoch_now();
+      apply_transition(
+          [now, epoch](auto& session) { return session.pause(now, epoch); });
     } else if (phase == nudge::FocusPhase::paused) {
-      apply_transition(focus_session->resume(millis(), epoch_now()));
+      const auto now = millis();
+      const auto epoch = epoch_now();
+      apply_transition(
+          [now, epoch](auto& session) { return session.resume(now, epoch); });
     }
   }
 }
@@ -382,9 +407,17 @@ void loop() {
     }
   }
   if (pending_events.size() < kMaximumPendingEvents) {
-    if (const auto event = focus_session->tick(millis(), epoch_now());
-        event.has_value()) {
-      queue_event(*event);
+    const auto now = millis();
+    if (focus_session->snapshot(now).phase == nudge::FocusPhase::running &&
+        focus_session->snapshot(now).remaining_seconds == 0) {
+      const auto epoch = epoch_now();
+      apply_transition([now, epoch](auto& session) {
+        const auto event = session.tick(now, epoch);
+        return event.has_value()
+                   ? nudge::Transition{nudge::TransitionStatus::accepted, event}
+                   : nudge::Transition{
+                         nudge::TransitionStatus::invalid_transition, {}};
+      });
     }
   }
   handle_encoder_button();

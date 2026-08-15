@@ -7,6 +7,17 @@ import '../models/activity_ledger.dart';
 import 'activity_ingestion.dart';
 import 'cloud_activity_ledger_gateway.dart';
 
+typedef ActivityOutboxWriter = Future<bool> Function(String encoded);
+
+class ActivityLedgerPersistenceException implements Exception {
+  const ActivityLedgerPersistenceException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'ActivityLedgerPersistenceException: $message';
+}
+
 class ActivityLedgerFlushReport {
   final List<ActivityRecordResult> succeeded;
   final int permanentlyRejected;
@@ -73,6 +84,7 @@ class ActivityLedgerOutbox {
   final CloudActivityLedgerGateway gateway;
   final DateTime Function() _clock;
   final String? Function()? _getActorId;
+  final ActivityOutboxWriter? _writePending;
   Future<ActivityLedgerFlushReport>? _activeFlush;
   Future<void> _operationTail = Future<void>.value();
 
@@ -80,8 +92,10 @@ class ActivityLedgerOutbox {
     required this.gateway,
     DateTime Function()? clock,
     String? Function()? getActorId,
+    ActivityOutboxWriter? writePending,
   }) : _clock = clock ?? DateTime.now,
-       _getActorId = getActorId;
+       _getActorId = getActorId,
+       _writePending = writePending;
 
   Future<T> _runExclusive<T>(Future<T> Function() operation) {
     final completer = Completer<T>();
@@ -241,11 +255,18 @@ class ActivityLedgerOutbox {
   }
 
   Future<void> _savePending(List<_OutboxEntry> entries) async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _pendingKey,
-      jsonEncode(entries.map((entry) => entry.toJson()).toList()),
-    );
+    final encoded = jsonEncode(entries.map((entry) => entry.toJson()).toList());
+    final saved = _writePending != null
+        ? await _writePending(encoded)
+        : await (await SharedPreferences.getInstance()).setString(
+            _pendingKey,
+            encoded,
+          );
+    if (!saved) {
+      throw const ActivityLedgerPersistenceException(
+        'The Activity Ledger outbox write was not committed.',
+      );
+    }
   }
 
   Future<void> _deadLetter(_OutboxEntry entry, Object error) async {
@@ -261,6 +282,10 @@ class ActivityLedgerOutbox {
     if (decoded.length > 100) {
       decoded.removeRange(0, decoded.length - 100);
     }
-    await preferences.setString(_deadLetterKey, jsonEncode(decoded));
+    if (!await preferences.setString(_deadLetterKey, jsonEncode(decoded))) {
+      throw const ActivityLedgerPersistenceException(
+        'The Activity Ledger dead-letter write was not committed.',
+      );
+    }
   }
 }

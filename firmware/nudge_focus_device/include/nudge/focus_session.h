@@ -16,6 +16,7 @@ enum class TransitionStatus {
   accepted,
   invalid_configuration,
   invalid_transition,
+  persistence_failed,
 };
 
 struct FocusConfiguration {

@@ -151,4 +151,27 @@ void main() {
     await bridge.acceptEventJson(eventJson);
     expect(await outbox.pendingCount(), 1);
   });
+
+  test('outbox false write result never ACKs the device', () async {
+    var acknowledgements = 0;
+    final outbox = ActivityLedgerOutbox(
+      gateway: CloudActivityLedgerGateway.withCallable((_) async => null),
+      getActorId: () => 'alice',
+      writePending: (_) async => false,
+    );
+    final bridge = NudgeDeviceBridge.withOutbox(
+      resolveAssignment: (_) async =>
+          const DeviceAssignmentGrant(deviceId: 'desk-1', userId: 'alice'),
+      resolveRoomIds: (_) async => const [],
+      currentActorUserId: () => 'alice',
+      outbox: outbox,
+      writeAcknowledgement: (_) async => acknowledgements++,
+    );
+
+    await expectLater(
+      bridge.acceptEventJson(eventJson),
+      throwsA(isA<ActivityLedgerPersistenceException>()),
+    );
+    expect(acknowledgements, 0);
+  });
 }

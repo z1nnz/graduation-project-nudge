@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(nudge_focus_core
+  src/durable_focus_transition.cpp
   src/focus_session.cpp
   src/pending_event_store.cpp
   src/protocol_json.cpp

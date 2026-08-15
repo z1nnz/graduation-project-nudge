@@ -49,22 +49,22 @@ std::string encode_activity_event(const ActivityEvent& event) {
   std::ostringstream output;
   output << std::setprecision(10) << '{'
          << "\"protocolVersion\":" << event.protocol_version << ','
-         << "\"messageType\":\"activity_event\"," 
-         << "\"eventId\":\"" << escaped(event.event_id) << "\"," 
+         << "\"messageType\":\"activity_event\","
+         << "\"eventId\":\"" << escaped(event.event_id) << "\","
          << "\"sourceRecordId\":\"" << escaped(event.source_record_id)
-         << "\"," 
-         << "\"deviceId\":\"" << escaped(event.device_id) << "\"," 
+         << "\","
+         << "\"deviceId\":\"" << escaped(event.device_id) << "\","
          << "\"sessionId\":\"" << escaped(event.session_id) << "\",";
   if (!event.activity_correlation_id.empty()) {
     output << "\"activityCorrelationId\":\""
            << escaped(event.activity_correlation_id) << "\",";
   }
   output << "\"sequence\":" << event.sequence << ','
-         << "\"activityType\":\"focus\"," 
+         << "\"activityType\":\"focus\","
          << "\"eventType\":\"" << event_type_name(event.event_type)
-         << "\"," 
+         << "\","
          << "\"metricValue\":" << event.metric_minutes << ','
-         << "\"metricUnit\":\"minutes\"," 
+         << "\"metricUnit\":\"minutes\","
          << "\"occurredAtEpochMs\":" << event.occurred_at_epoch_ms << '}';
   return output.str();
 }
