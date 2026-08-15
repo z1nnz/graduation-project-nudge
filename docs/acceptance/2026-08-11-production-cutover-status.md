@@ -90,17 +90,23 @@ Health Connect acceptance on physical hardware.
 
 ## Formal acceptance and purge gate
 
-The evidence required by the production acceptance manifest is now present,
-but the immutable production record has not been written. Firestore contains
-two eligible developer profiles, and the release operator must explicitly
-select the correct Firebase UID for the audit field `acceptedBy`; assigning an
-actor by guess would make the operational audit false.
+The release operator selected the authorized Firebase developer account with
+UID `7Jg1jBUfcWgfVNlgVogsXXhFEJH2`. Production acceptance evidence
+`release-20260815-085439` was recorded immutably at
+`2026-08-15T08:55:30.299Z`, with fingerprint
+`136a1e5d2dc89ac77dbbd01d4c6be91546b9339e57c22d4ff36619c88f14a55a`.
+The corresponding `production.acceptance.recorded` audit exists and the
+Relationship migration run is bound to that evidence identity.
 
-After that UID is selected, create the versioned manifest, run
-`record:production-acceptance`, then run the Relationship before-image purge
-bound to `hvSILhxF5vOUdE8q3LbX`. Verify the immutable acceptance document,
-acceptance audit, zero-count purge audit, inactive destructive-operation guard,
-and replay behavior before closing the retention gate.
+The Relationship before-image purge then completed against migration run
+`hvSILhxF5vOUdE8q3LbX`. Its captured, privacy-deleted, expected and purged
+counts are all zero, and the immutable
+`migration.relationship_before_images.purged` audit was written at
+`2026-08-15T08:55:43.356Z`. The destructive-operation guard is inactive and
+both evidence collections remain empty. Replaying both commands returned
+`replayed: true`, proving the completed operation is idempotent. The redacted
+result is stored in
+[`artifacts/2026-08-15-production-acceptance-and-purge.json`](artifacts/2026-08-15-production-acceptance-and-purge.json).
 
 ## External gates still open
 
