@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "environment": "production",
+  "projectId": "nudge-discipline-app",
+  "acceptance": {
+    "acceptanceEvidenceId": "release-20260815-085439",
+    "relationshipMigrationRunId": "hvSILhxF5vOUdE8q3LbX",
+    "acceptedAt": "2026-08-15T08:54:39.000Z",
+    "recordedAt": "2026-08-15T08:55:30.299Z",
+    "acceptedBy": "7Jg1jBUfcWgfVNlgVogsXXhFEJH2",
+    "evidenceFingerprint": "136a1e5d2dc89ac77dbbd01d4c6be91546b9339e57c22d4ff36619c88f14a55a",
+    "auditEventId": "production-acceptance-recorded--release-20260815-085439",
+    "replayVerified": true
+  },
+  "relationshipBeforeImagePurge": {
+    "migrationRunId": "hvSILhxF5vOUdE8q3LbX",
+    "acceptanceEvidenceId": "release-20260815-085439",
+    "capturedCount": 0,
+    "privacyDeletedCount": 0,
+    "expectedCount": 0,
+    "purgedCount": 0,
+    "beforeImageCountAfterPurge": 0,
+    "privacyDeletionEvidenceCountAfterPurge": 0,
+    "auditEventId": "relationship-before-image-purge--hvSILhxF5vOUdE8q3LbX",
+    "auditCreatedAt": "2026-08-15T08:55:43.356Z",
+    "destructiveOperationGuardActiveAfterPurge": false,
+    "replayVerified": true
+  }
+}
