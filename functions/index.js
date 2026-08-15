@@ -21,6 +21,10 @@ import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshot
 import { createRecordActivityHandler } from "./src/record-activity-handler.js";
 import { createRefreshRelationshipOutcomeHandler } from "./src/relationship-outcome-service.js";
 import {
+  createRefreshDisciplineIdentityHandler,
+  FirestoreDisciplineIdentityRepository,
+} from "./src/discipline-identity-service.js";
+import {
   createHealthConsentChecker,
   createRecordPrivacyConsentHandler,
 } from "./src/privacy-consent-service.js";
@@ -139,6 +143,12 @@ const handleIngestHealthSnapshots = createIngestHealthSnapshotsHandler({
 const handleRefreshRelationshipOutcome =
   createRefreshRelationshipOutcomeHandler({
     firestore: getFirestore(),
+  });
+const handleRefreshDisciplineIdentity =
+  createRefreshDisciplineIdentityHandler({
+    repository: new FirestoreDisciplineIdentityRepository({
+      firestore: getFirestore(),
+    }),
   });
 const handleRecordPrivacyConsent = createRecordPrivacyConsentHandler({
   firestore: getFirestore(),
@@ -307,6 +317,29 @@ export const refreshRelationshipOutcome = onCall(
       throw new HttpsError(
         "internal",
         "The relationship outcome could not be refreshed.",
+      );
+    }
+  },
+);
+
+export const refreshDisciplineIdentity = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await withAccountOperation(
+        request,
+        () => handleRefreshDisciplineIdentity(request),
+      );
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("refreshDisciplineIdentity failed", error);
+      throw new HttpsError(
+        "internal",
+        "The discipline identity could not be refreshed.",
       );
     }
   },

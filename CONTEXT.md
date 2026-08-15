@@ -90,6 +90,12 @@
 - **Synced Progress**: A member's Study Room progress imported from an approved
   source, such as health data or an assigned device, rather than entered by a
   Room Owner.
+- **Discipline Identity Snapshot**: A private, Cloud-built description of the
+  user's recent action pattern from canonical Activity Sessions. It is an
+  updateable reflection, not a personality diagnosis or a permanent label.
+- **Recovery Step**: A small, user-chosen action offered after an activity gap.
+  It does not punish missed days, rewrite history, or require the user to make
+  up the missed amount.
 
 ## Product boundary
 

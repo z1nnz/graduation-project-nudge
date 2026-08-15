@@ -289,6 +289,51 @@ test("privacy export includes only the requester's relationship migration before
   );
 });
 
+test("privacy export includes the requester's private discipline identity", async () => {
+  const firestore = fakeExportFirestore({
+    discipline_identity_snapshots: [
+      {
+        id: "user-one",
+        data: {
+          schemaVersion: 1,
+          userId: "user-one",
+          visibility: "private",
+          personaKey: "steady_builder",
+          evidenceWindowDays: 28,
+        },
+      },
+      {
+        id: "other-user",
+        data: {
+          schemaVersion: 1,
+          userId: "other-user",
+          visibility: "private",
+          personaKey: "pathfinder",
+          evidenceWindowDays: 28,
+        },
+      },
+    ],
+  });
+
+  const result = await collectPrivacyExportData({
+    firestore,
+    userId: "user-one",
+  });
+
+  assert.deepEqual(result.collections.discipline_identity_snapshots, [
+    {
+      id: "user-one",
+      data: {
+        schemaVersion: 1,
+        userId: "user-one",
+        visibility: "private",
+        personaKey: "steady_builder",
+        evidenceWindowDays: 28,
+      },
+    },
+  ]);
+});
+
 test("export request creates a private artifact, owner state and immutable audit", async () => {
   const firestore = fakeFirestore();
   const bucket = fakeBucket();

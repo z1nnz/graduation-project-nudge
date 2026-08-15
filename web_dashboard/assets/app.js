@@ -47,6 +47,14 @@ function loadRelationshipOutcomeContract() {
   );
 }
 
+function loadDisciplineIdentityContract() {
+  return loadWindowModule(
+    "NudgeDisciplineIdentityContract",
+    "assets/discipline_identity_contract.js?v=1",
+    "自律人格契約模組載入失敗",
+  );
+}
+
 function loadFamilyLinkContract() {
   return loadWindowModule(
     "NudgeFamilyLinkContract",
@@ -1985,6 +1993,7 @@ async function bootFirebaseBackedData() {
       loadRelationshipCapabilities(),
       loadRelationshipMembershipContract(),
       loadRelationshipOutcomeContract(),
+      loadDisciplineIdentityContract(),
       loadFamilyLinkContract(),
       loadGroupContract(),
     ]);
@@ -7348,6 +7357,113 @@ async function syncWebPublicProfile(userId, data) {
     .set(buildWebPublicProfile(userId, data));
 }
 
+function renderWebDisciplineIdentity(snapshot) {
+  const container = document.getElementById("disciplineIdentityContent");
+  if (!container) return;
+  const recovery = snapshot.recovery;
+  const metrics = snapshot.metrics;
+  const recoveryAction = ["starting", "gentle_return", "returning"]
+    .includes(recovery.state);
+  container.innerHTML = `
+    <section class="panel">
+      <span class="eyebrow">近 28 個自律日</span>
+      <h2>${escapeHtml(snapshot.persona.title)}</h2>
+      <p>${escapeHtml(snapshot.persona.description)}</p>
+      <span class="status-pill">🔒 目前僅自己可見</span>
+    </section>
+    <section class="metric-grid">
+      <article class="metric-card"><span>活躍日</span><strong>${metrics.activeDays}</strong><small>28 日觀察窗</small></article>
+      <article class="metric-card"><span>完成活動</span><strong>${metrics.completedSessions}</strong><small>Cloud 已接受</small></article>
+      <article class="metric-card"><span>專注</span><strong>${metrics.focusMinutes}</strong><small>分鐘</small></article>
+      <article class="metric-card"><span>運動</span><strong>${metrics.exerciseMinutes}</strong><small>分鐘</small></article>
+    </section>
+    <section class="result-board">
+      <strong>${recoveryAction ? "復原步驟" : "下一個小行動"}</strong>
+      <p>${escapeHtml(recovery.message)}</p>
+      <small>中斷不扣分，也不需要補做錯過的份量；新活動會保留原本歷史。</small>
+      <a class="button primary" href="personal-focus.html?focus=${recovery.recommendedFocusMinutes}">
+        開始 ${recovery.recommendedFocusMinutes} 分鐘${recoveryAction ? "復原步驟" : "行動"}
+      </a>
+    </section>
+    <section class="panel">
+      <strong>這不是性格診斷</strong>
+      <p>快照由 canonical Activity Ledger 更新，會隨你的新行動改變；目前不會分享給好友、家庭或團體。</p>
+    </section>
+  `;
+}
+
+function renderWebDisciplineIdentityError(message) {
+  const container = document.getElementById("disciplineIdentityContent");
+  if (!container) return;
+  container.innerHTML = `
+    <section class="panel">
+      <h2>尚未建立自律人格快照</h2>
+      <p>${escapeHtml(message || "使用 Cloud 已接受的 Activity Ledger 建立第一張快照。")}</p>
+    </section>
+  `;
+}
+
+async function refreshWebDisciplineIdentity(button) {
+  if (!functions || isPreviewMode()) {
+    throw new Error("請先以正式帳號登入");
+  }
+  if (button) {
+    button.disabled = true;
+    button.textContent = "更新中…";
+  }
+  try {
+    await functions.httpsCallable("refreshDisciplineIdentity")({});
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "依最新 Ledger 更新";
+    }
+  }
+}
+
+let disciplineIdentityUnsubscribe = null;
+function listenToWebDisciplineIdentity(userId) {
+  if (!document.body.matches('[data-page="personal-identity"]') || !db) return;
+  const button = document.getElementById("refreshDisciplineIdentityBtn");
+  if (button && !button.dataset.bound) {
+    button.dataset.bound = "true";
+    button.addEventListener("click", async () => {
+      try {
+        await refreshWebDisciplineIdentity(button);
+      } catch (error) {
+        console.error(error);
+        renderWebDisciplineIdentityError(error.message || "更新失敗，請稍後再試。");
+      }
+    });
+  }
+  if (disciplineIdentityUnsubscribe) disciplineIdentityUnsubscribe();
+  disciplineIdentityUnsubscribe = db
+    .collection("discipline_identity_snapshots")
+    .doc(userId)
+    .onSnapshot(async snapshot => {
+      if (!snapshot.exists) {
+        renderWebDisciplineIdentityError();
+        try {
+          await refreshWebDisciplineIdentity(button);
+        } catch (error) {
+          renderWebDisciplineIdentityError(error.message);
+        }
+        return;
+      }
+      try {
+        const parsed = window.NudgeDisciplineIdentityContract
+          .parseDisciplineIdentity(userId, snapshot.data());
+        renderWebDisciplineIdentity(parsed);
+      } catch (error) {
+        console.error(error);
+        renderWebDisciplineIdentityError("快照格式不完整，請重新整理。");
+      }
+    }, error => {
+      console.error(error);
+      renderWebDisciplineIdentityError("無法讀取自律人格，請確認登入狀態。");
+    });
+}
+
 function listenToUser(userId) {
   if (!db) return;
   listenToRequests(userId);
@@ -7358,6 +7474,7 @@ function listenToUser(userId) {
   if (authenticatedUid && authenticatedUid === userId) {
     listenToWebRelationshipMemberships(userId);
     listenToFamilyLink(userId);
+    listenToWebDisciplineIdentity(userId);
   }
 
   // Check if profile page is viewing a friend's profile

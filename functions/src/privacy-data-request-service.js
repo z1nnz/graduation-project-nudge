@@ -177,6 +177,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     publicProfile,
     consent,
     notificationPreferences,
+    disciplineIdentitySnapshot,
     pushDeliveryState,
     friends,
     memberships,
@@ -198,6 +199,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     readSingleDocument(firestore, "public_profiles", userId),
     readSingleDocument(firestore, "privacy_consents", userId),
     readSingleDocument(firestore, "notification_preferences", userId),
+    readSingleDocument(firestore, "discipline_identity_snapshots", userId),
     readSingleDocument(firestore, "push_delivery_state", userId),
     readSubcollection(firestore, `users/${userId}/friends`),
     readQuery(
@@ -254,6 +256,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
       public_profiles: publicProfile,
       privacy_consents: consent,
       notification_preferences: notificationPreferences,
+      discipline_identity_snapshots: disciplineIdentitySnapshot,
       push_delivery_state: pushDeliveryState,
       users_friends: friends.documents,
       relationship_memberships: memberships.documents,

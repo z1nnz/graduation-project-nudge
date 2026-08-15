@@ -174,6 +174,14 @@ test(
           userId: subjectUserId,
           nickname: "刪除對象",
         }),
+        firestore.collection("discipline_identity_snapshots")
+          .doc(subjectUserId)
+          .set({
+            schemaVersion: 1,
+            userId: subjectUserId,
+            visibility: "private",
+            personaKey: "steady_builder",
+          }),
         firestore.collection("privacy_data_requests").doc(requestId).set({
           schemaVersion: 1,
           requestId,
@@ -414,6 +422,7 @@ test(
       for (const path of [
         `users/${subjectUserId}`,
         `public_profiles/${subjectUserId}`,
+        `discipline_identity_snapshots/${subjectUserId}`,
         `activity_events/${eventId}`,
         `activity_source_records/${eventId}`,
         `family_links/${familyLinkId}`,
