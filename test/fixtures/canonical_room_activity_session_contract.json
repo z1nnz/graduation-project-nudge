@@ -1,0 +1,86 @@
+{
+  "valid": {
+    "activitySessionId": "session-contract-fixture",
+    "actorUserId": "member-a",
+    "activityType": "focus",
+    "source": "app",
+    "status": "paused",
+    "roomIds": ["room-a"],
+    "roomTargetValue": 25,
+    "metricValue": 10,
+    "metricUnit": "minutes",
+    "startedAt": "2026-08-15T08:00:00.000Z",
+    "updatedAt": "2026-08-15T08:10:00.000Z",
+    "endedAt": null
+  },
+  "invalid": [
+    {
+      "name": "null lifecycle timestamps",
+      "session": {
+        "activitySessionId": "session-null-time",
+        "actorUserId": "member-a",
+        "activityType": "focus",
+        "source": "app",
+        "status": "active",
+        "roomIds": ["room-a"],
+        "roomTargetValue": 25,
+        "metricValue": 0,
+        "metricUnit": "minutes",
+        "startedAt": null,
+        "updatedAt": null,
+        "endedAt": null
+      }
+    },
+    {
+      "name": "numeric strings",
+      "session": {
+        "activitySessionId": "session-string-metric",
+        "actorUserId": "member-a",
+        "activityType": "focus",
+        "source": "app",
+        "status": "active",
+        "roomIds": ["room-a"],
+        "roomTargetValue": "25",
+        "metricValue": "10",
+        "metricUnit": "minutes",
+        "startedAt": "2026-08-15T08:00:00.000Z",
+        "updatedAt": "2026-08-15T08:10:00.000Z",
+        "endedAt": null
+      }
+    },
+    {
+      "name": "terminal session without end time",
+      "session": {
+        "activitySessionId": "session-no-end",
+        "actorUserId": "member-a",
+        "activityType": "focus",
+        "source": "app",
+        "status": "completed",
+        "roomIds": ["room-a"],
+        "roomTargetValue": 25,
+        "metricValue": 25,
+        "metricUnit": "minutes",
+        "startedAt": "2026-08-15T08:00:00.000Z",
+        "updatedAt": "2026-08-15T08:25:00.000Z",
+        "endedAt": null
+      }
+    },
+    {
+      "name": "unsupported activity type",
+      "session": {
+        "activitySessionId": "session-unknown-kind",
+        "actorUserId": "member-a",
+        "activityType": "unknown",
+        "source": "app",
+        "status": "active",
+        "roomIds": ["room-a"],
+        "roomTargetValue": 25,
+        "metricValue": 0,
+        "metricUnit": "minutes",
+        "startedAt": "2026-08-15T08:00:00.000Z",
+        "updatedAt": "2026-08-15T08:00:00.000Z",
+        "endedAt": null
+      }
+    }
+  ]
+}

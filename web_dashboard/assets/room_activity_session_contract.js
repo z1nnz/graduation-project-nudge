@@ -17,6 +17,18 @@
     return metric;
   }
 
+  function requireCanonicalMetric(value, label, { positive = false } = {}) {
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      (positive && value <= 0)
+    ) {
+      throw new Error(`${label} is invalid`);
+    }
+    return value;
+  }
+
   function start(input) {
     if (!activityKinds.includes(input.activityKind)) {
       throw new Error("Unsupported room activity kind");
@@ -127,12 +139,12 @@
       actorId: requireText(input.actorUserId, "actorUserId"),
       activityKind: input.activityType,
       metricUnit: requireText(input.metricUnit, "metricUnit"),
-      targetValue: requireMetric(
+      targetValue: requireCanonicalMetric(
         hasTargetValue ? input.roomTargetValue : fallbackTargetValue,
         "roomTargetValue",
         { positive: true },
       ),
-      metricValue: requireMetric(input.metricValue, "metricValue"),
+      metricValue: requireCanonicalMetric(input.metricValue, "metricValue"),
       source: input.source,
       status,
       startedAt: startedAt.toISOString(),

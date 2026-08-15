@@ -1,7 +1,18 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/models/room_activity_session.dart';
 
 void main() {
+  final canonicalFixtures =
+      jsonDecode(
+            File(
+              'test/fixtures/canonical_room_activity_session_contract.json',
+            ).readAsStringSync(),
+          )
+          as Map<String, dynamic>;
+
   test('canonical Ledger session restores a room activity for App UI', () {
     final session = RoomActivitySession.fromCanonicalLedger({
       'activitySessionId': 'session-1',
@@ -115,5 +126,26 @@ void main() {
           ?.roomId,
       'room-b',
     );
+  });
+
+  test('App and Web share malformed canonical session fixtures', () {
+    expect(
+      () => RoomActivitySession.fromCanonicalLedger(
+        Map<String, dynamic>.from(canonicalFixtures['valid'] as Map),
+        expectedRoomId: 'room-a',
+      ),
+      returnsNormally,
+    );
+    for (final fixture in canonicalFixtures['invalid'] as List) {
+      final data = Map<String, dynamic>.from(fixture as Map);
+      expect(
+        () => RoomActivitySession.fromCanonicalLedger(
+          Map<String, dynamic>.from(data['session'] as Map),
+          expectedRoomId: 'room-a',
+        ),
+        throwsA(anything),
+        reason: data['name'] as String,
+      );
+    }
   });
 }

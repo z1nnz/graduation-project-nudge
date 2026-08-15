@@ -1,6 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const contract = require("../web_dashboard/assets/room_activity_session_contract.js");
+
+const canonicalFixtures = JSON.parse(fs.readFileSync(
+  path.join(__dirname, "fixtures/canonical_room_activity_session_contract.json"),
+  "utf8",
+));
 
 const startedAt = "2026-07-27T09:00:00.000Z";
 
@@ -184,4 +191,16 @@ test("web restores a pre-cutover canonical session from room metadata", () => {
 
   assert.equal(session.targetValue, 25);
   assert.equal(session.updatedAt, "2026-08-08T08:00:00.000Z");
+});
+
+test("web and App share malformed canonical session fixtures", () => {
+  assert.doesNotThrow(() =>
+    contract.fromCanonicalLedger(canonicalFixtures.valid, "room-a"));
+  for (const fixture of canonicalFixtures.invalid) {
+    assert.throws(
+      () => contract.fromCanonicalLedger(fixture.session, "room-a"),
+      undefined,
+      fixture.name,
+    );
+  }
 });
