@@ -174,8 +174,8 @@ class AppState extends ChangeNotifier {
   StreamSubscription? _outgoingRequestsSubscription;
   StreamSubscription? _roomsSubscription;
   StreamSubscription? _roomDiscoverySubscription;
+  StreamSubscription? _activitySessionsSubscription;
   final Map<String, StreamSubscription> _roomMemberSubscriptions = {};
-  final Map<String, StreamSubscription> _roomSessionSubscriptions = {};
   final Map<String, StreamSubscription> _roomMessageSubscriptions = {};
   final Map<String, StreamSubscription> _roomEventSubscriptions = {};
   StreamSubscription? _shopSubscription;
@@ -211,6 +211,7 @@ class AppState extends ChangeNotifier {
   List<StudyRoomData> _discoverableStudyRooms = [];
   final Map<String, RoomActivitySession> _roomActivitySessions = {};
   final Map<String, String> _roomActiveSessionIds = {};
+  List<Map<String, dynamic>> _canonicalActivitySessionDocuments = [];
 
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
@@ -574,6 +575,21 @@ class AppState extends ChangeNotifier {
               .toList();
           notifyListeners();
         });
+    _activitySessionsSubscription = FirebaseFirestore.instance
+        .collection('activity_sessions')
+        .where('actorUserId', isEqualTo: user.uid)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            _canonicalActivitySessionDocuments = snapshot.docs
+                .map((document) => document.data())
+                .toList(growable: false);
+            _rebuildRoomActivitySessionsFromLedger();
+          },
+          onError: (error) {
+            debugPrint('Activity Ledger session sync failed: $error');
+          },
+        );
 
     // Shop items listener (dynamic character series)
     _shopSubscription = FirebaseFirestore.instance
@@ -729,6 +745,7 @@ class AppState extends ChangeNotifier {
     _syncAutoTrackedTasks();
     _syncTaskRewards();
     _syncTodaySummary();
+    _rebuildRoomActivitySessionsFromLedger();
     notifyListeners();
   }
 
@@ -766,7 +783,6 @@ class AppState extends ChangeNotifier {
             .where((id) => !roomIds.contains(id))
             .toList()) {
       _roomMemberSubscriptions.remove(roomId)?.cancel();
-      _roomSessionSubscriptions.remove(roomId)?.cancel();
       _roomMessageSubscriptions.remove(roomId)?.cancel();
       _roomEventSubscriptions.remove(roomId)?.cancel();
       _roomActiveSessionIds.remove(roomId);
@@ -812,11 +828,9 @@ class AppState extends ChangeNotifier {
               } else {
                 _roomActiveSessionIds[roomId] = activeSessionId;
               }
-              _ensureRoomSessionListener(roomId);
               _ensureRoomInteractionListeners(roomId);
             } else {
               _roomActiveSessionIds.remove(roomId);
-              _roomSessionSubscriptions.remove(roomId)?.cancel();
               _roomMessageSubscriptions.remove(roomId)?.cancel();
               _roomEventSubscriptions.remove(roomId)?.cancel();
               _roomActivitySessions.removeWhere(
@@ -832,27 +846,30 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void _ensureRoomSessionListener(String roomId) {
-    if (_roomSessionSubscriptions.containsKey(roomId)) return;
-    _roomSessionSubscriptions[roomId] = FirebaseFirestore.instance
-        .collection('rooms')
-        .doc(roomId)
-        .collection('activity_sessions')
-        .snapshots()
-        .listen((snapshot) {
-          _roomActivitySessions.removeWhere(
-            (_, session) => session.roomId == roomId,
+  void _rebuildRoomActivitySessionsFromLedger() {
+    final joinedRoomIds = _studyRooms.map((room) => room.id).toSet();
+    final sessions = <String, RoomActivitySession>{};
+    for (final document in _canonicalActivitySessionDocuments) {
+      final roomIds = (document['roomIds'] as List? ?? const <dynamic>[])
+          .whereType<String>();
+      for (final roomId in roomIds.where(joinedRoomIds.contains)) {
+        try {
+          final session = RoomActivitySession.fromCanonicalLedger(
+            document,
+            expectedRoomId: roomId,
           );
-          for (final doc in snapshot.docs) {
-            try {
-              final session = RoomActivitySession.fromJson(doc.data());
-              _roomActivitySessions[session.sessionId] = session;
-            } catch (error) {
-              debugPrint('Skipping invalid room activity session: $error');
-            }
+          if (session.actorId == _myId) {
+            sessions[session.sessionId] = session;
           }
-          notifyListeners();
-        });
+        } catch (error) {
+          debugPrint('Skipping invalid canonical room activity session: $error');
+        }
+      }
+    }
+    _roomActivitySessions
+      ..clear()
+      ..addAll(sessions);
+    notifyListeners();
   }
 
   void _ensureRoomInteractionListeners(String roomId) {
@@ -1500,10 +1517,8 @@ class AppState extends ChangeNotifier {
     _outgoingRequestsSubscription?.cancel();
     _roomsSubscription?.cancel();
     _roomDiscoverySubscription?.cancel();
+    _activitySessionsSubscription?.cancel();
     for (final subscription in _roomMemberSubscriptions.values) {
-      subscription.cancel();
-    }
-    for (final subscription in _roomSessionSubscriptions.values) {
       subscription.cancel();
     }
     for (final subscription in _roomMessageSubscriptions.values) {
@@ -1513,7 +1528,6 @@ class AppState extends ChangeNotifier {
       subscription.cancel();
     }
     _roomMemberSubscriptions.clear();
-    _roomSessionSubscriptions.clear();
     _roomMessageSubscriptions.clear();
     _roomEventSubscriptions.clear();
     _shopSubscription?.cancel();
@@ -1542,6 +1556,7 @@ class AppState extends ChangeNotifier {
     _outgoingRequestsSubscription = null;
     _roomsSubscription = null;
     _roomDiscoverySubscription = null;
+    _activitySessionsSubscription = null;
     _shopSubscription = null;
     _incomingGuardianRequestsSubscription = null;
     _outgoingGuardianRequestsSubscription = null;
@@ -1585,6 +1600,7 @@ class AppState extends ChangeNotifier {
     _listeningGroupId = null;
     _projectedGroupId = null;
     _discoverableStudyRooms = [];
+    _canonicalActivitySessionDocuments = [];
     _roomActivitySessions.clear();
     _roomActiveSessionIds.clear();
   }

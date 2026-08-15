@@ -2461,12 +2461,12 @@ function renderWebRoomSessionPanel() {
 
   const memberApproved = activeWebRoomMember?.approvalStatus === "approved";
   const trustedHealthOnly = roomUsesTrustedHealthAdapter(activeWebRoom);
-  const legacyStatus = activeWebRoomSession?.status;
+  const canonicalStatus = activeWebRoomSession?.status;
   const status =
     activeWebRoomContribution &&
-    (!legacyStatus || ["completed", "cancelled"].includes(legacyStatus))
+    (!canonicalStatus || ["completed", "cancelled"].includes(canonicalStatus))
       ? "verified"
-      : legacyStatus;
+      : canonicalStatus;
   const metricValue = Number(
     activeWebRoomContribution?.metricValue ??
     activeWebRoomSession?.metricValue ??
@@ -2845,12 +2845,18 @@ function selectWebRoom(roomId, room) {
         return;
       }
       if (webRoomSessionsSub) return;
-      webRoomSessionsSub = db.collection("rooms").doc(roomId)
-        .collection("activity_sessions")
-        .where("actorId", "==", userId)
+      webRoomSessionsSub = db.collection("activity_sessions")
+        .where("actorUserId", "==", userId)
         .onSnapshot(snapshot => {
           const sessions = snapshot.docs
-            .map(doc => ({ ...doc.data(), sessionId: doc.id }))
+            .flatMap(doc => {
+              try {
+                return [window.NudgeRoomActivitySessionContract
+                  .fromCanonicalLedger(doc.data(), roomId)];
+              } catch (_) {
+                return [];
+              }
+            })
             .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
           activeWebRoomSession =
             sessions.find(

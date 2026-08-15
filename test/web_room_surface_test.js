@@ -44,7 +44,14 @@ test("web exposes a real member-controlled activity room hub", () => {
   assert.match(app, /function buildWebRoomEvent/);
   assert.match(app, /member\.presenceStatus/);
   assert.match(app, /batch\.set\(roomRef\.collection\("events"\)/);
-  assert.match(app, /\.collection\("activity_sessions"\)/);
+  assert.match(
+    app,
+    /db\.collection\("activity_sessions"\)\s*\.where\("actorUserId",\s*"==",\s*userId\)/,
+  );
+  assert.doesNotMatch(
+    app,
+    /collection\("rooms"\)\.doc\(roomId\)[\s\S]{0,120}collection\("activity_sessions"\)/,
+  );
   assert.match(app, /\.collection\("messages"\)/);
   assert.match(app, /\.collection\("events"\)/);
   assert.doesNotMatch(html, /房主開始|管理者開始|統一開始/);

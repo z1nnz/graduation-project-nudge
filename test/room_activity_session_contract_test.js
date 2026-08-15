@@ -90,3 +90,53 @@ test("protected health rooms never accept manual Web activity control", () => {
     false,
   );
 });
+
+test("web restores room UI state from the canonical Activity Ledger session", () => {
+  const session = contract.fromCanonicalLedger(
+    {
+      activitySessionId: "session-alice-focus",
+      actorUserId: "alice",
+      activityType: "focus",
+      status: "paused",
+      source: "web",
+      roomIds: ["room-study"],
+      roomTargetValue: 50,
+      startedAt: "2026-07-27T09:00:00.000Z",
+      updatedAt: "2026-07-27T09:25:00.000Z",
+      endedAt: null,
+      metricValue: 25,
+      metricUnit: "minutes",
+      sourceSessionIds: ["session-alice-focus"],
+    },
+    "room-study",
+  );
+
+  assert.deepEqual(session, {
+    schemaVersion: 1,
+    sessionId: "session-alice-focus",
+    roomId: "room-study",
+    actorId: "alice",
+    activityKind: "focus",
+    metricUnit: "minutes",
+    targetValue: 50,
+    metricValue: 25,
+    source: "web",
+    status: "paused",
+    startedAt: "2026-07-27T09:00:00.000Z",
+    updatedAt: "2026-07-27T09:25:00.000Z",
+    endedAt: null,
+  });
+  assert.throws(() =>
+    contract.fromCanonicalLedger(
+      {
+        ...session,
+        activitySessionId: session.sessionId,
+        actorUserId: session.actorId,
+        activityType: session.activityKind,
+        roomIds: [session.roomId],
+        roomTargetValue: session.targetValue,
+      },
+      "room-other",
+    ),
+  );
+});

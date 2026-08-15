@@ -1221,12 +1221,16 @@ export class ActivityLedgerService {
           lifecycleStarted: evidence.eventType === "started",
           status: "active",
           startedAt: evidence.occurredAt,
+          updatedAt: evidence.occurredAt,
           startedVerifiedAt:
             evidence.eventType === "started" ? evidence.receivedAt : null,
           endedAt: null,
           metricValue: 0,
           metricUnit: evidence.metricUnit,
           sourceSessionIds: [],
+          ...(evidence.roomSession
+            ? { roomTargetValue: evidence.roomSession.targetValue }
+            : {}),
         };
     if (
       session.status === "discarded" ||
@@ -1243,6 +1247,10 @@ export class ActivityLedgerService {
     session.roomIds = [
       ...new Set([...(session.roomIds ?? []), ...evidence.roomIds]),
     ];
+    session.updatedAt = evidence.occurredAt;
+    if (evidence.roomSession) {
+      session.roomTargetValue = evidence.roomSession.targetValue;
+    }
     switch (evidence.eventType) {
       case "started":
         break;

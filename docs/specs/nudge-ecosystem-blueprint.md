@@ -82,8 +82,9 @@ Nudge 的核心不是由管理者主持活動，而是讓使用者在可選擇�
   projection fingerprint、獨佔 runner token、可續跑的部分失敗行為，以及本機
   Firestore Emulator apply 驗收；正式環境尚未執行，因此仍不能把舊投影清理
   標示為完成。
-- 一般活動房仍保留舊 `activity_sessions` 讀取投影供過渡期 UI 使用；需在
-  App／Web 都能直接讀取正式 Session／Contribution 後移除。
+- 一般活動房的 App／Web UI 已改讀頂層 canonical `activity_sessions`，並以
+  `roomIds` 與正式欄位還原同一個活動狀態；房間內的同名子集合只保留為 Cloud
+  交易指令 aggregate，Rules 已禁止客戶端讀寫，不再是過渡期 UI 投影。
 - 房間資料與使用者文件中既有投影資料的遷移、封存與清除。
 - Reward Ledger 的程式、Rules 與本機測試已完成，但正式環境尚未部署，也尚未
   執行既有帳號的獎勵基線遷移與真實帳號 callable 驗收；預設 dry-run 的

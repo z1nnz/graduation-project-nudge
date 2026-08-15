@@ -78,6 +78,52 @@
     };
   }
 
+  function fromCanonicalLedger(input, expectedRoomId) {
+    const roomId = requireText(expectedRoomId, "expectedRoomId");
+    if (!Array.isArray(input?.roomIds) || !input.roomIds.includes(roomId)) {
+      throw new Error("Canonical activity session belongs to another room");
+    }
+    const status = input.status === "discarded" ? "cancelled" : input.status;
+    if (!statuses.includes(status)) {
+      throw new Error("Unsupported canonical room session status");
+    }
+    if (!activityKinds.includes(input.activityType)) {
+      throw new Error("Unsupported canonical room activity kind");
+    }
+    if (!sources.includes(input.source)) {
+      throw new Error("Unsupported canonical room activity source");
+    }
+    const startedAt = new Date(input.startedAt);
+    const updatedAt = new Date(input.updatedAt);
+    const endedAt = input.endedAt == null ? null : new Date(input.endedAt);
+    const terminal = ["completed", "cancelled"].includes(status);
+    if (
+      Number.isNaN(startedAt.getTime()) ||
+      Number.isNaN(updatedAt.getTime()) ||
+      (endedAt && Number.isNaN(endedAt.getTime())) ||
+      terminal !== Boolean(endedAt)
+    ) {
+      throw new Error("Canonical room activity timestamps are invalid");
+    }
+    return {
+      schemaVersion: 1,
+      sessionId: requireText(input.activitySessionId, "activitySessionId"),
+      roomId,
+      actorId: requireText(input.actorUserId, "actorUserId"),
+      activityKind: input.activityType,
+      metricUnit: requireText(input.metricUnit, "metricUnit"),
+      targetValue: requireMetric(input.roomTargetValue, "roomTargetValue", {
+        positive: true,
+      }),
+      metricValue: requireMetric(input.metricValue, "metricValue"),
+      source: input.source,
+      status,
+      startedAt: startedAt.toISOString(),
+      updatedAt: updatedAt.toISOString(),
+      endedAt: endedAt?.toISOString() || null,
+    };
+  }
+
   function requiresTrustedHealthAdapter(room = {}) {
     return ["sleepHours", "steps", "exerciseMinutes"].includes(
       String(room.goalSourceType || ""),
@@ -87,6 +133,7 @@
   const contract = {
     start,
     transition,
+    fromCanonicalLedger,
     requiresTrustedHealthAdapter,
     statuses,
     activityKinds,
