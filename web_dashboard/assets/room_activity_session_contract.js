@@ -78,7 +78,7 @@
     };
   }
 
-  function fromCanonicalLedger(input, expectedRoomId) {
+  function fromCanonicalLedger(input, expectedRoomId, fallbackTargetValue) {
     const roomId = requireText(expectedRoomId, "expectedRoomId");
     if (!Array.isArray(input?.roomIds) || !input.roomIds.includes(roomId)) {
       throw new Error("Canonical activity session belongs to another room");
@@ -93,8 +93,23 @@
     if (!sources.includes(input.source)) {
       throw new Error("Unsupported canonical room activity source");
     }
+    const hasUpdatedAt = Object.prototype.hasOwnProperty.call(
+      input,
+      "updatedAt",
+    );
+    const hasTargetValue = Object.prototype.hasOwnProperty.call(
+      input,
+      "roomTargetValue",
+    );
+    if (
+      typeof input.startedAt !== "string" ||
+      (hasUpdatedAt && typeof input.updatedAt !== "string") ||
+      (input.endedAt != null && typeof input.endedAt !== "string")
+    ) {
+      throw new Error("Canonical room activity timestamps are invalid");
+    }
     const startedAt = new Date(input.startedAt);
-    const updatedAt = new Date(input.updatedAt);
+    const updatedAt = new Date(hasUpdatedAt ? input.updatedAt : input.startedAt);
     const endedAt = input.endedAt == null ? null : new Date(input.endedAt);
     const terminal = ["completed", "cancelled"].includes(status);
     if (
@@ -112,9 +127,11 @@
       actorId: requireText(input.actorUserId, "actorUserId"),
       activityKind: input.activityType,
       metricUnit: requireText(input.metricUnit, "metricUnit"),
-      targetValue: requireMetric(input.roomTargetValue, "roomTargetValue", {
-        positive: true,
-      }),
+      targetValue: requireMetric(
+        hasTargetValue ? input.roomTargetValue : fallbackTargetValue,
+        "roomTargetValue",
+        { positive: true },
+      ),
       metricValue: requireMetric(input.metricValue, "metricValue"),
       source: input.source,
       status,

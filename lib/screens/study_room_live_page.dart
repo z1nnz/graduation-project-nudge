@@ -66,6 +66,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         if (current.status == RoomActivitySessionStatus.paused) {
           final localMetric = _sessionMetricValue(room);
           sessionForStart = await appState.transitionRoomActivitySession(
+            roomId: room.id,
             sessionId: current.sessionId,
             status: RoomActivitySessionStatus.active,
             metricValue: localMetric < current.metricValue
@@ -148,6 +149,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     if (sessionId != null) {
       try {
         await appState.transitionRoomActivitySession(
+          roomId: room.id,
           sessionId: sessionId,
           status: RoomActivitySessionStatus.paused,
           metricValue: _sessionMetricValue(room),
@@ -183,6 +185,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     if (sessionId != null) {
       try {
         await appState.transitionRoomActivitySession(
+          roomId: room.id,
           sessionId: sessionId,
           status: RoomActivitySessionStatus.completed,
           metricValue: _sessionMetricValue(
@@ -229,6 +232,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     if (sessionId != null) {
       try {
         await appState.transitionRoomActivitySession(
+          roomId: room.id,
           sessionId: sessionId,
           status: RoomActivitySessionStatus.cancelled,
           metricValue: _sessionMetricValue(room),
@@ -277,6 +281,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     if (sessionId != null) {
       try {
         await appState.transitionRoomActivitySession(
+          roomId: room.id,
           sessionId: sessionId,
           status: RoomActivitySessionStatus.paused,
           metricValue: metricValue,

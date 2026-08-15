@@ -14,6 +14,10 @@ test("web exposes a real member-controlled activity room hub", () => {
     app.indexOf("async function startWebRoomSession"),
     app.indexOf("function stopFamilyInteractionListeners"),
   );
+  const roomSelection = app.slice(
+    app.indexOf("function selectWebRoom"),
+    app.indexOf("function listenToWebRooms"),
+  );
 
   assert.match(html, /data-room-list/);
   assert.match(html, /data-room-session-panel/);
@@ -51,6 +55,10 @@ test("web exposes a real member-controlled activity room hub", () => {
   assert.doesNotMatch(
     app,
     /collection\("rooms"\)\.doc\(roomId\)[\s\S]{0,120}collection\("activity_sessions"\)/,
+  );
+  assert.doesNotMatch(
+    roomSelection,
+    /if \(roomUsesTrustedHealthAdapter\(activeWebRoom\)\)/,
   );
   assert.match(app, /\.collection\("messages"\)/);
   assert.match(app, /\.collection\("events"\)/);

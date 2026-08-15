@@ -140,3 +140,48 @@ test("web restores room UI state from the canonical Activity Ledger session", ()
     ),
   );
 });
+
+test("web rejects canonical room sessions with null lifecycle timestamps", () => {
+  assert.throws(
+    () => contract.fromCanonicalLedger(
+      {
+        activitySessionId: "session-null-time",
+        actorUserId: "member-a",
+        activityType: "focus",
+        source: "app",
+        status: "active",
+        roomIds: ["room-study"],
+        roomTargetValue: 25,
+        metricValue: 0,
+        metricUnit: "minutes",
+        startedAt: null,
+        updatedAt: null,
+        endedAt: null,
+      },
+      "room-study",
+    ),
+    /timestamps/i,
+  );
+});
+
+test("web restores a pre-cutover canonical session from room metadata", () => {
+  const session = contract.fromCanonicalLedger(
+    {
+      activitySessionId: "session-before-room-contract",
+      actorUserId: "member-a",
+      activityType: "focus",
+      source: "app",
+      status: "active",
+      roomIds: ["room-study"],
+      metricValue: 10,
+      metricUnit: "minutes",
+      startedAt: "2026-08-08T08:00:00.000Z",
+      endedAt: null,
+    },
+    "room-study",
+    25,
+  );
+
+  assert.equal(session.targetValue, 25);
+  assert.equal(session.updatedAt, "2026-08-08T08:00:00.000Z");
+});

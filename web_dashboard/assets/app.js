@@ -2837,13 +2837,6 @@ function selectWebRoom(roomId, room) {
       if (!webRoomMessagesSub || !webRoomEventsSub) {
         listenToWebRoomInteractions(roomId);
       }
-      if (roomUsesTrustedHealthAdapter(activeWebRoom)) {
-        if (webRoomSessionsSub) webRoomSessionsSub();
-        webRoomSessionsSub = null;
-        activeWebRoomSession = null;
-        renderWebRoomSessionPanel();
-        return;
-      }
       if (webRoomSessionsSub) return;
       webRoomSessionsSub = db.collection("activity_sessions")
         .where("actorUserId", "==", userId)
@@ -2852,7 +2845,11 @@ function selectWebRoom(roomId, room) {
             .flatMap(doc => {
               try {
                 return [window.NudgeRoomActivitySessionContract
-                  .fromCanonicalLedger(doc.data(), roomId)];
+                  .fromCanonicalLedger(
+                    doc.data(),
+                    roomId,
+                    roomSessionTargetValue(activeWebRoom),
+                  )];
               } catch (_) {
                 return [];
               }

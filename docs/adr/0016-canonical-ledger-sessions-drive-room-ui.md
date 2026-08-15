@@ -23,7 +23,17 @@ The user-visible Activity Session is the actor-owned document at
 `roomIds`, `roomTargetValue`, `source`, lifecycle timestamps and current metric.
 App and Web query these documents by `actorUserId`, validate that the selected
 room is present in `roomIds`, and convert the canonical Session to their shared
-room presentation contract.
+room presentation contract. Each presentation is keyed by the pair
+`(roomId, activitySessionId)`, so one canonical activity may appear in multiple
+eligible rooms without one room overwriting another. Health-backed rooms keep
+the same Session listener even though their manual controls remain disabled.
+
+Sessions created before this contract may not contain `roomTargetValue` or
+`updatedAt`. During cutover, App and Web derive only those missing values from
+the canonical Room goal and `startedAt`; an explicitly null or malformed value
+still fails closed. The next accepted Cloud transition persists the complete
+Session fields, providing lazy repair without reading the room-nested
+aggregate.
 
 `rooms/{roomId}/activity_sessions/{sessionId}` remains a Cloud-only
 transactional aggregate used to validate room commands and atomically maintain

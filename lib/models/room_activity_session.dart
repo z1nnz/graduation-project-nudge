@@ -180,6 +180,7 @@ class RoomActivitySession {
   factory RoomActivitySession.fromCanonicalLedger(
     Map<String, dynamic> json, {
     required String expectedRoomId,
+    double? fallbackTargetValue,
   }) {
     final roomIds = (json['roomIds'] as List? ?? const <dynamic>[])
         .whereType<String>()
@@ -199,7 +200,11 @@ class RoomActivitySession {
       }
     }
 
-    final targetValue = (json['roomTargetValue'] as num?)?.toDouble();
+    final targetValue =
+        (json.containsKey('roomTargetValue')
+                ? json['roomTargetValue'] as num?
+                : fallbackTargetValue)
+            ?.toDouble();
     if (targetValue == null || !targetValue.isFinite || targetValue <= 0) {
       throw const FormatException(
         'Canonical room target must be a positive number.',
@@ -214,7 +219,10 @@ class RoomActivitySession {
             'room session status',
           );
     final startedAt = DateTime.tryParse(json['startedAt']?.toString() ?? '');
-    final updatedAt = DateTime.tryParse(json['updatedAt']?.toString() ?? '');
+    final updatedAtValue = json.containsKey('updatedAt')
+        ? json['updatedAt']
+        : json['startedAt'];
+    final updatedAt = DateTime.tryParse(updatedAtValue?.toString() ?? '');
     final endedAt = json['endedAt'] == null
         ? null
         : DateTime.tryParse(json['endedAt'].toString());
@@ -258,6 +266,38 @@ class RoomActivitySession {
       updatedAt: updatedAt.toUtc(),
       endedAt: endedAt?.toUtc(),
     );
+  }
+}
+
+class RoomActivitySessionLedgerProjection {
+  const RoomActivitySessionLedgerProjection._();
+
+  static String key(String roomId, String sessionId) => '$roomId::$sessionId';
+
+  static Map<String, RoomActivitySession> restore({
+    required Iterable<Map<String, dynamic>> documents,
+    required String actorUserId,
+    required Map<String, double> roomTargetValues,
+  }) {
+    final sessions = <String, RoomActivitySession>{};
+    for (final document in documents) {
+      if (document['actorUserId'] != actorUserId) continue;
+      final roomIds = (document['roomIds'] as List? ?? const <dynamic>[])
+          .whereType<String>();
+      for (final roomId in roomIds.where(roomTargetValues.containsKey)) {
+        try {
+          final session = RoomActivitySession.fromCanonicalLedger(
+            document,
+            expectedRoomId: roomId,
+            fallbackTargetValue: roomTargetValues[roomId],
+          );
+          sessions[key(roomId, session.sessionId)] = session;
+        } catch (_) {
+          continue;
+        }
+      }
+    }
+    return sessions;
   }
 }
 

@@ -217,6 +217,7 @@ void main() {
     expect(started.status, RoomActivitySessionStatus.active);
 
     final paused = await appState.transitionRoomActivitySession(
+      roomId: roomId,
       sessionId: started.sessionId,
       status: RoomActivitySessionStatus.paused,
       metricValue: 10,
@@ -224,6 +225,7 @@ void main() {
     expect(paused.status, RoomActivitySessionStatus.paused);
 
     final resumed = await appState.transitionRoomActivitySession(
+      roomId: roomId,
       sessionId: started.sessionId,
       status: RoomActivitySessionStatus.active,
       metricValue: 10,
@@ -231,12 +233,33 @@ void main() {
     expect(resumed.status, RoomActivitySessionStatus.active);
 
     final completed = await appState.transitionRoomActivitySession(
+      roomId: roomId,
       sessionId: started.sessionId,
       status: RoomActivitySessionStatus.completed,
       metricValue: 25,
     );
     expect(completed.status, RoomActivitySessionStatus.completed);
     expect(appState.activeRoomActivitySession(roomId), isNull);
+  });
+
+  test('study room hours become a minute-based Ledger target', () async {
+    final appState = AppState();
+    appState.createStudyRoom(
+      name: '兩小時共學房',
+      description: '跨端使用相同分鐘目標',
+      accentColor: const Color(0xFF7C6AE6),
+      roomType: StudyRoomType.study,
+      goalSourceType: TaskSourceType.studyRoom,
+      dailyGoalValue: 2,
+      goalUnitLabel: '小時',
+    );
+
+    final session = await appState.startRoomActivitySession(
+      roomId: appState.studyRooms.first.id,
+    );
+
+    expect(session.metricUnit, 'minutes');
+    expect(session.targetValue, 120);
   });
 
   test(
@@ -302,6 +325,7 @@ void main() {
 
       await expectLater(
         appState.transitionRoomActivitySession(
+          roomId: room.id,
           sessionId: started.sessionId,
           status: RoomActivitySessionStatus.paused,
           metricValue: 10,
@@ -342,6 +366,7 @@ void main() {
       source: RoomActivitySource.health,
     );
     final completed = await appState.transitionRoomActivitySession(
+      roomId: roomId,
       sessionId: started.sessionId,
       status: RoomActivitySessionStatus.completed,
       metricValue: 7.2,

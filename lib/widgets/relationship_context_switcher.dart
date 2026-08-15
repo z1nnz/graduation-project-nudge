@@ -10,6 +10,13 @@ class RelationshipContextSwitcher extends StatelessWidget {
 
   final RelationshipScope scope;
 
+  String _roleLabel(RelationshipRole role) => switch (role) {
+    RelationshipRole.guardian => '家長',
+    RelationshipRole.child => '孩子',
+    RelationshipRole.manager => '團體管理者',
+    RelationshipRole.member => '團體成員',
+  };
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -23,66 +30,6 @@ class RelationshipContextSwitcher extends StatelessWidget {
         : appState.selectedGroupId;
     final selected = memberships.firstWhere(
       (membership) => membership.scopeId == selectedId,
-      orElse: () => memberships.first,
-    );
-    return RelationshipContextCard(
-      scope: scope,
-      memberships: memberships,
-      selectedScopeId: selected.scopeId,
-      accentColor: appState.currentIconColor,
-      onSelected: (scopeId) async {
-        try {
-          if (scope == RelationshipScope.family) {
-            await appState.selectFamilyRelationship(scopeId);
-          } else {
-            await appState.selectGroupRelationship(scopeId);
-          }
-        } catch (error) {
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(error.toString())));
-        }
-      },
-    );
-  }
-}
-
-class RelationshipContextCard extends StatelessWidget {
-  const RelationshipContextCard({
-    super.key,
-    required this.scope,
-    required this.memberships,
-    required this.selectedScopeId,
-    required this.accentColor,
-    required this.onSelected,
-  });
-
-  final RelationshipScope scope;
-  final List<RelationshipMembership> memberships;
-  final String selectedScopeId;
-  final Color accentColor;
-  final Future<void> Function(String scopeId) onSelected;
-
-  String _roleLabel(RelationshipRole role) => switch (role) {
-    RelationshipRole.guardian => '家長',
-    RelationshipRole.child => '孩子',
-    RelationshipRole.manager => '團體管理者',
-    RelationshipRole.member => '團體成員',
-  };
-
-  String _roleDescription(RelationshipRole role) => switch (role) {
-    RelationshipRole.guardian => '你可以提議共同目標與送出鼓勵，但不能代替孩子同意。',
-    RelationshipRole.child => '你可以決定資料分享、接受共同目標與回應鼓勵。',
-    RelationshipRole.manager => '你可以建立共同框架，但不會替成員開始或結束活動。',
-    RelationshipRole.member => '你自行開始與完成活動，也可以隨時撤回成果分享。',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    if (memberships.isEmpty) return const SizedBox.shrink();
-    final selected = memberships.firstWhere(
-      (membership) => membership.scopeId == selectedScopeId,
       orElse: () => memberships.first,
     );
     final title = scope == RelationshipScope.family ? '目前家庭情境' : '目前團體情境';
@@ -100,7 +47,7 @@ class RelationshipContextCard extends StatelessWidget {
                   scope == RelationshipScope.family
                       ? Icons.family_restroom_outlined
                       : Icons.groups_outlined,
-                  color: accentColor,
+                  color: appState.currentIconColor,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -113,8 +60,7 @@ class RelationshipContextCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '你在此情境是「${_roleLabel(selected.role)}」。'
-                        '${_roleDescription(selected.role)}',
+                        '你在此情境是「${_roleLabel(selected.role)}」；權限與內容會隨選擇切換。',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppUI.textSecondaryOf(context),
@@ -148,7 +94,18 @@ class RelationshipContextCard extends StatelessWidget {
                     .toList(growable: false),
                 onChanged: (scopeId) async {
                   if (scopeId == null || scopeId == selected.scopeId) return;
-                  await onSelected(scopeId);
+                  try {
+                    if (scope == RelationshipScope.family) {
+                      await appState.selectFamilyRelationship(scopeId);
+                    } else {
+                      await appState.selectGroupRelationship(scopeId);
+                    }
+                  } catch (error) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(error.toString())));
+                  }
                 },
               ),
             ],

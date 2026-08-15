@@ -50,4 +50,70 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test(
+    'legacy canonical session uses room metadata until its next transition',
+    () {
+      final session = RoomActivitySession.fromCanonicalLedger(
+        {
+          'activitySessionId': 'session-before-room-contract',
+          'actorUserId': 'member-a',
+          'activityType': 'focus',
+          'source': 'app',
+          'status': 'active',
+          'roomIds': ['room-a'],
+          'metricValue': 10,
+          'metricUnit': 'minutes',
+          'startedAt': '2026-08-08T08:00:00.000Z',
+          'endedAt': null,
+        },
+        expectedRoomId: 'room-a',
+        fallbackTargetValue: 25,
+      );
+
+      expect(session.targetValue, 25);
+      expect(session.updatedAt, DateTime.utc(2026, 8, 8, 8));
+    },
+  );
+
+  test('one canonical session keeps an independent presentation per room', () {
+    final sessions = RoomActivitySessionLedgerProjection.restore(
+      documents: [
+        {
+          'activitySessionId': 'session-shared',
+          'actorUserId': 'member-a',
+          'activityType': 'focus',
+          'source': 'app',
+          'status': 'active',
+          'roomIds': ['room-a', 'room-b'],
+          'roomTargetValue': 25,
+          'metricValue': 10,
+          'metricUnit': 'minutes',
+          'startedAt': '2026-08-15T08:00:00.000Z',
+          'updatedAt': '2026-08-15T08:10:00.000Z',
+          'endedAt': null,
+        },
+      ],
+      actorUserId: 'member-a',
+      roomTargetValues: const {'room-a': 25, 'room-b': 40},
+    );
+
+    expect(sessions, hasLength(2));
+    expect(
+      sessions[RoomActivitySessionLedgerProjection.key(
+            'room-a',
+            'session-shared',
+          )]
+          ?.roomId,
+      'room-a',
+    );
+    expect(
+      sessions[RoomActivitySessionLedgerProjection.key(
+            'room-b',
+            'session-shared',
+          )]
+          ?.roomId,
+      'room-b',
+    );
+  });
 }
