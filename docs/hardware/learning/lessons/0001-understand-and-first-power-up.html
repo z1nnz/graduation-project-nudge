@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>第一課：看懂 Nudge 並安全第一次上電</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body><main>
+  <header>
+    <div class="eyebrow">Lesson 0001 · 約 20 分鐘</div>
+    <h1>看懂整台機器，再第一次上電</h1>
+    <p class="lede">今天的成果不是「全部接完」，而是你能指出每個模組的角色，並在零件到貨後安全點亮 XIAO＋圓屏。</p>
+    <div class="meta">
+      <div class="pill">先備：不用會焊接</div>
+      <div class="pill">完成物：第一張驗收照片</div>
+      <div class="pill">停止條件：發熱／異味／電壓不明</div>
+    </div>
+  </header>
+
+  <h2>1. 「嵌入式」到底是什麼？</h2>
+  <p>一般電腦可以安裝很多軟體；嵌入式系統則把一台小型電腦放進特定產品，持續讀取輸入、執行規則、控制輸出。Nudge 的 ESP32-S3 就是小型電腦：旋鈕與光感是輸入，螢幕、LED、蜂鳴器是輸出，BLE 是與 App 溝通的橋。</p>
+  <div class="flow">
+    <span class="node">輸入：旋鈕／lux／App</span><span class="arrow">→</span>
+    <span class="node">運算：ESP32 狀態機</span><span class="arrow">→</span>
+    <span class="node">輸出：畫面／光／聲／事件</span>
+  </div>
+  <p class="success">專案特色不只是「有一顆螢幕」，而是把抽象的自律狀態變成可摸、可看、可離線保留、回到 App 後可驗證的實體互動。</p>
+
+  <h2>2. 每個零件負責什麼？</h2>
+  <div class="grid">
+    <section class="card"><strong>XIAO ESP32-S3</strong>大腦。執行 C++ 韌體、BLE、狀態機與斷電保存。</section>
+    <section class="card"><strong>Round Display</strong>主要視覺。顯示時間、房間、目標、角色與同步狀態。</section>
+    <section class="card"><strong>I2C Encoder</strong>人的輸入。旋轉選房；短按開始／暫停／繼續；長按完成。</section>
+    <section class="card"><strong>VEML7700</strong>環境輸入。把光照 lux 轉成平滑且有界的亮度。</section>
+    <section class="card"><strong>WS2813 Stick</strong>環境輸出。用十顆 RGB 呈現 ready、active、paused、rest、complete、offline。</section>
+    <section class="card"><strong>Qwiic Buzzer</strong>低干擾聲音輸出。短提示音，App 可以靜音。</section>
+    <section class="card"><strong>SN74AHCT125N</strong>電氣翻譯員。把 3.3V 資料高準位轉成 5V LED 看得懂的高準位。</section>
+    <section class="card"><strong>Android App＋Cloud</strong>身分與信任。App 綁定帳號、寫 durable outbox；Cloud 驗證 DeviceAssignment 與 Ledger。</section>
+  </div>
+
+  <h2>3. 到貨當天，不要直接全部接起來</h2>
+  <ol class="checklist">
+    <li><strong>拍照與核對料號。</strong>Round Display `104030087`、XIAO `113991114`／普通 ESP32-S3、Encoder `5880`、LED `104020131`、Buzzer `BOB-24474`、VEML7700 `SEN-29211`。</li>
+    <li><strong>檢查焊點與方向。</strong>排針是否垂直、有無錫橋、USB-C 是否鬆動；不要插電。</li>
+    <li><strong>只組 XIAO＋Round Display。</strong>依兩板絲印與 USB 開口方向對齊，平均施力插入；此時不要接 LED、Qwiic 或外殼。</li>
+    <li><strong>用資料線接 Mac。</strong>先接電腦 USB，不接獨立 5V/2A 電源。碰到明顯發熱、焦味或閃爍立即拔線。</li>
+    <li><strong>確認序列埠。</strong>終端機執行 <code>ls /dev/cu.*</code>，插拔前後多出的項目通常就是 XIAO。</li>
+    <li><strong>編譯再上傳。</strong>先證明原始碼能編譯；知道正確序列埠後再 upload。</li>
+  </ol>
+
+  <pre><code>cd /Users/whzi_111/healthkit/self_discipline_app
+python3 -m venv .venv-platformio
+./.venv-platformio/bin/pip install platformio
+./.venv-platformio/bin/pio run \
+  --project-dir firmware/nudge_focus_device
+
+# 到貨並確認序列埠後才執行：
+./.venv-platformio/bin/pio run \
+  --project-dir firmware/nudge_focus_device \
+  --target upload \
+  --upload-port /dev/cu.usbmodemXXXX
+
+./.venv-platformio/bin/pio device monitor \
+  --port /dev/cu.usbmodemXXXX \
+  --baud 115200</code></pre>
+  <p>若找不到序列埠，先換一條「能傳資料」的 USB-C 線；再依 <a href="https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/">Seeed 官方 XIAO ESP32-S3 入門</a>操作 BOOT／RESET。不要在還沒確認板子型號前亂選燒錄設定。</p>
+
+  <h2>4. 為什麼要一個一個加？</h2>
+  <p>如果六個模組一起接後畫面不亮，原因可能是電源、短路、I2C 位址、GPIO、函式庫或韌體。一次只加一個模組，就能把問題範圍縮成「上一狀態成功，新模組加入後失敗」。這是工程上的控制變因，不是動作慢。</p>
+  <details>
+    <summary><strong>到貨後的完整加入順序</strong></summary>
+    <ol>
+      <li>XIAO＋Round Display：顯示色塊、文字、deviceId。</li>
+      <li>Encoder：I2C scanner 看見 0x36，再測旋轉與按壓。</li>
+      <li>VEML7700：看見 0x10，再用手遮光觀察 lux，不先控制背光。</li>
+      <li>Buzzer：看見 0x34，以最低音量播 50–120 ms 短音。</li>
+      <li>SN74AHCT125N＋WS2813：斷電接線、共地、量短路，再用 10–20% 亮度測單色。</li>
+      <li>Android BLE：先看 state notify，再測 configure／start／pause／resume／complete。</li>
+      <li>Cloud：確認 App durable outbox 先收事件，ACK 後裝置 queue 才移除。</li>
+      <li>全部通過才量尺寸、印試裝殼與展示殼。</li>
+    </ol>
+  </details>
+
+  <h2>5. 三個安全原則</h2>
+  <p class="warning"><strong>一、LED 不能由 GPIO 供電。</strong>GPIO 是訊號腳，不是電源供應器。WS2813 的 5V 從 5V 電源軌來，資料經 SN74AHCT125N，GND 與 ESP32 共地。</p>
+  <p class="warning"><strong>二、斷電才改線。</strong>尤其是 5V、GND、AHCT 與 LED；接地先接、拆線最後拆地。可參考 <a href="https://learn.adafruit.com/adafruit-neopixel-uberguide/basic-connections">Adafruit NeoPixel 官方接線指南</a>。</p>
+  <p class="warning"><strong>三、硬體事件不是獎勵。</strong>裝置可以離線記住 activity event，但 App 必須先 durable enqueue，Cloud 再驗證。否則拔線、重送或偽造封包就可能重複加 XP。</p>
+
+  <h2>6. 60 秒小測</h2>
+  <section class="card">
+    <p><strong>問題 A：</strong>先不要往下看：為什麼 WS2813 已接 5V 還需要 SN74AHCT125N？</p>
+    <details><summary>想完後顯示答案</summary>提升資料訊號的高準位。LED 電源與資料訊號是兩個不同問題。</details>
+  </section>
+  <section class="card">
+    <p><strong>問題 B：</strong>先不要往下看：裝置完成專注後，什麼時候才能刪掉本機 pending event？</p>
+    <details><summary>想完後顯示答案</summary>App 把事件寫入 durable outbox 並回 ACK 後。BLE 傳送成功不等於資料已安全保存。</details>
+  </section>
+
+  <h2>下一步</h2>
+  <p>先打開<a href="../reference/embedded-system-map.html">系統速查圖</a>，不用背名詞；試著不用看答案說出「電力流、控制流、活動資料流、授權流」各走哪裡。把你的答案回覆給我，我會依你的理解程度安排第二課。任何接線、名詞或命令不清楚，都直接問我，不需要先猜。</p>
+
+  <footer>主教材依據：<a href="https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/">Seeed XIAO ESP32-S3</a>、<a href="https://wiki.seeedstudio.com/seeedstudio_round_display_usage/">Seeed Round Display</a>、<a href="https://learn.adafruit.com/adafruit-neopixel-uberguide/basic-connections">Adafruit NeoPixel Überguide</a>。採購請看<a href="../../2026-08-21-top-spec-purchase-checklist-tw.md">最高規格台灣清單</a>。</footer>
+</main></body></html>

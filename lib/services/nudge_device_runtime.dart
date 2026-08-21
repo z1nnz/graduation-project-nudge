@@ -62,6 +62,7 @@ class NudgeDeviceRuntime {
         final assignment = await resolveAssignment(deviceId);
         return assignment != null && assignment.allowsActivityAt(clock());
       },
+      resolveAssignment: resolveAssignment,
       clock: clock,
     );
   }

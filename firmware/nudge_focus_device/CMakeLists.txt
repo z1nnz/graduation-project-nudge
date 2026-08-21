@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(nudge_focus_core
+  src/ambient_brightness.cpp
+  src/device_context.cpp
+  src/device_visuals.cpp
   src/durable_focus_transition.cpp
   src/focus_session.cpp
   src/pending_event_store.cpp

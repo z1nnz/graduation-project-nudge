@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nudge 嵌入式系統速查圖</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body><main>
+  <header>
+    <div class="eyebrow">Reference 01 · 可列印速查</div>
+    <h1>Nudge 系統地圖</h1>
+    <p class="lede">一張圖分清楚電力、控制、資料與信任。遇到問題時，先判斷它落在哪一層。</p>
+  </header>
+
+  <h2>四條不同的「流」</h2>
+  <div class="grid">
+    <section class="card"><strong>電力流</strong>5V/2A → XIAO／圓屏／LED；XIAO 3.3V → Qwiic 模組。所有模組共地。</section>
+    <section class="card"><strong>控制流</strong>旋鈕／App 指令 → ESP32 狀態機 → 螢幕、LED、蜂鳴器。</section>
+    <section class="card"><strong>活動資料流</strong>ESP32 durable queue → BLE → App durable outbox → Cloud Activity Ledger。</section>
+    <section class="card"><strong>授權流</strong>Web 管理員建立 DeviceAssignment；App 每次控制與上傳前重新驗證。</section>
+  </div>
+
+  <h2>資料流</h2>
+  <div class="flow" aria-label="Nudge data flow">
+    <span class="node">Web 管理後台</span><span class="arrow">→</span>
+    <span class="node">Cloud DeviceAssignment</span><span class="arrow">→</span>
+    <span class="node">Android App</span><span class="arrow">⇄ BLE</span>
+    <span class="node">ESP32 韌體</span><span class="arrow">→</span>
+    <span class="node">App Outbox</span><span class="arrow">→</span>
+    <span class="node">Cloud Ledger</span>
+  </div>
+  <p class="warning"><strong>信任邊界：</strong>ESP32 只回報「發生了什麼」，不能直接加 XP、改角色或授予家庭／團體權限。Cloud 才是正式資料的裁決者。</p>
+
+  <h2>硬體介面</h2>
+  <div class="grid">
+    <section class="card"><strong>SPI</strong>高速、通常一主多從。圓屏像「快速影像管線」，由 SCK/MOSI/MISO 與個別 CS 控制。</section>
+    <section class="card"><strong>I²C / Qwiic</strong>兩條資料線 SDA/SCL，多模組靠不同位址共用。VEML7700 0x10、Buzzer 0x34、Encoder 0x36。</section>
+    <section class="card"><strong>PWM</strong>快速切換高低電位，用占空比形成平均亮度。Round Display 的 D6 是否穩定可調要真機驗證。</section>
+    <section class="card"><strong>BLE GATT</strong>Service 像功能區，Characteristic 像欄位。App write 指令、read 事件、subscribe state notify。</section>
+    <section class="card"><strong>NVS</strong>ESP32 斷電仍保留的小型儲存。保存裝置畫面 context、sequence 與未 ACK 事件。</section>
+    <section class="card"><strong>Level shifting</strong>ESP32 資料為 3.3V，5V WS2813 需要 AHCT/HCT 把高準位提升到規格安全範圍。</section>
+  </div>
+
+  <h2>上電前五問</h2>
+  <ol class="checklist">
+    <li>這個模組要吃 5V 還是 3.3V？</li>
+    <li>它的訊號邏輯電壓是多少？</li>
+    <li>所有電源是否共用 GND？</li>
+    <li>5V 與 GND 間是否意外短路？</li>
+    <li>今天只新增了哪一個變因？失敗時能否拔掉它回到上一個成功狀態？</li>
+  </ol>
+
+  <footer><a href="../lessons/0001-understand-and-first-power-up.html">回到第一課</a> · <a href="../../2026-08-21-top-spec-purchase-checklist-tw.md">採購清單</a></footer>
+</main></body></html>

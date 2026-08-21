@@ -24,6 +24,11 @@ in `lib/services/nudge_device_protocol.dart`.
 - short encoder press toggles start/pause/resume; long press completes;
 - display countdown and pending-sync state;
 - limited-brightness LED progress/status output.
+- Cloud-filtered room, personal-goal and character context in one BLE frame;
+- encoder room selection and NVS-persisted presentation snapshot;
+- six LED presentation states: offline, ready, active, paused, complete and rest;
+- VEML7700 smoothed auto-brightness with a fixed-level sensor fallback;
+- low-volume Qwiic Buzzer cues with an App-controlled quiet setting.
 
 This is a development firmware. Device claim authorization, encrypted Wi-Fi
 provisioning, signed OTA and Cloud-managed firmware policy are still required
@@ -60,15 +65,16 @@ still require the purchased board.
    facing outward, as required by Seeed's guide.
 2. Connect the encoder to `3V3`, `GND`, `D4/SDA`, `D5/SCL` using the Qwiic to
    female-jumper cable.
-3. Connect the WS2813 stick `VCC` to the 5 V USB rail, `GND` to common ground,
-   and data input to `D2`.
+3. Connect `D2` through a 5 V-powered 74AHCT125/74HCT logic-level converter,
+   then connect its output to the WS2813 stick data input. Power the stick from
+   the 5 V USB rail and use common ground.
 4. Do not initialize or insert a microSD card: the Round Display uses `D2` as
    microSD chip-select, and this firmware deliberately reuses it for LED data.
 5. Keep LED brightness limited. Do not power the LED stick from an ESP32 GPIO.
 
-The recommended WS2813 stick is specified for 3.3 V / 5 V operation. If it is
-replaced with a normal 5 V WS2812/NeoPixel board, add a proper 74AHCT/HCT or
-purpose-built pixel level shifter; do not assume a 3.3 V data-high is valid.
+The module page lists 3.3 V / 5 V operation, but the linked WS2813-Mini data
+sheet requires a 0.7 x VDD input high. At 5 V that is 3.5 V, so the level
+shifter is mandatory for this build; do not assume ESP32 3.3 V data is valid.
 
 ## BLE contract
 
@@ -130,14 +136,12 @@ shared to a room added today.
 
 ## Named hardware gates still open
 
-- encoder rotation for room selection;
-- current room, personal goal and approved character snapshot display;
-- ready, active, paused, rest, complete and offline LED states;
-- persisted last-character snapshot;
 - real Android-to-peripheral BLE connection, reconnect/replay and Receipt
   observation;
-- ambient-light auto dimming, buzzer, power/level protection and final
-  enclosure integration for the selected top-spec sample;
+- physical validation of D6 backlight PWM, ambient-light placement, buzzer
+  rail stability, 74AHCT/HCT level shifting and the final enclosure;
+- CJK glyph validation on the purchased Round Display (the payload is UTF-8
+  bounded, but the final embedded font must be proven on-device);
 - signed device claim, timestamp proof and Wi-Fi/Cloud device ingestion.
 
 These are not implied by the successful host or PlatformIO build.

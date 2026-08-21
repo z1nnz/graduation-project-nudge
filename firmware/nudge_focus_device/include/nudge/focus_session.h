@@ -23,6 +23,7 @@ struct FocusConfiguration {
   std::string session_id;
   std::string activity_correlation_id;
   std::uint32_t duration_seconds = 0;
+  std::string room_context_id;
 };
 
 struct ActivityEvent {
@@ -36,6 +37,7 @@ struct ActivityEvent {
   ActivityEventType event_type = ActivityEventType::started;
   double metric_minutes = 0;
   std::uint64_t occurred_at_epoch_ms = 0;
+  std::string room_context_id;
 };
 
 struct Transition {

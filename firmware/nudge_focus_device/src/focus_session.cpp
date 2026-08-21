@@ -35,6 +35,8 @@ Transition FocusSession::configure(const FocusConfiguration& configuration) {
       !valid_identifier(configuration.session_id) ||
       (!configuration.activity_correlation_id.empty() &&
        !valid_identifier(configuration.activity_correlation_id)) ||
+      (!configuration.room_context_id.empty() &&
+       !valid_identifier(configuration.room_context_id)) ||
       configuration.duration_seconds < 60 ||
       configuration.duration_seconds > 24U * 60U * 60U) {
     return rejected(TransitionStatus::invalid_configuration);
@@ -146,6 +148,7 @@ ActivityEvent FocusSession::emit(ActivityEventType type,
       type,
       static_cast<double>(elapsed_seconds) / 60.0,
       epoch_ms,
+      configuration_.room_context_id,
   };
 }
 

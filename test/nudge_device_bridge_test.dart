@@ -74,6 +74,56 @@ void main() {
     expect(acknowledgements, 0);
   });
 
+  test('shares only the explicitly selected and assigned room', () async {
+    ActivityEvidence? queued;
+    final selectedEvent = jsonEncode({
+      ...(jsonDecode(eventJson) as Map<String, dynamic>),
+      'roomContextId': 'room-study',
+    });
+    final bridge = NudgeDeviceBridge(
+      resolveAssignment: (_) async => const DeviceAssignmentGrant(
+        deviceId: 'desk-1',
+        userId: 'alice',
+        allowedRoomIds: ['room-study', 'room-walk'],
+      ),
+      resolveRoomIds: (assignment) async => assignment.allowedRoomIds,
+      currentActorUserId: () => 'alice',
+      enqueueEvidence: (evidence) async => queued = evidence,
+      writeAcknowledgement: (_) async {},
+    );
+
+    await bridge.acceptEventJson(selectedEvent);
+    expect(queued?.roomIds, ['room-study']);
+  });
+
+  test(
+    'rejects a selected room outside the assignment before enqueue',
+    () async {
+      var enqueues = 0;
+      final selectedEvent = jsonEncode({
+        ...(jsonDecode(eventJson) as Map<String, dynamic>),
+        'roomContextId': 'room-private',
+      });
+      final bridge = NudgeDeviceBridge(
+        resolveAssignment: (_) async => const DeviceAssignmentGrant(
+          deviceId: 'desk-1',
+          userId: 'alice',
+          allowedRoomIds: ['room-study'],
+        ),
+        resolveRoomIds: (assignment) async => assignment.allowedRoomIds,
+        currentActorUserId: () => 'alice',
+        enqueueEvidence: (_) async => enqueues++,
+        writeAcknowledgement: (_) async {},
+      );
+
+      await expectLater(
+        bridge.acceptEventJson(selectedEvent),
+        throwsStateError,
+      );
+      expect(enqueues, 0);
+    },
+  );
+
   test('rejects inactive or mismatched assignments before enqueue', () async {
     var enqueues = 0;
     final bridge = NudgeDeviceBridge(

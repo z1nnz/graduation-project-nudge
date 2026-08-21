@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/nudge_device_coordinator.dart';
+import '../services/nudge_device_presentation.dart';
 import '../services/nudge_device_runtime.dart';
+import '../models/avatar_catalog.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
@@ -27,6 +29,7 @@ class _NudgeDevicePageState extends State<NudgeDevicePage> {
   bool _busy = false;
   int _durationMinutes = 25;
   int _pendingCloudEvents = 0;
+  bool _deviceSoundsEnabled = true;
 
   @override
   void didChangeDependencies() {
@@ -77,14 +80,67 @@ class _NudgeDevicePageState extends State<NudgeDevicePage> {
     final coordinator = _coordinator;
     final runtime = _runtime;
     if (coordinator == null || runtime == null) return;
+    final appState = context.read<AppState>();
     final now = DateTime.now().toUtc();
     final sessionId = 'device-focus-${now.microsecondsSinceEpoch}';
+    final avatar = AvatarCatalog.stageForIndex(
+      appState.currentAvatarStageIndex,
+    );
+    final preferredRoomId = coordinator.state.selectedRoomId;
+    final presentation = NudgeDevicePresentation(
+      rooms: appState.studyRooms
+          .map(
+            (room) => NudgeDeviceRoomContext(
+              id: room.id,
+              label: nudgeDeviceLabel(
+                room.name,
+                maximumBytes: 24,
+                fallback: 'ROOM',
+              ),
+              goalLabel: nudgeDeviceLabel(
+                '${room.dailyGoalValue} ${room.goalUnitLabel}',
+                maximumBytes: 32,
+                fallback: 'DAILY GOAL',
+              ),
+            ),
+          )
+          .toList(growable: false),
+      selectedRoomId: preferredRoomId == null || preferredRoomId.isEmpty
+          ? null
+          : preferredRoomId,
+      personalGoalLabel: 'Focus $_durationMinutes min',
+      character: NudgeDeviceCharacterContext(
+        name: nudgeDeviceLabel(
+          avatar.name,
+          maximumBytes: 24,
+          fallback: 'Nudge',
+        ),
+        level: appState.avatarLevel,
+        stage: avatar.stage,
+      ),
+      soundEnabled: _deviceSoundsEnabled,
+    );
+    await coordinator.syncPresentation(presentation);
     final activityCorrelationId = await runtime.prepareFocusCorrelation();
+    // The encoder remains usable while Cloud prepares the correlation. Read the
+    // latest device selection immediately before configuration, rather than
+    // freezing the earlier presentation snapshot into the Ledger context.
+    final latestRoomId = coordinator.state.selectedRoomId;
     await coordinator.configureFocus(
       sessionId: sessionId,
       activityCorrelationId: activityCorrelationId,
       durationSeconds: _durationMinutes * 60,
+      roomContextId: latestRoomId == null || latestRoomId.isEmpty
+          ? null
+          : latestRoomId,
     );
+  }
+
+  Future<void> _setDeviceSoundsEnabled(bool enabled) async {
+    final coordinator = _coordinator;
+    if (coordinator == null) return;
+    await coordinator.syncSoundEnabled(enabled);
+    if (mounted) setState(() => _deviceSoundsEnabled = enabled);
   }
 
   Future<void> _flushCloud() async {
@@ -175,6 +231,16 @@ class _NudgeDevicePageState extends State<NudgeDevicePage> {
                     Text('$error'),
                   ],
                   const SizedBox(height: 12),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('裝置提示音'),
+                    subtitle: const Text('只使用短提示音，可隨時靜音'),
+                    value: _deviceSoundsEnabled,
+                    onChanged: connected && !_busy
+                        ? (value) =>
+                              _perform(() => _setDeviceSoundsEnabled(value))
+                        : null,
+                  ),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(

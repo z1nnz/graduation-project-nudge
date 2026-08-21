@@ -12,7 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('room resonance remains durable-first in AppState', () async {
-    final now = DateTime.parse('2026-08-15T10:00:00.000Z');
+    // Keep the fixture active regardless of the calendar date on CI.
+    final now = DateTime.now().toUtc();
     final user = UserModel(
       id: 'alice',
       username: 'alice',

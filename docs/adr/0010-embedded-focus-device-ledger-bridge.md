@@ -19,6 +19,17 @@ device identity, but the existing user endpoint never trusts a caller-supplied
 `deviceId`. Web observes the resulting Cloud state. This preserves the current
 authorization, settlement receipt, deduplication and reward rules.
 
+The highest-spec prototype also sends a bounded presentation context containing
+up to three Cloud-allowed rooms, a personal-goal label, an approved character
+snapshot and the user's sound preference. The encoder selects one room for the
+next session. The device may echo that `roomContextId` in its event, but this is
+only a user selection, not authority: the App rejects it unless the occurrence-
+time assignment still allows that exact room. Events without an explicit room
+remain personal and are never fanned out to every assigned room.
+Every context or sound mutation carries a monotonic `contextRevision`. The App
+continues only after the device has persisted the mutation and notified that
+same revision; a GATT write by itself is not treated as durable acceptance.
+
 An event ID is deterministic for one device sequence:
 
 ```text
@@ -95,9 +106,13 @@ prototype must not be presented as cryptographically proving physical activity.
 
 Round Display consumes almost every XIAO pin. I2C peripherals share D4/D5.
 Prototype LED data reuses D2, therefore microSD is disabled. The selected
-WS2813 stick is specified for 3.3 V / 5 V operation; a normal 5 V WS2812
-replacement requires a proper level shifter. USB 5 V / 2 A desk power is the
-prototype source, with firmware brightness limiting.
+WS2813 module is powered from 5 V, but the linked WS2813-Mini data sheet requires
+`VIH >= 0.7 x VDD`; ESP32-S3 3.3 V data therefore passes through a 5 V-powered
+74AHCT125/74HCT level shifter. USB 5 V / 2 A desk power is the prototype source,
+with firmware brightness limiting. VEML7700 auto-dimming and the Qwiic Buzzer
+are experience peripherals: either may be absent without preventing the
+canonical focus lifecycle. Display PWM, rail stability, I2C pull-ups and total
+current remain physical acceptance gates.
 
 ## Acceptance boundary
 
