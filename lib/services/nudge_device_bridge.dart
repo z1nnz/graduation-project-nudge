@@ -66,7 +66,16 @@ class NudgeDeviceBridge {
         !assignment.allowsActivityAt(event.occurredAt)) {
       throw StateError('The device has no active assignment for this account.');
     }
-    final roomIds = await _resolveRoomIds(assignment);
+    final allowedRoomIds = await _resolveRoomIds(assignment);
+    final requestedRoomId = event.roomContextId;
+    if (requestedRoomId != null && !allowedRoomIds.contains(requestedRoomId)) {
+      throw StateError('The selected room is not allowed by this assignment.');
+    }
+    // Legacy or personal sessions without an explicit room stay personal.
+    // Never fan one device event out to every assigned room implicitly.
+    final roomIds = requestedRoomId == null
+        ? const <String>[]
+        : <String>[requestedRoomId];
 
     final evidence = event.toEvidence(
       actorUserId: currentActorUserId,

@@ -59,6 +59,10 @@ std::string encode_activity_event(const ActivityEvent& event) {
     output << "\"activityCorrelationId\":\""
            << escaped(event.activity_correlation_id) << "\",";
   }
+  if (!event.room_context_id.empty()) {
+    output << "\"roomContextId\":\"" << escaped(event.room_context_id)
+           << "\",";
+  }
   output << "\"sequence\":" << event.sequence << ','
          << "\"activityType\":\"focus\","
          << "\"eventType\":\"" << event_type_name(event.event_type)

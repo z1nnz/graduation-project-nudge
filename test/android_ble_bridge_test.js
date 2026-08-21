@@ -46,3 +46,15 @@ test("native BLE bridge binds only the Nudge service and characteristics", () =>
   assert.match(firmware, /BLEDevice::setMTU\(517\)/);
   assert.match(activity, /NudgeBleController/);
 });
+
+test("firmware samples the room selector before lifecycle commands", () => {
+  const loopStart = firmware.indexOf("void loop() {");
+  const rotation = firmware.indexOf("handle_encoder_rotation();", loopStart);
+  const commandQueue = firmware.indexOf("CommandMessage command{};", loopStart);
+  const button = firmware.indexOf("handle_encoder_button();", loopStart);
+
+  assert.notEqual(loopStart, -1);
+  assert.ok(rotation > loopStart);
+  assert.ok(rotation < commandQueue);
+  assert.ok(rotation < button);
+});

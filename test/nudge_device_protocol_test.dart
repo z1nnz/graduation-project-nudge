@@ -11,6 +11,7 @@ void main() {
     'deviceId': 'desk-1',
     'sessionId': 'focus-42',
     'activityCorrelationId': 'focus-cloud-42',
+    'roomContextId': 'room-study',
     'sequence': 8,
     'activityType': 'focus',
     'eventType': 'completed',
@@ -31,6 +32,7 @@ void main() {
     expect(evidence.sourceRecordId, payload['sourceRecordId']);
     expect(evidence.sessionId, 'focus-42');
     expect(evidence.activityCorrelationId, 'focus-cloud-42');
+    expect(event.roomContextId, 'room-study');
     expect(evidence.submittedByUserId, 'alice');
     expect(evidence.actorUserId, 'alice');
     expect(evidence.roomIds, const ['room-study']);

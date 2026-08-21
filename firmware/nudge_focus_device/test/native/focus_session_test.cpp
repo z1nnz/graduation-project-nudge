@@ -4,6 +4,9 @@
 #include <map>
 #include <string>
 
+#include "nudge/ambient_brightness.h"
+#include "nudge/device_context.h"
+#include "nudge/device_visuals.h"
 #include "nudge/focus_session.h"
 #include "nudge/durable_focus_transition.h"
 #include "nudge/pending_event_store.h"
@@ -44,7 +47,7 @@ class MemoryJournalStore final : public nudge::JournalKeyValueStore {
 
 void configure(nudge::FocusSession& session, std::uint32_t duration = 1500) {
   const auto result = session.configure(
-      nudge::FocusConfiguration{"focus-42", "cloud-focus-42", duration});
+      nudge::FocusConfiguration{"focus-42", "cloud-focus-42", duration, ""});
   assert(result.accepted());
   assert(!result.event.has_value());
 }
@@ -89,7 +92,7 @@ void invalid_transitions_do_not_consume_sequence_numbers() {
   assert(!session.start(0, 1000).accepted());
   assert(session.sequence() == 10);
   assert(!session
-              .configure(nudge::FocusConfiguration{"bad id", "", 1500})
+              .configure(nudge::FocusConfiguration{"bad id", "", 1500, ""})
               .accepted());
   configure(session);
   assert(session.start(0, 1000).accepted());
@@ -100,17 +103,20 @@ void invalid_transitions_do_not_consume_sequence_numbers() {
 void identifiers_fit_the_cloud_ledger_contract() {
   nudge::FocusSession long_device(std::string(97, 'd'));
   assert(!long_device
-              .configure(nudge::FocusConfiguration{"focus-42", "", 1500})
+              .configure(
+                  nudge::FocusConfiguration{"focus-42", "", 1500, ""})
               .accepted());
 
   nudge::FocusSession valid_device("desk-bounds");
   assert(!valid_device
               .configure(
-                  nudge::FocusConfiguration{std::string(97, 's'), "", 1500})
+                  nudge::FocusConfiguration{std::string(97, 's'), "", 1500,
+                                            ""})
               .accepted());
   assert(valid_device
              .configure(nudge::FocusConfiguration{std::string(96, 's'),
-                                                   std::string(96, 'c'), 1500})
+                                                   std::string(96, 'c'), 1500,
+                                                   ""})
              .accepted());
   const auto event = valid_device.start(0, 1000).event.value();
   assert(event.event_id.size() <= 256);
@@ -118,7 +124,10 @@ void identifiers_fit_the_cloud_ledger_contract() {
 
 void protocol_json_matches_the_app_contract() {
   nudge::FocusSession session("desk-json");
-  configure(session, 1500);
+  assert(session
+             .configure(nudge::FocusConfiguration{
+                 "focus-42", "cloud-focus-42", 1500, "room-study"})
+             .accepted());
   session.start(0, 1786759200000ULL);
   const auto completed = session.complete(1500000, 1786760700000ULL);
   const auto json = nudge::encode_activity_event(*completed.event);
@@ -130,6 +139,8 @@ void protocol_json_matches_the_app_contract() {
          std::string::npos);
   assert(json.find("\"metricValue\":25") != std::string::npos);
   assert(json.find("\"occurredAtEpochMs\":1786760700000") !=
+         std::string::npos);
+  assert(json.find("\"roomContextId\":\"room-study\"") !=
          std::string::npos);
 }
 
@@ -224,6 +235,112 @@ void focus_transitions_commit_before_mutating_live_state() {
       60000);
 }
 
+void ambient_brightness_is_bounded_smooth_and_fail_safe() {
+  nudge::AmbientBrightnessController controller;
+  const auto dark = controller.update(0.0F, true);
+  assert(dark.using_sensor);
+  assert(dark.display_percent >= 18);
+  assert(dark.led_level >= 8);
+
+  const auto sudden_sun = controller.update(2000.0F, true);
+  assert(sudden_sun.display_percent <= dark.display_percent + 8);
+  assert(sudden_sun.led_level <= dark.led_level + 6);
+
+  for (int sample = 0; sample < 50; ++sample) {
+    controller.update(2000.0F, true);
+  }
+  const auto bright = controller.update(2000.0F, true);
+  assert(bright.display_percent <= 100);
+  assert(bright.led_level <= 72);
+  assert(bright.display_percent > dark.display_percent);
+
+  const auto fallback = controller.update(-1.0F, false);
+  assert(!fallback.using_sensor);
+  assert(fallback.display_percent >= 18 && fallback.display_percent <= 100);
+  assert(fallback.led_level >= 8 && fallback.led_level <= 72);
+}
+
+void device_context_is_bounded_and_rotation_is_deterministic() {
+  nudge::DeviceContext context;
+  const nudge::DeviceContextSnapshot snapshot{
+      {{"room-a", "Study", "25 min"},
+       {"room-b", "Walk", "6000 steps"},
+       {"room-c", "Sleep", "8 hours"}},
+      "room-b",
+      "Focus 25 min",
+      {"Nudgie", 12, 3},
+      true};
+  assert(context.replace(snapshot));
+  assert(context.selected_room()->id == "room-b");
+  assert(context.rotate(1));
+  assert(context.selected_room()->id == "room-c");
+  assert(context.rotate(1));
+  assert(context.selected_room()->id == "room-a");
+  assert(context.rotate(-1));
+  assert(context.selected_room()->id == "room-c");
+
+  auto duplicate = snapshot;
+  duplicate.rooms[2].id = "room-a";
+  assert(!context.replace(duplicate));
+  assert(context.selected_room()->id == "room-c");
+
+  auto too_many = snapshot;
+  too_many.rooms.push_back({"room-d", "Fourth", ""});
+  assert(!context.replace(too_many));
+
+  auto dotted = snapshot;
+  dotted.rooms[0].id = "room.study-1";
+  dotted.selected_room_id = "room.study-1";
+  assert(context.replace(dotted));
+
+  auto invalid_leading_punctuation = snapshot;
+  invalid_leading_punctuation.rooms[0].id = "_room-a";
+  invalid_leading_punctuation.selected_room_id = "_room-a";
+  assert(!context.replace(invalid_leading_punctuation));
+
+  auto invalid_stage = snapshot;
+  invalid_stage.character.stage = 4;
+  assert(!context.replace(invalid_stage));
+}
+
+void six_visual_states_have_safe_frames() {
+  assert(nudge::visual_state(false, nudge::FocusPhase::running, 0) ==
+         nudge::DeviceVisualState::offline);
+  assert(nudge::visual_state(true, nudge::FocusPhase::idle, 0) ==
+         nudge::DeviceVisualState::ready);
+  assert(nudge::visual_state(true, nudge::FocusPhase::running, 0) ==
+         nudge::DeviceVisualState::active);
+  assert(nudge::visual_state(true, nudge::FocusPhase::paused, 0) ==
+         nudge::DeviceVisualState::paused);
+  assert(nudge::visual_state(true, nudge::FocusPhase::completed, 9999) ==
+         nudge::DeviceVisualState::complete);
+  assert(nudge::visual_state(true, nudge::FocusPhase::completed, 10000) ==
+         nudge::DeviceVisualState::rest);
+
+  const auto progress = nudge::light_frame(
+      nudge::DeviceVisualState::active, 30, 60, 10);
+  assert(progress.lit_pixels == 5);
+  const auto offline = nudge::light_frame(
+      nudge::DeviceVisualState::offline, 0, 0, 10);
+  assert(offline.lit_pixels == 1);
+}
+
+void idle_room_selection_is_frozen_into_the_next_event() {
+  nudge::FocusSession session("desk-room");
+  assert(session
+             .configure(nudge::FocusConfiguration{
+                 "focus-room", "cloud-focus-room", 1500, "room-a"})
+             .accepted());
+  auto updated = session.configuration();
+  updated.room_context_id = "room-b";
+  assert(session.configure(updated).accepted());
+  const auto started = session.start(0, 1000);
+  assert(started.accepted());
+  assert(started.event->room_context_id == "room-b");
+  assert(nudge::encode_activity_event(*started.event)
+             .find("\"roomContextId\":\"room-b\"") != std::string::npos);
+}
+
 }  // namespace
 
 int main() {
@@ -234,6 +351,10 @@ int main() {
   protocol_json_matches_the_app_contract();
   pending_event_journal_is_atomic_at_every_write_boundary();
   focus_transitions_commit_before_mutating_live_state();
+  ambient_brightness_is_bounded_smooth_and_fail_safe();
+  device_context_is_bounded_and_rotation_is_deterministic();
+  six_visual_states_have_safe_frames();
+  idle_room_selection_is_frozen_into_the_next_event();
   std::cout << "nudge_focus_device native tests passed\n";
   return 0;
 }

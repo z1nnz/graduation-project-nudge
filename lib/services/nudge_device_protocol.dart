@@ -31,6 +31,7 @@ class NudgeDeviceActivityEvent {
     required this.metricValue,
     required this.metricUnit,
     required this.occurredAt,
+    required this.roomContextId,
   });
 
   final String eventId;
@@ -44,6 +45,7 @@ class NudgeDeviceActivityEvent {
   final double metricValue;
   final String metricUnit;
   final DateTime occurredAt;
+  final String? roomContextId;
 
   factory NudgeDeviceActivityEvent.fromJson(Map<String, dynamic> json) {
     if (json['protocolVersion'] != nudgeDeviceProtocolVersion) {
@@ -63,6 +65,10 @@ class NudgeDeviceActivityEvent {
     final activityCorrelationId = correlationValue == null
         ? null
         : _boundedIdentifier(correlationValue, 'activityCorrelationId');
+    final roomContextValue = json['roomContextId'];
+    final roomContextId = roomContextValue == null
+        ? null
+        : _boundedIdentifier(roomContextValue, 'roomContextId');
     final sequenceValue = json['sequence'];
     if (sequenceValue is! int || sequenceValue < 1) {
       throw const DeviceMessageFormatException(
@@ -131,6 +137,7 @@ class NudgeDeviceActivityEvent {
       metricValue: metricValue.toDouble(),
       metricUnit: 'minutes',
       occurredAt: DateTime.fromMillisecondsSinceEpoch(epochValue, isUtc: true),
+      roomContextId: roomContextId,
     );
   }
 
@@ -169,9 +176,12 @@ class NudgeDeviceActivityEvent {
 
 final _identifierPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$');
 
+bool isValidNudgeDeviceIdentifier(String value) =>
+    _identifierPattern.hasMatch(value);
+
 String _boundedIdentifier(Object? value, String field) {
   final result = _nonEmptyString(value, field, 96);
-  if (!_identifierPattern.hasMatch(result)) {
+  if (!isValidNudgeDeviceIdentifier(result)) {
     throw DeviceMessageFormatException('$field has an invalid format.');
   }
   return result;
