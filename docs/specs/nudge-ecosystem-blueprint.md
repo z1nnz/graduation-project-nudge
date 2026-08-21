@@ -740,14 +740,24 @@ HealthKit 更正或刪除紀錄時：
 
 ### App 與裝置同時開始
 
-App 先取得 Cloud `activityCorrelationId` 並交給已指派裝置。兩端攜帶同一
-Token 時，Cloud 回傳同一個 Active Session；沒有 Token 的不同 local
-session 不自動合併，避免誤把兩個合法並行活動算成同一筆。
+App 先將 `started` 寫入 durable outbox，取得 Cloud 確認的
+`activityCorrelationId` 後才交給已指派裝置；若 App 已有進行中的專注則先
+flush 並重用其 correlation。兩端攜帶同一 Token 時，Cloud 回傳同一個 Active
+Session；沒有 Token 的不同 local session 不自動合併，避免誤把兩個合法並行
+活動算成同一筆。離線或 Cloud 拒絕時不得先設定裝置。
 
 ### 裝置轉交他人
 
-先結束 Assignment、清除本地使用者快取，再建立新 Assignment。歷史 Receipt
-仍屬原 Actor，不因裝置移轉而改變。
+先結束 Assignment、確認未 ACK 佇列為空、抹除本地使用者快取並取得可驗證
+的 wipe receipt，才能建立新 Assignment。正式 wipe/claim 協定尚未完成前，
+Cloud 一律拒絕跨帳號重新指派，即使舊 Assignment 已撤銷。歷史 Receipt 仍屬
+原 Actor，不因裝置移轉而改變。若舊帳號刪除，Cloud 會刪除含 UID 的
+Assignment，但原子留下不含個資的 `device_transfer_locks/{deviceId}`，直到
+verified wipe 完成前都不能重新指派。
+
+第一版沒有可驗證的 queue-empty receipt 與版本化 room-scope history，因此
+active Assignment 只能重送相同房間集合；新增／移除允許房間、以及 revoke 後
+重新啟用都會 fail-closed。否則今天新增的房間可能回溯收到昨天的離線事件。
 
 ### 感測器判斷成員離席
 
@@ -791,11 +801,18 @@ session 不自動合併，避免誤把兩個合法並行活動算成同一筆。
 ### Phase 3：ESP32 個人裝置
 
 - 已建立 Round Display、LED、按壓旋鈕與個人 Activity Session 韌體骨架。
-- 已建立 BLE 事件協定、App outbox bridge 與離線事件佇列；實體 BLE adapter、
-  Cloud assignment repository、斷電 fault-injection 與 Receipt 回讀尚未驗收。
+- 已建立 BLE 事件協定、Android BLE adapter、Cloud assignment repository、
+  Admin Web 指派／撤銷／讀回、App durable outbox bridge、Cloud 確認後才設定
+  裝置的 correlation、協商 MTU、離線事件佇列與斷電 fault-injection；真實
+  周邊連線、重連重播與 Receipt 回讀尚未驗收。
+- App 在 configure 與每個 lifecycle action 前重驗 Cloud Assignment；撤銷會
+  斷開既有 BLE 控制。帳號刪除會留下 PII-free wipe lock，不能繞過轉移限制。
 - 旋轉選房、目前房間／個人目標／角色快照，以及準備、活動、暫停、休息、
   完成、離線六態 LED 尚未驗收。
 - BLE Claim、事件簽章、Wi-Fi 設定與 Cloud device-source ingestion 尚未驗收。
+- 跨帳號移轉所需的 verified wipe receipt 尚未驗收，因此目前安全地拒絕移轉。
+- room scope 版本歷史與 queue-empty receipt 尚未驗收，因此目前拒絕房間集合
+  變更及 revoke 後重新啟用，不將新同意回溯套用到舊事件。
 
 ### Phase 4：團體與家庭實體延伸
 

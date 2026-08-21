@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
@@ -37,6 +38,7 @@ import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
 import '../services/activity_ingestion.dart';
 import '../services/activity_ledger_outbox.dart';
+import '../services/device_activity_correlation.dart';
 import '../services/cloud_activity_ledger_gateway.dart';
 import '../services/cloud_discipline_identity_gateway.dart';
 import '../services/cloud_health_snapshot_gateway.dart';
@@ -48,6 +50,9 @@ import '../services/cloud_reward_avatar_gateway.dart';
 import '../services/cloud_reward_purchase_gateway.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
+import '../services/android_nudge_ble_transport.dart';
+import '../services/firestore_device_assignment_repository.dart';
+import '../services/nudge_device_runtime.dart';
 import '../services/push_notification_service.dart';
 import '../services/room_activity_session_ledger_gateway.dart';
 import '../services/task_activity_ledger.dart';
@@ -225,6 +230,8 @@ class AppState extends ChangeNotifier {
   Timer? _groupResultSummaryPublishTimer;
   bool _groupChallengeProgressSyncInFlight = false;
   bool _groupChallengeProgressSyncQueued = false;
+  String? _activePersonalFocusCorrelationId;
+  String? _cloudConfirmedPersonalFocusCorrelationId;
   List<StudyRoomData> _discoverableStudyRooms = [];
   final Map<String, RoomActivitySession> _roomActivitySessions = {};
   final Map<String, String> _roomActiveSessionIds = {};
@@ -235,6 +242,45 @@ class AppState extends ChangeNotifier {
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
   String get _myId => _currentUser?.id ?? 'local_user';
+
+  bool get isNudgeDeviceSupported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  NudgeDeviceRuntime createNudgeDeviceRuntime({
+    NudgeBleTransport? transport,
+    FirestoreDeviceAssignmentRepository? assignmentRepository,
+    String? Function()? currentActorUserId,
+    ActivityLedgerOutbox? activityLedgerOutbox,
+    Future<String> Function()? prepareFocusCorrelation,
+  }) {
+    if (transport == null && !isNudgeDeviceSupported) {
+      throw UnsupportedError('Nudge BLE 目前只支援 Android 實體裝置。');
+    }
+    final outbox = activityLedgerOutbox ?? _activityLedgerOutbox;
+    final resolveActorUserId =
+        currentActorUserId ??
+        () => fb_auth.FirebaseAuth.instance.currentUser?.uid;
+    return NudgeDeviceRuntime(
+      transport: transport ?? AndroidNudgeBleTransport.platform(),
+      assignmentRepository:
+          assignmentRepository ??
+          FirestoreDeviceAssignmentRepository.firebase(),
+      activityLedgerOutbox: outbox,
+      currentActorUserId: resolveActorUserId,
+      prepareFocusCorrelation:
+          prepareFocusCorrelation ??
+          DeviceActivityCorrelationService(
+            outbox: outbox,
+            currentActorUserId: resolveActorUserId,
+            existingCorrelationId: () => _activePersonalFocusCorrelationId,
+            isExistingCorrelationCloudConfirmed: () {
+              final active = _activePersonalFocusCorrelationId;
+              return active != null &&
+                  active == _cloudConfirmedPersonalFocusCorrelationId;
+            },
+          ).prepareFocusCorrelation,
+    );
+  }
 
   void _listenToAuthChanges() {
     try {
@@ -8294,7 +8340,33 @@ class AppState extends ChangeNotifier {
         occurredAt: occurredAt.toUtc(),
       ),
     );
-    unawaited(_activityLedgerOutbox.flush());
+    if (eventType == ActivityEventType.started ||
+        eventType == ActivityEventType.resumed) {
+      _activePersonalFocusCorrelationId = sessionId;
+      if (eventType == ActivityEventType.started) {
+        _cloudConfirmedPersonalFocusCorrelationId = null;
+      }
+    } else if ((eventType == ActivityEventType.completed ||
+            eventType == ActivityEventType.discarded) &&
+        _activePersonalFocusCorrelationId == sessionId) {
+      _activePersonalFocusCorrelationId = null;
+      _cloudConfirmedPersonalFocusCorrelationId = null;
+    }
+    unawaited(_flushPersonalFocusLedgerEvent(sessionId));
+  }
+
+  Future<void> _flushPersonalFocusLedgerEvent(String sessionId) async {
+    try {
+      final report = await _activityLedgerOutbox.flush();
+      if (_activePersonalFocusCorrelationId == sessionId &&
+          report.succeeded.any(
+            (result) => result.canonicalSessionId == sessionId,
+          )) {
+        _cloudConfirmedPersonalFocusCorrelationId = sessionId;
+      }
+    } catch (_) {
+      // The durable outbox keeps the event for a later authenticated retry.
+    }
   }
 
   Future<ActivityEvidence?> _enqueueTaskActivityLedgerEvent(

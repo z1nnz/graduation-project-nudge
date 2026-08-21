@@ -36,6 +36,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private lateinit var permissionLauncher: ActivityResultLauncher<Set<String>>
     private var pendingPermissionResult: MethodChannel.Result? = null
+    private lateinit var nudgeBleController: NudgeBleController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +47,7 @@ class MainActivity : FlutterFragmentActivity() {
             pendingPermissionResult = null
             result.success(granted.containsAll(healthPermissions))
         }
+        nudgeBleController = NudgeBleController(this)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -61,6 +63,12 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+        nudgeBleController.register(flutterEngine.dartExecutor.binaryMessenger)
+    }
+
+    override fun onDestroy() {
+        if (::nudgeBleController.isInitialized) nudgeBleController.close()
+        super.onDestroy()
     }
 
     private fun requestHealthAuthorization(result: MethodChannel.Result) {

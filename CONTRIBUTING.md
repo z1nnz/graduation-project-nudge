@@ -75,14 +75,16 @@ git push
 
 收到 `Request changes` 後，在原分支修正並 push；原 PR 會自動更新。
 
-合併前必須看到以下四個 GitHub Actions 檢查全部通過：
+合併前必須看到以下六個 GitHub Actions 檢查全部通過：
 
 - `Flutter analyze and tests`
+- `Android Kotlin compile`
+- `iOS dependency lock`
 - `Web and shared contract tests`
 - `Cloud Functions tests`
 - `Firestore rules and transaction tests`
 
-若 GitHub Ruleset 要求填寫 status check 名稱，請逐字選擇以上四項；不要把 workflow 名稱 `Nudge Pull Request Checks` 當成單一檢查。
+若 GitHub Ruleset 要求填寫 status check 名稱，請逐字選擇以上六項；不要把 workflow 名稱 `Nudge Pull Request Checks` 當成單一檢查。新增或重新命名 native gate 時，必須在同一個 PR 更新本清單與 main Ruleset，避免原生編譯失敗仍可依舊規則合併。
 
 ## 同步新的 main
 

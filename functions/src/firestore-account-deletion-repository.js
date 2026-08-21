@@ -675,6 +675,41 @@ export class FirestoreAccountDeletionRepository {
       now,
     );
 
+    const assignedDevices = await querySnapshots(
+      this.firestore
+        .collection("device_assignments")
+        .where("assignedUserId", "==", userId),
+    );
+    for (const assignmentSnapshot of assignedDevices) {
+      const lockRef = this.firestore
+        .collection("device_transfer_locks")
+        .doc(assignmentSnapshot.id);
+      const deletedAssignment = await this.firestore.runTransaction(
+        async transaction => {
+          const currentAssignment = await transaction.get(
+            assignmentSnapshot.ref,
+          );
+          if (
+            !currentAssignment.exists ||
+            currentAssignment.data().assignedUserId !== userId
+          ) {
+            return false;
+          }
+          transaction.set(lockRef, {
+            schemaVersion: 1,
+            deviceId: assignmentSnapshot.id,
+            status: "wipe_required",
+            reason: "account_deletion",
+            lockedAt: now,
+            updatedAt: now,
+          });
+          transaction.delete(assignmentSnapshot.ref);
+          return true;
+        },
+      );
+      if (deletedAssignment) deletedDocuments += 1;
+    }
+
     const querySpecs = [
       ["activity_events", "actorUserId"],
       ["activity_receipts", "actorUserId"],
@@ -705,6 +740,7 @@ export class FirestoreAccountDeletionRepository {
       ["group_requests", "senderId"],
       ["group_requests", "receiverId"],
       ["audit_events", "actorPrincipalId"],
+      ["audit_events", "result.assignedUserId"],
       ["audit_events", "result.recipientUserId"],
     ];
     for (const [collection, field] of querySpecs) {
