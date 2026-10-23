@@ -187,6 +187,13 @@ function escapeHtml(value) {
   })[character]);
 }
 
+// For values passed as string arguments inside inline handlers such as
+// onclick="fn(...)": the browser HTML-decodes the attribute before running it,
+// so escapeHtml alone would let a quote break out of the JS string.
+function jsStringArg(value) {
+  return escapeHtml(JSON.stringify(String(value ?? "")));
+}
+
 const modules = [
   ["home", "總覽入口", "dashboard.html"],
   ["personal", "個人進階分析", "personal.html"],
@@ -678,7 +685,7 @@ function bindExtensionTools() {
     const health = price <= 40 ? "新手友善" : price <= 90 ? "價格健康" : "適合活動限定";
     setOutput(
       campaignTool,
-      `<span class="card-icon">🎁</span><div class="card-content"><strong>${name}：${rarity} / ${price} 枚</strong><p>${days} 天活動，${health}。以每日 15 枚、每月 400 枚上限估算，兌換壓力合理。</p></div>`,
+      `<span class="card-icon">🎁</span><div class="card-content"><strong>${escapeHtml(name)}：${escapeHtml(rarity)} / ${price} 枚</strong><p>${days} 天活動，${health}。以每日 15 枚、每月 400 枚上限估算，兌換壓力合理。</p></div>`,
     );
     saveDemoState("campaign", { name, rarity, price, days, health });
     toast("價格檢查完成");
@@ -812,7 +819,7 @@ function bindExtensionTools() {
     const date = $('[data-capsule-date]', capsuleTool).value || "未設定";
     const message = $('[data-capsule-message]', capsuleTool).value.trim();
     capsuleText = `${title}\n解鎖日：${date}\n\n${message}`;
-    setOutput(capsuleTool, `<strong>${title}</strong><p>將於 ${date} 解鎖。內容已保存到 Demo localStorage。</p>`);
+    setOutput(capsuleTool, `<strong>${escapeHtml(title)}</strong><p>將於 ${escapeHtml(date)} 解鎖。內容已保存到 Demo localStorage。</p>`);
     const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
     const capsules = store.capsules || [];
     capsules.unshift({ title, meta: `${date} 解鎖`, message });
@@ -908,7 +915,7 @@ function bindExtensionTools() {
     const time = $('[data-study-time]', studyScheduleTool).value || "未設定";
     const duration = $('[data-study-duration]', studyScheduleTool).value;
     const room = $('[data-study-room]', studyScheduleTool).value;
-    setOutput(studyScheduleTool, `<strong>${title}</strong><p>${time}，${duration}，將建立${room}並排程提醒。</p>`);
+    setOutput(studyScheduleTool, `<strong>${escapeHtml(title)}</strong><p>${escapeHtml(time)}，${escapeHtml(duration)}，將建立${escapeHtml(room)}並排程提醒。</p>`);
     const meta = `${time} / ${duration} / ${room}`;
     if (isPreviewMode()) {
       const store = JSON.parse(localStorage.getItem("nudgeWebTools") || "{}");
@@ -1100,17 +1107,38 @@ function injectAINavigator() {
     panel.classList.remove("open");
   });
 
+  const appendMessage = (text, className = "ai-msg") => {
+    const message = document.createElement("div");
+    message.className = className;
+    message.textContent = text;
+    body.appendChild(message);
+    body.scrollTop = body.scrollHeight;
+    return message;
+  };
+
+  // Model output is untrusted (task titles in the prompt can carry injected
+  // instructions), so actions that change data wait for an explicit click.
+  const appendActionConfirm = (message, label, onConfirm) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ai-action-confirm";
+    button.textContent = label;
+    button.addEventListener("click", () => {
+      button.disabled = true;
+      onConfirm();
+    }, { once: true });
+    message.appendChild(document.createElement("br"));
+    message.appendChild(button);
+  };
+
   const sendMsg = async () => {
     const text = input.value.trim();
     if (!text) return;
 
-    body.innerHTML += `<div class="ai-msg user">${text}</div>`;
+    appendMessage(text, "ai-msg user");
     input.value = "";
-    body.scrollTop = body.scrollHeight;
 
-    const loadingId = "msg-" + Date.now();
-    body.innerHTML += `<div class="ai-msg" id="${loadingId}">[ 系統讀取中... 與中樞神經連線中 ]</div>`;
-    body.scrollTop = body.scrollHeight;
+    const loadingMsg = appendMessage("[ 系統讀取中... 與中樞神經連線中 ]");
 
     const tasksContext = (currentUserTasks && currentUserTasks.length > 0)
       ? `目前使用者的自律任務列表如下：\n` + currentUserTasks.map(t => `- 任務名稱: "${t.title}" (ID: ${t.id}, 狀態: ${t.isDone || t.done ? '已完成' : '未完成'})`).join('\n')
@@ -1145,7 +1173,6 @@ ${summariesContext}
         })
       });
 
-      const loadingMsg = document.getElementById(loadingId);
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || "API 請求失敗：" + response.status);
@@ -1162,29 +1189,19 @@ ${summariesContext}
         }, 1500);
       }
 
-      const taskMatch = reply.match(/\[ACTION:ADD_TASK:(.+)\]/);
+      const taskMatch = reply.match(/\[ACTION:ADD_TASK:([^\]\n]+)\]/);
+      let addTaskTitle = "";
       if (taskMatch) {
         reply = reply.replace(taskMatch[0], '');
-        const taskTitle = taskMatch[1].trim();
-        if (typeof db !== 'undefined' && db) {
-          addFirestoreTask(taskTitle);
-        } else {
-          const tasks = JSON.parse(localStorage.getItem('nudge_tasks') || '[]');
-          tasks.push(taskTitle);
-          localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
-          if (window.bindMissions) {
-            window.bindMissions(); // re-render if on planet page
-          }
-        }
+        addTaskTitle = taskMatch[1].trim().slice(0, 80);
       }
 
-      const completeMatch = reply.match(/\[ACTION:COMPLETE_TASK:(.+)\]/);
+      const completeMatch = reply.match(/\[ACTION:COMPLETE_TASK:([^\]\n]+)\]/);
+      let completeTask = null;
       if (completeMatch) {
         reply = reply.replace(completeMatch[0], '');
         const taskId = completeMatch[1].trim();
-        if (typeof db !== 'undefined' && db) {
-          completeFirestoreTask(taskId);
-        }
+        completeTask = (currentUserTasks || []).find(task => String(task.id) === taskId) || null;
       }
 
       const navMatch = reply.match(/\[ACTION:NAVIGATE:([a-zA-Z0-9_-]+\.html)\]/);
@@ -1195,17 +1212,31 @@ ${summariesContext}
         }, 1500);
       }
 
-      if (loadingMsg) {
-        loadingMsg.innerHTML = reply.trim().replace(/\n/g, '<br/>');
-        loadingMsg.removeAttribute('id');
+      loadingMsg.textContent = reply.trim();
+
+      if (addTaskTitle) {
+        appendActionConfirm(loadingMsg, `新增任務「${addTaskTitle}」`, () => {
+          if (typeof db !== 'undefined' && db) {
+            addFirestoreTask(addTaskTitle);
+          } else {
+            const tasks = JSON.parse(localStorage.getItem('nudge_tasks') || '[]');
+            tasks.push(addTaskTitle);
+            localStorage.setItem('nudge_tasks', JSON.stringify(tasks));
+            if (window.bindMissions) {
+              window.bindMissions(); // re-render if on planet page
+            }
+          }
+        });
+      }
+
+      if (completeTask && typeof db !== 'undefined' && db) {
+        appendActionConfirm(loadingMsg, `完成任務「${completeTask.title}」`, () => {
+          completeFirestoreTask(completeTask.id);
+        });
       }
     } catch (error) {
-      const loadingMsg = document.getElementById(loadingId);
-      if (loadingMsg) {
-        loadingMsg.innerHTML = `連線錯誤：${error.message}。請確認您的 API 金鑰是否正確。`;
-        loadingMsg.style.color = '#ff3333';
-        loadingMsg.removeAttribute('id');
-      }
+      loadingMsg.textContent = `連線錯誤：${error.message}。請確認您的 API 金鑰是否正確。`;
+      loadingMsg.style.color = '#ff3333';
     }
     body.scrollTop = body.scrollHeight;
   };
@@ -4924,7 +4955,7 @@ function injectUserSwitcher(users, activeUserId) {
     <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;" class="demo-user-select">
       <span class="eyebrow">切換自律帳號</span>
       <select id="demoUserSelect" class="module-select" style="width: 100%; margin-top: 5px; background: #1a1d24; color: #fff; border: 1px solid rgba(255,255,255,0.12); padding: 8px; borderRadius: 8px; font-weight: 600; cursor: pointer;">
-        ${users.map(u => `<option value="${u.id}" ${u.id === activeUserId ? 'selected' : ''}>${u.nickname} (${u.username || 'NDG'})</option>`).join('')}
+        ${users.map(u => `<option value="${escapeHtml(u.id)}" ${u.id === activeUserId ? 'selected' : ''}>${escapeHtml(u.nickname)} (${escapeHtml(u.username || 'NDG')})</option>`).join('')}
       </select>
     </div>
   `;
@@ -7948,10 +7979,10 @@ window.bindFirestoreMissions = function(tasks) {
     }
 
     list.innerHTML += `
-      <li class="mission-item" data-task-id="${taskId}">
+      <li class="mission-item" data-task-id="${escapeHtml(taskId)}">
         <label>
-          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-index="${index}" data-task-id="${taskId}" data-task-type="${taskType}" ${done ? 'checked' : ''} ${canToggle ? '' : 'disabled'} />
-          <span>${title}</span>
+          <input type="checkbox" class="mission-check" data-satellite="${sId}" data-index="${index}" data-task-id="${escapeHtml(taskId)}" data-task-type="${taskType}" ${done ? 'checked' : ''} ${canToggle ? '' : 'disabled'} />
+          <span>${escapeHtml(title)}</span>
         </label>
         <div class="mission-meta">
           <div class="energy-bar-container">
@@ -8438,18 +8469,18 @@ function showWebProfileEditModal(data) {
           <h2>⚙️ 編輯個人名片</h2>
           <div class="global-form-group">
             <label>暱稱</label>
-            <input type="text" id="editProfileNickname" value="${data.nickname || ''}" placeholder="請輸入自律暱稱" maxLength="12"/>
+            <input type="text" id="editProfileNickname" value="${escapeHtml(data.nickname || '')}" placeholder="請輸入自律暱稱" maxLength="12"/>
           </div>
           <div class="global-form-group">
             <label>個性簽名</label>
-            <input type="text" id="editProfileSignature" value="${data.signature || ''}" placeholder="今天也在穩定前進" maxLength="40"/>
+            <input type="text" id="editProfileSignature" value="${escapeHtml(data.signature || '')}" placeholder="今天也在穩定前進" maxLength="40"/>
           </div>
           <div class="global-form-group">
             <label>專屬頭像主題色</label>
             <div class="color-swatch-group" id="editProfileColors">
               ${swatchesHtml}
             </div>
-            <input type="hidden" id="editProfileSelectedColor" value="${currentAccent}"/>
+            <input type="hidden" id="editProfileSelectedColor" value="${escapeHtml(currentAccent)}"/>
           </div>
           <div class="global-form-group">
             <label>名片稱號（僅能選用已解鎖徽章）</label>
@@ -9031,10 +9062,10 @@ function renderWebProfilePage(data, isFriend, friendUid) {
         if (post.metrics) {
           metricsHtml = `
             <div class="fb-post-metrics-grid">
-              <div class="fb-metric-pill focus"><span class="icon">⏱️</span><div class="fb-metric-details"><span class="fb-metric-label">專注時間</span><span class="fb-metric-val">${post.metrics.focusMin} 分鐘</span></div></div>
-              <div class="fb-metric-pill sleep"><span class="icon">🌙</span><div class="fb-metric-details"><span class="fb-metric-label">睡眠時數</span><span class="fb-metric-val">${post.metrics.sleepHr} 小時</span></div></div>
-              <div class="fb-metric-pill steps"><span class="icon">👣</span><div class="fb-metric-details"><span class="fb-metric-label">今日步數</span><span class="fb-metric-val">${post.metrics.stepCount} 步</span></div></div>
-              <div class="fb-metric-pill tasks"><span class="icon">✅</span><div class="fb-metric-details"><span class="fb-metric-label">完成任務</span><span class="fb-metric-val">${post.metrics.completedCount} 個任務</span></div></div>
+              <div class="fb-metric-pill focus"><span class="icon">⏱️</span><div class="fb-metric-details"><span class="fb-metric-label">專注時間</span><span class="fb-metric-val">${escapeHtml(post.metrics.focusMin)} 分鐘</span></div></div>
+              <div class="fb-metric-pill sleep"><span class="icon">🌙</span><div class="fb-metric-details"><span class="fb-metric-label">睡眠時數</span><span class="fb-metric-val">${escapeHtml(post.metrics.sleepHr)} 小時</span></div></div>
+              <div class="fb-metric-pill steps"><span class="icon">👣</span><div class="fb-metric-details"><span class="fb-metric-label">今日步數</span><span class="fb-metric-val">${escapeHtml(post.metrics.stepCount)} 步</span></div></div>
+              <div class="fb-metric-pill tasks"><span class="icon">✅</span><div class="fb-metric-details"><span class="fb-metric-label">完成任務</span><span class="fb-metric-val">${escapeHtml(post.metrics.completedCount)} 個任務</span></div></div>
             </div>
           `;
         }
@@ -9046,15 +9077,15 @@ function renderWebProfilePage(data, isFriend, friendUid) {
             const avatarChar = c.author ? c.author.substring(0, 1).toUpperCase() : '👤';
             const activeUserName = localStorage.getItem("nudgeActiveDemoUserName") || "訪客";
             const canDeleteComment = isOwner || c.author === activeUserName;
-            const deleteBtnHtml = canDeleteComment ? `<div style="font-size: 12px; color: var(--muted); cursor: pointer; margin-left: auto; align-self: flex-start; padding: 4px;" onclick="window.deleteComment('${post.id}', ${post.isWelcome}, ${post.isCustom}, ${cIndex})">✕</div>` : '';
+            const deleteBtnHtml = canDeleteComment ? `<div style="font-size: 12px; color: var(--muted); cursor: pointer; margin-left: auto; align-self: flex-start; padding: 4px;" onclick="window.deleteComment(${jsStringArg(post.id)}, ${post.isWelcome === true}, ${post.isCustom === true}, ${cIndex})">✕</div>` : '';
 
             commentsHtml += `
               <div class="fb-post-comment-item">
-                <div class="fb-post-comment-avatar" style="background: var(--page-accent, #7c6ae6)">${avatarChar}</div>
+                <div class="fb-post-comment-avatar" style="background: var(--page-accent, #7c6ae6)">${escapeHtml(avatarChar)}</div>
                 <div class="fb-post-comment-content" style="display: flex; gap: 8px;">
                   <div style="flex-grow: 1;">
-                    <div class="fb-post-comment-author">${c.author}</div>
-                    <div class="fb-post-comment-text">${c.text}</div>
+                    <div class="fb-post-comment-author">${escapeHtml(c.author)}</div>
+                    <div class="fb-post-comment-text">${escapeHtml(c.text)}</div>
                   </div>
                   ${deleteBtnHtml}
                 </div>
@@ -9064,12 +9095,14 @@ function renderWebProfilePage(data, isFriend, friendUid) {
           commentsHtml += `</div>`;
         }
 
+        const postIdArg = jsStringArg(post.id);
+        const postFlags = `${post.isWelcome === true}, ${post.isCustom === true}`;
         const dropdownHtml = isOwner ? `
           <div class="fb-post-dropdown-container">
-            <div style="color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 8px;" onclick="window.togglePostMenu('${post.id}')">•••</div>
-            <div class="fb-post-dropdown-menu" id="post-menu-${post.id}">
-              <div class="fb-post-dropdown-item" onclick="window.editPost('${post.id}', ${post.isWelcome}, ${post.isCustom})">✏️ 修改貼文</div>
-              <div class="fb-post-dropdown-item delete" onclick="window.deletePost('${post.id}', ${post.isWelcome}, ${post.isCustom})">🗑️ 刪除貼文</div>
+            <div style="color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 8px;" onclick="window.togglePostMenu(${postIdArg})">•••</div>
+            <div class="fb-post-dropdown-menu" id="post-menu-${escapeHtml(post.id)}">
+              <div class="fb-post-dropdown-item" onclick="window.editPost(${postIdArg}, ${postFlags})">✏️ 修改貼文</div>
+              <div class="fb-post-dropdown-item delete" onclick="window.deletePost(${postIdArg}, ${postFlags})">🗑️ 刪除貼文</div>
             </div>
           </div>
         ` : ``;
@@ -9084,27 +9117,27 @@ function renderWebProfilePage(data, isFriend, friendUid) {
           <article class="fb-post-card">
             <div class="fb-post-header">
               <div class="fb-post-author-info">
-                <div class="fb-mini-avatar" style="background: ${accentColor};">${nickname.substring(0, 1).toUpperCase()}</div>
+                <div class="fb-mini-avatar" style="background: ${accentColor};">${escapeHtml(nickname.substring(0, 1).toUpperCase())}</div>
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="fb-post-author-name">${nickname}</span>
-                    ${badgeName ? `<span class="fb-profile-badge" style="font-size: 10px; padding: 2px 8px;">🏆 ${badgeName}</span>` : ''}
+                    <span class="fb-post-author-name">${escapeHtml(nickname)}</span>
+                    ${badgeName ? `<span class="fb-profile-badge" style="font-size: 10px; padding: 2px 8px;">🏆 ${escapeHtml(badgeName)}</span>` : ''}
                   </div>
-                  <span class="fb-post-time">${post.dateStr}</span>
+                  <span class="fb-post-time">${escapeHtml(post.dateStr)}</span>
                 </div>
               </div>
               ${dropdownHtml}
             </div>
-            <div class="fb-post-content" id="post-content-${post.id}">${post.content}</div>
+            <div class="fb-post-content" id="post-content-${escapeHtml(post.id)}">${escapeHtml(post.content)}</div>
             ${metricsHtml}
             <div class="fb-post-feedback-summary">
-              <span>👍 ${post.likes} 人按讚</span>
+              <span>👍 ${Number(post.likes) || 0} 人按讚</span>
               <span>${post.comments.length} 則留言 • 0 次分享</span>
             </div>
             <div class="fb-post-feedback-actions">
-              <button class="fb-post-action-btn" style="${likeBtnStyle}" onclick="window.toggleLikePost('${post.id}', ${post.isWelcome}, ${post.isCustom})">${likeBtnText}</button>
-              <button class="fb-post-action-btn" onclick="window.addCommentToPost('${post.id}', ${post.isWelcome}, ${post.isCustom})">💬 留言</button>
-              <button class="fb-post-action-btn" onclick="window.sharePost('${post.id}')">↪️ 分享</button>
+              <button class="fb-post-action-btn" style="${likeBtnStyle}" onclick="window.toggleLikePost(${postIdArg}, ${postFlags})">${likeBtnText}</button>
+              <button class="fb-post-action-btn" onclick="window.addCommentToPost(${postIdArg}, ${postFlags})">💬 留言</button>
+              <button class="fb-post-action-btn" onclick="window.sharePost(${postIdArg})">↪️ 分享</button>
             </div>
             ${commentsHtml}
           </article>

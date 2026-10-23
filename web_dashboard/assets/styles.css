@@ -3340,6 +3340,24 @@ body[data-page="planet"] .building {
   line-height: 1.5;
   align-self: flex-start;
   max-width: 85%;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.ai-action-confirm {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 6px;
+  background: rgba(0, 240, 255, 0.15);
+  color: #e0faff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ai-action-confirm:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .ai-msg.user {
