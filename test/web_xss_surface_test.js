@@ -26,6 +26,53 @@ function loadEscapers() {
   return context;
 }
 
+function loadTaskCompletion(tasks) {
+  const queuedEvents = [];
+  const context = {
+    console,
+    Date,
+    localStorage: {
+      getItem(key) {
+        return key === "nudgeActiveDemoUserId" ? "user-1" : null;
+      },
+    },
+    firebase: {
+      auth() {
+        return { currentUser: { uid: "user-1" } };
+      },
+    },
+    db: {
+      collection() {
+        return {
+          doc() {
+            return {
+              get() {
+                return Promise.resolve({
+                  exists: true,
+                  data: () => ({ tasks }),
+                });
+              },
+            };
+          },
+        };
+      },
+    },
+    toast() {},
+    window: {
+      queueWebTaskLedgerEvent(event) {
+        queuedEvents.push(event);
+        return Promise.resolve();
+      },
+    },
+  };
+  vm.runInNewContext(
+    `${extractFunction("completeFirestoreTask")}\n` +
+      "this.completeFirestoreTask = completeFirestoreTask;",
+    context,
+  );
+  return { completeFirestoreTask: context.completeFirestoreTask, queuedEvents };
+}
+
 function decodeHtmlAttribute(value) {
   return value
     .replace(/&quot;/g, '"')
@@ -62,6 +109,50 @@ test("AI assistant renders chat text without HTML and confirms data actions", ()
     navigator.indexOf("loadingMsg.textContent = reply.trim()"),
   );
   assert.doesNotMatch(beforeRender, /addFirestoreTask|completeFirestoreTask/);
+});
+
+test("AI task completion rejects stale or fuzzy task identifiers", async () => {
+  const { completeFirestoreTask, queuedEvents } = loadTaskCompletion([
+    { id: "current-task-id", title: "Review stale-task-id notes", isDone: false },
+  ]);
+
+  completeFirestoreTask("stale-task-id");
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.deepEqual(queuedEvents, []);
+
+  completeFirestoreTask("current-task-id");
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.equal(queuedEvents.length, 1);
+  assert.equal(queuedEvents[0].taskId, "current-task-id");
+});
+
+test("planet mission markup escapes every task id attribute", () => {
+  const missions = app.slice(
+    app.indexOf("window.bindFirestoreMissions = function"),
+    app.indexOf("function addFirestoreTask"),
+  );
+  const taskIdAttributes = [...missions.matchAll(/data-task-id="\$\{([^}]+)\}"/g)]
+    .map(match => match[1]);
+
+  assert.ok(taskIdAttributes.length >= 3);
+  assert.deepEqual([...new Set(taskIdAttributes)], ["escapeHtml(taskId)"]);
+});
+
+test("demo tool previews escape every value inserted into HTML", () => {
+  const tools = extractFunction("bindExtensionTools");
+
+  for (const safeMarkup of [
+    "<strong>${escapeHtml(type)} ${days} 日模板</strong><p>每日 ${escapeHtml(effort)}，${escapeHtml(phase)}。",
+    "<strong>${escapeHtml(group)}：${days} 日${escapeHtml(type)}</strong><p>獎勵為 ${escapeHtml(reward)}",
+    "<strong>${escapeHtml(type)}</strong><p>${escapeHtml(privacy)}。",
+    "<strong>${escapeHtml(building)}建築計畫</strong><p>解鎖條件：${escapeHtml(condition)}。${escapeHtml(event)}</p>",
+    "我知道你現在是「${escapeHtml(state)}」。先做「${escapeHtml(action)}」",
+    "<p>${escapeHtml(note)}</p>",
+  ]) {
+    assert.ok(tools.includes(safeMarkup), `missing safe markup: ${safeMarkup}`);
+  }
 });
 
 test("profile timeline escapes user-authored posts and comments", () => {
