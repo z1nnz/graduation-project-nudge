@@ -617,7 +617,7 @@ function bindExtensionTools() {
     templateText = `${type} ${days} 日任務規劃\n每日投入：${effort}\n策略：${phase}\n\nDay 1：整理目標與資料\nDay ${Math.ceil(days / 2)}：完成主要進度\nDay ${days}：回顧、補強與提交`;
     setOutput(
       templateTool,
-      `<strong>${type} ${days} 日模板</strong><p>每日 ${effort}，${phase}。已產生可匯入 App 的分段任務草稿。</p>`,
+      `<strong>${escapeHtml(type)} ${days} 日模板</strong><p>每日 ${escapeHtml(effort)}，${escapeHtml(phase)}。已產生可匯入 App 的分段任務草稿。</p>`,
     );
     saveDemoState("template", { type, days, effort, pressure });
     toast("已產生任務規劃");
@@ -658,7 +658,7 @@ function bindExtensionTools() {
     challengeText = `${group} ${days} 日${type}\n獎勵：${reward}\n規則：每日完成目標得 1 點，連續完成加成，排行榜只顯示前 10 名。`;
     setOutput(
       challengeTool,
-      `<strong>${group}：${days} 日${type}</strong><p>獎勵為 ${reward}，系統會自動產生排行榜、提醒節奏與活動週報。</p>`,
+      `<strong>${escapeHtml(group)}：${days} 日${escapeHtml(type)}</strong><p>獎勵為 ${escapeHtml(reward)}，系統會自動產生排行榜、提醒節奏與活動週報。</p>`,
     );
     if (isPreviewMode()) {
       saveDemoState("challenge", { group, type, days, reward });
@@ -715,7 +715,7 @@ function bindExtensionTools() {
     scenarioText = `${type}\n隱私層級：${privacy}\n展示重點：${focus}\n\n展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。`;
     setOutput(
       scenarioTool,
-      `<span class="card-icon">📝</span><div class="card-content"><strong>${type}</strong><p>${privacy}。展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。</p></div>`,
+      `<span class="card-icon">📝</span><div class="card-content"><strong>${escapeHtml(type)}</strong><p>${escapeHtml(privacy)}。展示順序：App 狀態 → Web 分析 → 自律星球視覺化 → 研究價值結論。</p></div>`,
     );
     saveDemoState("scenario", { type, privacy, focus });
     toast("展示腳本已產生");
@@ -730,7 +730,7 @@ function bindExtensionTools() {
     const event = $('[data-planet-event]', planetTool).value.trim();
     setOutput(
       planetTool,
-      `<strong>${building}建築計畫</strong><p>解鎖條件：${condition}。${event}</p>`,
+      `<strong>${escapeHtml(building)}建築計畫</strong><p>解鎖條件：${escapeHtml(condition)}。${escapeHtml(event)}</p>`,
     );
     saveDemoState("planetBuilding", { building, condition, event });
     toast("星球建築已規劃");
@@ -943,7 +943,7 @@ function bindExtensionTools() {
     futureLetterText = `一週後的你想說：\n\n我知道你現在是「${state}」。但你不用今天就解決全部事情。先做「${action}」，讓自己重新回到軌道。\n\n你留給自己的提醒：${note}`;
     const output = $('[data-letter-output]', futureLetterTool);
     if (output) {
-      output.innerHTML = `<strong>一週後的你想說</strong><p>我知道你現在是「${state}」。先做「${action}」，你會感覺事情開始變小。</p><p>${note}</p>`;
+      output.innerHTML = `<strong>一週後的你想說</strong><p>我知道你現在是「${escapeHtml(state)}」。先做「${escapeHtml(action)}」，你會感覺事情開始變小。</p><p>${escapeHtml(note)}</p>`;
     }
     saveDemoState("futureLetter", { state, action, note });
     toast("未來的信已產生");
@@ -7992,7 +7992,7 @@ window.bindFirestoreMissions = function(tasks) {
             <span style="font-size: 11px; color: ${done ? '#00ffcc' : 'rgba(255,255,255,0.4)'}; font-weight: 700;">
               ${done ? '✅ 已同步完成' : isDeadlineTask && !deadlineReady ? '📅 尚未到驗收日' : '⏳ 行動中'}
             </span>
-            <button class="cyber-btn delete-mission-btn" data-task-id="${taskId}" style="font-size: 10px; padding: 2px 6px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: transparent; cursor: pointer; border-radius: 4px; box-shadow: none;">刪除</button>
+            <button class="cyber-btn delete-mission-btn" data-task-id="${escapeHtml(taskId)}" style="font-size: 10px; padding: 2px 6px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: transparent; cursor: pointer; border-radius: 4px; box-shadow: none;">刪除</button>
           </div>
         </div>
       </li>
@@ -8162,13 +8162,10 @@ function completeFirestoreTask(taskId) {
       const data = docSnap.data();
       const currentTasks = data.tasks || [];
 
-      // Try finding by exact ID first
-      let taskIndex = currentTasks.findIndex(t => t.id === taskId);
-
-      // If not found, try fuzzy matching by title
-      if (taskIndex === -1) {
-        taskIndex = currentTasks.findIndex(t => t.title === taskId || t.title.includes(taskId) || taskId.includes(t.title));
-      }
+      // AI-triggered completion must identify one current task exactly. Falling
+      // back to title matching could complete a different task after the list
+      // changes while the confirmation button is waiting for a click.
+      const taskIndex = currentTasks.findIndex(t => String(t.id) === String(taskId));
 
       if (taskIndex !== -1) {
         if (currentTasks[taskIndex].isDone || currentTasks[taskIndex].done) {
