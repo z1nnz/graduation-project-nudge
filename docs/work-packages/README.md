@@ -28,6 +28,8 @@
 | 08 | [新功能與產品實驗](08-new-features-and-experiments.md) | 有特色且可量測的下一批功能，不先堆大型功能 | P2 |
 | 09 | [品質、發布與驗收](09-quality-release-and-acceptance.md) | 自動測試、實機矩陣、證據、回復與發布門檻 | P0 |
 | 10 | [交付模板](10-delivery-templates.md) | Issue、PR、驗收紀錄與交接的可複製格式 | 共用 |
+| 11 | [PWA 輕入口與新玩法](11-pwa-companion-and-new-play.md) | 可安裝、快速開始、離線續傳與低打擾回訪 | P1 |
+| 12 | [App 吸引力與留存循環](12-app-delight-and-retention.md) | 把分散功能收斂成有角色、有回應的每日體驗 | P1 |
 
 ## 建議執行順序
 
@@ -41,6 +43,8 @@ flowchart LR
   C --> F
   G[06 Cloud 與資料安全] --> F
   H[07 產品關係成果] --> C
+  K[11 PWA 輕入口] --> C
+  L[12 App 每日體驗] --> C
   F --> I[09 專題版凍結與展示驗收]
   I --> J[08 P2 實驗與商用強化]
 ```

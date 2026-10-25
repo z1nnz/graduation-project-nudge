@@ -1,5 +1,11 @@
 # 08｜新功能與產品實驗工作包
 
+PWA 的安裝、離線與快速入口詳見
+[`11-pwa-companion-and-new-play.md`](11-pwa-companion-and-new-play.md)；App 首頁、
+角色回應與每日留存循環詳見
+[`12-app-delight-and-retention.md`](12-app-delight-and-retention.md)。本文件保留跨端
+新功能的候選順序與實驗規則。
+
 ## 選擇原則
 
 新功能要強化「低摩擦開始、同儕陪伴、可恢復的自律」，不能只增加頁數。每項
