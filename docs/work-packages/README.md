@@ -30,6 +30,14 @@
 | 10 | [交付模板](10-delivery-templates.md) | Issue、PR、驗收紀錄與交接的可複製格式 | 共用 |
 | 11 | [PWA 輕入口與新玩法](11-pwa-companion-and-new-play.md) | 可安裝、快速開始、離線續傳與低打擾回訪 | P1 |
 | 12 | [App 吸引力與留存循環](12-app-delight-and-retention.md) | 把分散功能收斂成有角色、有回應的每日體驗 | P1 |
+| 13 | [雙裝置總體計畫](13-dual-device-master-plan.md) | Nudge Orbit 圓形穿戴裝置與 Nudge Station 方形桌機的產品分工 | P0 |
+| 14 | [共用韌體架構與協定](14-shared-firmware-architecture.md) | 共用核心加兩套硬體 Adapter，避免複製兩份韌體 | P0 |
+| 15 | [Orbit 產品規格](15-orbit-wearable-product-spec.md) | 圓形螢幕的穿戴式個人夥伴體驗 | P1 |
+| 16 | [Orbit 開發工作包](16-orbit-wearable-work-package.md) | 從圓屏 bring-up 到 App／Cloud 驗收的完整流程 | P0/P1 |
+| 17 | [Station 產品規格](17-station-focus-hub-product-spec.md) | 方形螢幕與感測器整合的桌上專注中樞 | P1 |
+| 18 | [Station 開發工作包](18-station-focus-hub-work-package.md) | 方屏、旋鈕、光感、燈條、蜂鳴器與 Ledger 閉環 | P0/P1 |
+| 19 | [雙裝置測試與驗收](19-dual-device-test-and-acceptance.md) | 單元、硬體、BLE、App、Cloud、壓力與安全證據矩陣 | P0 |
+| 20 | [組員執行與交接](20-dual-device-team-execution.md) | Issue、分支、PR 順序、責任分工與交付格式 | 共用 |
 
 ## 建議執行順序
 
@@ -45,6 +53,11 @@ flowchart LR
   H[07 產品關係成果] --> C
   K[11 PWA 輕入口] --> C
   L[12 App 每日體驗] --> C
+  M[13 雙裝置產品分工] --> N[14 共用韌體核心]
+  N --> O[16 Orbit 工作包]
+  N --> P[18 Station 工作包]
+  O --> Q[19 雙裝置驗收]
+  P --> Q
   F --> I[09 專題版凍結與展示驗收]
   I --> J[08 P2 實驗與商用強化]
 ```
