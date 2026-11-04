@@ -38,6 +38,16 @@
 | 18 | [Station 開發工作包](18-station-focus-hub-work-package.md) | 方屏、旋鈕、光感、燈條、蜂鳴器與 Ledger 閉環 | P0/P1 |
 | 19 | [雙裝置測試與驗收](19-dual-device-test-and-acceptance.md) | 單元、硬體、BLE、App、Cloud、壓力與安全證據矩陣 | P0 |
 | 20 | [組員執行與交接](20-dual-device-team-execution.md) | Issue、分支、PR 順序、責任分工與交付格式 | 共用 |
+| 21 | [Orbit 功能目錄與畫面地圖](21-orbit-feature-catalog.md) | 圓形穿戴裝置的完整畫面、功能、狀態與互動 | P1 |
+| 22 | [Station 功能目錄與畫面地圖](22-station-feature-catalog.md) | 方形桌機的完整畫面、周邊、專注與房間功能 | P1 |
+| 23 | [角色、敘事與收藏系統](23-device-character-and-story-system.md) | 讓兩台裝置有持續成長感，但不建立第二套獎勵 | P1/P2 |
+| 24 | [跨裝置連續體驗](24-cross-device-continuity.md) | Orbit、Station、App、PWA 與 Web 的接續及衝突處理 | P1 |
+| 25 | [感測器智慧與環境行為](25-sensor-intelligence.md) | 光感、輸入、在席候選與 presentation policy | P1/P2 |
+| 26 | [視覺、動態、聲音與觸覺語言](26-embedded-experience-language.md) | 跨圓屏、方屏、LED、聲音的一致設計系統 | P1 |
+| 27 | [設定、診斷、更新與生命週期](27-device-settings-diagnostics-lifecycle.md) | 配對、自檢、fault、更新、重設、撤銷與轉移 | P0/P1 |
+| 28 | [隱私、安全、無障礙與倫理](28-device-privacy-safety-accessibility.md) | 裝置資料最小化、安全護欄與包容性操作 | P0 |
+| 29 | [功能優先級與版本路線](29-dual-device-release-roadmap.md) | MVP、完整專題版、進階版的依賴和停止條件 | P0/P1/P2 |
+| 30 | [可分派 Issue Backlog](30-dual-device-issue-backlog.md) | 依 Wave 排好的細粒度 Issue、驗收與依賴 | 共用 |
 
 ## 建議執行順序
 
