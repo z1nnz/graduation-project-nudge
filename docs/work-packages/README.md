@@ -1,103 +1,97 @@
-# Nudge 後續開發工作包
+# Nudge 雙裝置競賽 Demo 工作包
 
-- 基準版本：`origin/main` @ `c37c6ab`
-- 建立日期：2026-10-25
-- 適用範圍：Flutter App、Web Dashboard、Cloud、資料契約、實體裝置韌體與驗收
-- 使用對象：專題組員、外部協作者、AI coding agent、最後審查與合併者
+- 版本：Competition Demo Edition v1
+- 更新日期：2026-11-09
+- 適用對象：兩位嵌入式組員、整合者、最後合併者與現場展示者
+- 實體目標：Nudge Orbit 圓形裝置與 Nudge Station 方形裝置
+- 唯一成功標準：教授能在兩台實體機上清楚看見 Nudge 的畫面、理解用途，並完成至少一次可重複的互動
 
-這個目錄不是願望清單，而是一組可分支、可測試、可驗收的開發工作包。每份
-文件都說明目前基線、要解決的問題、建議修改位置、實作順序、測試方式、驗收
-證據與明確不做的範圍。執行者一次只領取一個可獨立驗收的切片，不得把整份
-工作包塞入同一個 PR。
+> 本版完全取代先前的 32 份「雙裝置完整工作包」。舊 ZIP
+> `Nudge-MD-雙裝置完整工作包-2026-11-04-v2.zip` 已作廢，不再作為分工、
+> 採購或驗收依據。
 
-## 先讀哪一份
+## 這次到底要做什麼
 
-1. [`00-author-guide.md`](00-author-guide.md)：所有寫作者與開發者的共同規則。
-2. [`01-current-state-and-priorities.md`](01-current-state-and-priorities.md)：先確認什麼
-   已完成、什麼只完成程式碼、什麼仍未驗收。
-3. 再依任務選擇下列工作包。
+只做專題競賽可展示的原型，不做量產裝置。兩台 XIAO ESP32S3 必須各自透過
+USB 供電並顯示一套完整的 Nudge 情境：
 
-| 編號 | 工作包 | 主要成果 | 優先級 |
-| --- | --- | --- | --- |
-| 02 | [韌體與硬體 Bring-up](02-firmware-and-hardware-bringup.md) | 螢幕、旋鈕、燈條、環境光、蜂鳴器可重現的實機證據 | P0 |
-| 03 | [裝置協定與 Android BLE](03-device-protocol-and-android-ble.md) | 真實手機到裝置、App outbox、Cloud Ledger 的可靠閉環 | P0 |
-| 04 | [Flutter App 改善](04-flutter-app-improvements.md) | 清楚的首次使用、裝置設定、關係切換與失敗復原 | P1 |
-| 05 | [Web 與後台改善](05-web-and-admin-improvements.md) | 權限導覽、角色上架、裝置指派與營運稽核 | P1 |
-| 06 | [Cloud、Ledger 與資料安全](06-cloud-ledger-security-and-data.md) | 統一真相、稽核、遷移與未來裝置可信身分 | P1/P2 |
-| 07 | [家庭、團體、自律房與角色成果](07-relationships-rooms-and-characters.md) | 讓社群功能有誘因但不奪走個人自主權 | P1 |
-| 08 | [新功能與產品實驗](08-new-features-and-experiments.md) | 有特色且可量測的下一批功能，不先堆大型功能 | P2 |
-| 09 | [品質、發布與驗收](09-quality-release-and-acceptance.md) | 自動測試、實機矩陣、證據、回復與發布門檻 | P0 |
-| 10 | [交付模板](10-delivery-templates.md) | Issue、PR、驗收紀錄與交接的可複製格式 | 共用 |
-| 11 | [PWA 輕入口與新玩法](11-pwa-companion-and-new-play.md) | 可安裝、快速開始、離線續傳與低打擾回訪 | P1 |
-| 12 | [App 吸引力與留存循環](12-app-delight-and-retention.md) | 把分散功能收斂成有角色、有回應的每日體驗 | P1 |
-| 13 | [雙裝置總體計畫](13-dual-device-master-plan.md) | Nudge Orbit 圓形穿戴裝置與 Nudge Station 方形桌機的產品分工 | P0 |
-| 14 | [共用韌體架構與協定](14-shared-firmware-architecture.md) | 共用核心加兩套硬體 Adapter，避免複製兩份韌體 | P0 |
-| 15 | [Orbit 產品規格](15-orbit-wearable-product-spec.md) | 圓形螢幕的穿戴式個人夥伴體驗 | P1 |
-| 16 | [Orbit 開發工作包](16-orbit-wearable-work-package.md) | 從圓屏 bring-up 到 App／Cloud 驗收的完整流程 | P0/P1 |
-| 17 | [Station 產品規格](17-station-focus-hub-product-spec.md) | 方形螢幕與感測器整合的桌上專注中樞 | P1 |
-| 18 | [Station 開發工作包](18-station-focus-hub-work-package.md) | 方屏、旋鈕、光感、燈條、蜂鳴器與 Ledger 閉環 | P0/P1 |
-| 19 | [雙裝置測試與驗收](19-dual-device-test-and-acceptance.md) | 單元、硬體、BLE、App、Cloud、壓力與安全證據矩陣 | P0 |
-| 20 | [組員執行與交接](20-dual-device-team-execution.md) | Issue、分支、PR 順序、責任分工與交付格式 | 共用 |
-| 21 | [Orbit 功能目錄與畫面地圖](21-orbit-feature-catalog.md) | 圓形穿戴裝置的完整畫面、功能、狀態與互動 | P1 |
-| 22 | [Station 功能目錄與畫面地圖](22-station-feature-catalog.md) | 方形桌機的完整畫面、周邊、專注與房間功能 | P1 |
-| 23 | [角色、敘事與收藏系統](23-device-character-and-story-system.md) | 讓兩台裝置有持續成長感，但不建立第二套獎勵 | P1/P2 |
-| 24 | [跨裝置連續體驗](24-cross-device-continuity.md) | Orbit、Station、App、PWA 與 Web 的接續及衝突處理 | P1 |
-| 25 | [感測器智慧與環境行為](25-sensor-intelligence.md) | 光感、輸入、在席候選與 presentation policy | P1/P2 |
-| 26 | [視覺、動態、聲音與觸覺語言](26-embedded-experience-language.md) | 跨圓屏、方屏、LED、聲音的一致設計系統 | P1 |
-| 27 | [設定、診斷、更新與生命週期](27-device-settings-diagnostics-lifecycle.md) | 配對、自檢、fault、更新、重設、撤銷與轉移 | P0/P1 |
-| 28 | [隱私、安全、無障礙與倫理](28-device-privacy-safety-accessibility.md) | 裝置資料最小化、安全護欄與包容性操作 | P0 |
-| 29 | [功能優先級與版本路線](29-dual-device-release-roadmap.md) | MVP、完整專題版、進階版的依賴和停止條件 | P0/P1/P2 |
-| 30 | [可分派 Issue Backlog](30-dual-device-issue-backlog.md) | 依 Wave 排好的細粒度 Issue、驗收與依賴 | 共用 |
+- **Nudge Orbit**：圓形螢幕，像穿戴型自律夥伴；展示時間、專注環、提醒、
+  任務完成與角色成長。
+- **Nudge Station**：方形螢幕，像桌面自律中樞；展示今日任務、專注倒數、
+  自律房／家庭鼓勵、角色成果與現有 LED／感測器效果。
+
+App、BLE、Cloud、Web 不是硬體 Demo 的前置條件。能可靠連動才展示；沒有完成
+就使用裝置內建的確定性 Demo 資料，並在簡報中稱為「原型展示資料」。
+
+## 優先級
+
+| 優先級 | 意義 | 是否影響上台 |
+| --- | --- | --- |
+| P0 | 兩台螢幕能開機、顯示、切換完整故事且可反覆重播 | 必須完成 |
+| P1 | 使用已購買的按鍵、旋鈕、LED、光感或蜂鳴器增加互動 | 有時間才做 |
+| P2 | App／BLE 觸發、雙裝置同步或真實 Cloud 資料 | 不得阻擋 P0 |
+
+## 文件地圖
+
+| 編號 | 文件 | 交付成果 |
+| --- | --- | --- |
+| 00 | [範圍重設](00-scope-reset.md) | 統一什麼要做、什麼不做、什麼不能宣稱 |
+| 01 | [現有零件與限制](01-demo-parts-and-constraints.md) | 只用已購買零件，建立不猜接線的零件卡 |
+| 02 | [展示故事與評審流程](02-demo-story-and-judge-flow.md) | 3 分鐘可重播的雙裝置故事 |
+| 03 | [Demo 韌體架構](03-demo-firmware-architecture.md) | 共用場景引擎、Orbit／Station 畫面 Adapter |
+| 04 | [Orbit 工作包](04-orbit-round-display-work-package.md) | 圓形螢幕的畫面、互動、測試與證據 |
+| 05 | [Station 工作包](05-station-square-display-work-package.md) | 方形螢幕的畫面、互動、測試與證據 |
+| 06 | [既有輸入與周邊](06-existing-input-led-sensor-work-package.md) | 不加購的互動增強與安全降級 |
+| 07 | [App／BLE 選配連動](07-optional-app-ble-link.md) | 不阻擋展示的單向觸發或明確放棄 |
+| 08 | [角色與視覺語言](08-character-and-visual-system.md) | 兩台裝置看起來屬於同一個 Nudge 世界 |
+| 09 | [兩人分工與 Git 流程](09-two-person-team-and-git-plan.md) | 誰做哪台、如何開分支、如何交 PR |
+| 10 | [測試與現場排練](10-demo-test-rehearsal-acceptance.md) | 3 次冷啟動、10 次重播、斷網展示 |
+| 11 | [可直接認領的 Issue](11-demo-issue-backlog.md) | 依依賴排序的細粒度任務 |
+| 12 | [比賽日操作手冊](12-competition-day-runbook.md) | 接線、燒錄、備援與口頭說法 |
+| 13 | [交付與證據模板](13-delivery-evidence-template.md) | PR、影片、照片、版本和未完成項目格式 |
 
 ## 建議執行順序
 
 ```mermaid
 flowchart LR
-  A[確認 main 與測試基線] --> B[02 螢幕獨立 Bring-up]
-  A --> C[04 App / 05 Web 可用性改善]
-  B --> D[02 完整周邊整合]
-  D --> E[03 真實 Android BLE]
-  E --> F[完整 Device → App → Ledger → Web 驗收]
-  C --> F
-  G[06 Cloud 與資料安全] --> F
-  H[07 產品關係成果] --> C
-  K[11 PWA 輕入口] --> C
-  L[12 App 每日體驗] --> C
-  M[13 雙裝置產品分工] --> N[14 共用韌體核心]
-  N --> O[16 Orbit 工作包]
-  N --> P[18 Station 工作包]
-  O --> Q[19 雙裝置驗收]
-  P --> Q
-  F --> I[09 專題版凍結與展示驗收]
-  I --> J[08 P2 實驗與商用強化]
+  A[00 範圍重設] --> B[01 零件卡]
+  B --> C[03 Demo 場景引擎]
+  C --> D[04 Orbit P0]
+  C --> E[05 Station P0]
+  D --> F[08 視覺一致]
+  E --> F
+  F --> G[10 冷啟動與重播驗收]
+  G --> H[12 比賽日操作]
+  D --> I[06 現有周邊 P1]
+  E --> I
+  I --> J[07 App/BLE P2]
 ```
 
-韌體 Bring-up、App/Web 體驗改善可以平行進行，但「嵌入式系統已整合」必須
-等真實 Android 手機、實體裝置、App outbox、Cloud Ledger、Web/房間/角色成果
-整條鏈都有證據後才能宣稱完成。
+## 全隊共同規則
 
-## 全系統不可破壞的規則
+1. 不再購買新工具或新零件，除非專題負責人另行明確同意。
+2. 沒有萬用電表、烙鐵、洞洞板也不影響 P0；P0 使用現成接頭、已焊排針與 USB。
+3. 不知道型號或接線時，不猜、不硬插、不帶電改線；先拍清楚零件正反面與標示。
+4. Demo 韌體必須離線可跑，不能因 Wi-Fi、Firebase、手機或登入失敗而黑屏。
+5. 可以使用固定展示資料，但畫面或簡報必須說是 Prototype／Demo。
+6. 尚未真正連動的 App、家庭、團體、自律房、角色成果，不得宣稱已由實體裝置同步。
+7. 每台裝置都要有自動展示模式；即使外接按鍵或感測器失效，仍能完成整段展示。
+8. 編譯成功不等於實機完成；必須交付能看到裝置與畫面切換的連續影片。
 
-- Cloud Activity Ledger 是活動、房間貢獻與獎勵的正式真相。
-- App、Web、韌體不得直接增加自律幣、角色 XP 或正式成果。
-- 家長不能替孩子控制活動；管理者不能替成員開始、暫停或完成活動。
-- 同一活動可在多個獲授權情境中顯示，但只能結算一次個人獎勵。
-- 家庭／團體角色取自有效 `relationship_memberships`，不能從本機角色選項猜測。
-- 只有完整且已發布的三階角色鏈可進入圖鑑；商城只販售第一階。
-- 裝置收到 GATT write 不代表已持久化；必須回報相同 `contextRevision`。
-- 裝置事件只有先耐久寫入 App Ledger outbox 才能 ACK；重送不得重複計分。
-- 不把 Simulator、編譯成功或燒錄成功寫成實體顯示／BLE／Cloud 驗收成功。
-- 不提交 Token、service account、`.env`、真實使用者資料或可識別健康資料。
+## 最小完成定義
 
-## 狀態標籤
+- Orbit USB 上電後 10 秒內進入畫面，能走完至少 6 個畫面狀態。
+- Station USB 上電後 10 秒內進入畫面，能走完至少 6 個畫面狀態。
+- 每台可用同一個操作重新開始 Demo，不必重新燒錄。
+- 兩台裝置在沒有網路、沒有手機的情況下仍可展示。
+- 連續重播 10 次，不出現白屏、卡死或需要改接線。
+- 保存韌體 commit、PlatformIO build log、兩段實機影片與比賽日可直接使用的 binary。
 
-每個 Issue、PR 與驗收紀錄都使用同一套標籤：
+## 不在本版範圍
 
-- `implemented`：程式碼已存在且自動測試通過。
-- `source-verified`：介面與行為有程式碼／測試證據，但尚未在目標環境操作。
-- `device-verified`：指定實體裝置與版本已完成重現測試。
-- `production-verified`：已在正式 Cloud／真實帳號完成並保存清理結果。
-- `deferred`：刻意不納入目前里程碑，並有清楚理由。
-- `blocked`：缺少硬體、帳號、權限或外部服務，且已列出解除條件。
-
-不要用「完成」同時代表以上不同層級。
+- 量產、認證、電池、充電、OTA、加密裝置身分。
+- 萬用電表、烙鐵、洞洞板與外殼內永久配線。
+- 24 小時壓力、溫升、峰值電流與正式可靠度測試。
+- 完整 Device → App → Cloud Ledger → Web 正式閉環。
+- 為了用完所有零件而硬塞感測器。
+- 因為某個 P1／P2 功能失敗而推遲 P0 螢幕展示。
