@@ -39,6 +39,9 @@ enum class DemoScene {
 };
 ```
 
+P0-A 不需要先完成整個 enum 的所有畫面，只需實作 `home`、`focus`、
+`complete` 三幕自動循環；P0-B 才補齊其餘 Scene 與共用 core。
+
 場景切換只接受：
 
 - `next()`
@@ -101,7 +104,13 @@ pio run --project-dir firmware/nudge_focus_device -e station_demo -t upload
 `firmware/nudge_orbit_demo` 與 `firmware/nudge_station_demo` 兩個最小專案，
 比賽後再合併。競賽前以可靠為優先。
 
-## Scene 時間軸
+## P0-A 三幕時間軸
+
+- Home：5 秒。
+- Focus：12–20 秒。
+- Complete：5 秒，之後回 Home。
+
+## P0-B 八幕時間軸
 
 - Boot：1500 ms
 - Home：4000 ms
@@ -187,7 +196,7 @@ scene 1 home
 - 冷啟動 3 次皆出現 Boot，不停在白屏。
 - 自動播放 10 次。
 - 手動 next／restart 各 10 次。
-- 拔掉所有 P1 周邊後仍可展示 P0。
+- 拔掉所有 P1 周邊後仍可展示 P0-A。
 
 ## 交付
 
@@ -204,4 +213,3 @@ scene 1 home
 - OTA、Wi-Fi provisioning、加密 key。
 - 因正式架構漂亮而重寫已能展示的 driver。
 - 為了共用 100% 程式碼而犧牲任一台的穩定畫面。
-

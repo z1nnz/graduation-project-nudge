@@ -6,7 +6,7 @@
 ## 工作包
 - Issue:
 - 裝置：Orbit / Station / Shared
-- 優先級：P0 / P1 / P2
+- 優先級：P0-A / P0-B / P1 / P2
 
 ## 目標
 
@@ -25,7 +25,7 @@
 - [ ] Physical upload
 - [ ] Cold boot 3/3
 - [ ] Complete demo flow
-- [ ] Restart
+- [ ] Restart（P0-B／P1 才需要）
 - [ ] Offline fallback
 - [ ] Optional peripherals removed
 
@@ -55,8 +55,8 @@
 影片必須同時拍到：
 
 - 實體 XIAO／螢幕，而非只錄螢幕輸出模擬器。
-- 開機或 Restart。
-- 至少三個不同 Scene。
+- 開機；若宣稱 P0-B／P1 互動，再拍 Restart。
+- P0-A 至少拍 Home、Focus、Complete 三個 Scene。
 - 完成畫面。
 - 操作者的按鍵／旋鈕動作（如果宣稱有實體互動）。
 
@@ -153,8 +153,7 @@ Known limitations:
 
 ```text
 這份是新的 Nudge 競賽 Demo 工作包，完全取代 2026-11-04 的 32 份舊版。
-目標只有：讓 Orbit 與 Station 兩台實體機能穩定顯示、互動與重播。
+最低目標只有：讓 Orbit 與 Station 兩台實體機各自穩定顯示三幕自動 Demo。
 不需要購買萬用電表、烙鐵、洞洞板或新零件；App/BLE 是 P2 選配。
 請先讀 README、00、09、11，再認領對應裝置的 Issue。
 ```
-

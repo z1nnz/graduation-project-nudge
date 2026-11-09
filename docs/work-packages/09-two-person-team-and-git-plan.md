@@ -6,8 +6,8 @@
 
 | 組員 | 主要裝置 | 主要責任 |
 | --- | --- | --- |
-| `johnsnow94823@gmail.com` | Nudge Orbit | 圓屏最小顯示、8 幕畫面、圓形進度、手動／自動 Demo、Orbit 證據 |
-| `roy930905@gmail.com` | Nudge Station | 方屏身分卡、最小顯示、8 幕畫面、Station 互動、Station 證據 |
+| `johnsnow94823@gmail.com` | Nudge Orbit | 圓屏 P0-A 三幕、P0-B 八幕、圓形進度與 Orbit 證據 |
+| `roy930905@gmail.com` | Nudge Station | 方屏身分卡、P0-A 三幕、P0-B 八幕與 Station 證據 |
 | 專題負責人 | 整合與合併 | 範圍裁決、PR review、共用視覺、ZIP、比賽腳本與最終 merge |
 
 兩人可以交換裝置，但必須在 Issue 留言後再換，避免兩人同時認為對方負責。
@@ -16,11 +16,13 @@
 
 為避免兩人同時修改相同 `main.cpp`：
 
-1. 先建立 `demo-scenario-core` PR：Scene enum、DemoData、自動時間軸、host test。
-2. 合併後 Orbit 與 Station 各自從最新 base 開分支。
-3. Orbit 只新增／修改 Orbit adapter 與資源。
-4. Station 只新增／修改 Station adapter 與資源。
-5. Optional 周邊在兩台 P0 合併後再開新 PR。
+1. 兩人先在各自裝置專案完成不互相依賴的 P0-A 三幕自動展示。
+2. P0-B 共用 `demo-scenario-core` 預設由 johnsnow 負責；roy 不必等待它才開始
+   Station P0-A。
+3. 共用 core 合併 main 後，兩人再更新各自分支並接入 8 個 Scene。
+4. Orbit 只新增／修改 Orbit adapter 與資源。
+5. Station 只新增／修改 Station adapter 與資源。
+6. Optional 周邊在兩台 P0-A 合併後再開新 PR。
 
 若比賽時程很短，可建立兩個獨立 PlatformIO demo 專案，避免 driver 設定互相
 破壞；共用架構留到比賽後整理。
@@ -28,15 +30,15 @@
 ## 分支命名
 
 ```text
-feature/demo-scenario-core
-feature/orbit-display-demo
-feature/station-display-demo
-feature/orbit-input
-feature/station-input
-feature/demo-visual-assets
-feature/demo-ble-controller
-fix/orbit-white-screen
-fix/station-rotation
+feature/johnsnow-demo-scenario-core
+feature/johnsnow-orbit-display-demo
+feature/roy-station-display-demo
+feature/johnsnow-orbit-input
+feature/roy-station-input
+feature/johnsnow-demo-visual-assets
+feature/roy-demo-ble-controller
+fix/johnsnow-orbit-white-screen
+fix/roy-station-rotation
 ```
 
 每個分支只處理一個可錄影驗收的成果。
@@ -45,12 +47,12 @@ fix/station-rotation
 
 ```sh
 git switch main
-git pull --ff-only
-git switch -c feature/orbit-display-demo
+git pull --ff-only origin main
+git switch -c feature/johnsnow-orbit-display-demo
 ```
 
-如果團隊使用工作包 PR 分支作為暫時 base，Issue 必須明確寫出 base；功能正式
-合併前仍要重新對 main。
+每個 GitHub PR 的 Base 都必須是 `main`。若某工作依賴尚未合併的 PR，先等待或
+在本機暫時測試；送出正式 PR 前必須重新從最新 main 建立／整理分支。
 
 ## 每次開發循環
 
@@ -79,11 +81,26 @@ docs(demo): add Station hardware identity
 ```sh
 git status
 git add <這次修改的檔案>
+git diff --cached
 git commit -m "feat(firmware): add Orbit focus scene"
-git push -u origin feature/orbit-display-demo
+git push -u origin feature/johnsnow-orbit-display-demo
 ```
 
 不要使用 `git add .` 把不相關檔案全部送上去。不要直接 push main。
+
+## PR 前本機檢查
+
+依 `CONTRIBUTING.md` 執行：
+
+```sh
+flutter analyze
+flutter test
+node --test test/*.js
+npm --prefix functions test
+```
+
+若工作只改文件，仍要確認 GitHub 上六個必要 Actions 全部通過；不要因本機沒有
+修改 App／Cloud 就自行略過 Ruleset。
 
 ## PR 必須包含
 
@@ -94,25 +111,38 @@ git push -u origin feature/orbit-display-demo
 - 編譯命令與結果。
 - 實機燒錄結果。
 - 影片／照片。
-- P0、P1 或 P2。
+- P0-A、P0-B、P1 或 P2。
 - 失效時的降級方式。
 - 尚未完成與未宣稱的項目。
 
+GitHub PR 必須：
+
+- Base 選 `main`。
+- 指定 `@z1nnz` 為 Reviewer。
+- 組員不可自行按 Merge；最後由 `@z1nnz` 審查與合併。
+- 六個 Actions 檢查必須全部綠燈：
+  - `Flutter analyze and tests`
+  - `Android Kotlin compile`
+  - `iOS dependency lock`
+  - `Web and shared contract tests`
+  - `Cloud Functions tests`
+  - `Firestore rules and transaction tests`
+
 ## 合併順序
 
-1. Demo scenario core。
-2. Orbit 最小顯示。
-3. Station 最小顯示。
+1. Orbit P0-A 最小三幕。
+2. Station P0-A 最小三幕。
+3. P0-B Demo scenario core。
 4. 共用視覺與角色資源。
-5. Orbit 完整流程。
-6. Station 完整流程。
+5. Orbit P0-B 完整流程。
+6. Station P0-B 完整流程。
 7. 既有輸入。
 8. 既有 LED／感測器／蜂鳴器。
 9. 選配 BLE。
 10. 比賽日文件與 artifacts。
 
-Station 不得等待 Orbit 的所有動畫，Orbit 也不得等待 Station 感測器；兩台 P0
-可平行，但共用檔案要由 scenario core 先建立。
+Station 不得等待 Orbit 的動畫，Orbit 也不得等待 Station 感測器；兩台 P0-A
+可平行。只有 P0-B 八幕整合才依賴 scenario core。
 
 ## Review 清單
 
@@ -123,7 +153,7 @@ Station 不得等待 Orbit 的所有動畫，Orbit 也不得等待 Station 感�
 - [ ] PlatformIO compile 綠燈。
 - [ ] 有實機影片，不只是終端機 SUCCESS。
 - [ ] 裝置不連網仍可 Demo。
-- [ ] Optional 周邊拔掉後不阻擋 P0。
+- [ ] Optional 周邊拔掉後不阻擋 P0-A。
 - [ ] 畫面資料是 Demo 時有標記。
 - [ ] 沒有新增採購需求。
 - [ ] 可從影片看見完整結果。
@@ -132,7 +162,7 @@ Station 不得等待 Orbit 的所有動畫，Orbit 也不得等待 Station 感�
 
 - 不要各自在分支大改共用 `main.cpp`。
 - 發現同檔衝突時先停止 rebase，於群組說明檔案與目的。
-- 由共用架構 PR 先合併，其餘分支更新 base 再繼續。
+- P0-B 共用架構 PR 先合併 main，其餘 P0-B 分支再同步最新 main。
 - 不用 `git reset --hard` 或強推覆蓋別人的工作。
 
 ## 每日回報
@@ -144,8 +174,7 @@ Station 不得等待 Orbit 的所有動畫，Orbit 也不得等待 Station 感�
 影片：
 下一步：
 阻塞：
-是否影響 P0：
+是否影響 P0-A：
 ```
 
 阻塞超過半天就回報，不要自行購買新零件繞過。
-
