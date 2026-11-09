@@ -29,8 +29,14 @@ flutter analyze
 flutter test
 ```
 
-## Notes
+## Planning and delivery
 
-Cloud sync is prepared conceptually in the app's privacy and data management
-screen, but a production backend still needs to be connected before data can be
-saved across devices.
+- Start with the [Nudge follow-up work packages](docs/work-packages/README.md)
+  before taking a firmware, App, Web, Cloud, relationship, character or release
+  task.
+- Follow [the team contribution rules](CONTRIBUTING.md) and keep one verifiable
+  slice in each branch and pull request.
+- The current Cloud Activity Ledger, Membership, reward, privacy and outcome
+  foundations are implemented and tested. Physical display/BLE evidence and
+  several release-hardening gates are tracked separately; successful source
+  tests must not be described as physical-device acceptance.
