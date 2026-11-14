@@ -7,6 +7,18 @@
 - Issue：
 - 負責人：
 
+## 競賽硬體 Demo（非硬體 PR 填不適用）
+
+- 範圍依據：[package 00 範圍重設](https://github.com/z1nnz/graduation-project-nudge/blob/9ace911bf892dfb3a451acce7e2ecbeb41904f7d/docs/work-packages/00-scope-reset.md)
+- 裝置：Orbit／Station／共用／不適用
+- 優先級：P0-A／P0-B／P1／P2／不適用
+- 本次實際驗證：文件／編譯／燒錄／實體畫面／影片
+- 固定展示資料是否標記 DEMO：
+- 尚未實機驗證的項目與下一步：
+
+P0-A 是兩台各自離線三幕展示；P0-A 未完成前不認領 P0-B、P1 或 P2。
+不新增工具或零件採購，不把編譯／燒錄成功寫成實體顯示成功。
+
 ## 影響範圍
 
 - [ ] Flutter App

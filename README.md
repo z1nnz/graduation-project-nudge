@@ -4,6 +4,14 @@ Nudge is a Flutter graduation project focused on self-discipline, habit
 formation, health tracking, focus sessions, social accountability rooms, avatar
 customization, and a reward shop.
 
+## Competition hardware demo
+
+Orbit and Station use the **Competition Demo Edition v1** work packages.
+Start with the [scope adoption and delivery record](docs/competition-demo/scope-adoption.md).
+The 2026-11-04 ZIP and its 32 product work packages are **superseded** for
+competition hardware work. The only required demo is offline
+Home → Focus → Complete on each physical display; App/BLE is optional.
+
 ## Project Name
 
 - Chinese: 畢業專題 Nudge
