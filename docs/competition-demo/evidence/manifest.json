@@ -1,0 +1,129 @@
+{
+  "checked_date": "2026-11-14",
+  "timezone": "Asia/Taipei",
+  "source": "Existing user-supplied hardware photographs received 2026-11-08; originals copied without edits",
+  "evidence_level": "visual identity only; no upload, display, electrical or fallback tests",
+  "physical_mcu_unit_mapping": "unconfirmed; model-level photos cannot establish two separate units",
+  "files": [
+    {
+      "path": "orbit/2026-11-08-314259-original.jpg",
+      "bytes": 61584,
+      "sha256": "f33daf73cc647851fb965874405a8f91eb496555f65eca65ac6e2333e7a5fbd9",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "orbit/2026-11-08-314352-original.jpg",
+      "bytes": 64227,
+      "sha256": "597a1563b20639b9fdc7cd3e77a4ec63c2fcc68d6ae8da603afeb7233f13565d",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "orbit/2026-11-08-314353-original.jpg",
+      "bytes": 67711,
+      "sha256": "c3dd4fb827b4c4805af57da740e6c3c5351149bb79ccadfe687d1144b8f9c7c3",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-mcu-front-original.jpg",
+      "bytes": 48375,
+      "sha256": "f811a9a15e082d291da0193eadccdbdea1d15c5d01c4eecc27c598c551249086",
+      "received_date": "2026-11-08",
+      "device_verified": false,
+      "observation": "Originally submitted under Station MCU front; image shows XIAO mounted on a round display assembly. Identifies model only; not proof of a second independent Station MCU."
+    },
+    {
+      "path": "station/2026-11-08-mcu-back-original.jpg",
+      "bytes": 50100,
+      "sha256": "6572347851ffb76f0fac080bab3a5e257a4a7753b8a13f5f053915dfbd318aec",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-display-front-original.jpg",
+      "bytes": 81109,
+      "sha256": "eb6d02dcdab35d6b7a9050dc5e7cd2989af3a0bc59855ff7332e11b0bf03406f",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-display-back-original.jpg",
+      "bytes": 75703,
+      "sha256": "5aa8fdbc8001148e715599c82829e765bc9cbca34ace586db098073782b8f17a",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-package-original.jpg",
+      "bytes": 39719,
+      "sha256": "a1d341b04f56c775487c7a7eb0231d00904d9816afbcc390120d083b5aba72e5",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-display-cable-original.jpg",
+      "bytes": 58658,
+      "sha256": "c7fc6bafa6ec49de1505c63aac0f263afeb6eb307ad9fa340ad8a39960e1792f",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-encoder-front-original.jpg",
+      "bytes": 71585,
+      "sha256": "07dd300feabf25de43867d815843723c3e3de8e1940d4e9cad03df08dcab6e1e",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-encoder-back-original.jpg",
+      "bytes": 55844,
+      "sha256": "e1d1c330f1f38dc47d0630a00725683f76b5eccabab078fc02e250897080121f",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-buzzer-front-package-original.jpg",
+      "bytes": 52182,
+      "sha256": "ce17d4f36707287c20399e5fc81dadfb3284c23724905a93232455d743cf5983",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-buzzer-back-package-original.jpg",
+      "bytes": 53717,
+      "sha256": "fb5e692d77764b22712ff7a80e3d134df4afb70564a822d03fef2593589d92eb",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-led-front-original.jpg",
+      "bytes": 73550,
+      "sha256": "2a737d6387717ce5da312476a39356ba6288033aa4cc7a27a4892c87487d5ce7",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-led-back-original.jpg",
+      "bytes": 80179,
+      "sha256": "e8532d51051d661cc1c9dc2d54f06dc3d358a98d5bcb0df82b9196b049344c97",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-accessories-ambient-original.jpg",
+      "bytes": 115022,
+      "sha256": "fe0b412c4c1a195e83980f099413e6e785af9e488e0fa61d92559a1f04897d75",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    },
+    {
+      "path": "station/2026-11-08-ahct125-marking-original.jpg",
+      "bytes": 52718,
+      "sha256": "18379e7e914fa015d9319988c96eef9ed9d09c59e9ad9c4e9b212f50bf9a5f6f",
+      "received_date": "2026-11-08",
+      "device_verified": false
+    }
+  ]
+}
