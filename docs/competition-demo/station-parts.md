@@ -7,7 +7,7 @@
 | Package 01 必填欄位 | 已知結果 |
 | --- | --- |
 | 裝置 | Nudge Station 桌面裝置；「方屏」為產品類別，實際面板為長方形 |
-| ESP32 板上印字 | [獨立主控背面](evidence/station/2026-11-08-mcu-back-original.jpg)可見 XIAO ESP32S3；先前標作主控正面的[原圖](evidence/station/2026-11-08-mcu-front-original.jpg)可讀 `Model: XIAO-ESP32-S3`，但它位於圓屏組件上，不能當作已確認第二塊獨立主控的證據 |
+| ESP32 板上印字 | [單獨拍攝的主控背面](evidence/station/2026-11-08-mcu-back-original.jpg)可見 XIAO ESP32S3；先前標作主控正面的[原圖](evidence/station/2026-11-08-mcu-front-original.jpg)可讀 `Model: XIAO-ESP32-S3`，但它位於圓屏組件上，不能當作已確認第二塊獨立主控的證據 |
 | 螢幕正面照片 | [正面原圖](evidence/station/2026-11-08-display-front-original.jpg)，未見畫面 |
 | 螢幕背面照片 | [背面原圖](evidence/station/2026-11-08-display-back-original.jpg)，品牌、driver、解析度與八訊號可讀 |
 | 螢幕或包裝型號 | Waveshare `2inch LCD Module`；[包裝 SKU 17344](evidence/station/2026-11-08-package-original.jpg) |
@@ -60,3 +60,7 @@ BL 是背光控制。這些是 LCD 訊號名稱，不是 MCU GPIO 配置表；�
 單一 USB port 與資料線後，保存接法照片、library 版本、編譯／燒錄 log 和五色影片。
 本 PR 沒有程式、GPIO 表、編譯結果或上電指令；使用者指定實機稍後驗收。
 零件卡文件可供審查，`DEMO-02` 的實際接法與 `STA-01` 實機驗收仍待補。
+
+2026-11-14 複查：使用者維持實機稍後驗收；沒有新增主控對應或目前接線的確認。
+因此「是否為兩塊獨立主控」「目前是否未接線／已接線」仍是待確認，不推定已接或未接。
+詳見 [package 01 逐項自評](package01-self-review.md)。
