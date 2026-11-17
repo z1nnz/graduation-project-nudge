@@ -77,6 +77,7 @@ profile 的 armP1、orbitP0aAccepted、stationP0aAccepted、peripheralWiringConf
 - seesaw encoder 只用 Station；按鈕 40ms debounce、穩定按住 1.2s Reset；Task Select 短按開始，其他幕短按 Next。
   開機已按住的按鍵須先放開，避免意外事件；旋鈕大跳值會停用，沒有旋鈕自動選第一個任務。
 - 光感每秒取樣、平滑與遲滯後只輸出 30/55/80%；無效／缺失回固定 55%，畫面不顯示 lux。
+  Station 與 Orbit 都會將輸出套用到自己的背光；Orbit 使用原廠 Setup501 已有的 TFT_BL，沒有借用 Station 腳位。
 - LED 僅低主色、進度與 2s 完成色；亮度上限 16/255。需 ledSignalPathReady 才可啟用。
   現有 LED 連接屬未確認的 D 級，本輪決定不納入現場；不新增採購或焊接。
 - 蜂鳴器只用非阻塞短音：開始一個、完成兩個上行音；低音量，M 靜音。Pause/Resume 選配未實作。

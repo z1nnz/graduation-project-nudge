@@ -42,6 +42,10 @@ class OrbitDisplay final : public demo::DisplayPort {
     screen.init();
     screen.setRotation(0);
     screen.setTextWrap(false);
+    pwm_ = ledcSetup(7,5000,8)>0;
+    if(pwm_)ledcAttachPin(TFT_BL,7);
+    else Serial.println("orbit backlight PWM unavailable; fixed ON");
+    brightness(55);
     buffer.setColorDepth(16);
     buffered_ = buffer.createSprite(240, 240) != nullptr;
     buffer.setTextWrap(false);
@@ -55,8 +59,16 @@ class OrbitDisplay final : public demo::DisplayPort {
     if (entered && buffered_) buffer.pushSprite(0, 0);
   }
   void showFatal(const char* code) override { Serial.println(code); }
+  void brightness(unsigned percent) {
+    percent=percent>80?80:percent<30?30:percent;
+    if(percent==brightness_)return;
+    brightness_=percent;
+    if(pwm_)ledcWrite(7,percent*255/100);else digitalWrite(TFT_BL,HIGH);
+  }
  private:
   bool buffered_ = false;
+  bool pwm_ = false;
+  unsigned brightness_ = 0;
   demo::Painter painter_{demo::Device::orbit, NUDGE_ANIMATION != 0};
 } display;
 constexpr const char* device = "orbit";
@@ -105,6 +117,7 @@ void loop() {
   const int delta=demo::takeOptionalRotation();
   if(command!=demo::Command::restart)scenario.rotateTask(delta,now);
 #ifdef NUDGE_DEVICE_ORBIT
+  if(runtime.displayAvailable())display.brightness(demo::optionalBrightness());
   if (NUDGE_DISPLAY_TEST == 1) {
     const int index = static_cast<int>((now / 2000U) % 5U);
     if (index != previousColor) {
