@@ -35,16 +35,26 @@ Compiling .pio/build/orbit_demo/lib1c2/SPIFFS/SPIFFS.cpp.o
 Compiling .pio/build/orbit_demo/lib9f3/LittleFS/LittleFS.cpp.o
 Compiling .pio/build/orbit_demo/libd58/Wire/Wire.cpp.o
 Compiling .pio/build/orbit_demo/lib6eb/Seeed_GFX/TFT_eSPI.cpp.o
+Archiving .pio/build/orbit_demo/lib2d3/libSPI.a
+Indexing .pio/build/orbit_demo/lib2d3/libSPI.a
 Compiling .pio/build/orbit_demo/FrameworkArduino/Esp.cpp.o
+Archiving .pio/build/orbit_demo/lib9f3/libLittleFS.a
+Archiving .pio/build/orbit_demo/libdc4/libFS.a
+Archiving .pio/build/orbit_demo/lib1c2/libSPIFFS.a
 Compiling .pio/build/orbit_demo/FrameworkArduino/FirmwareMSC.cpp.o
+Indexing .pio/build/orbit_demo/lib1c2/libSPIFFS.a
+Indexing .pio/build/orbit_demo/libdc4/libFS.a
+Indexing .pio/build/orbit_demo/lib9f3/libLittleFS.a
 Compiling .pio/build/orbit_demo/FrameworkArduino/FunctionalInterrupt.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/HWCDC.cpp.o
-Compiling .pio/build/orbit_demo/FrameworkArduino/HardwareSerial.cpp.o
-Compiling .pio/build/orbit_demo/FrameworkArduino/IPAddress.cpp.o
 In file included from .pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.cpp:16:
 .pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
+Compiling .pio/build/orbit_demo/FrameworkArduino/HardwareSerial.cpp.o
+Archiving .pio/build/orbit_demo/libd58/libWire.a
+Compiling .pio/build/orbit_demo/FrameworkArduino/IPAddress.cpp.o
+Indexing .pio/build/orbit_demo/libd58/libWire.a
 Compiling .pio/build/orbit_demo/FrameworkArduino/IPv6Address.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/MD5Builder.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/Print.cpp.o
@@ -87,18 +97,20 @@ Compiling .pio/build/orbit_demo/FrameworkArduino/wiring_pulse.c.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/wiring_shift.c.o
 Archiving .pio/build/orbit_demo/libFrameworkArduino.a
 Indexing .pio/build/orbit_demo/libFrameworkArduino.a
+Archiving .pio/build/orbit_demo/lib6eb/libSeeed_GFX.a
+Indexing .pio/build/orbit_demo/lib6eb/libSeeed_GFX.a
 Linking .pio/build/orbit_demo/firmware.elf
 Retrieving maximum program size .pio/build/orbit_demo/firmware.elf
 Checking size .pio/build/orbit_demo/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
 RAM:   [=         ]   6.0% (used 19572 bytes from 327680 bytes)
-Flash: [=         ]  10.1% (used 338029 bytes from 3342336 bytes)
+Flash: [=         ]  10.1% (used 338041 bytes from 3342336 bytes)
 Building .pio/build/orbit_demo/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.82 seconds =========================
+========================= [SUCCESS] Took 4.94 seconds =========================
 
 Processing orbit_p0a (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -135,18 +147,28 @@ Compiling .pio/build/orbit_p0a/lib1c2/SPIFFS/SPIFFS.cpp.o
 Compiling .pio/build/orbit_p0a/lib9f3/LittleFS/LittleFS.cpp.o
 Compiling .pio/build/orbit_p0a/libd58/Wire/Wire.cpp.o
 Compiling .pio/build/orbit_p0a/lib87d/Seeed_GFX/TFT_eSPI.cpp.o
+Archiving .pio/build/orbit_p0a/lib2d3/libSPI.a
+Indexing .pio/build/orbit_p0a/lib2d3/libSPI.a
 Compiling .pio/build/orbit_p0a/FrameworkArduino/Esp.cpp.o
+Archiving .pio/build/orbit_p0a/lib1c2/libSPIFFS.a
+Archiving .pio/build/orbit_p0a/libdc4/libFS.a
 Compiling .pio/build/orbit_p0a/FrameworkArduino/FirmwareMSC.cpp.o
+Indexing .pio/build/orbit_p0a/lib1c2/libSPIFFS.a
+Indexing .pio/build/orbit_p0a/libdc4/libFS.a
 Compiling .pio/build/orbit_p0a/FrameworkArduino/FunctionalInterrupt.cpp.o
 Compiling .pio/build/orbit_p0a/FrameworkArduino/HWCDC.cpp.o
-Compiling .pio/build/orbit_p0a/FrameworkArduino/HardwareSerial.cpp.o
+Archiving .pio/build/orbit_p0a/lib9f3/libLittleFS.a
 In file included from .pio/libdeps/orbit_p0a/Seeed_GFX/TFT_eSPI.cpp:16:
 .pio/libdeps/orbit_p0a/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
+Compiling .pio/build/orbit_p0a/FrameworkArduino/HardwareSerial.cpp.o
+Indexing .pio/build/orbit_p0a/lib9f3/libLittleFS.a
 Compiling .pio/build/orbit_p0a/FrameworkArduino/IPAddress.cpp.o
 Compiling .pio/build/orbit_p0a/FrameworkArduino/IPv6Address.cpp.o
+Archiving .pio/build/orbit_p0a/libd58/libWire.a
 Compiling .pio/build/orbit_p0a/FrameworkArduino/MD5Builder.cpp.o
+Indexing .pio/build/orbit_p0a/libd58/libWire.a
 Compiling .pio/build/orbit_p0a/FrameworkArduino/Print.cpp.o
 Compiling .pio/build/orbit_p0a/FrameworkArduino/Stream.cpp.o
 Compiling .pio/build/orbit_p0a/FrameworkArduino/StreamString.cpp.o
@@ -187,18 +209,20 @@ Compiling .pio/build/orbit_p0a/FrameworkArduino/wiring_pulse.c.o
 Compiling .pio/build/orbit_p0a/FrameworkArduino/wiring_shift.c.o
 Archiving .pio/build/orbit_p0a/libFrameworkArduino.a
 Indexing .pio/build/orbit_p0a/libFrameworkArduino.a
+Archiving .pio/build/orbit_p0a/lib87d/libSeeed_GFX.a
+Indexing .pio/build/orbit_p0a/lib87d/libSeeed_GFX.a
 Linking .pio/build/orbit_p0a/firmware.elf
 Retrieving maximum program size .pio/build/orbit_p0a/firmware.elf
 Checking size .pio/build/orbit_p0a/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
 RAM:   [=         ]   6.0% (used 19572 bytes from 327680 bytes)
-Flash: [=         ]  10.1% (used 338029 bytes from 3342336 bytes)
+Flash: [=         ]  10.1% (used 338041 bytes from 3342336 bytes)
 Building .pio/build/orbit_p0a/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.43 seconds =========================
+========================= [SUCCESS] Took 4.58 seconds =========================
 
 Processing orbit_static (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -235,18 +259,28 @@ Compiling .pio/build/orbit_static/lib1c2/SPIFFS/SPIFFS.cpp.o
 Compiling .pio/build/orbit_static/lib9f3/LittleFS/LittleFS.cpp.o
 Compiling .pio/build/orbit_static/libd58/Wire/Wire.cpp.o
 Compiling .pio/build/orbit_static/lib253/Seeed_GFX/TFT_eSPI.cpp.o
+Archiving .pio/build/orbit_static/lib2d3/libSPI.a
+Indexing .pio/build/orbit_static/lib2d3/libSPI.a
 Compiling .pio/build/orbit_static/FrameworkArduino/Esp.cpp.o
+Archiving .pio/build/orbit_static/lib1c2/libSPIFFS.a
 Compiling .pio/build/orbit_static/FrameworkArduino/FirmwareMSC.cpp.o
+Indexing .pio/build/orbit_static/lib1c2/libSPIFFS.a
+Archiving .pio/build/orbit_static/libdc4/libFS.a
 Compiling .pio/build/orbit_static/FrameworkArduino/FunctionalInterrupt.cpp.o
+Indexing .pio/build/orbit_static/libdc4/libFS.a
 Compiling .pio/build/orbit_static/FrameworkArduino/HWCDC.cpp.o
-Compiling .pio/build/orbit_static/FrameworkArduino/HardwareSerial.cpp.o
-Compiling .pio/build/orbit_static/FrameworkArduino/IPAddress.cpp.o
+Archiving .pio/build/orbit_static/lib9f3/libLittleFS.a
 In file included from .pio/libdeps/orbit_static/Seeed_GFX/TFT_eSPI.cpp:16:
 .pio/libdeps/orbit_static/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
+Compiling .pio/build/orbit_static/FrameworkArduino/HardwareSerial.cpp.o
+Indexing .pio/build/orbit_static/lib9f3/libLittleFS.a
+Compiling .pio/build/orbit_static/FrameworkArduino/IPAddress.cpp.o
 Compiling .pio/build/orbit_static/FrameworkArduino/IPv6Address.cpp.o
 Compiling .pio/build/orbit_static/FrameworkArduino/MD5Builder.cpp.o
+Archiving .pio/build/orbit_static/libd58/libWire.a
+Indexing .pio/build/orbit_static/libd58/libWire.a
 Compiling .pio/build/orbit_static/FrameworkArduino/Print.cpp.o
 Compiling .pio/build/orbit_static/FrameworkArduino/Stream.cpp.o
 Compiling .pio/build/orbit_static/FrameworkArduino/StreamString.cpp.o
@@ -287,18 +321,20 @@ Compiling .pio/build/orbit_static/FrameworkArduino/wiring_pulse.c.o
 Compiling .pio/build/orbit_static/FrameworkArduino/wiring_shift.c.o
 Archiving .pio/build/orbit_static/libFrameworkArduino.a
 Indexing .pio/build/orbit_static/libFrameworkArduino.a
+Archiving .pio/build/orbit_static/lib253/libSeeed_GFX.a
+Indexing .pio/build/orbit_static/lib253/libSeeed_GFX.a
 Linking .pio/build/orbit_static/firmware.elf
 Retrieving maximum program size .pio/build/orbit_static/firmware.elf
 Checking size .pio/build/orbit_static/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
 RAM:   [=         ]   6.0% (used 19572 bytes from 327680 bytes)
-Flash: [=         ]  10.1% (used 338029 bytes from 3342336 bytes)
+Flash: [=         ]  10.1% (used 338041 bytes from 3342336 bytes)
 Building .pio/build/orbit_static/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.45 seconds =========================
+========================= [SUCCESS] Took 4.57 seconds =========================
 
 Processing orbit_colors (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -335,18 +371,28 @@ Compiling .pio/build/orbit_colors/lib1c2/SPIFFS/SPIFFS.cpp.o
 Compiling .pio/build/orbit_colors/lib9f3/LittleFS/LittleFS.cpp.o
 Compiling .pio/build/orbit_colors/libd58/Wire/Wire.cpp.o
 Compiling .pio/build/orbit_colors/lib351/Seeed_GFX/TFT_eSPI.cpp.o
+Archiving .pio/build/orbit_colors/lib2d3/libSPI.a
+Indexing .pio/build/orbit_colors/lib2d3/libSPI.a
 Compiling .pio/build/orbit_colors/FrameworkArduino/Esp.cpp.o
+Archiving .pio/build/orbit_colors/libdc4/libFS.a
+Archiving .pio/build/orbit_colors/lib1c2/libSPIFFS.a
 Compiling .pio/build/orbit_colors/FrameworkArduino/FirmwareMSC.cpp.o
+Indexing .pio/build/orbit_colors/lib1c2/libSPIFFS.a
+Indexing .pio/build/orbit_colors/libdc4/libFS.a
 Compiling .pio/build/orbit_colors/FrameworkArduino/FunctionalInterrupt.cpp.o
+Archiving .pio/build/orbit_colors/lib9f3/libLittleFS.a
 Compiling .pio/build/orbit_colors/FrameworkArduino/HWCDC.cpp.o
 In file included from .pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.cpp:16:
 .pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
+Indexing .pio/build/orbit_colors/lib9f3/libLittleFS.a
 Compiling .pio/build/orbit_colors/FrameworkArduino/HardwareSerial.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/IPAddress.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/IPv6Address.cpp.o
+Archiving .pio/build/orbit_colors/libd58/libWire.a
 Compiling .pio/build/orbit_colors/FrameworkArduino/MD5Builder.cpp.o
+Indexing .pio/build/orbit_colors/libd58/libWire.a
 Compiling .pio/build/orbit_colors/FrameworkArduino/Print.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/Stream.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/StreamString.cpp.o
@@ -387,18 +433,20 @@ Compiling .pio/build/orbit_colors/FrameworkArduino/wiring_pulse.c.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/wiring_shift.c.o
 Archiving .pio/build/orbit_colors/libFrameworkArduino.a
 Indexing .pio/build/orbit_colors/libFrameworkArduino.a
+Archiving .pio/build/orbit_colors/lib351/libSeeed_GFX.a
+Indexing .pio/build/orbit_colors/lib351/libSeeed_GFX.a
 Linking .pio/build/orbit_colors/firmware.elf
 Retrieving maximum program size .pio/build/orbit_colors/firmware.elf
 Checking size .pio/build/orbit_colors/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
 RAM:   [=         ]   6.0% (used 19564 bytes from 327680 bytes)
-Flash: [=         ]  10.1% (used 337621 bytes from 3342336 bytes)
+Flash: [=         ]  10.1% (used 337633 bytes from 3342336 bytes)
 Building .pio/build/orbit_colors/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.47 seconds =========================
+========================= [SUCCESS] Took 4.58 seconds =========================
 
 Processing orbit_calibration (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -435,17 +483,27 @@ Compiling .pio/build/orbit_calibration/lib1c2/SPIFFS/SPIFFS.cpp.o
 Compiling .pio/build/orbit_calibration/lib9f3/LittleFS/LittleFS.cpp.o
 Compiling .pio/build/orbit_calibration/libd58/Wire/Wire.cpp.o
 Compiling .pio/build/orbit_calibration/lib38f/Seeed_GFX/TFT_eSPI.cpp.o
+Archiving .pio/build/orbit_calibration/lib2d3/libSPI.a
+Indexing .pio/build/orbit_calibration/lib2d3/libSPI.a
 Compiling .pio/build/orbit_calibration/FrameworkArduino/Esp.cpp.o
+Archiving .pio/build/orbit_calibration/libdc4/libFS.a
+Archiving .pio/build/orbit_calibration/lib1c2/libSPIFFS.a
+Archiving .pio/build/orbit_calibration/lib9f3/libLittleFS.a
+Indexing .pio/build/orbit_calibration/libdc4/libFS.a
+Indexing .pio/build/orbit_calibration/lib1c2/libSPIFFS.a
+Indexing .pio/build/orbit_calibration/lib9f3/libLittleFS.a
 Compiling .pio/build/orbit_calibration/FrameworkArduino/FirmwareMSC.cpp.o
 Compiling .pio/build/orbit_calibration/FrameworkArduino/FunctionalInterrupt.cpp.o
 Compiling .pio/build/orbit_calibration/FrameworkArduino/HWCDC.cpp.o
-Compiling .pio/build/orbit_calibration/FrameworkArduino/HardwareSerial.cpp.o
-Compiling .pio/build/orbit_calibration/FrameworkArduino/IPAddress.cpp.o
-Compiling .pio/build/orbit_calibration/FrameworkArduino/IPv6Address.cpp.o
 In file included from .pio/libdeps/orbit_calibration/Seeed_GFX/TFT_eSPI.cpp:16:
 .pio/libdeps/orbit_calibration/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
+Compiling .pio/build/orbit_calibration/FrameworkArduino/HardwareSerial.cpp.o
+Archiving .pio/build/orbit_calibration/libd58/libWire.a
+Compiling .pio/build/orbit_calibration/FrameworkArduino/IPAddress.cpp.o
+Indexing .pio/build/orbit_calibration/libd58/libWire.a
+Compiling .pio/build/orbit_calibration/FrameworkArduino/IPv6Address.cpp.o
 Compiling .pio/build/orbit_calibration/FrameworkArduino/MD5Builder.cpp.o
 Compiling .pio/build/orbit_calibration/FrameworkArduino/Print.cpp.o
 Compiling .pio/build/orbit_calibration/FrameworkArduino/Stream.cpp.o
@@ -487,18 +545,20 @@ Compiling .pio/build/orbit_calibration/FrameworkArduino/wiring_pulse.c.o
 Compiling .pio/build/orbit_calibration/FrameworkArduino/wiring_shift.c.o
 Archiving .pio/build/orbit_calibration/libFrameworkArduino.a
 Indexing .pio/build/orbit_calibration/libFrameworkArduino.a
+Archiving .pio/build/orbit_calibration/lib38f/libSeeed_GFX.a
+Indexing .pio/build/orbit_calibration/lib38f/libSeeed_GFX.a
 Linking .pio/build/orbit_calibration/firmware.elf
 Retrieving maximum program size .pio/build/orbit_calibration/firmware.elf
 Checking size .pio/build/orbit_calibration/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
 RAM:   [=         ]   6.0% (used 19572 bytes from 327680 bytes)
-Flash: [=         ]  10.1% (used 337773 bytes from 3342336 bytes)
+Flash: [=         ]  10.1% (used 337785 bytes from 3342336 bytes)
 Building .pio/build/orbit_calibration/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.47 seconds =========================
+========================= [SUCCESS] Took 4.63 seconds =========================
 
 Processing station_demo (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -576,20 +636,20 @@ Retrieving maximum program size .pio/build/station_demo/firmware.elf
 Checking size .pio/build/station_demo/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
 RAM:   [=         ]   5.6% (used 18460 bytes from 327680 bytes)
-Flash: [=         ]   7.6% (used 255301 bytes from 3342336 bytes)
+Flash: [=         ]   7.6% (used 255313 bytes from 3342336 bytes)
 Building .pio/build/station_demo/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 3.12 seconds =========================
+========================= [SUCCESS] Took 3.22 seconds =========================
 
 Environment        Status    Duration
 -----------------  --------  ------------
-orbit_demo         SUCCESS   00:00:04.818
-orbit_p0a          SUCCESS   00:00:04.427
-orbit_static       SUCCESS   00:00:04.446
-orbit_colors       SUCCESS   00:00:04.467
-orbit_calibration  SUCCESS   00:00:04.469
-station_demo       SUCCESS   00:00:03.116
-========================= 6 succeeded in 00:00:25.742 =========================
+orbit_demo         SUCCESS   00:00:04.937
+orbit_p0a          SUCCESS   00:00:04.578
+orbit_static       SUCCESS   00:00:04.566
+orbit_colors       SUCCESS   00:00:04.583
+orbit_calibration  SUCCESS   00:00:04.625
+station_demo       SUCCESS   00:00:03.217
+========================= 6 succeeded in 00:00:26.506 =========================

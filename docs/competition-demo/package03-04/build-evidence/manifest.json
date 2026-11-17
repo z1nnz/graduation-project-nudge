@@ -1,8 +1,8 @@
 {
-  "source_commit": "5c6a68839e281f5faf7baa1b45683e2774459d2f",
-  "source_tree": "395ab4e1e323eea31f1b6c1616a92a255cbaaa3e",
+  "source_commit": "a60add98dbdf822577bbb808f5017cc2402ac196",
+  "source_tree": "1845c456436c1d38945b2fa47b4edb80bb7ce139",
   "source_dirty": false,
-  "build_identity": "5c6a68839e28",
+  "build_identity": "a60add98dbdf",
   "physical_verified": false,
   "station_lcd_implemented": false,
   "artifacts": [
@@ -10,7 +10,7 @@
       "environment": "orbit_p0a",
       "file": "orbit_p0a.bin",
       "bytes": 338400,
-      "sha256": "1c56f614a76292b87fcb73cab340041181478d11daae52b70beca5d2cf3399bb",
+      "sha256": "812d983baa6e90b8f2ea0edba898c338080097f7688973662c10602f0a2d1eff",
       "display_driver_configured": true,
       "physical_verified": false
     },
@@ -18,7 +18,7 @@
       "environment": "orbit_demo",
       "file": "orbit_demo.bin",
       "bytes": 338400,
-      "sha256": "4dc66c800fe2db28901b62f235858e25f1424a388c0b98638f08f6fd074df5ad",
+      "sha256": "5d6ba47cca210329f619ecd660b8c6cc6f9c2245eafe3ac5f6c9fa9a52cc72ad",
       "display_driver_configured": true,
       "physical_verified": false
     },
@@ -26,15 +26,15 @@
       "environment": "orbit_static",
       "file": "orbit_static.bin",
       "bytes": 338400,
-      "sha256": "9483427ebfb4ede9631f18da883b7592a6ed6f4d8c84edbd5df31ef33fc23161",
+      "sha256": "f5b70026cfe1758d4fb3475944f7ad03fd7ba7564662a440f7f596ce72c69e9a",
       "display_driver_configured": true,
       "physical_verified": false
     },
     {
       "environment": "orbit_colors",
       "file": "orbit_colors.bin",
-      "bytes": 337984,
-      "sha256": "0f7030642d616f1eea316e6b4fc1f5e8bc7a5e000690ef21346c1fa277ececde",
+      "bytes": 338000,
+      "sha256": "169ab0421e5a1380f1f0ed1c2709c1f79e07b4a26d26a71cc211bec3b2dd6fba",
       "display_driver_configured": true,
       "physical_verified": false
     },
@@ -42,15 +42,15 @@
       "environment": "orbit_calibration",
       "file": "orbit_calibration.bin",
       "bytes": 338144,
-      "sha256": "9b09f52a7e29167f9235e8e0321908724181ffd22abb10af1244b3b6c044d97f",
+      "sha256": "9ce8d95e8347dcc4dd29d891fc30abd755531bff425d3aa2a6cff2f9b15a7a5c",
       "display_driver_configured": true,
       "physical_verified": false
     },
     {
       "environment": "station_demo",
       "file": "station_diagnostic_only.bin",
-      "bytes": 255664,
-      "sha256": "048c0e9f1d1aa8d22f4aa1dfdac3f191f08fd7a4d19dbaed4f6325afc0b45040",
+      "bytes": 255680,
+      "sha256": "461b8aa7d5dab1402d3f2c8138c8e7e84ac73659fdfd40026c28dddd6da2a7ef",
       "display_driver_configured": false,
       "physical_verified": false
     }
