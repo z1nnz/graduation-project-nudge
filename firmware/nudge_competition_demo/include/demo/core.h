@@ -6,7 +6,7 @@ namespace demo {
 enum class Scene : std::uint8_t { boot, home, ready, focus, encouragement, complete, growth, summary };
 enum class Mode { p0a, p0b };
 enum class Device { orbit, station };
-enum class Command { none, next, restart };
+enum class Command { none, next, restart, start };
 
 struct DemoData {
   const char* userName = "小樹";
@@ -22,6 +22,7 @@ struct DemoData {
   int totalMembers = 5;
   int todayFocusCount = 2;
   int todayFocusMinutes = 50;
+  const char* taskLabels[3] = {"PROJECT", "READ 25 MIN", "WALK 3000"};
 };
 const DemoData& data();
 const char* sceneName(Scene scene);
@@ -34,6 +35,7 @@ struct Frame {
   std::uint16_t progress;  // 0..1000; compressed preview, never real activity evidence.
   unsigned remainingSeconds;
   const DemoData* values;
+  unsigned taskIndex = 0;
 };
 
 class Scenario {
@@ -42,6 +44,8 @@ class Scenario {
   void restart(std::uint32_t now);
   void next(std::uint32_t now);
   void tick(std::uint32_t now);
+  void rotateTask(int delta, std::uint32_t now);
+  void startFocus(std::uint32_t now);
   Frame frame(std::uint32_t now) const;
   Scene scene() const { return scene_; }
   std::uint32_t generation() const { return generation_; }
@@ -54,6 +58,7 @@ class Scenario {
   std::uint32_t enteredAt_ = 0;
   std::uint32_t lastInput_ = 0;
   std::uint32_t generation_ = 0;
+  unsigned taskIndex_ = 0;
 };
 
 class DisplayPort {

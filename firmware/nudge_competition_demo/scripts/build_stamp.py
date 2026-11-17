@@ -1,6 +1,7 @@
 Import("env")
 import subprocess
 from pathlib import Path
+import hashlib
 
 # Third-party assertions can embed __FILE__ in the binary. Keep operator paths
 # out of deliverable images as well as out of the published build log.
@@ -13,4 +14,6 @@ dirty = subprocess.check_output(
     ["git", "status", "--porcelain", "--", "firmware/nudge_competition_demo"],
     cwd=env.subst("$PROJECT_DIR") + "/../..", text=True
 ).strip()
-env.Append(CPPDEFINES=[("NUDGE_BUILD_ID", env.StringifyMacro(revision + ("-dirty" if dirty else "")))])
+profile = Path(env["PROJECT_DIR"]) / "include" / "local_hardware_profile.h"
+profile_id = "-hw" + hashlib.sha256(profile.read_bytes()).hexdigest()[:8] if profile.exists() else ""
+env.Append(CPPDEFINES=[("NUDGE_BUILD_ID", env.StringifyMacro(revision + ("-dirty" if dirty else "") + profile_id))])

@@ -9,4 +9,5 @@ test('offline firmware core replay, failure and rendering tests compile and pass
   });
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /PASS: replay/);
+  assert.match(result.stdout, /PASS: station eight scenes/);
 });

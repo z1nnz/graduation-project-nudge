@@ -1,4 +1,5 @@
 #include "demo/drawing.h"
+#include "demo/station.h"
 #include <cmath>
 #include <cstdio>
 
@@ -62,7 +63,7 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
       case Scene::focus:
         ring(c, 0, 120, color::muted);
         centered(c, 70, "FOCUS", 2, color::primary);
-        centered(c, 148, "PROJECT", 2);
+        centered(c, 148, v.taskLabels[f.taskIndex<3?f.taskIndex:0], 2);
         break;
       case Scene::encouragement:
         centered(c, 70, "KEEP GOING", 2, color::support);
@@ -125,16 +126,10 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
   }
 }
 void Painter::station(Canvas& c, const Frame& f) {
-  // Host preview/layout contract only. No Station LCD/GPIO is selected here.
-  c.text(16, 18, "NUDGE STATION", 2, color::ready);
-  c.text(16, 58, sceneName(f.scene), 2, color::text);
-  char text[32];
-  std::snprintf(text, sizeof(text), "PROJECT / %d MIN", f.values->focusMinutes);
-  c.text(16, 100, text, 2, color::text);
-  std::snprintf(text, sizeof(text), "ROOM %d / %d", f.values->activeMembers, f.values->totalMembers);
-  c.text(16, 142, text, 2, color::support);
-  sprout(c, 120, 220, f.scene == Scene::growth, f.scene == Scene::complete, color::complete);
-  c.text(16, 284, "DEMO / OFFLINE", 2, color::muted);
+  // Compatibility entry point for the original shared-layout contract.
+  // The hardware adapter holds a persistent StationPainter for partial updates.
+  StationPainter painter;
+  painter.render(c,f,true);
 }
 void paintCalibration(Canvas& c) {
   c.clear(color::background);

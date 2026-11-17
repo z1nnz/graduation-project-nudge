@@ -1,117 +1,108 @@
-# Nudge 離線競賽展示韌體（工作包 03、04）
+# Nudge 競賽離線展示韌體
 
-這個獨立專案提供 Orbit 的離線三幕／八幕展示與可重用的 C++ 場景 core。
-既有 `nudge_focus_device` 保留原狀。**尚未燒錄或完成實機驗收**。
-`station_demo` 只編譯 core／序列診斷，不包含 Station LCD driver，也不能充當 Station 展示成品。
+目前涵蓋工作包 03／04 的 Orbit，以及 05 的 Station、06 的周邊軟體準備。
+原本 `nudge_focus_device` 正式韌體保持原狀。實機依使用者指示稍後驗收。
 
-工作包固定來源：
-[03 韌體架構](https://github.com/z1nnz/graduation-project-nudge/blob/9ace911bf892dfb3a451acce7e2ecbeb41904f7d/docs/work-packages/03-demo-firmware-architecture.md)、
-[04 Orbit](https://github.com/z1nnz/graduation-project-nudge/blob/9ace911bf892dfb3a451acce7e2ecbeb41904f7d/docs/work-packages/04-orbit-round-display-work-package.md)。
-本專案是允許的獨立最小 Demo 專案路線，不依賴尚未合併的共用 core PR。
+Station：XIAO ESP32S3 ＋ Waveshare 17344／2inch LCD Module，ST7789 家族、240×320、SPI。
+已補入真實 ST7789 adapter 與八幕 Painter；**發布設定沒有已確認 GPIO，預設只輸出診斷，不會操作 LCD**。
+周邊 adapter 已編譯／host 測試，但全部預設停用；不能當作 P0-A 或周邊實機成功。
 
-## 建置與輸出
+[逐項驗收與自評](../../docs/competition-demo/package05-06/README.md)包含工作包來源、身分卡、既有原圖連結、限制與待補項目。
+歷史 #23／package03-04 的文件與 binary 保留原交付版本，不代表本次的新版本。
+本 PR 沿用尚未合併 #23 的 core；建議 z1nnz 先審查 #21、#23，再處理本輪 PR。所有 PR base 仍為 main。
 
-需要 C++17／make、Python 3.9 以上、PlatformIO 6.1.19。ESP32 平台固定 6.12.0，
-Seeed_GFX 固定 V3.1.0 對應 commit `0b13b21f284c9bce3351b394bbd871b688d6aec7`。
+## 建置
+
+Python 3.9 以上、PlatformIO 6.1.19、C++17／make。
+ESP32 平台固定 6.12.0，所有圖形與周邊 libraries 固定 Git commit，見 platformio.ini／[相依來源](../../docs/competition-demo/package05-06/dependencies.md)。
 
 ```sh
 python -m pip install platformio==6.1.19
 make -C firmware/nudge_competition_demo test
-make -C firmware/nudge_competition_demo preview
-pio run --project-dir firmware/nudge_competition_demo -e orbit_p0a -e orbit_demo -e orbit_static -e orbit_colors -e orbit_calibration -e station_demo
+make -C firmware/nudge_competition_demo station-preview
+pio run --project-dir firmware/nudge_competition_demo -e station_p0a -e station_demo -e station_colors -e station_calibration -e station_p1_check -e orbit_p0a -e orbit_demo -e orbit_static -e orbit_colors -e orbit_calibration -e orbit_p1_check
 python firmware/nudge_competition_demo/scripts/package_builds.py
 ```
 
-| Environment | 實際作用 |
+| Environment | 用途 |
 | --- | --- |
-| `orbit_p0a`（預設） | Boot 後 Home 5s → Focus 20s → Complete 5s → Home |
-| `orbit_demo` | Boot 1.5s；Home 4s → Ready 3s → Focus 20s → Encouragement 5s → Complete 4s → Growth 5s → Summary 8s → Home |
-| `orbit_static` | 同八幕，關閉 Boot／Complete 角色分幀，保留倒數／進度更新 |
-| `orbit_colors` | 紅／綠／藍／黑／白，各 2s，檢查是否全圓顯示；不播放場景 |
-| `orbit_calibration` | 十字、外環、N/E/S/W、三種字級與 rotation 0；不播放場景 |
-| `station_demo` | **僅序列診斷**，回報 `STATION_DRIVER_UNCONFIGURED`，不操作未知 LCD GPIO |
+| orbit_p0a（專案預設） | 已有 Orbit 三幕；無周邊依賴 |
+| orbit_demo／orbit_static | Orbit 八幕／關閉角色分幀的備援 |
+| orbit_colors／orbit_calibration | Orbit 原有五色／校正 |
+| station_p0a | Station 三幕：Home 5s → Focus 20s → Complete 5s |
+| station_demo | Station 八幕，與 Orbit 相同 Scene ID／時間軸 |
+| station_colors | 整片紅、綠、藍、黑、白，各 2s |
+| station_calibration | 240×320、實際 rotation、8/12px 邊界、8/16/32px 字級參考 |
+| station_p1_check／orbit_p1_check | 編譯五種周邊 driver；發布 profile 仍關閉全部模組 |
 
-輸出在 `.pio/build/<environment>/firmware.bin`；打包在 `build/artifacts/`。
-打包器核對 binary 內嵌 build identity，拒絕把舊版 binary 配上新 commit。
-manifest 記錄 source commit／專案 Git tree、dirty 狀態、檔案長度及 SHA-256；所有 physical_verified 維持 false。
-Station 檔名特別使用 `station_diagnostic_only.bin`。不能把此檔燒到 Station 當作方屏展示。
-CI 的既有 Web check 會經 root Node 測試入口編譯及執行 native C++ 測試，六個必要 check 名稱不變。
-目前 GitHub 憑證不允許修改 workflow，因此本 PR 保留既有 CI 設定；ESP32 六種交叉編譯在本機完成，
-binary／manifest／完整 build log 隨 [build-evidence](../../docs/competition-demo/package03-04/build-evidence/) 交付。
-build log 只遮去操作者的本機路徑，其他行完整保留。這些是未經實機驗證的建置輸出。
-manifest 的 source commit 是獨立的 source 提交，後續 evidence 提交不修改韌體專案；可核對 Git tree 相同。
+Station 的四種畫面模式及 p1_check 都先檢查 profile；未確認就只顯示 serial 診斷，沒有假 pin map。
+`NUDGE_BUILD_OPTIONALS=1` 只代表編譯包含周邊，不等於允許初始化。
+CI 保留原設定：既有 root Node 測試入口會實際編譯執行兩個 C++ 測試程式；
+ESP32 交叉編譯在本機完成，最新結果隨本輪 build-evidence 交付，不能把 Web CI 稱為 ESP32 編譯。
 
-## 燒錄與現場操作（待裝置持有人驗證）
+## 實機之後設定
 
-先確認實物是 XIAO ESP32S3＋Seeed Round Display；每次只連目標裝置，使用 `pio device list`
-核對 USB port。插接方向依原廠及現場照片核對，不能將本文件當作 Station 接線圖。
+1. 持板者先確認 Station 是獨立於 Orbit 的第二塊 XIAO，及 LCD 原廠訊號／電源／接頭對應。
+2. 將 config/local_hardware_profile.example.h 複製為 include/local_hardware_profile.h。
+   所有 GPIO 預設 -1；只填已核對的 ESP32 GPIO 數字，再標示 independentStationConfirmed／lcdWiringConfirmed。
+   不照抄 Orbit D 編號、UNO 範例或線材顏色。文件沒有提供猜測接線表，也不要求採購。
+3. LCD MOSI、clock、CS、DC、reset、backlight 必須是相異的 XIAO 外露 GPIO；USB GPIO 不允許。
+   目前 layout 只接受直向 rotation 0／2。先以五色核對色序及 invertColors，再跑校正與三幕。
+4. 使用原廠 ST7789 型號資料移植 Adafruit driver；這不是原廠提供的 XIAO 現成範例，也未完成實機移植驗收。
+5. 稍後接板只連目標裝置，核對實際 USB port 後才操作下列 upload 範本。
 
 ```sh
 pio device list
-# 把下列 /dev/cu.usbmodem-REPLACE 換成剛核對的 Orbit port。
-pio run --project-dir firmware/nudge_competition_demo -e orbit_colors -t upload --upload-port /dev/cu.usbmodem-REPLACE
-pio run --project-dir firmware/nudge_competition_demo -e orbit_calibration -t upload --upload-port /dev/cu.usbmodem-REPLACE
-pio run --project-dir firmware/nudge_competition_demo -e orbit_p0a -t upload --upload-port /dev/cu.usbmodem-REPLACE
-pio run --project-dir firmware/nudge_competition_demo -e orbit_demo -t upload --upload-port /dev/cu.usbmodem-REPLACE
+# /dev/cu.usbmodem-REPLACE 必須替換為已核對的 Station port。
+pio run --project-dir firmware/nudge_competition_demo -e station_colors -t upload --upload-port /dev/cu.usbmodem-REPLACE
+pio run --project-dir firmware/nudge_competition_demo -e station_calibration -t upload --upload-port /dev/cu.usbmodem-REPLACE
+pio run --project-dir firmware/nudge_competition_demo -e station_p0a -t upload --upload-port /dev/cu.usbmodem-REPLACE
+pio run --project-dir firmware/nudge_competition_demo -e station_demo -t upload --upload-port /dev/cu.usbmodem-REPLACE
 pio device monitor --port /dev/cu.usbmodem-REPLACE --baud 115200
 ```
 
-序列 `N`／`n` 下一幕、`R`／`r` 回 Boot；換行及其他字元忽略。
-沒有輸入 5s 後自動播放，Boot 不必等待輸入，冷啟動理論 1.5s 進 Home。
-每次有效輸入讓自動切換等候至少 5s，不需要 App、BLE、帳號、Wi-Fi 或任何 P1 模組。
-沒有替尚未驗證的觸控／按鍵指定腳位；板上 Reset 會重新開機，實際操作成功仍待驗。
-上游可能輸出 `TOUCH_CS pin not defined` 警告；本輪沒有使用其 SPI 觸控介面，
-沒有為消除警告填入假腳位。既有電容觸控亦未啟用，操作只用自動與 USB serial。
+Serial N 下一幕、R 回 Boot、M 切換周邊靜音。無輸入 5s 啟用自動；初始化後重新計 Boot 1.5s。
+三幕每圈 30s；八幕 Home 4／Ready 3／Focus 20／Support 5／Complete 4／Growth 5／Summary 8s，每圈 49s。
+沿用 package03/04 的實作時間，不沿用 package02 尚未重排的 4s Ready／6s Summary 紙面規劃。
 
-卡住時保留另一台演示，使用已核對的 USB／port 重啟或重刷原本的 `orbit_p0a`。
-出現白屏／局部顯示先用五色與校正模式，停止加入周邊，不按壓玻璃。
-若 buffer 配置失敗會回報並直接繪製靜態切幕；有較明顯切幕也不阻止自動流程。
-`screen.init()` 沒有 panel ACK；log 的 init issued **不是實體畫面成功證據**。
+## P1 稍後啟用的門檻
 
-## Core、畫面與限制
+profile 的 armP1、orbitP0aAccepted、stationP0aAccepted、peripheralWiringConfirmed 皆須為 true，
+且 display 初始化可用，才會進入任何周邊 begin；目前沒有兩台實機 P0-A 證據，這些值全為 false。
+即使編譯 p1_check，也不會呼叫 Wire.begin 或操作周邊 GPIO。
 
-`Scenario` 只接收 tick／next／restart，使用 uint32 millis 差值，支援回捲。
-晚到的 tick 每次只換一幕，重新計算停留起點，避免 catch-up 直接跳過 Complete；
-遇到停頓會延長整體展示時間，不能保證兩台同步。沒有 previous（工作包列為可選）。
-`Runtime` 把 Frame 交給 DisplayPort；EffectPort 初始化失敗仍可輪播，測試會注入失敗。
-正式周邊尚未接入；begin 的實作仍須遵守非阻塞契約。
+- 每次只啟用已購買且現有接法已確認的一個欄位：button／encoder／led／light／buzzer。
+- I2C 的 sda／scl 必須相異且不占 LCD。Orbit 額外保留原廠 Setup501 的螢幕／觸控腳位。
+- buttonPin／ledPin 同樣不得占用 LCD、I2C 或彼此的腳位。沒有已核對 GPIO 按鍵時保持 button=false。
+- seesaw encoder 只用 Station；按鈕 40ms debounce、穩定按住 1.2s Reset；Task Select 短按開始，其他幕短按 Next。
+  開機已按住的按鍵須先放開，避免意外事件；旋鈕大跳值會停用，沒有旋鈕自動選第一個任務。
+- 光感每秒取樣、平滑與遲滯後只輸出 30/55/80%；無效／缺失回固定 55%，畫面不顯示 lux。
+- LED 僅低主色、進度與 2s 完成色；亮度上限 16/255。需 ledSignalPathReady 才可啟用。
+  現有 LED 連接屬未確認的 D 級，本輪決定不納入現場；不新增採購或焊接。
+- 蜂鳴器只用非阻塞短音：開始一個、完成兩個上行音；低音量，M 靜音。Pause/Resume 選配未實作。
+- I2C 設 20ms timeout；模組 begin/update 失敗記錄一次後停用，不無限重試。LED 無回讀，不能由 begin 推定實際亮燈。
+- 未接入 CHSC 觸控 driver；無可靠實體輸入時維持自動與 Serial，沒有宣稱教授已成功操作。
 
-固定資料只在 `DemoData` 一份：小樹、小芽 Level 7、完成專題韌體、期末一起前進、3/5、
-「今天也慢慢來，我們都在」、25 分鐘、DEMO XP +10、今日 2 次／50 分鐘、Score 82。
-英文短標籤 `PROJECT` 是任務顯示別名；08:30 是固定展示時鐘，不是 RTC。
-Focus 畫面 `00:20` 是 20 秒壓縮展示倒數，完成的 `25 MIN` 也是展示值。
-每幕都有 DEMO；不寫 NVS／Ledger、不發正式 XP，也不連線。
+## 畫面、記憶體與真實性
 
-Orbit 的文字與角色位於中央約 70% 安全區，環在外緣。主數字 24px、標題與內容 16px；
-校正附 8px 參考字，不把小字當可讀實測。主畫面只用 ASCII，避免未驗證中文字型。
-初次切幕有 240×240 RGB565 buffer（約 115200 bytes heap），失敗可降級。
-Focus 後續只補進度環及每秒倒數區，避免每幀整屏清除；實際速度、色序、閃爍待實機觀察。
-Boot 是兩階亮度／展葉，不宣稱平滑 alpha 淡入；Complete 1s 內顯示兩階角色與勾選，
-Ready 目前靜態光環，沒有呼吸動畫。可用 static 版關閉角色分幀。
+Station 八幕：Boot 含短 build id、Desk Home、三個任務、20 秒專注預覽、3/5 支持與自主開始／結束、
+25 MIN 完成、SPROUT LEVEL 7／DEMO XP+10、2/3／50 MIN／Score82 摘要。
+小樹／小芽及中文任務只存在共用 DemoData；畫面用短英文與自製幾何圖示，不提供未驗證中文字型。
+每幕 DEMO／OFFLINE，08:30 為 Orbit 固定時鐘；所有數字為示範，不保存活動、不連線、不發正式 XP。
 
-P0-B 採用工作包 03／04 的 Ready 3s、Summary 8s，每圈 Home 起算 49s；
-與 #22 package02 紙面規劃的 4s／6s、48s 不同。那份是未落實的規劃，不能當本 binary 的時間表；
-現場三分鐘腳本須以本表重新排練，不能宣稱已完成真人計時。
+Station 進場先用 RGB565 buffer 清整幕，配置失敗則直接繪圖；buffer 約 153600 bytes heap，
+實際記憶體、速度與殘影待驗。Focus 後續只更新倒數／進度，沒有每幀整屏清除。
+ST7789 init 沒有面板 ACK，geometry 符合不等於實物成功。PWM 失效回固定背光 ON 並記錄，非精確 55%。
+白屏先停止接周邊，退五色／校正，保留另一台展示，不按壓玻璃。
 
-Station Painter 只是 240×320 的 host 版面介面樣例，與 Orbit 接收同一 Frame／資料；
-不是工作包 05 的八幕方屏交付，獨立主控、ST7789 driver、供電與接線留待確認。
-無裝置驗證影片／截圖，沒有既有周邊控制或 BLE。完整驗收見[檢核紀錄](../../docs/competition-demo/package03-04/acceptance.md)。
+## 韌體檔與回復
 
-## 資源與來源
+輸出 .pio/build/<environment>/firmware.bin，打包器匯出 11 個 binary／SHA-256／source commit／Git tree／dirty 狀態。
+Station 檔名含 _unconfigured，全部實機 verified=false，P1 armed=false；不能拿來宣稱已能顯示。
+打包器拒絕存在 local_hardware_profile.h 的公開交付，避免把已改接線的本機版本誤標為預設設定。
+本機 profile 修改會讓 build id 加上 hw 雜湊，實機照片／log 須同時記錄該版本與設定。
 
-角色／勾選／環為本次自行編寫的幾何繪圖，無下載圖片、未複製外來角色；顏色為 RGB565 常數。
-Classic ASCII 字型由 Seeed_GFX／TFT_eSPI 原有的 Adafruit 5×7 字型提供，維持第三方來源及授權。
-[上游授權檔](https://github.com/Seeed-Studio/Seeed_GFX/blob/0b13b21f284c9bce3351b394bbd871b688d6aec7/license.txt)
-包含 MIT 與 BSD 說明，本專案不移除授權；沒有額外嵌入 bitmap。
-本次使用程式幾何資源取代 RGB565 bitmap 的儲存形式，輸出仍是 RGB565。記憶體／可讀性需實機驗收。
-
-Orbit 原廠 [Seeed 指南](https://wiki.seeedstudio.com/get_start_round_display/) 與
-[固定版本 Setup501](https://github.com/Seeed-Studio/Seeed_GFX/blob/0b13b21f284c9bce3351b394bbd871b688d6aec7/User_Setups/Setup501_Seeed_XIAO_Round_Display.h)
-決定 GC9A01／240×240、D8/D9/D10 SPI、D1 CS、D3 DC、D6 BL、RST -1。
-這些是原廠配置，未聲稱照片實物已成功顯示；Station 不沿用這份設定。
-
-## 回復
-
-本 PR 不改既有正式韌體、App／Web／Cloud、資料契約或周邊接線。
-刪除本獨立專案、交付 evidence 與 native test 即可撤回軟體變更；
-實機若曾燒錄，另用操作者保存且已驗證的原版專案／binary 重刷，不能靠 Git revert 自動復原裝置。
+正式交付由乾淨 source commit 編譯，後續 evidence commit 的韌體 tree 必須相同。
+韌體檔是 application image，重刷應用 PlatformIO upload 處理 bootloader／partitions，不能把它單獨寫到 0x0。
+回復本輪修改可回到 #23 原版本；Git revert 不會自動重刷實機，已燒錄者須另用先前已驗證版本還原。
+沒有修改正式 App／Web／Cloud／Ledger、原韌體或接線，作者不合併 PR。

@@ -1,4 +1,5 @@
 #include "demo/drawing.h"
+#include "demo/station.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -39,22 +40,24 @@ class SvgCanvas final : public demo::Canvas {
 };
 }
 int main(int argc, char** argv) {
-  if (argc != 2) return 2;
-  std::ofstream out(std::string(argv[1]) + "/scene-preview.svg");
-  out << "<svg xmlns='http://www.w3.org/2000/svg' width='1120' height='730' viewBox='0 0 1120 730'>"
-      << "<rect width='1120' height='730' fill='#172033'/><text x='20' y='30' fill='white' font-family='sans-serif' font-size='18'>"
+  if (argc != 2 && argc != 3) return 2;
+  const bool station=argc==3 && std::string(argv[2])=="station";
+  const int height=station?900:730;
+  std::ofstream out(std::string(argv[1]) + (station?"/station-scene-preview.svg":"/scene-preview.svg"));
+  out << "<svg xmlns='http://www.w3.org/2000/svg' width='1120' height='"<<height<<"' viewBox='0 0 1120 "<<height<<"'>"
+      << "<rect width='1120' height='"<<height<<"' fill='#172033'/><text x='20' y='30' fill='white' font-family='sans-serif' font-size='18'>"
       << "HOST LAYOUT PREVIEW / NOT A DEVICE CAPTURE / font approximate</text><defs><clipPath id='round'><circle cx='120' cy='120' r='120'/></clipPath></defs>";
   for (unsigned i = 0; i < 8; ++i) {
     SvgCanvas canvas;
     demo::Painter painter(demo::Device::orbit);
     demo::Frame frame{static_cast<demo::Scene>(i), 1000, 20000, 500, 10, &demo::data()};
-    painter.render(canvas, frame, true);
-    const int x = 20 + (i % 4) * 275, y = 65 + (i / 4) * 330;
-    out << "<g transform='translate(" << x << ',' << y << ")'><g clip-path='url(#round)'>" << canvas.out.str() << "</g>"
-        << "<text x='120' y='270' text-anchor='middle' fill='white' font-family='sans-serif' font-size='16'>O" << i << " / "
+    if(station){demo::StationPainter p;p.render(canvas,frame,true);}else painter.render(canvas, frame, true);
+    const int x = 20 + (i % 4) * 275, y = 65 + (i / 4) * (station?415:330);
+    out << "<g transform='translate(" << x << ',' << y << ")'><g"<<(station?"":" clip-path='url(#round)'")<<">" << canvas.out.str() << "</g>"
+        << "<text x='120' y='"<<(station?355:270)<<"' text-anchor='middle' fill='white' font-family='sans-serif' font-size='16'>"<<(station?"S":"O") << i << " / "
         << demo::sceneName(frame.scene) << "</text></g>";
   }
   out << "</svg>\n";
   if (!out) return 1;
-  std::cout << "wrote scene-preview.svg (software layout only; no hardware evidence)\n";
+  std::cout << "wrote "<<(station?"station-scene-preview.svg":"scene-preview.svg")<<" (software layout only; no hardware evidence)\n";
 }

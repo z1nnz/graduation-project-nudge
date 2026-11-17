@@ -18,8 +18,20 @@ void Scenario::enter(Scene scene, std::uint32_t now) {
   ++generation_;
 }
 void Scenario::restart(std::uint32_t now) {
+  taskIndex_ = 0;
   lastInput_ = now;
   enter(Scene::boot, now);
+}
+void Scenario::rotateTask(int delta, std::uint32_t now) {
+  if ((scene_ != Scene::home && scene_ != Scene::ready) || delta == 0) return;
+  taskIndex_ = static_cast<unsigned>((static_cast<int>(taskIndex_) + delta % 3 + 3) % 3);
+  lastInput_ = now;
+  enter(Scene::ready, now);
+}
+void Scenario::startFocus(std::uint32_t now) {
+  if (scene_ != Scene::home && scene_ != Scene::ready) return;
+  lastInput_ = now;
+  enter(Scene::focus, now);
 }
 void Scenario::next(std::uint32_t now) {
   lastInput_ = now;
@@ -51,7 +63,7 @@ Frame Scenario::frame(std::uint32_t now) const {
   const auto total = duration();
   const auto elapsed = std::min(now - enteredAt_, total);
   return {scene_, elapsed, total, static_cast<std::uint16_t>(elapsed * 1000U / total),
-          static_cast<unsigned>((total - elapsed + 999) / 1000), &data()};
+          static_cast<unsigned>((total - elapsed + 999) / 1000), &data(), taskIndex_};
 }
 void Runtime::begin(std::uint32_t now) {
   scenario_.restart(now);
@@ -63,6 +75,7 @@ void Runtime::begin(std::uint32_t now) {
 void Runtime::update(std::uint32_t now, Command command) {
   if (command == Command::restart) scenario_.restart(now);
   else if (command == Command::next) scenario_.next(now);
+  else if (command == Command::start) scenario_.startFocus(now);
   else scenario_.tick(now);
   const bool entered = seenGeneration_ != scenario_.generation();
   if (displayOk_) display_.render(scenario_.frame(now), entered);

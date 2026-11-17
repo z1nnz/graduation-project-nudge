@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include "demo/core.h"
 #include "demo/drawing.h"
+#include "demo/optional_arduino.h"
+#include "demo/station_arduino.h"
 
 #ifndef NUDGE_ANIMATION
 #define NUDGE_ANIMATION 1
@@ -61,16 +63,8 @@ constexpr const char* device = "orbit";
 }
 #else
 namespace {
-class StationDiagnostic final : public demo::DisplayPort {
- public:
-  bool begin() override {
-    Serial.println("STATION_DRIVER_UNCONFIGURED: serial diagnostic ONLY; no LCD pins driven");
-    return false;
-  }
-  void render(const demo::Frame&, bool) override {}
-  void showFatal(const char* code) override { Serial.println(code); }
-} display;
-constexpr const char* device = "station-diagnostic";
+demo::DisplayPort& display=demo::stationDisplay();
+constexpr const char* device = "station";
 }
 #endif
 
@@ -89,8 +83,9 @@ bool calibrated = false;
 void setup() {
   Serial.begin(115200);  // Never wait for a host/Serial connection.
   Serial.printf("NUDGE_DEMO boot device=%s build=%s\n", device, NUDGE_BUILD_ID);
-  Serial.println("optional input/touch/led/light/buzzer/BLE skipped; offline autoplay");
+  Serial.println("offline autoplay; GPIO profile and P1 acceptance gates enforced");
   runtime.begin(millis());
+  demo::beginOptionals(runtime.displayAvailable());
   // Display initialization can consume time. Start the visible Boot dwell
   // afterwards so a slow init cannot make the first loop skip Boot entirely.
   scenario.restart(millis());
@@ -99,9 +94,16 @@ void loop() {
   const std::uint32_t now = millis();
   demo::Command command = demo::Command::none;
   for (int i = 0; i < 16 && Serial.available(); ++i) {
-    command = demo::serialCommand(static_cast<char>(Serial.read()));
+    const char ch=static_cast<char>(Serial.read());
+    if(ch=='M' || ch=='m'){demo::toggleOptionalMute();continue;}
+    command = demo::serialCommand(ch);
     if (command != demo::Command::none) break;
   }
+  demo::updateOptionals(scenario.frame(now),now);
+  const auto physical=demo::takeOptionalCommand();
+  if(command==demo::Command::none || physical==demo::Command::restart)command=physical;
+  const int delta=demo::takeOptionalRotation();
+  if(command!=demo::Command::restart)scenario.rotateTask(delta,now);
 #ifdef NUDGE_DEVICE_ORBIT
   if (NUDGE_DISPLAY_TEST == 1) {
     const int index = static_cast<int>((now / 2000U) % 5U);
@@ -117,6 +119,10 @@ void loop() {
     if (!calibrated) { demo::paintCalibration(canvas); calibrated = true; }
     return;
   }
+#endif
+#ifdef NUDGE_DEVICE_STATION
+  demo::setStationBrightness(demo::optionalBrightness());
+  if(NUDGE_DISPLAY_TEST!=0){demo::stationDiagnostics(NUDGE_DISPLAY_TEST,now);return;}
 #endif
   if (command != demo::Command::none || now - lastFrame >= 50U) {
     runtime.update(now, command);
