@@ -91,6 +91,9 @@ void setup() {
   Serial.printf("NUDGE_DEMO boot device=%s build=%s\n", device, NUDGE_BUILD_ID);
   Serial.println("optional input/touch/led/light/buzzer/BLE skipped; offline autoplay");
   runtime.begin(millis());
+  // Display initialization can consume time. Start the visible Boot dwell
+  // afterwards so a slow init cannot make the first loop skip Boot entirely.
+  scenario.restart(millis());
 }
 void loop() {
   const std::uint32_t now = millis();
