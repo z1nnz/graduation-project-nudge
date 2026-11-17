@@ -1,0 +1,32 @@
+{
+  "packages": ["05", "06"],
+  "date": "2026-11-17",
+  "scope": "software_delivery_with_hardware_acceptance_deferred",
+  "source_work_packages_commit": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d",
+  "physical_acceptance_deferred_by_user": true,
+  "physical_verified": false,
+  "all_package_criteria_completed": false,
+  "station_lcd_adapter_implemented": true,
+  "station_pinmap_configured": false,
+  "independent_station_board_confirmed": false,
+  "orbit_p0a_physically_accepted": false,
+  "station_p0a_physically_accepted": false,
+  "p1_armed": false,
+  "competition_p1_decision": "exclude_all_modules_in_this_delivery",
+  "station_physical_results": {
+    "usb_upload": null, "full_color_test": null, "cold_boot_three_times": null,
+    "p0a_three_replays_offline": null, "p0b_ten_replays": null,
+    "restart_ten_times": null, "readability_50_to_80cm": null
+  },
+  "module_physical_results": {
+    "button": null, "encoder": null, "led": null, "light": null, "buzzer": null
+  },
+  "captures": [
+    {"id": "station_wiring", "file": null, "sha256": null, "verified": false},
+    {"id": "station_colors_calibration", "file": null, "sha256": null, "verified": false},
+    {"id": "station_p0a", "file": null, "sha256": null, "verified": false},
+    {"id": "station_p0b_restart", "file": null, "sha256": null, "verified": false},
+    {"id": "each_optional_present_and_removed", "file": null, "sha256": null, "verified": false}
+  ],
+  "host_preview": {"file": "station-scene-preview.svg", "is_device_capture": false, "font_is_approximate": true}
+}

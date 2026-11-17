@@ -1,0 +1,133 @@
+{
+  "source_commit": "d150cb775efbca6c6105817c071a4d63e854b54a",
+  "source_tree": "fad17130437190c666e8776097662c8edf58f35b",
+  "source_dirty": false,
+  "build_identity": "d150cb775efb",
+  "physical_verified": false,
+  "station_lcd_adapter_implemented": true,
+  "station_pinmap_configured": false,
+  "p1_armed": false,
+  "artifacts": [
+    {
+      "environment": "orbit_p0a",
+      "file": "orbit_p0a.bin",
+      "bytes": 346480,
+      "sha256": "eb28ab80b883cc4014afc6a452a70d894ebe8428e8f5a802d028f18ba69dcbaf",
+      "display_driver_compiled": true,
+      "pinmap_configured": true,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "orbit_demo",
+      "file": "orbit_demo.bin",
+      "bytes": 346480,
+      "sha256": "b78de88f74842ed597d51b134f3e94bed94d2130b6ff15367cd76663296e65b6",
+      "display_driver_compiled": true,
+      "pinmap_configured": true,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "orbit_static",
+      "file": "orbit_static.bin",
+      "bytes": 346480,
+      "sha256": "02fb7a7612869e0c8472bd837ff6a4f34409d6ebce7417637061a54209f16f79",
+      "display_driver_compiled": true,
+      "pinmap_configured": true,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "orbit_colors",
+      "file": "orbit_colors.bin",
+      "bytes": 346192,
+      "sha256": "4eabf09c1d431ccf27471c11132b93e12a5f3f2c88a9b042bf8c43458bbf691c",
+      "display_driver_compiled": true,
+      "pinmap_configured": true,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "orbit_calibration",
+      "file": "orbit_calibration.bin",
+      "bytes": 346352,
+      "sha256": "bd60fb47661da99df51df1612d4eb714f9f82f5d438ab7c1f9b3f9855c7d88ec",
+      "display_driver_compiled": true,
+      "pinmap_configured": true,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "orbit_p1_check",
+      "file": "orbit_p1_check.bin",
+      "bytes": 373424,
+      "sha256": "9189005d7f299c9f6367555b76ec3df7e24bea38f3457dda608f638906bdd3c7",
+      "display_driver_compiled": true,
+      "pinmap_configured": true,
+      "optional_drivers_compiled": true,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "station_p0a",
+      "file": "station_p0a_unconfigured.bin",
+      "bytes": 284064,
+      "sha256": "737ace3ee28e6285853cc976f85b903ca6be861d12111afe6c005d716f861908",
+      "display_driver_compiled": true,
+      "pinmap_configured": false,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "station_demo",
+      "file": "station_demo_unconfigured.bin",
+      "bytes": 284064,
+      "sha256": "a14577b5963bfb73a3d33fc58361b624afb723236eb7c757a509b545a61276bd",
+      "display_driver_compiled": true,
+      "pinmap_configured": false,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "station_colors",
+      "file": "station_colors_unconfigured.bin",
+      "bytes": 284208,
+      "sha256": "93e553b14cc49ca543f3718cdc3418bd0e8b2f149b457cd6503443c02b92e637",
+      "display_driver_compiled": true,
+      "pinmap_configured": false,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "station_calibration",
+      "file": "station_calibration_unconfigured.bin",
+      "bytes": 284208,
+      "sha256": "1464eaaf10468cfb3dc5b6ba24204e6fa4213ea51b2606baa63e4f4e711ea5e2",
+      "display_driver_compiled": true,
+      "pinmap_configured": false,
+      "optional_drivers_compiled": false,
+      "p1_armed": false,
+      "physical_verified": false
+    },
+    {
+      "environment": "station_p1_check",
+      "file": "station_p1_check_unconfigured.bin",
+      "bytes": 324944,
+      "sha256": "81dc0a6f6b24055ed8576d9c0395e1fad101f158da7ff45e128ea59b90c16da1",
+      "display_driver_compiled": true,
+      "pinmap_configured": false,
+      "optional_drivers_compiled": true,
+      "p1_armed": false,
+      "physical_verified": false
+    }
+  ]
+}
