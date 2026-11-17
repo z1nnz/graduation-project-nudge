@@ -50,11 +50,11 @@ Compiling .pio/build/orbit_demo/FrameworkArduino/HardwareSerial.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/IPAddress.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/IPv6Address.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/Print.cpp.o
 In file included from .pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.cpp:16:
 .pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
-Compiling .pio/build/orbit_demo/FrameworkArduino/Print.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/Stream.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/StreamString.cpp.o
 Compiling .pio/build/orbit_demo/FrameworkArduino/Tone.cpp.o
@@ -98,14 +98,14 @@ Linking .pio/build/orbit_demo/firmware.elf
 Retrieving maximum program size .pio/build/orbit_demo/firmware.elf
 Checking size .pio/build/orbit_demo/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
-RAM:   [=         ]   6.0% (used 19588 bytes from 327680 bytes)
-Flash: [=         ]  10.2% (used 340209 bytes from 3342336 bytes)
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 346121 bytes from 3342336 bytes)
 Building .pio/build/orbit_demo/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.86 seconds =========================
+========================= [SUCCESS] Took 5.01 seconds =========================
 
 Processing orbit_p0a (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -205,14 +205,14 @@ Linking .pio/build/orbit_p0a/firmware.elf
 Retrieving maximum program size .pio/build/orbit_p0a/firmware.elf
 Checking size .pio/build/orbit_p0a/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
-RAM:   [=         ]   6.0% (used 19588 bytes from 327680 bytes)
-Flash: [=         ]  10.2% (used 340205 bytes from 3342336 bytes)
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 346121 bytes from 3342336 bytes)
 Building .pio/build/orbit_p0a/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.49 seconds =========================
+========================= [SUCCESS] Took 4.58 seconds =========================
 
 Processing orbit_static (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -312,8 +312,8 @@ Linking .pio/build/orbit_static/firmware.elf
 Retrieving maximum program size .pio/build/orbit_static/firmware.elf
 Checking size .pio/build/orbit_static/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
-RAM:   [=         ]   6.0% (used 19588 bytes from 327680 bytes)
-Flash: [=         ]  10.2% (used 340205 bytes from 3342336 bytes)
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 346121 bytes from 3342336 bytes)
 Building .pio/build/orbit_static/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
@@ -354,11 +354,11 @@ Compiling .pio/build/orbit_colors/src/station.cpp.o
 Compiling .pio/build/orbit_colors/src/station_arduino.cpp.o
 Compiling .pio/build/orbit_colors/lib2d3/SPI/SPI.cpp.o
 Compiling .pio/build/orbit_colors/libdc4/FS/FS.cpp.o
+Compiling .pio/build/orbit_colors/libdc4/FS/vfs_api.cpp.o
 In file included from src/main.cpp:16:
 .pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
-Compiling .pio/build/orbit_colors/libdc4/FS/vfs_api.cpp.o
 Compiling .pio/build/orbit_colors/lib1c2/SPIFFS/SPIFFS.cpp.o
 Compiling .pio/build/orbit_colors/lib9f3/LittleFS/LittleFS.cpp.o
 Compiling .pio/build/orbit_colors/libd58/Wire/Wire.cpp.o
@@ -369,11 +369,11 @@ Compiling .pio/build/orbit_colors/FrameworkArduino/FunctionalInterrupt.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/HWCDC.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/HardwareSerial.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/IPv6Address.cpp.o
 In file included from .pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.cpp:16:
 .pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
-Compiling .pio/build/orbit_colors/FrameworkArduino/IPv6Address.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/MD5Builder.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/Print.cpp.o
 Compiling .pio/build/orbit_colors/FrameworkArduino/Stream.cpp.o
@@ -419,14 +419,14 @@ Linking .pio/build/orbit_colors/firmware.elf
 Retrieving maximum program size .pio/build/orbit_colors/firmware.elf
 Checking size .pio/build/orbit_colors/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
-RAM:   [=         ]   6.0% (used 19580 bytes from 327680 bytes)
-Flash: [=         ]  10.2% (used 339913 bytes from 3342336 bytes)
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.3% (used 345829 bytes from 3342336 bytes)
 Building .pio/build/orbit_colors/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 4.54 seconds =========================
+========================= [SUCCESS] Took 4.58 seconds =========================
 
 Processing orbit_calibration (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -461,11 +461,11 @@ Compiling .pio/build/orbit_calibration/src/station.cpp.o
 Compiling .pio/build/orbit_calibration/src/station_arduino.cpp.o
 Compiling .pio/build/orbit_calibration/lib2d3/SPI/SPI.cpp.o
 Compiling .pio/build/orbit_calibration/libdc4/FS/FS.cpp.o
-Compiling .pio/build/orbit_calibration/libdc4/FS/vfs_api.cpp.o
 In file included from src/main.cpp:16:
 .pio/libdeps/orbit_calibration/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
  #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
   ^~~~~~~
+Compiling .pio/build/orbit_calibration/libdc4/FS/vfs_api.cpp.o
 Compiling .pio/build/orbit_calibration/lib1c2/SPIFFS/SPIFFS.cpp.o
 Compiling .pio/build/orbit_calibration/lib9f3/LittleFS/LittleFS.cpp.o
 Compiling .pio/build/orbit_calibration/libd58/Wire/Wire.cpp.o
@@ -526,14 +526,14 @@ Linking .pio/build/orbit_calibration/firmware.elf
 Retrieving maximum program size .pio/build/orbit_calibration/firmware.elf
 Checking size .pio/build/orbit_calibration/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
-RAM:   [=         ]   6.0% (used 19588 bytes from 327680 bytes)
-Flash: [=         ]  10.2% (used 340065 bytes from 3342336 bytes)
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 345981 bytes from 3342336 bytes)
 Building .pio/build/orbit_calibration/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 5.73 seconds =========================
+========================= [SUCCESS] Took 4.54 seconds =========================
 
 Processing station_demo (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -651,7 +651,7 @@ esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 5.77 seconds =========================
+========================= [SUCCESS] Took 5.01 seconds =========================
 
 Processing station_p0a (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -769,7 +769,7 @@ esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 5.55 seconds =========================
+========================= [SUCCESS] Took 5.03 seconds =========================
 
 Processing station_colors (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -887,7 +887,7 @@ esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 5.70 seconds =========================
+========================= [SUCCESS] Took 5.03 seconds =========================
 
 Processing station_calibration (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -1005,7 +1005,7 @@ esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 5.41 seconds =========================
+========================= [SUCCESS] Took 5.04 seconds =========================
 
 Processing station_p1_check (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -1139,7 +1139,7 @@ esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 6.25 seconds =========================
+========================= [SUCCESS] Took 6.03 seconds =========================
 
 Processing orbit_p1_check (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
 --------------------------------------------------------------------------------
@@ -1279,26 +1279,26 @@ Linking .pio/build/orbit_p1_check/firmware.elf
 Retrieving maximum program size .pio/build/orbit_p1_check/firmware.elf
 Checking size .pio/build/orbit_p1_check/firmware.elf
 Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
-RAM:   [=         ]   6.1% (used 19996 bytes from 327680 bytes)
-Flash: [=         ]  11.0% (used 367141 bytes from 3342336 bytes)
+RAM:   [=         ]   6.1% (used 20076 bytes from 327680 bytes)
+Flash: [=         ]  11.2% (used 373057 bytes from 3342336 bytes)
 Building .pio/build/orbit_p1_check/firmware.bin
 esptool.py v4.9.0
 Creating esp32s3 image...
 Merged 2 ELF sections
 Successfully created esp32s3 image.
-========================= [SUCCESS] Took 7.26 seconds =========================
+========================= [SUCCESS] Took 6.80 seconds =========================
 
 Environment          Status    Duration
 -------------------  --------  ------------
-orbit_demo           SUCCESS   00:00:04.862
-orbit_p0a            SUCCESS   00:00:04.495
-orbit_static         SUCCESS   00:00:04.601
-orbit_colors         SUCCESS   00:00:04.539
-orbit_calibration    SUCCESS   00:00:05.731
-station_demo         SUCCESS   00:00:05.773
-station_p0a          SUCCESS   00:00:05.553
-station_colors       SUCCESS   00:00:05.699
-station_calibration  SUCCESS   00:00:05.408
-station_p1_check     SUCCESS   00:00:06.255
-orbit_p1_check       SUCCESS   00:00:07.258
-========================= 11 succeeded in 00:01:00.173 =========================
+orbit_demo           SUCCESS   00:00:05.011
+orbit_p0a            SUCCESS   00:00:04.577
+orbit_static         SUCCESS   00:00:04.598
+orbit_colors         SUCCESS   00:00:04.582
+orbit_calibration    SUCCESS   00:00:04.537
+station_demo         SUCCESS   00:00:05.006
+station_p0a          SUCCESS   00:00:05.032
+station_colors       SUCCESS   00:00:05.031
+station_calibration  SUCCESS   00:00:05.035
+station_p1_check     SUCCESS   00:00:06.033
+orbit_p1_check       SUCCESS   00:00:06.798
+========================= 11 succeeded in 00:00:56.239 =========================
