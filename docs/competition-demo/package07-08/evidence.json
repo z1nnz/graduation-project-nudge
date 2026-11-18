@@ -1,28 +1,70 @@
 {
   "date": "2026-11-19",
   "scope": "software submission; physical acceptance deferred by user",
-  "scores": {"package07": 85, "package08": 89, "threshold": 85},
+  "scores": {
+    "package07": 85,
+    "package08": 89,
+    "threshold": 85
+  },
   "all_package_criteria_completed": false,
   "physical_verified": false,
   "uploaded_to_hardware": false,
   "demo_ble_armed": false,
   "p1_armed": false,
   "station_pinmap_configured": false,
-  "acceptance_gates": {"orbit_p0b": false, "station_p0b": false, "visuals": false, "ten_replays": false},
+  "acceptance_gates": {
+    "orbit_p0b": false,
+    "station_p0b": false,
+    "visuals": false,
+    "ten_replays": false
+  },
   "physical": {
-    "board_ids": null, "wiring": null, "phone_model": null,
-    "phone_os": null, "firmware_id": null, "profile_hash": null,
-    "scan_result": null, "next_10_result": null, "restart_5_result": null,
-    "bluetooth_off_result": null, "app_closed_result": null,
-    "simultaneous_video_url": null, "simultaneous_video_sha256": null,
-    "distance_30_80cm_result": null, "screen_color_comparison": null,
-    "animation_on_off_result": null, "competition_date": null
+    "board_ids": null,
+    "wiring": null,
+    "phone_model": null,
+    "phone_os": null,
+    "firmware_id": null,
+    "profile_hash": null,
+    "scan_result": null,
+    "next_10_result": null,
+    "restart_5_result": null,
+    "bluetooth_off_result": null,
+    "app_closed_result": null,
+    "simultaneous_video_url": null,
+    "simultaneous_video_sha256": null,
+    "distance_30_80cm_result": null,
+    "screen_color_comparison": null,
+    "animation_on_off_result": null,
+    "competition_date": null
   },
   "software_previews": [
-    {"file": "orbit-scenes.svg", "source": "C++ OrbitPainter", "physical": false},
-    {"file": "station-scenes.svg", "source": "C++ StationPainter", "physical": false},
-    {"file": "app-poses.png", "source": "Flutter DemoCharacterPainter widget rendering", "physical": false}
+    {
+      "file": "orbit-scenes.svg",
+      "source": "C++ OrbitPainter",
+      "physical": false,
+      "sha256": "ada3af548cdd58b9c46df60c320a13bbbf7286bdef7635ebcc54c45ce521fb85"
+    },
+    {
+      "file": "station-scenes.svg",
+      "source": "C++ StationPainter",
+      "physical": false,
+      "sha256": "c2a680cf6024f4a69020aa3ffbddcee5356a7efc681336bb50d43d6d5b0e8aa4"
+    },
+    {
+      "file": "app-poses.png",
+      "source": "Flutter DemoCharacterPainter widget rendering",
+      "physical": false,
+      "sha256": "da4710315700dbd4bd142694d00aa3f9e5d7b6ce2fa3aab356b273aba601ad8b"
+    }
   ],
-  "local_verification": {"node_tests": 115, "flutter_tests": 213, "native_executables": 3, "firmware_environments": 14, "source_analyze": "pass", "standalone_web_build": "pass", "android_kotlin": "await latest-head CI"},
+  "local_verification": {
+    "node_tests": 115,
+    "flutter_tests": 213,
+    "native_executables": 3,
+    "firmware_environments": 14,
+    "source_analyze": "pass",
+    "standalone_web_build": "pass",
+    "android_kotlin": "await latest-head CI"
+  },
   "review_policy": "latest-head six CI success; request z1nnz; never merge"
 }
