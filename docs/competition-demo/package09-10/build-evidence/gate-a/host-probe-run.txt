@@ -1,0 +1,1 @@
+{"scope":"host-simulation-only","physical_verified":false,"p0a_replays":10,"p0b_replays":10,"restart_per_scene":10,"restart_total":80,"total_replays":20}

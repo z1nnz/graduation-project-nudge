@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "scope": "software-only",
+  "passed": true,
+  "physical_verified": false,
+  "source_commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+  "firmware_tree": "d10c1591509551e06b08c44edfe0962a7a0dd489",
+  "source_dirty": false,
+  "local_profile_present": false,
+  "host_probe": {
+    "scope": "host-simulation-only",
+    "physical_verified": false,
+    "p0a_replays": 10,
+    "p0b_replays": 10,
+    "restart_per_scene": 10,
+    "restart_total": 80,
+    "total_replays": 20
+  },
+  "environments": [
+    {
+      "device": "orbit",
+      "environment": "orbit_p0a",
+      "clean_build": true,
+      "build_id": "c4cb9fa3b7a9",
+      "binary": "orbit_p0a.bin",
+      "binary_sha256": "181d98e20863425a8b356583a9b5f6fec6ccb96dc27809b2a447f08750969589",
+      "bytes": 355872,
+      "profile_sha256": "942a127a4f05282afe5d1174436e640db63eb596e927381ca2a4e99db86a8cd2",
+      "configuration": "board-default",
+      "physical_verified": false
+    },
+    {
+      "device": "station",
+      "environment": "station_p0a",
+      "clean_build": true,
+      "build_id": "c4cb9fa3b7a9",
+      "binary": "station_p0a_unconfigured.bin",
+      "binary_sha256": "c8cacd205cd95c0ce9dadfcdee5fd43ba2177ee5ff03c5179b0d95414cd6fc38",
+      "bytes": 293808,
+      "profile_sha256": "942a127a4f05282afe5d1174436e640db63eb596e927381ca2a4e99db86a8cd2",
+      "configuration": "unconfigured",
+      "physical_verified": false
+    },
+    {
+      "device": "orbit",
+      "environment": "orbit_demo",
+      "clean_build": true,
+      "build_id": "c4cb9fa3b7a9",
+      "binary": "orbit_demo.bin",
+      "binary_sha256": "e870c3e864e8c051faa1d8a74300922fa9fd29c96290b4322b1d926e0a8f5279",
+      "bytes": 355872,
+      "profile_sha256": "942a127a4f05282afe5d1174436e640db63eb596e927381ca2a4e99db86a8cd2",
+      "configuration": "board-default",
+      "physical_verified": false
+    },
+    {
+      "device": "station",
+      "environment": "station_demo",
+      "clean_build": true,
+      "build_id": "c4cb9fa3b7a9",
+      "binary": "station_demo_unconfigured.bin",
+      "binary_sha256": "c99e668feeac4090dcef80a00997c05ba839ce2157ab796bebcb112364fa3283",
+      "bytes": 293808,
+      "profile_sha256": "942a127a4f05282afe5d1174436e640db63eb596e927381ca2a4e99db86a8cd2",
+      "configuration": "unconfigured",
+      "physical_verified": false
+    }
+  ],
+  "warnings": [
+    "<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020",
+    "<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020",
+    ".pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]",
+    ".pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]",
+    "<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020",
+    ".pio/libdeps/orbit_p0a/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]",
+    ".pio/libdeps/orbit_p0a/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]",
+    "<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020",
+    "<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020"
+  ],
+  "commands": [
+    {
+      "label": "native-tests",
+      "executable": "make",
+      "exit_code": 0
+    },
+    {
+      "label": "host-compiler-version",
+      "executable": "c++",
+      "exit_code": 0
+    },
+    {
+      "label": "host-probe-compile",
+      "executable": "c++",
+      "exit_code": 0
+    },
+    {
+      "label": "host-probe-run",
+      "executable": "host-probe",
+      "exit_code": 0
+    },
+    {
+      "label": "platformio-version",
+      "executable": "pio",
+      "exit_code": 0
+    },
+    {
+      "label": "platformio-clean",
+      "executable": "pio",
+      "exit_code": 0
+    },
+    {
+      "label": "platformio-build",
+      "executable": "pio",
+      "exit_code": 0
+    }
+  ],
+  "logs": [
+    {
+      "file": "native-tests.txt",
+      "sha256": "40bbdf0beb25be1252db8982f610405e6e2eb3d8bc8be6b6490a1fa76b57380e"
+    },
+    {
+      "file": "host-compiler-version.txt",
+      "sha256": "761142ba203d10d5536459b8d08fdf1ad8a106ff363cd613dbdfff38ff49ef3f"
+    },
+    {
+      "file": "host-probe-compile.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "file": "host-probe-run.txt",
+      "sha256": "2c04006f5e64a6005e9415e5ae38fbd92bd231b642105ac053e142374daf0efb"
+    },
+    {
+      "file": "platformio-version.txt",
+      "sha256": "6357033d07ec103cbd97cd8db2da817e157f0adc646eab0806c08371a69c8942"
+    },
+    {
+      "file": "platformio-clean.txt",
+      "sha256": "7a78dd00f664e75a169dbf4dd2b7c6abacac2b2391116481d4e2835b622f3dd1"
+    },
+    {
+      "file": "platformio-build.txt",
+      "sha256": "4c2ed9fb01334cdbaa0ac7ace3dbb3321a5ce8b63b7641fd027a42419a014ea5"
+    }
+  ],
+  "limitations": [
+    "No USB upload or physical display acceptance.",
+    "Station default pinmap is unconfigured.",
+    "Host replay counts cannot be copied into physical trials.",
+    "Compiler warnings still require human review."
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "scope": "record-completeness-only",
+  "physical_acceptance_certified": false,
+  "human_review_required": true,
+  "freeze": {
+    "status": "date_unknown",
+    "allow_new_features": false,
+    "rule": "Confirm competition date before approving features; do not assume more than three days remain."
+  },
+  "devices": {
+    "orbit": {
+      "identity_complete": false,
+      "gates": {
+        "A": true,
+        "B": false,
+        "C": false,
+        "D": null,
+        "E": false,
+        "F": null
+      },
+      "counts": {
+        "colors": {
+          "required": 5,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "orientation": {
+          "required": 1,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "full_frame": {
+          "required": 1,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "cold_boot": {
+          "required": 3,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "usb_cycle": {
+          "required": 3,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "p0a": {
+          "required": 3,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "p0b": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "restart": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "focus_input": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "encouragement_exit": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "summary_home": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "offline": {
+          "required": 1,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "optional_failure": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "input": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "ble": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        }
+      },
+      "p0a_ready_for_review": false,
+      "p0b_ready_for_review": false,
+      "optional_claims_ready_for_review": false
+    },
+    "station": {
+      "identity_complete": false,
+      "gates": {
+        "A": true,
+        "B": false,
+        "C": false,
+        "D": null,
+        "E": false,
+        "F": null
+      },
+      "counts": {
+        "colors": {
+          "required": 5,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "orientation": {
+          "required": 1,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "full_frame": {
+          "required": 1,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "cold_boot": {
+          "required": 3,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "usb_cycle": {
+          "required": 3,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "p0a": {
+          "required": 3,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "p0b": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "restart": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "focus_input": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "encouragement_exit": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "summary_home": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "offline": {
+          "required": 1,
+          "valid_passes": 0,
+          "adopted": true
+        },
+        "optional_failure": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "input": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        },
+        "ble": {
+          "required": 0,
+          "valid_passes": 0,
+          "adopted": false
+        }
+      },
+      "p0a_ready_for_review": false,
+      "p0b_ready_for_review": false,
+      "optional_claims_ready_for_review": false
+    }
+  },
+  "issues": [],
+  "gate_G_records_complete": false,
+  "rehearsals_complete": false,
+  "minimum_p0a_records_complete": false,
+  "submission_records_complete": false
+}

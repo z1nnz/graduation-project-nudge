@@ -1,0 +1,274 @@
+{
+  "date": "2026-11-19",
+  "requirements_commit": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d",
+  "pull_requests_checked": 25,
+  "branches_checked": 26,
+  "standalone_issues_checked": 0,
+  "comment_threads_checked": [
+    18,
+    25
+  ],
+  "new_package09_10_delivery_found": false,
+  "limitations": [
+    "Cannot inspect unpublished local work.",
+    "Existing CONTRIBUTING, old production acceptance and previous package tests are partial foundations, not new package09/10 completion."
+  ],
+  "pull_requests": [
+    {
+      "number": 25,
+      "title": "feat(demo): package 07/08 原型控制器與共用角色視覺（85／89 分）",
+      "state": "open",
+      "head": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f"
+    },
+    {
+      "number": 24,
+      "title": "feat(firmware): package 05/06 Station 展示與周邊隔離（87／86 分）",
+      "state": "open",
+      "head": "2e3fe6126ade0e690e4eb004cc9ff3a7db81c7a6"
+    },
+    {
+      "number": 23,
+      "title": "feat(firmware): package 03/04 離線 Orbit 展示與場景核心（各 85 分）",
+      "state": "open",
+      "head": "5a6d7d3862861491b58c5360015e409fd66221d8"
+    },
+    {
+      "number": 22,
+      "title": "docs(demo): package 02 展示腳本、固定資料與 86 分自評",
+      "state": "open",
+      "head": "1dc5ae1592a6ecd31866b9c1bcbd6c4bb0fd0de1"
+    },
+    {
+      "number": 21,
+      "title": "fix(ios): refresh lockfile checksums after upstream deprecations",
+      "state": "open",
+      "head": "c43f74d5a601dc57dfd1b70b930a9d0aef9b8c62"
+    },
+    {
+      "number": 20,
+      "title": "docs(demo): 完成 package 01 零件卡與照片盤點",
+      "state": "open",
+      "head": "4cf97e86c59c6a5ad800790d471652721e4d74b8"
+    },
+    {
+      "number": 19,
+      "title": "docs(demo): 落實 package 00 競賽範圍與新版交付入口",
+      "state": "open",
+      "head": "d58d37c71a72555c1b20d3ba774e06a634f05dfd"
+    },
+    {
+      "number": 18,
+      "title": "docs: replace Nudge work packages with competition demo plan",
+      "state": "open",
+      "head": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d"
+    },
+    {
+      "number": 17,
+      "title": "fix(web): close remaining XSS and task-id gaps",
+      "state": "closed",
+      "head": "36e1b0f90b4b62854a66942d48731bfe6fa03ee7"
+    },
+    {
+      "number": 16,
+      "title": "fix(web): escape user content and gate AI assistant actions",
+      "state": "closed",
+      "head": "38834d8b77c014ecbc5756b18199ed665c37679d"
+    },
+    {
+      "number": 15,
+      "title": "feat: build top-spec focus companion experience",
+      "state": "closed",
+      "head": "3b3b30d034aeb9a1303e45ec06e28c6a158995e0"
+    },
+    {
+      "number": 14,
+      "title": "feat: secure Android BLE device bridge",
+      "state": "closed",
+      "head": "8fee19451b61b7fa90b241635ae4aa5069b67201"
+    },
+    {
+      "number": 13,
+      "title": "feat: add opt-in asynchronous room resonance",
+      "state": "closed",
+      "head": "d510b92edec81fc2d76e52a1024b858fd050d462"
+    },
+    {
+      "number": 12,
+      "title": "feat: add Cloud-built discipline identity",
+      "state": "closed",
+      "head": "b9800a6b27239f80063a14a6b45a24e146708f26"
+    },
+    {
+      "number": 11,
+      "title": "Distinguish family and group role surfaces",
+      "state": "closed",
+      "head": "d5fb4958cfb8534e2fab95c3629f3d9d44b28eca"
+    },
+    {
+      "number": 10,
+      "title": "Drive room UI from canonical Activity Ledger",
+      "state": "closed",
+      "head": "174167eeba9082854ce600c258390fdf5f848bb0"
+    },
+    {
+      "number": 9,
+      "title": "docs: record production acceptance and purge",
+      "state": "closed",
+      "head": "aee6916856b79be8617671e92977f287af7127e8"
+    },
+    {
+      "number": 8,
+      "title": "feat: bootstrap Nudge embedded focus device",
+      "state": "closed",
+      "head": "cce536d9e29c3ee71861de18a6e74eef6a00a7fe"
+    },
+    {
+      "number": 7,
+      "title": "Fix Android fresh-install build and record production acceptance evidence",
+      "state": "closed",
+      "head": "ddf13e2ed022f69e4f12ca4ca575fd62006421b5"
+    },
+    {
+      "number": 6,
+      "title": "Make production E2E cleanup quota-aware",
+      "state": "closed",
+      "head": "8061a0a2771c89a7005318e6e56bc0ce5e7a3082"
+    },
+    {
+      "number": 5,
+      "title": "Keep iOS Firebase dependencies reproducible",
+      "state": "closed",
+      "head": "f9bb4445446b559f612d5158eeb2477f19af9952"
+    },
+    {
+      "number": 4,
+      "title": "Add audited Relationship evidence purge",
+      "state": "closed",
+      "head": "7f14669c2ad27998765dbae916ad56a7fae392b9"
+    },
+    {
+      "number": 3,
+      "title": "Make relationship migration rollback fail closed",
+      "state": "closed",
+      "head": "097c9d02fb70f3be09d381e51454e7e6502700d2"
+    },
+    {
+      "number": 2,
+      "title": "test: verify real-account family multi-context flows",
+      "state": "closed",
+      "head": "b95bd29a296ba92be54fc4f7dfde2b4ae21015a4"
+    },
+    {
+      "number": 1,
+      "title": "fix: make Activity Ledger and room projections cloud atomic",
+      "state": "closed",
+      "head": "67a6c02e2f60f7fc1fc998f0abc6129a4fdf121d"
+    }
+  ],
+  "branches": [
+    {
+      "name": "codex/async-resonance",
+      "sha": "d510b92edec81fc2d76e52a1024b858fd050d462"
+    },
+    {
+      "name": "codex/device-ble-bridge",
+      "sha": "8fee19451b61b7fa90b241635ae4aa5069b67201"
+    },
+    {
+      "name": "codex/discipline-identity-snapshot",
+      "sha": "b9800a6b27239f80063a14a6b45a24e146708f26"
+    },
+    {
+      "name": "codex/embedded-device-v1",
+      "sha": "cce536d9e29c3ee71861de18a6e74eef6a00a7fe"
+    },
+    {
+      "name": "codex/execution-work-packages",
+      "sha": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d"
+    },
+    {
+      "name": "codex/ios-firebase-lock-ci",
+      "sha": "f9bb4445446b559f612d5158eeb2477f19af9952"
+    },
+    {
+      "name": "codex/pr16-security-followup",
+      "sha": "36e1b0f90b4b62854a66942d48731bfe6fa03ee7"
+    },
+    {
+      "name": "codex/production-acceptance-final",
+      "sha": "ddf13e2ed022f69e4f12ca4ca575fd62006421b5"
+    },
+    {
+      "name": "codex/production-acceptance-recorded",
+      "sha": "aee6916856b79be8617671e92977f287af7127e8"
+    },
+    {
+      "name": "codex/production-e2e-quota-project",
+      "sha": "8061a0a2771c89a7005318e6e56bc0ce5e7a3082"
+    },
+    {
+      "name": "codex/productize-ledger-room-ci",
+      "sha": "67a6c02e2f60f7fc1fc998f0abc6129a4fdf121d"
+    },
+    {
+      "name": "codex/real-account-family-e2e",
+      "sha": "b95bd29a296ba92be54fc4f7dfde2b4ae21015a4"
+    },
+    {
+      "name": "codex/relationship-evidence-purge",
+      "sha": "7f14669c2ad27998765dbae916ad56a7fae392b9"
+    },
+    {
+      "name": "codex/relationship-migration-rollback",
+      "sha": "097c9d02fb70f3be09d381e51454e7e6502700d2"
+    },
+    {
+      "name": "codex/relationship-role-room-finalization",
+      "sha": "174167eeba9082854ce600c258390fdf5f848bb0"
+    },
+    {
+      "name": "codex/relationship-role-surfaces",
+      "sha": "d5fb4958cfb8534e2fab95c3629f3d9d44b28eca"
+    },
+    {
+      "name": "codex/top-spec-hardware",
+      "sha": "3b3b30d034aeb9a1303e45ec06e28c6a158995e0"
+    },
+    {
+      "name": "docs/roy-package00-demo-scope",
+      "sha": "d58d37c71a72555c1b20d3ba774e06a634f05dfd"
+    },
+    {
+      "name": "docs/roy-package01-parts-inventory",
+      "sha": "4cf97e86c59c6a5ad800790d471652721e4d74b8"
+    },
+    {
+      "name": "docs/roy-package02-demo-story",
+      "sha": "1dc5ae1592a6ecd31866b9c1bcbd6c4bb0fd0de1"
+    },
+    {
+      "name": "feature/roy-package03-04-offline-orbit",
+      "sha": "5a6d7d3862861491b58c5360015e409fd66221d8"
+    },
+    {
+      "name": "feature/roy-package05-06-station-demo",
+      "sha": "2e3fe6126ade0e690e4eb004cc9ff3a7db81c7a6"
+    },
+    {
+      "name": "feature/roy-package07-08-demo-controller",
+      "sha": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f"
+    },
+    {
+      "name": "fix/johnnnny-web-xss",
+      "sha": "38834d8b77c014ecbc5756b18199ed665c37679d"
+    },
+    {
+      "name": "fix/roy-ios-lockfile-checksums",
+      "sha": "c43f74d5a601dc57dfd1b70b930a9d0aef9b8c62"
+    },
+    {
+      "name": "main",
+      "sha": "c37c6aba7054f639bc538cbe5f86f9300b13300f"
+    }
+  ]
+}

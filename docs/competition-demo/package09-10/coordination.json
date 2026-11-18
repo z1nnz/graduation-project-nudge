@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "scope": "default assignment and preparation; not team acknowledgement",
+  "main_commit": "c37c6aba7054f639bc538cbe5f86f9300b13300f",
+  "roles": [
+    {
+      "id": "johnsnow",
+      "device": "orbit",
+      "default_owner": true,
+      "acknowledged": false
+    },
+    {
+      "id": "roy",
+      "device": "station",
+      "default_owner": true,
+      "task_authorized_by_user": true,
+      "physical_verified": false
+    },
+    {
+      "id": "z1nnz",
+      "responsibility": "scope, integration, review, final merge",
+      "review_authorized_by_user": true,
+      "team_plan_accepted": false
+    }
+  ],
+  "device_swap": {
+    "requested": false,
+    "agreed": false,
+    "issue_url": null
+  },
+  "shared_editor": {
+    "claimed_by": null,
+    "claim_issue": null,
+    "default_core_owner": "johnsnow",
+    "previous_roy_preparation_authorized_by_user": true
+  },
+  "file_ownership": [
+    {
+      "owner": "johnsnow",
+      "files": [
+        "firmware/nudge_competition_demo/src/main.cpp",
+        "firmware/nudge_competition_demo/src/drawing.cpp",
+        "firmware/nudge_competition_demo/src/core.cpp"
+      ]
+    },
+    {
+      "owner": "roy",
+      "files": [
+        "firmware/nudge_competition_demo/src/station.cpp",
+        "firmware/nudge_competition_demo/src/station_arduino.cpp"
+      ]
+    },
+    {
+      "owner": "z1nnz-review",
+      "files": [
+        "shared/demo_contract.json",
+        "scripts/generate_demo_contract.cjs",
+        "firmware/nudge_competition_demo/platformio.ini"
+      ]
+    }
+  ],
+  "independent_issue_url": null,
+  "issue_draft": "handoff-template.md",
+  "daily_reports_received": [],
+  "two_operator_handoff_completed": false,
+  "physical_acceptance_completed": false,
+  "competition_date": null,
+  "no_team_announcement_or_ack_sent": true
+}
