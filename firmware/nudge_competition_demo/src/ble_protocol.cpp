@@ -9,7 +9,8 @@ class Reader {
   void ws(){while(p_!=end_ && (*p_==' '||*p_=='\r'||*p_=='\n'||*p_=='\t'))++p_;}
   bool token(char c){ws();if(p_==end_||*p_!=c)return false;++p_;return true;}
   bool word(std::string& s){
-    if(!token('"'))return false;s.clear();
+    if (!token('"')) return false;
+    s.clear();
     while(p_!=end_ && *p_!='"'){if(*p_<' '||*p_>'~'||*p_=='\\'||s.size()>=16)return false;s+=*p_++;}
     return token('"');
   }
@@ -30,7 +31,8 @@ Command parseDemoCommand(const char* bytes,std::size_t size,bool enabled){
       bit=4;if(!r.word(value))return Command::none;
       if(value=="next")action=Command::next;else if(value=="restart")action=Command::restart;else if(value=="startFocus")action=Command::start;else return Command::none;
     }else return Command::none;
-    if(seen&bit)return Command::none;seen|=bit;
+    if (seen & bit) return Command::none;
+    seen |= bit;
     if(!r.token(i==2?'}':','))return Command::none;
   }
   return seen==7&&r.done()?action:Command::none;

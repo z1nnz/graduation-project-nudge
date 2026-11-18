@@ -35,3 +35,8 @@ CI 固定 Flutter 3.41.7 的完整 analyze／test 與 Android Kotlin compile 才
 
 完整原始輸出與乾淨 source 的 14 個 binary／manifest 會隨 build-evidence 入版控；公開 log 只遮操作員家目錄、去除行尾空白，不刪失敗內容。
 未進行 USB upload，沒有實機驗收；all_package_criteria_completed=false。
+
+## CI 首輪修正與重評
+
+首輪 run 44379125811 的 Web／shared job 用 Linux GCC，因 ble_protocol.cpp 兩處 if 後同一行另接指令而觸發 misleading-indentation；本機 Clang 未報這項警告。未降低 -Werror，已拆開指令並重新通過三個 native 執行檔、Node 115 項；另外以 ESP32 工具鏈 GCC 對全部 core 與三個測試作 -Wall -Wextra -Werror 語法檢查。
+修正後重新評估仍為 07＝85、08＝89；更新前重建全部交付 binary 與 hash，首輪失敗 log 保留。新版本必須重新取得六項 CI 全綠，舊 run 不作交接依據。
