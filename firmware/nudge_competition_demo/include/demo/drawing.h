@@ -1,11 +1,8 @@
 #pragma once
 #include "demo/core.h"
+#include "demo/generated_contract.h"
 
 namespace demo {
-namespace color {
-constexpr std::uint16_t background = 0x0883, primary = 0x8B5F, ready = 0xBD5F;
-constexpr std::uint16_t complete = 0x5E97, support = 0x4E9D, text = 0xF7BD, muted = 0x6BF2;
-}
 class Canvas {
  public:
   virtual void clear(std::uint16_t color) = 0;
@@ -15,6 +12,12 @@ class Canvas {
   // size is the classic 6x8 ASCII bitmap font scale; x is left, y is top.
   virtual void text(int x, int y, const char* value, int size, std::uint16_t color) = 0;
   virtual ~Canvas() = default;
+};
+class CharacterPainter {
+ public:
+  void render(Canvas& c,const Frame& f,bool entered,int x,int y,int size,bool animate);
+ private:
+  int pose_=-1,phase_=-1;
 };
 class Painter {
  public:
@@ -28,6 +31,7 @@ class Painter {
   int previousProgress_ = -1;
   int previousSecond_ = -1;
   int previousPhase_ = -1;
+  CharacterPainter character_;
 };
 void paintCalibration(Canvas& canvas);
 }  // namespace demo

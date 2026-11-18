@@ -9,7 +9,8 @@ project = Path(__file__).resolve().parents[1]
 repo = project.parents[1]
 output = project / "build" / "artifacts"
 environments = ["orbit_p0a", "orbit_demo", "orbit_static", "orbit_colors", "orbit_calibration", "orbit_p1_check",
-                "station_p0a", "station_demo", "station_colors", "station_calibration", "station_p1_check"]
+                "station_p0a", "station_demo", "station_colors", "station_calibration", "station_p1_check",
+                "station_static", "orbit_ble_check", "station_ble_check"]
 if (project / "include" / "local_hardware_profile.h").exists():
     raise RuntimeError("local hardware profile present: public packager requires the unconfigured default profile")
 revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
@@ -36,11 +37,15 @@ for environment in environments:
                     "display_driver_compiled": True, "pinmap_configured": not station,
                     "optional_drivers_compiled": environment.endswith("p1_check"),
                     "p1_armed": False,
+                    "demo_ble_compiled": environment.endswith("ble_check"), "demo_ble_armed": False,
+                    "animation_enabled": environment not in ["orbit_static", "station_static"],
                     "physical_verified": False})
 manifest = {"source_commit": revision, "source_tree": source_tree, "source_dirty": dirty,
             "build_identity": identity, "physical_verified": False,
             "station_lcd_adapter_implemented": True, "station_pinmap_configured": False,
-            "p1_armed": False, "artifacts": entries}
+            "p1_armed": False, "demo_ble_armed": False,
+            "shared_contract_sha256": hashlib.sha256((repo / "shared" / "demo_contract.json").read_bytes()).hexdigest(),
+            "artifacts": entries}
 if output.exists():
     shutil.rmtree(output)
 output.mkdir(parents=True, exist_ok=True)

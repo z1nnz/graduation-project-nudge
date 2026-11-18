@@ -4,6 +4,7 @@
 #include "demo/drawing.h"
 #include "demo/optional_arduino.h"
 #include "demo/station_arduino.h"
+#include "demo/ble_arduino.h"
 
 #ifndef NUDGE_ANIMATION
 #define NUDGE_ANIMATION 1
@@ -98,6 +99,7 @@ void setup() {
   Serial.println("offline autoplay; GPIO profile and P1 acceptance gates enforced");
   runtime.begin(millis());
   demo::beginOptionals(runtime.displayAvailable());
+  demo::beginDemoBle(runtime.displayAvailable());
   // Display initialization can consume time. Start the visible Boot dwell
   // afterwards so a slow init cannot make the first loop skip Boot entirely.
   scenario.restart(millis());
@@ -114,6 +116,8 @@ void loop() {
   demo::updateOptionals(scenario.frame(now),now);
   const auto physical=demo::takeOptionalCommand();
   if(command==demo::Command::none || physical==demo::Command::restart)command=physical;
+  const auto remote=demo::takeDemoBleCommand();
+  if(command==demo::Command::none)command=remote;
   const int delta=demo::takeOptionalRotation();
   if(command!=demo::Command::restart)scenario.rotateTask(delta,now);
 #ifdef NUDGE_DEVICE_ORBIT
@@ -139,6 +143,7 @@ void loop() {
 #endif
   if (command != demo::Command::none || now - lastFrame >= 50U) {
     runtime.update(now, command);
+    demo::publishDemoBle(scenario.frame(now));
     lastFrame = now;
     if (loggedGeneration != scenario.generation()) {
       Serial.printf("scene %u %s\n", static_cast<unsigned>(scenario.scene()), demo::sceneName(scenario.scene()));

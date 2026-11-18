@@ -7,6 +7,9 @@
 #include "demo/station_arduino.h"
 #include "demo/hardware_profile.h"
 #include "demo/station.h"
+#ifndef NUDGE_ANIMATION
+#define NUDGE_ANIMATION 1
+#endif
 namespace demo {
 namespace {
 template<class Surface>class AdafruitCanvas final:public Canvas {
@@ -62,7 +65,7 @@ class StationDisplay final:public DisplayPort {
   std::unique_ptr<SPIClass> spi_;
   std::unique_ptr<Adafruit_ST7789> screen_;
   std::unique_ptr<GFXcanvas16> buffer_;
-  StationPainter painter_{NUDGE_BUILD_ID};
+  StationPainter painter_{NUDGE_BUILD_ID,NUDGE_ANIMATION!=0};
 } display;
 }
 DisplayPort& stationDisplay(){return display;}

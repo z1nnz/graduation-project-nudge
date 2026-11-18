@@ -1,15 +1,15 @@
 # Nudge 競賽離線展示韌體
 
-目前涵蓋工作包 03／04 的 Orbit，以及 05 的 Station、06 的周邊軟體準備。
+目前涵蓋 03／04 Orbit、05 Station、06 周邊準備，以及 07 Demo Controller／BLE、08 共用角色視覺。
 原本 `nudge_focus_device` 正式韌體保持原狀。實機依使用者指示稍後驗收。
 
 Station：XIAO ESP32S3 ＋ Waveshare 17344／2inch LCD Module，ST7789 家族、240×320、SPI。
 已補入真實 ST7789 adapter 與八幕 Painter；**發布設定沒有已確認 GPIO，預設只輸出診斷，不會操作 LCD**。
 周邊 adapter 已編譯／host 測試，但全部預設停用；不能當作 P0-A 或周邊實機成功。
 
-[逐項驗收與自評](../../docs/competition-demo/package05-06/README.md)包含工作包來源、身分卡、既有原圖連結、限制與待補項目。
+[逐項驗收與自評](../../docs/competition-demo/package07-08/README.md)包含工作包來源、身分卡、既有原圖連結、限制與待補項目。
 歷史 #23／package03-04 的文件與 binary 保留原交付版本，不代表本次的新版本。
-本 PR 沿用尚未合併 #23 的 core；建議 z1nnz 先審查 #21、#23，再處理本輪 PR。所有 PR base 仍為 main。
+本 PR 沿用尚未合併 #24（含 #23 core／#21 修復）；建議依序審查 #21、#23、#24，再處理本輪 PR。所有 PR base 仍為 main。
 
 ## 建置
 
@@ -20,7 +20,7 @@ ESP32 平台固定 6.12.0，所有圖形與周邊 libraries 固定 Git commit，
 python -m pip install platformio==6.1.19
 make -C firmware/nudge_competition_demo test
 make -C firmware/nudge_competition_demo station-preview
-pio run --project-dir firmware/nudge_competition_demo -e station_p0a -e station_demo -e station_colors -e station_calibration -e station_p1_check -e orbit_p0a -e orbit_demo -e orbit_static -e orbit_colors -e orbit_calibration -e orbit_p1_check
+pio run --project-dir firmware/nudge_competition_demo -e station_p0a -e station_demo -e station_colors -e station_calibration -e station_p1_check -e orbit_p0a -e orbit_demo -e orbit_static -e orbit_colors -e orbit_calibration -e orbit_p1_check -e station_static -e orbit_ble_check -e station_ble_check
 python firmware/nudge_competition_demo/scripts/package_builds.py
 ```
 
@@ -33,11 +33,13 @@ python firmware/nudge_competition_demo/scripts/package_builds.py
 | station_demo | Station 八幕，與 Orbit 相同 Scene ID／時間軸 |
 | station_colors | 整片紅、綠、藍、黑、白，各 2s |
 | station_calibration | 240×320、實際 rotation、8/12px 邊界、8/16/32px 字級參考 |
+| station_static | 關閉 Station 角色動畫，八幕仍照常播放 |
+| station_ble_check／orbit_ble_check | 編譯 Demo BLE；發布 profile 的 P2 gate 仍 OFF |
 | station_p1_check／orbit_p1_check | 編譯五種周邊 driver；發布 profile 仍關閉全部模組 |
 
 Station 的四種畫面模式及 p1_check 都先檢查 profile；未確認就只顯示 serial 診斷，沒有假 pin map。
 `NUDGE_BUILD_OPTIONALS=1` 只代表編譯包含周邊，不等於允許初始化。
-CI 保留原設定：既有 root Node 測試入口會實際編譯執行兩個 C++ 測試程式；
+CI 保留原設定：既有 root Node 測試入口會實際編譯執行三個 C++ 測試程式；
 ESP32 交叉編譯在本機完成，最新結果隨本輪 build-evidence 交付，不能把 Web CI 稱為 ESP32 編譯。
 
 ## 實機之後設定
@@ -96,9 +98,28 @@ Station 進場先用 RGB565 buffer 清整幕，配置失敗則直接繪圖；buf
 ST7789 init 沒有面板 ACK，geometry 符合不等於實物成功。PWM 失效回固定背光 ON 並記錄，非精確 55%。
 白屏先停止接周邊，退五色／校正，保留另一台展示，不按壓玻璃。
 
+## 07／08：控制器與共用角色
+
+- shared/demo_contract.json 是協定、名稱、8 個色彩與 6 種角色姿態的唯一資料來源。
+  修改後執行 node scripts/generate_demo_contract.cjs；--check 驗證 C++／Dart／Kotlin 產物一致。
+- 兩台都使用同一 CharacterPainter：idle／ready／focus／support／complete／growth。
+  每次切幕最多 900ms 的輕微動作，Focus 永遠靜態，不阻塞 Next／Restart。
+  orbit_static／station_static 可全部關閉角色動畫，場景與進度仍正常。
+- App 獨立入口 lib/main_demo_controller.dart 不執行正式 Firebase、帳號、通知與 AppState 啟動。
+  flutter run --target lib/main_demo_controller.dart 可先開預覽；Android 可使用 BLE，iOS／Web 只提供預覽與自動展示備援。
+- BLE 使用獨立 UUID 7df2… 與指定 Demo 名稱，沒有沿用正式 7df1… 帳號／活動控制。
+  Android 共用既有 GATT transport 的 Demo profile；正式協定與正式裝置韌體未改。
+- firmware 的 NUDGE_BUILD_DEMO_BLE=1 只編譯 adapter。profile.armBle、orbitP0bAccepted、stationP0bAccepted、
+  visualsAccepted、tenReplaysAccepted 及 displayAvailable 全通過才初始化；本輪全為 false。
+- App 也要 5 個獨立 --dart-define：NUDGE_DEMO_BLE、NUDGE_DEMO_ORBIT_P0B、NUDGE_DEMO_STATION_P0B、
+  NUDGE_DEMO_VISUALS、NUDGE_DEMO_TEN_REPLAYS，皆須 true；本輪不傳這些參數，按鈕預設停用。
+- 真正啟用前需完成兩台 P0-B、視覺與 10 次重播，再核對 [07 停止條件](../../docs/competition-demo/package07-08/package07-acceptance.md)。
+  不把 CI／host 通過當作這些實機前置，也不在距比賽不足 3 天且未連續成功時新增 P2。
+- 完整協定、操作、已知限制與實機清單見 [07／08 交付](../../docs/competition-demo/package07-08/README.md)。
+
 ## 韌體檔與回復
 
-輸出 .pio/build/<environment>/firmware.bin，打包器匯出 11 個 binary／SHA-256／source commit／Git tree／dirty 狀態。
+輸出 .pio/build/<environment>/firmware.bin，打包器匯出 14 個 binary／SHA-256／source commit／Git tree／dirty 狀態。
 Station 檔名含 _unconfigured，全部實機 verified=false，P1 armed=false；不能拿來宣稱已能顯示。
 打包器拒絕存在 local_hardware_profile.h 的公開交付，避免把已改接線的本機版本誤標為預設設定。
 本機 profile 修改會讓 build id 加上 hw 雜湊，實機照片／log 須同時記錄該版本與設定。

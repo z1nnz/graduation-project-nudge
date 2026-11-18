@@ -12,10 +12,13 @@ struct HardwareProfile {
   int sda = -1, scl = -1, buttonPin = -1, ledPin = -1;
   bool button = false, encoder = false, led = false, light = false, buzzer = false;
   bool ledSignalPathReady = false;
+  bool orbitP0bAccepted=false,stationP0bAccepted=false,visualsAccepted=false;
+  bool tenReplaysAccepted=false,armBle=false;
 };
 bool exposedGpio(int pin);
 const char* lcdProfileError(const HardwareProfile& p);
 bool p1Allowed(const HardwareProfile& p, bool displayAvailable);
+bool bleAllowed(const HardwareProfile& p,bool displayAvailable);
 bool optionalPinAllowed(const HardwareProfile& p, int pin);
 bool i2cPinsAllowed(const HardwareProfile& p);
 const HardwareProfile& hardwareProfile();

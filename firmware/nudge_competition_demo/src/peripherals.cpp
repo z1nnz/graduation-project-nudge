@@ -1,7 +1,11 @@
 #include "demo/peripherals.h"
+#include "demo/generated_contract.h"
 #include <algorithm>
 #include <cmath>
 namespace demo {
+namespace {
+std::uint32_t rgb(std::uint16_t c){return ((c>>11)*255U/31<<16)|(((c>>5)&63)*255U/63<<8)|((c&31)*255U/31);}
+}
 Command DebouncedPress::update(bool pressed,std::uint32_t now,Command shortAction) {
   if(!initialized_){initialized_=true;raw_=pressed;changed_=now;armed_=!pressed;}
   if(pressed!=raw_){raw_=pressed;changed_=now;}
@@ -29,9 +33,9 @@ unsigned ThreeLevelLight::update(float lux,bool valid,std::uint32_t now) {
   return percent_;
 }
 LedOutput ledOutput(const Frame& f) {
-  if(f.scene==Scene::focus)return {std::min(10U,static_cast<unsigned>(f.progress)*10/1000),0x8870FF,16};
-  if((f.scene==Scene::complete || f.scene==Scene::growth) && f.elapsedMs<2000)return {10,0x50D090,16};
-  return {10,0x8870FF,4};
+  if(f.scene==Scene::focus)return {std::min(10U,static_cast<unsigned>(f.progress)*10/1000),rgb(color::primary),16};
+  if((f.scene==Scene::complete || f.scene==Scene::growth) && f.elapsedMs<2000)return {10,rgb(color::complete),16};
+  return {10,rgb(color::primary),4};
 }
 bool encoderDelta(std::int32_t current,std::int32_t previous,int& out) {
   std::int64_t delta=static_cast<std::int64_t>(current)-previous;

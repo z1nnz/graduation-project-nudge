@@ -17,6 +17,7 @@ const char* lcdProfileError(const HardwareProfile& p) {
 bool p1Allowed(const HardwareProfile& p, bool displayAvailable) {
   return displayAvailable && p.armP1 && p.orbitP0aAccepted && p.stationP0aAccepted && p.peripheralWiringConfirmed;
 }
+bool bleAllowed(const HardwareProfile& p,bool displayAvailable){return displayAvailable&&p.armBle&&p.orbitP0bAccepted&&p.stationP0bAccepted&&p.visualsAccepted&&p.tenReplaysAccepted;}
 bool optionalPinAllowed(const HardwareProfile& p, int pin) {
   if (!exposedGpio(pin)) return false;
   if(p.orbit){const int reserved[]={2,4,7,8,9,43,44};for(int used:reserved)if(pin==used)return false;}

@@ -4,17 +4,7 @@
 namespace demo {
 namespace {
 void label(Canvas& c,int y,const char* s,int size=2,std::uint16_t ink=color::text) { c.text(16,y,s,size,ink); }
-void character(Canvas& c,bool grown,bool happy,bool focused=false) {
-  c.circle(120,202,21,color::complete);
-  c.line(120,181,120,162,color::complete);
-  c.line(120,172,99,160,color::complete);
-  c.line(120,170,141,158,color::complete);
-  if(grown)c.line(120,178,145,172,color::complete);
-  if(focused){c.line(109,200,115,200,color::background);c.line(125,200,131,200,color::background);}
-  else{c.circle(112,200,2,color::background);c.circle(128,200,2,color::background);}
-  if(happy){c.line(114,211,120,215,color::background);c.line(120,215,126,211,color::background);}
-  else c.line(114,211,126,211,color::background);
-}
+
 }
 void StationPainter::render(Canvas& c,const Frame& f,bool entered) {
   const auto& d=*f.values;char text[40];
@@ -26,13 +16,13 @@ void StationPainter::render(Canvas& c,const Frame& f,bool entered) {
     c.line(12,44,228,44,color::muted);
     switch(f.scene) {
       case Scene::boot:
-        label(c,64,"DESK COMPANION"); character(c,false,false);
+        label(c,64,"DESK COMPANION");
         // A short build id fits in the lower right without competing with DEMO.
         std::snprintf(text,sizeof(text),"%.12s",buildId_);c.text(152,270,text,1,color::muted);break;
       case Scene::home:
         label(c,60,"NEXT",2,color::primary);label(c,90,task,3);
         std::snprintf(text,sizeof(text),"%d MIN FOCUS",d.focusMinutes);label(c,128,text);
-        character(c,false,false);
+
         std::snprintf(text,sizeof(text),"TODAY %d/3",d.todayFocusCount);label(c,248,text);break;
       case Scene::ready:
         label(c,60,"CHOOSE A TASK",2,color::ready);
@@ -43,19 +33,19 @@ void StationPainter::render(Canvas& c,const Frame& f,bool entered) {
         label(c,248,"AUTO: FIRST TASK",2,color::muted);break;
       case Scene::focus:
         label(c,60,task,2,color::primary);label(c,138,"20 SEC PREVIEW",2,color::muted);
-        character(c,false,false,true);c.rect(16,250,208,12,color::muted);break;
+        c.rect(16,250,208,12,color::muted);break;
       case Scene::encouragement:
         std::snprintf(text,sizeof(text),"ROOM %d/%d",d.activeMembers,d.totalMembers);
         label(c,60,text,3,color::support);label(c,108,"KEEP GOING");
-        label(c,140,"WE ARE HERE");character(c,false,true);
+        label(c,140,"WE ARE HERE");
         label(c,250,"YOU START / STOP",2,color::support);break;
       case Scene::complete:
         label(c,60,"FOCUS COMPLETE",2,color::complete);
         std::snprintf(text,sizeof(text),"%d MIN",d.focusMinutes);label(c,102,text,3);
-        character(c,true,true);c.line(172,184,183,195,color::complete);c.line(183,195,207,168,color::complete);break;
+        c.line(172,184,183,195,color::complete);c.line(183,195,207,168,color::complete);break;
       case Scene::growth:
         std::snprintf(text,sizeof(text),"SPROUT LEVEL %d",d.characterLevel);label(c,60,text);
-        character(c,true,true);std::snprintf(text,sizeof(text),"DEMO XP +%d",d.demoXp);label(c,248,text,2,color::complete);break;
+        std::snprintf(text,sizeof(text),"DEMO XP +%d",d.demoXp);label(c,248,text,2,color::complete);break;
       case Scene::summary:
         label(c,60,"TODAY",3,color::ready);
         std::snprintf(text,sizeof(text),"TASKS %d/3",d.todayFocusCount);label(c,116,text);
@@ -75,6 +65,10 @@ void StationPainter::render(Canvas& c,const Frame& f,bool entered) {
       const int from=progress_<0?0:progress_;
       c.rect(16+from,250,progress-from,12,color::primary);progress_=progress;
     }
+  }
+  if(f.scene!=Scene::summary){
+    const bool ready=f.scene==Scene::ready;
+    character_.render(c,f,entered,ready?192:80,ready?48:156,ready?32:80,animate_);
   }
 }
 void paintStationCalibration(Canvas& c,unsigned rotation) {
