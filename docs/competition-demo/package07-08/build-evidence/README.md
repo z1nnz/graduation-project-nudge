@@ -1,7 +1,7 @@
 # 軟體建置證據，非實機驗收
 
-本目錄 14 個 application binary 由乾淨 source commit `0b50e2d` 建置，精確 commit／firmware tree／build id／每檔 SHA-256 見 manifest.json。
-後續提交僅增加 docs 證據，韌體 tree 必須與 manifest 相同。
+本目錄 14 個 application binary 由乾淨 source commit `44a64da` 建置，精確 commit／firmware tree／build id／每檔 SHA-256 見 manifest.json。
+manifest 的 source commit 指韌體編譯來源；後續 App／docs 提交不得改變韌體 tree。Android 權限順序修正由最新 PR head 的 Kotlin CI 另行驗證。
 打包器確認每一檔含同一 build id；不得拿別輪已成功的 binary 代替本輪。
 
 全部 physical_verified=false、P1／Demo BLE armed=false；BLE check 只編譯 SDK／adapter，沒有啟動服務。
@@ -11,6 +11,8 @@ Station 檔名含 unconfigured，尚未確認第二塊主控與 LCD GPIO，不�
 | 證據 | 命令／內容 |
 | --- | --- |
 | firmware-build.txt | PlatformIO 逐一指定 platformio.ini 的全部 14 個 env；14 succeeded |
+| gcc-syntax-check.txt | ESP32 工具鏈 GCC，全部 native core／test 的 -Wall -Wextra -Werror -fsyntax-only |
+| ci-first-web-failure.txt | 首輪 Linux GCC 警告造成失敗的完整 log；修正與重評見 self-review |
 | native-tests.txt | make -C firmware/nudge_competition_demo test；三執行檔 PASS |
 | node-tests.txt | node --test test/*.js；115／115 |
 | flutter-tests.txt | flutter test --no-pub；213／213 |
@@ -23,4 +25,4 @@ Station 檔名含 unconfigured，尚未確認第二塊主控與 LCD GPIO，不�
 未提供 Android APK／iOS BLE 成功聲明。Web 瀏覽器只驗證畫面；12 個測試內的 BLE 是 fake transport。
 
 公開 log 保留完整輸出，只將操作員家目錄替成 `<operator-home>` 並去除行尾空白；原始 log 保留在本機 deliverables。
-所有本輪測試／建置均通過，未把失敗行刪掉或把實機未測改成成功。
+本輪修正後的測試／建置通過；首輪 CI 失敗另存完整 log，未把實機未測改成成功。

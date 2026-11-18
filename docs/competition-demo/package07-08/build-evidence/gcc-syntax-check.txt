@@ -1,0 +1,1 @@
+PASS: GCC 8.4.0 -std=c++17 -Wall -Wextra -Werror -fsyntax-only; seven core sources and three test sources

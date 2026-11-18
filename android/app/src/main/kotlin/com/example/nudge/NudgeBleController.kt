@@ -152,10 +152,6 @@ class NudgeBleController(
             result.error("ble-unavailable", "This Android device does not support BLE.", null)
             return
         }
-        if (!bluetoothManager.adapter.isEnabled) {
-            result.error("ble-disabled", "Bluetooth is turned off.", null)
-            return
-        }
         val missing = requiredPermissions().filterNot(::hasPermission)
         if (missing.isNotEmpty()) {
             if (pendingScanResult != null) {
@@ -171,11 +167,18 @@ class NudgeBleController(
 
     @SuppressLint("MissingPermission")
     private fun beginScan(result: MethodChannel.Result) {
+        // Android 12+ requires CONNECT even to read adapter state. This runs
+        // only after requestScan/the permission callback granted permissions.
+        val adapter = bluetoothManager.adapter
+        if (adapter == null || !adapter.isEnabled) {
+            result.error("ble-disabled", "Bluetooth is turned off or unavailable.", null)
+            return
+        }
         if (scanCallback != null || bluetoothGatt != null) {
             result.error("ble-busy", "A Nudge BLE connection is already active.", null)
             return
         }
-        val scanner = bluetoothManager.adapter.bluetoothLeScanner
+        val scanner = adapter.bluetoothLeScanner
         if (scanner == null) {
             result.error("ble-unavailable", "Android BLE scanner is unavailable.", null)
             return
