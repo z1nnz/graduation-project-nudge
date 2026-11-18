@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-19",
+  "scope": "software and document preparation only",
+  "scores": {
+    "package09": 90,
+    "package10": 85,
+    "threshold": 85
+  },
+  "all_package_criteria_completed": false,
+  "physical_verified": false,
+  "uploaded_to_hardware": false,
+  "team_acknowledgements_complete": false,
+  "local_results": {
+    "new_node_tests": 20,
+    "root_node_tests": 132,
+    "flutter_tests": 201,
+    "cloud_passed": 120,
+    "cloud_skipped_emulator_cases": 25,
+    "source_analyze": "pass",
+    "clean_firmware_environments": 4,
+    "native_executables": 3,
+    "host_p0a_replays": 10,
+    "host_p0b_replays": 10,
+    "host_restarts": 80,
+    "physical_trials": 0
+  },
+  "tool_source_sha256": {
+    "scripts/demo_acceptance.cjs": "c878cbae64c53a3c755139f98718e24399b6dd4dd89bf76214263f03cfab0308",
+    "scripts/demo_gate_a.cjs": "460803cf944cc2eabd974f9152520346f4669caed908c95d01b8cae043b08c88",
+    "scripts/demo_rehearsal_probe.cpp": "a249e859b2b8b62f649b636d4fc8c2c9ed261b8abc03dc308e40e976d0395f4f",
+    "test/demo_acceptance_test.js": "c1fa8fa149dadc9e3d3fc839286f99a31a01e3e286c8f75b9f4aaead9b221c0a"
+  },
+  "latest_head_ci": "must all pass on PR before review; see PR for final run"
+}

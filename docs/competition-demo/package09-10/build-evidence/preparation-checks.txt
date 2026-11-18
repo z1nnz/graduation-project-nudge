@@ -1,0 +1,4 @@
+PASS: four firmware/log hashes and embedded build ids; clean source tree
+PASS: ownership paths exist in pinned source; Markdown links/fences
+PASS: pending record current tool output; Gate A true; all physical trial counts zero; expected exit 2
+PASS: 09=90, 10=85 preparation self-assessment; no physical acceptance claimed

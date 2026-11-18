@@ -1,0 +1,28 @@
+✔ pending template never grants software or physical acceptance (3.092791ms)
+✔ CLI creates pending record, refuses overwrite and exits 2 for missing physical proof (79.128042ms)
+✔ invalid schema, duplicate attempts, missing groups and non-boolean adoption reject (2.145042ms)
+✔ evidence hashes reject missing, empty and changed files (1.727958ms)
+✔ evidence cannot escape root via traversal, absolute path or symlink (1.590458ms)
+✔ software screenshot/host trace cannot fill physical trial (3.2935ms)
+✔ Gate A binds source/build/profile/binary and rejects missing binary bytes (3.234708ms)
+✔ 3/3 minimum P0-A stays independent of later optional and P0-B gates (4.101666ms)
+✔ one board ID cannot stand in for both independent controllers (2.42475ms)
+✔ Station unconfigured build may pass code Gate A but cannot pass physical identity (1.789166ms)
+✔ duplicating an overlapping clip cannot inflate replay count (2.103708ms)
+✔ P0-B needs ten valid replays and restart coverage of all eight scenes (3.96325ms)
+✔ each adopted input must trigger once per trial, ten trials each (2.760208ms)
+✔ failed trials require scene, time, version, date and reproducibility (1.952291ms)
+✔ ten BLE trials cannot bypass both-device P0-B prerequisites (2.598916ms)
+✔ viewer feedback needs two distinct non-developers and all five observations (2.590167ms)
+✔ three rehearsals need serial/oral/fault observations, not a status flag (2.223333ms)
+✔ freeze boundaries use calendar days; unknown dates never authorize new features (0.060708ms)
+✔ known competition date requires an explicit local day, never a silent UTC default (1.554458ms)
+✔ P0-A binary cannot be claimed as an adopted P0-B build (1.906667ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 162.905

@@ -1,0 +1,1649 @@
+{
+  "schema_version": 1,
+  "scope": "physical-demo-record",
+  "competition_date": null,
+  "devices": {
+    "orbit": {
+      "hardware": {
+        "board": null,
+        "display": null,
+        "board_id": null,
+        "wiring_confirmed": false,
+        "independent_controller_confirmed": false
+      },
+      "firmware": {
+        "source_commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+        "build_id": "c4cb9fa3b7a9",
+        "binary_sha256": "181d98e20863425a8b356583a9b5f6fec6ccb96dc27809b2a447f08750969589",
+        "environment": "orbit_p0a",
+        "profile_sha256": "942a127a4f05282afe5d1174436e640db63eb596e927381ca2a4e99db86a8cd2",
+        "display_configured": false
+      },
+      "adoption": {
+        "p0b": false,
+        "p1": false,
+        "ble": false
+      },
+      "adopted_inputs": [],
+      "gate_a_report": {
+        "file": "build-evidence/gate-a/gate-a.json",
+        "sha256": "7ba35a793b6f32ee5ea35930de78b77a39e88d2fbb75923285e04c37129902ac",
+        "kind": "software_report"
+      },
+      "trials": {
+        "colors": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "orientation": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "full_frame": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "cold_boot": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "usb_cycle": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "p0a": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "p0b": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "restart": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": "boot",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": "home",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": "ready",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": "focus",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": "encouragement",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": "complete",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": "growth",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": "summary",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": "boot",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": "home",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "focus_input": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "encouragement_exit": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "summary_home": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "offline": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "optional_failure": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "input": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "ble": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ]
+      }
+    },
+    "station": {
+      "hardware": {
+        "board": null,
+        "display": null,
+        "board_id": null,
+        "wiring_confirmed": false,
+        "independent_controller_confirmed": false
+      },
+      "firmware": {
+        "source_commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+        "build_id": "c4cb9fa3b7a9",
+        "binary_sha256": "c8cacd205cd95c0ce9dadfcdee5fd43ba2177ee5ff03c5179b0d95414cd6fc38",
+        "environment": "station_p0a",
+        "profile_sha256": "942a127a4f05282afe5d1174436e640db63eb596e927381ca2a4e99db86a8cd2",
+        "display_configured": false
+      },
+      "adoption": {
+        "p0b": false,
+        "p1": false,
+        "ble": false
+      },
+      "adopted_inputs": [],
+      "gate_a_report": {
+        "file": "build-evidence/gate-a/gate-a.json",
+        "sha256": "7ba35a793b6f32ee5ea35930de78b77a39e88d2fbb75923285e04c37129902ac",
+        "kind": "software_report"
+      },
+      "trials": {
+        "colors": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "orientation": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "full_frame": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "cold_boot": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "usb_cycle": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "p0a": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "p0b": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "restart": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": "boot",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": "home",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": "ready",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": "focus",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": "encouragement",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": "complete",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": "growth",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": "summary",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": "boot",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": "home",
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "focus_input": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "encouragement_exit": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "summary_home": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "offline": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "optional_failure": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "input": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ],
+        "ble": [
+          {
+            "attempt": 1,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 2,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 3,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 4,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 5,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 6,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 7,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 8,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 9,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          },
+          {
+            "attempt": 10,
+            "status": "pending",
+            "scene": null,
+            "elapsed_ms": null,
+            "observed_build_id": null,
+            "operator": null,
+            "date": null,
+            "observations": {},
+            "evidence": null,
+            "failure": null
+          }
+        ]
+      }
+    }
+  },
+  "rehearsals": [
+    {
+      "type": "engineering",
+      "status": "pending",
+      "duration_ms": null,
+      "operator": null,
+      "date": null,
+      "evidence": null,
+      "observations": {}
+    },
+    {
+      "type": "oral",
+      "status": "pending",
+      "duration_ms": null,
+      "operator": null,
+      "date": null,
+      "evidence": null,
+      "observations": {}
+    },
+    {
+      "type": "failure",
+      "status": "pending",
+      "duration_ms": null,
+      "operator": null,
+      "date": null,
+      "evidence": null,
+      "observations": {}
+    }
+  ],
+  "viewer_feedback": [
+    {
+      "viewer_id": "viewer-1",
+      "non_developer": false,
+      "no_prior_code_explanation": false,
+      "distance_cm": null,
+      "main_info_within_5s": null,
+      "device_difference_within_30s": null,
+      "readable_at_desk": null,
+      "completion_noticed": null,
+      "demo_understood": null,
+      "feedback": null,
+      "date": null
+    },
+    {
+      "viewer_id": "viewer-2",
+      "non_developer": false,
+      "no_prior_code_explanation": false,
+      "distance_cm": null,
+      "main_info_within_5s": null,
+      "device_difference_within_30s": null,
+      "readable_at_desk": null,
+      "completion_noticed": null,
+      "demo_understood": null,
+      "feedback": null,
+      "date": null
+    }
+  ],
+  "notes": "Physical acceptance deferred; empty entries are not passes."
+}

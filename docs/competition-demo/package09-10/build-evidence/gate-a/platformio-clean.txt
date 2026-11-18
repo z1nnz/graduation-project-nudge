@@ -1,0 +1,45 @@
+Processing orbit_demo (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+Removing .pio/build/orbit_demo
+Done cleaning
+========================= [SUCCESS] Took 0.23 seconds =========================
+
+Processing orbit_p0a (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+Removing .pio/build/orbit_p0a
+Done cleaning
+========================= [SUCCESS] Took 0.19 seconds =========================
+
+Processing station_demo (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+Removing .pio/build/station_demo
+Done cleaning
+========================= [SUCCESS] Took 0.19 seconds =========================
+
+Processing station_p0a (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+Removing .pio/build/station_p0a
+Done cleaning
+========================= [SUCCESS] Took 0.20 seconds =========================
+
+Environment    Status    Duration
+-------------  --------  ------------
+orbit_demo     SUCCESS   00:00:00.226
+orbit_p0a      SUCCESS   00:00:00.195
+station_demo   SUCCESS   00:00:00.190
+station_p0a    SUCCESS   00:00:00.202
+========================= 4 succeeded in 00:00:00.812 =========================
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(

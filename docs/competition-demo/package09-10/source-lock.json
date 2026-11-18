@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "requirements_commit": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d",
+  "firmware_pr": "https://github.com/z1nnz/graduation-project-nudge/pull/25",
+  "checkout_commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+  "firmware_tree": "d10c1591509551e06b08c44edfe0962a7a0dd489",
+  "physical_verified": false,
+  "purpose": "Read-only source dependency for local Gate A; no pending firmware is copied into this branch."
+}
