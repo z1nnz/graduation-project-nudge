@@ -1,0 +1,1304 @@
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Processing orbit_demo (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 34 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Seeed_GFX @ 2.0.3+sha.0b13b21
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/orbit_demo/src/core.cpp.o
+Compiling .pio/build/orbit_demo/src/drawing.cpp.o
+Compiling .pio/build/orbit_demo/src/hardware_profile.cpp.o
+Compiling .pio/build/orbit_demo/src/main.cpp.o
+Compiling .pio/build/orbit_demo/src/optional_arduino.cpp.o
+Compiling .pio/build/orbit_demo/src/peripherals.cpp.o
+Compiling .pio/build/orbit_demo/src/station.cpp.o
+Compiling .pio/build/orbit_demo/src/station_arduino.cpp.o
+Compiling .pio/build/orbit_demo/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/orbit_demo/libdc4/FS/FS.cpp.o
+Compiling .pio/build/orbit_demo/libdc4/FS/vfs_api.cpp.o
+In file included from src/main.cpp:16:
+.pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_demo/lib1c2/SPIFFS/SPIFFS.cpp.o
+Compiling .pio/build/orbit_demo/lib9f3/LittleFS/LittleFS.cpp.o
+Compiling .pio/build/orbit_demo/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/orbit_demo/lib6eb/Seeed_GFX/TFT_eSPI.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/Print.cpp.o
+In file included from .pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.cpp:16:
+.pio/libdeps/orbit_demo/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_demo/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/main.cpp.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/orbit_demo/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/orbit_demo/libFrameworkArduino.a
+Indexing .pio/build/orbit_demo/libFrameworkArduino.a
+Linking .pio/build/orbit_demo/firmware.elf
+Retrieving maximum program size .pio/build/orbit_demo/firmware.elf
+Checking size .pio/build/orbit_demo/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 346121 bytes from 3342336 bytes)
+Building .pio/build/orbit_demo/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 5.01 seconds =========================
+
+Processing orbit_p0a (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 34 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Seeed_GFX @ 2.0.3+sha.0b13b21
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/orbit_p0a/src/core.cpp.o
+Compiling .pio/build/orbit_p0a/src/drawing.cpp.o
+Compiling .pio/build/orbit_p0a/src/hardware_profile.cpp.o
+Compiling .pio/build/orbit_p0a/src/main.cpp.o
+Compiling .pio/build/orbit_p0a/src/optional_arduino.cpp.o
+Compiling .pio/build/orbit_p0a/src/peripherals.cpp.o
+Compiling .pio/build/orbit_p0a/src/station.cpp.o
+Compiling .pio/build/orbit_p0a/src/station_arduino.cpp.o
+Compiling .pio/build/orbit_p0a/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/orbit_p0a/libdc4/FS/FS.cpp.o
+In file included from src/main.cpp:16:
+.pio/libdeps/orbit_p0a/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_p0a/libdc4/FS/vfs_api.cpp.o
+Compiling .pio/build/orbit_p0a/lib1c2/SPIFFS/SPIFFS.cpp.o
+Compiling .pio/build/orbit_p0a/lib9f3/LittleFS/LittleFS.cpp.o
+Compiling .pio/build/orbit_p0a/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/orbit_p0a/lib87d/Seeed_GFX/TFT_eSPI.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/IPv6Address.cpp.o
+In file included from .pio/libdeps/orbit_p0a/Seeed_GFX/TFT_eSPI.cpp:16:
+.pio/libdeps/orbit_p0a/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_p0a/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/main.cpp.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/orbit_p0a/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/orbit_p0a/libFrameworkArduino.a
+Indexing .pio/build/orbit_p0a/libFrameworkArduino.a
+Linking .pio/build/orbit_p0a/firmware.elf
+Retrieving maximum program size .pio/build/orbit_p0a/firmware.elf
+Checking size .pio/build/orbit_p0a/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 346121 bytes from 3342336 bytes)
+Building .pio/build/orbit_p0a/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 4.58 seconds =========================
+
+Processing orbit_static (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 34 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Seeed_GFX @ 2.0.3+sha.0b13b21
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/orbit_static/src/core.cpp.o
+Compiling .pio/build/orbit_static/src/drawing.cpp.o
+Compiling .pio/build/orbit_static/src/hardware_profile.cpp.o
+Compiling .pio/build/orbit_static/src/main.cpp.o
+Compiling .pio/build/orbit_static/src/optional_arduino.cpp.o
+Compiling .pio/build/orbit_static/src/peripherals.cpp.o
+Compiling .pio/build/orbit_static/src/station.cpp.o
+Compiling .pio/build/orbit_static/src/station_arduino.cpp.o
+Compiling .pio/build/orbit_static/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/orbit_static/libdc4/FS/FS.cpp.o
+Compiling .pio/build/orbit_static/libdc4/FS/vfs_api.cpp.o
+In file included from src/main.cpp:16:
+.pio/libdeps/orbit_static/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_static/lib1c2/SPIFFS/SPIFFS.cpp.o
+Compiling .pio/build/orbit_static/lib9f3/LittleFS/LittleFS.cpp.o
+Compiling .pio/build/orbit_static/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/orbit_static/lib253/Seeed_GFX/TFT_eSPI.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/MD5Builder.cpp.o
+In file included from .pio/libdeps/orbit_static/Seeed_GFX/TFT_eSPI.cpp:16:
+.pio/libdeps/orbit_static/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_static/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/main.cpp.o
+Compiling .pio/build/orbit_static/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/orbit_static/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/orbit_static/libFrameworkArduino.a
+Indexing .pio/build/orbit_static/libFrameworkArduino.a
+Linking .pio/build/orbit_static/firmware.elf
+Retrieving maximum program size .pio/build/orbit_static/firmware.elf
+Checking size .pio/build/orbit_static/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 346121 bytes from 3342336 bytes)
+Building .pio/build/orbit_static/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 4.60 seconds =========================
+
+Processing orbit_colors (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 34 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Seeed_GFX @ 2.0.3+sha.0b13b21
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/orbit_colors/src/core.cpp.o
+Compiling .pio/build/orbit_colors/src/drawing.cpp.o
+Compiling .pio/build/orbit_colors/src/hardware_profile.cpp.o
+Compiling .pio/build/orbit_colors/src/main.cpp.o
+Compiling .pio/build/orbit_colors/src/optional_arduino.cpp.o
+Compiling .pio/build/orbit_colors/src/peripherals.cpp.o
+Compiling .pio/build/orbit_colors/src/station.cpp.o
+Compiling .pio/build/orbit_colors/src/station_arduino.cpp.o
+Compiling .pio/build/orbit_colors/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/orbit_colors/libdc4/FS/FS.cpp.o
+Compiling .pio/build/orbit_colors/libdc4/FS/vfs_api.cpp.o
+In file included from src/main.cpp:16:
+.pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_colors/lib1c2/SPIFFS/SPIFFS.cpp.o
+Compiling .pio/build/orbit_colors/lib9f3/LittleFS/LittleFS.cpp.o
+Compiling .pio/build/orbit_colors/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/orbit_colors/lib351/Seeed_GFX/TFT_eSPI.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/IPv6Address.cpp.o
+In file included from .pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.cpp:16:
+.pio/libdeps/orbit_colors/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_colors/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/main.cpp.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/orbit_colors/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/orbit_colors/libFrameworkArduino.a
+Indexing .pio/build/orbit_colors/libFrameworkArduino.a
+Linking .pio/build/orbit_colors/firmware.elf
+Retrieving maximum program size .pio/build/orbit_colors/firmware.elf
+Checking size .pio/build/orbit_colors/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.3% (used 345829 bytes from 3342336 bytes)
+Building .pio/build/orbit_colors/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 4.58 seconds =========================
+
+Processing orbit_calibration (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 34 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Seeed_GFX @ 2.0.3+sha.0b13b21
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/orbit_calibration/src/core.cpp.o
+Compiling .pio/build/orbit_calibration/src/drawing.cpp.o
+Compiling .pio/build/orbit_calibration/src/hardware_profile.cpp.o
+Compiling .pio/build/orbit_calibration/src/main.cpp.o
+Compiling .pio/build/orbit_calibration/src/optional_arduino.cpp.o
+Compiling .pio/build/orbit_calibration/src/peripherals.cpp.o
+Compiling .pio/build/orbit_calibration/src/station.cpp.o
+Compiling .pio/build/orbit_calibration/src/station_arduino.cpp.o
+Compiling .pio/build/orbit_calibration/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/orbit_calibration/libdc4/FS/FS.cpp.o
+In file included from src/main.cpp:16:
+.pio/libdeps/orbit_calibration/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_calibration/libdc4/FS/vfs_api.cpp.o
+Compiling .pio/build/orbit_calibration/lib1c2/SPIFFS/SPIFFS.cpp.o
+Compiling .pio/build/orbit_calibration/lib9f3/LittleFS/LittleFS.cpp.o
+Compiling .pio/build/orbit_calibration/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/orbit_calibration/lib38f/Seeed_GFX/TFT_eSPI.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/MD5Builder.cpp.o
+In file included from .pio/libdeps/orbit_calibration/Seeed_GFX/TFT_eSPI.cpp:16:
+.pio/libdeps/orbit_calibration/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_calibration/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/main.cpp.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/orbit_calibration/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/orbit_calibration/libFrameworkArduino.a
+Indexing .pio/build/orbit_calibration/libFrameworkArduino.a
+Linking .pio/build/orbit_calibration/firmware.elf
+Retrieving maximum program size .pio/build/orbit_calibration/firmware.elf
+Checking size .pio/build/orbit_calibration/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   6.0% (used 19660 bytes from 327680 bytes)
+Flash: [=         ]  10.4% (used 345981 bytes from 3342336 bytes)
+Building .pio/build/orbit_calibration/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 4.54 seconds =========================
+
+Processing station_demo (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 39 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit ST7735 and ST7789 Library @ 1.12.0+sha.d568339
+|-- Adafruit GFX Library @ 1.13.0+sha.f256ef6
+|-- Adafruit BusIO @ 1.17.4+sha.3b83642
+|-- Adafruit seesaw Library @ 1.7.9
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/station_demo/src/core.cpp.o
+Compiling .pio/build/station_demo/src/drawing.cpp.o
+Compiling .pio/build/station_demo/src/hardware_profile.cpp.o
+Compiling .pio/build/station_demo/src/main.cpp.o
+Compiling .pio/build/station_demo/src/optional_arduino.cpp.o
+Compiling .pio/build/station_demo/src/peripherals.cpp.o
+Compiling .pio/build/station_demo/src/station.cpp.o
+Compiling .pio/build/station_demo/src/station_arduino.cpp.o
+Compiling .pio/build/station_demo/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/station_demo/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/station_demo/lib541/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/station_demo/lib541/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/station_demo/lib541/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/station_demo/lib541/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/station_demo/libe4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GFX.cpp.o
+Compiling .pio/build/station_demo/libe4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GrayOLED.cpp.o
+Compiling .pio/build/station_demo/libe4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_SPITFT.cpp.o
+Compiling .pio/build/station_demo/libe4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/glcdfont.c.o
+Compiling .pio/build/station_demo/lib95e/Adafruit ST7735 and ST7789 Library/Adafruit_ST7735.cpp.o
+Compiling .pio/build/station_demo/lib95e/Adafruit ST7735 and ST7789 Library/Adafruit_ST7789.cpp.o
+Compiling .pio/build/station_demo/lib95e/Adafruit ST7735 and ST7789 Library/Adafruit_ST7796S.cpp.o
+Compiling .pio/build/station_demo/lib95e/Adafruit ST7735 and ST7789 Library/Adafruit_ST77xx.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/Adafruit_Crickit.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/Adafruit_NeoKey_1x4.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/Adafruit_NeoTrellis.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/Adafruit_TFTShield18.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/Adafruit_miniTFTWing.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/Adafruit_seesaw.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/seesaw_neopixel.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/seesaw_servo.cpp.o
+Compiling .pio/build/station_demo/lib497/Adafruit seesaw Library/seesaw_spectrum.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/main.cpp.o
+Compiling .pio/build/station_demo/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/station_demo/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/station_demo/libFrameworkArduino.a
+Indexing .pio/build/station_demo/libFrameworkArduino.a
+Linking .pio/build/station_demo/firmware.elf
+Retrieving maximum program size .pio/build/station_demo/firmware.elf
+Checking size .pio/build/station_demo/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   5.7% (used 18764 bytes from 327680 bytes)
+Flash: [=         ]   8.5% (used 283705 bytes from 3342336 bytes)
+Building .pio/build/station_demo/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 5.01 seconds =========================
+
+Processing station_p0a (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 39 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit ST7735 and ST7789 Library @ 1.12.0+sha.d568339
+|-- Adafruit GFX Library @ 1.13.0+sha.f256ef6
+|-- Adafruit BusIO @ 1.17.4+sha.3b83642
+|-- Adafruit seesaw Library @ 1.7.9
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/station_p0a/src/core.cpp.o
+Compiling .pio/build/station_p0a/src/drawing.cpp.o
+Compiling .pio/build/station_p0a/src/hardware_profile.cpp.o
+Compiling .pio/build/station_p0a/src/main.cpp.o
+Compiling .pio/build/station_p0a/src/optional_arduino.cpp.o
+Compiling .pio/build/station_p0a/src/peripherals.cpp.o
+Compiling .pio/build/station_p0a/src/station.cpp.o
+Compiling .pio/build/station_p0a/src/station_arduino.cpp.o
+Compiling .pio/build/station_p0a/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/station_p0a/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/station_p0a/libcfc/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/station_p0a/libcfc/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/station_p0a/libcfc/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/station_p0a/libcfc/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/station_p0a/libedf/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GFX.cpp.o
+Compiling .pio/build/station_p0a/libedf/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GrayOLED.cpp.o
+Compiling .pio/build/station_p0a/libedf/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_SPITFT.cpp.o
+Compiling .pio/build/station_p0a/libedf/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/glcdfont.c.o
+Compiling .pio/build/station_p0a/lib69a/Adafruit ST7735 and ST7789 Library/Adafruit_ST7735.cpp.o
+Compiling .pio/build/station_p0a/lib69a/Adafruit ST7735 and ST7789 Library/Adafruit_ST7789.cpp.o
+Compiling .pio/build/station_p0a/lib69a/Adafruit ST7735 and ST7789 Library/Adafruit_ST7796S.cpp.o
+Compiling .pio/build/station_p0a/lib69a/Adafruit ST7735 and ST7789 Library/Adafruit_ST77xx.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/Adafruit_Crickit.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/Adafruit_NeoKey_1x4.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/Adafruit_NeoTrellis.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/Adafruit_TFTShield18.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/Adafruit_miniTFTWing.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/Adafruit_seesaw.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/seesaw_neopixel.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/seesaw_servo.cpp.o
+Compiling .pio/build/station_p0a/lib60f/Adafruit seesaw Library/seesaw_spectrum.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/main.cpp.o
+Compiling .pio/build/station_p0a/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/station_p0a/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/station_p0a/libFrameworkArduino.a
+Indexing .pio/build/station_p0a/libFrameworkArduino.a
+Linking .pio/build/station_p0a/firmware.elf
+Retrieving maximum program size .pio/build/station_p0a/firmware.elf
+Checking size .pio/build/station_p0a/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   5.7% (used 18764 bytes from 327680 bytes)
+Flash: [=         ]   8.5% (used 283701 bytes from 3342336 bytes)
+Building .pio/build/station_p0a/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 5.03 seconds =========================
+
+Processing station_colors (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 39 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit ST7735 and ST7789 Library @ 1.12.0+sha.d568339
+|-- Adafruit GFX Library @ 1.13.0+sha.f256ef6
+|-- Adafruit BusIO @ 1.17.4+sha.3b83642
+|-- Adafruit seesaw Library @ 1.7.9
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/station_colors/src/core.cpp.o
+Compiling .pio/build/station_colors/src/drawing.cpp.o
+Compiling .pio/build/station_colors/src/hardware_profile.cpp.o
+Compiling .pio/build/station_colors/src/main.cpp.o
+Compiling .pio/build/station_colors/src/optional_arduino.cpp.o
+Compiling .pio/build/station_colors/src/peripherals.cpp.o
+Compiling .pio/build/station_colors/src/station.cpp.o
+Compiling .pio/build/station_colors/src/station_arduino.cpp.o
+Compiling .pio/build/station_colors/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/station_colors/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/station_colors/lib3f9/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/station_colors/lib3f9/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/station_colors/lib3f9/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/station_colors/lib3f9/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/station_colors/lib103/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GFX.cpp.o
+Compiling .pio/build/station_colors/lib103/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GrayOLED.cpp.o
+Compiling .pio/build/station_colors/lib103/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_SPITFT.cpp.o
+Compiling .pio/build/station_colors/lib103/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/glcdfont.c.o
+Compiling .pio/build/station_colors/lib1a1/Adafruit ST7735 and ST7789 Library/Adafruit_ST7735.cpp.o
+Compiling .pio/build/station_colors/lib1a1/Adafruit ST7735 and ST7789 Library/Adafruit_ST7789.cpp.o
+Compiling .pio/build/station_colors/lib1a1/Adafruit ST7735 and ST7789 Library/Adafruit_ST7796S.cpp.o
+Compiling .pio/build/station_colors/lib1a1/Adafruit ST7735 and ST7789 Library/Adafruit_ST77xx.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/Adafruit_Crickit.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/Adafruit_NeoKey_1x4.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/Adafruit_NeoTrellis.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/Adafruit_TFTShield18.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/Adafruit_miniTFTWing.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/Adafruit_seesaw.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/seesaw_neopixel.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/seesaw_servo.cpp.o
+Compiling .pio/build/station_colors/libd1d/Adafruit seesaw Library/seesaw_spectrum.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/main.cpp.o
+Compiling .pio/build/station_colors/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/station_colors/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/station_colors/libFrameworkArduino.a
+Indexing .pio/build/station_colors/libFrameworkArduino.a
+Linking .pio/build/station_colors/firmware.elf
+Retrieving maximum program size .pio/build/station_colors/firmware.elf
+Checking size .pio/build/station_colors/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   5.7% (used 18764 bytes from 327680 bytes)
+Flash: [=         ]   8.5% (used 283849 bytes from 3342336 bytes)
+Building .pio/build/station_colors/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 5.03 seconds =========================
+
+Processing station_calibration (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 39 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit ST7735 and ST7789 Library @ 1.12.0+sha.d568339
+|-- Adafruit GFX Library @ 1.13.0+sha.f256ef6
+|-- Adafruit BusIO @ 1.17.4+sha.3b83642
+|-- Adafruit seesaw Library @ 1.7.9
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/station_calibration/src/core.cpp.o
+Compiling .pio/build/station_calibration/src/drawing.cpp.o
+Compiling .pio/build/station_calibration/src/hardware_profile.cpp.o
+Compiling .pio/build/station_calibration/src/main.cpp.o
+Compiling .pio/build/station_calibration/src/optional_arduino.cpp.o
+Compiling .pio/build/station_calibration/src/peripherals.cpp.o
+Compiling .pio/build/station_calibration/src/station.cpp.o
+Compiling .pio/build/station_calibration/src/station_arduino.cpp.o
+Compiling .pio/build/station_calibration/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/station_calibration/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/station_calibration/libe69/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/station_calibration/libe69/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/station_calibration/libe69/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/station_calibration/libe69/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/station_calibration/lib7f3/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GFX.cpp.o
+Compiling .pio/build/station_calibration/lib7f3/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GrayOLED.cpp.o
+Compiling .pio/build/station_calibration/lib7f3/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_SPITFT.cpp.o
+Compiling .pio/build/station_calibration/lib7f3/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/glcdfont.c.o
+Compiling .pio/build/station_calibration/lib4a2/Adafruit ST7735 and ST7789 Library/Adafruit_ST7735.cpp.o
+Compiling .pio/build/station_calibration/lib4a2/Adafruit ST7735 and ST7789 Library/Adafruit_ST7789.cpp.o
+Compiling .pio/build/station_calibration/lib4a2/Adafruit ST7735 and ST7789 Library/Adafruit_ST7796S.cpp.o
+Compiling .pio/build/station_calibration/lib4a2/Adafruit ST7735 and ST7789 Library/Adafruit_ST77xx.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/Adafruit_Crickit.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/Adafruit_NeoKey_1x4.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/Adafruit_NeoTrellis.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/Adafruit_TFTShield18.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/Adafruit_miniTFTWing.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/Adafruit_seesaw.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/seesaw_neopixel.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/seesaw_servo.cpp.o
+Compiling .pio/build/station_calibration/libc13/Adafruit seesaw Library/seesaw_spectrum.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/main.cpp.o
+Compiling .pio/build/station_calibration/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/station_calibration/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/station_calibration/libFrameworkArduino.a
+Indexing .pio/build/station_calibration/libFrameworkArduino.a
+Linking .pio/build/station_calibration/firmware.elf
+Retrieving maximum program size .pio/build/station_calibration/firmware.elf
+Checking size .pio/build/station_calibration/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   5.7% (used 18764 bytes from 327680 bytes)
+Flash: [=         ]   8.5% (used 283849 bytes from 3342336 bytes)
+Building .pio/build/station_calibration/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 5.04 seconds =========================
+
+Processing station_p1_check (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 44 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Adafruit ST7735 and ST7789 Library @ 1.12.0+sha.d568339
+|-- Adafruit GFX Library @ 1.13.0+sha.f256ef6
+|-- Adafruit BusIO @ 1.17.4+sha.3b83642
+|-- Adafruit seesaw Library @ 1.7.9+sha.829c4ec
+|-- Adafruit NeoPixel @ 1.15.5+sha.56b9d7e
+|-- SparkFun VEML7700 Arduino Library @ 2.0.1+sha.1693613
+|-- SparkFun Qwiic Buzzer Library @ 1.1.0+sha.b717328
+|-- Wire @ 2.0.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/station_p1_check/src/core.cpp.o
+Compiling .pio/build/station_p1_check/src/drawing.cpp.o
+Compiling .pio/build/station_p1_check/src/hardware_profile.cpp.o
+Compiling .pio/build/station_p1_check/src/main.cpp.o
+Compiling .pio/build/station_p1_check/src/optional_arduino.cpp.o
+Compiling .pio/build/station_p1_check/src/peripherals.cpp.o
+Compiling .pio/build/station_p1_check/src/station.cpp.o
+Compiling .pio/build/station_p1_check/src/station_arduino.cpp.o
+Compiling .pio/build/station_p1_check/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/station_p1_check/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/station_p1_check/lib3c5/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/station_p1_check/lib3c5/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/station_p1_check/lib3c5/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/station_p1_check/lib3c5/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_SPIDevice.cpp.o
+Compiling .pio/build/station_p1_check/libc4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GFX.cpp.o
+Compiling .pio/build/station_p1_check/libc4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_GrayOLED.cpp.o
+Compiling .pio/build/station_p1_check/libc4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/Adafruit_SPITFT.cpp.o
+Compiling .pio/build/station_p1_check/libc4c/Adafruit GFX Library@src-9edc2e7cc6071b9da871864fa6e936c9/glcdfont.c.o
+Compiling .pio/build/station_p1_check/libab0/Adafruit ST7735 and ST7789 Library/Adafruit_ST7735.cpp.o
+Compiling .pio/build/station_p1_check/libab0/Adafruit ST7735 and ST7789 Library/Adafruit_ST7789.cpp.o
+Compiling .pio/build/station_p1_check/libab0/Adafruit ST7735 and ST7789 Library/Adafruit_ST7796S.cpp.o
+Compiling .pio/build/station_p1_check/libab0/Adafruit ST7735 and ST7789 Library/Adafruit_ST77xx.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/Adafruit_Crickit.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/Adafruit_NeoKey_1x4.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/Adafruit_NeoTrellis.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/Adafruit_TFTShield18.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/Adafruit_miniTFTWing.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/Adafruit_seesaw.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/seesaw_neopixel.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/seesaw_servo.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/seesaw_spectrum.cpp.o
+Compiling .pio/build/station_p1_check/lib160/Adafruit seesaw Library@src-52d786ddbbf24472cfaa8562fc5c3c94/seesaw_spi.cpp.o
+Compiling .pio/build/station_p1_check/libbe9/Adafruit NeoPixel/Adafruit_NeoPixel.cpp.o
+Compiling .pio/build/station_p1_check/libbe9/Adafruit NeoPixel/Adafruit_Neopixel_RP2.cpp.o
+Compiling .pio/build/station_p1_check/libbe9/Adafruit NeoPixel/esp.c.o
+Compiling .pio/build/station_p1_check/libbe9/Adafruit NeoPixel/esp8266.c.o
+Compiling .pio/build/station_p1_check/libbe9/Adafruit NeoPixel/kendyte_k210.c.o
+Compiling .pio/build/station_p1_check/libbe9/Adafruit NeoPixel/psoc6.c.o
+Compiling .pio/build/station_p1_check/lib70f/SparkFun Toolkit/sfTk/sfToolkit.cpp.o
+Compiling .pio/build/station_p1_check/lib70f/SparkFun Toolkit/sfTkArdI2C.cpp.o
+Compiling .pio/build/station_p1_check/lib70f/SparkFun Toolkit/sfTkArdSPI.cpp.o
+Compiling .pio/build/station_p1_check/lib70f/SparkFun Toolkit/sfTkArduino.cpp.o
+Compiling .pio/build/station_p1_check/libd63/SparkFun VEML7700 Arduino Library/sfTk/sfDevVEML7700.cpp.o
+Compiling .pio/build/station_p1_check/lib4c9/SparkFun Qwiic Buzzer Library/sfTk/sfDevBuzzer.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/main.cpp.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/station_p1_check/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/station_p1_check/libFrameworkArduino.a
+Indexing .pio/build/station_p1_check/libFrameworkArduino.a
+Linking .pio/build/station_p1_check/firmware.elf
+Retrieving maximum program size .pio/build/station_p1_check/firmware.elf
+Checking size .pio/build/station_p1_check/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   5.9% (used 19420 bytes from 327680 bytes)
+Flash: [=         ]   9.7% (used 324581 bytes from 3342336 bytes)
+Building .pio/build/station_p1_check/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 6.03 seconds =========================
+
+Processing orbit_p1_check (platform: espressif32@6.12.0; board: seeed_xiao_esp32s3; framework: arduino)
+--------------------------------------------------------------------------------
+<operator-home>/nudge硬體/.tools/platformio-venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/seeed_xiao_esp32s3.html
+PLATFORM: Espressif 32 (6.12.0) > Seeed Studio XIAO ESP32S3
+HARDWARE: ESP32S3 240MHz, 320KB RAM, 8MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-builtin, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20017.241212+sha.dcc1105b
+ - tool-esptoolpy @ 2.40900.250804 (4.9.0)
+ - toolchain-riscv32-esp @ 8.4.0+2021r2-patch5
+ - toolchain-xtensa-esp32s3 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 43 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- Seeed_GFX @ 2.0.3+sha.0b13b21
+|-- Adafruit seesaw Library @ 1.7.9+sha.829c4ec
+|-- Adafruit NeoPixel @ 1.15.5+sha.56b9d7e
+|-- Adafruit BusIO @ 1.17.4+sha.3b83642
+|-- SparkFun VEML7700 Arduino Library @ 2.0.1+sha.1693613
+|-- SparkFun Qwiic Buzzer Library @ 1.1.0+sha.b717328
+|-- Wire @ 2.0.0
+|-- Adafruit ST7735 and ST7789 Library @ 1.12.0
+|-- SPI @ 2.0.0
+Building in release mode
+Compiling .pio/build/orbit_p1_check/src/core.cpp.o
+Compiling .pio/build/orbit_p1_check/src/drawing.cpp.o
+Compiling .pio/build/orbit_p1_check/src/hardware_profile.cpp.o
+Compiling .pio/build/orbit_p1_check/src/main.cpp.o
+Compiling .pio/build/orbit_p1_check/src/optional_arduino.cpp.o
+Compiling .pio/build/orbit_p1_check/src/peripherals.cpp.o
+Compiling .pio/build/orbit_p1_check/src/station.cpp.o
+Compiling .pio/build/orbit_p1_check/src/station_arduino.cpp.o
+Compiling .pio/build/orbit_p1_check/lib2d3/SPI/SPI.cpp.o
+Compiling .pio/build/orbit_p1_check/libdc4/FS/FS.cpp.o
+In file included from src/main.cpp:16:
+.pio/libdeps/orbit_p1_check/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_p1_check/libdc4/FS/vfs_api.cpp.o
+Compiling .pio/build/orbit_p1_check/lib1c2/SPIFFS/SPIFFS.cpp.o
+Compiling .pio/build/orbit_p1_check/lib9f3/LittleFS/LittleFS.cpp.o
+Compiling .pio/build/orbit_p1_check/libd58/Wire/Wire.cpp.o
+Compiling .pio/build/orbit_p1_check/libecc/Seeed_GFX/TFT_eSPI.cpp.o
+Compiling .pio/build/orbit_p1_check/libe5d/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_BusIO_Register.cpp.o
+Compiling .pio/build/orbit_p1_check/libe5d/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_GenericDevice.cpp.o
+Compiling .pio/build/orbit_p1_check/libe5d/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_I2CDevice.cpp.o
+Compiling .pio/build/orbit_p1_check/libe5d/Adafruit BusIO@src-c160b6ee51df020e68fa1fd27b650259/Adafruit_SPIDevice.cpp.o
+In file included from .pio/libdeps/orbit_p1_check/Seeed_GFX/TFT_eSPI.cpp:16:
+.pio/libdeps/orbit_p1_check/Seeed_GFX/TFT_eSPI.h:1084:2: warning: #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available! [-Wcpp]
+ #warning>>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+  ^~~~~~~
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/Adafruit_Crickit.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/Adafruit_NeoKey_1x4.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/Adafruit_NeoTrellis.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/Adafruit_TFTShield18.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/Adafruit_miniTFTWing.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/Adafruit_seesaw.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/seesaw_neopixel.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/seesaw_servo.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/seesaw_spectrum.cpp.o
+Compiling .pio/build/orbit_p1_check/lib7f9/Adafruit seesaw Library/seesaw_spi.cpp.o
+Compiling .pio/build/orbit_p1_check/lib750/Adafruit NeoPixel/Adafruit_NeoPixel.cpp.o
+Compiling .pio/build/orbit_p1_check/lib750/Adafruit NeoPixel/Adafruit_Neopixel_RP2.cpp.o
+Compiling .pio/build/orbit_p1_check/lib750/Adafruit NeoPixel/esp.c.o
+Compiling .pio/build/orbit_p1_check/lib750/Adafruit NeoPixel/esp8266.c.o
+Compiling .pio/build/orbit_p1_check/lib750/Adafruit NeoPixel/kendyte_k210.c.o
+Compiling .pio/build/orbit_p1_check/lib750/Adafruit NeoPixel/psoc6.c.o
+Compiling .pio/build/orbit_p1_check/libcf7/SparkFun Toolkit/sfTk/sfToolkit.cpp.o
+Compiling .pio/build/orbit_p1_check/libcf7/SparkFun Toolkit/sfTkArdI2C.cpp.o
+Compiling .pio/build/orbit_p1_check/libcf7/SparkFun Toolkit/sfTkArdSPI.cpp.o
+Compiling .pio/build/orbit_p1_check/libcf7/SparkFun Toolkit/sfTkArduino.cpp.o
+Compiling .pio/build/orbit_p1_check/lib8f4/SparkFun VEML7700 Arduino Library/sfTk/sfDevVEML7700.cpp.o
+Compiling .pio/build/orbit_p1_check/lib3c5/SparkFun Qwiic Buzzer Library/sfTk/sfDevBuzzer.cpp.o
+Compiling .pio/build/orbit_p1_check/libe51/Adafruit GFX Library/Adafruit_GFX.cpp.o
+Compiling .pio/build/orbit_p1_check/libe51/Adafruit GFX Library/Adafruit_GrayOLED.cpp.o
+Compiling .pio/build/orbit_p1_check/libe51/Adafruit GFX Library/Adafruit_SPITFT.cpp.o
+Compiling .pio/build/orbit_p1_check/libe51/Adafruit GFX Library/glcdfont.c.o
+Compiling .pio/build/orbit_p1_check/lib106/Adafruit ST7735 and ST7789 Library/Adafruit_ST7735.cpp.o
+Compiling .pio/build/orbit_p1_check/lib106/Adafruit ST7735 and ST7789 Library/Adafruit_ST7789.cpp.o
+Compiling .pio/build/orbit_p1_check/lib106/Adafruit ST7735 and ST7789 Library/Adafruit_ST7796S.cpp.o
+Compiling .pio/build/orbit_p1_check/lib106/Adafruit ST7735 and ST7789 Library/Adafruit_ST77xx.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/Esp.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/FirmwareMSC.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/FunctionalInterrupt.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/HWCDC.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/HardwareSerial.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/IPAddress.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/IPv6Address.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/MD5Builder.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/Print.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/Stream.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/StreamString.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/Tone.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/USB.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/USBCDC.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/USBMSC.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/WMath.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/WString.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/base64.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/cbuf.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-adc.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-bt.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-cpu.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-dac.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-gpio.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-i2c-slave.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-i2c.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-ledc.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-matrix.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-misc.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-psram.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-rgb-led.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-rmt.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-sigmadelta.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-spi.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-time.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-timer.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-tinyusb.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-touch.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/esp32-hal-uart.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/firmware_msc_fat.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/libb64/cdecode.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/libb64/cencode.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/main.cpp.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/stdlib_noniso.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/wiring_pulse.c.o
+Compiling .pio/build/orbit_p1_check/FrameworkArduino/wiring_shift.c.o
+Archiving .pio/build/orbit_p1_check/libFrameworkArduino.a
+Indexing .pio/build/orbit_p1_check/libFrameworkArduino.a
+Linking .pio/build/orbit_p1_check/firmware.elf
+Retrieving maximum program size .pio/build/orbit_p1_check/firmware.elf
+Checking size .pio/build/orbit_p1_check/firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [=         ]   6.1% (used 20076 bytes from 327680 bytes)
+Flash: [=         ]  11.2% (used 373057 bytes from 3342336 bytes)
+Building .pio/build/orbit_p1_check/firmware.bin
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+========================= [SUCCESS] Took 6.80 seconds =========================
+
+Environment          Status    Duration
+-------------------  --------  ------------
+orbit_demo           SUCCESS   00:00:05.011
+orbit_p0a            SUCCESS   00:00:04.577
+orbit_static         SUCCESS   00:00:04.598
+orbit_colors         SUCCESS   00:00:04.582
+orbit_calibration    SUCCESS   00:00:04.537
+station_demo         SUCCESS   00:00:05.006
+station_p0a          SUCCESS   00:00:05.032
+station_colors       SUCCESS   00:00:05.031
+station_calibration  SUCCESS   00:00:05.035
+station_p1_check     SUCCESS   00:00:06.033
+orbit_p1_check       SUCCESS   00:00:06.798
+========================= 11 succeeded in 00:00:56.239 =========================
