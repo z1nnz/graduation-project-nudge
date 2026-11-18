@@ -126,5 +126,5 @@ Station 檔名含 _unconfigured，全部實機 verified=false，P1 armed=false�
 
 正式交付由乾淨 source commit 編譯，後續 evidence commit 的韌體 tree 必須相同。
 韌體檔是 application image，重刷應用 PlatformIO upload 處理 bootloader／partitions，不能把它單獨寫到 0x0。
-回復本輪修改可回到 #23 原版本；Git revert 不會自動重刷實機，已燒錄者須另用先前已驗證版本還原。
-沒有修改正式 App／Web／Cloud／Ledger、原韌體或接線，作者不合併 PR。
+回復本輪 07／08 修改可回到 #24 原版本；Git revert 不會自動重刷實機，已燒錄者須另用先前已驗證版本還原。
+本輪新增獨立 Demo Dart 入口，擴充共用 Android BLE adapter 與初始化保護；正式 Dart 啟動、Web／Cloud／Ledger、原正式韌體及接線未改，作者不合併 PR。
