@@ -1,0 +1,1 @@
+{"verified": true, "phase": "preparation-only", "files": 84, "work_packages": 14, "candidate_images": 4, "physical_verified": false, "video_playback_verified": false, "packaging_source_commit": "15d76e964969b88aefcda1a073943492b0e39cb4", "delivery_pr": null}

@@ -14,7 +14,7 @@
 | 壓縮驗收 | 可核對與安全解壓、README 首頁競賽 Demo、白名單、無 cache／憑證、4 候選檔明確分開、新版 00-13、PR／SHA 可追溯 | 真影片離線播放未驗 |
 | 給組員訊息 | 新版取代舊 32、最低雙機三幕、不採購、P2 選配、先讀 00／09／11 | 只有草稿，未代發／未確認認領 |
 
-## 分數（完成包驗證後適用）
+## 自評：85／100（已完成準備驗證）
 
 | 項目 | 分數 | 依據與扣分 |
 | --- | ---: | --- |
@@ -27,3 +27,5 @@
 只有在程式測試、可解壓、資料與來源核對完成後，才將本評分用作提交門檻。具體測試、archive hash、source commit 與遠端查重保存 preparation-evidence／build-evidence。
 本機 SDK 3.47.8，CI 固定 3.41.7；未改 App／Cloud／driver／workflow，不能因文件／打包工作省略六項 CI。
 最新 head 六 CI 全綠前保持 draft，成功後只請 z1nnz 審查，不自行合併；不關閉缺影片的既有 Issue。
+
+已實際完成兩次同 source 重建 byte 一致、安全解壓與獨立 evidence exit 2；新增 21／21、Node 133／133、Flutter 201／201、來源分析無問題。Cloud 120 通過／25 emulator cases skipped，未把 skipped 算通過。自評維持 85，先達門檻再發布。最終包將補上真正本輪 PR URL，重建／重驗後再交 CI；版控此表為上傳前快照。

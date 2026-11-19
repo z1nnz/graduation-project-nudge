@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-19",
+  "scope": "package13 delivery preparation only",
+  "score": 85,
+  "threshold": 85,
+  "packaging_source_commit": "15d76e964969b88aefcda1a073943492b0e39cb4",
+  "tests": {
+    "new": 21,
+    "node": 133,
+    "flutter": 201,
+    "cloud_passed": 120,
+    "cloud_skipped": 25,
+    "source_analyze": "pass"
+  },
+  "package_validation": {
+    "work_packages": 14,
+    "candidate_images": 4,
+    "root_layout": "pass",
+    "deterministic_rebuild": "pass",
+    "extraction": "pass",
+    "pending_evidence_exit": 2
+  },
+  "physical_verified": false,
+  "all_package_criteria_completed": false,
+  "physical_videos": 0,
+  "uploaded_to_hardware": false,
+  "team_message_sent": false,
+  "delivery_pr_in_archive": null,
+  "ci": "latest-head six CI required; see PR for final result"
+}
