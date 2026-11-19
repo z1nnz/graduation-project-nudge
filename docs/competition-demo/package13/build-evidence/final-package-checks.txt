@@ -1,0 +1,5 @@
+{"verified": true, "phase": "preparation-only", "files": 84, "work_packages": 14, "candidate_images": 4, "physical_verified": false, "video_playback_verified": false, "packaging_source_commit": "15d76e964969b88aefcda1a073943492b0e39cb4", "delivery_pr": "https://github.com/z1nnz/graduation-project-nudge/pull/62"}
+{"verified": true, "phase": "preparation-only", "files": 84, "work_packages": 14, "candidate_images": 4, "physical_verified": false, "video_playback_verified": false, "packaging_source_commit": "15d76e964969b88aefcda1a073943492b0e39cb4", "delivery_pr": "https://github.com/z1nnz/graduation-project-nudge/pull/62"}
+PASS: final PR URL agrees in README, VERSION and MANIFEST; byte-identical rebuild; safe extraction; pending evidence exit 2
+SHA256: b28672af3433a66075504ef75947431075a8a0f5c6056452156c6e2c0bfa2db7
+Reassessed preparation score: 85/100; physical acceptance not completed

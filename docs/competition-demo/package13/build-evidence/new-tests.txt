@@ -1,0 +1,29 @@
+✔ delivery archive has exact v1 work packages, four candidates and explicit non-acceptance (41.735458ms)
+✔ archive source verifier is the same file as the reviewed working source (23.029ms)
+✔ verified extraction works offline and preserves all structure (91.434625ms)
+✔ extract refuses an existing output and does not overwrite operator files (40.722833ms)
+✔ archive rejects hash mutation (61.764959ms)
+✔ archive rejects extra mutation (61.294584ms)
+✔ archive rejects traversal mutation (60.996833ms)
+✔ archive rejects symlink mutation (61.124167ms)
+✔ archive rejects duplicate mutation (61.723625ms)
+✔ archive rejects old32 mutation (64.943917ms)
+✔ archive rejects legacyFolder mutation (60.992958ms)
+✔ archive rejects mixedBinary mutation (64.798458ms)
+✔ archive rejects fakeVerified mutation (61.315125ms)
+✔ archive rejects wrongDemo mutation (65.702667ms)
+✔ archive rejects splitDemo mutation (66.346ms)
+✔ archive rejects fakeVideo mutation (65.825042ms)
+✔ archive rejects wrongSource mutation (65.874041ms)
+✔ archive rejects badVersion mutation (66.502958ms)
+✔ archive rejects fakePR mutation (64.541542ms)
+✔ physical record minimum checks boot, scene order, real-file hashes, interaction and distinct boards (59.09275ms)
+✔ renaming a known unconfigured Station binary cannot turn it into accepted-profile evidence (58.350666ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1303.06075

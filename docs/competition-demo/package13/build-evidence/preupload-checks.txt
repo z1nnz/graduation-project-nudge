@@ -1,0 +1,2 @@
+PASS: unchanged producer source/assets; verified archive; all local links/fences; no operator paths
+PASS: preparation self-assessment 85/100; physical evidence remains incomplete; pending delivery PR URL is filled after PR creation

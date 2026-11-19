@@ -1,0 +1,351 @@
+00:00 +0: loading <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart
+00:00 +0: <workspace>/worktrees/package13/test/firebase_bootstrap_contract_test.dart: app bootstrap always supplies generated Firebase options
+00:00 +1: <workspace>/worktrees/package13/test/nudge_device_simulator_test.dart: offline device queues activity and flushes it once after reconnecting
+00:00 +2: <workspace>/worktrees/package13/test/nudge_device_simulator_test.dart: pause and resume do not settle room progress or issue rewards
+00:00 +3: <workspace>/worktrees/package13/test/nudge_device_simulator_test.dart: online event stays queued until a lost acknowledgement is retried
+00:00 +4: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: retryable failures survive restart and flush exactly once
+00:00 +5: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: retryable failures survive restart and flush exactly once
+00:00 +6: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: retryable failures survive restart and flush exactly once
+00:00 +7: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: retryable failures survive restart and flush exactly once
+00:00 +8: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: retryable failures survive restart and flush exactly once
+00:00 +9: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: concurrent enqueues preserve every unique event
+00:00 +10: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: concurrent enqueues preserve every unique event
+00:00 +11: <workspace>/worktrees/package13/test/health_snapshot_cloud_contract_test.dart: gateway groups one provider and parses every result
+00:00 +12: <workspace>/worktrees/package13/test/activity_ledger_outbox_test.dart: a queued event can be cancelled before its local mutation commits
+00:00 +13: <workspace>/worktrees/package13/test/health_snapshot_cloud_contract_test.dart: gateway rejects a mixed provider batch
+00:00 +14: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +15: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +16: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +17: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +18: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +19: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +20: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +21: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +22: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +23: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +24: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +25: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +26: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +27: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +28: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +29: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +30: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +31: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +32: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +33: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +34: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +35: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +36: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +37: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +38: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +39: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +40: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +41: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +42: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +43: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +44: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +45: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +46: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:00 +47: <workspace>/worktrees/package13/test/discipline_identity_page_test.dart: starting state is explicitly not a personality diagnosis
+00:01 +48: <workspace>/worktrees/package13/test/health_service_test.dart: HealthServiceResult carries native snapshots into the ledger model
+00:01 +49: <workspace>/worktrees/package13/test/health_service_test.dart: HealthServiceResult snapshots are immutable
+00:01 +50: <workspace>/worktrees/package13/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+00:01 +51: <workspace>/worktrees/package13/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+00:01 +52: <workspace>/worktrees/package13/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:01 +53: <workspace>/worktrees/package13/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+00:01 +54: <workspace>/worktrees/package13/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+00:01 +55: <workspace>/worktrees/package13/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:01 +56: <workspace>/worktrees/package13/test/relationship_outcome_test.dart: parses formal family outcome and memory response
+00:01 +57: <workspace>/worktrees/package13/test/relationship_outcome_test.dart: rejects legacy or malformed relationship outcome projections
+00:01 +58: <workspace>/worktrees/package13/test/notification_preferences_test.dart: notification preferences require a complete channel set
+00:01 +59: <workspace>/worktrees/package13/test/notification_preferences_test.dart: gateway sends all channels and validates the audit result
+00:01 +60: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:01 +60: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: study room start updates local user as active and adds focus time
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +61: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +61: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: sleep room start marks local user as active without requiring focus
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +62: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +62: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: member controls their own room activity lifecycle
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +63: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +63: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: study room hours become a minute-based Ledger target
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +64: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +64: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: signed-in room start does not project before Cloud Ledger acceptance
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +65: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +66: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +66: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: room transition keeps prior state when Cloud Ledger command fails
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +67: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +67: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: room transition keeps prior state when Cloud Ledger command fails
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +68: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +68: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: room transition keeps prior state when Cloud Ledger command fails
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +69: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +69: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: health progress becomes a member-owned room activity
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +70: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +71: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +71: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: room messages and events are persisted on the room model
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +72: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +72: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: owner leaving an empty room closes that room
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +73: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +73: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: creating a study room creates a linked task goal
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +74: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +74: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: deleting a linked room task only disables sync and keeps room joined
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +75: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +75: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: approval room requests can be accepted or rejected by owner
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +76: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +77: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +77: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: room owner explicitly transfers ownership before leaving
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +78: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +78: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: leaving a room removes its linked task goal
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +79: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +80: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +80: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: score coin rewards respect weekly and monthly caps
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +81: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +81: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: future deadline tasks do not affect weighted score or allow completion
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +82: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +83: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +83: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: task completion does not mint coins or avatar XP before Cloud
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +84: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +84: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: task mutation re-resolves its identity after durable enqueue
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +85: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +85: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: repeated deadline tasks cannot mutate client reward counters
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +86: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +86: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: badges stay unlocked after the current condition drops
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +87: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +87: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: daily summary stores weighted score coins and tracked sources
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +88: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +88: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: health projection stays unchanged when durable Ledger enqueue fails
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Unable to ingest Health Activity Ledger snapshots: Bad state: outbox unavailable
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +89: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +89: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: health projection stays unchanged when Cloud rejects Ledger ingestion
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Health Activity Ledger ingestion was not fully accepted by Cloud; the local projection remains unchanged.
+00:02 +90: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +90: <workspace>/worktrees/package13/test/app_state_study_room_test.dart: signed-in health metrics require snapshots before projection
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Signed-in health metrics were not projected because no canonical Health Activity Ledger snapshots were supplied.
+00:02 +91: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:02 +92: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer keeps running when its pause event cannot be saved
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +93: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer keeps running when its pause event cannot be saved
+00:02 +94: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus timer keeps running when its pause event cannot be saved
+00:02 +95: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus reset preserves the running session when discard cannot be saved
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +96: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus reset preserves the running session when discard cannot be saved
+00:02 +97: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus reset preserves the running session when discard cannot be saved
+00:02 +98: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus reset preserves the running session when discard cannot be saved
+00:02 +99: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:02 +99: <workspace>/worktrees/package13/test/focus_page_ledger_test.dart: focus completion does not project time when Ledger save fails
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:02 +99: <workspace>/worktrees/package13/test/app_state_room_resonance_test.dart: room resonance remains durable-first in AppState
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:03 +100: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +101: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +102: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +103: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +104: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +105: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +106: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +107: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +108: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +109: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +110: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +111: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +112: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +113: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +114: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +115: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +116: <workspace>/worktrees/package13/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:03 +117: <workspace>/worktrees/package13/test/cloud_reward_purchase_gateway_test.dart: reward purchase gateway rejects a mismatched item result
+00:04 +118: <workspace>/worktrees/package13/test/nudge_device_protocol_test.dart: maps a validated device event into canonical Ledger evidence
+00:04 +119: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:04 +120: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:04 +121: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:04 +122: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:04 +123: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:04 +124: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:04 +125: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: does not configure a device while Cloud is retry blocked
+00:04 +126: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: reuses an active App correlation after flushing its outbox
+00:04 +127: <workspace>/worktrees/package13/test/device_activity_correlation_test.dart: rejects an active App correlation that Cloud never confirmed
+00:04 +128: <workspace>/worktrees/package13/test/device_assignment_repository_test.dart: repository resolves one account-scoped canonical assignment
+00:04 +129: <workspace>/worktrees/package13/test/device_assignment_repository_test.dart: repository rejects another account or a malformed assignment
+00:04 +130: <workspace>/worktrees/package13/test/device_assignment_repository_test.dart: revoked assignment remains parseable but cannot grant activity
+00:04 +131: <workspace>/worktrees/package13/test/device_assignment_repository_test.dart: canonical assignment rejects a non-Nudge device identifier
+00:04 +132: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:04 +133: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:04 +134: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:04 +135: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:04 +136: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:04 +137: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:04 +138: <workspace>/worktrees/package13/test/room_resonance_panel_test.dart: resonance explains opt-in privacy before sharing
+00:04 +139: <workspace>/worktrees/package13/test/room_resonance_panel_test.dart: resonance explains opt-in privacy before sharing
+00:04 +140: <workspace>/worktrees/package13/test/room_resonance_panel_test.dart: resonance explains opt-in privacy before sharing
+00:05 +141: <workspace>/worktrees/package13/test/room_resonance_panel_test.dart: resonance explains opt-in privacy before sharing
+00:05 +142: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard manager sees framework actions without member activity control
+00:05 +143: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard manager sees framework actions without member activity control
+00:05 +144: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard manager sees framework actions without member activity control
+00:05 +145: <workspace>/worktrees/package13/test/room_resonance_panel_test.dart: approved peers respond with bounded support only
+00:05 +146: <workspace>/worktrees/package13/test/room_resonance_panel_test.dart: approved peers respond with bounded support only
+00:05 +147: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipContextCard family context switches between child and guardian memberships
+00:05 +148: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipContextCard family context switches between child and guardian memberships
+00:05 +149: <workspace>/worktrees/package13/test/relationship_role_surfaces_test.dart: RelationshipContextCard group contexts describe both manager and member boundaries
+00:05 +150: <workspace>/worktrees/package13/test/discipline_identity_snapshot_test.dart: parses a Cloud-built discipline identity snapshot
+00:05 +151: <workspace>/worktrees/package13/test/discipline_identity_snapshot_test.dart: rejects snapshots for another user or a public visibility
+00:05 +152: <workspace>/worktrees/package13/test/discipline_identity_snapshot_test.dart: rejects incomplete recovery and impossible metrics
+00:05 +153: <workspace>/worktrees/package13/test/cloud_reward_avatar_gateway_test.dart: reward avatar gateway validates Cloud-owned equipment
+00:05 +154: <workspace>/worktrees/package13/test/cloud_reward_avatar_gateway_test.dart: reward avatar gateway validates Cloud-owned equipment
+00:05 +155: <workspace>/worktrees/package13/test/cloud_reward_avatar_gateway_test.dart: reward avatar gateway validates Cloud-owned equipment
+00:05 +156: <workspace>/worktrees/package13/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:05 +157: <workspace>/worktrees/package13/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:05 +158: <workspace>/worktrees/package13/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:05 +159: <workspace>/worktrees/package13/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:05 +160: <workspace>/worktrees/package13/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:05 +161: <workspace>/worktrees/package13/test/health_snapshot_outbox_test.dart: an active flush drains a snapshot queued during its first call
+00:05 +162: <workspace>/worktrees/package13/test/room_activity_session_ledger_projection_test.dart: canonical Ledger session restores a room activity for App UI
+00:05 +163: <workspace>/worktrees/package13/test/room_activity_session_ledger_projection_test.dart: canonical Ledger session rejects another room context
+00:05 +164: <workspace>/worktrees/package13/test/room_activity_session_ledger_projection_test.dart: legacy canonical session uses room metadata until its next transition
+00:05 +165: <workspace>/worktrees/package13/test/room_activity_session_ledger_projection_test.dart: one canonical session keeps an independent presentation per room
+00:05 +166: <workspace>/worktrees/package13/test/room_activity_session_ledger_projection_test.dart: App and Web share malformed canonical session fixtures
+00:05 +167: <workspace>/worktrees/package13/test/room_activity_session_contract_test.dart: member starts and owns their own room activity session
+00:05 +168: <workspace>/worktrees/package13/test/room_activity_session_contract_test.dart: member can pause, resume, and complete without a room owner
+00:05 +169: <workspace>/worktrees/package13/test/room_activity_session_contract_test.dart: room owner cannot transition another member session
+00:05 +170: <workspace>/worktrees/package13/test/room_activity_session_contract_test.dart: terminal sessions cannot resume and progress cannot decrease
+00:06 +171: <workspace>/worktrees/package13/test/cloud_room_resonance_gateway_test.dart: publish sends only the bounded resonance contract
+00:06 +172: <workspace>/worktrees/package13/test/cloud_room_resonance_gateway_test.dart: gateway rejects a public or cross-room signal
+00:06 +173: <workspace>/worktrees/package13/test/focus_activity_ledger_controller_test.dart: a failed durable start does not leave a phantom session
+00:06 +174: <workspace>/worktrees/package13/test/focus_activity_ledger_controller_test.dart: failed pause and completion preserve the active lifecycle
+00:06 +175: <workspace>/worktrees/package13/test/focus_activity_ledger_controller_test.dart: records one stable lifecycle for a paused and completed focus
+00:06 +176: <workspace>/worktrees/package13/test/focus_activity_ledger_controller_test.dart: discard closes a session and the next start gets a new id
+00:06 +177: <workspace>/worktrees/package13/test/cloud_relationship_outcome_gateway_test.dart: calls the Cloud outcome contract with explicit relationship scope
+00:06 +178: <workspace>/worktrees/package13/test/cloud_relationship_outcome_gateway_test.dart: rejects mismatched scope returned by Cloud
+00:06 +179: <workspace>/worktrees/package13/test/cloud_relationship_outcome_gateway_test.dart: rejects unparseable Cloud outcome protocol data
+00:06 +180: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +181: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +182: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +183: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +184: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +185: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +186: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +187: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +188: <workspace>/worktrees/package13/test/nudge_device_runtime_test.dart: runtime resolves Cloud assignment and flushes only after durable ACK
+00:06 +189: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: premium avatar series requires self-discipline coin purchase
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +190: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: premium avatar series requires self-discipline coin purchase
+00:06 +191: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: premium avatar series requires self-discipline coin purchase
+00:06 +192: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: premium avatar series requires self-discipline coin purchase
+00:06 +193: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: signed-in purchases apply only the Cloud reward ledger result
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +194: <workspace>/worktrees/package13/test/relationship_membership_test.dart: one user can hold independent family and group memberships
+00:06 +194: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: signed-in avatar equipment uses the Cloud ownership result
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +195: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: signed-in avatar equipment uses the Cloud ownership result
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync avatar into room projections: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +196: <workspace>/worktrees/package13/test/relationship_membership_test.dart: membership rejects a user outside the canonical relationship
+00:06 +197: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: background themes can be purchased and applied from shop state
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +198: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: background themes can be purchased and applied from shop state
+00:06 +199: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: background themes can be purchased and applied from shop state
+00:06 +200: <workspace>/worktrees/package13/test/avatar_purchase_test.dart: background themes can be purchased and applied from shop state
+00:07 +201: All tests passed!

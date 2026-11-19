@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "repository": "z1nnz/graduation-project-nudge",
+  "requirements_commit": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d",
+  "requirements_pr": 18,
+  "scope_commit": "d58d37c71a72555c1b20d3ba774e06a634f05dfd",
+  "parts_commit": "4cf97e86c59c6a5ad800790d471652721e4d74b8",
+  "story_commit": "1a041ff3eb59e7cf6a8e79a9e5b40032506e4f53",
+  "firmware_commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+  "firmware_tree": "d10c1591509551e06b08c44edfe0962a7a0dd489",
+  "firmware_pr": 25,
+  "gate_a_commit": "3a5596619f51bbfb87389626c6441fbf2c64c56d",
+  "gate_a_pr": 26,
+  "operations_commit": "e3bd9e537e81ef6a05a89cff2bc55881988f28f5",
+  "operations_pr": 61,
+  "physical_verified": false
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scope": "fictional-fixed-demo-data",
+  "data": {
+    "userName": "小樹",
+    "primaryTask": "完成專題韌體",
+    "roomName": "期末一起前進",
+    "encouragement": "今天也慢慢來，我們都在",
+    "characterName": "小芽",
+    "characterLevel": 7,
+    "demoXp": 10,
+    "todayFocusMinutes": 50,
+    "disciplineScore": 82,
+    "activeMembers": 3,
+    "totalMembers": 5,
+    "focusMinutes": 25,
+    "todayFocusCount": 2,
+    "taskLabels": [
+      "PROJECT",
+      "READ 25 MIN",
+      "WALK 3000"
+    ]
+  },
+  "other_tasks": [
+    "閱讀 25 分鐘",
+    "散步 3000 步"
+  ],
+  "focus_preview_seconds": 20,
+  "real_accounts": false,
+  "formal_rewards_issued": false,
+  "live_cloud_sync": false
+}

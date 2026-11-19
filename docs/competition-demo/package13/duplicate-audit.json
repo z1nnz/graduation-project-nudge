@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-19",
+  "requirements_commit": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d",
+  "pull_requests_checked": 27,
+  "branches_checked": 28,
+  "issues_and_prs_checked": 61,
+  "standalone_issues_checked": 34,
+  "comment_threads": [
+    61
+  ],
+  "new_package13_delivery_found": false,
+  "partial_foundations": [
+    {
+      "pr": 61,
+      "scope": "operations kit, not full package13 handoff/evidence structure"
+    },
+    {
+      "pr": 26,
+      "scope": "software Gate A, physical evidence deferred"
+    },
+    {
+      "issue": 56,
+      "scope": "binary/build ID preservation; physical transfer acceptance pending"
+    }
+  ],
+  "limitation": "Cannot inspect unpublished local work."
+}
