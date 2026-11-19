@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-19",
+  "scope": "package13 delivery preparation",
+  "score": 85,
+  "threshold": 85,
+  "packaging_source_commit": "15d76e964969b88aefcda1a073943492b0e39cb4",
+  "delivery_pr": "https://github.com/z1nnz/graduation-project-nudge/pull/62",
+  "tests": {
+    "new": 21,
+    "node": 133,
+    "flutter": 201,
+    "cloud_passed": 120,
+    "cloud_skipped": 25,
+    "source_analyze": "pass"
+  },
+  "source_file_sha256": {
+    "scripts/prepare_competition_delivery.py": "933625f1ddff205c93ad5fc49a5a4cb05323224ad78c16dbdf9f04af275dab3f",
+    "docs/competition-demo/package13/source-lock.json": "2c04bfe133a0263b33e7bf5ab141961789d59c7b0eaa710c70021e52b06ce146",
+    "docs/competition-demo/package13/demo-data.json": "c853597ec8853e26347445cdf38cb482281ca70ab1737c3e82449de8f10900be",
+    "docs/competition-demo/package13/templates/package-readme.md": "30b499515e5d6a020b757e81e5bf69e306ef0d2da48d167338763e90834a9408",
+    "docs/competition-demo/package13/templates/pr-template.md": "58b17b586ad931e2b2a78ce7a8b87844a690e0880e84657605f893e53442a168",
+    "docs/competition-demo/package13/templates/device-handoff-template.md": "68f12f4ccf1610a7f52aab53b97f0286edc83aa20e3ae56e1ad74b2e351c5975",
+    "docs/competition-demo/package13/templates/team-message-draft.txt": "0109d18bf5d1433b9502a08b388f9a171a749a356747fe43921f6121a7ed1897",
+    "docs/competition-demo/package13/templates/evidence-instructions.md": "24901a4f0a15e6fb492c83d0c9f1f2023b458e30cd0a98d6b49e7125967c47ff"
+  },
+  "archive_sha256": "b28672af3433a66075504ef75947431075a8a0f5c6056452156c6e2c0bfa2db7",
+  "structure": "pass",
+  "deterministic_rebuild": "pass",
+  "safe_extract": "pass",
+  "pending_evidence_exit": 2,
+  "work_packages": 14,
+  "candidate_images": 4,
+  "physical_verified": false,
+  "video_playback_verified": false,
+  "all_package_criteria_completed": false,
+  "uploaded_to_hardware": false,
+  "team_message_sent": false,
+  "ci": "requires latest-head six success; final result in PR"
+}

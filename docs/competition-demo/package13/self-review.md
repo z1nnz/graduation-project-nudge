@@ -29,3 +29,5 @@
 最新 head 六 CI 全綠前保持 draft，成功後只請 z1nnz 審查，不自行合併；不關閉缺影片的既有 Issue。
 
 已實際完成兩次同 source 重建 byte 一致、安全解壓與獨立 evidence exit 2；新增 21／21、Node 133／133、Flutter 201／201、來源分析無問題。Cloud 120 通過／25 emulator cases skipped，未把 skipped 算通過。自評維持 85，先達門檻再發布。最終包將補上真正本輪 PR URL，重建／重驗後再交 CI；版控此表為上傳前快照。
+
+已建立 PR #62，並把實際網址填入最終 README／VERSION／MANIFEST；同一 producer source 重建 byte 一致，安全解壓與獨立 evidence exit 2 重新通過。更新前重評仍為 85，來源檔未變，Node 133／133 與新增 21／21 再驗通過。此更新不含新韌體行為，實物條件仍未完成。

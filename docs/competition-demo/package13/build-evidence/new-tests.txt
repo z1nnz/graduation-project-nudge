@@ -1,24 +1,24 @@
-✔ delivery archive has exact v1 work packages, four candidates and explicit non-acceptance (41.875583ms)
-✔ archive source verifier is the same file as the reviewed working source (22.778041ms)
-✔ verified extraction works offline and preserves all structure (90.052042ms)
-✔ extract refuses an existing output and does not overwrite operator files (40.943208ms)
-✔ archive rejects hash mutation (62.629ms)
-✔ archive rejects extra mutation (62.028125ms)
-✔ archive rejects traversal mutation (61.472583ms)
-✔ archive rejects symlink mutation (63.244583ms)
-✔ archive rejects duplicate mutation (71.825458ms)
-✔ archive rejects old32 mutation (81.380208ms)
-✔ archive rejects legacyFolder mutation (82.148ms)
-✔ archive rejects mixedBinary mutation (78.607666ms)
-✔ archive rejects fakeVerified mutation (75.386833ms)
-✔ archive rejects wrongDemo mutation (84.301166ms)
-✔ archive rejects splitDemo mutation (88.929041ms)
-✔ archive rejects fakeVideo mutation (94.747959ms)
-✔ archive rejects wrongSource mutation (90.52575ms)
-✔ archive rejects badVersion mutation (87.770959ms)
-✔ archive rejects fakePR mutation (127.805458ms)
-✔ physical record minimum checks boot, scene order, real-file hashes, interaction and distinct boards (112.882333ms)
-✔ renaming a known unconfigured Station binary cannot turn it into accepted-profile evidence (91.410583ms)
+✔ delivery archive has exact v1 work packages, four candidates and explicit non-acceptance (41.735458ms)
+✔ archive source verifier is the same file as the reviewed working source (23.029ms)
+✔ verified extraction works offline and preserves all structure (91.434625ms)
+✔ extract refuses an existing output and does not overwrite operator files (40.722833ms)
+✔ archive rejects hash mutation (61.764959ms)
+✔ archive rejects extra mutation (61.294584ms)
+✔ archive rejects traversal mutation (60.996833ms)
+✔ archive rejects symlink mutation (61.124167ms)
+✔ archive rejects duplicate mutation (61.723625ms)
+✔ archive rejects old32 mutation (64.943917ms)
+✔ archive rejects legacyFolder mutation (60.992958ms)
+✔ archive rejects mixedBinary mutation (64.798458ms)
+✔ archive rejects fakeVerified mutation (61.315125ms)
+✔ archive rejects wrongDemo mutation (65.702667ms)
+✔ archive rejects splitDemo mutation (66.346ms)
+✔ archive rejects fakeVideo mutation (65.825042ms)
+✔ archive rejects wrongSource mutation (65.874041ms)
+✔ archive rejects badVersion mutation (66.502958ms)
+✔ archive rejects fakePR mutation (64.541542ms)
+✔ physical record minimum checks boot, scene order, real-file hashes, interaction and distinct boards (59.09275ms)
+✔ renaming a known unconfigured Station binary cannot turn it into accepted-profile evidence (58.350666ms)
 ℹ tests 21
 ℹ suites 0
 ℹ pass 21
@@ -26,4 +26,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1655.711125
+ℹ duration_ms 1303.06075
