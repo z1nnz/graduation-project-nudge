@@ -1,0 +1,15 @@
+{
+  "kind": "unverified_capture_checklist",
+  "deviceVerified": false,
+  "physicalAcceptanceDeferredByUser": true,
+  "measuredSpokenDurationSeconds": null,
+  "validatedRestartMethod": { "orbit": null, "station": null },
+  "sourceCommits": { "orbitFirmware": null, "stationFirmware": null, "app": null },
+  "captures": [
+    { "id": "p0a_orbit", "required": "Home → Focus → Complete 連續實機影片", "device": "orbit", "file": null, "sha256": null, "verified": false },
+    { "id": "p0a_station", "required": "Home → Focus → Complete 連續實機影片", "device": "station", "file": null, "sha256": null, "verified": false },
+    { "id": "p0b_full", "required": "180 秒一鏡到底，兩台、手部、Home 到 Complete，再重設回 Home", "device": "both", "file": null, "sha256": null, "verified": false },
+    { "id": "p0b_orbit_closeup", "required": "30 秒單機近拍，文字可讀", "device": "orbit", "file": null, "sha256": null, "verified": false },
+    { "id": "p0b_station_closeup", "required": "30 秒單機近拍，文字可讀", "device": "station", "file": null, "sha256": null, "verified": false }
+  ]
+}
