@@ -31,9 +31,9 @@
 ## 時間與控制決策
 
 - P0-A：Home 5 秒、Focus 20 秒、Complete 5 秒，30 秒一圈。
-- P0-B：Boot 1.5 秒，之後 Home 4、Ready 4、Focus 20、Support 5、Complete 4、Growth 5、Summary 6 秒。
-- 第一次自 Boot 共 49.5 秒；之後 Summary 回 Home，每圈 48 秒。沒有 Scene 8。
-- 採工作包 02 的 Ready 4／Summary 6 秒規劃；03 的建議時間不同，未來接入韌體時須同步設定後重新驗證。
+- P0-B：Boot 1.5 秒，之後 Home 4、Ready 3、Focus 20、Support 5、Complete 4、Growth 5、Summary 8 秒。
+- 第一次自 Boot 共 50.5 秒；之後 Summary 回 Home，每圈 49 秒。沒有 Scene 8。
+- 依 #25 固定韌體 c4cb9fa 的 Ready 3／Summary 8 秒修正紙面規劃；需求原文不改，實際採用時間及來源另記 timing-source.json。
 - 三分鐘是口白長度，不把單輪場景拉長到三分鐘，也不要求停住 Home 等待講完。
 - 紙面計時在「看見 Home」時歸零；兩台獨立起跑，實機漂移時依 Scene 提示等待下一圈。
 - 紙面重設提示在 2:20；必須先拍到 Complete，再使用已驗證的 Restart／板上 RESET，並確認回 Home。

@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
 const sceneKeys = ["boot", "home", "ready", "focus", "encouragement", "complete", "growth", "summary"];
 
@@ -40,6 +41,15 @@ function previewScene(plan, sceneId, device) {
 }
 
 function validatePlan(plan) {
+  const sourceDir = path.resolve(__dirname, "../docs/competition-demo/package02");
+  const timing = JSON.parse(fs.readFileSync(path.join(sourceDir, "timing-source.json"), "utf8"));
+  assert.equal(timing.source_commit, "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f");
+  assert.equal(timing.snapshot, "timing-source.core.cpp");
+  const core = fs.readFileSync(path.join(sourceDir, timing.snapshot));
+  assert.equal(crypto.createHash("sha256").update(core).digest("hex"), timing.sha256);
+  const durations = core.toString().match(/durations\[\] = \{([^}]+)\}/);
+  assert.ok(durations, "Pinned firmware timing must be available");
+  assert.deepEqual(plan.scenes.map(s => s.durationMs), durations[1].split(",").map(Number), "Paper timeline must agree with pinned firmware");
   assert.equal(plan.kind, "presentation_plan");
   assert.equal(plan.runtimeImplemented, false, "A script plan is not firmware delivery");
   assert.equal(plan.deviceVerified, false, "No physical acceptance is claimed");

@@ -35,7 +35,7 @@
     { "id": 1, "key": "home", "durationMs": 4000,
       "orbit": { "title": "Watch Home", "lines": ["示範時鐘 {{demoClock}}", "{{characterName}} 待機", "今日分數 {{disciplineScore}}"] },
       "station": { "title": "Desk Home", "lines": ["NEXT：{{primaryTask}}", "另有 {{otherTasks}}", "{{focusMinutes}} MIN FOCUS", "{{characterName}} 的桌面房間"] } },
-    { "id": 2, "key": "ready", "durationMs": 4000,
+    { "id": 2, "key": "ready", "durationMs": 3000,
       "orbit": { "title": "READY", "lines": ["準備好了嗎？由你決定開始"] },
       "station": { "title": "Task Select", "lines": ["{{primaryTask}}", "沒有可靠輸入時自動選第一項"] } },
     { "id": 3, "key": "focus", "durationMs": 20000,
@@ -50,9 +50,9 @@
     { "id": 6, "key": "growth", "durationMs": 5000,
       "orbit": { "title": "GROW", "lines": ["{{characterName}} LEVEL {{characterLevel}}", "DEMO XP +{{demoXp}}"] },
       "station": { "title": "GROW", "lines": ["{{characterName}} LEVEL {{characterLevel}}", "DEMO XP +{{demoXp}}；長出一片葉子"] } },
-    { "id": 7, "key": "summary", "durationMs": 6000,
+    { "id": 7, "key": "summary", "durationMs": 8000,
       "orbit": { "title": "TODAY", "lines": ["今日分數 {{disciplineScore}}（DEMO）", "下一幕回 Home"] },
-      "station": { "title": "TODAY", "lines": ["任務 {{todayCompleted}}/{{todayTaskTotal}}；專注 {{todayFocusMinutes}} 分鐘（DEMO）", "6 秒後回 Home"] } }
+      "station": { "title": "TODAY", "lines": ["任務 {{todayCompleted}}/{{todayTaskTotal}}；專注 {{todayFocusMinutes}} 分鐘（DEMO）", "8 秒後回 Home"] } }
   ],
   "p0a": { "sceneIds": [1, 3, 5], "durationsMs": [5000, 20000, 5000], "loopTo": 1 },
   "p0b": { "initialScene": 0, "loopTo": 1, "autoInputRequired": false },

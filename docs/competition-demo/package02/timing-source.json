@@ -1,0 +1,8 @@
+{
+  "source_commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+  "source_path": "firmware/nudge_competition_demo/src/core.cpp",
+  "snapshot": "timing-source.core.cpp",
+  "sha256": "b37ed6eddef4319cec112fc583d4c3d24ebbd1364ebdf29e8faf3b1e04d549f8",
+  "physical_verified": false,
+  "note": "Read-only source snapshot for paper timing checks, not a second firmware project or measured device timing."
+}

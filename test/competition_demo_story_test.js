@@ -10,13 +10,13 @@ test("script has a contiguous 180-second narration and a separate 30-second P0-A
   const result = validatePlan(load("scenario.json"));
   assert.equal(result.narrationSeconds, 180);
   assert.equal(result.p0aSeconds, 30);
-  assert.equal(result.homeLoopSeconds, 48);
+  assert.equal(result.homeLoopSeconds, 49);
 });
 
 test("paper timeline captures Complete before reset and returns to Home", () => {
   const plan = load("scenario.json");
   const timeline = buildTimeline(plan, 180000, 140000);
-  assert.ok(timeline.some(r => r.sceneId === 5 && r.startMs === 129000));
+  assert.ok(timeline.some(r => r.sceneId === 5 && r.startMs === 130000));
   assert.ok(timeline.some(r => r.sceneId === 0 && r.startMs === 140000));
   assert.ok(timeline.some(r => r.sceneId === 1 && r.startMs === 141500));
   assert.equal(timeline.at(-1).endMs, 180000);
@@ -79,4 +79,12 @@ test("spoken script matches the canonical data plan and all local document links
     }
     assert.ok(!body.includes("/Users/") && !body.includes("codex-remote-attachments"), file);
   }
+});
+
+// Regression: the earlier paper plan drifted from the existing firmware.
+test("paper timing rejects the superseded Ready 4s and Summary 6s schedule", () => {
+  const changed = load("scenario.json");
+  changed.scenes[2].durationMs = 4000;
+  changed.scenes[7].durationMs = 6000;
+  assert.throws(() => validatePlan(changed), /Paper timeline/);
 });
