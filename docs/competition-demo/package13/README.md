@@ -60,3 +60,7 @@ P0-B／P1 的詳細重播、Restart 與排練仍依 package 10（#26），本工
 本輪從最新 main c37c6ab 建立獨立分支，僅沿用 #21 的已知 iOS checksum metadata 修復，保持嚴格 CI；未帶入 #25／#26／#61 整包歷史。
 固定來源只是讀取參考：#25 firmware c4cb9fa、#26 Gate A 3a55966、#61 操作稿 e3bd9e5。來源未合併由 z1nnz 裁決，不自行合併。
 實機、近拍／完整影片、照片、另一位確認、手機／第二台電腦播放與燒錄皆未驗。自評只評本輪準備，不可把 85 分當實物通過率。
+
+## 00–13 總檢查更新
+
+見 [總檢查與缺口](../audit00-13/README.md)、[逐項索引](../audit00-13/criterion-index.md) 與 [更新前自評](audit-prepublication-assessment.json)。交付 ZIP 已更新到本輪固定 producer e26d5f7；原 prepublication-assessment.json 為最初建立 PR 前的歷史快照，不能拿其測試數或 SHA 當作本輪最新結果。

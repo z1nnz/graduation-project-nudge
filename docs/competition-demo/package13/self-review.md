@@ -31,3 +31,14 @@
 已實際完成兩次同 source 重建 byte 一致、安全解壓與獨立 evidence exit 2；新增 21／21、Node 133／133、Flutter 201／201、來源分析無問題。Cloud 120 通過／25 emulator cases skipped，未把 skipped 算通過。自評維持 85，先達門檻再發布。最終包將補上真正本輪 PR URL，重建／重驗後再交 CI；版控此表為上傳前快照。
 
 已建立 PR #62，並把實際網址填入最終 README／VERSION／MANIFEST；同一 producer source 重建 byte 一致，安全解壓與獨立 evidence exit 2 重新通過。更新前重評仍為 85，來源檔未變，Node 133／133 與新增 21／21 再驗通過。此更新不含新韌體行為，實物條件仍未完成。
+
+## 00–13 總檢查後重評（2026-11-19）
+
+本輪總表見 ../audit00-13/README.md：726 筆原文對照、40 份固定 source blob、17 張既有照片雜湊；所有包 complete=false，最低準備分數 85。
+修正 13 的三幕／八幕／Next 次數、P0-B environment／已知 P0-A binary 不可改稱八幕、近拍可讀與 30 秒、雙機 Home→Complete→Home／手部／Restart／離線播放紀錄、缺 DemoData 欄位與 SHA256SUMS 檢查。
+原 #22 紙面時長已同步既有韌體，不改 driver／GPIO，firmware source 仍 c4cb9fa。交付包增加範圍／零件卡／既有照片、修正後故事與逐項總表。
+
+重新驗證：交付工具 23 個與總表 11 個測試均包含在 root Node 146/146；Flutter 201/201、dart analyze 無問題、Cloud 120 通過／25 skipped、三個 C++ native 執行檔通過。兩次包完全相同；實際解壓後兩個獨立 CLI 通過，pending evidence 正常 exit 2。
+Producer source e26d5f72ca441b7af13a00ca8fb7bbca2206dcaa，143 檔案、4 候選 image，沒有新的實物影片或接線確認。最新 SHA-256 在 preparation-evidence.json。
+本輪 13 與整體準備重新評分均維持 85，實機與他機／影片證據扣分照舊；另一位組員、公告／認領、整合／日期與 P0-B 視覺差異仍明列，不拿分數當完整驗收。
+以上 gate 已通過才更新 PR #62；提交後仍需最新 head 六項 CI 全綠，再請 z1nnz 審查，不自行合併。
