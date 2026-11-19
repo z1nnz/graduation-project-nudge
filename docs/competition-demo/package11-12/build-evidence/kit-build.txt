@@ -1,0 +1,4 @@
+{"phase": "preparation-only", "physical_verified": false, "verified": true}
+{"phase": "preparation-only", "physical_verified": false, "verified": true}
+PASS: deterministic rebuilds identical; 34 published issues; current tools; four unverified candidates; no physical video
+ZIP SHA256 98093beb9f133db11c2f416dba836a6e825c9a81bdf52103061301f68eab404e

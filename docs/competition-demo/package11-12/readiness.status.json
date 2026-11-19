@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scope": "records-for-human-review",
+  "physical_acceptance_certified": false,
+  "ready_for_human_review": false,
+  "night_before_complete": false,
+  "arrival_15min_complete": false,
+  "devices": {
+    "orbit": {
+      "accepted_record_complete": false,
+      "arrival_complete": false,
+      "ble_may_be_shown": false
+    },
+    "station": {
+      "accepted_record_complete": false,
+      "arrival_complete": false,
+      "ble_may_be_shown": false
+    }
+  },
+  "blockers": [
+    "orbit: missing accepted/frozen version, 3 cold boots, 3 replays, restart, photo or physical video",
+    "station: missing accepted/frozen version, 3 cold boots, 3 replays, restart, photo or physical video",
+    "Inventory, two verified data cables or presenter/operator/reset rehearsal incomplete",
+    "Real one-take video, matching offline copy, phone copy or same-version statement missing",
+    "Competition date/venue not confirmed"
+  ],
+  "fallback": {
+    "one_device": "Use the working device; use the failed device physical video only if available.",
+    "both_devices": "No verified physical backup video: explain the non-live prototype honestly; do not label software preview as hardware footage.",
+    "app_ble": "Stop phone control; use verified local input or autoplay.",
+    "reset": "USB off for 5 seconds, then reconnect. Long-press only after that exact gesture is physically verified."
+  }
+}

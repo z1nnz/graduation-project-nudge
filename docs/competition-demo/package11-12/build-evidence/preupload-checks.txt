@@ -1,0 +1,3 @@
+PASS: 11=92, 12=85; 34 verified open/unassigned issue records; current code/PDF/ZIP hashes
+PASS: final archive agrees with source tools, issue registry and four-page reviewed PDF
+PASS: links/fences and pending readiness; no physical certification or upload claimed

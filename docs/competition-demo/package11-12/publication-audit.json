@@ -1,0 +1,287 @@
+{
+  "date": "2026-11-19",
+  "checked_at_utc": "2026-11-19 08:47:07 UTC",
+  "repository": "z1nnz/graduation-project-nudge",
+  "created_by_task": true,
+  "issues": [
+    {
+      "id": "DEMO-00",
+      "number": 27,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/27",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:42:49Z"
+    },
+    {
+      "id": "DEMO-01",
+      "number": 28,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/28",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:43:26Z"
+    },
+    {
+      "id": "DEMO-02",
+      "number": 29,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/29",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:43:27Z"
+    },
+    {
+      "id": "DEMO-03",
+      "number": 30,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/30",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:29Z"
+    },
+    {
+      "id": "DEMO-10",
+      "number": 31,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/31",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:30Z"
+    },
+    {
+      "id": "DEMO-11",
+      "number": 32,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/32",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:32Z"
+    },
+    {
+      "id": "DEMO-12",
+      "number": 33,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/33",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:34Z"
+    },
+    {
+      "id": "DEMO-13",
+      "number": 34,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/34",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:35Z"
+    },
+    {
+      "id": "ORB-01",
+      "number": 35,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/35",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:37Z"
+    },
+    {
+      "id": "ORB-02",
+      "number": 36,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/36",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:39Z"
+    },
+    {
+      "id": "ORB-03",
+      "number": 37,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/37",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:40Z"
+    },
+    {
+      "id": "ORB-04",
+      "number": 38,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/38",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:42Z"
+    },
+    {
+      "id": "ORB-05",
+      "number": 39,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/39",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:43Z"
+    },
+    {
+      "id": "ORB-06",
+      "number": 40,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/40",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:44Z"
+    },
+    {
+      "id": "ORB-07",
+      "number": 41,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/41",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:46Z"
+    },
+    {
+      "id": "ORB-08",
+      "number": 42,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/42",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:47Z"
+    },
+    {
+      "id": "STA-01",
+      "number": 43,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/43",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:49Z"
+    },
+    {
+      "id": "STA-02",
+      "number": 44,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/44",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:50Z"
+    },
+    {
+      "id": "STA-03",
+      "number": 45,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/45",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:52Z"
+    },
+    {
+      "id": "STA-04",
+      "number": 46,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/46",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:53Z"
+    },
+    {
+      "id": "STA-05",
+      "number": 47,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/47",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:55Z"
+    },
+    {
+      "id": "STA-06",
+      "number": 48,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/48",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:56Z"
+    },
+    {
+      "id": "STA-07",
+      "number": 49,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/49",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:57Z"
+    },
+    {
+      "id": "STA-08",
+      "number": 50,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/50",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:45:59Z"
+    },
+    {
+      "id": "STA-09",
+      "number": 51,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/51",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:00Z"
+    },
+    {
+      "id": "DEMO-30",
+      "number": 52,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/52",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:02Z"
+    },
+    {
+      "id": "DEMO-31",
+      "number": 53,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/53",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:03Z"
+    },
+    {
+      "id": "DEMO-32",
+      "number": 54,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/54",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:04Z"
+    },
+    {
+      "id": "DEMO-33",
+      "number": 55,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/55",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:06Z"
+    },
+    {
+      "id": "DEMO-34",
+      "number": 56,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/56",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:07Z"
+    },
+    {
+      "id": "DEMO-35",
+      "number": 57,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/57",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:08Z"
+    },
+    {
+      "id": "BLE-01",
+      "number": 58,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/58",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:10Z"
+    },
+    {
+      "id": "BLE-02",
+      "number": 59,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/59",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:12Z"
+    },
+    {
+      "id": "BLE-03",
+      "number": 60,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/60",
+      "state": "open",
+      "assignees": [],
+      "updated_at": "2026-11-19T08:46:13Z"
+    }
+  ],
+  "count": 34,
+  "all_open": true,
+  "all_unassigned": true,
+  "remote_bodies_match": true,
+  "no_device_verified_labels_applied": true,
+  "no_issues_closed": true,
+  "physical_verified": false
+}

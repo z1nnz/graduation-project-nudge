@@ -1,0 +1,14 @@
+{
+  "pages": 4,
+  "embedded_cjk_font": true,
+  "glyphs_checked": true,
+  "visual_pages_reviewed": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "clipping_or_overlap_found": false,
+  "physical_verified": false,
+  "pdf_sha256": "7e4e0c34d8ab4ad0610a5a817d93f655570f6186bf19a63d52a5b16289e67b01"
+}

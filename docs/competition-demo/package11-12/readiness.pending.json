@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "scope": "competition-readiness-record",
+  "competition_date": null,
+  "venue": null,
+  "physical_acceptance_deferred": true,
+  "devices": {
+    "orbit": {
+      "board_id": null,
+      "source_commit": null,
+      "build_id": null,
+      "environment": null,
+      "profile_sha256": null,
+      "binary": null,
+      "physical_video": null,
+      "wiring_photo": null,
+      "display_configured": false,
+      "physical_accepted": false,
+      "frozen": false,
+      "cold_boot_successes": 0,
+      "demo_successes": 0,
+      "restart_verified": false,
+      "home_observed": false,
+      "arrival_auto_run": false,
+      "arrival_build_id": null,
+      "adopted_inputs": [],
+      "adopted_modules": [],
+      "options_rehearsed": false,
+      "ble_adopted": false,
+      "ble_rehearsed": false
+    },
+    "station": {
+      "board_id": null,
+      "source_commit": null,
+      "build_id": null,
+      "environment": null,
+      "profile_sha256": null,
+      "binary": null,
+      "physical_video": null,
+      "wiring_photo": null,
+      "display_configured": false,
+      "physical_accepted": false,
+      "frozen": false,
+      "cold_boot_successes": 0,
+      "demo_successes": 0,
+      "restart_verified": false,
+      "home_observed": false,
+      "arrival_auto_run": false,
+      "arrival_build_id": null,
+      "adopted_inputs": [],
+      "adopted_modules": [],
+      "options_rehearsed": false,
+      "ble_adopted": false,
+      "ble_rehearsed": false
+    }
+  },
+  "inventory": {
+    "usb_cables": [
+      {
+        "id": null,
+        "data_capable": false,
+        "verified": false
+      },
+      {
+        "id": null,
+        "data_capable": false,
+        "verified": false
+      }
+    ],
+    "two_independent_controllers": false,
+    "laptop_ready": false,
+    "laptop_charger_ready": false,
+    "phone_ready": false,
+    "phone_cable_ready": false,
+    "source_saved": false,
+    "platformio_environment_saved": false,
+    "configured_upload_tested": false,
+    "existing_power_accessory_confirmed": false,
+    "existing_adopted_modules_and_cables_packed": false,
+    "offline_script_opened": false
+  },
+  "backups": {
+    "one_take_physical_video": null,
+    "offline_copy": null,
+    "phone_copy_confirmed": false,
+    "same_hardware_versions_confirmed": false
+  },
+  "roles": {
+    "presenter": null,
+    "operator": null,
+    "reset_protocol_rehearsed": false
+  },
+  "arrival_steps_completed": [],
+  "stage": {
+    "story_opening_rehearsed": false,
+    "one_action_only": false,
+    "no_login_or_pairing_for_judges": false,
+    "complete_growth_summary_observed": false,
+    "prototype_boundary_explained": false
+  },
+  "onsite_result": {
+    "date_and_venue": null,
+    "orbit_pre_stage_result": null,
+    "station_pre_stage_result": null,
+    "interaction": null,
+    "ble_used": null,
+    "fallback": null,
+    "outcome": null
+  },
+  "notes": "Preparation only. No hardware upload, adopted input, physical backup video or on-site result has been verified."
+}

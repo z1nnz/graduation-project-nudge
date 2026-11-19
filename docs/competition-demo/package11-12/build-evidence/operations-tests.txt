@@ -1,0 +1,30 @@
+✔ canonical catalog has 34 IDs, roles, priorities and an acyclic graph (1.114292ms)
+✔ wrong owner/device/priority cannot silently rewrite the default plan (0.299792ms)
+✔ unknown dependency and cycle reject before issue publication (0.198209ms)
+✔ P0-B/P1/P2 stay blocked until ALL P0-A acceptance, not just a source PR (0.309291ms)
+✔ stable marker/title matching prevents duplicate issues including closed matches (0.189625ms)
+✔ registry requires 34 unique, open, unassigned real issue URLs (0.171541ms)
+✔ source-complete alone cannot make an issue ready to close (1.893542ms)
+✔ pending state never becomes on-site acceptance and gives honest missing-video fallback (1.219875ms)
+✔ complete parser fixture only becomes ready for HUMAN review, never certified (2.239125ms)
+✔ two cold boots or unaccepted/frozen firmware cannot count as three (2.558ms)
+✔ wrong-device binary/env, repeated board IDs and missing build bytes reject (2.703625ms)
+✔ two distinct verified USB data cables are required (1.7375ms)
+✔ mismatched physical backup copies or software preview cannot be counted (2.043958ms)
+✔ unrehearsed BLE and unpacked adopted LEDs must be skipped (1.739375ms)
+✔ arrival requires all eight steps, matching build IDs and explicit stage fields (2.019917ms)
+✔ evidence paths cannot escape via traversal/symlink (1.565959ms)
+✔ real offline preparation kit verifies without network or source checkout (38.727084ms)
+✔ offline verifier rejects corrupt archive (60.442834ms)
+✔ offline verifier rejects extra archive (61.360125ms)
+✔ offline verifier rejects traversal archive (62.92525ms)
+✔ offline verifier rejects phase archive (59.473667ms)
+✔ offline verifier rejects symlink archive (58.958167ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 403.108042

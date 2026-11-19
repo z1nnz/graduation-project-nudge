@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "requirements_commit": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d",
+  "firmware_commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+  "firmware_tree": "d10c1591509551e06b08c44edfe0962a7a0dd489",
+  "gate_a_commit": "3a5596619f51bbfb87389626c6441fbf2c64c56d",
+  "firmware_pr": 25,
+  "gate_a_pr": 26,
+  "physical_verified": false
+}

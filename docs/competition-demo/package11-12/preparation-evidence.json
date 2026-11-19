@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-19",
+  "scope": "backlog and operation preparation only",
+  "scores": {
+    "package11": 92,
+    "package12": 85,
+    "threshold": 85
+  },
+  "published_issues": 34,
+  "remote_issue_bodies_verified": true,
+  "new_tests": 22,
+  "node_tests": 134,
+  "flutter_tests": 201,
+  "cloud_passed": 120,
+  "cloud_skipped_emulator_cases": 25,
+  "source_analyze": "pass",
+  "pdf_pages": 4,
+  "pdf_render_visual_review": true,
+  "offline_kit_deterministic_rebuild": "pass",
+  "physical_verified": false,
+  "all_package_criteria_completed": false,
+  "uploaded_to_hardware": false,
+  "physical_videos": 0,
+  "team_acknowledgements_complete": false,
+  "tool_sha256": {
+    "scripts/demo_backlog.cjs": "2fb0546300a1dc8b71d83660be23bc8f9344a2a8a8dea06838b8ca9fee148cf1",
+    "scripts/demo_runbook.cjs": "d86670b0062f89f683da36f5dd8c94410807c83453b6cb8087ba034e70650c24",
+    "scripts/build_demo_kit.py": "c9cc26ceb5e2e5eabfe3beb1427729ee748f4ff4e2306f555337ebd3de5e6126",
+    "scripts/render_demo_field_card.py": "d6fd8ffbf05cb35df24c6eef38707ce3b082ebbcb5e3b7e4e16e42f3d7df9915",
+    "test/demo_operations_test.js": "a2ddc6ad75420098ad9ce45ed55276302c4aceecd7fa3b66460f0f3a8dddfc55"
+  },
+  "artifact_sha256": {
+    "output/pdf/nudge-demo-operations.pdf": "7e4e0c34d8ab4ad0610a5a817d93f655570f6186bf19a63d52a5b16289e67b01",
+    "output/demo/nudge-demo-preparation.zip": "98093beb9f133db11c2f416dba836a6e825c9a81bdf52103061301f68eab404e"
+  },
+  "ci": "latest head six checks required; see PR for final run"
+}
