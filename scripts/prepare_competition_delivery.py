@@ -5,6 +5,7 @@ No upload, message sending, issue closure, or hardware certification is performe
 import argparse
 import hashlib
 import json
+import math
 import re
 import stat
 import subprocess
@@ -47,12 +48,16 @@ def safe_name(name):
 def validate_demo_data(data, core):
     if data.get('scope') != 'fictional-fixed-demo-data' or any(data.get(k) is not False for k in ['real_accounts', 'formal_rewards_issued', 'live_cloud_sync']):
         raise ValueError('Demo truth flags must remain false')
+    expected = {'userName','characterName','characterLevel','disciplineScore','primaryTask','roomName',
+        'encouragement','focusMinutes','demoXp','activeMembers','totalMembers','todayFocusCount','todayFocusMinutes','taskLabels'}
+    if set(data.get('data', {})) != expected:
+        raise ValueError('Shared demo fields are missing or unknown')
     for key, value in data['data'].items():
         if isinstance(value, str):
             found = re.search(r'\b' + key + r'\s*=\s*"([^"]*)"', core)
             if not found or found[1] != value:
                 raise ValueError('Shared demo string differs from firmware: ' + key)
-        elif isinstance(value, int):
+        elif type(value) is int:
             found = re.search(r'\b' + key + r'\s*=\s*(\d+)\s*;', core)
             if not found or int(found[1]) != value:
                 raise ValueError('Shared demo number differs from firmware: ' + key)
@@ -74,6 +79,7 @@ def pending_device(name, entry, source):
             'sha256': entry['binary_sha256'], 'configuration': entry['configuration']},
         'demo_data_reference': 'evidence/demo-data.json', 'claims': {'p0b': False, 'p1': False},
         'verification': {'compile_source_reference': True, 'physical_upload': False, 'cold_boot_successes': 0,
+            'p0a_successes': 0, 'p0b_successes': 0, 'next_successes': 0,
             'complete_demo_flow': False, 'offline_fallback': False, 'restart_successes': 0, 'optional_removed': None},
         'physical_verified': False, 'operator': None, 'recorded_at': None, 'media': [],
         'known_limitations': ['No physical acceptance or video.', 'Default candidate profile; not accepted hardware wiring.']}
@@ -129,6 +135,10 @@ def build(repo, source_commit, out, delivery_pr=None):
             files[target] = git(repo, 'cat-file', 'blob', blob)
             origins[target] = {'commit': ref, 'path': original, 'git_blob': blob}
     import_tree(lock['requirements_commit'], 'docs/work-packages', 'work-packages/')
+    import_tree(source_commit, 'docs/competition-demo/audit00-13', 'evidence/audit00-13/')
+    import_tree(lock['scope_commit'], 'docs/competition-demo', 'evidence/reference-deliveries/docs/competition-demo/')
+    import_tree(lock['parts_commit'], 'docs/competition-demo', 'evidence/reference-deliveries/docs/competition-demo/')
+    import_tree(lock['story_commit'], 'docs/competition-demo/package02', 'evidence/reference-deliveries/docs/competition-demo/package02/')
     import_tree(lock['firmware_commit'], 'firmware/nudge_competition_demo', 'firmware-source/nudge_competition_demo/')
     import_tree(lock['gate_a_commit'], 'docs/competition-demo/package09-10/build-evidence/gate-a', 'evidence/build/')
     # Binaries have a single, clearly separated location. Build logs retain original filenames in their provenance.
@@ -143,8 +153,9 @@ def build(repo, source_commit, out, delivery_pr=None):
         files[target] = files.pop(old)
         origins[target] = origins.pop(old)
     fixed = [
+        (source_commit, 'scripts/audit_competition_packages.py', 'scripts/audit_competition_packages.py'),
+        (lock['story_commit'], 'scripts/validate_competition_demo_story.cjs', 'evidence/reference-deliveries/scripts/validate_competition_demo_story.cjs'),
         (lock['firmware_commit'], 'shared/demo_contract.json', 'firmware-source/shared/demo_contract.json'),
-        (lock['firmware_commit'], 'docs/competition-demo/package05-06/dependencies.md', 'firmware-source/UPSTREAM-DEPENDENCIES.md'),
         (lock['firmware_commit'], 'docs/competition-demo/package05-06/dependencies.md', 'firmware-source/UPSTREAM-DEPENDENCIES.md'),
         (lock['operations_commit'], 'docs/competition-demo/package11-12/presenter-script.md', 'scripts/competition-script.md'),
         (lock['operations_commit'], 'docs/competition-demo/package11-12/runbook.md', 'scripts/runbook.md'),
@@ -233,6 +244,10 @@ def verify(archive):
                 raise ValueError('Package file hash mismatch: ' + f['file'])
             if 'origin' in f and blob_hash(b) != f['origin']['git_blob']:
                 raise ValueError('Imported Git blob mismatch')
+        sums = ''.join(digest(read(n)) + '  ' + n + '\n' for n in sorted(names)
+            if n not in {'MANIFEST.json','SHA256SUMS.txt'}).encode()
+        if read('SHA256SUMS.txt') != sums:
+            raise ValueError('SHA256SUMS does not match package members')
         required = ['README.md','VERSION.txt','SHA256SUMS.txt','SOURCE_LOCK.json','evidence/templates/pr-template.md',
             'evidence/templates/device-handoff-template.md','evidence/templates/team-message-draft.txt','evidence/demo-data.json',
             'evidence/orbit/HANDOFF.md','evidence/station/HANDOFF.md','evidence/full-demo/STATUS.md',
@@ -302,7 +317,7 @@ def media_ok(media, root):
     file = media.get('file','')
     if not safe_name(file) or not file.lower().endswith(('.mp4','.mov','.m4v')) or not isinstance(media.get('sha256'),str) or not re.fullmatch(r'[a-f0-9]{64}',media['sha256']):
         return False
-    if not isinstance(media.get('duration_ms'),(int,float)) or media['duration_ms']<=0:
+    if type(media.get('duration_ms')) not in (int,float) or not math.isfinite(media['duration_ms']) or media['duration_ms']<=0:
         return False
     try:
         base=root.resolve(); p=(base/file).resolve()
@@ -324,12 +339,20 @@ def evidence(record, root):
     def valid_date(v):
         try:return isinstance(v,str) and date.fromisoformat(v).isoformat()==v
         except ValueError:return False
+    def count(v, minimum):
+        return type(v) is int and v >= minimum
+    def sequence_seen(actual, expected):
+        seq = iter(actual)
+        return all(any(s == want for s in seq) for want in expected)
     for name in ['orbit','station']:
         d=record['devices'][name]; v=d['verification']; claims=d['claims']; media=d['media']
         identity=bool(d.get('physical_verified') is True and d['hardware'].get('display_configured') is True and
             d['hardware'].get('board_id') and isinstance(d.get('source_commit'),str) and re.fullmatch(r'[a-f0-9]{40}',d['source_commit']) and
             isinstance(d.get('environment'),str) and d['environment'].startswith(name+'_') and
             isinstance(d.get('operator'),str) and d['operator'].strip() and valid_date(d.get('recorded_at')))
+        if claims.get('p0b') and d.get('environment') not in {
+                name+'_demo',name+'_static',name+'_p1_check',name+'_ble_check'}:
+            identity=False
         binary=d.get('binary') or {}; binary_good=False
         if identity and safe_name(binary.get('file')) and isinstance(d.get('build_id'),str):
             file=(root/binary['file']).resolve()
@@ -339,6 +362,9 @@ def evidence(record, root):
                     d['build_id'].startswith(d['source_commit'][:12]) and d['build_id'].encode() in body and
                     file.name.startswith(name+'_'))
                 gate_path=root/'evidence/build/gate-a.json'
+                if claims.get('p0b') and gate_path.is_file():
+                    p0a={e['binary_sha256'] for e in json.loads(gate_path.read_text())['environments'] if e['environment'].endswith('_p0a')}
+                    if digest(body) in p0a:binary_good=False
                 if name=='station' and gate_path.is_file():
                     unconfigured={e['binary_sha256'] for e in json.loads(gate_path.read_text())['environments'] if e['device']=='station' and e['configuration']=='unconfigured'}
                     if digest(body) in unconfigured:binary_good=False
@@ -346,14 +372,16 @@ def evidence(record, root):
         full=[]; close=[]
         for m in media:
             good=media_ok(m,root) and m.get('physical_xiao_visible') is True and m.get('physical_screen_visible') is True
-            if good and 'closeup' in m.get('roles',[]):close.append(m)
-            sequence=iter(m.get('scenes',[]))
-            ordered=all(any(s==want for s in sequence) for want in expected)
+            if good and 'closeup' in m.get('roles',[]) and m.get('text_readable') is True and \
+                (not claims.get('p0b') or m['duration_ms'] >= 30000):close.append(m)
+            ordered=sequence_seen(m.get('scenes',[]), expected)
             if good and 'full' in m.get('roles',[]) and m.get('boot_visible') is True and m.get('complete_visible') is True and ordered and \
                 (not (claims.get('p0b') or claims.get('p1')) or m.get('restart_visible') is True) and \
                 (not claims.get('p1') or m.get('operator_actions_visible') is True):full.append(m)
         tests=v.get('physical_upload') is True and v.get('cold_boot_successes')==3 and v.get('complete_demo_flow') is True and v.get('offline_fallback') is True and \
-            (not (claims.get('p0b') or claims.get('p1')) or v.get('restart_successes',0)>=10) and \
+            count(v.get('p0a_successes'),3) and \
+            (not claims.get('p0b') or (count(v.get('p0b_successes'),10) and count(v.get('next_successes'),10))) and \
+            (not (claims.get('p0b') or claims.get('p1')) or count(v.get('restart_successes'),10)) and \
             (not claims.get('p1') or v.get('optional_removed') is True)
         result['devices'][name]={'records_complete':bool(identity and binary_good and tests and full and close),'valid_media_records':len(full)}
     ids=[record['devices'][n]['hardware'].get('board_id') for n in ['orbit','station']]
@@ -361,8 +389,14 @@ def evidence(record, root):
         for d in result['devices'].values():d['records_complete']=False
     result['minimum_device_records_complete']=all(d['records_complete'] for d in result['devices'].values())
     full=record.get('full_demo') or {}
+    # This is the package 02/13 three-minute film, independent of the P0-A gate.
+    # Counts and observations are human statements, never automated film recognition.
     result['full_demo_record_complete']=bool(media_ok(full,root) and full.get('both_devices_visible') is True and
-        full.get('duration_ms',0)>=165000 and full.get('build_ids')=={n:record['devices'][n]['build_id'] for n in ['orbit','station']})
+        full.get('operator_actions_visible') is True and full.get('restart_visible') is True and
+        full.get('offline_playback_verified') is True and
+        165000 <= full.get('duration_ms',0) <= 195000 and
+        full.get('build_ids')=={n:record['devices'][n]['build_id'] for n in ['orbit','station']} and
+        all(sequence_seen(full.get('device_scenes',{}).get(n,[]),['home','complete','home']) for n in ['orbit','station']))
     result['full_delivery_records_complete']=result['minimum_device_records_complete'] and result['full_demo_record_complete']
     return result
 

@@ -1,0 +1,299 @@
+{
+  "scope": "source-and-preparation-validation; final archive and CI recorded separately in PR",
+  "physical_verified": false,
+  "checked_source_blobs": [
+    {
+      "package": "00",
+      "commit": "d58d37c71a72555c1b20d3ba774e06a634f05dfd",
+      "path": "docs/competition-demo/scope-adoption.md",
+      "git_blob": "a853824d96a6f233017e7f0d1791358cf9c0be6a",
+      "bytes": 5557
+    },
+    {
+      "package": "00",
+      "commit": "d58d37c71a72555c1b20d3ba774e06a634f05dfd",
+      "path": "docs/competition-demo/package00-self-review.md",
+      "git_blob": "393b0df5750cccd3f59b2cc045c6351c4650b9b3",
+      "bytes": 3910
+    },
+    {
+      "package": "01",
+      "commit": "4cf97e86c59c6a5ad800790d471652721e4d74b8",
+      "path": "docs/competition-demo/orbit-parts.md",
+      "git_blob": "cb8c1e92269f2e4fb82d03604c6cbb7b1706590c",
+      "bytes": 3226
+    },
+    {
+      "package": "01",
+      "commit": "4cf97e86c59c6a5ad800790d471652721e4d74b8",
+      "path": "docs/competition-demo/station-parts.md",
+      "git_blob": "18235267d32443a10418e9f3719fef93fb39d3de",
+      "bytes": 6615
+    },
+    {
+      "package": "01",
+      "commit": "4cf97e86c59c6a5ad800790d471652721e4d74b8",
+      "path": "docs/competition-demo/evidence/manifest.json",
+      "git_blob": "0f9484d5eab32e23f0af6033cc6a1f688b1b6dc9",
+      "bytes": 4801
+    },
+    {
+      "package": "02",
+      "commit": "1a041ff3eb59e7cf6a8e79a9e5b40032506e4f53",
+      "path": "docs/competition-demo/package02/scenario.json",
+      "git_blob": "62768a91297dd1777f9c1b60461d3353adb33180",
+      "bytes": 6620
+    },
+    {
+      "package": "02",
+      "commit": "1a041ff3eb59e7cf6a8e79a9e5b40032506e4f53",
+      "path": "scripts/validate_competition_demo_story.cjs",
+      "git_blob": "55349141af15bda24b2c9bb41d94f7fa888001c6",
+      "bytes": 7838
+    },
+    {
+      "package": "02",
+      "commit": "1a041ff3eb59e7cf6a8e79a9e5b40032506e4f53",
+      "path": "test/competition_demo_story_test.js",
+      "git_blob": "8e75b2b0b25ce53a0edccedb97a2fa0311387321",
+      "bytes": 4355
+    },
+    {
+      "package": "03",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/src/core.cpp",
+      "git_blob": "9b19e56ba2d8803d5664179cd7a7c69d59250383",
+      "bytes": 3340
+    },
+    {
+      "package": "03",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/test/core_test.cpp",
+      "git_blob": "d887db2732662f920926587ff3dff4628177f919",
+      "bytes": 6054
+    },
+    {
+      "package": "03",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/platformio.ini",
+      "git_blob": "64019a1660842f1d348a7f69845ae6c6f4e82b48",
+      "bytes": 3231
+    },
+    {
+      "package": "04",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/src/drawing.cpp",
+      "git_blob": "ceee7ae7afaa6369574ec9d8c0cee742ac192780",
+      "bytes": 4691
+    },
+    {
+      "package": "04",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "docs/competition-demo/package07-08/orbit-scenes.svg",
+      "git_blob": "0a2f15d658926970f2c6565e7816dfea15ae03c2",
+      "bytes": 27186
+    },
+    {
+      "package": "04",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "docs/competition-demo/package03-04/acceptance.md",
+      "git_blob": "661e26e971c42d7953fe1adade077addb1d73406",
+      "bytes": 6243
+    },
+    {
+      "package": "05",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/src/station_arduino.cpp",
+      "git_blob": "7e18c3f310a2b997f079a286eb7e180e1166fa8e",
+      "bytes": 3832
+    },
+    {
+      "package": "05",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/src/station.cpp",
+      "git_blob": "338abe247ff4b9a40c69bfca052b05bfa9bc606d",
+      "bytes": 4089
+    },
+    {
+      "package": "05",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "docs/competition-demo/package05-06/package05-acceptance.md",
+      "git_blob": "35c899cec6054dd05ffbc6c41ff9750131104501",
+      "bytes": 3279
+    },
+    {
+      "package": "06",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/src/peripherals.cpp",
+      "git_blob": "3284b5d99d2b1c169a03ea6cccf45539cc686d52",
+      "bytes": 3077
+    },
+    {
+      "package": "06",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/test/station_peripheral_test.cpp",
+      "git_blob": "f9b33a7e3ad41f153b24cef8040c13e31b95e826",
+      "bytes": 8606
+    },
+    {
+      "package": "06",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "docs/competition-demo/package05-06/package06-acceptance.md",
+      "git_blob": "155c8fd63e0dbcc6e37ab63f047be6f151bd193d",
+      "bytes": 4414
+    },
+    {
+      "package": "07",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "docs/competition-demo/package07-08/package07-acceptance.md",
+      "git_blob": "f04f3e81e83160c9c9c7c309d8b9894f4289514a",
+      "bytes": 5079
+    },
+    {
+      "package": "07",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/src/ble_protocol.cpp",
+      "git_blob": "8adbfb8aaf29694198275c95d2553de32f9753ca",
+      "bytes": 1940
+    },
+    {
+      "package": "07",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "test/demo_controller_test.dart",
+      "git_blob": "3fa7aa09f7fe8237f5f3109cdf7eaefcdd723b98",
+      "bytes": 12234
+    },
+    {
+      "package": "08",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "shared/demo_contract.json",
+      "git_blob": "56ed67e8307c6767793f0d3bb3667920fee71c5f",
+      "bytes": 6220
+    },
+    {
+      "package": "08",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "docs/competition-demo/package07-08/package08-acceptance.md",
+      "git_blob": "c50e6b226f3904621defe254c32d207eafb99cb5",
+      "bytes": 3929
+    },
+    {
+      "package": "08",
+      "commit": "c4cb9fa3b7a919f1c888bf79b10a011d94c4fb0f",
+      "path": "firmware/nudge_competition_demo/src/character.cpp",
+      "git_blob": "593c1e65991b6908ea215dd24a3906895b425723",
+      "bytes": 941
+    },
+    {
+      "package": "09",
+      "commit": "3a5596619f51bbfb87389626c6441fbf2c64c56d",
+      "path": "docs/competition-demo/package09-10/self-review.md",
+      "git_blob": "eb6b443042159df8746916332b5ea561c07eec4e",
+      "bytes": 5582
+    },
+    {
+      "package": "09",
+      "commit": "3a5596619f51bbfb87389626c6441fbf2c64c56d",
+      "path": "docs/competition-demo/package09-10/coordination.json",
+      "git_blob": "148fbe4e39135d265417cc157a7e7619f9edf001",
+      "bytes": 1835
+    },
+    {
+      "package": "10",
+      "commit": "3a5596619f51bbfb87389626c6441fbf2c64c56d",
+      "path": "docs/competition-demo/package09-10/package10-acceptance-runbook.md",
+      "git_blob": "f3b864a27a0ef08a512e420b53c7eb9fe8da615e",
+      "bytes": 10100
+    },
+    {
+      "package": "10",
+      "commit": "3a5596619f51bbfb87389626c6441fbf2c64c56d",
+      "path": "scripts/demo_acceptance.cjs",
+      "git_blob": "f0e3e589df34dc743e3ebaf3de4b04b2a3abae63",
+      "bytes": 18463
+    },
+    {
+      "package": "10",
+      "commit": "3a5596619f51bbfb87389626c6441fbf2c64c56d",
+      "path": "docs/competition-demo/package09-10/build-evidence/gate-a/gate-a.json",
+      "git_blob": "5d4d357352ddaae87b46e36f7d7535bbe2da078a",
+      "bytes": 6378
+    },
+    {
+      "package": "11",
+      "commit": "e3bd9e537e81ef6a05a89cff2bc55881988f28f5",
+      "path": "docs/competition-demo/package11-12/backlog.json",
+      "git_blob": "c236a8e75c6f6ece178eca37bbd28e03a123e12b",
+      "bytes": 20630
+    },
+    {
+      "package": "11",
+      "commit": "e3bd9e537e81ef6a05a89cff2bc55881988f28f5",
+      "path": "docs/competition-demo/package11-12/issue-registry.json",
+      "git_blob": "6ea297b3d735a9fa2406b4813e06bdf79684e909",
+      "bytes": 9259
+    },
+    {
+      "package": "11",
+      "commit": "e3bd9e537e81ef6a05a89cff2bc55881988f28f5",
+      "path": "scripts/demo_backlog.cjs",
+      "git_blob": "a0ad4b37128fd42b720a6dde9ba82c73bbf4045c",
+      "bytes": 9715
+    },
+    {
+      "package": "12",
+      "commit": "e3bd9e537e81ef6a05a89cff2bc55881988f28f5",
+      "path": "docs/competition-demo/package11-12/runbook.md",
+      "git_blob": "fa856f24830515240bbe3bb81f87f87e30557520",
+      "bytes": 4717
+    },
+    {
+      "package": "12",
+      "commit": "e3bd9e537e81ef6a05a89cff2bc55881988f28f5",
+      "path": "docs/competition-demo/package11-12/presenter-script.md",
+      "git_blob": "325d6a94c4ce34faa47dbc9951869e14a2703c37",
+      "bytes": 1992
+    },
+    {
+      "package": "12",
+      "commit": "e3bd9e537e81ef6a05a89cff2bc55881988f28f5",
+      "path": "docs/competition-demo/package11-12/readiness.pending.json",
+      "git_blob": "4f8a5ea1e4f836b682b8b1006eb88b7b8897c871",
+      "bytes": 3010
+    },
+    {
+      "package": "13",
+      "commit": "3e1f7658fde975e9bf5e9dc4d6735964bb92d71d",
+      "path": "docs/competition-demo/package13/README.md",
+      "git_blob": "634a1e9ae314e9c7aa476316d7b8795a6d494a4a",
+      "bytes": 5424
+    },
+    {
+      "package": "13",
+      "commit": "3e1f7658fde975e9bf5e9dc4d6735964bb92d71d",
+      "path": "docs/competition-demo/package13/templates/evidence-instructions.md",
+      "git_blob": "91fa4bc512ad81ab4eab43442a5734f3dca6f2a6",
+      "bytes": 1245
+    },
+    {
+      "package": "13",
+      "commit": "3e1f7658fde975e9bf5e9dc4d6735964bb92d71d",
+      "path": "docs/competition-demo/package13/preparation-evidence.json",
+      "git_blob": "13f4a66a8d97c72406ace1fc57c8a6541f92cbf1",
+      "bytes": 1976
+    }
+  ],
+  "original_photo_hashes_checked": 17,
+  "photo_evidence_level": "identity only; not two distinct boards or successful display",
+  "native_executables": 3,
+  "flutter_tests_passed": 201,
+  "dart_analyze": "No issues found",
+  "cloud_passed": 120,
+  "cloud_skipped": 25,
+  "package02_node_passed": 129,
+  "audit_negative_cases_passed": 11,
+  "firmware_unchanged": true,
+  "firmware_cross_compilation": "Reuse exact #26 four clean-build source/binaries; not recompiled or uploaded in this audit",
+  "all_package_criteria_completed": false,
+  "delivery_record_regressions_passed": 2
+}

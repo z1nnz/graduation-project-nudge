@@ -1,0 +1,10 @@
+mkdir -p build/native
+c++ -std=c++17 -Wall -Wextra -Werror -Iinclude src/core.cpp src/drawing.cpp src/station.cpp src/hardware_profile.cpp src/peripherals.cpp src/character.cpp src/ble_protocol.cpp test/core_test.cpp -o build/native/demo_core_test
+build/native/demo_core_test
+PASS: replay, restart, late tick, rollover, fallback, shared data, layouts, incremental drawing
+c++ -std=c++17 -Wall -Wextra -Werror -Iinclude src/core.cpp src/drawing.cpp src/station.cpp src/hardware_profile.cpp src/peripherals.cpp src/character.cpp src/ble_protocol.cpp test/station_peripheral_test.cpp -o build/native/station_peripheral_test
+build/native/station_peripheral_test
+PASS: station eight scenes, bounds, task selection, GPIO/P1 gates, debounce, light, LED, mute, failure isolation
+c++ -std=c++17 -Wall -Wextra -Werror -Iinclude src/core.cpp src/drawing.cpp src/station.cpp src/hardware_profile.cpp src/peripherals.cpp src/character.cpp src/ble_protocol.cpp test/demo_control_visual_test.cpp -o build/native/demo_control_visual_test
+build/native/demo_control_visual_test
+PASS: demo protocol, P2 gate, six shared poses, animation off/static Focus, command isolation

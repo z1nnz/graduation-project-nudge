@@ -12,3 +12,10 @@ P0-A 至少 Home→Focus→Complete；P0-B 八幕與重播請同時保留 packag
 工具只檢查提交紀錄及檔案 hash／位置，不辨識影像內容、驗證簽章或替 z1nnz 做實物認證。
 填完可用 evidence 命令檢查，exit 2 是尚未完整，exit 0 也只代表可送人工審查；hardware_certified 永遠 false。
 所有真實結果目前未填，沒有備援影片，也沒有可宣稱的離線影片播放成功。
+
+## 00–13 總檢查補強
+
+每台 verification.p0a_successes 至少 3（整數），不能只勾 complete_demo_flow。採 P0-B 時 p0b_successes 與 next_successes 各至少 10，restart_successes 至少 10；細項原始逐次紀錄仍用 package 10，不由此摘要取代。
+近拍 media 要填 text_readable=true；P0-B 各至少 30000ms。這是操作者陳述，仍須人工看影片。
+full_demo 必須同時記 both_devices_visible、operator_actions_visible、restart_visible、offline_playback_verified=true，兩個 build_ids 與每台 device_scenes 的 Home→Complete→Home（中間可含 Boot）。三分鐘排練沿用 165000–195000ms 容許範圍。
+缺這些欄位會保持未完整；不把「有一個 3 分鐘檔案」當作完整流程證據。

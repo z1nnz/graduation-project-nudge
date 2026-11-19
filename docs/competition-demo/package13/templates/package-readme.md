@@ -7,6 +7,8 @@
 
 ## 開始閱讀
 
+- evidence/audit00-13/README.md：本輪 00–13 總表、逐條來源與未達項目；source_prepared 表示準備，並非整包驗收。
+- evidence/reference-deliveries/docs/competition-demo/：00 範圍／01 零件卡與 17 張既有照片／02 修正後腳本，保留原相對路徑；不是新實機成功證據。
 - work-packages/：固定需求 9ace911 的 14 包與索引，保留原文供對照。
 - evidence/templates/pr-template.md：可直接填的 PR 模板，已整理成有效 Markdown。
 - evidence/templates/device-handoff-template.md：空白單機卡；evidence/orbit、station 有預填來源的待驗卡。
@@ -45,3 +47,14 @@ python3 scripts/prepare_competition_delivery.py evidence evidence/delivery-recor
 verify 成功只表示結構／hash 可檢查，非硬體通過。evidence 目前正常 exit 2；0 也只是紀錄可送人工審核。
 不依賴網路就能閱讀本包文字／PDF；既有上游 README 的歷史 PR 連結可能需要網路。字型授權與來源隨 scripts/font-license 保存。
 寄組員訊息只有草稿，未代發；認領與真正實機裁定仍由組員及 z1nnz 完成，作者不自行合併。
+
+## 總檢查
+
+在本包根目錄執行：
+
+    python3 scripts/audit_competition_packages.py --root evidence/audit00-13
+    node evidence/reference-deliveries/scripts/validate_competition_demo_story.cjs
+
+第一條只查來源對照與準備總表，CI 欄是檢查開始時的歷史快照，不能代表更新後 head 的 CI。最新版 CI 以 PR 頁為準。
+第二條核對紙面八幕時長與 #25 固定 core.cpp；Ready 3 秒、Summary 8 秒、Home 起算 49 秒一圈。未量測真板 render／操作延遲。
+原工作包 02 的 4 秒／6 秒是舊建議，已在本輪規劃修正；沒有變更 canonical 需求或韌體。歷史文件內連到未納入項目的相對路徑請用其來源 PR，不能據此推定已整合 main。

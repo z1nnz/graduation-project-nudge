@@ -26,7 +26,7 @@ test('extract refuses an existing output and does not overwrite operator files',
   const out=temp(t);fs.writeFileSync(path.join(out,'keep.txt'),'operator content');const a=py(['extract',archive,'--out',out]);
   assert.equal(a.status,1);assert.equal(fs.readFileSync(path.join(out,'keep.txt'),'utf8'),'operator content');
 });
-const modes=['hash','extra','traversal','symlink','duplicate','old32','legacyFolder','mixedBinary','fakeVerified','wrongDemo','splitDemo','fakeVideo','wrongSource','badVersion','fakePR'];
+const modes=['hash','extra','traversal','symlink','duplicate','old32','legacyFolder','mixedBinary','fakeVerified','wrongDemo','missingDemo','badSums','splitDemo','fakeVideo','wrongSource','badVersion','fakePR'];
 for(const mode of modes)test('archive rejects '+mode+' mutation',t=>{
   const out=path.join(temp(t),'mutated.zip');
   const code=`import sys,zipfile,json,hashlib,stat
@@ -42,6 +42,9 @@ if mode=='mixedBinary':data['binaries/orbit_demo/station_mixed.bin']=b'UNIT FIXT
 if mode=='fakeVerified':m['physical_verified']=True
 if mode=='wrongDemo':
  d=json.loads(data['evidence/demo-data.json']);d['data']['disciplineScore']=81;data['evidence/demo-data.json']=json.dumps(d).encode();repair=True
+if mode=='missingDemo':
+ d=json.loads(data['evidence/demo-data.json']);del d['data']['disciplineScore'];data['evidence/demo-data.json']=json.dumps(d).encode();repair=True
+if mode=='badSums':data['SHA256SUMS.txt']=b'not the package hashes';repair=True
 if mode=='splitDemo':
  d=json.loads(data['evidence/delivery-record.pending.json']);d['devices']['station']['demo_data_reference']='other.json';data['evidence/delivery-record.pending.json']=json.dumps(d).encode();repair=True
 if mode=='fakeVideo':data['evidence/orbit/fake.mp4']=b'NOT PHYSICAL FOOTAGE';repair=True
@@ -50,6 +53,7 @@ if mode=='wrongSource':
 if mode=='badVersion':data['VERSION.txt']=data['VERSION.txt'].replace(b'Orbit device verified: false',b'Orbit device verified: true');repair=True
 if mode=='fakePR':m['delivery_pr']='https://github.com/z1nnz/graduation-project-nudge/pull/999999'
 if repair:
+ if mode!='badSums':data['SHA256SUMS.txt']=''.join(hashlib.sha256(b).hexdigest()+'  '+n+'\\n' for n,b in sorted(data.items()) if n not in ['MANIFEST.json','SHA256SUMS.txt']).encode()
  old={f['file']:f for f in m['files']}
  m['files']=[dict(file=n,bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),**({'origin':old[n]['origin']} if n in old and 'origin' in old[n] else {})) for n,b in sorted(data.items()) if n!='MANIFEST.json']
 data['MANIFEST.json']=json.dumps(m).encode()
@@ -74,11 +78,44 @@ for name,device in r['devices'].items():
  device.update(physical_verified=True,operator='UNIT FIXTURE',recorded_at='2026-11-19')
  b=('UNIT BINARY '+device['build_id']).encode();file='binaries/'+name+'_fixture.bin';(root/file).write_bytes(b)
  device['binary']={'file':file,'sha256':hashlib.sha256(b).hexdigest(),'configuration':'accepted-profile'}
- device['verification'].update(physical_upload=True,cold_boot_successes=3,complete_demo_flow=True,offline_fallback=True)
+ device['verification'].update(physical_upload=True,cold_boot_successes=3,p0a_successes=3,complete_demo_flow=True,offline_fallback=True)
  file='evidence/'+name+'/UNIT.mp4';b=b'UNIT FIXTURE - NOT PHYSICAL FOOTAGE';(root/file).write_bytes(b)
  device['media']=[dict(file=file,sha256=hashlib.sha256(b).hexdigest(),kind='physical_video',continuous=True,duration_ms=32000,
-  roles=['full','closeup'],physical_xiao_visible=True,physical_screen_visible=True,boot_visible=True,complete_visible=True,scenes=['boot','home','focus','complete'])]
+  roles=['full','closeup'],text_readable=True,physical_xiao_visible=True,physical_screen_visible=True,boot_visible=True,complete_visible=True,scenes=['boot','home','focus','complete'])]
 a=d.evidence(r,root);assert a['minimum_device_records_complete'] and not a['hardware_certified'] and not a['full_delivery_records_complete']
+r['devices']['orbit']['verification']['p0a_successes']=2
+assert not d.evidence(r,root)['minimum_device_records_complete']
+r['devices']['orbit']['verification']['p0a_successes']=3
+full=dict(r['devices']['orbit']['media'][0],both_devices_visible=True,operator_actions_visible=True,restart_visible=True,
+ offline_playback_verified=True,duration_ms=180000,build_ids={n:x['build_id'] for n,x in r['devices'].items()},
+ device_scenes={n:['home','focus','complete','boot','home'] for n in r['devices']})
+r['full_demo']=full
+assert d.evidence(r,root)['full_delivery_records_complete']
+for key in ['operator_actions_visible','restart_visible','offline_playback_verified']:
+ full[key]=False;assert not d.evidence(r,root)['full_delivery_records_complete'];full[key]=True
+full['device_scenes']['station']=['home','complete']
+assert not d.evidence(r,root)['full_delivery_records_complete']
+full['device_scenes']['station']=['home','complete','home']
+full['duration_ms']=196000
+assert not d.evidence(r,root)['full_delivery_records_complete']
+full['duration_ms']=180000
+r['devices']['orbit']['claims']['p0b']=True
+assert not d.evidence(r,root)['minimum_device_records_complete']
+o=r['devices']['orbit'];o['verification'].update(p0b_successes=10,next_successes=10,restart_successes=10)
+o['media'][0].update(scenes=d.STAGES,restart_visible=True)
+assert not d.evidence(r,root)['minimum_device_records_complete']
+o['environment']='orbit_demo'
+assert d.evidence(r,root)['minimum_device_records_complete']
+o['verification']['next_successes']=9
+assert not d.evidence(r,root)['minimum_device_records_complete']
+o['verification']['next_successes']=10
+o['media'][0]['duration_ms']=29999
+assert not d.evidence(r,root)['minimum_device_records_complete']
+o['media'][0]['duration_ms']=32000
+o['media'][0]['text_readable']=False
+assert not d.evidence(r,root)['minimum_device_records_complete']
+o['media'][0].update(text_readable=True,scenes=['boot','home','focus','complete'])
+r['devices']['orbit']['claims']['p0b']=False
 r['devices']['orbit']['claims']['p1']=True
 assert not d.evidence(r,root)['devices']['orbit']['records_complete']
 r['devices']['orbit']['claims']['p1']=False
@@ -97,9 +134,9 @@ from pathlib import Path
 sp=importlib.util.spec_from_file_location('d',sys.argv[1]);d=importlib.util.module_from_spec(sp);sp.loader.exec_module(d)
 root=Path(sys.argv[3]);d.extract(Path(sys.argv[2]),root/'out');root=root/'out'/'Nudge-Competition-Demo'
 r=json.loads((root/'evidence/delivery-record.pending.json').read_text());s=r['devices']['station'];s['hardware'].update(board_id='UNIT',display_configured=True)
-s.update(physical_verified=True,operator='UNIT',recorded_at='2026-11-19');s['verification'].update(physical_upload=True,cold_boot_successes=3,complete_demo_flow=True,offline_fallback=True)
+s.update(physical_verified=True,operator='UNIT',recorded_at='2026-11-19');s['verification'].update(physical_upload=True,cold_boot_successes=3,p0a_successes=3,complete_demo_flow=True,offline_fallback=True)
 s['binary']['configuration']='accepted-profile';data=(root/s['binary']['file']).read_bytes();(root/'binaries/station_renamed.bin').write_bytes(data);s['binary']['file']='binaries/station_renamed.bin'
-b=b'UNIT FIXTURE';f='evidence/station/UNIT.mp4';(root/f).write_bytes(b);s['media']=[dict(file=f,sha256=hashlib.sha256(b).hexdigest(),kind='physical_video',continuous=True,duration_ms=32000,roles=['full','closeup'],physical_xiao_visible=True,physical_screen_visible=True,boot_visible=True,complete_visible=True,scenes=['boot','home','focus','complete'])]
+b=b'UNIT FIXTURE';f='evidence/station/UNIT.mp4';(root/f).write_bytes(b);s['media']=[dict(file=f,sha256=hashlib.sha256(b).hexdigest(),kind='physical_video',continuous=True,duration_ms=32000,text_readable=True,roles=['full','closeup'],physical_xiao_visible=True,physical_screen_visible=True,boot_visible=True,complete_visible=True,scenes=['boot','home','focus','complete'])]
 assert not d.evidence(r,root)['devices']['station']['records_complete']
 `;
   const a=spawnSync('python3',['-c',code,tool,archive,temp(t)],{encoding:'utf8'});assert.equal(a.status,0,a.stdout+a.stderr);
