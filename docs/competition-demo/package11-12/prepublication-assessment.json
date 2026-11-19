@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-19",
+  "stage": "before GitHub issue publication",
+  "scores": {
+    "package11_draft": 86,
+    "package12_preparation": 85,
+    "threshold": 85
+  },
+  "draft_bodies": 34,
+  "published_issues": 0,
+  "tests": {
+    "new": 22,
+    "node": 134,
+    "flutter": 201,
+    "cloud_passed": 120,
+    "cloud_skipped": 25,
+    "source_analyze": "pass"
+  },
+  "pdf_pages_visually_reviewed": 4,
+  "draft_zip_sha256": "13059aaa17dea9535e00d6e6a3fda4bbbd0d718723022cea5853e84c5ab7cfae",
+  "physical_verified": false,
+  "all_package_criteria_completed": false
+}

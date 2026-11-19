@@ -1,0 +1,414 @@
+[
+  {
+    "id": "DEMO-00",
+    "priority": "P0-A",
+    "default_role": "全員",
+    "assigned_to": null,
+    "eligible_for_claim_review": true,
+    "blocked_by": [],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-01",
+    "priority": "P0-A",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": true,
+    "blocked_by": [],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-02",
+    "priority": "P0-A",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": true,
+    "blocked_by": [],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-03",
+    "priority": "P0-B",
+    "default_role": "專題負責人",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-00",
+      "DEMO-01",
+      "DEMO-02",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-10",
+    "priority": "P0-B",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-03",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-11",
+    "priority": "P0-B",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-10",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-12",
+    "priority": "P0-B",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-10",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-13",
+    "priority": "P0-B",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-10",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-01",
+    "priority": "P0-A",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-01"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-02",
+    "priority": "P0-A",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-01"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-03",
+    "priority": "P0-A",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-02"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-04",
+    "priority": "P0-B",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-03",
+      "DEMO-10",
+      "DEMO-11",
+      "DEMO-12",
+      "DEMO-13",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-05",
+    "priority": "P0-B",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-04",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-06",
+    "priority": "P0-B",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-05",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-07",
+    "priority": "P1",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-03",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "ORB-08",
+    "priority": "P1",
+    "default_role": "johnsnow",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-05",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-01",
+    "priority": "P0-A",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-02"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-02",
+    "priority": "P0-A",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-01"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-03",
+    "priority": "P0-A",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-02"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-04",
+    "priority": "P0-B",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-03",
+      "DEMO-10",
+      "DEMO-11",
+      "DEMO-12",
+      "DEMO-13",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-05",
+    "priority": "P0-B",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-04",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-06",
+    "priority": "P0-B",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-05",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-07",
+    "priority": "P1",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-03",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-08",
+    "priority": "P1",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-03",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "STA-09",
+    "priority": "P1",
+    "default_role": "roy",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "STA-03",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-30",
+    "priority": "P0-B",
+    "default_role": "專題負責人",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-05",
+      "STA-05",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-31",
+    "priority": "P0-B",
+    "default_role": "全員",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-30",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-32",
+    "priority": "P0-A",
+    "default_role": "全員",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-03",
+      "STA-03"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-33",
+    "priority": "P0-B",
+    "default_role": "全員",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-03",
+      "ORB-06",
+      "STA-06",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-34",
+    "priority": "P0-B",
+    "default_role": "專題負責人",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "ORB-06",
+      "STA-06",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "DEMO-35",
+    "priority": "P0-B",
+    "default_role": "全員",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-33",
+      "DEMO-34",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "BLE-01",
+    "priority": "P2",
+    "default_role": "有餘力者",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "DEMO-30",
+      "DEMO-31",
+      "DEMO-33",
+      "DEMO-34",
+      "DEMO-35",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "BLE-02",
+    "priority": "P2",
+    "default_role": "有餘力者",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "BLE-01",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  },
+  {
+    "id": "BLE-03",
+    "priority": "P2",
+    "default_role": "有餘力者",
+    "assigned_to": null,
+    "eligible_for_claim_review": false,
+    "blocked_by": [
+      "BLE-02",
+      "all-P0-A-physical-acceptance"
+    ],
+    "physical_acceptance_certified": false
+  }
+]

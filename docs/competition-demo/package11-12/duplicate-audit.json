@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-19",
+  "pull_requests_checked": 26,
+  "branches_checked": 27,
+  "standalone_issues_before_task": 0,
+  "comment_threads": [
+    18,
+    26
+  ],
+  "new_package11_12_delivery_found": false,
+  "main_commit": "c37c6aba7054f639bc538cbe5f86f9300b13300f",
+  "requirements_commit": "9ace911bf892dfb3a451acce7e2ecbeb41904f7d",
+  "limitation": "Cannot inspect unpublished local work."
+}

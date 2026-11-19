@@ -1,0 +1,13 @@
+{
+  "font": "Noto Sans TC",
+  "source": "https://github.com/google/fonts/tree/main/ofl/notosanstc",
+  "font_git_blob": "82943579ad39c281212df8f14ac999824694a6ab",
+  "font_sha256": "864727d210d54f2537bbe23b3a839436c3992af72de9322af5270897246bd44f",
+  "license": "SIL Open Font License 1.1",
+  "license_file": "OFL.txt",
+  "fonttools_version": "4.68.0",
+  "usage": "Regular instance embedded as PDF subset; standalone font file is not distributed",
+  "license_original_git_blob": "1c9f43281b8f216c5461fe9ac729afbade7724e4",
+  "license_whitespace_normalized": true,
+  "license_public_sha256": "babcfe66c8a098b2fa279bc724a3a342f8124f77ce18941fbcc1bbb39823cded"
+}

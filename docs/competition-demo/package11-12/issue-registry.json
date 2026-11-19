@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "repository": "z1nnz/graduation-project-nudge",
+  "date": "2026-11-19",
+  "publication": "published; all 34 remote bodies/states/dependency links verified",
+  "remote_body_verified": true,
+  "issues": [
+    {
+      "id": "DEMO-00",
+      "number": 27,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/27",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "76172be6f28c9dd4d575ac38271bacd63bae298f1bdf4bec15b2bea1f5ac55b2"
+    },
+    {
+      "id": "DEMO-01",
+      "number": 28,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/28",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "00511e9d335a2913bc68d5cce58528775a57a915c4adbf01442d2f4e4663d979"
+    },
+    {
+      "id": "DEMO-02",
+      "number": 29,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/29",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "ede682662237fef10fbe5e9a853f2b208fbaf6e9e2d0a84e73a7f2fd2fa9ad36"
+    },
+    {
+      "id": "DEMO-03",
+      "number": 30,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/30",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "b72c781b2fbac8e77702c18c8f26b2e5907e2fbc71c178a645c568139434f04b"
+    },
+    {
+      "id": "DEMO-10",
+      "number": 31,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/31",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "1e06d3c1ebf76f75e3981e2462f7e1ecaf230372951c55bba828dd54679cc40d"
+    },
+    {
+      "id": "DEMO-11",
+      "number": 32,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/32",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "c471135906415e0caa89118ccebba13597ee09722ee363dfc99c05ddc8bf3f70"
+    },
+    {
+      "id": "DEMO-12",
+      "number": 33,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/33",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "3e22c56231f4d33cfe36790c9b662269d30f198273c7b58e8468a4fc2c9eea39"
+    },
+    {
+      "id": "DEMO-13",
+      "number": 34,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/34",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "61bd514d63f336dcf8dc698526b65598da700909d28540abe2f9a68cf6bd9a0e"
+    },
+    {
+      "id": "ORB-01",
+      "number": 35,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/35",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "3355813b244b765f5d77adbb4433d407a2757195d6fc03f5825e5de6109b887f"
+    },
+    {
+      "id": "ORB-02",
+      "number": 36,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/36",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "99a02fe0ebb62f1138ac77513562b954dd57e5bd76799969dc317819d02ba278"
+    },
+    {
+      "id": "ORB-03",
+      "number": 37,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/37",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "e62b7d63f2ec42f4095835329b5df2c6cadbbbe22aaea75c3248e3f85f28a7d1"
+    },
+    {
+      "id": "ORB-04",
+      "number": 38,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/38",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "970f1ab14345ed53442d3f09535de02a3449fd45188ecf7242718e440e30c0a8"
+    },
+    {
+      "id": "ORB-05",
+      "number": 39,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/39",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "fd1bd34673b63cb94cd499092077c250ced3aee7347e7f1fb4890a079c99586d"
+    },
+    {
+      "id": "ORB-06",
+      "number": 40,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/40",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "789d74c543f0e08ec9b3e77759df36f4a5b2ac14ab5fe0736e5913723d94b11d"
+    },
+    {
+      "id": "ORB-07",
+      "number": 41,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/41",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "db32cb084ad3afcc71e024d505a89cdea0c5f05976b7633f607881fca1945e1c"
+    },
+    {
+      "id": "ORB-08",
+      "number": 42,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/42",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "db296c56a602ca0fb65d0aab7fdbe2e5509c198d5912d1d5f1926716383dc562"
+    },
+    {
+      "id": "STA-01",
+      "number": 43,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/43",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "748811f17fddeec2cd5486434b47f293ceadc6fe27648c749abdff6fae7bb9d5"
+    },
+    {
+      "id": "STA-02",
+      "number": 44,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/44",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "bd96169e10c1ad01a01ccdd75d8db0887343afb68f8a1d992d51f155f55e8595"
+    },
+    {
+      "id": "STA-03",
+      "number": 45,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/45",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "355ef9c24a8a8ffbb8e85bff9b1ef18715a0a30485d1d5afa53f790329fd9d13"
+    },
+    {
+      "id": "STA-04",
+      "number": 46,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/46",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "13dd20385fe34827ba75188a2c2c1f0f91d3d28be6f2c6c11ade8954942b215e"
+    },
+    {
+      "id": "STA-05",
+      "number": 47,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/47",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "7fe2ed6d4ad1c206e01b58c4881c217738d513c6406ae3daf59a8969d23cfb02"
+    },
+    {
+      "id": "STA-06",
+      "number": 48,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/48",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "3b73bcfe06cf36ee094ca6e1357671e0aa12a7b021a93f0a1ae52479d09a9e2f"
+    },
+    {
+      "id": "STA-07",
+      "number": 49,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/49",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "35a2baa9cb78e901a5599348f4950e6297612850b8cf929caa49d8bc9cfede64"
+    },
+    {
+      "id": "STA-08",
+      "number": 50,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/50",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "1e1916366a60f679b511e956edf097464eb639ea43a230f150f40704950fcd25"
+    },
+    {
+      "id": "STA-09",
+      "number": 51,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/51",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "bed8845b97ce8a550d984a4f731f99c22c8d73035d568cb0044ffd91e8b3bc6a"
+    },
+    {
+      "id": "DEMO-30",
+      "number": 52,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/52",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "8d9cb2c8553bd28c6efc369adc0da572c4f2034960b83959a7c8bcc63460d6a3"
+    },
+    {
+      "id": "DEMO-31",
+      "number": 53,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/53",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "0b3e7c9e7d6c39c450e22275b0fe5f0c838602d1cfb43a8f7d7f2ce8602984c4"
+    },
+    {
+      "id": "DEMO-32",
+      "number": 54,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/54",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "5b2ecdab7a602372d5e45cbcf2f53870f49460615afde835d8135e1c52d4c9bd"
+    },
+    {
+      "id": "DEMO-33",
+      "number": 55,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/55",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "2336ce525ffbc94db19728d769c85a8167f48da5a165f2d63b996613f26f38a0"
+    },
+    {
+      "id": "DEMO-34",
+      "number": 56,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/56",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "2ad9bc8cf5cfbf2953401f2714ab2a2e96d47858bde52e3941ce5030ad57acf4"
+    },
+    {
+      "id": "DEMO-35",
+      "number": 57,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/57",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "80abf6d2ee916f3373869b1a2415cb973677ab41e7dfa39de545dca0e32e92c3"
+    },
+    {
+      "id": "BLE-01",
+      "number": 58,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/58",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "8bddfb5888ab18a7f82d16ac977b3172c751141e4ed22847bc8b2e8d09851fdf"
+    },
+    {
+      "id": "BLE-02",
+      "number": 59,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/59",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "ad72085bb246330a0bb26ddb1bf623682e85467c953f7170268b28640685cbbc"
+    },
+    {
+      "id": "BLE-03",
+      "number": 60,
+      "url": "https://github.com/z1nnz/graduation-project-nudge/issues/60",
+      "state": "open",
+      "assignees": [],
+      "body_sha256": "77529d7534ea3760696b186e5438180c2d3a03703600533e70d971185dc47cc1"
+    }
+  ]
+}
