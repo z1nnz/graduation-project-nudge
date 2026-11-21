@@ -366,4 +366,82 @@ void main() {
     await coordinator.close();
     await transport.close();
   });
+
+  test('rejects a device state beyond the JSON safe revision range', () async {
+    final transport = FakeBleTransport();
+    final coordinator = NudgeDeviceCoordinator(
+      transport: transport,
+      bridge: NudgeDeviceBridge(
+        resolveAssignment: (_) async => null,
+        resolveRoomIds: (_) async => const [],
+        currentActorUserId: () => 'alice',
+        enqueueEvidence: (_) async {},
+        writeAcknowledgement: transport.writeCommand,
+      ),
+    );
+    await coordinator.start();
+    transport.controller.add(
+      const NudgeBleTransportEvent(
+        type: NudgeBleEventType.connected,
+        deviceId: 'nudge-a1b2c3',
+      ),
+    );
+    emitDeviceState(
+      transport,
+      contextRevision: maxNudgeDeviceContextRevision + 1,
+    );
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(coordinator.state.status, NudgeDeviceConnectionStatus.error);
+    expect(
+      coordinator.state.errorMessage,
+      contains('Invalid compact device state'),
+    );
+    await coordinator.close();
+    await transport.close();
+  });
+
+  test(
+    'refuses a context mutation after the safe revision is exhausted',
+    () async {
+      final transport = FakeBleTransport();
+      const assignment = DeviceAssignmentGrant(
+        deviceId: 'nudge-a1b2c3',
+        userId: 'alice',
+      );
+      final coordinator = NudgeDeviceCoordinator(
+        transport: transport,
+        bridge: NudgeDeviceBridge(
+          resolveAssignment: (_) async => assignment,
+          resolveRoomIds: (_) async => const [],
+          currentActorUserId: () => 'alice',
+          enqueueEvidence: (_) async {},
+          writeAcknowledgement: transport.writeCommand,
+        ),
+        resolveAssignment: (_) async => assignment,
+        clock: () => DateTime.fromMicrosecondsSinceEpoch(1),
+      );
+      await coordinator.start();
+      transport.controller.add(
+        const NudgeBleTransportEvent(
+          type: NudgeBleEventType.connected,
+          deviceId: 'nudge-a1b2c3',
+        ),
+      );
+      emitDeviceState(
+        transport,
+        contextRevision: maxNudgeDeviceContextRevision,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      await expectLater(
+        coordinator.syncSoundEnabled(false),
+        throwsA(isA<StateError>()),
+      );
+      expect(transport.commands, isEmpty);
+      await coordinator.close();
+      await transport.close();
+    },
+  );
 }
