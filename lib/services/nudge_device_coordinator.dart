@@ -188,7 +188,7 @@ class NudgeDeviceCoordinator extends ChangeNotifier {
           decoded['pending'] > 8 ||
           (decoded['contextRevision'] ?? 0) is! int ||
           (decoded['contextRevision'] ?? 0) < 0 ||
-          (decoded['contextRevision'] ?? 0) > 0x7FFFFFFFFFFFFFFF) {
+          (decoded['contextRevision'] ?? 0) > maxNudgeDeviceContextRevision) {
         throw const FormatException('Invalid compact device state.');
       }
       final selectedRoomValue = decoded['selectedRoomId'] ?? '';
@@ -337,7 +337,7 @@ class NudgeDeviceCoordinator extends ChangeNotifier {
     final revision = clockRevision > _lastContextRevision
         ? clockRevision
         : _lastContextRevision + 1;
-    if (revision > 0x7FFFFFFFFFFFFFFF) {
+    if (revision > maxNudgeDeviceContextRevision) {
       throw StateError('裝置畫面版本已耗盡，請重設裝置。');
     }
     _lastContextRevision = revision;

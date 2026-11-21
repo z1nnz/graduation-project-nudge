@@ -62,6 +62,32 @@ void main() {
     expect(canonical.encodeCommand(), contains('"selectedRoomId":""'));
   });
 
+  test('context revisions stay inside the JSON safe integer range', () {
+    const presentation = NudgeDevicePresentation(
+      rooms: [],
+      selectedRoomId: null,
+      personalGoalLabel: 'Focus',
+      character: NudgeDeviceCharacterContext(
+        name: 'Nudgie',
+        level: 1,
+        stage: 1,
+      ),
+    );
+
+    expect(
+      presentation.encodeCommand(
+        contextRevision: maxNudgeDeviceContextRevision,
+      ),
+      contains('"contextRevision":$maxNudgeDeviceContextRevision'),
+    );
+    expect(
+      () => presentation.encodeCommand(
+        contextRevision: maxNudgeDeviceContextRevision + 1,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('UTF-8 labels are byte bounded for one BLE frame', () {
     expect(
       nudgeDeviceLabel('超級無敵長的專注共讀房', maximumBytes: 24, fallback: 'ROOM'),
