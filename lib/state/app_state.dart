@@ -55,6 +55,7 @@ import '../services/firestore_device_assignment_repository.dart';
 import '../services/nudge_device_runtime.dart';
 import '../services/push_notification_service.dart';
 import '../services/room_activity_session_ledger_gateway.dart';
+import '../services/stable_request_hash.dart';
 import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
 
@@ -2888,12 +2889,7 @@ class AppState extends ChangeNotifier {
       'avatarProfile': profile.toJson(),
       'backgroundTheme': backgroundTheme,
     });
-    var hash = 0xcbf29ce484222325;
-    for (final codeUnit in canonical.codeUnits) {
-      hash ^= codeUnit;
-      hash = (hash * 0x100000001b3) & 0x7fffffffffffffff;
-    }
-    return 'app_equip_${hash.toRadixString(16)}';
+    return 'app_equip_${stableRequestHash(canonical)}';
   }
 
   bool isAvatarItemUnlocked(String category, int index) {
