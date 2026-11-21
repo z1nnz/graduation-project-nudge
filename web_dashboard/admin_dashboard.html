@@ -1013,6 +1013,42 @@
         });
       }
 
+      function appendAvatarSeriesDetails(cell, item) {
+        const summary = NudgeAdminCatalog.summarizeAvatarSeries(item);
+        if (!summary) return;
+
+        const details = document.createElement('details');
+        details.style.marginTop = '0.5rem';
+        const heading = document.createElement('summary');
+        heading.style.cursor = 'pointer';
+        heading.style.color = 'var(--c-primary)';
+        heading.style.fontSize = '0.78rem';
+        heading.style.fontWeight = '700';
+        heading.textContent = '查看圖鑑與完整進化路線';
+        details.appendChild(heading);
+
+        const metadata = document.createElement('div');
+        metadata.style.marginTop = '0.5rem';
+        metadata.style.fontSize = '0.75rem';
+        metadata.style.color = 'var(--c-text-muted)';
+        metadata.textContent = `系列代碼：${summary.seriesKey || '未提供'}｜${summary.codexDescription}`;
+        details.appendChild(metadata);
+
+        const list = document.createElement('ol');
+        list.style.margin = '0.5rem 0 0';
+        list.style.paddingLeft = '1.2rem';
+        summary.stages.forEach(stage => {
+          const row = document.createElement('li');
+          row.style.marginBottom = '0.35rem';
+          row.textContent = stage.shopEligible
+            ? `${stage.name}｜商城初始角色｜Lv.${stage.requiredLevel} / ${stage.requiredExperience} EXP`
+            : `${stage.name}｜僅能進化解鎖｜Lv.${stage.requiredLevel} / ${stage.requiredExperience} EXP`;
+          list.appendChild(row);
+        });
+        details.appendChild(list);
+        cell.appendChild(details);
+      }
+
       async function fetchAdminActiveItems() {
         if (typeof db !== 'undefined' && db) {
           try {
@@ -1074,6 +1110,7 @@
                 tr.querySelector('[data-archive-item]').addEventListener('click', () => {
                   archiveShopItem(item.id);
                 });
+                appendAvatarSeriesDetails(tr.children[1], item);
                 tbody.appendChild(tr);
               });
             }

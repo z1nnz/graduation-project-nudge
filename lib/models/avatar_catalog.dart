@@ -34,6 +34,7 @@ class AvatarPartCategory {
 class AvatarEvolutionStage {
   final int index;
   final String series;
+  final String? seriesKey;
   final String name;
   final int stage;
   final int requiredLevel;
@@ -48,6 +49,7 @@ class AvatarEvolutionStage {
   const AvatarEvolutionStage({
     required this.index,
     required this.series,
+    this.seriesKey,
     required this.name,
     required this.stage,
     required this.requiredLevel,
@@ -61,6 +63,13 @@ class AvatarEvolutionStage {
   }) : shopEligible = shopEligible ?? stage == 1;
 
   String get stageLabel => '第 $stage 階';
+
+  /// Stable ledger identity for this evolution line.
+  ///
+  /// Built-in series keep their historical display-name keys so existing
+  /// experience is preserved. Published series use the immutable series key,
+  /// allowing operators to rename the display label without losing progress.
+  String get progressKey => seriesKey ?? series;
 }
 
 class AvatarSeries {
@@ -115,9 +124,8 @@ class PublishedAvatarSeries {
     required int fallbackIndex,
   }) {
     final type = data['type']?.toString() ?? '';
-    final status = data['status']?.toString() ?? 'published';
-    if (status != 'published' ||
-        (type != 'event_character' && type != 'avatar_series')) {
+    final status = data['status']?.toString() ?? '';
+    if (status != 'published' || type != 'avatar_series') {
       return null;
     }
 
@@ -134,7 +142,10 @@ class PublishedAvatarSeries {
 
     final seriesKey = seriesData['key']?.toString().trim().isNotEmpty == true
         ? seriesData['key'].toString().trim()
-        : (data['series_key'] ?? documentId).toString().trim();
+        : (data['series_key'] ?? '').toString().trim();
+    if (!RegExp(r'^[a-z0-9][a-z0-9_-]{0,79}$').hasMatch(seriesKey)) {
+      return null;
+    }
     final theme = seriesData['theme']?.toString().trim().isNotEmpty == true
         ? seriesData['theme'].toString().trim()
         : (data['series_theme'] ?? '限時特展').toString().trim();
@@ -182,6 +193,7 @@ class PublishedAvatarSeries {
               (stageData['catalog_index'] as num?)?.toInt() ??
               baseIndex + stageNumber - 1,
           series: seriesName,
+          seriesKey: seriesKey,
           name: stageName,
           stage: stageNumber,
           requiredLevel: requiredLevel.toInt(),
@@ -214,7 +226,7 @@ class PublishedAvatarSeries {
 
     return PublishedAvatarSeries(
       documentId: documentId,
-      key: seriesKey.isEmpty ? documentId : seriesKey,
+      key: seriesKey,
       name: seriesName,
       theme: theme.isEmpty ? '限時特展' : theme,
       codexDescription: codexDescription,

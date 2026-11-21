@@ -2673,24 +2673,30 @@ class AppState extends ChangeNotifier {
     return AvatarCatalog.stageForIndex(_avatarProfile.faceShapeIndex).series;
   }
 
+  String get currentAvatarProgressKey {
+    return AvatarCatalog.stageForIndex(
+      _avatarProfile.faceShapeIndex,
+    ).progressKey;
+  }
+
   int get todayAvatarExperience {
-    return todayAvatarExperienceForSeries(currentAvatarSeries);
+    return todayAvatarExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get todayAvatarScoreExperience {
-    return todayAvatarScoreExperienceForSeries(currentAvatarSeries);
+    return todayAvatarScoreExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get todayAvatarAutoExperience {
-    return todayAvatarAutoExperienceForSeries(currentAvatarSeries);
+    return todayAvatarAutoExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get avatarExperience {
-    return avatarExperienceForSeries(currentAvatarSeries);
+    return avatarExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get avatarLevel {
-    return avatarLevelForSeries(currentAvatarSeries);
+    return avatarLevelForSeries(currentAvatarProgressKey);
   }
 
   int get avatarNextLevelExperience {
@@ -2715,7 +2721,9 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarExperienceForStage(int index) {
-    return avatarExperienceForSeries(AvatarCatalog.stageForIndex(index).series);
+    return avatarExperienceForSeries(
+      AvatarCatalog.stageForIndex(index).progressKey,
+    );
   }
 
   int todayAvatarExperienceForSeries(String series) {
@@ -2758,7 +2766,7 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarLevelForStage(int index) {
-    return avatarLevelForSeries(AvatarCatalog.stageForIndex(index).series);
+    return avatarLevelForSeries(AvatarCatalog.stageForIndex(index).progressKey);
   }
 
   static int avatarExperienceRequiredForLevel(int level) {
@@ -2773,15 +2781,15 @@ class AppState extends ChangeNotifier {
   int get currentAvatarStageIndex => _avatarProfile.faceShapeIndex;
   int get currentAvatarIconIndex => _avatarProfile.avatarIconIndex;
 
-  AvatarEvolutionStage _firstAvatarStageForSeries(String series) {
+  AvatarEvolutionStage _firstAvatarStageForProgressKey(String progressKey) {
     return AvatarCatalog.evolutionStages.firstWhere(
-      (stage) => stage.series == series && stage.stage == 1,
+      (stage) => stage.progressKey == progressKey && stage.stage == 1,
       orElse: () => AvatarCatalog.evolutionStages.first,
     );
   }
 
-  bool _isAvatarSeriesPurchased(String series) {
-    final firstStage = _firstAvatarStageForSeries(series);
+  bool _isAvatarSeriesPurchased(String progressKey) {
+    final firstStage = _firstAvatarStageForProgressKey(progressKey);
     if (firstStage.coinPrice <= 0) return true;
     return _unlockedAvatarItemKeys.contains(
       avatarItemKey('faceShape', firstStage.index),
@@ -2790,10 +2798,11 @@ class AppState extends ChangeNotifier {
 
   bool isAvatarEvolutionStageUnlocked(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
-    if (!_isAvatarSeriesPurchased(stage.series)) return false;
+    if (!_isAvatarSeriesPurchased(stage.progressKey)) return false;
     if (stage.stage == 1) return true;
-    return avatarLevelForSeries(stage.series) >= stage.requiredLevel &&
-        avatarExperienceForSeries(stage.series) >= stage.requiredExperience;
+    return avatarLevelForSeries(stage.progressKey) >= stage.requiredLevel &&
+        avatarExperienceForSeries(stage.progressKey) >=
+            stage.requiredExperience;
   }
 
   bool isAvatarIconUnlocked(int index) {
@@ -2803,8 +2812,8 @@ class AppState extends ChangeNotifier {
   String avatarEvolutionRequirementText(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
     if (isAvatarEvolutionStageUnlocked(index)) return '已解鎖';
-    final firstStage = _firstAvatarStageForSeries(stage.series);
-    if (!_isAvatarSeriesPurchased(stage.series)) {
+    final firstStage = _firstAvatarStageForProgressKey(stage.progressKey);
+    if (!_isAvatarSeriesPurchased(stage.progressKey)) {
       if (stage.index == firstStage.index && firstStage.coinPrice > 0) {
         return '${firstStage.coinPrice} 自律幣購買';
       }
@@ -4495,7 +4504,7 @@ class AppState extends ChangeNotifier {
 
   void _migrateLegacyAvatarExperienceLedger() {
     if (_dailySummaries.isEmpty) return;
-    final series = currentAvatarSeries;
+    final series = currentAvatarProgressKey;
     _avatarExperienceLedger = <String, Map<String, int>>{};
     for (final summary in _dailySummaries) {
       final experience = avatarExperienceForSummary(summary);

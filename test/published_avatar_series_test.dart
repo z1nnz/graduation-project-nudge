@@ -13,7 +13,7 @@ void main() {
         documentId: 'night-shadow-release',
         fallbackIndex: 18,
         data: {
-          'type': 'event_character',
+          'type': 'avatar_series',
           'status': 'published',
           'series_key': 'night-shadow',
           'series_name': '夜影學院',
@@ -70,6 +70,10 @@ void main() {
       expect(series.theme, '深度專注');
       expect(series.codexDescription, '在安靜專注中逐步成長的夜影角色。');
       expect(series.stages.map((stage) => stage.stage), [1, 2, 3]);
+      expect(
+        series.stages.map((stage) => stage.progressKey),
+        ['night-shadow', 'night-shadow', 'night-shadow'],
+      );
       expect(series.shopStages.map((stage) => stage.stage), [1]);
       expect(series.stages.map((stage) => stage.coinPrice), [120, 0, 0]);
       expect(series.stages.map((stage) => stage.evolvesFromStage), [
@@ -85,7 +89,7 @@ void main() {
       documentId: 'draft',
       fallbackIndex: 18,
       data: {
-        'type': 'event_character',
+        'type': 'avatar_series',
         'status': 'draft',
         'series_name': '未發布角色',
         'character_stages': const [],
@@ -95,7 +99,7 @@ void main() {
       documentId: 'incomplete',
       fallbackIndex: 18,
       data: {
-        'type': 'event_character',
+        'type': 'avatar_series',
         'status': 'published',
         'series_name': '缺少最終型',
         'character_stages': [
@@ -119,6 +123,36 @@ void main() {
     expect(incomplete, isNull);
   });
 
+  test('legacy event characters cannot masquerade as purchasable series', () {
+    final legacy = PublishedAvatarSeries.tryParseShopDocument(
+      documentId: 'legacy-event-character',
+      fallbackIndex: 18,
+      data: {
+        'type': 'event_character',
+        'status': 'published',
+        'series_key': 'legacy-event-character',
+        'series_name': '舊活動角色',
+        'codex_description': '不具備正式商城契約。',
+        'character_stages': List.generate(3, (index) {
+          final stage = index + 1;
+          return {
+            'stage': stage,
+            'catalog_index': 18 + index,
+            'name': '舊活動角色 $stage',
+            'required_level': stage == 1 ? 1 : stage * 30,
+            'required_experience': (stage - 1) * 10000,
+            'description': '第 $stage 階',
+            'character_asset': 'https://cdn.example.com/$stage.png',
+            'icon_asset': 'https://cdn.example.com/$stage-icon.png',
+            'evolves_from_stage': stage == 1 ? null : stage - 1,
+          };
+        }),
+      },
+    );
+
+    expect(legacy, isNull);
+  });
+
   test('non-increasing evolution requirements are rejected by the app', () {
     final invalid = PublishedAvatarSeries.tryParseShopDocument(
       documentId: 'invalid-requirements',
@@ -126,6 +160,7 @@ void main() {
       data: {
         'type': 'avatar_series',
         'status': 'published',
+        'series_key': 'invalid-requirements',
         'series_name': '錯誤進化鏈',
         'codex_description': '錯誤的門檻。',
         'character_stages': List.generate(3, (index) {
@@ -153,8 +188,9 @@ void main() {
       documentId: 'shop-policy',
       fallbackIndex: 18,
       data: {
-        'type': 'event_character',
+        'type': 'avatar_series',
         'status': 'published',
+        'series_key': 'shop-policy',
         'series_name': '商城測試角色',
         'codex_description': '商城測試角色的圖鑑介紹。',
         'price': 90,
@@ -197,6 +233,7 @@ void main() {
         data: {
           'type': 'avatar_series',
           'status': 'published',
+          'series_key': id,
           'series_name': name,
           'codex_description': '$name 的圖鑑介紹。',
           'character_stages': List.generate(3, (index) {

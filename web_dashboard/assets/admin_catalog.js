@@ -140,9 +140,54 @@
     };
   }
 
+  function summarizeAvatarSeries(item) {
+    const source = item || {};
+    if (text(source.type) !== 'avatar_series') return null;
+    const rawStages = Array.isArray(source.character_stages)
+      ? source.character_stages
+      : [];
+    if (rawStages.length !== 3) return null;
+
+    const stages = rawStages.map((stage, index) => {
+      const stageNumber = number(stage && stage.stage, index + 1);
+      return {
+        stage: stageNumber,
+        name: text(stage && stage.name),
+        description: text(stage && stage.description),
+        requiredLevel: number(stage && stage.required_level, 0),
+        requiredExperience: number(stage && stage.required_experience, 0),
+        shopEligible: stageNumber === 1,
+      };
+    });
+    if (
+      stages.some((stage, index) =>
+        stage.stage !== index + 1 ||
+        !stage.name ||
+        !stage.description ||
+        !Number.isInteger(stage.requiredLevel) ||
+        !Number.isInteger(stage.requiredExperience))
+    ) {
+      return null;
+    }
+
+    return {
+      seriesKey: text(source.series_key || (source.series && source.series.key)),
+      seriesName: text(
+        source.series_name || (source.series && source.series.name) || source.name,
+      ),
+      codexDescription: text(
+        source.codex_description ||
+          (source.series && source.series.codex_description) ||
+          source.description,
+      ),
+      stages,
+    };
+  }
+
   return {
     DEFAULT_REQUIREMENTS,
     validateAvatarSeriesDraft,
     buildAvatarSeriesPayload,
+    summarizeAvatarSeries,
   };
 });
