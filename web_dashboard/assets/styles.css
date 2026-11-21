@@ -5299,6 +5299,31 @@ body.sidebar-collapsed .role-gatekeeper-overlay {
   color: #fff;
 }
 
+.relationship-scope-actions button {
+  min-width: 0;
+  padding: 8px 6px;
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.relationship-scope-actions button:hover,
+.relationship-scope-actions button.active {
+  color: #fff;
+  border-color: var(--page-accent);
+  background: color-mix(in srgb, var(--page-accent) 22%, transparent);
+}
+
+.relationship-scope-actions button:focus-visible {
+  outline: 2px solid var(--page-accent);
+  outline-offset: 2px;
+}
+
 .main :disabled[title*="展示模式"] {
   cursor: not-allowed;
   opacity: 0.58;
