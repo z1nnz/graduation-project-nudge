@@ -160,6 +160,81 @@ test("family and canonical group capabilities can coexist", () => {
   assert.equal(personalManager.showsPersonalTools, true);
 });
 
+test("an explicit relationship context separates family and group surfaces", () => {
+  const shared = {
+    rawRole: "personal",
+    familyLinked: true,
+    isFamilyGuardian: true,
+    hasGroup: true,
+    isGroupOwner: true,
+  };
+  const family = resolveRelationshipCapabilities({
+    ...shared,
+    activeContext: "family",
+  });
+  const group = resolveRelationshipCapabilities({
+    ...shared,
+    activeContext: "group",
+  });
+
+  assert.equal(family.activeContext, "family");
+  assert.equal(family.role, "guardian");
+  assert.equal(family.canViewGuardianHub, true);
+  assert.equal(family.canManageGroup, false);
+  assert.equal(group.activeContext, "group");
+  assert.equal(group.role, "groupManager");
+  assert.equal(group.canViewGuardianHub, false);
+  assert.equal(group.canManageGroup, true);
+  assert.equal(group.showsPersonalTools, true);
+});
+
+test("explicit relationship context blocks cross-context routes", () => {
+  assert.equal(
+    resolveRoleGateRedirect("guardian-link.html", {
+      rawRole: "group",
+      activeContext: "group",
+      hasGroup: true,
+      isGroupOwner: true,
+    }),
+    "dashboard.html",
+  );
+  assert.equal(
+    resolveRoleGateRedirect("groups-link.html", {
+      rawRole: "guardian",
+      activeContext: "family",
+      familyLinked: true,
+      isFamilyGuardian: true,
+    }),
+    "dashboard.html",
+  );
+  assert.equal(
+    resolveRoleGateRedirect("guardian-link.html", {
+      rawRole: "personal",
+      activeContext: "family",
+      familyLinked: false,
+    }),
+    null,
+  );
+  assert.equal(
+    resolveRoleGateRedirect("groups-link.html", {
+      rawRole: "personal",
+      activeContext: "group",
+      hasGroup: false,
+    }),
+    null,
+  );
+});
+
+test("Web renders one active relationship scope and filters its navigation", () => {
+  const webApp = read("web_dashboard/assets/app.js");
+
+  assert.match(webApp, /function relationshipContextKey\(userId\)/);
+  assert.match(webApp, /function activeRelationshipContext\(data = \{\}\)/);
+  assert.match(webApp, /data-relationship-scope/);
+  assert.match(webApp, /guardianLink\.hidden = capabilities\.activeContext !== "family"/);
+  assert.match(webApp, /groupLink\.hidden = capabilities\.activeContext !== "group"/);
+});
+
 test("App surfaces composable relationship tools and separates growth tracks", () => {
   const projectRoot = path.resolve(__dirname, "..");
   const homePage = fs.readFileSync(

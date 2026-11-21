@@ -26,7 +26,7 @@ function loadWindowModule(globalKey, source, errorMessage) {
 function loadRelationshipCapabilities() {
   return loadWindowModule(
     "NudgeRelationshipCapabilities",
-    "assets/relationship_capabilities.js?v=1",
+    "assets/relationship_capabilities.js?v=2",
     "角色能力模組載入失敗",
   );
 }
@@ -91,6 +91,35 @@ function isPreviewMode() {
   return localStorage.getItem("nudgePreviewMode") === "true";
 }
 
+function relationshipContextKey(userId) {
+  return `nudgeRelationshipContext:${userId || "anonymous"}`;
+}
+
+function activeRelationshipContext(data = {}) {
+  const previewRole = localStorage.getItem("nudgePreviewRole") || "personal";
+  if (isPreviewMode()) {
+    if (["guardian", "child"].includes(previewRole)) return "family";
+    if (["groupManager", "groupMember"].includes(previewRole)) return "group";
+    return "personal";
+  }
+  const userId =
+    typeof firebase !== "undefined" ? firebase.auth().currentUser?.uid : null;
+  const saved = localStorage.getItem(relationshipContextKey(userId));
+  if (["personal", "family", "group"].includes(saved)) return saved;
+  if (["guardian", "child"].includes(data.userRole)) return "family";
+  if (["group", "enterprise", "tutor", "school"].includes(data.userRole)) {
+    return "group";
+  }
+  return "personal";
+}
+
+function setActiveRelationshipContext(scope, userId) {
+  if (!["personal", "family", "group"].includes(scope)) {
+    throw new Error("不支援的關係情境");
+  }
+  localStorage.setItem(relationshipContextKey(userId), scope);
+}
+
 function buildPreviewProfile() {
   const previewRole = localStorage.getItem("nudgePreviewRole") || "personal";
   const isGroupPreview = previewRole === "groupManager" || previewRole === "groupMember";
@@ -139,6 +168,7 @@ function buildRelationshipCapabilityInput(data = {}) {
 
   return {
     rawRole: data.userRole,
+    activeContext: activeRelationshipContext(data),
     familyLinked:
       Boolean(activeFamilyLink) ||
       (preview && ["guardian", "child"].includes(data.userRole)),
@@ -4047,9 +4077,9 @@ function renderWebRelationshipContextSwitcher(userId) {
   const panel = getOrCreateSidePanel();
   if (!panel) return;
   panel.querySelector(".relationship-context-switcher")?.remove();
-  if (isPreviewMode() || (!activeFamilyLinks.length && !activeWebGroups.length)) {
-    return;
-  }
+  if (isPreviewMode()) return;
+
+  const activeScope = activeRelationshipContext(currentWebUserData || {});
 
   const familyOptions = activeFamilyLinks.map(link => {
     const shortId = link.id.length <= 8 ? link.id : link.id.slice(-8);
@@ -4063,10 +4093,39 @@ function renderWebRelationshipContextSwitcher(userId) {
   panel.insertAdjacentHTML("beforeend", `
     <section class="relationship-context-switcher" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">
       <span class="eyebrow">目前關係情境</span>
-      ${familyOptions ? `<label style="display:block; margin-top:8px; font-size:11px;">家庭<select data-relationship-family class="module-select" style="width:100%; margin-top:4px;">${familyOptions}</select></label>` : ""}
-      ${groupOptions ? `<label style="display:block; margin-top:8px; font-size:11px;">團體<select data-relationship-group class="module-select" style="width:100%; margin-top:4px;">${groupOptions}</select></label>` : ""}
+      <div class="relationship-scope-actions" style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px;">
+        <button type="button" data-relationship-scope="personal" class="${activeScope === "personal" ? "active" : ""}">個人</button>
+        <button type="button" data-relationship-scope="family" class="${activeScope === "family" ? "active" : ""}">家庭</button>
+        <button type="button" data-relationship-scope="group" class="${activeScope === "group" ? "active" : ""}">團體</button>
+      </div>
+      ${activeScope === "family" && familyOptions ? `<label style="display:block; margin-top:8px; font-size:11px;">目前家庭<select data-relationship-family class="module-select" style="width:100%; margin-top:4px;">${familyOptions}</select></label>` : ""}
+      ${activeScope === "group" && groupOptions ? `<label style="display:block; margin-top:8px; font-size:11px;">目前團體<select data-relationship-group class="module-select" style="width:100%; margin-top:4px;">${groupOptions}</select></label>` : ""}
     </section>
   `);
+
+  panel.querySelectorAll("[data-relationship-scope]").forEach(button => {
+    button.addEventListener("click", () => {
+      const scope = button.dataset.relationshipScope;
+      setActiveRelationshipContext(scope, userId);
+      if (scope === "family") {
+        const membership = activeWebMembership(
+          "family",
+          activeFamilyLink?.id,
+          userId,
+        );
+        window.location.href =
+          membership?.role === "guardian"
+            ? "guardian.html"
+            : "guardian-link.html";
+      } else if (scope === "group") {
+        window.location.href = activeWebGroup
+          ? "groups.html"
+          : "groups-link.html";
+      } else {
+        window.location.href = "dashboard.html";
+      }
+    });
+  });
 
   panel.querySelector("[data-relationship-family]")?.addEventListener(
     "change",
@@ -4079,6 +4138,7 @@ function renderWebRelationshipContextSwitcher(userId) {
         relationshipSelectionKey("family", userId),
         selected.id,
       );
+      setActiveRelationshipContext("family", userId);
       activateWebFamilyLink(selected, userId);
       toast("已切換家庭情境");
     },
@@ -4094,6 +4154,7 @@ function renderWebRelationshipContextSwitcher(userId) {
         relationshipSelectionKey("group", userId),
         selected.id,
       );
+      setActiveRelationshipContext("group", userId);
       activateWebGroup(selected, userId);
       toast("已切換團體情境");
     },
@@ -4998,6 +5059,7 @@ function updateRoleAwareNavigation(data) {
 
   const guardianLink = nav.querySelector('a[href*="guardian"]');
   if (guardianLink) {
+    guardianLink.hidden = capabilities.activeContext !== "family";
     if (capabilities.isGuardian) {
       guardianLink.href = "guardian.html";
       guardianLink.textContent = "家長陪伴中心";
@@ -5012,6 +5074,7 @@ function updateRoleAwareNavigation(data) {
 
   const groupLink = nav.querySelector('a[href*="groups"]');
   if (groupLink) {
+    groupLink.hidden = capabilities.activeContext !== "group";
     if (capabilities.canManageGroup) {
       groupLink.href = "groups.html";
       groupLink.textContent = "團體管理控制台";
