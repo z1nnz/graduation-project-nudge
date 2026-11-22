@@ -3,7 +3,7 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -Iinclude
 BUILD_DIR := build/native
 CORE := src/core.cpp src/drawing.cpp src/station.cpp src/hardware_profile.cpp src/peripherals.cpp src/character.cpp src/ble_protocol.cpp
 
-.PHONY: test preview station-preview
+.PHONY: test preview station-preview report-preview
 test:
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $(CORE) test/core_test.cpp -o $(BUILD_DIR)/demo_core_test
@@ -20,3 +20,8 @@ preview:
 
 station-preview: preview
 	$(BUILD_DIR)/demo_preview $(BUILD_DIR) station
+
+report-preview:
+	mkdir -p $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(CORE) tools/report_preview.cpp -o $(BUILD_DIR)/report_preview
+	$(BUILD_DIR)/report_preview $(BUILD_DIR)/orbit-report-preview.svg

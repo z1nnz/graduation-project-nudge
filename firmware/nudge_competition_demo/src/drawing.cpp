@@ -39,9 +39,10 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
         centered(c, 154, "ORBIT", 2);
         break;
       case Scene::home:
-        centered(c, 54, "08:30", 2);
-        std::snprintf(text, sizeof(text), "SCORE %d", v.disciplineScore);
-        centered(c, 154, text, 2);
+        centered(c, 44, "TODAY'S GOAL", 2, color::ready);
+        std::snprintf(text, sizeof(text), "%d MIN", v.focusMinutes);
+        centered(c, 68, text, 3);
+        centered(c, 164, "READY TO FOCUS", 1, color::ready);
         break;
       case Scene::ready:
         centered(c, 54, "FOCUS?", 2, color::ready);
@@ -52,7 +53,7 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
       case Scene::focus:
         ring(c, 0, 120, color::muted);
         centered(c, 54, "FOCUS", 2, color::primary);
-        centered(c, 80, v.taskLabels[f.taskIndex<3?f.taskIndex:0], 2);
+        centered(c, 78, v.taskLabels[f.taskIndex<3?f.taskIndex:0], 1);
         break;
       case Scene::encouragement:
         centered(c, 70, "KEEP GOING", 2, color::support);
@@ -62,8 +63,7 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
       case Scene::complete:
         ring(c, 0, 120, color::complete);
         centered(c, 54, "DONE", 3, color::complete);
-        std::snprintf(text, sizeof(text), "%d MIN", v.focusMinutes);
-        centered(c, 154, text, 2);
+        centered(c, 164, "OFFLINE PREVIEW", 1, color::complete);
         break;
       case Scene::growth:
         centered(c, 54, "GROW", 2, color::complete);
@@ -98,7 +98,8 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
   }
   if(f.scene!=Scene::summary){
     const bool focus=f.scene==Scene::focus;
-    character_.render(c,f,entered,focus?104:88,focus?146:80,focus?32:64,animate_);
+    const bool hero=f.scene==Scene::home || f.scene==Scene::complete;
+    character_.render(c,f,entered,focus?104:88,focus?146:hero?96:80,focus?32:64,animate_);
   }
 }
 
