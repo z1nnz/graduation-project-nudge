@@ -100,7 +100,7 @@ int main() {
   }
   // The report's three scenes are rendered by the real firmware painter.
   const Scene reportScenes[] = {Scene::home, Scene::focus, Scene::complete};
-  const char* requiredLabels[] = {"READY TO FOCUS", "00:14", "OFFLINE PREVIEW"};
+  const char* requiredLabels[] = {"NUDGE", "00:14", "ONE STEP FORWARD"};
   for (unsigned i = 0; i < 3; ++i) {
     Painter report(Device::orbit, false);
     RecordCanvas output;

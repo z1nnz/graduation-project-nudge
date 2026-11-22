@@ -12,6 +12,8 @@ test:
 	$(BUILD_DIR)/station_peripheral_test
 	$(CXX) $(CXXFLAGS) $(CORE) test/demo_control_visual_test.cpp -o $(BUILD_DIR)/demo_control_visual_test
 	$(BUILD_DIR)/demo_control_visual_test
+	$(CXX) $(CXXFLAGS) $(CORE) test/orbit_brand_visual_test.cpp -o $(BUILD_DIR)/orbit_brand_visual_test
+	$(BUILD_DIR)/orbit_brand_visual_test
 
 preview:
 	mkdir -p $(BUILD_DIR)

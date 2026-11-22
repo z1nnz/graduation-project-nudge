@@ -21,17 +21,15 @@ class CharacterPainter {
 };
 class Painter {
  public:
-  explicit Painter(Device device, bool animate = true) : device_(device), animate_(animate) {}
+  // Retain the legacy constructor argument; Orbit art is deliberately static.
+  explicit Painter(Device device, bool = true) : device_(device) {}
   void render(Canvas& canvas, const Frame& frame, bool entered);
  private:
   void orbit(Canvas& canvas, const Frame& frame, bool entered);
   void station(Canvas& canvas, const Frame& frame);
   Device device_;
-  bool animate_;
   int previousProgress_ = -1;
   int previousSecond_ = -1;
-  int previousPhase_ = -1;
-  CharacterPainter character_;
 };
 void paintCalibration(Canvas& canvas);
 }  // namespace demo

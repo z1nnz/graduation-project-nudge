@@ -1,5 +1,6 @@
 #include "demo/drawing.h"
 #include "demo/station.h"
+#include "demo/orbit_assets.h"
 #include <cmath>
 #include <cstdio>
 
@@ -17,10 +18,31 @@ void ring(Canvas& c, int first, int end, std::uint16_t ink) {
            120 + static_cast<int>(114 * std::cos(a)), 120 + static_cast<int>(114 * std::sin(a)), ink);
   }
 }
+void asset(Canvas& c, const orbit_assets::Image& image, int x, int y) {
+  for (std::size_t i = 0; i < image.count; ++i) {
+    const auto& run = image.runs[i];
+    c.rect(x + run.x, y + run.y, run.width, 1, run.ink);
+  }
+}
+void label(Canvas& c, const orbit_assets::Image& image, int y) {
+  asset(c, image, 120 - image.width / 2, y);
+}
+constexpr std::uint16_t halo = 0x1948;
+constexpr std::uint16_t lavender = 0xb51f;
+constexpr std::uint16_t gold = 0xf64e;
+void star(Canvas& c, int x, int y, int r, std::uint16_t ink) {
+  c.line(x-r,y,x+r,y,ink);
+  c.line(x,y-r,x,y+r,ink);
+  c.circle(x,y,1,ink);
+}
+void companion(Canvas& c, bool small = false) {
+  const auto& image = small ? orbit_assets::focusHero : orbit_assets::hero;
+  asset(c, image, 120-image.width/2, small ? 59 : 62);
+}
 }
 void Painter::render(Canvas& c, const Frame& f, bool entered) {
   if (entered) {
-    previousProgress_ = previousSecond_ = previousPhase_ = -1;
+    previousProgress_ = previousSecond_ = -1;
     c.clear(color::background);
   }
   if (device_ == Device::orbit) orbit(c, f, entered);
@@ -30,54 +52,73 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
   char text[32];
   const auto& v = *f.values;
   if (entered) {
-    // Every fixed-data scene carries the same readable DEMO label inside
-    // the central 70% safe zone. The progress ring alone uses the perimeter.
-    centered(c, 184, "DEMO", 2, color::muted);
+    // This is explicitly offline fixed data: no battery, clock, XP or sync claims.
+    // Keep the status away from the circular crop; only the ring uses the edge.
+    centered(c, 211, "OFFLINE / DEMO", 1, lavender);
     switch (f.scene) {
       case Scene::boot:
-        centered(c, 54, "NUDGE", 2, color::ready);
-        centered(c, 154, "ORBIT", 2);
+        centered(c, 32, "NUDGE", 2, color::text);
+        c.circle(120,132,64,halo);
+        companion(c);
+        star(c,65,105,4,gold); star(c,176,140,3,lavender);
+        centered(c, 192, "ORBIT", 1, lavender);
         break;
       case Scene::home:
-        centered(c, 44, "TODAY'S GOAL", 2, color::ready);
-        std::snprintf(text, sizeof(text), "%d MIN", v.focusMinutes);
-        centered(c, 68, text, 3);
-        centered(c, 164, "READY TO FOCUS", 1, color::ready);
+        centered(c, 27, "NUDGE", 2, color::text);
+        label(c, orbit_assets::today, 50);
+        c.circle(100,135,60,halo);
+        asset(c,orbit_assets::hero,48,73);
+        star(c,53,96,4,gold); star(c,188,150,3,lavender);
+        std::snprintf(text,sizeof(text),"%d",v.focusMinutes);
+        c.text(146,102,text,3,color::text);
+        c.text(152,130,"MIN",1,gold);
+        asset(c,orbit_assets::focusHint,147,152);
         break;
       case Scene::ready:
-        centered(c, 54, "FOCUS?", 2, color::ready);
-        std::snprintf(text, sizeof(text), "%d MIN", v.focusMinutes);
-        centered(c, 144, text, 2);
-        ring(c, 0, 120, color::ready);
+        label(c,orbit_assets::ready,38);
+        c.circle(120,132,62,halo);
+        companion(c);
+        centered(c,194,"READY TO FOCUS",1,lavender);
         break;
       case Scene::focus:
-        ring(c, 0, 120, color::muted);
-        centered(c, 54, "FOCUS", 2, color::primary);
-        centered(c, 78, v.taskLabels[f.taskIndex<3?f.taskIndex:0], 1);
+        ring(c,0,120,halo);
+        label(c,orbit_assets::focus,35);
+        c.circle(120,94,36,halo);
+        companion(c,true);
+        star(c,75,92,3,gold); star(c,166,80,2,lavender);
+        centered(c,179,v.taskLabels[f.taskIndex<3?f.taskIndex:0],1,lavender);
         break;
       case Scene::encouragement:
-        centered(c, 70, "KEEP GOING", 2, color::support);
-        std::snprintf(text, sizeof(text), "%d ACTIVE", v.activeMembers);
-        centered(c, 154, text, 2);
+        label(c,orbit_assets::support,38);
+        c.circle(120,132,62,halo);
+        companion(c);
+        std::snprintf(text,sizeof(text),"%d FRIENDS / DEMO",v.activeMembers);
+        centered(c,192,text,1,lavender);
         break;
       case Scene::complete:
-        ring(c, 0, 120, color::complete);
-        centered(c, 54, "DONE", 3, color::complete);
-        centered(c, 164, "OFFLINE PREVIEW", 1, color::complete);
+        ring(c,0,120,halo);
+        ring(c,0,120,gold);
+        label(c,orbit_assets::complete,37);
+        c.circle(120,133,64,halo);
+        companion(c);
+        star(c,60,111,5,gold); star(c,178,96,4,lavender);
+        star(c,177,163,3,gold); star(c,75,66,2,lavender);
+        centered(c,194,"ONE STEP FORWARD",1,gold);
         break;
       case Scene::growth:
-        centered(c, 54, "GROW", 2, color::complete);
-        std::snprintf(text, sizeof(text), "XP +%d", v.demoXp);
-        centered(c, 148, text, 2);
-        std::snprintf(text, sizeof(text), "LEVEL %d", v.characterLevel);
-        centered(c, 164, text, 2);
+        label(c,orbit_assets::growth,38);
+        c.circle(120,132,62,halo);
+        companion(c);
+        star(c,65,112,4,gold); star(c,178,144,4,lavender);
+        label(c,orbit_assets::companion,190);
         break;
       case Scene::summary:
-        centered(c, 64, "TODAY", 2);
+        label(c,orbit_assets::summary,48);
         std::snprintf(text, sizeof(text), "%d FOCUS", v.todayFocusCount);
-        centered(c, 104, text, 3, color::ready);
+        centered(c, 91, text, 3, lavender);
+        c.rect(80,130,80,1,halo);
         std::snprintf(text, sizeof(text), "%d MIN", v.todayFocusMinutes);
-        centered(c, 148, text, 2);
+        centered(c, 151, text, 2,gold);
         break;
     }
   }
@@ -85,22 +126,19 @@ void Painter::orbit(Canvas& c, const Frame& f, bool entered) {
     // The 20-second countdown is explicitly the compressed demo countdown.
     const int second = static_cast<int>(f.remainingSeconds);
     if (second != previousSecond_) {
-      c.rect(62, 104, 116, 32, color::background);
+      c.rect(58,133,124,33,color::background);
       std::snprintf(text, sizeof(text), "%02u:%02u", f.remainingSeconds / 60, f.remainingSeconds % 60);
-      centered(c, 108, text, 3);
+      centered(c,134,text,4);
       previousSecond_ = second;
     }
-    const int progress = f.progress * 120 / 1000;
+    const int progress = (f.progress>1000?1000:f.progress)*120/1000;
     if (progress > previousProgress_) {
-      ring(c, previousProgress_ < 0 ? 0 : previousProgress_, progress, color::primary);
+      ring(c,previousProgress_<0?0:previousProgress_,progress,lavender);
       previousProgress_ = progress;
     }
   }
-  if(f.scene!=Scene::summary){
-    const bool focus=f.scene==Scene::focus;
-    const bool hero=f.scene==Scene::home || f.scene==Scene::complete;
-    character_.render(c,f,entered,focus?104:88,focus?146:hero?96:80,focus?32:64,animate_);
-  }
+  // App artwork is static in this demo: no invented pose or stage transition.
+  // Only the countdown/ring update, avoiding full-frame transfers each tick.
 }
 
 void Painter::station(Canvas& c, const Frame& f) {
