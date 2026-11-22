@@ -24,6 +24,7 @@ test('progress preflight preserves exact XP and never writes or enables apply', 
 test('ambiguous names and overlapping keys fail closed without guessing XP', async () => {
   const { buildAvatarProgressMigrationPlan: plan } = await import('../scripts/avatar_progress_migration_plan.mjs');
   for (const input of [
+    { catalogs: [catalog('same', '夜影'), catalog('same', '另一角色')], users: [user({ day: { 夜影: 100 } })] },
     { catalogs: [catalog('a', '夜影'), catalog('b', '夜影')], users: [user({ day: { 夜影: 100 } })] },
     { catalogs: [catalog('night', '夜影')], users: [user({ day: { 夜影: 100, night: 20 } })] },
     { catalogs: [catalog('night', '夜影')], users: [user({ day: { 夜影: -1 } })] },

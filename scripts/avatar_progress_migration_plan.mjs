@@ -27,6 +27,11 @@ export function buildAvatarProgressMigrationPlan({ catalogs = [], users = [] }) 
     names.set(name, [...(names.get(name) ?? []), key]);
   }
   const updates = [];
+  // An incomplete or ambiguous catalog inventory cannot establish any safe
+  // target identity. Do not emit tempting partial migration candidates.
+  if (issues.length) {
+    return { mode: 'dry-run-only', readyForApply: false, issues, updates };
+  }
   for (const user of users) {
     const before = {
       avatarSeries: user.data?.avatarSeries ?? null,
