@@ -16,6 +16,7 @@ import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
 import '../models/confirmed_activity_feedback.dart';
+import '../models/activity_feedback_state.dart';
 import '../models/daily_summary.dart';
 import '../models/discipline_identity_snapshot.dart';
 import '../models/experience_capabilities.dart';
@@ -203,12 +204,10 @@ class AppState extends ChangeNotifier {
   final Map<String, StreamSubscription> _roomResonanceSignalSubscriptions = {};
   StreamSubscription? _shopSubscription;
   StreamSubscription? _activityFeedbackSubscription;
-  int _activityFeedbackGeneration = 0;
-  ConfirmedActivityFeedback? _confirmedActivityFeedback;
+  final _activityFeedback = ActivityFeedbackState();
   ConfirmedActivityFeedback? get confirmedActivityFeedback =>
-      _confirmedActivityFeedback;
-  String _activityFeedbackStatus = '登入後查看雲端活動確認';
-  String get activityFeedbackStatus => _activityFeedbackStatus;
+      _activityFeedback.feedback;
+  String get activityFeedbackStatus => _activityFeedback.status;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
   StreamSubscription? _familyLinkSubscription;
@@ -296,9 +295,14 @@ class AppState extends ChangeNotifier {
       fb_auth.FirebaseAuth.instance.authStateChanges().listen((
         fb_auth.User? user,
       ) async {
+        _activityFeedbackSubscription?.cancel();
+        _activityFeedbackSubscription = null;
+        final feedbackAuthGeneration = _activityFeedback.begin(user?.uid);
+        notifyListeners();
         if (user != null) {
           _isGuestMode = false;
           await _syncProfileFromFirebaseUser(user);
+          if (!_activityFeedback.isCurrent(feedbackAuthGeneration)) return;
           _setupFirestoreListeners(user);
           unawaited(_activityLedgerOutbox.flush());
           unawaited(_healthSnapshotOutbox.flush());
@@ -353,8 +357,7 @@ class AppState extends ChangeNotifier {
 
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
-    final feedbackGeneration = _activityFeedbackGeneration;
-    _activityFeedbackStatus = '正在讀取活動確認';
+    final feedbackGeneration = _activityFeedback.begin(user.uid);
     _activityFeedbackSubscription = FirebaseFirestore.instance
         .collection('activity_receipts')
         .where('actorUserId', isEqualTo: user.uid)
@@ -363,31 +366,23 @@ class AppState extends ChangeNotifier {
         .snapshots(includeMetadataChanges: true)
         .listen(
           (snapshot) {
-            if (feedbackGeneration != _activityFeedbackGeneration ||
+            if (!_activityFeedback.isCurrent(feedbackGeneration) ||
                 _currentUser?.id != user.uid) {
               return;
             }
-            _confirmedActivityFeedback = null;
-            if (!snapshot.metadata.hasPendingWrites &&
-                snapshot.docs.isNotEmpty) {
-              final doc = snapshot.docs.first;
-              _confirmedActivityFeedback = ConfirmedActivityFeedback.parse(
-                doc.id,
-                doc.data(),
-                user.uid,
-              );
-            }
-            _activityFeedbackStatus = snapshot.metadata.isFromCache
-                ? '快取活動確認，等待網路更新'
-                : _confirmedActivityFeedback == null
-                ? '尚無可顯示的活動確認'
-                : '僅顯示活動確認；獎勵以獎勵帳本為準';
+            final doc = snapshot.docs.isEmpty ? null : snapshot.docs.first;
+            _activityFeedback.update(
+              feedbackGeneration,
+              id: doc?.id,
+              data: doc?.data(),
+              fromCache: snapshot.metadata.isFromCache,
+              pendingWrites: snapshot.metadata.hasPendingWrites,
+            );
             notifyListeners();
           },
           onError: (Object error) {
-            if (feedbackGeneration != _activityFeedbackGeneration) return;
-            _confirmedActivityFeedback = null;
-            _activityFeedbackStatus = '活動確認暫時無法讀取';
+            if (!_activityFeedback.isCurrent(feedbackGeneration)) return;
+            _activityFeedback.fail(feedbackGeneration);
             notifyListeners();
           },
         );
@@ -1730,11 +1725,9 @@ class AppState extends ChangeNotifier {
   }
 
   void _cancelFirestoreListeners() {
-    ++_activityFeedbackGeneration;
+    _activityFeedback.begin(null);
     _activityFeedbackSubscription?.cancel();
     _activityFeedbackSubscription = null;
-    _confirmedActivityFeedback = null;
-    _activityFeedbackStatus = '登入後查看雲端活動確認';
     _userSubscription?.cancel();
     _friendsSubscription?.cancel();
     _incomingRequestsSubscription?.cancel();

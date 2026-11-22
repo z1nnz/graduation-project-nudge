@@ -5,7 +5,8 @@
     if (!data || !id || !userId || data.receiptId !== id || data.actorUserId !== userId ||
         !Object.hasOwn(labels, data.activityType) || typeof data.acceptedMetric !== 'number' ||
         !Number.isFinite(data.acceptedMetric) || data.acceptedMetric < 0 ||
-        typeof data.verifiedAt !== 'string' || !Number.isFinite(Date.parse(data.verifiedAt))) return null;
+        typeof data.verifiedAt !== 'string' || !Number.isFinite(Date.parse(data.verifiedAt)) ||
+        new Date(data.verifiedAt).toISOString() !== data.verifiedAt) return null;
     return { receiptId: id, label: `${labels[data.activityType]}紀錄已由雲端確認` };
   }
   if (typeof module === 'object' && module.exports) module.exports = { parse };

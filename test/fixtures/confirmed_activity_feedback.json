@@ -6,5 +6,7 @@
   {"name":"negative metric","patch":{"acceptedMetric":-1},"valid":false},
   {"name":"string metric","patch":{"acceptedMetric":"25"},"valid":false},
   {"name":"unknown activity","patch":{"activityType":"reward"},"valid":false},
-  {"name":"invalid date","patch":{"verifiedAt":"not-a-date"},"valid":false}
+  {"name":"invalid date","patch":{"verifiedAt":"not-a-date"},"valid":false},
+  {"name":"calendar overflow","patch":{"verifiedAt":"2026-02-31T06:00:00.000Z"},"valid":false},
+  {"name":"noncanonical timestamp","patch":{"verifiedAt":"2026-11-22"},"valid":false}
 ]

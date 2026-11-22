@@ -20,6 +20,9 @@ class ConfirmedActivityFeedback {
     final label = labels[data['activityType']];
     final metric = data['acceptedMetric'];
     final verifiedAt = data['verifiedAt'];
+    final verifiedDate = verifiedAt is String
+        ? DateTime.tryParse(verifiedAt)
+        : null;
     if (id.isEmpty ||
         userId.isEmpty ||
         data['receiptId'] != id ||
@@ -29,7 +32,8 @@ class ConfirmedActivityFeedback {
         !metric.isFinite ||
         metric < 0 ||
         verifiedAt is! String ||
-        DateTime.tryParse(verifiedAt) == null) {
+        verifiedDate == null ||
+        verifiedDate.toUtc().toIso8601String() != verifiedAt) {
       return null;
     }
     return ConfirmedActivityFeedback(id, '$label紀錄已由雲端確認');
