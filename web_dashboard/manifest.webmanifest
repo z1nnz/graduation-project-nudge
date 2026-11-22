@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Nudge 日常夥伴",
+  "short_name": "Nudge",
+  "lang": "zh-Hant",
+  "start_url": "./dashboard.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#7c6ae6",
+  "icons": [{
+    "src": "./assets/landing/nudge_icon.png",
+    "sizes": "1024x1024",
+    "type": "image/png",
+    "purpose": "any"
+  }]
+}
