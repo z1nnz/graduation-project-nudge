@@ -45,9 +45,33 @@ catalog and planner Node tests 7/7 passed. `flutter analyze` found no issues;
 209 passed and 4 failed: study-room message persistence, weekly/monthly coin
 caps, durable task mutation, and Firebase-bootstrap source matching. The
 changed slice is JavaScript planner code and its test; these Flutter
-failures are outside its changed files. Java 17 is below CI's Java 21 Rules
-gate, so no local emulator pass is claimed. No production data was read or
-written.
+failures are outside its changed files. At this first run, Java 17 was below
+CI's Java 21 Rules gate, so no local emulator pass was claimed. No production
+data was read or written.
+
+## Java 21 emulator follow-up (2026-11-23)
+
+This Windows terminal still defaulted to Java 17. For this run, `JAVA_HOME`
+and `PATH` were set for the process to `D:/DevTools/jdk-21`; `java -version`
+reported Temurin 21.0.13.1. Firebase CLI 15.18.0 was invoked through
+`npm exec --yes --package=firebase-tools@15.18.0 -- firebase`, matching the
+CI pin. `gh` 2.105.0 was available; the previous PR head `e54b0eb` had all
+six GitHub check runs completed successfully.
+
+The `.github/workflows/ci.yml` Rules/transaction command was run locally with
+`firebase emulators:exec --only auth,firestore --project nudge-discipline-app`.
+It executed all five `test/firestore_*_rules_test.js` files, both named Cloud
+transaction test files, and the relationship and reward migration emulator
+scripts. The command exited 0. The four Node TAP groups reported 5/5, 6/6,
+5/5 and 1/1 passed, each with 0 failures and 0 skipped; each of the five
+individual Rules scripts exited 0. These are local emulator results, not a
+production migration or a real-account acceptance test.
+
+The full `npm --prefix functions test` suite was also run under Auth, Firestore
+and Storage emulators: 147 total, 142 passed, 0 failed, 5 skipped. The five
+skipped tests require real authenticated accounts and App Check for catalog,
+privacy, push and relationship flows; they remain unverified. The original
+25-skipped run outside emulators is retained above as its actual result.
 
 ## Required apply gate (not yet implemented)
 
