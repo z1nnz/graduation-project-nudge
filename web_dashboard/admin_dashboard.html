@@ -674,7 +674,7 @@
     </div>
 
     <!-- UI Interaction Scripts -->
-    <script src="assets/admin_catalog.js?v=1"></script>
+    <script src="assets/admin_catalog.js?v=2"></script>
     <script src="assets/admin_device_assignments.js?v=1"></script>
     <script>
       // Tab Switching Logic
@@ -1147,13 +1147,14 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                  <td><img src="/${item.image_path}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
-                  <td><strong>${item.name}</strong></td>
-                  <td>${typeText}</td>
-                  <td>${item.price}</td>
+                  <td><img src="${escapeHtml(item.image_path && item.image_path.startsWith('https://') ? item.image_path : '/' + (item.image_path || ''))}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
+                  <td><strong>${escapeHtml(item.name)}</strong></td>
+                  <td>${escapeHtml(typeText)}</td>
+                  <td>${Number(item.price) || 0}</td>
                   <td>${expiresHTML}</td>
                   <td><span style="color: var(--c-text-muted);">API 管理</span></td>
                 `;
+                appendAvatarSeriesDetails(tr.children[1], item);
                 tbody.appendChild(tr);
               });
             }

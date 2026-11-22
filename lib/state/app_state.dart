@@ -15,6 +15,7 @@ import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
+import '../models/catalog_schedule.dart';
 import '../models/daily_summary.dart';
 import '../models/discipline_identity_snapshot.dart';
 import '../models/experience_capabilities.dart';
@@ -201,6 +202,7 @@ class AppState extends ChangeNotifier {
       {};
   final Map<String, StreamSubscription> _roomResonanceSignalSubscriptions = {};
   StreamSubscription? _shopSubscription;
+  Timer? _shopScheduleTimer;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
   StreamSubscription? _familyLinkSubscription;
@@ -688,42 +690,64 @@ class AppState extends ChangeNotifier {
         .collection('shop_items')
         .snapshots()
         .listen((snapshot) {
-          final docs =
-              snapshot.docs
-                  .where((doc) => _isActiveShopItem(doc.data()))
-                  .toList()
-                ..sort((a, b) {
-                  final aCreated = _shopTimestampSeconds(
-                    a.data()['created_at'],
-                  );
-                  final bCreated = _shopTimestampSeconds(
-                    b.data()['created_at'],
-                  );
-                  final createdComparison = aCreated.compareTo(bCreated);
-                  if (createdComparison != 0) return createdComparison;
-                  return a.id.compareTo(b.id);
-                });
+          void refresh() {
+            _shopScheduleTimer?.cancel();
+            final docs =
+                snapshot.docs
+                    .where((doc) => _isActiveShopItem(doc.data()))
+                    .toList()
+                  ..sort((a, b) {
+                    final aCreated = _shopTimestampSeconds(
+                      a.data()['created_at'],
+                    );
+                    final bCreated = _shopTimestampSeconds(
+                      b.data()['created_at'],
+                    );
+                    final createdComparison = aCreated.compareTo(bCreated);
+                    if (createdComparison != 0) return createdComparison;
+                    return a.id.compareTo(b.id);
+                  });
 
-          final publishedSeries = <PublishedAvatarSeries>[];
-          var fallbackIndex = 18;
-          for (final doc in docs) {
-            final data = doc.data();
-            final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
-              documentId: doc.id,
-              data: data,
-              fallbackIndex: fallbackIndex,
-            );
-            if (parsedSeries == null) continue;
-            publishedSeries.add(parsedSeries);
-            fallbackIndex =
-                parsedSeries.stages
-                    .map((stage) => stage.index)
-                    .reduce(math.max) +
-                1;
+            final publishedSeries = <PublishedAvatarSeries>[];
+            var fallbackIndex = 18;
+            for (final doc in docs) {
+              final data = doc.data();
+              final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
+                documentId: doc.id,
+                data: data,
+                fallbackIndex: fallbackIndex,
+              );
+              if (parsedSeries == null) continue;
+              publishedSeries.add(parsedSeries);
+              fallbackIndex =
+                  parsedSeries.stages
+                      .map((stage) => stage.index)
+                      .reduce(math.max) +
+                  1;
+            }
+            AvatarCatalog.replacePublishedSeries(publishedSeries);
+            _normalizeAvatarProfileForCatalog();
+            notifyListeners();
+            final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+            final boundaries =
+                snapshot.docs
+                    .where((doc) => doc.data()['status'] == 'published')
+                    .map(
+                      (doc) =>
+                          _catalogSchedule(doc.data()).nextBoundaryAfter(now),
+                    )
+                    .whereType<int>()
+                    .toList()
+                  ..sort();
+            if (boundaries.isNotEmpty) {
+              _shopScheduleTimer = Timer(
+                Duration(seconds: boundaries.first - now),
+                refresh,
+              );
+            }
           }
-          AvatarCatalog.replacePublishedSeries(publishedSeries);
-          _normalizeAvatarProfileForCatalog();
-          notifyListeners();
+
+          refresh();
         });
 
     // Incoming guardian requests listener
@@ -800,18 +824,20 @@ class AppState extends ChangeNotifier {
     return 0;
   }
 
+  CatalogSchedule _catalogSchedule(Map<String, dynamic> data) {
+    final start = _shopTimestampSeconds(data['start_time']);
+    final end = _shopTimestampSeconds(data['end_time'] ?? data['expires_at']);
+    return CatalogSchedule(
+      startSeconds: start == 0 ? null : start,
+      endSeconds: end == 0 ? null : end,
+    );
+  }
+
   bool _isActiveShopItem(Map<String, dynamic> data) {
-    final status = data['status'] as String? ?? 'published';
-    if (status != 'published') return false;
-    final type = data['type'] as String? ?? 'permanent';
-    final expiresAt = _shopTimestampSeconds(data['expires_at']);
-    if (type == 'permanent' || expiresAt == 0) return true;
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final startAt = _shopTimestampSeconds(data['start_time']);
-    final endAt = _shopTimestampSeconds(data['end_time']) == 0
-        ? expiresAt
-        : _shopTimestampSeconds(data['end_time']);
-    return startAt <= now && now <= endAt;
+    if (data['status'] != 'published') return false;
+    return _catalogSchedule(
+      data,
+    ).activeAt(DateTime.now().millisecondsSinceEpoch ~/ 1000);
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
@@ -1712,6 +1738,8 @@ class AppState extends ChangeNotifier {
     _roomResonancePreferenceSubscriptions.clear();
     _roomResonanceSignalSubscriptions.clear();
     _shopSubscription?.cancel();
+    _shopScheduleTimer?.cancel();
+    _shopScheduleTimer = null;
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
     _familyLinkSubscription?.cancel();
