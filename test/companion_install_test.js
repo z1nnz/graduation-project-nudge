@@ -72,3 +72,18 @@ test('manifest is subdirectory-safe and references a real correctly sized icon',
   assert.equal((page.match(/id="dailyActivityFeedback"/g) || []).length, 1);
   assert.ok(page.indexOf('assets/confirmed_activity_feedback.js?v=1') < page.indexOf('assets/daily_next_action.js?v=2'));
 });
+test('manifest declares installable icon sizes that exist on disk', () => {
+  const manifest = JSON.parse(fs.readFileSync('web_dashboard/manifest.webmanifest', 'utf8'));
+  const sizes = manifest.icons.filter(icon => icon.purpose.split(' ').includes('any')).map(icon => icon.sizes);
+  assert.ok(sizes.includes('192x192'), 'Chrome installability needs a 192px icon');
+  assert.ok(sizes.includes('512x512'), 'Chrome installability needs a 512px icon');
+  assert.ok(manifest.icons.some(icon => icon.purpose === 'maskable'));
+  for (const icon of manifest.icons) {
+    const file = path.join('web_dashboard', icon.src);
+    const png = fs.readFileSync(file);
+    const [width, height] = [png.readUInt32BE(16), png.readUInt32BE(20)];
+    assert.equal(`${width}x${height}`, icon.sizes, icon.src);
+  }
+  const html = fs.readFileSync('web_dashboard/dashboard.html', 'utf8');
+  assert.match(html, /apple-touch-icon" href="assets\/landing\/nudge_icon_180\.png"/);
+});
