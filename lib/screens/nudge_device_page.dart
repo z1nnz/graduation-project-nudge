@@ -9,6 +9,7 @@ import '../services/nudge_device_runtime.dart';
 import '../models/avatar_catalog.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../utils/client_ids.dart';
 
 typedef NudgeDeviceRuntimeBuilder = NudgeDeviceRuntime Function();
 
@@ -82,7 +83,7 @@ class _NudgeDevicePageState extends State<NudgeDevicePage> {
     if (coordinator == null || runtime == null) return;
     final appState = context.read<AppState>();
     final now = DateTime.now().toUtc();
-    final sessionId = 'device-focus-${now.microsecondsSinceEpoch}';
+    final sessionId = newClientId('device-focus', at: now);
     final avatar = AvatarCatalog.stageForIndex(
       appState.currentAvatarStageIndex,
     );

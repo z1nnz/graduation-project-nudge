@@ -60,6 +60,7 @@ import '../services/room_activity_session_ledger_gateway.dart';
 import '../services/stable_request_hash.dart';
 import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
+import '../utils/client_ids.dart';
 
 class ReminderChannelSetting {
   final String key;
@@ -4748,8 +4749,7 @@ class AppState extends ChangeNotifier {
     } else {
       final result = await _privacyConsentGateway.update(
         accepted: true,
-        clientRequestId:
-            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('privacy'),
       );
       _cloudPrivacyConsent = result.consent;
       _hasAcceptedPrivacyPolicy = result.consent.isCurrentHealthConsent;
@@ -4789,8 +4789,7 @@ class AppState extends ChangeNotifier {
     if (userId != null) {
       final result = await _privacyConsentGateway.update(
         accepted: false,
-        clientRequestId:
-            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('privacy'),
       );
       _cloudPrivacyConsent = result.consent;
       notifyListeners();
@@ -4867,8 +4866,7 @@ class AppState extends ChangeNotifier {
     try {
       final result = await _notificationPreferenceGateway.update(
         channels: _notificationPreferenceChannelPayload(),
-        clientRequestId:
-            'notification_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('notification'),
       );
       if (result.preferences.userId != userId) {
         throw const NotificationPreferenceException(
@@ -8249,8 +8247,10 @@ class AppState extends ChangeNotifier {
     final now = DateTime.now().toUtc();
     final actorId = _myId;
     final session = RoomActivitySession.start(
-      sessionId: '${actorId}_${room.id}_${now.microsecondsSinceEpoch}'
-          .replaceAll('/', '_'),
+      sessionId: newClientId(
+        '${actorId}_${room.id}',
+        at: now,
+      ).replaceAll('/', '_'),
       roomId: room.id,
       actorId: actorId,
       activityKind: _activityKindForRoom(room),
@@ -9378,7 +9378,7 @@ ${historyBuffer.toString()}
     final payload = GroupPublicationContract.buildChallenge(
       group: group,
       publisherId: user.id,
-      challengeId: 'challenge_${now.toUtc().microsecondsSinceEpoch}',
+      challengeId: newClientId('challenge', at: now),
       type: type,
       days: days,
       reward: reward,

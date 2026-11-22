@@ -1,4 +1,5 @@
 import '../models/activity_ledger.dart';
+import '../utils/client_ids.dart';
 
 typedef FocusActivityLedgerEventSink =
     Future<void> Function({
@@ -23,8 +24,7 @@ class FocusActivityLedgerController {
   }) : _eventSink = eventSink,
        _clock = clock ?? DateTime.now,
        _sessionIdFactory =
-           sessionIdFactory ??
-           ((now) => 'focus_${now.toUtc().microsecondsSinceEpoch}');
+           sessionIdFactory ?? ((now) => newClientId('focus', at: now));
 
   bool get hasActiveSession => _sessionId != null;
   String? get sessionId => _sessionId;
