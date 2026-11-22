@@ -32,6 +32,9 @@ class ConfirmedActivityFeedback {
         !metric.isFinite ||
         metric < 0 ||
         verifiedAt is! String ||
+        !RegExp(
+          r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$',
+        ).hasMatch(verifiedAt) ||
         verifiedDate == null ||
         verifiedDate.toUtc().toIso8601String() != verifiedAt) {
       return null;
