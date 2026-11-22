@@ -1,0 +1,10 @@
+[
+  {"name":"valid focus","patch":{},"valid":true,"label":"專注紀錄已由雲端確認"},
+  {"name":"no reward still confirmed","patch":{"rewardIssued":false,"characterExperienceIssued":false},"valid":true,"label":"專注紀錄已由雲端確認"},
+  {"name":"foreign actor","patch":{"actorUserId":"other"},"valid":false},
+  {"name":"wrong receipt identity","patch":{"receiptId":"different"},"valid":false},
+  {"name":"negative metric","patch":{"acceptedMetric":-1},"valid":false},
+  {"name":"string metric","patch":{"acceptedMetric":"25"},"valid":false},
+  {"name":"unknown activity","patch":{"activityType":"reward"},"valid":false},
+  {"name":"invalid date","patch":{"verifiedAt":"not-a-date"},"valid":false}
+]

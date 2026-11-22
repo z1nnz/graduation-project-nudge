@@ -10,11 +10,15 @@ class DailyCompanionCard extends StatelessWidget {
     required this.action,
     required this.profile,
     required this.onOpenTasks,
+    this.confirmedActivityLabel,
+    this.feedbackStatus = '登入後查看雲端活動確認',
   });
 
   final DailyNextAction action;
   final AvatarProfile profile;
   final VoidCallback onOpenTasks;
+  final String? confirmedActivityLabel;
+  final String feedbackStatus;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -36,6 +40,15 @@ class DailyCompanionCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          if (confirmedActivityLabel != null) ...[
+            Text(
+              confirmedActivityLabel!,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+          ],
+          Text(feedbackStatus, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 12),
           Text(action.title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
