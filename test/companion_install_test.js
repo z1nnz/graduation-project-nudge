@@ -64,4 +64,8 @@ test('manifest is subdirectory-safe and references a real correctly sized icon',
   const png = fs.readFileSync(path.join('web_dashboard', manifest.icons[0].src));
   assert.equal(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`, manifest.icons[0].sizes);
   assert.doesNotMatch(source, /serviceWorker|caches\.|localStorage|requestPermission|indexedDB/);
+  const page = fs.readFileSync('web_dashboard/dashboard.html', 'utf8');
+  assert.ok(page.indexOf('aria-labelledby="dailyActionTitle"') < page.indexOf('aria-labelledby="companionInstallTitle"'));
+  assert.match(page, /companion_install\.css\?v=1/);
+  assert.match(fs.readFileSync('web_dashboard/assets/companion_install.css', 'utf8'), /min-width:\s*0/);
 });
