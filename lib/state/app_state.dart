@@ -15,6 +15,8 @@ import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
+import '../models/confirmed_activity_feedback.dart';
+import '../models/activity_feedback_state.dart';
 import '../models/catalog_schedule.dart';
 import '../models/daily_summary.dart';
 import '../models/discipline_identity_snapshot.dart';
@@ -202,6 +204,11 @@ class AppState extends ChangeNotifier {
       {};
   final Map<String, StreamSubscription> _roomResonanceSignalSubscriptions = {};
   StreamSubscription? _shopSubscription;
+  StreamSubscription? _activityFeedbackSubscription;
+  final _activityFeedback = ActivityFeedbackState();
+  ConfirmedActivityFeedback? get confirmedActivityFeedback =>
+      _activityFeedback.feedback;
+  String get activityFeedbackStatus => _activityFeedback.status;
   Timer? _shopScheduleTimer;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
@@ -290,9 +297,14 @@ class AppState extends ChangeNotifier {
       fb_auth.FirebaseAuth.instance.authStateChanges().listen((
         fb_auth.User? user,
       ) async {
+        _activityFeedbackSubscription?.cancel();
+        _activityFeedbackSubscription = null;
+        final feedbackAuthGeneration = _activityFeedback.begin(user?.uid);
+        notifyListeners();
         if (user != null) {
           _isGuestMode = false;
           await _syncProfileFromFirebaseUser(user);
+          if (!_activityFeedback.isCurrent(feedbackAuthGeneration)) return;
           _setupFirestoreListeners(user);
           unawaited(_activityLedgerOutbox.flush());
           unawaited(_healthSnapshotOutbox.flush());
@@ -347,6 +359,35 @@ class AppState extends ChangeNotifier {
 
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
+    final feedbackGeneration = _activityFeedback.begin(user.uid);
+    _activityFeedbackSubscription = FirebaseFirestore.instance
+        .collection('activity_receipts')
+        .where('actorUserId', isEqualTo: user.uid)
+        .orderBy('verifiedAt', descending: true)
+        .limit(1)
+        .snapshots(includeMetadataChanges: true)
+        .listen(
+          (snapshot) {
+            if (!_activityFeedback.isCurrent(feedbackGeneration) ||
+                _currentUser?.id != user.uid) {
+              return;
+            }
+            final doc = snapshot.docs.isEmpty ? null : snapshot.docs.first;
+            _activityFeedback.update(
+              feedbackGeneration,
+              id: doc?.id,
+              data: doc?.data(),
+              fromCache: snapshot.metadata.isFromCache,
+              pendingWrites: snapshot.metadata.hasPendingWrites,
+            );
+            notifyListeners();
+          },
+          onError: (Object error) {
+            if (!_activityFeedback.isCurrent(feedbackGeneration)) return;
+            _activityFeedback.fail(feedbackGeneration);
+            notifyListeners();
+          },
+        );
     unawaited(_restoreRelationshipSelections(user.uid));
     _setupRelationshipMembershipListener(user.uid);
     _disciplineIdentitySubscription = FirebaseFirestore.instance
@@ -1703,6 +1744,9 @@ class AppState extends ChangeNotifier {
   }
 
   void _cancelFirestoreListeners() {
+    _activityFeedback.begin(null);
+    _activityFeedbackSubscription?.cancel();
+    _activityFeedbackSubscription = null;
     _userSubscription?.cancel();
     _friendsSubscription?.cancel();
     _incomingRequestsSubscription?.cancel();
