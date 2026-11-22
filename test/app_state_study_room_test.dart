@@ -976,4 +976,16 @@ void main() {
       expect(appState.sleepHours, 0);
     },
   );
+
+  test('tasks added back-to-back get distinct ids', () async {
+    SharedPreferences.setMockInitialValues({'tasks': jsonEncode([])});
+    final appState = AppState();
+    await appState.loadAllLocalData();
+    for (var i = 0; i < 5; i++) {
+      appState.addTask('Task $i', 'study', taskType: 'fixed');
+    }
+
+    final ids = appState.taskModels.map((task) => task.id).toList();
+    expect(ids.toSet(), hasLength(ids.length));
+  });
 }
