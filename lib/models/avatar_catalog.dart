@@ -89,6 +89,17 @@ class AvatarSeries {
 }
 
 class PublishedAvatarSeries {
+  static int? _nonNegativeInteger(Object? value) {
+    if (value is! num ||
+        !value.isFinite ||
+        value < 0 ||
+        value > 9007199254740991 ||
+        value != value.truncateToDouble()) {
+      return null;
+    }
+    return value.toInt();
+  }
+
   final String documentId;
   final String key;
   final String name;
@@ -154,17 +165,22 @@ class PublishedAvatarSeries {
         ? seriesData['codex_description'].toString().trim()
         : (data['codex_description'] ?? '').toString().trim();
     if (codexDescription.isEmpty) return null;
-    final topLevelPrice = (data['price'] as num?)?.toInt() ?? 0;
-    final baseIndex =
-        (data['catalog_index_base'] as num?)?.toInt() ?? fallbackIndex;
+    final topLevelPrice = _nonNegativeInteger(data['price'] ?? 0);
+    if (topLevelPrice == null) return null;
 
     final stages = <AvatarEvolutionStage>[];
     for (var rawIndex = 0; rawIndex < rawStages.length; rawIndex++) {
       final rawStage = rawStages[rawIndex];
       if (rawStage is! Map) return null;
       final stageData = Map<String, dynamic>.from(rawStage);
-      final stageNumber = (stageData['stage'] as num?)?.toInt() ?? rawIndex + 1;
-      if (stageNumber < 1 || stageNumber > 3) return null;
+      final stageNumber = _nonNegativeInteger(stageData['stage']);
+      if (stageNumber == null || stageNumber != rawIndex + 1) return null;
+      // Published identities belong to Cloud. Never invent an index using
+      // snapshot ordering or truncate fractional values into another identity.
+      final catalogIndex = _nonNegativeInteger(stageData['catalog_index']);
+      if (catalogIndex == null || catalogIndex < 18 || catalogIndex > 1000000) {
+        return null;
+      }
       final stageName = (stageData['name'] ?? '').toString().trim();
       final stageDescription = (stageData['description'] ?? '')
           .toString()
@@ -173,15 +189,26 @@ class PublishedAvatarSeries {
           .toString()
           .trim();
       final iconAsset = (stageData['icon_asset'] ?? '').toString().trim();
-      final requiredLevel = stageData['required_level'];
-      final requiredExperience = stageData['required_experience'];
+      final requiredLevel = _nonNegativeInteger(stageData['required_level']);
+      final requiredExperience = _nonNegativeInteger(
+        stageData['required_experience'],
+      );
+      final coinPrice = _nonNegativeInteger(
+        stageData['coin_price'] ?? (stageNumber == 1 ? topLevelPrice : 0),
+      );
       final expectedPredecessor = stageNumber == 1 ? null : stageNumber - 1;
       if (stageName.isEmpty ||
           stageDescription.isEmpty ||
           characterAsset.isEmpty ||
           iconAsset.isEmpty ||
-          requiredLevel is! num ||
-          requiredExperience is! num ||
+          requiredLevel == null ||
+          requiredLevel < 1 ||
+          requiredExperience == null ||
+          coinPrice == null ||
+          (stageNumber == 1 &&
+              (requiredLevel != 1 ||
+                  requiredExperience != 0 ||
+                  coinPrice != topLevelPrice)) ||
           !stageData.containsKey('evolves_from_stage') ||
           stageData['evolves_from_stage'] != expectedPredecessor) {
         return null;
@@ -189,21 +216,17 @@ class PublishedAvatarSeries {
 
       stages.add(
         AvatarEvolutionStage(
-          index:
-              (stageData['catalog_index'] as num?)?.toInt() ??
-              baseIndex + stageNumber - 1,
+          index: catalogIndex,
           series: seriesName,
           seriesKey: seriesKey,
           name: stageName,
           stage: stageNumber,
-          requiredLevel: requiredLevel.toInt(),
-          requiredExperience: requiredExperience.toInt(),
+          requiredLevel: requiredLevel,
+          requiredExperience: requiredExperience,
           description: stageDescription,
           characterAsset: characterAsset,
           iconAsset: iconAsset,
-          coinPrice: stageNumber == 1
-              ? ((stageData['coin_price'] as num?)?.toInt() ?? topLevelPrice)
-              : 0,
+          coinPrice: stageNumber == 1 ? coinPrice : 0,
           shopEligible: stageNumber == 1,
           evolvesFromStage: stageNumber == 1 ? null : stageNumber - 1,
         ),
@@ -218,7 +241,8 @@ class PublishedAvatarSeries {
     for (var index = 1; index < stages.length; index++) {
       final previous = stages[index - 1];
       final current = stages[index];
-      if (current.requiredLevel <= previous.requiredLevel ||
+      if (current.index != previous.index + 1 ||
+          current.requiredLevel <= previous.requiredLevel ||
           current.requiredExperience <= previous.requiredExperience) {
         return null;
       }

@@ -32,3 +32,13 @@ product across Cloud, the App shop, the Codex, and the evolution route.
 - Flutter catalog and App state tests prove the stable progress key, starter-only
   shop list, full Codex chain, and isolation of duplicate display names.
 - The complete repository test suite and Flutter analyzer pass before merge.
+
+## Incremental validation and migration preflight
+
+- Published stage indexes must be explicit, ordered, contiguous, and integral;
+  no fallback identity may be synthesized. Level, EXP and price numeric values
+  must not be silently truncated. Starter requirements remain level 1 / 0 XP.
+- Provide a pure, dry-run-only legacy-name-to-key migration planner. Preserve
+  XP and input data; reject ambiguous identities and overlapping old/new keys.
+  This slice does not implement production apply or rollback. Keep the PR draft
+  until those paths and the documented release gates are complete.
