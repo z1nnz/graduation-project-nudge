@@ -29,7 +29,6 @@ PublishedAvatarSeries? parse(Map<String, dynamic> data) =>
     PublishedAvatarSeries.tryParseShopDocument(
       documentId: 'strict-document',
       data: data,
-      fallbackIndex: 900,
     );
 
 void main() {

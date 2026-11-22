@@ -13,7 +13,6 @@ PublishedAvatarSeries _series({
 }) {
   return PublishedAvatarSeries.tryParseShopDocument(
     documentId: documentId,
-    fallbackIndex: baseIndex,
     data: {
       'type': 'avatar_series',
       'status': 'published',
@@ -27,8 +26,16 @@ PublishedAvatarSeries _series({
           'stage': stage,
           'catalog_index': baseIndex + index,
           'name': '$name $stage',
-          'required_level': stage == 1 ? 1 : stage == 2 ? 30 : 60,
-          'required_experience': stage == 1 ? 0 : stage == 2 ? 10000 : 30000,
+          'required_level': stage == 1
+              ? 1
+              : stage == 2
+              ? 30
+              : 60,
+          'required_experience': stage == 1
+              ? 0
+              : stage == 2
+              ? 10000
+              : 30000,
           'description': '$name 第 $stage 階描述',
           'character_asset': 'https://cdn.example.com/$key-$stage.png',
           'icon_asset': 'https://cdn.example.com/$key-$stage-icon.png',

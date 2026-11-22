@@ -132,7 +132,6 @@ class PublishedAvatarSeries {
   static PublishedAvatarSeries? tryParseShopDocument({
     required String documentId,
     required Map<String, dynamic> data,
-    required int fallbackIndex,
   }) {
     final type = data['type']?.toString() ?? '';
     final status = data['status']?.toString() ?? '';

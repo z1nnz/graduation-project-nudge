@@ -11,7 +11,6 @@ void main() {
     () {
       final series = PublishedAvatarSeries.tryParseShopDocument(
         documentId: 'night-shadow-release',
-        fallbackIndex: 18,
         data: {
           'type': 'avatar_series',
           'status': 'published',
@@ -70,10 +69,11 @@ void main() {
       expect(series.theme, '深度專注');
       expect(series.codexDescription, '在安靜專注中逐步成長的夜影角色。');
       expect(series.stages.map((stage) => stage.stage), [1, 2, 3]);
-      expect(
-        series.stages.map((stage) => stage.progressKey),
-        ['night-shadow', 'night-shadow', 'night-shadow'],
-      );
+      expect(series.stages.map((stage) => stage.progressKey), [
+        'night-shadow',
+        'night-shadow',
+        'night-shadow',
+      ]);
       expect(series.shopStages.map((stage) => stage.stage), [1]);
       expect(series.stages.map((stage) => stage.coinPrice), [120, 0, 0]);
       expect(series.stages.map((stage) => stage.evolvesFromStage), [
@@ -87,7 +87,6 @@ void main() {
   test('draft or incomplete character series never enters the app catalog', () {
     final draft = PublishedAvatarSeries.tryParseShopDocument(
       documentId: 'draft',
-      fallbackIndex: 18,
       data: {
         'type': 'avatar_series',
         'status': 'draft',
@@ -97,7 +96,6 @@ void main() {
     );
     final incomplete = PublishedAvatarSeries.tryParseShopDocument(
       documentId: 'incomplete',
-      fallbackIndex: 18,
       data: {
         'type': 'avatar_series',
         'status': 'published',
@@ -126,7 +124,6 @@ void main() {
   test('legacy event characters cannot masquerade as purchasable series', () {
     final legacy = PublishedAvatarSeries.tryParseShopDocument(
       documentId: 'legacy-event-character',
-      fallbackIndex: 18,
       data: {
         'type': 'event_character',
         'status': 'published',
@@ -156,7 +153,6 @@ void main() {
   test('non-increasing evolution requirements are rejected by the app', () {
     final invalid = PublishedAvatarSeries.tryParseShopDocument(
       documentId: 'invalid-requirements',
-      fallbackIndex: 18,
       data: {
         'type': 'avatar_series',
         'status': 'published',
@@ -186,7 +182,6 @@ void main() {
   test('catalog shop policy exposes starter stages only', () {
     final series = PublishedAvatarSeries.tryParseShopDocument(
       documentId: 'shop-policy',
-      fallbackIndex: 18,
       data: {
         'type': 'avatar_series',
         'status': 'published',
@@ -229,7 +224,6 @@ void main() {
     PublishedAvatarSeries makeSeries(String id, String name) {
       return PublishedAvatarSeries.tryParseShopDocument(
         documentId: id,
-        fallbackIndex: 18,
         data: {
           'type': 'avatar_series',
           'status': 'published',

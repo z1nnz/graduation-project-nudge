@@ -709,21 +709,14 @@ class AppState extends ChangeNotifier {
                   });
 
             final publishedSeries = <PublishedAvatarSeries>[];
-            var fallbackIndex = 18;
             for (final doc in docs) {
               final data = doc.data();
               final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
                 documentId: doc.id,
                 data: data,
-                fallbackIndex: fallbackIndex,
               );
               if (parsedSeries == null) continue;
               publishedSeries.add(parsedSeries);
-              fallbackIndex =
-                  parsedSeries.stages
-                      .map((stage) => stage.index)
-                      .reduce(math.max) +
-                  1;
             }
             AvatarCatalog.replacePublishedSeries(publishedSeries);
             _normalizeAvatarProfileForCatalog();
