@@ -15,6 +15,8 @@ are deployed or mutated by this index operation.
   gcloud, not a full firebase index deployment. No index deletion requested.
 - Index identifier: CICAgJjmiJEK. Initial response was INITIALIZING.
 - Subsequent read-only listing returned CREATING; readiness is not yet accepted.
+- Final read-only listing on 2026-11-22 confirmed state READY for CICAgJjmiJEK.
+  The index readiness gate is now satisfied; this is not client-release acceptance.
 - Emulator query acceptance covers own-account latest receipt ordering,
   foreign-account query denial and Cloud-only mutations. The test is included
   in the existing CI loop `test/firestore_*_rules_test.js`.
@@ -23,7 +25,7 @@ are deployed or mutated by this index operation.
 
 ## Still pending
 
-- Record the production index READY state before merging/enabling the UI.
+- Complete final review/CI of the strengthened emulator acceptance test.
 - New client build/release and two real-account UI acceptance.
 - Physical-device acceptance is unrelated and remains separate.
 
