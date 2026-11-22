@@ -13,6 +13,9 @@ the authenticated user, ordered by verifiedAt descending and limited to one.
 - No reward writes, animations, persisted acknowledgement or once-only
   celebration are implemented in this slice; the card is a status summary.
 - Share parser fixtures between Dart and JavaScript.
+- Emulator acceptance must execute the actual latest-receipt query, verify its
+  descending ordering and account isolation, and reject unauthenticated reads
+  plus client receipt creation, updates and deletion. Use loopback emulators only.
 
 ## Deployment and acceptance
 
