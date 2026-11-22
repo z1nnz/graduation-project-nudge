@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../widgets/app_drawer.dart';
+import '../models/daily_next_action.dart';
+import '../widgets/daily_companion_card.dart';
 import '../theme/app_ui.dart';
 import 'coin_wallet_page.dart';
 import 'badges_page.dart';
@@ -179,6 +181,12 @@ class HomePage extends StatelessWidget {
                   const SizedBox(height: AppUI.sectionGap),
                 ],
                 heroCard!,
+                const SizedBox(height: AppUI.sectionGap),
+                DailyCompanionCard(
+                  action: DailyNextAction.resolve(appState.tasks),
+                  profile: appState.avatarProfile,
+                  onOpenTasks: openTasksPage,
+                ),
                 const SizedBox(height: AppUI.sectionGap),
 
                 // Show action center only if not guardian mode (guardian has separate dashboard metrics)
