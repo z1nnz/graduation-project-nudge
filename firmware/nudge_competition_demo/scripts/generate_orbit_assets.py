@@ -14,23 +14,27 @@ def rgb565(rgb):
     r, g, b = rgb
     return (r >> 3) << 11 | (g >> 2) << 5 | (b >> 3)
 
+def pixel_ink(pixel):
+    r, g, b, alpha = pixel
+    if alpha < 96:
+        return None
+    # Quantization bounds generated flash size while preserving the art.
+    return rgb565(tuple((c // 16) * 16 for c in (r, g, b)))
+
 def runs(image):
     image = image.convert('RGBA')
     data = []
     for y in range(image.height):
         x = 0
         while x < image.width:
-            r, g, b, a = image.getpixel((x, y))
-            if a < 96:
+            ink = pixel_ink(image.getpixel((x, y)))
+            if ink is None:
                 x += 1
                 continue
-            # Quantization bounds generated flash size while preserving the art.
-            ink = rgb565(tuple((c // 16) * 16 for c in (r, g, b)))
             start = x
             x += 1
             while x < image.width:
-                rr, gg, bb, aa = image.getpixel((x, y))
-                if aa < 96 or rgb565(tuple((c // 16) * 16 for c in (rr, gg, bb))) != ink:
+                if pixel_ink(image.getpixel((x, y))) != ink:
                     break
                 x += 1
             data.append((start, y, x-start, ink))
