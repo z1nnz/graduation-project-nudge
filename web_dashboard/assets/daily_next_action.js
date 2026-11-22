@@ -48,6 +48,7 @@
         }
         const action = resolve(snapshot.data().tasks);
         render(action.title, action.detail, action.button, 'planet.html',
+          snapshot.metadata.hasPendingWrites ? '本機清單變更，等待同步確認' :
           snapshot.metadata.fromCache ? '快取清單，等待網路確認' : '已讀取雲端清單；獎勵另由 Cloud 驗證');
       }, () => {
         if (ownGeneration !== generation) return;

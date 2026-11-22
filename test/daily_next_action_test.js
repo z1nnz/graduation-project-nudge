@@ -42,6 +42,8 @@ test('Web next action resets on account switch and ignores stale callbacks', () 
   assert.equal(nodes.dailyActionTitle.textContent, '<img src=x onerror=alert(1)>');
   assert.equal(nodes.dailyActionTitle.innerHTML, undefined);
   assert.match(nodes.dailyActionStatus.textContent, /快取/);
+  listeners[0].success({ ...snap('等待同步'), metadata: { fromCache: false, hasPendingWrites: true } });
+  assert.match(nodes.dailyActionStatus.textContent, /本機清單變更/);
   auth({ uid: 'second' });
   assert.equal(listeners[0].cancelled, true);
   assert.equal(listeners[1].uid, 'second');
