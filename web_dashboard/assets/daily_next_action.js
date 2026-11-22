@@ -18,6 +18,7 @@
 
   let started = false;
   let unsubscribeUser = null;
+  let unsubscribeReceipt = null;
   let unsubscribeAuth = null;
   let generation = 0;
   const element = id => document.getElementById(id);
@@ -34,12 +35,27 @@
     unsubscribeAuth = root.firebase.auth().onAuthStateChanged(user => {
       const ownGeneration = ++generation;
       if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeReceipt) unsubscribeReceipt();
       unsubscribeUser = null;
+      unsubscribeReceipt = null;
+      element('dailyActivityFeedback').textContent = user ? '正在讀取活動確認' : '登入後查看雲端活動確認';
       if (!user) {
         render('先登入，讓夥伴認識今天的你', '登入後只讀取你自己的日常任務。', '登入帳號', 'login.html', '尚未登入');
         return;
       }
       render('正在整理你的下一步', '讀取個人清單中，不會自動完成或開始任何活動。', '開啟個人工作台', 'planet.html', '讀取中');
+      unsubscribeReceipt = root.firebase.firestore().collection('activity_receipts')
+        .where('actorUserId', '==', user.uid).orderBy('verifiedAt', 'desc').limit(1)
+        .onSnapshot({ includeMetadataChanges: true }, snapshot => {
+          if (ownGeneration !== generation) return;
+          const doc = snapshot.docs[0];
+          const feedback = doc && !snapshot.metadata.hasPendingWrites
+            ? root.NudgeConfirmedActivityFeedback.parse(doc.id, doc.data(), user.uid) : null;
+          element('dailyActivityFeedback').textContent =
+            `${feedback ? feedback.label : '尚無可顯示的活動確認'}。${snapshot.metadata.fromCache ? '快取資料，等待網路更新。' : ''}獎勵以獎勵帳本為準。`;
+        }, () => {
+          if (ownGeneration === generation) element('dailyActivityFeedback').textContent = '活動確認暫時無法讀取';
+        });
       unsubscribeUser = root.firebase.firestore().collection('users').doc(user.uid).onSnapshot({ includeMetadataChanges: true }, snapshot => {
         if (ownGeneration !== generation) return;
         if (!snapshot.exists) {
@@ -61,8 +77,9 @@
   root.addEventListener('pagehide', () => {
     ++generation;
     if (unsubscribeUser) unsubscribeUser();
+    if (unsubscribeReceipt) unsubscribeReceipt();
     if (unsubscribeAuth) unsubscribeAuth();
-    unsubscribeUser = unsubscribeAuth = null;
+    unsubscribeUser = unsubscribeReceipt = unsubscribeAuth = null;
     started = false;
   });
   root.addEventListener('pageshow', start);

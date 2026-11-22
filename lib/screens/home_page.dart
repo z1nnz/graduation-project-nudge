@@ -186,6 +186,9 @@ class HomePage extends StatelessWidget {
                   action: DailyNextAction.resolve(appState.tasks),
                   profile: appState.avatarProfile,
                   onOpenTasks: openTasksPage,
+                  confirmedActivityLabel:
+                      appState.confirmedActivityFeedback?.label,
+                  feedbackStatus: appState.activityFeedbackStatus,
                 ),
                 const SizedBox(height: AppUI.sectionGap),
 
