@@ -68,4 +68,7 @@ test('manifest is subdirectory-safe and references a real correctly sized icon',
   assert.ok(page.indexOf('aria-labelledby="dailyActionTitle"') < page.indexOf('aria-labelledby="companionInstallTitle"'));
   assert.match(page, /companion_install\.css\?v=1/);
   assert.match(fs.readFileSync('web_dashboard/assets/companion_install.css', 'utf8'), /min-width:\s*0/);
+  assert.equal((page.match(/id="dailyActionTitle"/g) || []).length, 1);
+  assert.equal((page.match(/id="dailyActivityFeedback"/g) || []).length, 1);
+  assert.ok(page.indexOf('assets/confirmed_activity_feedback.js?v=1') < page.indexOf('assets/daily_next_action.js?v=2'));
 });
