@@ -44,7 +44,14 @@ export function buildAvatarProgressMigrationPlan({ catalogs = [], users = [] }) 
     const after = structuredClone(before);
     let invalid = false;
     const resolve = name => {
-      if (!names.has(name)) return name;
+      if (!names.has(name)) {
+        // An unknown value may be a renamed or omitted historical series.
+        // Only built-ins and catalog identities are safe to keep unchanged.
+        if (builtInNames.has(name) || keys.has(name)) return name;
+        issues.push({ userId: user.id, seriesName: name, reason: 'unknown_series_identity' });
+        invalid = true;
+        return name;
+      }
       const matches = names.get(name);
       if (matches.length !== 1 || builtInNames.has(name) ||
           (keys.has(name) && matches[0] !== name)) {

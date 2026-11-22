@@ -21,6 +21,34 @@ fingerprint. Ambiguous names, collisions with built-ins, mixed old/new keys and
 invalid amounts fail closed for that user. No XP is added, awarded or copied to
 multiple series. Immutable historical receipts remain untouched.
 
+Unknown ledger keys or equipped series are also rejected for that user; they
+may represent renamed or omitted historical catalogs. Existing built-in names
+and catalog stable keys are accepted unchanged. An operator must supply the
+missing historical catalog identity or a separately reviewed, evidenced
+mapping before planning a migration. The planner never guesses from an image
+or a current display name.
+
+## Unknown-identity preflight slice (2026-11-23)
+
+The planner now emits `unknown_series_identity` and omits that user's update
+when a ledger key or equipped series is absent from the historical catalog,
+stable keys, and built-in names. The unit test covers an unknown ledger key,
+an unknown equipped series, a mixed known/unknown ledger, and unchanged known
+keys. It remains a pure dry run; apply and rollback are still unavailable.
+
+On Windows 11 with Flutter 3.41.7, Node 22.23.3 and Java 17: targeted planner
+tests 3/3 passed; targeted Flutter avatar tests 14/14 passed; targeted admin
+catalog and planner Node tests 7/7 passed. `flutter analyze` found no issues;
+`node --test test/*.js` passed 119/119 with 0 skipped;
+`npm --prefix functions test` passed 122 with
+25 skipped (not a complete pass). `flutter test --reporter expanded` exited 1:
+209 passed and 4 failed: study-room message persistence, weekly/monthly coin
+caps, durable task mutation, and Firebase-bootstrap source matching. The
+changed slice is JavaScript planner code and its test; these Flutter
+failures are outside its changed files. Java 17 is below CI's Java 21 Rules
+gate, so no local emulator pass is claimed. No production data was read or
+written.
+
 ## Required apply gate (not yet implemented)
 
 1. Inventory all users and all historical catalog identities; resolve each issue
