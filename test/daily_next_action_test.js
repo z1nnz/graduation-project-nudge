@@ -54,4 +54,11 @@ test('Web next action resets on account switch and ignores stale callbacks', () 
   assert.equal(listeners[1].cancelled, true);
   assert.equal(nodes.dailyActionStatus.textContent, '尚未登入');
   events.pagehide();
+  events.pageshow();
+  auth({ uid: 'third' });
+  assert.equal(listeners[2].uid, 'third');
+  listeners[1].success(snap('stale after restore'));
+  assert.equal(nodes.dailyActionTitle.textContent, '正在整理你的下一步');
+  listeners[2].success(snap('fresh after restore'));
+  assert.equal(nodes.dailyActionTitle.textContent, 'fresh after restore');
 });
