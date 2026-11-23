@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../services/focus_activity_ledger_controller.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../models/companion_pose.dart';
+import '../widgets/companion_sprite.dart';
 
 enum _PomodoroPhase { focus, rest }
 
@@ -743,7 +745,20 @@ class _FocusPageState extends State<FocusPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 12),
+                  // The companion keeps you company: reads while you focus,
+                  // dozes during the break.
+                  CompanionSprite(
+                    key: const Key('focus-companion'),
+                    profile: appState.avatarProfile,
+                    pose: !isRunning
+                        ? CompanionPose.idle
+                        : isFocusPhase
+                        ? CompanionPose.read
+                        : CompanionPose.sleep,
+                    size: 140,
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     formattedTime,
                     style: TextStyle(
