@@ -1,3 +1,29 @@
+/* Social scene pages (friend visits, family courtyard, group hall, mailbox). Page-specific only. */
+.visit-setting-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 12px 0; }
+.visit-toggle, .visit-scene-select { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.visit-scene-select select { min-height: 40px; border-radius: 10px; padding: 6px 10px; font: inherit; }
+.visit-note, .visit-empty, .visit-closed, .visit-done { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+.visit-friend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 12px; }
+.visit-friend-card { display: grid; grid-template-columns: 56px 1fr; gap: 6px 12px; align-items: center; padding: 14px; border: 1px solid #ffffff22; border-radius: 16px; background: #ffffff08; }
+.visit-friend-card.is-open { border-color: #9fe2c4aa; background: linear-gradient(145deg, #1f3a35, #1c2740); }
+.visit-friend-card > :last-child { grid-column: 1 / -1; }
+.visit-friend-card strong { display: block; }
+.visit-friend-card small { color: var(--muted); }
+.visit-scene { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; background: #ffffff14; font-size: 28px; }
+.visit-reactions, .social-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.visit-reactions button, .social-actions button { min-height: 36px; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.visit-reactions button[disabled], .social-actions button[disabled] { opacity: .5; cursor: progress; }
+.visit-reactions button:focus-visible, .social-actions button:focus-visible, .visit-toggle input:focus-visible, .visit-scene-select select:focus-visible { outline: 3px solid #ffe6a6; outline-offset: 2px; }
+.social-scene-card { padding: 14px; border: 1px solid #ffffff22; border-radius: 16px; background: #ffffff08; margin-top: 10px; }
+.social-scene-card h3 { margin: 0 0 6px; font-size: 16px; }
+.social-scene-card p { margin: 4px 0; color: var(--muted); font-size: 14px; }
+.social-badge { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; background: #ffe3a4; color: #2d233a; }
+.social-badge.is-muted { background: #ffffff1a; color: inherit; }
+@media (max-width: 600px) {
+  .visit-friend-grid { grid-template-columns: 1fr; }
+  .visit-setting-row { flex-direction: column; align-items: stretch; }
+  .visit-reactions button, .social-actions button { flex: 1 1 calc(50% - 8px); }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 [data-social-scope-picker] { min-height: 40px; border-radius: 10px; padding: 6px 10px; font: inherit; margin: 6px 0; }
 [data-social-scene] form.social-actions input { flex: 1 1 200px; min-height: 38px; border-radius: 10px; padding: 6px 10px; font: inherit; }

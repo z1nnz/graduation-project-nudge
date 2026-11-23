@@ -201,6 +201,9 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     notifications,
     sentFriendRequests,
     receivedFriendRequests,
+    friendVisitSettings,
+    hostedFriendVisits,
+    madeFriendVisits,
     auditEvents,
     privacyRequests,
   ] = await Promise.all([
@@ -278,6 +281,9 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     ),
     readQuery(firestore, "friend_requests", "senderId", "==", userId),
     readQuery(firestore, "friend_requests", "receiverId", "==", userId),
+    readSingleDocument(firestore, "friend_visit_settings", userId),
+    readQuery(firestore, "friend_visits", "hostId", "==", userId),
+    readQuery(firestore, "friend_visits", "visitorId", "==", userId),
     readQuery(firestore, "audit_events", "actorUserId", "==", userId),
     readQuery(firestore, "privacy_data_requests", "userId", "==", userId),
   ]);
@@ -325,6 +331,11 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       friend_requests: mergeDocuments(
         sentFriendRequests.documents,
         receivedFriendRequests.documents,
+      ),
+      friend_visit_settings: friendVisitSettings,
+      friend_visits: mergeDocuments(
+        hostedFriendVisits.documents,
+        madeFriendVisits.documents,
       ),
       audit_events: auditEvents.documents,
       privacy_data_requests: privacyRequests.documents,
