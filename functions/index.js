@@ -42,6 +42,7 @@ import { createManageCatalogItemHandler } from "./src/catalog-management-service
 import { createManageDeviceAssignmentHandler } from "./src/device-assignment-service.js";
 import { createPurchaseRewardItemHandler } from "./src/reward-purchase-service.js";
 import { createEquipRewardAvatarHandler } from "./src/reward-avatar-service.js";
+import { createFriendCabinVisitHandler } from "./src/friend-cabin-visit.js";
 import { createArrangeHomeDecorHandler } from "./src/home-decor-service.js";
 import {
   createDeliverPushJobHandler,
@@ -780,6 +781,11 @@ export const getFocusRoundServerTime = onCall(
     if (!request.auth) throw new HttpsError("unauthenticated", "Sign-in is required.");
     return { serverMillis: Date.now() };
   },
+);
+
+export const manageFriendCabinVisit = onCall(
+  { timeoutSeconds: 15, memory: "256MiB" },
+  createFriendCabinVisitHandler(getFirestore()),
 );
 
 export const deliverPushNotification = onDocumentCreated(
