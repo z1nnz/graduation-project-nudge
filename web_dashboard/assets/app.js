@@ -242,7 +242,7 @@ const modules = [
 
 // Authentication Check
 const pathName = window.location.pathname;
-const isPublicPage = pathName.endsWith("/") || pathName.endsWith("index.html") || pathName.endsWith("dashboard.html") || pathName.endsWith("login.html") || pathName.includes("admin_dashboard.html");
+const isPublicPage = pathName.endsWith("/") || pathName.endsWith("index.html") || pathName.endsWith("dashboard.html") || pathName.endsWith("town.html") || pathName.endsWith("login.html") || pathName.includes("admin_dashboard.html");
 if (!isPublicPage && localStorage.getItem("nudgeWebLoggedIn") !== "true") {
   localStorage.setItem("nudgePostLoginRedirect", pathName.split("/").pop() || "dashboard.html");
 }
@@ -4315,7 +4315,7 @@ function initializeFirebaseWeb() {
           const auth = firebase.auth();
           const isPublic = () => {
             const currentPath = window.location.pathname;
-            return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("dashboard.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
+            return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("dashboard.html") || currentPath.endsWith("town.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
           };
           const clearWebSession = () => {
             localStorage.removeItem("nudgeWebLoggedIn");
