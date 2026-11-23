@@ -14,6 +14,7 @@
   },
   "browser": {
     "assertions": 58,
+    "additional_guest_guard_checks": 3,
     "pages": 22,
     "axe_checked_pages": 21,
     "axe_violations": 0,
