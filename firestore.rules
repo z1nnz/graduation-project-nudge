@@ -1844,6 +1844,8 @@ service cloud.firestore {
           && request.resource.data.userId == uid
           && request.resource.data.messageId == messageId
           && exists(roomChatMessage(messageId));
+      }
+
       match /focus_rounds/{roundId} {
         function validNewFocusRound() {
           let data = request.resource.data;
