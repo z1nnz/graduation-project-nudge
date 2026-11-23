@@ -1471,6 +1471,10 @@ service cloud.firestore {
     // ─── /rooms/{roomId} ─────────────────────────────────────────────
     // Room metadata is canonical. Each participant owns their member
     // projection and activity sessions in subcollections.
+    match /{parent=**}/chat_reports/{reportId} {
+      allow list: if isStaff();
+    }
+
     match /rooms/{roomId} {
       function roomDocument() {
         return get(
@@ -1771,11 +1775,79 @@ service cloud.firestore {
         allow read, write: if false;
       }
 
+      function roomChatMessage(messageId) {
+        return /databases/$(database)/documents/rooms/$(roomId)/messages/$(messageId);
+      }
+
+      function roomChatThrottle(uid) {
+        return /databases/$(database)/documents/rooms/$(roomId)/chat_throttles/$(uid);
+      }
+
+      match /chat_throttles/{uid} {
+        function validChatThrottle() {
+          let data = request.resource.data;
+          let message = roomChatMessage(data.messageId);
+          return isOwner(uid) && isApprovedActiveRoomParticipant()
+            && data.keys().hasOnly(['userId', 'messageId', 't0', 't1', 't2', 't3', 't4'])
+            && data.userId == uid
+            && data.messageId is string
+            && data.messageId.matches('[^/]{1,180}')
+            && data.t4 == request.time
+            && !exists(message)
+            && getAfter(message).data.senderId == uid;
+        }
+
+        function validThrottleUpdate() {
+          let previous = resource.data;
+          let data = request.resource.data;
+          return (previous.t0 == null || previous.t0 <= request.time - duration.value(10, 's'))
+            && data.t0 == previous.t1 && data.t1 == previous.t2
+            && data.t2 == previous.t3 && data.t3 == previous.t4;
+        }
+
+        allow get: if isOwner(uid) && isApprovedRoomParticipant();
+        allow create: if validChatThrottle()
+          && request.resource.data.t0 == null && request.resource.data.t1 == null
+          && request.resource.data.t2 == null && request.resource.data.t3 == null;
+        allow update: if validChatThrottle() && validThrottleUpdate();
+      }
+
+      match /chat_pin/current {
+        allow read: if isApprovedRoomParticipant();
+        allow create, update: if isApprovedActiveRoomParticipant()
+          && roomDocument().data.ownerId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['userId', 'messageId'])
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.messageId is string
+          && exists(roomChatMessage(request.resource.data.messageId));
+        allow delete: if isApprovedActiveRoomParticipant()
+          && roomDocument().data.ownerId == request.auth.uid;
+      }
+
+      match /chat_reactions/{messageId}/chat_reactors/{uid} {
+        allow read: if isApprovedRoomParticipant() && exists(roomChatMessage(messageId));
+        allow create, update: if isOwner(uid) && isApprovedActiveRoomParticipant()
+          && request.resource.data.keys().hasOnly(['userId', 'emoji'])
+          && request.resource.data.userId == uid
+          && request.resource.data.emoji in ['👍', '🔥', '💪', '📚', '😴', '🎉']
+          && exists(roomChatMessage(messageId));
+        allow delete: if isOwner(uid) && isApprovedRoomParticipant();
+      }
+
+      match /chat_hidden/{uid}/chat_hidden_messages/{messageId} {
+        allow read, delete: if isOwner(uid) && isApprovedRoomParticipant();
+        allow create: if isOwner(uid) && isApprovedActiveRoomParticipant()
+          && request.resource.data.keys().hasOnly(['userId', 'messageId'])
+          && request.resource.data.userId == uid
+          && request.resource.data.messageId == messageId
+          && exists(roomChatMessage(messageId));
+      }
+
       match /messages/{messageId} {
         function validRoomMessage() {
           return request.resource.data.keys().hasOnly([
               'id', 'roomId', 'senderId', 'senderName',
-              'text', 'type', 'createdAt'
+              'text', 'type', 'createdAt', 'replyTo', 'mentionUid'
             ])
             && request.resource.data.keys().hasAll([
               'id', 'roomId', 'senderId', 'senderName',
@@ -1795,13 +1867,49 @@ service cloud.firestore {
             && request.resource.data.text.size() <= 500
             && request.resource.data.type in ['text', 'sticker']
             && request.resource.data.createdAt is string
-            && request.resource.data.createdAt.size() <= 40;
+            && request.resource.data.createdAt.size() <= 40
+            && (!('replyTo' in request.resource.data)
+              || (request.resource.data.replyTo is string
+                && exists(roomChatMessage(request.resource.data.replyTo))))
+            && (!('mentionUid' in request.resource.data)
+              || validMention(request.resource.data.mentionUid));
+        }
+
+        function validMention(uid) {
+          let member = /databases/$(database)/documents/rooms/$(roomId)/members/$(uid);
+          return uid is string && uid != request.auth.uid
+            && isAccountReferenceableAfter(uid)
+            && roomDocument().data.memberIds.hasAny([uid])
+            && get(member).data.approvalStatus == 'approved';
+        }
+
+        function hasChatThrottleWrite() {
+          let throttle = getAfter(roomChatThrottle(request.auth.uid)).data;
+          return throttle.messageId == messageId
+            && throttle.t4 == request.time;
         }
 
         allow read: if isApprovedRoomParticipant();
         allow create: if isApprovedActiveRoomParticipant()
-          && validRoomMessage();
+          && validRoomMessage() && hasChatThrottleWrite();
         allow update, delete: if false;
+        match /chat_reports/{uid} {
+          allow get: if isStaff() || (isOwner(uid) && isApprovedRoomParticipant());
+          allow create: if isOwner(uid) && isApprovedActiveRoomParticipant()
+            && request.resource.data.keys().hasOnly(['userId', 'senderId', 'text', 'type', 'status', 'createdAt'])
+            && request.resource.data.status == 'pending'
+            && request.resource.data.userId == uid
+            && request.resource.data.senderId != uid
+            && isAccountReferenceableAfter(request.resource.data.senderId)
+            && request.resource.data.senderId == get(roomChatMessage(messageId)).data.senderId
+            && request.resource.data.text == get(roomChatMessage(messageId)).data.text
+            && request.resource.data.type == get(roomChatMessage(messageId)).data.type
+            && request.resource.data.createdAt == request.time;
+          allow update: if isStaff()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && resource.data.status == 'pending'
+            && request.resource.data.status in ['reviewed', 'dismissed'];
+        }
       }
 
       match /events/{eventId} {

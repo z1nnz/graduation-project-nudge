@@ -2320,6 +2320,8 @@ let webRoomChatSending = false;
 let webRoomReadMarkerSub = null;
 let activeWebRoomReadMarker = null;
 let activeWebRoomMessages = [];
+let webRoomHiddenPreviewSub = null;
+let hiddenWebRoomPreview = null;
 let webRoomLastAnnouncedMessageId = null;
 
 function isWebRoomChatPage() {
@@ -2361,7 +2363,7 @@ function renderWebRoomUnread() {
   if (!badge) return;
   const userId = firebase.auth().currentUser?.uid;
   const count = window.NudgeRoomReadState?.unreadCount(
-    activeWebRoomMessages,
+    hiddenWebRoomPreview ? activeWebRoomMessages.filter(message => !hiddenWebRoomPreview.has(message.id)) : activeWebRoomMessages,
     activeWebRoomReadMarker,
     userId,
   ) || 0;
@@ -2910,6 +2912,10 @@ function renderWebRoomSessionPanel() {
 }
 
 function stopWebRoomInteractionListeners() {
+  window.NudgeChat?.stop();
+  webRoomHiddenPreviewSub?.();
+  webRoomHiddenPreviewSub = null;
+  hiddenWebRoomPreview = null;
   if (webRoomMessagesSub) webRoomMessagesSub();
   if (webRoomEventsSub) webRoomEventsSub();
   if (webRoomReadMarkerSub) webRoomReadMarkerSub();
@@ -3174,10 +3180,44 @@ function renderWebRoomMembers() {
   });
 }
 
+function renderWebRoomChatPreview(userId) {
+  const list = $("[data-room-message-list]");
+  if (!list || !hiddenWebRoomPreview) return;
+  const latest = activeWebRoomMessages.find(message => !hiddenWebRoomPreview.has(message.id));
+  list.innerHTML = latest
+    ? `<article class="room-message${latest.senderId === userId ? " mine" : ""}">
+        <strong>${escapeHtml(latest.senderName || "自律夥伴")}</strong>
+        <p>${escapeHtml(latest.text || "")}</p>
+      </article>`
+    : `<p class="room-inline-empty">沒有可顯示的訊息。</p>`;
+}
+
 function listenToWebRoomInteractions(roomId) {
   const userId = firebase.auth().currentUser?.uid;
   if (!db || !userId || !roomId) return;
   stopWebRoomInteractionListeners();
+  if (isWebRoomChatPage()) {
+    window.NudgeChat?.start({
+      room: db.collection("rooms").doc(roomId),
+      userId,
+      isOwner: () => activeWebRoom?.ownerId === userId,
+      members: () => activeWebRoomMembers,
+      notify: toast,
+      send: (text, type) => sendWebRoomMessageOnce(text, type),
+    });
+  } else if (!isWebRoomChatPage()) {
+    webRoomHiddenPreviewSub = db.collection("rooms").doc(roomId)
+      .collection("chat_hidden").doc(userId).collection("chat_hidden_messages")
+      .onSnapshot(snapshot => {
+        hiddenWebRoomPreview = new Set(snapshot.docs.map(doc => doc.id));
+        renderWebRoomChatPreview(userId);
+        renderWebRoomUnread();
+      }, () => {
+        hiddenWebRoomPreview = null;
+        const list = $("[data-room-message-list]");
+        if (list) list.textContent = "無法確認隱藏設定，暫時不顯示預覽。";
+      });
+  }
   webRoomMessagesSub = db.collection("rooms").doc(roomId)
     .collection("messages")
     .orderBy("createdAt", "desc")
@@ -3186,15 +3226,10 @@ function listenToWebRoomInteractions(roomId) {
       const messages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       activeWebRoomMessages = messages;
       const list = $("[data-room-message-list]");
-      if (list) {
-        const visible = isWebRoomChatPage() ? messages : messages.slice(0, 1);
-        list.innerHTML = visible.length
-          ? visible.map(message => `
-            <article class="room-message${message.senderId === userId ? " mine" : ""}">
-              <strong>${escapeHtml(message.senderName || "自律夥伴")}</strong>
-              <p>${escapeHtml(message.text || "")}</p>
-            </article>`).join("")
-          : `<p class="room-inline-empty">還沒有訊息，先送出一句鼓勵吧。</p>`;
+      if (isWebRoomChatPage() && window.NudgeChat) {
+        window.NudgeChat.render(messages);
+      } else if (list) {
+        renderWebRoomChatPreview(userId);
       }
       const newest = messages[0];
       const announcement = $("[data-room-chat-announcement]");
@@ -3290,10 +3325,23 @@ async function sendWebRoomMessage(rawText, type = "text") {
     type === "sticker" ? "sticker" : "message",
     type === "sticker" ? `${senderName} 送出鼓勵貼圖 ${text}` : `${senderName} 傳送了一則訊息`,
   );
-  const batch = db.batch();
-  batch.set(roomRef.collection("messages").doc(messageId), message);
-  batch.set(roomRef.collection("events").doc(event.id), event);
-  await batch.commit();
+  const context = window.NudgeChat?.messageContext() || {};
+  const throttle = roomRef.collection("chat_throttles").doc(userId);
+  await db.runTransaction(async transaction => {
+    const previous = (await transaction.get(throttle)).data();
+    transaction.set(roomRef.collection("messages").doc(messageId), { ...message, ...context });
+    transaction.set(roomRef.collection("events").doc(event.id), event);
+    transaction.set(throttle, {
+      userId,
+      messageId,
+      t0: previous?.t1 ?? null,
+      t1: previous?.t2 ?? null,
+      t2: previous?.t3 ?? null,
+      t3: previous?.t4 ?? null,
+      t4: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+  window.NudgeChat?.clearComposer(roomRef.id);
 }
 
 function bindWebRoomInteractionControls() {
@@ -4815,7 +4863,7 @@ function renderWebUserNotifications(errorMessage = "") {
   if (currentWebUserNotifications.length === 0) {
     root.innerHTML = `
       <div style="padding:24px; text-align:center; color:var(--muted);">
-        目前沒有站內通知。新的家庭／團體邀請與處理結果會顯示在這裡。
+        目前沒有站內通知。
       </div>
     `;
     return;
@@ -4838,6 +4886,9 @@ function renderWebUserNotifications(errorMessage = "") {
               ${escapeHtml(createdAt ? createdAt.toLocaleString("zh-TW") : "時間未提供")}
             </small>
           </div>
+          ${notification.kind === "room_chat_mention" && notification.roomId
+            ? `<a class="secondary-btn" href="room-chat.html?room=${encodeURIComponent(notification.roomId)}">開啟聊天室</a>`
+            : ""}
           ${unread ? `
             <button
               type="button"

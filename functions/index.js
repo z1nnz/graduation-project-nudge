@@ -15,6 +15,7 @@ import {
   onDocumentCreated,
 } from "firebase-functions/v2/firestore";
 
+import { createRoomChatMentionHandler } from "./src/room-chat-mention.js";
 import { ActivityLedgerService } from "./src/activity-ledger-service.js";
 import { createManageGrowthDocumentHandler } from "./src/growth-document-service.js";
 import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
@@ -767,6 +768,11 @@ export const notifyGroupRequestUpdated =
     "group_requests/{requestId}",
     handleGroupRequestUpdated,
   );
+
+export const notifyRoomChatMention = onDocumentCreated(
+  { document: "rooms/{roomId}/messages/{messageId}", retry: true },
+  createRoomChatMentionHandler(getFirestore()),
+);
 
 export const deliverPushNotification = onDocumentCreated(
   {
