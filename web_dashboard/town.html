@@ -22,6 +22,9 @@
       </header>
 
       <nav class="town-hud town-hud-tools" aria-label="小鎮工具">
+        <a href="story-chapters.html" title="旅程手冊" aria-label="旅程手冊">✦</a>
+        <a href="weekly-planner.html" title="週計畫桌" aria-label="週計畫桌">▦</a>
+        <a href="seasonal-event.html" title="季節小鎮" aria-label="季節小鎮">❀</a>
         <a href="notifications.html" title="通知" aria-label="通知">🔔</a>
         <a href="profile.html" title="個人資料" aria-label="個人資料">👤</a>
         <a href="dashboard.html" title="傳統版面" aria-label="切換到傳統版面">▤</a>
@@ -59,12 +62,14 @@
       <section id="townGame" class="town-game" hidden aria-label="休息小遊戲：接星星">
         <div class="town-game-bar">
           <strong>接星星</strong>
-          <span id="townGameScore">0 顆</span>
+          <span id="townGameScore">0 分</span>
+          <span id="townGameCombo" aria-live="polite">連續 0</span>
           <span id="townGameTime">5:00</span>
+          <button id="townGamePause" type="button" class="town-ghost" aria-pressed="false">暫停 <kbd>Esc</kbd></button>
           <button id="townGameClose" type="button" class="town-ghost">結束休息</button>
         </div>
         <canvas id="townGameCanvas" class="town-game-canvas"></canvas>
-        <p class="town-game-hint">左右鍵、滑鼠或手指移動角色。遊戲分數不換自律幣或經驗值。</p>
+        <p class="town-game-hint" id="townGameHint">左右鍵、A/D、滑鼠或手指拖曳移動。連續接到五顆星會有加分，Esc 可暫停。遊戲分數不換自律幣或經驗值。</p>
       </section>
 
       <section id="townDirectory" class="town-directory" aria-label="小鎮建築列表">
@@ -75,6 +80,7 @@
 
     <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script src="assets/town_core.js?v=1"></script>
+    <script src="assets/town_game_core.js?v=1"></script>
     <script src="assets/town.js?v=1"></script>
     <script src="assets/app.js?v=26"></script>
   </body>
