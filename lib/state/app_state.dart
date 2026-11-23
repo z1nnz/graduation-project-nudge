@@ -18,6 +18,7 @@ import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
 import '../models/confirmed_activity_feedback.dart';
 import '../models/activity_feedback_state.dart';
+import '../models/catalog_schedule.dart';
 import '../models/daily_summary.dart';
 import '../models/discipline_identity_snapshot.dart';
 import '../models/experience_capabilities.dart';
@@ -215,6 +216,7 @@ class AppState extends ChangeNotifier {
   ConfirmedActivityFeedback? get confirmedActivityFeedback =>
       _activityFeedback.feedback;
   String get activityFeedbackStatus => _activityFeedback.status;
+  Timer? _shopScheduleTimer;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
   StreamSubscription? _familyLinkSubscription;
@@ -744,42 +746,57 @@ class AppState extends ChangeNotifier {
         .collection('shop_items')
         .snapshots()
         .listen((snapshot) {
-          final docs =
-              snapshot.docs
-                  .where((doc) => _isActiveShopItem(doc.data()))
-                  .toList()
-                ..sort((a, b) {
-                  final aCreated = _shopTimestampSeconds(
-                    a.data()['created_at'],
-                  );
-                  final bCreated = _shopTimestampSeconds(
-                    b.data()['created_at'],
-                  );
-                  final createdComparison = aCreated.compareTo(bCreated);
-                  if (createdComparison != 0) return createdComparison;
-                  return a.id.compareTo(b.id);
-                });
+          void refresh() {
+            _shopScheduleTimer?.cancel();
+            final docs =
+                snapshot.docs
+                    .where((doc) => _isActiveShopItem(doc.data()))
+                    .toList()
+                  ..sort((a, b) {
+                    final aCreated = _shopTimestampSeconds(
+                      a.data()['created_at'],
+                    );
+                    final bCreated = _shopTimestampSeconds(
+                      b.data()['created_at'],
+                    );
+                    final createdComparison = aCreated.compareTo(bCreated);
+                    if (createdComparison != 0) return createdComparison;
+                    return a.id.compareTo(b.id);
+                  });
 
-          final publishedSeries = <PublishedAvatarSeries>[];
-          var fallbackIndex = 18;
-          for (final doc in docs) {
-            final data = doc.data();
-            final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
-              documentId: doc.id,
-              data: data,
-              fallbackIndex: fallbackIndex,
-            );
-            if (parsedSeries == null) continue;
-            publishedSeries.add(parsedSeries);
-            fallbackIndex =
-                parsedSeries.stages
-                    .map((stage) => stage.index)
-                    .reduce(math.max) +
-                1;
+            final publishedSeries = <PublishedAvatarSeries>[];
+            for (final doc in docs) {
+              final data = doc.data();
+              final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
+                documentId: doc.id,
+                data: data,
+              );
+              if (parsedSeries == null) continue;
+              publishedSeries.add(parsedSeries);
+            }
+            AvatarCatalog.replacePublishedSeries(publishedSeries);
+            _normalizeAvatarProfileForCatalog();
+            notifyListeners();
+            final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+            final boundaries =
+                snapshot.docs
+                    .where((doc) => doc.data()['status'] == 'published')
+                    .map(
+                      (doc) =>
+                          _catalogSchedule(doc.data()).nextBoundaryAfter(now),
+                    )
+                    .whereType<int>()
+                    .toList()
+                  ..sort();
+            if (boundaries.isNotEmpty) {
+              _shopScheduleTimer = Timer(
+                Duration(seconds: boundaries.first - now),
+                refresh,
+              );
+            }
           }
-          AvatarCatalog.replacePublishedSeries(publishedSeries);
-          _normalizeAvatarProfileForCatalog();
-          notifyListeners();
+
+          refresh();
         });
 
     // Incoming guardian requests listener
@@ -856,18 +873,20 @@ class AppState extends ChangeNotifier {
     return 0;
   }
 
+  CatalogSchedule _catalogSchedule(Map<String, dynamic> data) {
+    final start = _shopTimestampSeconds(data['start_time']);
+    final end = _shopTimestampSeconds(data['end_time'] ?? data['expires_at']);
+    return CatalogSchedule(
+      startSeconds: start == 0 ? null : start,
+      endSeconds: end == 0 ? null : end,
+    );
+  }
+
   bool _isActiveShopItem(Map<String, dynamic> data) {
-    final status = data['status'] as String? ?? 'published';
-    if (status != 'published') return false;
-    final type = data['type'] as String? ?? 'permanent';
-    final expiresAt = _shopTimestampSeconds(data['expires_at']);
-    if (type == 'permanent' || expiresAt == 0) return true;
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final startAt = _shopTimestampSeconds(data['start_time']);
-    final endAt = _shopTimestampSeconds(data['end_time']) == 0
-        ? expiresAt
-        : _shopTimestampSeconds(data['end_time']);
-    return startAt <= now && now <= endAt;
+    if (data['status'] != 'published') return false;
+    return _catalogSchedule(
+      data,
+    ).activeAt(DateTime.now().millisecondsSinceEpoch ~/ 1000);
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
@@ -1771,6 +1790,8 @@ class AppState extends ChangeNotifier {
     _roomResonancePreferenceSubscriptions.clear();
     _roomResonanceSignalSubscriptions.clear();
     _shopSubscription?.cancel();
+    _shopScheduleTimer?.cancel();
+    _shopScheduleTimer = null;
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
     _familyLinkSubscription?.cancel();
@@ -2738,24 +2759,30 @@ class AppState extends ChangeNotifier {
     return AvatarCatalog.stageForIndex(_avatarProfile.faceShapeIndex).series;
   }
 
+  String get currentAvatarProgressKey {
+    return AvatarCatalog.stageForIndex(
+      _avatarProfile.faceShapeIndex,
+    ).progressKey;
+  }
+
   int get todayAvatarExperience {
-    return todayAvatarExperienceForSeries(currentAvatarSeries);
+    return todayAvatarExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get todayAvatarScoreExperience {
-    return todayAvatarScoreExperienceForSeries(currentAvatarSeries);
+    return todayAvatarScoreExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get todayAvatarAutoExperience {
-    return todayAvatarAutoExperienceForSeries(currentAvatarSeries);
+    return todayAvatarAutoExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get avatarExperience {
-    return avatarExperienceForSeries(currentAvatarSeries);
+    return avatarExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get avatarLevel {
-    return avatarLevelForSeries(currentAvatarSeries);
+    return avatarLevelForSeries(currentAvatarProgressKey);
   }
 
   int get avatarNextLevelExperience {
@@ -2780,7 +2807,9 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarExperienceForStage(int index) {
-    return avatarExperienceForSeries(AvatarCatalog.stageForIndex(index).series);
+    return avatarExperienceForSeries(
+      AvatarCatalog.stageForIndex(index).progressKey,
+    );
   }
 
   int todayAvatarExperienceForSeries(String series) {
@@ -2823,7 +2852,7 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarLevelForStage(int index) {
-    return avatarLevelForSeries(AvatarCatalog.stageForIndex(index).series);
+    return avatarLevelForSeries(AvatarCatalog.stageForIndex(index).progressKey);
   }
 
   static int avatarExperienceRequiredForLevel(int level) {
@@ -2838,15 +2867,15 @@ class AppState extends ChangeNotifier {
   int get currentAvatarStageIndex => _avatarProfile.faceShapeIndex;
   int get currentAvatarIconIndex => _avatarProfile.avatarIconIndex;
 
-  AvatarEvolutionStage _firstAvatarStageForSeries(String series) {
+  AvatarEvolutionStage _firstAvatarStageForProgressKey(String progressKey) {
     return AvatarCatalog.evolutionStages.firstWhere(
-      (stage) => stage.series == series && stage.stage == 1,
+      (stage) => stage.progressKey == progressKey && stage.stage == 1,
       orElse: () => AvatarCatalog.evolutionStages.first,
     );
   }
 
-  bool _isAvatarSeriesPurchased(String series) {
-    final firstStage = _firstAvatarStageForSeries(series);
+  bool _isAvatarSeriesPurchased(String progressKey) {
+    final firstStage = _firstAvatarStageForProgressKey(progressKey);
     if (firstStage.coinPrice <= 0) return true;
     return _unlockedAvatarItemKeys.contains(
       avatarItemKey('faceShape', firstStage.index),
@@ -2855,10 +2884,11 @@ class AppState extends ChangeNotifier {
 
   bool isAvatarEvolutionStageUnlocked(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
-    if (!_isAvatarSeriesPurchased(stage.series)) return false;
+    if (!_isAvatarSeriesPurchased(stage.progressKey)) return false;
     if (stage.stage == 1) return true;
-    return avatarLevelForSeries(stage.series) >= stage.requiredLevel &&
-        avatarExperienceForSeries(stage.series) >= stage.requiredExperience;
+    return avatarLevelForSeries(stage.progressKey) >= stage.requiredLevel &&
+        avatarExperienceForSeries(stage.progressKey) >=
+            stage.requiredExperience;
   }
 
   bool isAvatarIconUnlocked(int index) {
@@ -2868,8 +2898,8 @@ class AppState extends ChangeNotifier {
   String avatarEvolutionRequirementText(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
     if (isAvatarEvolutionStageUnlocked(index)) return '已解鎖';
-    final firstStage = _firstAvatarStageForSeries(stage.series);
-    if (!_isAvatarSeriesPurchased(stage.series)) {
+    final firstStage = _firstAvatarStageForProgressKey(stage.progressKey);
+    if (!_isAvatarSeriesPurchased(stage.progressKey)) {
       if (stage.index == firstStage.index && firstStage.coinPrice > 0) {
         return '${firstStage.coinPrice} 自律幣購買';
       }
@@ -4599,7 +4629,7 @@ class AppState extends ChangeNotifier {
 
   void _migrateLegacyAvatarExperienceLedger() {
     if (_dailySummaries.isEmpty) return;
-    final series = currentAvatarSeries;
+    final series = currentAvatarProgressKey;
     _avatarExperienceLedger = <String, Map<String, int>>{};
     for (final summary in _dailySummaries) {
       final experience = avatarExperienceForSummary(summary);

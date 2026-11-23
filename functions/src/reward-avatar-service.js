@@ -105,18 +105,48 @@ function completeStages(item) {
   const stages = Array.isArray(item?.character_stages)
     ? item.character_stages
     : [];
-  return item?.type === "avatar_series" &&
-    stages.length === 3 &&
-    stages.every((stage, index) =>
-      Number(stage?.stage) === index + 1 &&
-      Number.isSafeInteger(Number(stage?.catalog_index)) &&
-      Number.isSafeInteger(Number(stage?.required_level)) &&
-      Number.isSafeInteger(Number(stage?.required_experience)))
-    ? stages
-    : null;
+  if (item?.type !== "avatar_series" || stages.length !== 3) return null;
+  let previousLevel = -1;
+  let previousExperience = -1;
+  for (const [index, stage] of stages.entries()) {
+    const stageNumber = index + 1;
+    const level = Number(stage?.required_level);
+    const experience = Number(stage?.required_experience);
+    const predecessor = stageNumber === 1 ? null : stageNumber - 1;
+    if (
+      Number(stage?.stage) !== stageNumber ||
+      !Number.isSafeInteger(Number(stage?.catalog_index)) ||
+      !Number.isSafeInteger(level) ||
+      !Number.isSafeInteger(experience) ||
+      stage?.evolves_from_stage !== predecessor ||
+      stage?.shop_eligible !== (stageNumber === 1) ||
+      (stageNumber === 1 && (level !== 1 || experience !== 0)) ||
+      (stageNumber > 1 &&
+        (level <= previousLevel || experience <= previousExperience))
+    ) {
+      return null;
+    }
+    previousLevel = level;
+    previousExperience = experience;
+  }
+  return stages;
 }
 
-async function resolveStage(transaction, firestore, index, catalogItemId) {
+function activeCatalogItem(item, nowEpochSeconds) {
+  if (item?.status !== "published") return false;
+  const start = item.start_time ?? null;
+  const end = item.end_time ?? item.expires_at ?? null;
+  return (start == null || Number(start) <= nowEpochSeconds) &&
+    (end == null || Number(end) > nowEpochSeconds);
+}
+
+async function resolveStage(
+  transaction,
+  firestore,
+  index,
+  catalogItemId,
+  nowEpochSeconds,
+) {
   if (index >= 0 && index < 18) {
     if (catalogItemId !== null) {
       throw new HttpsError(
@@ -128,7 +158,8 @@ async function resolveStage(transaction, firestore, index, catalogItemId) {
     const stage = (index % 3) + 1;
     return {
       index,
-      series: BUILT_IN_SERIES[seriesOffset],
+      seriesName: BUILT_IN_SERIES[seriesOffset],
+      progressKey: BUILT_IN_SERIES[seriesOffset],
       stage,
       requiredLevel: stage === 1 ? 1 : stage === 2 ? 30 : 60,
       requiredExperience: stage === 1 ? 0 : stage === 2 ? 10_000 : 30_000,
@@ -146,6 +177,12 @@ async function resolveStage(transaction, firestore, index, catalogItemId) {
     firestore.collection("shop_items").doc(catalogItemId),
   );
   const item = snapshot.exists ? snapshot.data() : null;
+  if (!activeCatalogItem(item, nowEpochSeconds)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "The avatar catalog document is not currently published.",
+    );
+  }
   const stages = completeStages(item);
   if (!stages) {
     throw new HttpsError(
@@ -160,13 +197,21 @@ async function resolveStage(transaction, firestore, index, catalogItemId) {
       "The avatar stage does not belong to the claimed catalog document.",
     );
   }
-  const series = item.series?.name ?? item.series_name ?? item.name;
-  if (typeof series !== "string" || !series.trim() || series.length > 128) {
+  const seriesName = item.series?.name ?? item.series_name ?? item.name;
+  const progressKey = item.series?.key ?? item.series_key;
+  if (
+    typeof seriesName !== "string" ||
+    !seriesName.trim() ||
+    seriesName.length > 128 ||
+    typeof progressKey !== "string" ||
+    !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(progressKey)
+  ) {
     throw new HttpsError("failed-precondition", "The avatar series is invalid.");
   }
   return {
     index,
-    series: series.trim(),
+    seriesName: seriesName.trim(),
+    progressKey,
     stage: Number(stage.stage),
     requiredLevel: Number(stage.required_level),
     requiredExperience: Number(stage.required_experience),
@@ -175,14 +220,14 @@ async function resolveStage(transaction, firestore, index, catalogItemId) {
   };
 }
 
-function experienceForSeries(user, series) {
+function experienceForSeries(user, progressKey) {
   const ledger = user.avatarExperienceLedger;
   if (!ledger || typeof ledger !== "object" || Array.isArray(ledger)) return 0;
   return Object.values(ledger).reduce((sum, bySeries) => {
     if (!bySeries || typeof bySeries !== "object" || Array.isArray(bySeries)) {
       return sum;
     }
-    const value = bySeries[series];
+    const value = bySeries[progressKey];
     return Number.isSafeInteger(value) && value >= 0 ? sum + value : sum;
   }, 0);
 }
@@ -207,7 +252,7 @@ function assertStageUnlocked(user, stage) {
   const ownsStarter =
     stage.firstStageIsFree ||
     unlocked.includes(`faceShape:${stage.firstStageIndex}`);
-  const experience = experienceForSeries(user, stage.series);
+  const experience = experienceForSeries(user, stage.progressKey);
   if (
     !ownsStarter ||
     (stage.stage > 1 &&
@@ -296,12 +341,14 @@ export function createEquipRewardAvatarHandler({ firestore, clock }) {
         firestore,
         input.profile.faceShapeIndex,
         input.faceCatalogItemId,
+        Math.floor(nowDate.getTime() / 1_000),
       );
       const iconStage = await resolveStage(
         transaction,
         firestore,
         input.profile.avatarIconIndex,
         input.iconCatalogItemId,
+        Math.floor(nowDate.getTime() / 1_000),
       );
       const user = userSnapshot.data();
       assertStageUnlocked(user, faceStage);
@@ -310,7 +357,8 @@ export function createEquipRewardAvatarHandler({ firestore, clock }) {
       const result = {
         rewardEntryId,
         avatarProfile: input.profile,
-        avatarSeries: faceStage.series,
+        avatarSeries: faceStage.progressKey,
+        avatarSeriesName: faceStage.seriesName,
         backgroundTheme: input.backgroundTheme,
         replayed: false,
       };
@@ -331,7 +379,8 @@ export function createEquipRewardAvatarHandler({ firestore, clock }) {
       });
       transaction.update(userRef, {
         avatarProfile: input.profile,
-        avatarSeries: faceStage.series,
+        avatarSeries: faceStage.progressKey,
+        avatarSeriesName: faceStage.seriesName,
         backgroundTheme: input.backgroundTheme,
       });
       if (publicSnapshot.exists) {
