@@ -15,6 +15,18 @@ npm ci --prefix functions
 npm ci --prefix scripts
 ```
 
+### Windows 開發環境
+
+六項 gate 與韌體原生測試需要：Flutter 3.41.7、Node 22、JDK 21（`JAVA_HOME` 指向它）、firebase-tools 15.x（CI 釘選 15.18.0）、Python 3.10 以上（可用 `python3` 呼叫）、g++ 與 make（MSYS2 的 `mingw-w64-ucrt-x86_64-gcc`、`make`）、PlatformIO 與 gh。另外設定 `PYTHONUTF8=1`，讓 Python 以 UTF-8 讀取中文檔案。
+
+先執行一次檢查，它只回報缺少的工具，不會安裝或修改任何東西：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tool\doctor.ps1
+```
+
+repo 以 `.gitattributes` 固定 LF 換行，避免 Windows 的 `core.autocrlf` 改寫原始碼比對、SHA-256 證據與韌體產生檔。
+
 ## 開始一項任務
 
 先從最新 `main` 建立新分支：

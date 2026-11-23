@@ -4,6 +4,14 @@ import 'package:provider/provider.dart';
 import '../services/focus_activity_ledger_controller.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../models/companion_pose.dart';
+import '../widgets/focus_result_sheet.dart';
+import '../widgets/companion_sprite.dart';
+import '../models/cabin_companion_brain.dart';
+import '../models/cabin_layout.dart';
+import '../models/cabin_presentation.dart';
+import '../models/daily_next_action.dart';
+import '../widgets/immersive_cabin.dart';
 
 enum _PomodoroPhase { focus, rest }
 
@@ -11,10 +19,15 @@ class FocusPage extends StatefulWidget {
   final bool autoStart;
   final int initialFocusMinutes;
 
+  /// Desk mode: the session happens inside the cabin, with the companion at
+  /// the desk and a clock on the wall, instead of the card layout.
+  final bool immersive;
+
   const FocusPage({
     super.key,
     this.autoStart = false,
     this.initialFocusMinutes = 25,
+    this.immersive = false,
   }) : assert(initialFocusMinutes >= 1 && initialFocusMinutes <= 120);
 
   @override
@@ -230,14 +243,26 @@ class _FocusPageState extends State<FocusPage> {
 
     if (!mounted) return;
 
+    if (widget.immersive && finishedPhase == _PomodoroPhase.focus) {
+      final startRest = await _showResult(
+        minutes: finishedFocusMinutes,
+        round: completedPomodoros,
+        restMinutes: finishedRestMinutes,
+      );
+      if (!mounted) return;
+      if (startRest == true) {
+        unawaited(startTimer());
+      } else {
+        unawaited(Navigator.of(context).maybePop());
+      }
+      return;
+    }
+
     final shouldStartNext = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         final isFinishedFocus = finishedPhase == _PomodoroPhase.focus;
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
           title: Text(isFinishedFocus ? '專注完成，休息一下' : '休息完成，回到專注'),
           content: Text(
             isFinishedFocus
@@ -260,6 +285,32 @@ class _FocusPageState extends State<FocusPage> {
 
     if (shouldStartNext == true && mounted) {
       unawaited(startTimer());
+    }
+  }
+
+  /// Desk mode celebrates a finished focus with the game result screen.
+  /// The reward line follows the Cloud's confirmed activity feedback.
+  Future<bool?> _showResult({
+    required int minutes,
+    required int round,
+    required int? restMinutes,
+  }) async {
+    final appState = context.read<AppState>();
+    final feedback = ValueNotifier(appState.confirmedActivityFeedback);
+    void sync() => feedback.value = appState.confirmedActivityFeedback;
+    appState.addListener(sync);
+    try {
+      return await showFocusResult(
+        context,
+        profile: appState.avatarProfile,
+        focusMinutes: minutes,
+        round: round,
+        restMinutes: restMinutes,
+        feedback: feedback,
+      );
+    } finally {
+      appState.removeListener(sync);
+      feedback.dispose();
     }
   }
 
@@ -310,9 +361,6 @@ class _FocusPageState extends State<FocusPage> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
             title: const Text('提前結束休息'),
             content: const Text('現在是休息階段，提前結束不會增加專注時間。要直接回到下一輪專注嗎？'),
             actions: [
@@ -356,9 +404,6 @@ class _FocusPageState extends State<FocusPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
           title: const Text('提前結束'),
           content: Text(
             '你目前已專注 ${formatDuration(savedSeconds)}，是否要提前結束並記錄這段時間？',
@@ -402,6 +447,16 @@ class _FocusPageState extends State<FocusPage> {
       remainingSeconds = focusSeconds;
     });
 
+    if (widget.immersive) {
+      await _showResult(
+        minutes: (savedSeconds / 60).round(),
+        round: completedPomodoros + 1,
+        restMinutes: null,
+      );
+      if (mounted) unawaited(Navigator.of(context).maybePop());
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('已記錄 ${formatDuration(savedSeconds)}專注時間')),
     );
@@ -439,9 +494,6 @@ class _FocusPageState extends State<FocusPage> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
           title: const Text('自訂番茄鐘'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -605,9 +657,193 @@ class _FocusPageState extends State<FocusPage> {
     );
   }
 
+  Future<CabinLayout>? _cabinLayout;
+
+  Widget _buildDesk(BuildContext context, AppState appState) {
+    _cabinLayout ??= CabinLayout.load(DefaultAssetBundle.of(context));
+    final pose = !isRunning
+        ? CompanionPose.idle
+        : isFocusPhase
+        ? CompanionPose.read
+        : CompanionPose.sleep;
+    return Scaffold(
+      body: FutureBuilder<CabinLayout>(
+        future: _cabinLayout,
+        builder: (context, snapshot) {
+          final layout = snapshot.data;
+          if (layout == null) {
+            return const ColoredBox(color: Color(0xFF3B2418));
+          }
+          final presentation = CabinPresentation.resolve(
+            summaries: appState.dailySummaries,
+            badges: appState.badgeRecords,
+            decor: appState.homeDecor,
+            action: DailyNextAction.resolve(appState.tasks),
+            openTaskCount: 0,
+            hasDevice: false,
+            deviceFocusing: false,
+          );
+          return CabinStage(
+            layout: layout,
+            presentation: presentation,
+            builder: (context, box) {
+              final charHeight = layout.character.height * box.height;
+              final seat = CabinCompanionBrain.desk;
+              final top = MediaQuery.paddingOf(context).top;
+              Widget button(
+                String label,
+                VoidCallback? onTap, {
+                bool gold = true,
+              }) => Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: gold
+                        ? const Color(0xFFFFC54D)
+                        : const Color(0xFF8A5A34),
+                    foregroundColor: gold
+                        ? const Color(0xFF2A1600)
+                        : Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  onPressed: onTap,
+                  child: Text(label),
+                ),
+              );
+              return [
+                Positioned(
+                  left: box.left + seat.dx * box.width - charHeight / 2,
+                  top: box.top + seat.dy * box.height - charHeight,
+                  width: charHeight,
+                  height: charHeight,
+                  child: CompanionSprite(
+                    profile: appState.avatarProfile,
+                    pose: pose,
+                    size: charHeight,
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: box.top + box.height * 0.075,
+                  child: Center(
+                    child: Container(
+                      key: const Key('desk-clock'),
+                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8A5A34), Color(0xFF5A3826)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        border: Border.all(
+                          color: const Color(0xFFC9934F),
+                          width: 3,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0xFF3B2418),
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            formattedTime,
+                            style: const TextStyle(
+                              fontFamily: 'Cubic11',
+                              color: Color(0xFFFFE6A3),
+                              fontSize: 48,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                              shadows: [
+                                Shadow(
+                                  color: Color(0x99FFC850),
+                                  blurRadius: 12,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            phaseTitle,
+                            style: const TextStyle(
+                              color: Color(0xFFF3D9B0),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  top: top + 6,
+                  child: Material(
+                    color: const Color(0xB3201008),
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      tooltip: '回到小屋',
+                      onPressed: () => Navigator.maybePop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: MediaQuery.paddingOf(context).bottom + 24,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isRunning)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final (f, r) in const [(25, 5), (50, 10)])
+                                ChoiceChip(
+                                  label: Text('$f + $r'),
+                                  selected:
+                                      selectedFocusMinutes == f &&
+                                      selectedRestMinutes == r,
+                                  onSelected: (_) => changePomodoroPreset(
+                                    focusMinutes: f,
+                                    restMinutes: r,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      Row(
+                        children: isRunning
+                            ? [
+                                button('暫停', pauseTimer, gold: false),
+                                const SizedBox(width: 10),
+                                button('結束並記錄', endEarlyAndSave),
+                              ]
+                            : [button(startButtonText, startTimer)],
+                      ),
+                    ],
+                  ),
+                ),
+              ];
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    if (widget.immersive) return _buildDesk(context, appState);
     final accentColor = appState.currentIconColor;
     final activeColor = phaseColor(accentColor);
     final totalFocusMinutes = appState.focusMinutes;
@@ -743,7 +979,20 @@ class _FocusPageState extends State<FocusPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 12),
+                  // The companion keeps you company: reads while you focus,
+                  // dozes during the break.
+                  CompanionSprite(
+                    key: const Key('focus-companion'),
+                    profile: appState.avatarProfile,
+                    pose: !isRunning
+                        ? CompanionPose.idle
+                        : isFocusPhase
+                        ? CompanionPose.read
+                        : CompanionPose.sleep,
+                    size: 140,
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     formattedTime,
                     style: TextStyle(

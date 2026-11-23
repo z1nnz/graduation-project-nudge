@@ -4,7 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('app bootstrap always supplies generated Firebase options', () {
-    final source = File('lib/main.dart').readAsStringSync();
+    // Normalize CRLF so the contract holds on Windows checkouts (autocrlf).
+    final source = File(
+      'lib/main.dart',
+    ).readAsStringSync().replaceAll('\r\n', '\n');
 
     expect(source, contains("import 'firebase_options.dart';"));
     expect(

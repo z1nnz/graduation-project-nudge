@@ -1,0 +1,50 @@
+{
+ "poses/pose_12_cheer.png": {
+  "source": "../pose-art/gen/pose_12_cheer.png",
+  "width": 256
+ },
+ "poses/pose_12_exercise.png": {
+  "source": "../pose-art/gen/pose_12_exercise.png",
+  "width": 256
+ },
+ "poses/pose_12_read.png": {
+  "source": "../pose-art/gen/pose_12_read.png",
+  "width": 256
+ },
+ "poses/pose_12_sleep.png": {
+  "source": "../pose-art/gen/pose_12_sleep.png",
+  "width": 256
+ },
+ "poses/pose_15_cheer.png": {
+  "source": "../pose-art/gen/pose_15_cheer.png",
+  "width": 256
+ },
+ "poses/pose_15_exercise.png": {
+  "source": "../pose-art/gen/pose_15_exercise.png",
+  "width": 256
+ },
+ "poses/pose_15_read.png": {
+  "source": "../pose-art/gen/pose_15_read.png",
+  "width": 256
+ },
+ "poses/pose_15_sleep.png": {
+  "source": "../pose-art/gen/pose_15_sleep.png",
+  "width": 256
+ },
+ "poses/pose_9_cheer.png": {
+  "source": "../pose-art/gen/pose_9_cheer.png",
+  "width": 256
+ },
+ "poses/pose_9_exercise.png": {
+  "source": "../pose-art/gen/pose_9_exercise.png",
+  "width": 256
+ },
+ "poses/pose_9_read.png": {
+  "source": "../pose-art/gen/pose_9_read.png",
+  "width": 256
+ },
+ "poses/pose_9_sleep.png": {
+  "source": "../pose-art/gen/pose_9_sleep.png",
+  "width": 256
+ }
+}

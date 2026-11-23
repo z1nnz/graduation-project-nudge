@@ -160,7 +160,8 @@ service cloud.firestore {
         'rewardLedgerBaselinedAt',
         'avatarProfile',
         'avatarSeries',
-        'backgroundTheme'
+        'backgroundTheme',
+        'homeDecor'
       ]);
     }
 
@@ -179,7 +180,8 @@ service cloud.firestore {
         'rewardLedgerBaselinedAt',
         'avatarProfile',
         'avatarSeries',
-        'backgroundTheme'
+        'backgroundTheme',
+        'homeDecor'
       ]);
     }
 
@@ -316,6 +318,15 @@ service cloud.firestore {
             /databases/$(database)/documents/users/$(friendId)/friends/$(userId)
           );
       }
+    }
+
+    // Private text is mutated only by the attested Cloud document endpoint.
+    match /users/{ownerUid}/growth_documents/{documentId} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false;
+    }
+    match /users/{ownerUid}/growth_document_operations/{documentId} {
+      allow read, write: if false;
     }
 
     // ─── /public_profiles/{userId} ────────────────────────────────────
@@ -2230,6 +2241,19 @@ service cloud.firestore {
           );
         allow write: if false;
       }
+    }
+
+    // Capsule metadata is private to its owner; content and retry tombstones
+    // are server-only even for the owner. Unlock time is never client-writable.
+    match /users/{ownerUid}/growth_capsules/{capsuleId} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false;
+    }
+    match /users/{ownerUid}/growth_capsule_secrets/{capsuleId} {
+      allow read, write: if false;
+    }
+    match /users/{ownerUid}/growth_capsule_operations/{capsuleId} {
+      allow read, write: if false;
     }
 
     // ─── Cloud Activity Ledger ─────────────────────────────────────────

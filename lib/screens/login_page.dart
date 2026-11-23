@@ -306,8 +306,6 @@ class _LoginPageState extends State<LoginPage> {
         final primaryText = AppUI.textPrimaryOf(context);
         final secondaryText = AppUI.textSecondaryOf(context);
         return AlertDialog(
-          backgroundColor: AppUI.scaffoldBackgroundOf(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: AppUI.primary),
