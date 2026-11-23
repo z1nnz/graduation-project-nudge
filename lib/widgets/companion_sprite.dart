@@ -88,14 +88,20 @@ class _CompanionSpriteState extends State<CompanionSprite>
         ? CompanionPose.walkFrames(widget.profile.faceShapeIndex)
         : null;
     final Widget body = walkFrames != null
-        ? Image.asset(
-            walkFrames[widget.stepPhase < 0.5 ? 0 : 1],
-            width: size,
-            height: size,
-            fit: BoxFit.contain,
+        // The base sprite renders taller than its box; draw the tightly
+        // trimmed step frames at the same visible height to avoid size jumps.
+        ? OverflowBox(
+            maxWidth: size * 1.3,
+            maxHeight: size * 1.28,
             alignment: Alignment.bottomCenter,
-            filterQuality: FilterQuality.none,
-            gaplessPlayback: true,
+            child: Image.asset(
+              walkFrames[widget.stepPhase < 0.5 ? 0 : 1],
+              height: size * 1.28,
+              fit: BoxFit.contain,
+              alignment: Alignment.bottomCenter,
+              filterQuality: FilterQuality.none,
+              gaplessPlayback: true,
+            ),
           )
         : poseAsset != null
         ? Image.asset(
