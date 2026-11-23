@@ -1,0 +1,158 @@
+
+> nudge-cloud-functions@1.0.0 test
+> node --test test/*.test.js
+
+✔ deletion plan blocks active ownership with other participants (0.748875ms)
+✔ deletion plan removes a non-owner manager and permits only solo family cleanup (0.087ms)
+✔ execution never erases data until cooling and ownership checks pass (35.366583ms)
+✔ ready deletion executes data erasure before Auth removal and completion (0.288458ms)
+✔ post-claim inventory replaces a stale preflight plan and fails closed (0.229875ms)
+✔ activity ingestion errors keep auth and retry semantics (0.426125ms)
+✔ room activity atomically advances its Ledger and member projection (27.103875ms)
+✔ room activity enforces one active session and its canonical lifecycle (1.922583ms)
+✔ room activity rejects a forged or inactive member projection (0.93075ms)
+✔ App task completion can be corrected from Web without a reward (1.438708ms)
+✔ task evidence is a binary metric synchronization (0.17825ms)
+✔ task evidence settles only when its canonical task projection exists (0.170542ms)
+✔ task evidence is personal and requires one daily correlation (0.233834ms)
+✔ an older task event is audited without overwriting newer task state (0.414792ms)
+✔ a completed activity settles once across service restarts (4.4585ms)
+✔ one-shot user completion is auditable but cannot mint a reward (0.62625ms)
+✔ reported timer duration cannot exceed its observed lifecycle (0.499667ms)
+✔ Cloud lifecycle timing grants no five-minute reward grace (0.377291ms)
+✔ reward caps use Cloud settlement date instead of a backdated client date (0.348166ms)
+✔ first formal reward preserves a legacy experience projection (0.341417ms)
+✔ activity rewards respect daily coin and character experience caps (42.793208ms)
+✔ daily character experience cap is shared across avatar series (0.506791ms)
+✔ reward cutover fence defers an otherwise valid settlement (0.368ms)
+✔ event idempotency is namespaced by actor and source (0.388375ms)
+✔ one source record cannot mint another receipt under a new event ID (3.440458ms)
+✔ a source record cannot be reclassified into another rewarded activity (0.426459ms)
+✔ app and health evidence with one correlation settle one reward (0.447791ms)
+✔ user ingestion rejects spoofed device evidence and invalid dimensions (0.445541ms)
+✔ an activity lifecycle is persisted and only terminal events settle (0.495209ms)
+✔ only an approved membership active at occurrence time contributes (0.28725ms)
+✔ membership and room status must both allow the contribution (0.272541ms)
+✔ rooms requiring sharing consent fail closed (0.290167ms)
+✔ a replay cannot use a later occurrence time to backfill a room (0.321584ms)
+✔ zero and unverified custom activities settle without reward issuance (1.03475ms)
+✔ discarding a session is terminal and never settles a receipt (0.924125ms)
+✔ activity identifiers are canonicalized before idempotency (0.197458ms)
+✔ one receipt can add a later eligible room without another reward (0.348625ms)
+✔ health snapshots correct one logical daily metric before finalization (0.342625ms)
+✔ a mobile health adapter is bound to its authenticated actor (0.07025ms)
+✔ catalog payload makes only the initial avatar stage shop eligible (0.675083ms)
+✔ catalog command rejects incomplete evolution chains and non-admin surfaces (0.263791ms)
+✔ catalog handler rejects unauthenticated and non-staff accounts (1.897792ms)
+✔ catalog publish allocates collision-free indexes and one immutable audit (1.718459ms)
+✔ catalog publish reserves each avatar series key (0.394333ms)
+✔ catalog update preserves indexes and archive is audited (0.612708ms)
+✔ device assignment command accepts only bounded admin input (5.781291ms)
+✔ staff assignment validates the user and room membership atomically (60.053792ms)
+✔ non-staff and non-member room assignment fail closed (0.768334ms)
+✔ assignment refuses an account with an active deletion fence (11.758208ms)
+✔ assignment refuses a device that still requires a verified wipe (0.8115ms)
+✔ assignment cannot transfer a device to another user without a verified wipe (0.335583ms)
+✔ same-user unchanged room scope preserves the assignment validity window (0.403791ms)
+✔ active assignment rejects a room scope change without a verified empty queue (0.356ms)
+✔ same-user reassignment after revoke requires a verified wipe (0.329583ms)
+✔ discipline day follows the Taipei 05:00 boundary (118.717875ms)
+✔ an empty ledger produces a private starting snapshot (0.463209ms)
+✔ five active days form a steady builder identity (0.357584ms)
+✔ returning after a gap becomes a comeback builder without erasing history (0.170792ms)
+✔ snapshot rejects unrelated and non-completed ledger records (0.172875ms)
+✔ authenticated refresh reads canonical sessions and saves one snapshot (0.526125ms)
+✔ refresh requires authentication (0.456708ms)
+✔ refresh fails closed instead of publishing a truncated identity (0.336709ms)
+﹣ privacy export objects deny direct owner and outsider Storage SDK access (0.354959ms) # SKIP
+﹣ account deletion atomically records removed Relationship rollback evidence (0.362416ms) # SKIP
+﹣ account deletion executor removes Auth, Ledger and relationship data (0.055667ms) # SKIP
+﹣ stale deletion leases are reclaimable and partial failures cannot cancel (0.043459ms) # SKIP
+﹣ owned scopes are revalidated before recursive deletion (0.039875ms) # SKIP
+﹣ deletion fence blocks an existing client token and Auth is disabled (0.044834ms) # SKIP
+﹣ expired account deletion evidence and request-targeted audits are purged (0.037125ms) # SKIP
+﹣ Activity Ledger documents are Cloud-written and relationship-readable (0.295834ms) # SKIP
+﹣ Firestore commits room Ledger and member session projection together (0.340708ms) # SKIP
+﹣ Firestore persists one settlement and room contribution atomically (0.047542ms) # SKIP
+﹣ Firestore merges later eligible rooms into one persisted receipt (0.036833ms) # SKIP
+﹣ concurrent replays commit one receipt (0.035708ms) # SKIP
+﹣ Firestore preserves health correction receipts and the latest session (0.038875ms) # SKIP
+﹣ a real authenticated staff account needs App Check to publish an audited item (0.579ms) # SKIP
+﹣ staff can read catalog state but all client mutations require Cloud (0.298542ms) # SKIP
+﹣ device assignment is owner-readable and always Cloud-written (0.291542ms) # SKIP
+﹣ privacy consent and audit records are Cloud-written and owner-readable (0.310667ms) # SKIP
+﹣ a real authenticated account needs App Check for an audited deletion request (2.111083ms) # SKIP
+﹣ a real staff account needs App Check before executing account deletion (0.19475ms) # SKIP
+﹣ a real authenticated account needs App Check to register a secret push token (0.578875ms) # SKIP
+﹣ relationship outcomes and memories are Cloud-written and membership-readable (0.309875ms) # SKIP
+﹣ relationship outcome refresh requires every formal Membership and role (0.046417ms) # SKIP
+﹣ relationship outcome refresh aborts when any participant is deleting (0.03575ms) # SKIP
+﹣ room resonance stays private to its owner and approved room members (0.615ms) # SKIP
+﹣ a real authenticated family request becomes one Cloud inbox item (0.320208ms) # SKIP
+﹣ museum reads the real canonical completed-session query and refuses foreign or client-created facts (0.309625ms) # SKIP
+✔ health snapshot ingestion requires an authenticated user (1.210375ms)
+✔ health snapshot ingestion fails closed without active consent (7.5145ms)
+✔ health snapshot ingestion binds actor and deduplicates a replay (2.831458ms)
+✔ health snapshot ingestion rejects malformed provider contracts (0.155417ms)
+✔ notification input requires the complete supported channel set (0.975083ms)
+✔ notification handler rejects unauthenticated callers (0.189ms)
+✔ notification handler writes current state and one idempotent audit (1.438125ms)
+✔ privacy consent input requires the current policy and stable request id (0.775625ms)
+✔ privacy handler rejects unauthenticated callers before Firestore (0.173875ms)
+✔ health consent checker fails closed (0.126125ms)
+✔ privacy consent writes one current state and idempotent audit event (1.51775ms)
+✔ privacy data requests validate action, surface and stable request id (0.868292ms)
+✔ privacy export queries paginate until every document is collected (3.054542ms)
+✔ relationship export DTO omits other participants and private fields (0.515209ms)
+✔ privacy export includes only the requester's relationship migration before-images (2.021083ms)
+✔ privacy export includes the requester's private discipline identity (0.968ms)
+✔ privacy export includes only devices assigned to the requester (0.239583ms)
+✔ privacy export includes only resonance records associated with the requester (0.225083ms)
+✔ export request creates a private artifact, owner state and immutable audit (2.245291ms)
+✔ export generation failure revokes its token and records a terminal state (0.317375ms)
+✔ account deletion request is pending, review-delayed and cancellable (0.312958ms)
+✔ export download returns an expiring artifact URL without auditing its token (0.436458ms)
+✔ expired exports are deleted and their access tokens are revoked (0.331834ms)
+✔ staff management handles review and rejection but cannot fake completion (0.396833ms)
+✔ push installation input rejects secrets and unstable identities (1.046458ms)
+✔ push installation registration is audited, idempotent and revocable (1.535917ms)
+✔ one token claim moves atomically between accounts (0.522083ms)
+✔ first push opt-in creates the shared default notification preferences (0.139291ms)
+✔ delivery sends only server-held tokens and revokes invalid ones (0.931ms)
+✔ delivery skips accounts that never enabled push (0.185583ms)
+✔ delivery drops a job when account deletion is fenced (0.113625ms)
+✔ delivery records a terminal audit after the retry budget (0.565041ms)
+✔ the Cloud activity handler rejects unauthenticated submissions (0.6165ms)
+✔ the Cloud activity handler binds evidence to the authenticated user (3.669709ms)
+✔ family outcome grows only from validated bond events (0.75275ms)
+✔ family memories are deterministic projections of bond events (0.122625ms)
+✔ group outcome is relationship growth and never a personal reward (0.144833ms)
+✔ refresh handler rejects unauthenticated callers before data access (0.233417ms)
+✔ Cloud equipment rejects a forged paid unlock and accepts owned stages (3.163ms)
+✔ Cloud equipment validates evolution XP, background ownership and replay (0.555917ms)
+✔ Cloud equipment is fenced during reward baseline cutover (0.2535ms)
+✔ a built-in starter purchase creates one debit and one unlock (23.362834ms)
+✔ the server rejects evolution stages and insufficient balances (0.386375ms)
+✔ a published evolution chain sells only its initial catalog stage (0.248834ms)
+✔ purchase rejects malformed catalog chains and corrupt reward projections (0.164292ms)
+✔ purchase rejects an invalid server clock (0.098083ms)
+✔ purchase respects the cutover fence and unlock projection limit (0.298416ms)
+✔ resonance accepts only bounded cues and responses (0.603833ms)
+✔ resonance requires authentication before reading room state (0.271916ms)
+✔ publishing is opt-in and disabling sharing withdraws the cue (1.540875ms)
+✔ another approved member acknowledges once without taking control (0.41925ms)
+✔ acknowledgement fails closed on corrupt or expired signal state (0.165042ms)
+✔ family request creates a recipient-owned in-app notification (0.435791ms)
+✔ accepted group request notifies the sender and resolves once (0.106875ms)
+✔ late create trigger does not resurrect a resolved invitation (0.257708ms)
+✔ relationship triggers do not write after either account is fenced (0.281959ms)
+✔ terminal relationship update cancels an unsent invitation job (0.211375ms)
+✔ only the recipient can mark a notification read with audit (2.100375ms)
+ℹ tests 146
+ℹ suites 0
+ℹ pass 120
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 26
+ℹ todo 0
+ℹ duration_ms 3613.918042
