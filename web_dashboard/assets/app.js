@@ -225,6 +225,7 @@ function jsStringArg(value) {
 }
 
 const modules = [
+  ["town", "夥伴小鎮", "town.html"],
   ["home", "總覽入口", "dashboard.html"],
   ["personal", "個人進階分析", "personal.html"],
   ["guardian", "家長陪伴中心", "guardian.html"],

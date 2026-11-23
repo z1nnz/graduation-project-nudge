@@ -16,6 +16,8 @@
 
 | 項目 | 規則 |
 | --- | --- |
+| 公開入口 | `index.html` 的導覽列、首屏與頁尾都有「探索小鎮」，連到 `town.html`，原本的「進入 Nudge」（`dashboard.html`）保留。未登入可以探索，進入需要登入的頁面時由該頁面自己的守衛處理。 |
+| 無法顯示地圖 | Canvas 不可用或 `town_map.jpg` 載入失敗時，小鎮改成固定顯示的文字建築列表並說明原因；選建築一樣會打開建築選單。 |
 | 進入小鎮的某棟建築 | `town.html?at=<buildingId>`。只接受 `town_routes.js` 的 `BUILDINGS` 裡的 id，其他值一律忽略，不會產生開放式導向。 |
 | 返回小鎮 | 頁面放 `<a data-town-return href="town.html">← 返回小鎮</a>`，載入 `assets/town_routes.js` 與 `assets/town_return.js`。空值會依路線表找出這頁所屬的建築；也可以寫 `data-town-return="tower"` 指定建築。工具頁和未登記的頁面回到小鎮廣場。 |
 | 新增場景 | 在 `DESTINATIONS` 加一列或把自己的 `planned` 改成 `available`，並在本文件補一列。測試會檢查 `available` 的頁面必須存在、所有 `.html` 都要登記。 |

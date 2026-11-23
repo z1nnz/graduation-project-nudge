@@ -1,8 +1,8 @@
 {
-  "base": "10cc51c3931594ade600f7385477a3439aa01dd1",
+  "base": "4e3eda4b340458e3951c67aff45dd651c588473c",
   "root": {
-    "tests": 235,
-    "pass": 232,
+    "tests": 255,
+    "pass": 252,
     "fail": 0,
     "skipped": 3
   },
@@ -47,7 +47,7 @@
   "source_sha256": {
     "test/town_tool_content_test.js": "2bf9d765cd71d51366cbf93f07d20d53f4a3319f96f696e7505c0628ca3b6418",
     "web_dashboard/admin_dashboard.html": "714a36192d5b70324661a427be48a3f80a283b8ecbe2b12fab0e3848c3e3b244",
-    "web_dashboard/assets/town_routes.js": "cbf57ae189cc7a9e457fa27f2a0f4e2f87805a58232ce1df137862eae7cae9af",
+    "web_dashboard/assets/town_routes.js": "aa08eec492d92382d5488940a8054807d28d39fe0b560c3de77d6e141776680f",
     "web_dashboard/assets/town_tools.js": "0c4f9cd0283e70b553814b7b1ba3d80d7031a3ff2b6d38f0f3374821488aa839",
     "web_dashboard/assets/town_workbench.css": "51d090bf7a1b2ad4afa75e29117eb6f17b54bdb87e1d23e8895e67e0ca317332",
     "web_dashboard/operations-economy.html": "0c8e54e4c6122e99c17ad98a1b44001038548dcd68a497f921aaeee053576047",
@@ -58,5 +58,7 @@
     "web_dashboard/research-scenario.html": "23bb1cbdfb398458560d9511551d09239bba5d836af927f28c08889ee47fe195",
     "web_dashboard/research-score-demo.html": "226ad82af85cd1842a0b60e6c19328d34034edb8e5eb698bc92f0668d4736ecc",
     "web_dashboard/research.html": "b275ea5cebdd50fc49da46e2a6724d8b13c8a8fbdea287878d70b39ebfd55214"
-  }
+  },
+  "integration_main": "4e3eda4b340458e3951c67aff45dd651c588473c",
+  "main_sync_notes": "Synced official main (#101 including #107), retained both public entry contracts, removed duplicate focus return scripts/links. Web and Flutter verification rerun; Functions/Rules trees unchanged."
 }
