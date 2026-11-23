@@ -1,0 +1,21 @@
+:root{color-scheme:dark;--paper:#f4e6c6;--ink:#352718;--wood:#422d27;--gold:#f2cb7b;--muted:#c3b59c}
+*{box-sizing:border-box}body{margin:0;background:#171b22;color:var(--paper);font-family:system-ui,"Noto Sans TC",sans-serif;line-height:1.65}
+a{color:var(--gold)}button,input,textarea,select{font:inherit}button,a,input,select{min-height:44px}
+button{border:1px solid var(--gold);border-radius:8px;background:var(--wood);color:var(--paper);padding:9px 16px;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}input,textarea,select{width:100%;background:#20252b;color:#fff;border:1px solid #a99c87;border-radius:6px;padding:10px}
+textarea{min-height:120px}label{display:grid;gap:5px;margin:12px 0}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #87d8ee;outline-offset:4px}
+.skip-link{position:absolute;left:-10000px}.skip-link:focus{left:12px;top:12px;background:#171b22;padding:12px;z-index:100}
+.museum-header,main,.museum-footer{max-width:1080px;margin:auto;padding:24px}.museum-header{display:flex;gap:16px;justify-content:space-between;align-items:center}
+.museum-brand{font-size:1.25rem;font-weight:800;text-decoration:none}.museum-nav{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0 20px}
+.museum-nav a{padding:8px 12px;border:1px solid #73624b;border-radius:8px;text-decoration:none}.museum-nav a[aria-current]{background:var(--paper);color:var(--ink)}
+h1{font-size:clamp(1.8rem,5vw,3rem);margin:8px 0}h2{font-size:1.35rem}.museum-kicker{color:var(--gold);letter-spacing:.15em;font-size:.8rem}
+.museum-status{padding:14px 18px;border-left:4px solid var(--gold);background:#242a30;min-height:54px;margin:20px 0}
+.museum-view{min-height:320px}.museum-books{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.museum-book{display:grid;gap:12px;padding:24px;border:1px solid #8f7250;border-radius:12px;background:var(--wood);color:var(--paper);text-decoration:none}
+.museum-book strong{font-size:1.25rem}.museum-book span,.museum-footer{color:var(--muted)}.museum-panel{background:#242a30;padding:22px;border:1px solid #766345;border-radius:12px;margin:16px 0;overflow-wrap:anywhere}
+.museum-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.museum-row>*{flex:0 1 auto}.museum-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.museum-timeline{padding:0;list-style:none}.museum-timeline li{padding:16px;border-bottom:1px solid #665b49}.museum-timeline details{margin-top:8px}
+.museum-notice{color:#cde9ef}.museum-danger{border-color:#e6a192}.museum-empty{padding:24px;border:1px dashed #85775f;border-radius:10px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere}dialog{color:var(--paper);background:#242a30;border:1px solid var(--gold);border-radius:12px;max-width:92vw}
+@media(max-width:600px){.museum-header,main,.museum-footer{padding:16px}.museum-header{align-items:flex-start}.museum-books,.museum-grid{grid-template-columns:1fr}.museum-nav a{flex:1 1 120px}.museum-panel{padding:16px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

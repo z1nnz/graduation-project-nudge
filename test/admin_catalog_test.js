@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const {
   buildAvatarSeriesPayload,
+  summarizeAvatarSeries,
   validateAvatarSeriesDraft,
 } = require("../web_dashboard/assets/admin_catalog.js");
 
@@ -69,6 +70,18 @@ test("admin payload publishes a complete codex chain and sells only stage one", 
     payload.character_stages.map((stage) => stage.evolves_from_stage),
     [null, 1, 2],
   );
+
+  const summary = summarizeAvatarSeries(payload);
+  assert.equal(summary.seriesKey, "night-shadow");
+  assert.equal(summary.codexDescription, draft.codexDescription);
+  assert.deepEqual(
+    summary.stages.map((stage) => stage.shopEligible),
+    [true, false, false],
+  );
+  assert.deepEqual(
+    summary.stages.map((stage) => stage.name),
+    ["夜影見習生", "夜輪行者", "夜曜守護者"],
+  );
 });
 
 test("admin validation rejects incomplete or non-increasing evolution chains", () => {
@@ -97,6 +110,17 @@ test("admin validation rejects incomplete or non-increasing evolution chains", (
   assert.ok(errors.some((message) => message.includes("3 階")));
   assert.ok(errors.some((message) => message.includes("遞增")));
   assert.ok(errors.some((message) => message.includes("圖鑑")));
+});
+
+test("admin active catalog summary rejects incomplete character chains", () => {
+  assert.equal(
+    summarizeAvatarSeries({
+      type: "avatar_series",
+      series_key: "broken",
+      character_stages: [{ stage: 1, name: "只有一階" }],
+    }),
+    null,
+  );
 });
 
 test("admin catalog mutations use the audited Cloud command only", () => {

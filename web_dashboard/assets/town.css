@@ -1,0 +1,106 @@
+/* Nudge companion town: a full-screen walkable pixel map with floating HUD.
+   Single warm-evening look; every control keeps 44px touch targets. */
+:root {
+  --town-ink: #fbefe2;
+  --town-ink-dark: #3a1d0c;
+  --town-panel: rgba(32, 18, 12, 0.82);
+  --town-border: rgba(255, 220, 170, 0.28);
+  --town-gold: #ffc54d;
+  --town-gold-deep: #c4710b;
+  --town-violet: #8b6cf0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; background: #1b1530; color: var(--town-ink);
+  font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; }
+body { overflow: hidden; }
+
+.town { position: fixed; inset: 0; }
+.town-canvas { position: absolute; inset: 0; width: 100%; height: 100%;
+  image-rendering: pixelated; cursor: pointer; touch-action: none; }
+.town-labels { position: absolute; inset: 0; pointer-events: none; }
+
+.town-label { position: absolute; transform: translate(-50%, -100%);
+  background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 10px;
+  padding: 4px 10px; text-align: center; white-space: nowrap; line-height: 1.3; }
+.town-label strong { display: block; font-size: 13px; }
+.town-label span { display: block; font-size: 11px; opacity: 0.85; }
+.town-label.is-locked { border-color: rgba(255, 120, 120, 0.5); }
+.town-label.is-near { border-color: var(--town-gold); box-shadow: 0 0 0 2px rgba(255, 197, 77, 0.35); }
+
+.town-hud { position: absolute; z-index: 5; background: var(--town-panel);
+  border: 1px solid var(--town-border); border-radius: 999px; backdrop-filter: blur(6px); }
+.town-hud-identity { left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top));
+  display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; }
+.town-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; object-position: top;
+  background: #4a2d22; image-rendering: pixelated; }
+.town-hud-identity strong { display: block; font-size: 14px; }
+.town-hud-identity span { display: block; font-size: 12px; opacity: 0.85; }
+.town-hud-tools { right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top));
+  display: flex; gap: 2px; padding: 4px; }
+.town-hud-tools a, .town-hud-tools button, .town-hud-zoom button {
+  width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%;
+  background: transparent; color: var(--town-ink); font-size: 18px; text-decoration: none; cursor: pointer; }
+.town-hud-tools a:hover, .town-hud-tools button:hover, .town-hud-zoom button:hover { background: rgba(255,255,255,0.12); }
+.town-hud-clock { left: max(14px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom));
+  padding: 4px 14px; font-size: 26px; font-weight: 800; letter-spacing: 1px; border-radius: 14px; }
+.town-hud-ticket { left: max(14px, env(safe-area-inset-left)); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 56px);
+  padding: 6px 12px; font-size: 13px; font-weight: 800; color: #2a1600;
+  background: linear-gradient(180deg, #d6c8ff, var(--town-violet)); border-color: #4b2fa8; }
+.town-hud-zoom { right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom));
+  display: grid; gap: 2px; padding: 4px; border-radius: 22px; }
+
+.town-prompt { position: absolute; left: 50%; bottom: max(90px, calc(env(safe-area-inset-bottom) + 90px));
+  transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px;
+  background: var(--town-panel); border: 1px solid var(--town-gold); border-radius: 999px; padding: 6px 6px 6px 16px; }
+.town-prompt button, .town-gold { min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px;
+  background: var(--town-gold); color: #2a1600; font-weight: 900; font-size: 15px; cursor: pointer;
+  box-shadow: 0 4px 0 var(--town-gold-deep); }
+.town-ghost { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--town-border);
+  background: transparent; color: var(--town-ink); cursor: pointer; font-size: 14px; }
+kbd { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,0.85); color: #2a1600; margin-left: 4px; }
+
+.town-toast { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 8;
+  background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 12px;
+  padding: 10px 16px; max-width: min(92vw, 460px); text-align: center; }
+
+.town-dialog { position: absolute; z-index: 9; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom)); max-width: 980px; margin: 0 auto; display: flex; gap: 14px;
+  align-items: flex-end; background: rgba(20, 12, 8, 0.92); border: 1px solid var(--town-border);
+  border-radius: 18px; padding: 14px 16px; }
+.town-dialog-portrait { width: 96px; height: 96px; object-fit: contain; image-rendering: pixelated; flex: none; }
+.town-dialog-body { flex: 1; min-width: 0; }
+.town-dialog-name { display: inline-block; background: var(--town-gold); color: #2a1600; font-weight: 900;
+  font-size: 13px; padding: 2px 10px; border-radius: 999px; }
+.town-dialog p { margin: 8px 0 10px; font-size: 16px; line-height: 1.6; }
+.town-dialog-actions { display: flex; align-items: center; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.town-dialog-actions span { opacity: 0.75; font-size: 13px; margin-right: auto; }
+
+.town-game { position: absolute; inset: 0; z-index: 10; background: rgba(15, 10, 30, 0.94);
+  display: flex; flex-direction: column; align-items: center; padding: max(12px, env(safe-area-inset-top)) 12px 12px; }
+.town-game-bar { width: min(100%, 640px); display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.town-game-bar #townGameCombo { color: var(--town-gold); font-weight: 900; }
+.town-game-canvas { width: min(100%, 640px); flex: 1; min-height: 0; margin-top: 10px; border-radius: 16px;
+  background: linear-gradient(#251a4d, #4a2a5e); touch-action: none; image-rendering: pixelated; }
+.town-game-hint { font-size: 12px; opacity: 0.75; text-align: center; }
+
+.town-directory { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.town-directory:focus-within { position: absolute; z-index: 20; inset: auto 12px 12px 12px; width: auto; height: auto;
+  clip: auto; overflow: auto; max-height: 60vh; background: var(--town-panel); border-radius: 16px; padding: 12px 16px; }
+.town-directory a { color: var(--town-ink); }
+.town-skip { position: absolute; left: -999px; top: 8px; z-index: 30; background: var(--town-gold); color: #2a1600; padding: 8px 12px; border-radius: 8px; }
+.town-skip:focus { left: 8px; }
+
+button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); outline-offset: 2px; }
+
+@media (max-width: 560px) {
+  .town-hud-clock { font-size: 20px; }
+  .town-dialog-portrait { width: 64px; height: 64px; }
+  .town-dialog p { font-size: 15px; }
+  .town-hud-tools { top: calc(max(14px, env(safe-area-inset-top)) + 62px); }
+  .town-hud-tools a, .town-hud-tools button { width: 40px; height: 40px; }
+  .town-hud-tools a[title="傳統版面"] { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

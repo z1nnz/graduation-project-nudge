@@ -1,0 +1,22 @@
+.planner-hero { grid-template-columns: 180px 1fr; }
+.planner-layout { display: grid; grid-template-columns: minmax(230px, 300px) 1fr; gap: 18px; margin-top: 24px; }
+.planner-tray, .planner-day { background: #271e30ed; border: 2px solid #866047; border-radius: 18px; padding: 18px; }
+.planner-tray h3, .planner-day h3 { margin-top: 0; color: #ffe4a3; }
+.planner-tray label { display: block; margin: 14px 0 8px; }
+.planner-add { display: grid; gap: 8px; }
+.planner-add input, .planner-task select { width: 100%; color: #fff2d5; background: #35273b; border: 2px solid #b18b65; padding: 10px; border-radius: 8px; font: inherit; }
+.planner-task-list, .planner-day-list { display: grid; gap: 9px; min-height: 30px; }
+.planner-task { padding: 12px; border: 1px solid #ad8366; background: #463246; border-radius: 11px; }
+.planner-task[draggable='true'] { cursor: grab; }
+.planner-task strong { display: block; overflow-wrap: anywhere; }
+.planner-task label { font-size: .75rem; color: #ffdd99; }
+.planner-task select { margin-top: 5px; }
+.planner-task small { color: #d4c3b4; }
+.planner-days { display: grid; grid-template-columns: repeat(7, minmax(130px, 1fr)); gap: 10px; overflow-x: auto; }
+.planner-day { min-height: 250px; padding: 12px; }
+.planner-day.is-dragover { outline: 3px solid #ffce78; }
+.planner-day h3 { font-size: 1rem; }
+.planner-day p { color: #dec4b8; font-size: .8rem; }
+.planner-day .planner-warning { color: #ffcb72; }
+@media (max-width: 1000px) { .planner-days { grid-template-columns: repeat(7, 155px); } }
+@media (max-width: 760px) { .planner-hero, .planner-layout { grid-template-columns: 1fr; } }

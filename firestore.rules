@@ -160,7 +160,8 @@ service cloud.firestore {
         'rewardLedgerBaselinedAt',
         'avatarProfile',
         'avatarSeries',
-        'backgroundTheme'
+        'backgroundTheme',
+        'homeDecor'
       ]);
     }
 
@@ -179,7 +180,8 @@ service cloud.firestore {
         'rewardLedgerBaselinedAt',
         'avatarProfile',
         'avatarSeries',
-        'backgroundTheme'
+        'backgroundTheme',
+        'homeDecor'
       ]);
     }
 
@@ -316,6 +318,15 @@ service cloud.firestore {
             /databases/$(database)/documents/users/$(friendId)/friends/$(userId)
           );
       }
+    }
+
+    // Private text is mutated only by the attested Cloud document endpoint.
+    match /users/{ownerUid}/growth_documents/{documentId} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false;
+    }
+    match /users/{ownerUid}/growth_document_operations/{documentId} {
+      allow read, write: if false;
     }
 
     // ─── /public_profiles/{userId} ────────────────────────────────────
@@ -475,6 +486,102 @@ service cloud.firestore {
           && request.resource.data.status == 'pending')
       );
       allow delete: if false;
+    }
+
+    // ─── /friend_visit_settings/{userId} ─────────────────────────────
+    // Host-owned, revocable visit visibility. Friends can read it only while
+    // visits are allowed; it exposes a scene key, never activity or health.
+    match /friend_visit_settings/{userId} {
+      function validFriendVisitSettings() {
+        let data = request.resource.data;
+        return data.keys().hasOnly([
+            'schemaVersion', 'userId', 'allowVisits', 'sceneKey', 'updatedAt'
+          ])
+          && data.keys().hasAll([
+            'schemaVersion', 'userId', 'allowVisits', 'sceneKey', 'updatedAt'
+          ])
+          && data.schemaVersion == 1
+          && data.userId == userId
+          && data.allowVisits is bool
+          && data.sceneKey in ['cabin', 'garden', 'study_corner']
+          && data.updatedAt is string
+          && data.updatedAt.size() <= 40;
+      }
+
+      allow read: if isOwner(userId)
+        || (
+          isAuth()
+          && resource.data.allowVisits == true
+          && areMutualFriends(request.auth.uid, userId)
+        );
+      allow create, update: if isOwner(userId) && validFriendVisitSettings();
+      allow delete: if isOwner(userId);
+    }
+
+    // ─── /friend_visits/{hostId}--{visitorId}--{dateKey} ─────────────
+    // One real visit per friend pair per day. Fixed reactions only; a visit
+    // never mints coins, XP or prosperity.
+    match /friend_visits/{visitId} {
+      function hostAllowsVisits(hostId) {
+        let settingsPath =
+          /databases/$(database)/documents/friend_visit_settings/$(hostId);
+        return exists(settingsPath)
+          && get(settingsPath).data.allowVisits == true;
+      }
+
+      function validFriendVisit() {
+        let data = request.resource.data;
+        return data.keys().hasOnly([
+            'schemaVersion', 'hostId', 'visitorId', 'dateKey', 'sceneKey',
+            'reactionKey', 'responseKey', 'createdAt', 'respondedAt'
+          ])
+          && data.keys().hasAll([
+            'schemaVersion', 'hostId', 'visitorId', 'dateKey', 'sceneKey',
+            'reactionKey', 'responseKey', 'createdAt', 'respondedAt'
+          ])
+          && data.schemaVersion == 1
+          && data.hostId is string
+          && data.visitorId is string
+          && data.hostId != data.visitorId
+          && data.dateKey is string
+          && data.dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && visitId == data.hostId + '--' + data.visitorId + '--' + data.dateKey
+          && data.sceneKey in ['cabin', 'garden', 'study_corner']
+          && data.reactionKey in ['cheer', 'wave', 'proud', 'rest_well']
+          && data.createdAt is string
+          && data.createdAt.size() <= 40;
+      }
+
+      allow read: if isAuth()
+        && (
+          resource.data.hostId == request.auth.uid
+          || resource.data.visitorId == request.auth.uid
+        );
+      allow create: if isAuth()
+        && validFriendVisit()
+        && request.resource.data.visitorId == request.auth.uid
+        && request.resource.data.responseKey == null
+        && request.resource.data.respondedAt == null
+        && areMutualFriends(request.auth.uid, request.resource.data.hostId)
+        && hostAllowsVisits(request.resource.data.hostId)
+        && request.resource.data.sceneKey == get(
+          /databases/$(database)/documents/friend_visit_settings/$(request.resource.data.hostId)
+        ).data.sceneKey;
+      // The host answers once with a fixed response; nothing else changes.
+      allow update: if isAuth()
+        && resource.data.hostId == request.auth.uid
+        && resource.data.responseKey == null
+        && validFriendVisit()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['responseKey', 'respondedAt'])
+        && request.resource.data.responseKey in ['thanks', 'see_you', 'heart']
+        && request.resource.data.respondedAt is string
+        && request.resource.data.respondedAt.size() <= 40;
+      allow delete: if isAuth()
+        && (
+          resource.data.hostId == request.auth.uid
+          || resource.data.visitorId == request.auth.uid
+        );
     }
 
     // ─── /friend_messages/{messageId} ────────────────────────────────
@@ -2136,6 +2243,19 @@ service cloud.firestore {
       }
     }
 
+    // Capsule metadata is private to its owner; content and retry tombstones
+    // are server-only even for the owner. Unlock time is never client-writable.
+    match /users/{ownerUid}/growth_capsules/{capsuleId} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false;
+    }
+    match /users/{ownerUid}/growth_capsule_secrets/{capsuleId} {
+      allow read, write: if false;
+    }
+    match /users/{ownerUid}/growth_capsule_operations/{capsuleId} {
+      allow read, write: if false;
+    }
+
     // ─── Cloud Activity Ledger ─────────────────────────────────────────
     // Activity Ledger writes are Cloud-only. Clients can read only their own
     // evidence, sessions and receipts; room aggregates require membership.
@@ -2185,6 +2305,55 @@ service cloud.firestore {
       allow read: if isAuth()
         && (resource.data.userId == request.auth.uid || isStaff());
       allow write: if false;
+    }
+
+    // Member-owned cross-device chat read marker. Readable and writable only
+    // by its owner while they remain an approved member of the room, and it
+    // may only point at an existing message of that room.
+    match /room_read_markers/{markerId} {
+      function validRoomReadMarker() {
+        let data = request.resource.data;
+        let messagePath =
+          /databases/$(database)/documents/rooms/$(data.roomId)/messages/$(data.lastReadMessageId);
+        return data.keys().hasOnly([
+            'schemaVersion', 'roomId', 'userId', 'lastReadMessageId',
+            'lastReadCreatedAt', 'updatedAt'
+          ])
+          && data.keys().hasAll([
+            'schemaVersion', 'roomId', 'userId', 'lastReadMessageId',
+            'lastReadCreatedAt', 'updatedAt'
+          ])
+          && data.schemaVersion == 1
+          && data.userId == request.auth.uid
+          && data.roomId is string
+          && markerId == data.roomId + '--' + request.auth.uid
+          && data.lastReadMessageId is string
+          && data.lastReadMessageId.size() > 0
+          && data.lastReadMessageId.size() <= 160
+          && data.lastReadCreatedAt is string
+          && data.updatedAt is string
+          && data.updatedAt.size() <= 40
+          && exists(messagePath)
+          && get(messagePath).data.createdAt == data.lastReadCreatedAt;
+      }
+
+      // Read is decided from the deterministic id so a member can listen
+      // before their first marker exists.
+      allow read: if isAuth()
+        && markerId.split('--').size() == 2
+        && markerId.split('--')[1] == request.auth.uid
+        && isApprovedRoomMember(markerId.split('--')[0]);
+      allow create: if isAuth()
+        && validRoomReadMarker()
+        && isApprovedRoomMember(request.resource.data.roomId);
+      allow update: if isAuth()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.roomId == resource.data.roomId
+        && request.resource.data.lastReadCreatedAt
+          >= resource.data.lastReadCreatedAt
+        && validRoomReadMarker()
+        && isApprovedRoomMember(request.resource.data.roomId);
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
     }
 
     match /room_resonance_signals/{signalId} {

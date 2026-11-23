@@ -2,11 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../widgets/app_drawer.dart';
+import '../models/daily_next_action.dart';
+import '../models/cabin_presentation.dart';
+import '../widgets/companion_cabin_view.dart';
+import '../widgets/immersive_cabin.dart';
+import '../widgets/cabin_route.dart';
+import '../widgets/quest_scroll.dart';
+import '../widgets/cabin_menu_sheet.dart';
+import 'avatar_shop_page.dart';
+import 'nudge_device_page.dart';
+import 'health_page.dart';
+import 'calendar_page.dart';
+import 'reminder_center_page.dart';
+import 'settings_page.dart';
+import 'account_page.dart';
+import '../models/cabin_layout.dart';
+import '../models/cabin_tour_memory.dart';
+import '../models/adventure_log.dart';
+import 'adventure_log_page.dart';
+import 'focus_page.dart';
+import 'social_page.dart';
+import 'study_room_list_page.dart';
+import '../widgets/home_decor_sheet.dart';
 import '../theme/app_ui.dart';
 import 'coin_wallet_page.dart';
 import 'badges_page.dart';
 import 'tasks_page.dart';
 import 'today_data_page.dart';
+import 'character_page.dart';
 import 'guardian_center_page.dart';
 import 'guardian_parent_page.dart';
 import 'group_management_page.dart';
@@ -35,6 +58,114 @@ class HomePage extends StatelessWidget {
     if (width < 360) return 2.8;
     if (width < 520) return 2.9;
     return 2.6;
+  }
+
+  static double _levelProgress(AppState appState) {
+    final level = appState.avatarLevel;
+    final start = AppState.avatarExperienceRequiredForLevel(level);
+    final end = appState.avatarNextLevelExperience;
+    if (end <= start) return 1;
+    return ((appState.avatarExperience - start) / (end - start)).clamp(0, 1);
+  }
+
+  /// Cabin layout and whether the first-visit tour was already seen,
+  /// loaded once so rebuilds do not restart the loading.
+  static Future<(CabinLayout, bool)>? _cabinData;
+  static final _immersiveScaffold = GlobalKey<ScaffoldState>();
+
+  Widget _immersive(BuildContext context, AppState appState) {
+    final capabilities = appState.experienceCapabilities;
+    void push(Widget page) =>
+        Navigator.push(context, CabinRoute<void>(builder: (_) => page));
+    final streak = appState.badgeRecords
+        .where(
+          (b) => b.badgeKey == 'focus_streak' || b.badgeKey == 'task_streak',
+        )
+        .fold<int>(0, (best, b) => b.progress > best ? b.progress : best);
+    _cabinData ??= Future.wait<Object>([
+      CabinLayout.load(DefaultAssetBundle.of(context)),
+      CabinTourMemory.seen(),
+    ]).then((v) => (v[0] as CabinLayout, v[1] as bool));
+    return Scaffold(
+      key: _immersiveScaffold,
+      drawer: AppDrawer(onOpenTasks: () => push(const TasksPage())),
+      body: FutureBuilder<(CabinLayout, bool)>(
+        future: _cabinData,
+        builder: (context, snapshot) {
+          final (layout, tourSeen) =
+              snapshot.data ?? (null as CabinLayout?, true);
+          if (layout == null) return const ColoredBox(color: Color(0xFF3B2418));
+          return ImmersiveHome(
+            layout: layout,
+            presentation: CabinPresentation.resolve(
+              summaries: appState.dailySummaries,
+              badges: appState.badgeRecords,
+              decor: appState.homeDecor,
+              action: DailyNextAction.resolve(appState.tasks),
+              openTaskCount:
+                  appState.todayActionableTaskTotal -
+                  appState.todayActionableTaskCompleted,
+              hasDevice: appState.companionDeviceLink.hasDevice,
+              deviceFocusing: appState.companionDeviceLink.deviceFocusing,
+            ),
+            profile: appState.avatarProfile,
+            level: appState.avatarLevel,
+            levelProgress: _levelProgress(appState),
+            coins: appState.disciplineCoins,
+            streak: streak,
+            confirmedActivityLabel: appState.confirmedActivityFeedback?.label,
+            onOpenQuests: () => showQuestScroll(context),
+            onOpenDesk: () => push(const FocusPage(immersive: true)),
+            onOpenRecords: () => push(
+              AdventureLogPage(
+                log: AdventureLog.fromSummaries(
+                  appState.dailySummaries,
+                  todayKey: appState.todayKey,
+                ),
+                profile: appState.avatarProfile,
+                onOpenStatistics: onOpenStatistics,
+              ),
+            ),
+            onOpenBadges: () => push(const BadgesPage()),
+            onOpenCompanions: () => push(
+              capabilities.isGuardian || capabilities.isChild
+                  ? const GuardianCenterPage()
+                  : capabilities.isGroupExperience
+                  ? const GroupManagementPage()
+                  : const SocialPage(),
+            ),
+            onOpenRooms: () => push(const StudyRoomListPage()),
+            onOpenCharacter: () => push(const CharacterPage()),
+            onOpenDecor: () => showHomeDecorSheet(context),
+            onOpenShop: () => push(const AvatarShopPage()),
+            onOpenDevice: () => push(const NudgeDevicePage()),
+            showTour: !tourSeen,
+            accountKey: appState.currentUser?.id,
+            onTourDone: () {
+              _cabinData = Future.value((layout, true));
+              CabinTourMemory.markSeen();
+            },
+            onOpenMenu: () => showCabinMenu(
+              context,
+              onOpen: (id) => push(switch (id) {
+                'character' => const CharacterPage(),
+                'shop' => const AvatarShopPage(),
+                'health' => const HealthPage(),
+                'calendar' => const CalendarPage(),
+                'stats' => const PersonalAnalysisPage(),
+                'wallet' => CoinWalletPage(
+                  onOpenTasks: () => push(const TasksPage()),
+                ),
+                'reminders' => const ReminderCenterPage(),
+                'letter' => const FutureLetterPage(),
+                'settings' => const SettingsPage(),
+                _ => const AccountPage(),
+              }),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -118,6 +249,10 @@ class HomePage extends StatelessWidget {
       );
     }
 
+    // Everyone who is not waiting on a family or group binding lives in the
+    // cabin; bindings keep their gate so the redesign cannot bypass them.
+    if (!isGated) return _immersive(context, appState);
+
     return Scaffold(
       backgroundColor: AppUI.scaffoldBackgroundOf(context),
       drawer: AppDrawer(onOpenTasks: openTasksPage),
@@ -178,6 +313,42 @@ class HomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppUI.sectionGap),
                 ],
+                CompanionCabinView(
+                  presentation: CabinPresentation.resolve(
+                    summaries: appState.dailySummaries,
+                    badges: appState.badgeRecords,
+                    decor: appState.homeDecor,
+                    action: DailyNextAction.resolve(appState.tasks),
+                    openTaskCount: totalTasks - completedCount,
+                    hasDevice: false,
+                    deviceFocusing: false,
+                  ),
+                  profile: appState.avatarProfile,
+                  level: appState.avatarLevel,
+                  levelProgress: _levelProgress(appState),
+                  coins: appState.disciplineCoins,
+                  confirmedActivityLabel:
+                      appState.confirmedActivityFeedback?.label,
+                  onOpenQuests: openTasksPage,
+                  onOpenDecor: () => showHomeDecorSheet(context),
+                  onOpenCharacter: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CharacterPage()),
+                  ),
+                  onOpenFamily: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const GuardianCenterPage(),
+                    ),
+                  ),
+                  onOpenGroup: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const GroupManagementPage(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppUI.sectionGap),
                 heroCard!,
                 const SizedBox(height: AppUI.sectionGap),
 

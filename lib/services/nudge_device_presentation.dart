@@ -2,6 +2,12 @@ import 'dart:convert';
 
 import 'nudge_device_protocol.dart';
 
+/// Largest revision that can be represented exactly by JSON/JavaScript.
+///
+/// Device revisions cross Flutter native, Flutter Web and JSON, so accepting
+/// larger signed 64-bit values would allow silent rounding in the Web client.
+const int maxNudgeDeviceContextRevision = 0x1fffffffffffff;
+
 class NudgeDeviceRoomContext {
   const NudgeDeviceRoomContext({
     required this.id,
@@ -71,7 +77,7 @@ class NudgeDevicePresentation {
   String encodeCommand({int contextRevision = 1}) {
     final roomIds = <String>{};
     if (contextRevision < 1 ||
-        contextRevision > 0x7FFFFFFFFFFFFFFF ||
+        contextRevision > maxNudgeDeviceContextRevision ||
         rooms.length > 3 ||
         !_boundedUtf8(personalGoalLabel, 32, allowEmpty: true) ||
         !_boundedUtf8(character.name, 24) ||

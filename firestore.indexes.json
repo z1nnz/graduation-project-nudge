@@ -1,38 +1,103 @@
 {
   "indexes": [
     {
-      "collectionGroup": "friend_requests",
+      "collectionGroup": "activity_receipts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "receiverId", "order": "ASCENDING" },
-        { "fieldPath": "status",     "order": "ASCENDING" },
-        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+        {
+          "fieldPath": "actorUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "verifiedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "friend_requests",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "senderId",  "order": "ASCENDING" },
-        { "fieldPath": "status",    "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "receiverId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "friend_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "senderId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "user_notifications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "recipientUserId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "recipientUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "activity_sessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "actorUserId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "endedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "actorUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "endedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "growth_capsules",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "notifiedAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "unlockAt",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
@@ -41,21 +106,30 @@
       "collectionGroup": "messages",
       "fieldPath": "senderId",
       "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     },
     {
       "collectionGroup": "events",
       "fieldPath": "actorId",
       "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     },
     {
       "collectionGroup": "activity_sessions",
       "fieldPath": "actorId",
       "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
       ]
     }
   ]

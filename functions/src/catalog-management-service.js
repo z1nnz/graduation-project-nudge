@@ -461,6 +461,15 @@ export function createManageCatalogItemHandler({ firestore, clock }) {
           }
           let base;
           if (input.action === "update") {
+            const existingSeriesKey = normalizedString(
+              existingItem.series_key ?? existingItem.series?.key,
+            ).toLowerCase();
+            if (!existingSeriesKey || existingSeriesKey !== payload.series_key) {
+              throw new HttpsError(
+                "failed-precondition",
+                "An avatar series_key cannot be changed after publication.",
+              );
+            }
             base = Number(existingItem.catalog_index_base);
             if (!Number.isInteger(base) || base < FIRST_DYNAMIC_CATALOG_INDEX) {
               throw new HttpsError(

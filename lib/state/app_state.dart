@@ -12,9 +12,13 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 import '../models/avatar_catalog.dart';
+import '../models/companion_device_link.dart';
 import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
+import '../models/confirmed_activity_feedback.dart';
+import '../models/activity_feedback_state.dart';
+import '../models/catalog_schedule.dart';
 import '../models/daily_summary.dart';
 import '../models/discipline_identity_snapshot.dart';
 import '../models/experience_capabilities.dart';
@@ -48,6 +52,9 @@ import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/cloud_room_resonance_gateway.dart';
 import '../services/cloud_reward_avatar_gateway.dart';
 import '../services/cloud_reward_purchase_gateway.dart';
+import '../services/cloud_home_decor_gateway.dart';
+import '../models/home_decor_catalog.dart';
+import '../utils/client_ids.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/android_nudge_ble_transport.dart';
@@ -55,6 +62,7 @@ import '../services/firestore_device_assignment_repository.dart';
 import '../services/nudge_device_runtime.dart';
 import '../services/push_notification_service.dart';
 import '../services/room_activity_session_ledger_gateway.dart';
+import '../services/stable_request_hash.dart';
 import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
 
@@ -123,6 +131,7 @@ class AppState extends ChangeNotifier {
   final CloudUserNotificationGateway _userNotificationGateway;
   final CloudRewardAvatarGateway _rewardAvatarGateway;
   final CloudRewardPurchaseGateway _rewardPurchaseGateway;
+  final CloudHomeDecorGateway _homeDecorGateway;
   final PushNotificationService _pushNotificationService;
   final RoomActivitySessionLedgerGateway _roomActivitySessionLedgerGateway;
 
@@ -137,6 +146,7 @@ class AppState extends ChangeNotifier {
     CloudUserNotificationGateway? userNotificationGateway,
     CloudRewardAvatarGateway? rewardAvatarGateway,
     CloudRewardPurchaseGateway? rewardPurchaseGateway,
+    CloudHomeDecorGateway? homeDecorGateway,
     PushNotificationService? pushNotificationService,
     RoomActivitySessionLedgerGateway? roomActivitySessionLedgerGateway,
   }) : _activityLedgerOutbox =
@@ -165,6 +175,7 @@ class AppState extends ChangeNotifier {
            userNotificationGateway ?? CloudUserNotificationGateway.firebase(),
        _rewardAvatarGateway =
            rewardAvatarGateway ?? CloudRewardAvatarGateway.firebase(),
+       _homeDecorGateway = homeDecorGateway ?? CloudHomeDecorGateway.firebase(),
        _rewardPurchaseGateway =
            rewardPurchaseGateway ?? CloudRewardPurchaseGateway.firebase(),
        _pushNotificationService =
@@ -200,6 +211,12 @@ class AppState extends ChangeNotifier {
       {};
   final Map<String, StreamSubscription> _roomResonanceSignalSubscriptions = {};
   StreamSubscription? _shopSubscription;
+  StreamSubscription? _activityFeedbackSubscription;
+  final _activityFeedback = ActivityFeedbackState();
+  ConfirmedActivityFeedback? get confirmedActivityFeedback =>
+      _activityFeedback.feedback;
+  String get activityFeedbackStatus => _activityFeedback.status;
+  Timer? _shopScheduleTimer;
   StreamSubscription? _incomingGuardianRequestsSubscription;
   StreamSubscription? _outgoingGuardianRequestsSubscription;
   StreamSubscription? _familyLinkSubscription;
@@ -242,6 +259,13 @@ class AppState extends ChangeNotifier {
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
   String get _myId => _currentUser?.id ?? 'local_user';
+
+  /// The physical companion as seen through its Cloud activity sessions.
+  CompanionDeviceLink get companionDeviceLink =>
+      CompanionDeviceLink.fromSessions(
+        _canonicalActivitySessionDocuments,
+        actorUserId: _myId,
+      );
 
   bool get isNudgeDeviceSupported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -287,9 +311,14 @@ class AppState extends ChangeNotifier {
       fb_auth.FirebaseAuth.instance.authStateChanges().listen((
         fb_auth.User? user,
       ) async {
+        _activityFeedbackSubscription?.cancel();
+        _activityFeedbackSubscription = null;
+        final feedbackAuthGeneration = _activityFeedback.begin(user?.uid);
+        notifyListeners();
         if (user != null) {
           _isGuestMode = false;
           await _syncProfileFromFirebaseUser(user);
+          if (!_activityFeedback.isCurrent(feedbackAuthGeneration)) return;
           _setupFirestoreListeners(user);
           unawaited(_activityLedgerOutbox.flush());
           unawaited(_healthSnapshotOutbox.flush());
@@ -344,6 +373,35 @@ class AppState extends ChangeNotifier {
 
   void _setupFirestoreListeners(fb_auth.User user) {
     _cancelFirestoreListeners();
+    final feedbackGeneration = _activityFeedback.begin(user.uid);
+    _activityFeedbackSubscription = FirebaseFirestore.instance
+        .collection('activity_receipts')
+        .where('actorUserId', isEqualTo: user.uid)
+        .orderBy('verifiedAt', descending: true)
+        .limit(1)
+        .snapshots(includeMetadataChanges: true)
+        .listen(
+          (snapshot) {
+            if (!_activityFeedback.isCurrent(feedbackGeneration) ||
+                _currentUser?.id != user.uid) {
+              return;
+            }
+            final doc = snapshot.docs.isEmpty ? null : snapshot.docs.first;
+            _activityFeedback.update(
+              feedbackGeneration,
+              id: doc?.id,
+              data: doc?.data(),
+              fromCache: snapshot.metadata.isFromCache,
+              pendingWrites: snapshot.metadata.hasPendingWrites,
+            );
+            notifyListeners();
+          },
+          onError: (Object error) {
+            if (!_activityFeedback.isCurrent(feedbackGeneration)) return;
+            _activityFeedback.fail(feedbackGeneration);
+            notifyListeners();
+          },
+        );
     unawaited(_restoreRelationshipSelections(user.uid));
     _setupRelationshipMembershipListener(user.uid);
     _disciplineIdentitySubscription = FirebaseFirestore.instance
@@ -494,6 +552,7 @@ class AppState extends ChangeNotifier {
                   List<String>.from(data['unlockedAvatarItems']),
                 );
               }
+              _homeDecor = HomeDecorCatalog.parseHomeDecor(data['homeDecor']);
               if (data['unlockedBadgeDates'] != null) {
                 _unlockedBadgeDates = Map<String, String>.from(
                   data['unlockedBadgeDates'] as Map,
@@ -687,42 +746,57 @@ class AppState extends ChangeNotifier {
         .collection('shop_items')
         .snapshots()
         .listen((snapshot) {
-          final docs =
-              snapshot.docs
-                  .where((doc) => _isActiveShopItem(doc.data()))
-                  .toList()
-                ..sort((a, b) {
-                  final aCreated = _shopTimestampSeconds(
-                    a.data()['created_at'],
-                  );
-                  final bCreated = _shopTimestampSeconds(
-                    b.data()['created_at'],
-                  );
-                  final createdComparison = aCreated.compareTo(bCreated);
-                  if (createdComparison != 0) return createdComparison;
-                  return a.id.compareTo(b.id);
-                });
+          void refresh() {
+            _shopScheduleTimer?.cancel();
+            final docs =
+                snapshot.docs
+                    .where((doc) => _isActiveShopItem(doc.data()))
+                    .toList()
+                  ..sort((a, b) {
+                    final aCreated = _shopTimestampSeconds(
+                      a.data()['created_at'],
+                    );
+                    final bCreated = _shopTimestampSeconds(
+                      b.data()['created_at'],
+                    );
+                    final createdComparison = aCreated.compareTo(bCreated);
+                    if (createdComparison != 0) return createdComparison;
+                    return a.id.compareTo(b.id);
+                  });
 
-          final publishedSeries = <PublishedAvatarSeries>[];
-          var fallbackIndex = 18;
-          for (final doc in docs) {
-            final data = doc.data();
-            final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
-              documentId: doc.id,
-              data: data,
-              fallbackIndex: fallbackIndex,
-            );
-            if (parsedSeries == null) continue;
-            publishedSeries.add(parsedSeries);
-            fallbackIndex =
-                parsedSeries.stages
-                    .map((stage) => stage.index)
-                    .reduce(math.max) +
-                1;
+            final publishedSeries = <PublishedAvatarSeries>[];
+            for (final doc in docs) {
+              final data = doc.data();
+              final parsedSeries = PublishedAvatarSeries.tryParseShopDocument(
+                documentId: doc.id,
+                data: data,
+              );
+              if (parsedSeries == null) continue;
+              publishedSeries.add(parsedSeries);
+            }
+            AvatarCatalog.replacePublishedSeries(publishedSeries);
+            _normalizeAvatarProfileForCatalog();
+            notifyListeners();
+            final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+            final boundaries =
+                snapshot.docs
+                    .where((doc) => doc.data()['status'] == 'published')
+                    .map(
+                      (doc) =>
+                          _catalogSchedule(doc.data()).nextBoundaryAfter(now),
+                    )
+                    .whereType<int>()
+                    .toList()
+                  ..sort();
+            if (boundaries.isNotEmpty) {
+              _shopScheduleTimer = Timer(
+                Duration(seconds: boundaries.first - now),
+                refresh,
+              );
+            }
           }
-          AvatarCatalog.replacePublishedSeries(publishedSeries);
-          _normalizeAvatarProfileForCatalog();
-          notifyListeners();
+
+          refresh();
         });
 
     // Incoming guardian requests listener
@@ -799,18 +873,20 @@ class AppState extends ChangeNotifier {
     return 0;
   }
 
+  CatalogSchedule _catalogSchedule(Map<String, dynamic> data) {
+    final start = _shopTimestampSeconds(data['start_time']);
+    final end = _shopTimestampSeconds(data['end_time'] ?? data['expires_at']);
+    return CatalogSchedule(
+      startSeconds: start == 0 ? null : start,
+      endSeconds: end == 0 ? null : end,
+    );
+  }
+
   bool _isActiveShopItem(Map<String, dynamic> data) {
-    final status = data['status'] as String? ?? 'published';
-    if (status != 'published') return false;
-    final type = data['type'] as String? ?? 'permanent';
-    final expiresAt = _shopTimestampSeconds(data['expires_at']);
-    if (type == 'permanent' || expiresAt == 0) return true;
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final startAt = _shopTimestampSeconds(data['start_time']);
-    final endAt = _shopTimestampSeconds(data['end_time']) == 0
-        ? expiresAt
-        : _shopTimestampSeconds(data['end_time']);
-    return startAt <= now && now <= endAt;
+    if (data['status'] != 'published') return false;
+    return _catalogSchedule(
+      data,
+    ).activeAt(DateTime.now().millisecondsSinceEpoch ~/ 1000);
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
@@ -1683,6 +1759,9 @@ class AppState extends ChangeNotifier {
   }
 
   void _cancelFirestoreListeners() {
+    _activityFeedback.begin(null);
+    _activityFeedbackSubscription?.cancel();
+    _activityFeedbackSubscription = null;
     _userSubscription?.cancel();
     _friendsSubscription?.cancel();
     _incomingRequestsSubscription?.cancel();
@@ -1711,6 +1790,8 @@ class AppState extends ChangeNotifier {
     _roomResonancePreferenceSubscriptions.clear();
     _roomResonanceSignalSubscriptions.clear();
     _shopSubscription?.cancel();
+    _shopScheduleTimer?.cancel();
+    _shopScheduleTimer = null;
     _incomingGuardianRequestsSubscription?.cancel();
     _outgoingGuardianRequestsSubscription?.cancel();
     _familyLinkSubscription?.cancel();
@@ -2058,6 +2139,7 @@ class AppState extends ChangeNotifier {
             List<String>.from(data['unlockedAvatarItems']),
           );
         }
+        _homeDecor = HomeDecorCatalog.parseHomeDecor(data['homeDecor']);
         if (data['unlockedBadgeDates'] != null) {
           _unlockedBadgeDates = Map<String, String>.from(
             data['unlockedBadgeDates'],
@@ -2284,6 +2366,9 @@ class AppState extends ChangeNotifier {
   Map<String, int> _dailyCoinEarned = <String, int>{};
   Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
   Set<String> _unlockedAvatarItemKeys = <String>{};
+  Map<String, int> _homeDecor = Map<String, int>.of(
+    HomeDecorCatalog.defaultArrangement,
+  );
   Map<String, Map<String, int>> _avatarExperienceLedger =
       <String, Map<String, int>>{};
 
@@ -2514,7 +2599,8 @@ class AppState extends ChangeNotifier {
   }
 
   int get currentMonthCoinEarned {
-    final now = DateTime.now();
+    // Coin ledger keys use the 05:00 logical day, so month windows must too.
+    final now = _logicalNow();
     final start = DateTime(now.year, now.month);
     final end = DateTime(now.year, now.month + 1);
     return _coinEarnedBetween(start, end);
@@ -2673,24 +2759,30 @@ class AppState extends ChangeNotifier {
     return AvatarCatalog.stageForIndex(_avatarProfile.faceShapeIndex).series;
   }
 
+  String get currentAvatarProgressKey {
+    return AvatarCatalog.stageForIndex(
+      _avatarProfile.faceShapeIndex,
+    ).progressKey;
+  }
+
   int get todayAvatarExperience {
-    return todayAvatarExperienceForSeries(currentAvatarSeries);
+    return todayAvatarExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get todayAvatarScoreExperience {
-    return todayAvatarScoreExperienceForSeries(currentAvatarSeries);
+    return todayAvatarScoreExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get todayAvatarAutoExperience {
-    return todayAvatarAutoExperienceForSeries(currentAvatarSeries);
+    return todayAvatarAutoExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get avatarExperience {
-    return avatarExperienceForSeries(currentAvatarSeries);
+    return avatarExperienceForSeries(currentAvatarProgressKey);
   }
 
   int get avatarLevel {
-    return avatarLevelForSeries(currentAvatarSeries);
+    return avatarLevelForSeries(currentAvatarProgressKey);
   }
 
   int get avatarNextLevelExperience {
@@ -2715,7 +2807,9 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarExperienceForStage(int index) {
-    return avatarExperienceForSeries(AvatarCatalog.stageForIndex(index).series);
+    return avatarExperienceForSeries(
+      AvatarCatalog.stageForIndex(index).progressKey,
+    );
   }
 
   int todayAvatarExperienceForSeries(String series) {
@@ -2758,7 +2852,7 @@ class AppState extends ChangeNotifier {
   }
 
   int avatarLevelForStage(int index) {
-    return avatarLevelForSeries(AvatarCatalog.stageForIndex(index).series);
+    return avatarLevelForSeries(AvatarCatalog.stageForIndex(index).progressKey);
   }
 
   static int avatarExperienceRequiredForLevel(int level) {
@@ -2773,15 +2867,15 @@ class AppState extends ChangeNotifier {
   int get currentAvatarStageIndex => _avatarProfile.faceShapeIndex;
   int get currentAvatarIconIndex => _avatarProfile.avatarIconIndex;
 
-  AvatarEvolutionStage _firstAvatarStageForSeries(String series) {
+  AvatarEvolutionStage _firstAvatarStageForProgressKey(String progressKey) {
     return AvatarCatalog.evolutionStages.firstWhere(
-      (stage) => stage.series == series && stage.stage == 1,
+      (stage) => stage.progressKey == progressKey && stage.stage == 1,
       orElse: () => AvatarCatalog.evolutionStages.first,
     );
   }
 
-  bool _isAvatarSeriesPurchased(String series) {
-    final firstStage = _firstAvatarStageForSeries(series);
+  bool _isAvatarSeriesPurchased(String progressKey) {
+    final firstStage = _firstAvatarStageForProgressKey(progressKey);
     if (firstStage.coinPrice <= 0) return true;
     return _unlockedAvatarItemKeys.contains(
       avatarItemKey('faceShape', firstStage.index),
@@ -2790,10 +2884,11 @@ class AppState extends ChangeNotifier {
 
   bool isAvatarEvolutionStageUnlocked(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
-    if (!_isAvatarSeriesPurchased(stage.series)) return false;
+    if (!_isAvatarSeriesPurchased(stage.progressKey)) return false;
     if (stage.stage == 1) return true;
-    return avatarLevelForSeries(stage.series) >= stage.requiredLevel &&
-        avatarExperienceForSeries(stage.series) >= stage.requiredExperience;
+    return avatarLevelForSeries(stage.progressKey) >= stage.requiredLevel &&
+        avatarExperienceForSeries(stage.progressKey) >=
+            stage.requiredExperience;
   }
 
   bool isAvatarIconUnlocked(int index) {
@@ -2803,8 +2898,8 @@ class AppState extends ChangeNotifier {
   String avatarEvolutionRequirementText(int index) {
     final stage = AvatarCatalog.stageForIndex(index);
     if (isAvatarEvolutionStageUnlocked(index)) return '已解鎖';
-    final firstStage = _firstAvatarStageForSeries(stage.series);
-    if (!_isAvatarSeriesPurchased(stage.series)) {
+    final firstStage = _firstAvatarStageForProgressKey(stage.progressKey);
+    if (!_isAvatarSeriesPurchased(stage.progressKey)) {
       if (stage.index == firstStage.index && firstStage.coinPrice > 0) {
         return '${firstStage.coinPrice} 自律幣購買';
       }
@@ -2879,12 +2974,7 @@ class AppState extends ChangeNotifier {
       'avatarProfile': profile.toJson(),
       'backgroundTheme': backgroundTheme,
     });
-    var hash = 0xcbf29ce484222325;
-    for (final codeUnit in canonical.codeUnits) {
-      hash ^= codeUnit;
-      hash = (hash * 0x100000001b3) & 0x7fffffffffffffff;
-    }
-    return 'app_equip_${hash.toRadixString(16)}';
+    return 'app_equip_${stableRequestHash(canonical)}';
   }
 
   bool isAvatarItemUnlocked(String category, int index) {
@@ -2899,6 +2989,48 @@ class AppState extends ChangeNotifier {
     return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
   }
 
+  Map<String, int> get homeDecor => Map.unmodifiable(_homeDecor);
+
+  bool isHomeDecorOwned(String slot, int index) {
+    if (!HomeDecorCatalog.isKnownVariant(slot, index)) return false;
+    if (index == 0) return true;
+    return _unlockedAvatarItemKeys.contains(
+      avatarItemKey(
+        HomeDecorCatalog.category,
+        HomeDecorCatalog.cloudIndex(slot, index),
+      ),
+    );
+  }
+
+  /// Signed-in users go through Cloud `arrangeHomeDecor`; guests keep the
+  /// arrangement on this device. Either way only owned variants are allowed.
+  Future<bool> arrangeHomeDecor(Map<String, int> arrangement) async {
+    final normalized = HomeDecorCatalog.parseHomeDecor(arrangement);
+    for (final slot in HomeDecorCatalog.slotOrder) {
+      final index = arrangement[slot];
+      if (index == null ||
+          normalized[slot] != index ||
+          !isHomeDecorOwned(slot, index)) {
+        return false;
+      }
+    }
+    if (_currentUser != null) {
+      try {
+        _homeDecor = await _homeDecorGateway.arrange(
+          normalized,
+          clientRequestId: newClientId('app_decor'),
+        );
+      } catch (error) {
+        debugPrint('Cloud home decor arrangement failed: $error');
+        return false;
+      }
+    } else {
+      _homeDecor = normalized;
+    }
+    notifyListeners();
+    return true;
+  }
+
   int avatarItemPrice(String category, int index) {
     switch (category) {
       case 'faceShape':
@@ -2906,6 +3038,8 @@ class AppState extends ChangeNotifier {
       case 'appBackground':
         if (index < 0 || index >= AppUI.backgroundThemeKeys.length) return 0;
         return AppUI.backgroundThemePrice(AppUI.backgroundThemeKeys[index]);
+      case HomeDecorCatalog.category:
+        return HomeDecorCatalog.prices[index] ?? 0;
       default:
         return 8 + (index * 3);
     }
@@ -4495,7 +4629,7 @@ class AppState extends ChangeNotifier {
 
   void _migrateLegacyAvatarExperienceLedger() {
     if (_dailySummaries.isEmpty) return;
-    final series = currentAvatarSeries;
+    final series = currentAvatarProgressKey;
     _avatarExperienceLedger = <String, Map<String, int>>{};
     for (final summary in _dailySummaries) {
       final experience = avatarExperienceForSummary(summary);
@@ -4707,8 +4841,7 @@ class AppState extends ChangeNotifier {
     } else {
       final result = await _privacyConsentGateway.update(
         accepted: true,
-        clientRequestId:
-            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('privacy'),
       );
       _cloudPrivacyConsent = result.consent;
       _hasAcceptedPrivacyPolicy = result.consent.isCurrentHealthConsent;
@@ -4748,8 +4881,7 @@ class AppState extends ChangeNotifier {
     if (userId != null) {
       final result = await _privacyConsentGateway.update(
         accepted: false,
-        clientRequestId:
-            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('privacy'),
       );
       _cloudPrivacyConsent = result.consent;
       notifyListeners();
@@ -4826,8 +4958,7 @@ class AppState extends ChangeNotifier {
     try {
       final result = await _notificationPreferenceGateway.update(
         channels: _notificationPreferenceChannelPayload(),
-        clientRequestId:
-            'notification_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('notification'),
       );
       if (result.preferences.userId != userId) {
         throw const NotificationPreferenceException(
@@ -5522,8 +5653,22 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Local time shifted so the logical day rolls over at 05:00, matching
+  /// [_todayKey] and the per-day coin ledger keys.
+  DateTime _logicalNow() => DateTime.now().subtract(const Duration(hours: 5));
+
+  int _localIdSequence = 0;
+
+  /// Unique id for locally created entities. Timestamps alone collide on
+  /// platforms with coarse clocks (Windows, Web), so append a sequence.
+  String _nextLocalId(String prefix, [DateTime? at]) {
+    final stamp = (at ?? DateTime.now()).microsecondsSinceEpoch;
+    _localIdSequence = (_localIdSequence + 1) % 1000000;
+    return '${prefix}_${stamp}_$_localIdSequence';
+  }
+
   DateTime _currentWeekStart() {
-    final now = DateTime.now();
+    final now = _logicalNow();
     final today = DateTime(now.year, now.month, now.day);
     return today.subtract(Duration(days: today.weekday - DateTime.monday));
   }
@@ -6203,6 +6348,7 @@ class AppState extends ChangeNotifier {
     _currentUser = null;
     _pushInstallationConfigured = null;
     _isGuestMode = false;
+    _homeDecor = Map<String, int>.of(HomeDecorCatalog.defaultArrangement);
     notifyListeners();
     await _saveCurrentUser();
   }
@@ -6742,7 +6888,7 @@ class AppState extends ChangeNotifier {
     }
 
     _tasks.add({
-      'id': 'task_${DateTime.now().microsecondsSinceEpoch}',
+      'id': _nextLocalId('task'),
       'userId': 'local_user',
       'title': title,
       'done': false,
@@ -7001,6 +7147,7 @@ class AppState extends ChangeNotifier {
     _dailyCoinEarned = <String, int>{};
     _monthlyDeadlineCoinEarned = <String, int>{};
     _unlockedAvatarItemKeys = <String>{};
+    _homeDecor = Map<String, int>.of(HomeDecorCatalog.defaultArrangement);
     _avatarExperienceLedger = <String, Map<String, int>>{};
 
     _themeModeSetting = 'system';
@@ -7291,7 +7438,7 @@ class AppState extends ChangeNotifier {
   }) {
     final now = DateTime.now().toUtc();
     return StudyRoomEvent(
-      id: 'event_${now.microsecondsSinceEpoch}',
+      id: _nextLocalId('event', now),
       actorId: _myId,
       actorName: _studyRoomIdentityName(roomId),
       text: text.trim(),
@@ -7505,7 +7652,7 @@ class AppState extends ChangeNotifier {
     final now = DateTime.now().toUtc();
     final resolvedSenderId = senderId == 'local_user' ? _myId : senderId;
     final message = StudyRoomMessage(
-      id: 'message_${now.microsecondsSinceEpoch}',
+      id: _nextLocalId('message', now),
       senderId: resolvedSenderId,
       senderName: senderName ?? _studyRoomIdentityName(roomId),
       text: trimmed,
@@ -7787,7 +7934,7 @@ class AppState extends ChangeNotifier {
       ],
       events: [
         StudyRoomEvent(
-          id: 'event_${now.microsecondsSinceEpoch}',
+          id: _nextLocalId('event', now),
           actorId: resolvedOwnerId,
           actorName: safeOwnerName,
           text: '$safeOwnerName 建立了這間自律房',
@@ -7901,7 +8048,7 @@ class AppState extends ChangeNotifier {
         members: [localMember, ...existingRoom.members],
         events: [
           StudyRoomEvent(
-            id: 'event_${now.microsecondsSinceEpoch}',
+            id: _nextLocalId('event', now),
             actorId: _myId,
             actorName: _profileNickname,
             text: isApproved
@@ -7923,7 +8070,7 @@ class AppState extends ChangeNotifier {
           members: [localMember, ...room.members],
           events: [
             StudyRoomEvent(
-              id: 'event_${now.microsecondsSinceEpoch}',
+              id: _nextLocalId('event', now),
               actorId: _myId,
               actorName: _profileNickname,
               text: isApproved
@@ -8194,8 +8341,10 @@ class AppState extends ChangeNotifier {
     final now = DateTime.now().toUtc();
     final actorId = _myId;
     final session = RoomActivitySession.start(
-      sessionId: '${actorId}_${room.id}_${now.microsecondsSinceEpoch}'
-          .replaceAll('/', '_'),
+      sessionId: newClientId(
+        '${actorId}_${room.id}',
+        at: now,
+      ).replaceAll('/', '_'),
       roomId: room.id,
       actorId: actorId,
       activityKind: _activityKindForRoom(room),
@@ -9323,7 +9472,7 @@ ${historyBuffer.toString()}
     final payload = GroupPublicationContract.buildChallenge(
       group: group,
       publisherId: user.id,
-      challengeId: 'challenge_${now.toUtc().microsecondsSinceEpoch}',
+      challengeId: newClientId('challenge', at: now),
       type: type,
       days: days,
       reward: reward,

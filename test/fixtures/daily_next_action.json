@@ -1,0 +1,9 @@
+[
+  {"name":"empty","tasks":[],"kind":"plan","title":"從一件做得到的小事開始"},
+  {"name":"priority","tasks":[{"title":"低優先","priority":"低"},{"title":"  高優先  ","priority":"high"}],"kind":"task","title":"高優先"},
+  {"name":"stable tie","tasks":[{"title":"第一件","priority":"中"},{"title":"第二件","priority":"medium"}],"kind":"task","title":"第一件"},
+  {"name":"done aliases","tasks":[{"title":"甲","done":true},{"title":"乙","isDone":true}],"kind":"rest","title":"今天的清單完成了"},
+  {"name":"health never manual","tasks":[{"title":"八千步","sourceType":"steps"},{"title":"讀書計時","isAutoTracked":true}],"kind":"tracking","title":"讓紀錄跟上你的行動"},
+  {"name":"deadline excluded","tasks":[{"title":"報告","taskType":"deadline","priority":"high"}],"kind":"plan","title":"從一件做得到的小事開始"},
+  {"name":"blank pending","tasks":[{"title":"  "}],"kind":"tracking","title":"讓紀錄跟上你的行動"}
+]
