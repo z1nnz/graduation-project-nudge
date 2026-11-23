@@ -12,6 +12,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 import '../models/avatar_catalog.dart';
+import '../models/companion_device_link.dart';
 import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
@@ -50,6 +51,9 @@ import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/cloud_room_resonance_gateway.dart';
 import '../services/cloud_reward_avatar_gateway.dart';
 import '../services/cloud_reward_purchase_gateway.dart';
+import '../services/cloud_home_decor_gateway.dart';
+import '../models/home_decor_catalog.dart';
+import '../utils/client_ids.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/android_nudge_ble_transport.dart';
@@ -60,7 +64,6 @@ import '../services/room_activity_session_ledger_gateway.dart';
 import '../services/stable_request_hash.dart';
 import '../services/task_activity_ledger.dart';
 import '../theme/app_ui.dart';
-import '../utils/client_ids.dart';
 
 class ReminderChannelSetting {
   final String key;
@@ -127,6 +130,7 @@ class AppState extends ChangeNotifier {
   final CloudUserNotificationGateway _userNotificationGateway;
   final CloudRewardAvatarGateway _rewardAvatarGateway;
   final CloudRewardPurchaseGateway _rewardPurchaseGateway;
+  final CloudHomeDecorGateway _homeDecorGateway;
   final PushNotificationService _pushNotificationService;
   final RoomActivitySessionLedgerGateway _roomActivitySessionLedgerGateway;
 
@@ -141,6 +145,7 @@ class AppState extends ChangeNotifier {
     CloudUserNotificationGateway? userNotificationGateway,
     CloudRewardAvatarGateway? rewardAvatarGateway,
     CloudRewardPurchaseGateway? rewardPurchaseGateway,
+    CloudHomeDecorGateway? homeDecorGateway,
     PushNotificationService? pushNotificationService,
     RoomActivitySessionLedgerGateway? roomActivitySessionLedgerGateway,
   }) : _activityLedgerOutbox =
@@ -169,6 +174,7 @@ class AppState extends ChangeNotifier {
            userNotificationGateway ?? CloudUserNotificationGateway.firebase(),
        _rewardAvatarGateway =
            rewardAvatarGateway ?? CloudRewardAvatarGateway.firebase(),
+       _homeDecorGateway = homeDecorGateway ?? CloudHomeDecorGateway.firebase(),
        _rewardPurchaseGateway =
            rewardPurchaseGateway ?? CloudRewardPurchaseGateway.firebase(),
        _pushNotificationService =
@@ -251,6 +257,13 @@ class AppState extends ChangeNotifier {
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
   String get _myId => _currentUser?.id ?? 'local_user';
+
+  /// The physical companion as seen through its Cloud activity sessions.
+  CompanionDeviceLink get companionDeviceLink =>
+      CompanionDeviceLink.fromSessions(
+        _canonicalActivitySessionDocuments,
+        actorUserId: _myId,
+      );
 
   bool get isNudgeDeviceSupported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -537,6 +550,7 @@ class AppState extends ChangeNotifier {
                   List<String>.from(data['unlockedAvatarItems']),
                 );
               }
+              _homeDecor = HomeDecorCatalog.parseHomeDecor(data['homeDecor']);
               if (data['unlockedBadgeDates'] != null) {
                 _unlockedBadgeDates = Map<String, String>.from(
                   data['unlockedBadgeDates'] as Map,
@@ -2104,6 +2118,7 @@ class AppState extends ChangeNotifier {
             List<String>.from(data['unlockedAvatarItems']),
           );
         }
+        _homeDecor = HomeDecorCatalog.parseHomeDecor(data['homeDecor']);
         if (data['unlockedBadgeDates'] != null) {
           _unlockedBadgeDates = Map<String, String>.from(
             data['unlockedBadgeDates'],
@@ -2330,6 +2345,9 @@ class AppState extends ChangeNotifier {
   Map<String, int> _dailyCoinEarned = <String, int>{};
   Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
   Set<String> _unlockedAvatarItemKeys = <String>{};
+  Map<String, int> _homeDecor = Map<String, int>.of(
+    HomeDecorCatalog.defaultArrangement,
+  );
   Map<String, Map<String, int>> _avatarExperienceLedger =
       <String, Map<String, int>>{};
 
@@ -2941,6 +2959,48 @@ class AppState extends ChangeNotifier {
     return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
   }
 
+  Map<String, int> get homeDecor => Map.unmodifiable(_homeDecor);
+
+  bool isHomeDecorOwned(String slot, int index) {
+    if (!HomeDecorCatalog.isKnownVariant(slot, index)) return false;
+    if (index == 0) return true;
+    return _unlockedAvatarItemKeys.contains(
+      avatarItemKey(
+        HomeDecorCatalog.category,
+        HomeDecorCatalog.cloudIndex(slot, index),
+      ),
+    );
+  }
+
+  /// Signed-in users go through Cloud `arrangeHomeDecor`; guests keep the
+  /// arrangement on this device. Either way only owned variants are allowed.
+  Future<bool> arrangeHomeDecor(Map<String, int> arrangement) async {
+    final normalized = HomeDecorCatalog.parseHomeDecor(arrangement);
+    for (final slot in HomeDecorCatalog.slotOrder) {
+      final index = arrangement[slot];
+      if (index == null ||
+          normalized[slot] != index ||
+          !isHomeDecorOwned(slot, index)) {
+        return false;
+      }
+    }
+    if (_currentUser != null) {
+      try {
+        _homeDecor = await _homeDecorGateway.arrange(
+          normalized,
+          clientRequestId: newClientId('app_decor'),
+        );
+      } catch (error) {
+        debugPrint('Cloud home decor arrangement failed: $error');
+        return false;
+      }
+    } else {
+      _homeDecor = normalized;
+    }
+    notifyListeners();
+    return true;
+  }
+
   int avatarItemPrice(String category, int index) {
     switch (category) {
       case 'faceShape':
@@ -2948,6 +3008,8 @@ class AppState extends ChangeNotifier {
       case 'appBackground':
         if (index < 0 || index >= AppUI.backgroundThemeKeys.length) return 0;
         return AppUI.backgroundThemePrice(AppUI.backgroundThemeKeys[index]);
+      case HomeDecorCatalog.category:
+        return HomeDecorCatalog.prices[index] ?? 0;
       default:
         return 8 + (index * 3);
     }
@@ -6256,6 +6318,7 @@ class AppState extends ChangeNotifier {
     _currentUser = null;
     _pushInstallationConfigured = null;
     _isGuestMode = false;
+    _homeDecor = Map<String, int>.of(HomeDecorCatalog.defaultArrangement);
     notifyListeners();
     await _saveCurrentUser();
   }
@@ -7054,6 +7117,7 @@ class AppState extends ChangeNotifier {
     _dailyCoinEarned = <String, int>{};
     _monthlyDeadlineCoinEarned = <String, int>{};
     _unlockedAvatarItemKeys = <String>{};
+    _homeDecor = Map<String, int>.of(HomeDecorCatalog.defaultArrangement);
     _avatarExperienceLedger = <String, Map<String, int>>{};
 
     _themeModeSetting = 'system';

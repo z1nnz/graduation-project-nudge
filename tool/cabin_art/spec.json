@@ -1,0 +1,20 @@
+{
+  "room_base.png": { "source": "room_base.png", "width": 720, "key": false },
+  "rug_0.png": { "source": "rug_0.png", "width": 360 },
+  "rug_1.png": { "source": "rug_1.png", "width": 360 },
+  "rug_2.png": { "source": "rug_2.png", "width": 360 },
+  "curtain_0.png": { "source": "curtain_0.png", "width": 320 },
+  "curtain_1.png": { "source": "curtain_1.png", "width": 320 },
+  "curtain_2.png": { "source": "curtain_2.png", "width": 320 },
+  "lamp_0.png": { "source": "lamp_0.png", "width": 96 },
+  "lamp_1.png": { "source": "lamp_1.png", "width": 96 },
+  "lamp_2.png": { "source": "lamp_2.png", "width": 96 },
+  "books_1.png": { "source": "books_1.png", "width": 200 },
+  "books_2.png": { "source": "books_2.png", "width": 200 },
+  "books_3.png": { "source": "books_3.png", "width": 200 },
+  "plant_1.png": { "source": "plant_1.png", "width": 140 },
+  "plant_2.png": { "source": "plant_2.png", "width": 140 },
+  "plant_3.png": { "source": "plant_3.png", "width": 140 },
+  "globe.png": { "source": "globe.png", "width": 96 },
+  "badge.png": { "source": "badge.png", "width": 64 }
+}
