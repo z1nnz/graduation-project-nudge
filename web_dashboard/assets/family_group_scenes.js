@@ -226,19 +226,19 @@
     const report = isGuardian ? api.consentedReport(state.data.summary, scopes) : {};
     const outcome = state.data.outcome;
     const html = `
-      <section class="panel page-section"><span class="eyebrow">${isGuardian ? "Guardian" : "Child"}</span>
+      <section class="scene-panel"><span class="eyebrow">${isGuardian ? "Guardian" : "Child"}</span>
         <h2>${esc(state.selected.scopeName)} 的家庭庭院</h2>
         <p>${isGuardian ? "你可以送出鼓勵卡、提出共同目標；接受與開始都由孩子自己決定。" : "家長的卡片與提議會出現在這裡；要不要接受、何時開始都由你決定。"}</p>
         ${active ? "" : `<p class="visit-closed">這段家庭連結已結束，只保留紀錄。</p>`}
         <p class="visit-note">家庭樹成長：${outcome ? `第 ${esc(outcome.level ?? "—")} 階` : "尚未建立"}（只屬於家庭關係，不會變成個人 XP 或金幣）</p>
       </section>
-      <section class="panel page-section"><span class="eyebrow">Encouragement</span><h2>鼓勵卡</h2>
+      <section class="scene-panel"><span class="eyebrow">Encouragement</span><h2>鼓勵卡</h2>
         ${isGuardian && active ? `<div class="social-actions" role="group" aria-label="送出鼓勵卡">${api.encouragementTemplates.map(t => `<button type="button" data-family-encourage="${esc(t.key)}" ${busy}>${esc(t.title)}</button>`).join("")}</div>` : ""}
         ${encouragements}</section>
-      <section class="panel page-section"><span class="eyebrow">Shared goals</span><h2>共同目標</h2>
+      <section class="scene-panel"><span class="eyebrow">Shared goals</span><h2>共同目標</h2>
         ${isGuardian && active ? `<form class="social-actions" data-family-goal-form><label class="sr-only" for="familyGoalTitle">目標名稱</label><input id="familyGoalTitle" maxlength="60" required placeholder="提出一個共同目標，例如：週末一起散步" data-family-goal-title /><button type="submit" ${busy}>提出</button></form>` : ""}
         ${goals}</section>
-      <section class="panel page-section"><span class="eyebrow">Consent</span><h2>分享同意</h2>${consentPanel}
+      <section class="scene-panel"><span class="eyebrow">Consent</span><h2>分享同意</h2>${consentPanel}
         ${isGuardian ? `<div class="social-actions"><button type="button" data-family-export ${Object.keys(report).length && !state.pending ? "" : "disabled"}>匯出目前獲准的週報摘要</button></div>
         <p class="visit-note">只會匯出孩子此刻同意的欄位；撤回後不再顯示或匯出。</p>` : ""}
       </section>`;
@@ -344,19 +344,19 @@
       : `<p class="visit-empty">目前沒有進行中的挑戰。${isManager ? "可以從下方模板發起一個邀請。" : ""}</p>`;
 
     return `
-      <section class="panel page-section"><span class="eyebrow">${isManager ? "Manager" : "Member"}</span>
+      <section class="scene-panel"><span class="eyebrow">${isManager ? "Manager" : "Member"}</span>
         <h2>${esc(state.selected.scopeName)} 團體會館</h2>
         <p>${isManager ? "你可以提出挑戰、共同時段與模板；成員自行決定是否參與與開始。" : "管理者的邀請會在這裡；參與、打卡、分享成果都由你自己決定。"}</p>
         <p class="visit-note">團體星球：${state.data.outcome ? `第 ${esc(state.data.outcome.level ?? "—")} 階` : "尚未建立"}（團體成長不會變成個人 XP）</p>
       </section>
-      <section class="panel page-section"><span class="eyebrow">Challenge</span><h2>團體挑戰</h2>${challengeCard}
+      <section class="scene-panel"><span class="eyebrow">Challenge</span><h2>團體挑戰</h2>${challengeCard}
         ${isManager && templates.length ? `<div class="social-actions" role="group" aria-label="從模板發起挑戰">${templates.map(t => `<button type="button" data-group-template="${esc(t.id)}" ${busy}>以「${esc(t.type)} · ${esc(t.days)} 天」發起</button>`).join("")}</div>` : ""}
       </section>
-      <section class="panel page-section"><span class="eyebrow">Shared sessions</span><h2>共同時段</h2>
+      <section class="scene-panel"><span class="eyebrow">Shared sessions</span><h2>共同時段</h2>
         ${schedules.length ? schedules.map(s => `<article class="social-scene-card"><h3>${esc(s.title)}</h3><p>${esc(s.meta)}</p></article>`).join("") : `<p class="visit-empty">還沒有共同時段。</p>`}
         ${isManager ? `<form class="social-actions" data-group-schedule-form><label class="sr-only" for="groupScheduleTitle">時段名稱</label><input id="groupScheduleTitle" maxlength="60" required placeholder="例如：週三晚上一起讀書" data-group-schedule-title /><label class="sr-only" for="groupScheduleMeta">時間說明</label><input id="groupScheduleMeta" maxlength="80" required placeholder="例如：19:30–21:00" data-group-schedule-meta /><button type="submit" ${busy}>提出共同時段</button></form>` : ""}
       </section>
-      <section class="panel page-section"><span class="eyebrow">Results</span><h2>成果摘要</h2>
+      <section class="scene-panel"><span class="eyebrow">Results</span><h2>成果摘要</h2>
         <p>${digest.sharedCount ? `${digest.sharedCount} 位成員同意分享；平均自律分數 ${digest.averageScore}，共完成 ${digest.completedTasks} 項任務。` : "目前沒有成員分享成果摘要。"}</p>
         <p class="visit-note">只統計成員自行分享的摘要；撤回後立即不再計入。</p>
         ${!isManager ? (mySummary ? `<div class="social-actions"><button type="button" data-group-withdraw ${busy}>撤回我的成果摘要</button></div>` : `<p class="visit-note">你目前沒有分享；要分享請在 App 的團體頁選擇。</p>`) : ""}

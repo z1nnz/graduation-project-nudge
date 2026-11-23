@@ -62,13 +62,14 @@ test("courtyard and hall pages are wired to the scene module without touching ap
   const group = read("web_dashboard/group-hall.html");
   for (const html of [family, group]) {
     assert.match(html, /data-social-scene/);
-    assert.match(html, /data-world-return/);
+    assert.match(html, /data-town-return|data-world-return/);
     assert.ok(html.indexOf("family_group_scenes.js") < html.indexOf("assets/app.js"));
   }
   assert.match(family, /data-page="family-courtyard"/);
   assert.match(group, /data-page="group-hall"/);
-  assert.match(read("web_dashboard/guardian.html"), /href="family-courtyard\.html"/);
-  assert.match(read("web_dashboard/groups.html"), /href="group-hall\.html"/);
+  const facilities = require("../web_dashboard/assets/social_scene.js").SCENES;
+  assert.ok(facilities.family.rooms.some(([href]) => href === "family-courtyard.html"));
+  assert.ok(facilities.guild.rooms.some(([href]) => href === "group-hall.html"));
   const script = read("web_dashboard/assets/family_group_scenes.js");
   assert.doesNotMatch(script, /collection\("users"\)/);
   assert.doesNotMatch(script, /addCoins|grantXp|avatarXp|coins\s*[:+=]/i);

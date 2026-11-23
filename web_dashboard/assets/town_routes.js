@@ -44,7 +44,7 @@
     d('quest-board', 'dashboard.html', 'board', '今日下一步', 'player', 'public', null, 'mixed', '#82'),
     d('tasks', 'planet.html', 'board', '今日任務清單', 'player', 'login', null, 'mixed', '#82'),
     d('rooms', 'rooms.html', 'tower', '自律房', 'player', 'login', null, 'cloud', '#83'),
-    d('room-chat', 'room-chat.html', 'tower', '房間聊天室', 'player', 'login', 'roomMember', 'cloud', '#83', 'planned'),
+    d('room-chat', 'room-chat.html', 'tower', '房間聊天室', 'player', 'login', 'roomMember', 'cloud', '#83'),
     d('guardian', 'guardian.html', 'family', '家長陪伴中心', 'player', 'login', 'family', 'cloud', '#83'),
     d('guardian-link', 'guardian-link.html', 'family', '連結家人', 'player', 'login', null, 'cloud', '#83'),
     d('family-courtyard', 'family-courtyard.html', 'family', '家庭庭院場景', 'player', 'login', 'family', 'cloud', '#83', 'planned'),
