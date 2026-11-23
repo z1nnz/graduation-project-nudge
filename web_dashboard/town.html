@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Nudge 夥伴小鎮</title>
     <meta name="theme-color" content="#2a1a14" />
-    <link rel="stylesheet" href="assets/town.css?v=1" />
+    <link rel="stylesheet" href="assets/town.css?v=2" />
   </head>
   <body data-page="town">
     <a class="town-skip" href="#townDirectory">跳到建築列表</a>
@@ -17,7 +17,7 @@
         <img id="townAvatar" class="town-avatar" alt="" src="assets/avatar/characters/character_0.png" />
         <div>
           <strong id="townName">訪客</strong>
-          <span id="townLevel">Lv 1・登入後同步</span>
+          <span id="townLevel">自由探索中</span>
         </div>
       </header>
 
@@ -28,6 +28,7 @@
         <a href="notifications.html" title="通知" aria-label="通知">🔔</a>
         <a href="profile.html" title="個人資料" aria-label="個人資料">👤</a>
         <a href="dashboard.html" title="傳統版面" aria-label="切換到傳統版面">▤</a>
+        <a href="index.html" title="回到入口" aria-label="回到 Nudge 入口" data-town-home>⌂</a>
         <button id="townHelp" type="button" title="導覽" aria-label="重新開始導覽">?</button>
       </nav>
 
@@ -72,16 +73,24 @@
         <p class="town-game-hint" id="townGameHint">左右鍵、A/D、滑鼠或手指拖曳移動。連續接到五顆星會有加分，Esc 可暫停。遊戲分數不換自律幣或經驗值。</p>
       </section>
 
-      <section id="townDirectory" class="town-directory" aria-label="小鎮建築列表">
-        <h2>小鎮建築</h2>
+      <button id="townListToggle" class="town-list-toggle" type="button"
+        aria-controls="townDirectory" aria-expanded="false">☰ 建築清單</button>
+
+      <section id="townDirectory" class="town-directory" aria-labelledby="townDirectoryTitle" tabindex="-1">
+        <div class="town-directory-head">
+          <h2 id="townDirectoryTitle">小鎮建築</h2>
+          <button id="townDirectoryClose" class="town-ghost" type="button">關閉清單</button>
+        </div>
+        <p id="townDirectoryNote" class="town-directory-note" role="status" hidden></p>
         <ul id="townDirectoryList"></ul>
+        <p class="town-directory-foot"><a href="index.html">回到 Nudge 入口</a></p>
       </section>
     </main>
 
     <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script src="assets/town_core.js?v=1"></script>
     <script src="assets/town_game_core.js?v=1"></script>
-    <script src="assets/town.js?v=1"></script>
+    <script src="assets/town.js?v=2"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

@@ -86,10 +86,41 @@ kbd { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: rgba(25
   background: linear-gradient(#251a4d, #4a2a5e); touch-action: none; image-rendering: pixelated; }
 .town-game-hint { font-size: 12px; opacity: 0.75; text-align: center; }
 
+/* Building list: visually hidden until opened (☰ button, skip link focus),
+   and always shown in static mode when Canvas or the map art is unavailable. */
+.town-list-toggle { position: absolute; z-index: 6; left: 50%; transform: translateX(-50%);
+  bottom: max(14px, env(safe-area-inset-bottom)); min-height: 44px; padding: 0 18px;
+  border: 1px solid var(--town-border); border-radius: 999px; background: var(--town-panel);
+  color: var(--town-ink); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  backdrop-filter: blur(6px); white-space: nowrap; }
+.town-list-toggle:hover { background: rgba(60, 34, 22, 0.92); }
+
 .town-directory { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.town-directory:focus-within { position: absolute; z-index: 20; inset: auto 12px 12px 12px; width: auto; height: auto;
-  clip: auto; overflow: auto; max-height: 60vh; background: var(--town-panel); border-radius: 16px; padding: 12px 16px; }
+.town-directory:focus-within, .town-directory.is-open {
+  z-index: 20; inset: auto max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  width: auto; height: auto; max-width: 560px; margin: 0 auto; clip: auto; overflow: auto; max-height: min(70vh, 640px);
+  background: rgba(32, 18, 12, 0.96); border: 1px solid var(--town-border); border-radius: 18px; padding: 12px 14px; }
+.town-directory-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.town-directory h2 { margin: 4px 0; font-size: 18px; }
+.town-directory-note { margin: 6px 0 4px; font-size: 14px; line-height: 1.5; color: var(--town-gold); }
+.town-directory ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.town-directory li a { display: grid; gap: 2px; min-height: 44px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--town-border); background: rgba(255, 255, 255, 0.04);
+  color: var(--town-ink); text-decoration: none; line-height: 1.4; overflow-wrap: anywhere; }
+.town-directory li a:hover { border-color: var(--town-gold); }
+.town-directory li strong { font-size: 16px; }
+.town-directory li span { font-size: 14px; opacity: 0.85; }
+.town-directory li em { font-style: normal; font-size: 13px; color: var(--town-gold); }
 .town-directory a { color: var(--town-ink); }
+.town-directory-foot { margin: 12px 0 2px; font-size: 14px; }
+
+/* Static mode: no map, no walking, the list is the town. */
+.town-static .town-canvas, .town-static .town-labels, .town-static .town-prompt,
+.town-static .town-hud-zoom, .town-static .town-hud-clock, .town-static .town-list-toggle,
+.town-static #townHelp, .town-static #townDirectoryClose { display: none !important; }
+.town-static .town { overflow: auto; background: #1b1530; }
+.town-static .town-directory.is-open { position: relative; inset: auto; margin: 132px auto 24px;
+  width: calc(100% - 24px); max-height: none; }
 .town-skip { position: absolute; left: -999px; top: 8px; z-index: 30; background: var(--town-gold); color: #2a1600; padding: 8px 12px; border-radius: 8px; }
 .town-skip:focus { left: 8px; }
 
@@ -101,6 +132,19 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); out
   .town-dialog p { font-size: 15px; }
   .town-hud-tools { top: calc(max(14px, env(safe-area-inset-top)) + 62px); }
   .town-hud-tools a, .town-hud-tools button { width: 40px; height: 40px; }
+  .town-hud-tools { left: max(14px, env(safe-area-inset-left)); justify-content: space-between; flex-wrap: wrap; }
+  .town-hud-tools a, .town-hud-tools button { width: 40px; height: 44px; }
   .town-hud-tools a[title="傳統版面"] { display: none; }
+  /* Keep the list button clear of the clock and zoom controls. */
+  .town-hud-clock { font-size: 18px; padding: 4px 10px; }
+  .town-list-toggle { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 4px); padding: 0 14px; }
+  .town-prompt { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 64px); max-width: calc(100vw - 24px); }
+  .town-label strong { font-size: 12px; }
+  .town-label span { display: none; }
+}
+/* Very narrow or zoomed text: drop the decorative clock before the entries. */
+@media (max-width: 400px) {
+  .town-hud-clock { display: none; }
+  .town-list-toggle { left: max(14px, env(safe-area-inset-left)); transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

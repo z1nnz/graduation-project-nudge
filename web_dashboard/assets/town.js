@@ -14,16 +14,18 @@
   const r = (x, y, w, h) => ({ x: x * MAP_W, y: y * MAP_H, w: w * MAP_W, h: h * MAP_H });
 
   // Positions measured on assets/town/town_map.jpg (0-1 of width/height).
+  // `login: true` marks pages whose own guard (app.js) asks guests to sign in;
+  // the town only labels that honestly and never bypasses the guard.
   const BUILDINGS = [
-    { id: 'cabin', name: '你的小屋', desc: '夥伴與家具', href: 'personal.html', rect: r(0.04, 0.37, 0.165, 0.18), door: n(0.165, 0.585), label: n(0.12, 0.35) },
+    { id: 'cabin', name: '你的小屋', desc: '夥伴與家具', href: 'personal.html', login: true, rect: r(0.04, 0.37, 0.165, 0.18), door: n(0.165, 0.585), label: n(0.12, 0.35) },
     { id: 'board', name: '委託告示板', desc: '今天的小目標', href: 'dashboard.html', rect: r(0.29, 0.405, 0.075, 0.12), door: n(0.327, 0.555), label: n(0.327, 0.39) },
-    { id: 'tower', name: '專注塔', desc: '自律房，一起專注', href: 'rooms.html', rect: r(0.42, 0.06, 0.055, 0.25), door: n(0.447, 0.345), label: n(0.447, 0.05) },
-    { id: 'family', name: '家庭庭院', desc: '家庭連結與共同目標', href: 'guardian.html', rect: r(0.045, 0.14, 0.245, 0.17), door: n(0.18, 0.345), label: n(0.17, 0.12) },
-    { id: 'guild', name: '團體會館', desc: '團體挑戰與成員', href: 'groups.html', rect: r(0.55, 0.11, 0.205, 0.22), door: n(0.648, 0.365), label: n(0.652, 0.09) },
-    { id: 'library', name: '紀錄館', desc: '統計與每週回顧', href: 'personal-trends.html', rect: r(0.78, 0.34, 0.2, 0.2), door: n(0.875, 0.585), label: n(0.88, 0.31) },
-    { id: 'store', name: '雜貨店', desc: '角色與家具商城', href: 'profile.html', rect: r(0.13, 0.63, 0.155, 0.16), door: n(0.205, 0.82), label: n(0.205, 0.6) },
+    { id: 'tower', name: '專注塔', desc: '自律房，一起專注', href: 'rooms.html', login: true, rect: r(0.42, 0.06, 0.055, 0.25), door: n(0.447, 0.345), label: n(0.447, 0.05) },
+    { id: 'family', name: '家庭庭院', desc: '家庭連結與共同目標', href: 'guardian.html', login: true, rect: r(0.045, 0.14, 0.245, 0.17), door: n(0.18, 0.345), label: n(0.17, 0.12) },
+    { id: 'guild', name: '團體會館', desc: '團體挑戰與成員', href: 'groups.html', login: true, rect: r(0.55, 0.11, 0.205, 0.22), door: n(0.648, 0.365), label: n(0.652, 0.09) },
+    { id: 'library', name: '紀錄館', desc: '統計與每週回顧', href: 'personal-trends.html', login: true, rect: r(0.78, 0.34, 0.2, 0.2), door: n(0.875, 0.585), label: n(0.88, 0.31) },
+    { id: 'store', name: '雜貨店', desc: '角色與家具商城', href: 'profile.html', login: true, rect: r(0.13, 0.63, 0.155, 0.16), door: n(0.205, 0.82), label: n(0.205, 0.6) },
     { id: 'park', name: '遊樂園', desc: '用休息券玩小遊戲', game: true, rect: r(0.6, 0.62, 0.2, 0.15), door: n(0.6, 0.79), label: n(0.7, 0.58) },
-    { id: 'observatory', name: '天文台', desc: 'Orbit 與 Station 裝置', href: 'personal-focus.html', rect: r(0.845, 0.04, 0.14, 0.2), door: n(0.93, 0.28), label: n(0.915, 0.03) },
+    { id: 'observatory', name: '天文台', desc: 'Orbit 與 Station 裝置', href: 'personal-focus.html', login: true, rect: r(0.845, 0.04, 0.14, 0.2), door: n(0.93, 0.28), label: n(0.915, 0.03) },
     { id: 'garden', name: '星光花園', desc: '更高等級開放', minLevel: 10, rect: r(0.745, 0.72, 0.255, 0.28), door: n(0.88, 0.92), label: n(0.86, 0.7) },
   ];
   const BOUNDS = { x: 10, y: 0.22 * MAP_H, w: MAP_W - 20, h: 0.76 * MAP_H };
@@ -45,7 +47,8 @@
 
   const els = id => doc.getElementById(id);
   const canvas = els('townCanvas');
-  const ctx = canvas.getContext('2d');
+  let ctx = null;
+  try { ctx = canvas.getContext ? canvas.getContext('2d') : null; } catch { ctx = null; }
   const reducedMotion = root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const store = {
     get(key) { try { return root.localStorage.getItem(key); } catch { return null; } },
@@ -67,9 +70,11 @@
     face: 0,
     walking: 0,
     toastUntil: 0,
+    static: false,
   };
 
   const mapImage = new Image();
+  mapImage.addEventListener('error', () => enterStatic('小鎮地圖載入失敗'));
   mapImage.src = 'assets/town/town_map.jpg';
   const playerImage = new Image();
   playerImage.src = 'assets/avatar/characters/character_0.png';
@@ -98,20 +103,36 @@
 
   // ---------- labels and directory ----------
   const labels = new Map();
+  const entries = new Map();
   for (const b of BUILDINGS) {
     const el = doc.createElement('div');
     el.className = 'town-label';
-    el.innerHTML = `<strong></strong><span></span>`;
-    el.querySelector('strong').textContent = b.name;
+    const title = doc.createElement('strong');
+    title.textContent = b.name;
+    el.append(title, doc.createElement('span'));
     els('townLabels').appendChild(el);
     labels.set(b.id, el);
     const li = doc.createElement('li');
     const link = doc.createElement('a');
     link.href = b.href || '#';
-    link.textContent = `${b.name}：${b.desc}`;
+    link.dataset.building = b.id;
+    const name = doc.createElement('strong');
+    name.textContent = b.name;
+    const desc = doc.createElement('span');
+    desc.textContent = b.desc;
+    const note = doc.createElement('em');
+    link.append(name, desc, note);
     link.addEventListener('click', event => { event.preventDefault(); enter(b); });
     li.appendChild(link);
     els('townDirectoryList').appendChild(li);
+    entries.set(b.id, note);
+  }
+  /** Honest status for the list: lock level, sign-in need or ticket need. */
+  function entryNote(b) {
+    if (!core.isUnlocked(b, state.level)) return `Lv ${b.minLevel} 開放`;
+    if (b.game) return state.uid ? '需要休息券' : '登入後可用休息券';
+    if (b.login && !state.uid) return '進入時需要登入';
+    return '';
   }
   function refreshLabels() {
     for (const b of BUILDINGS) {
@@ -119,14 +140,52 @@
       const el = labels.get(b.id);
       el.classList.toggle('is-locked', !unlocked);
       el.querySelector('span').textContent = unlocked ? b.desc : `Lv ${b.minLevel} 解鎖`;
+      const note = entries.get(b.id);
+      note.textContent = entryNote(b);
+      note.hidden = !note.textContent;
     }
   }
 
-  // ---------- view math ----------
-  function scale() {
-    const fit = Math.max(canvas.clientHeight / (MAP_H * 0.62), canvas.clientWidth / MAP_W);
-    return fit * state.zoom;
+  // ---------- building list (touch fallback and static mode) ----------
+  const directory = els('townDirectory');
+  const listToggle = els('townListToggle');
+  function setDirectory(open, { focus = true } = {}) {
+    const show = open || state.static;
+    directory.classList.toggle('is-open', show);
+    listToggle.setAttribute('aria-expanded', String(show));
+    if (!focus) return;
+    if (show) directory.querySelector('a')?.focus({ preventScroll: true });
+    else listToggle.focus({ preventScroll: true });
   }
+  listToggle.addEventListener('click', () => setDirectory(!directory.classList.contains('is-open')));
+  els('townDirectoryClose').addEventListener('click', () => setDirectory(false));
+
+  /** Canvas or map art unavailable: keep the town usable as a plain list. */
+  function enterStatic(reason) {
+    if (state.static) return;
+    state.static = true;
+    doc.body.classList.add('town-static');
+    state.tour = -1;
+    els('townDialog').hidden = true;
+    els('townPrompt').hidden = true;
+    const note = els('townDirectoryNote');
+    note.hidden = false;
+    note.textContent = `${reason}，可以直接從下面的清單進入各建築。`;
+    setDirectory(true, { focus: false });
+  }
+
+  // ---------- view math ----------
+  function baseFit() {
+    return Math.max(canvas.clientHeight / (MAP_H * 0.62), canvas.clientWidth / MAP_W);
+  }
+  function scale() { return baseFit() * state.zoom; }
+  /** Smallest zoom that still covers the screen, so no empty band shows. */
+  function minZoom() {
+    const fit = baseFit();
+    if (!fit) return 1;
+    return Math.min(1, Math.max(canvas.clientWidth / MAP_W, canvas.clientHeight / MAP_H) / fit);
+  }
+  function setZoom(z) { state.zoom = Math.min(1.8, Math.max(minZoom(), z)); }
   function toScreen(p) {
     const s = scale();
     return { x: (p.x - state.camera.x) * s + canvas.clientWidth / 2, y: (p.y - state.camera.y) * s + canvas.clientHeight / 2 };
@@ -145,11 +204,19 @@
     };
   }
 
+  let labelTop = 64;
+  let zoomTouched = false;
   function resize() {
+    if (!ctx) return;
     const dpr = Math.min(root.devicePixelRatio || 1, 2);
     canvas.width = Math.round(canvas.clientWidth * dpr);
     canvas.height = Math.round(canvas.clientHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Phones start zoomed out so nearby buildings are on screen.
+    if (!zoomTouched) state.zoom = canvas.clientWidth < 560 ? minZoom() : 1;
+    else setZoom(state.zoom);
+    const tools = doc.querySelector('.town-hud-tools')?.getBoundingClientRect?.();
+    labelTop = Math.max(64, (tools?.bottom || 0) + 36);
   }
 
   // ---------- interaction ----------
@@ -166,6 +233,7 @@
       return;
     }
     if (b.game) { openGame(); return; }
+    toast(`正在進入${b.name}…`);
     root.location.href = b.href;
   }
 
@@ -178,9 +246,16 @@
     const rect = canvas.getBoundingClientRect();
     const p = toMap(event.clientX - rect.left, event.clientY - rect.top);
     const b = buildingAt(p);
-    if (b) {
+    if (b && reducedMotion) {
+      // No walking animation: arrive at the door and enter in one step.
+      state.player = { ...b.door };
+      state.target = null;
+      state.pendingBuilding = null;
+      enter(b);
+    } else if (b) {
       state.target = { ...b.door };
       state.pendingBuilding = b;
+      toast(`走向${b.name}…`, 1600);
     } else {
       state.target = p;
       state.pendingBuilding = null;
@@ -188,8 +263,13 @@
   });
 
   doc.addEventListener('keydown', event => {
-    if (event.target instanceof HTMLElement && event.target.closest('input, textarea')) return;
+    if (event.target?.closest?.('input, textarea')) return;
     const key = event.key.toLowerCase();
+    if (key === 'escape' && directory.classList.contains('is-open') && !state.static) {
+      setDirectory(false);
+      return;
+    }
+    if (state.static) return;
     if (state.tour >= 0) {
       if (key === ' ' || key === 'enter') { event.preventDefault(); nextTour(); }
       if (key === 'escape') endTour();
@@ -209,15 +289,16 @@
       state.target = null;
       state.pendingBuilding = null;
     }
-    if (key === 'f' && state.near) enter(state.near);
+    const onMap = !event.target || event.target === doc.body || event.target === canvas;
+    if (state.near && (key === 'f' || (key === 'enter' && onMap))) enter(state.near);
   });
   doc.addEventListener('keyup', event => state.keys.delete(event.key.toLowerCase()));
   root.addEventListener('blur', () => { state.keys.clear(); if (game.running) toggleGamePause(); });
   doc.addEventListener('visibilitychange', () => { if (doc.hidden && game.running) toggleGamePause(); });
 
   els('townPromptEnter').addEventListener('click', () => state.near && enter(state.near));
-  els('townZoomIn').addEventListener('click', () => { state.zoom = Math.min(1.8, state.zoom + 0.2); });
-  els('townZoomOut').addEventListener('click', () => { state.zoom = Math.max(0.6, state.zoom - 0.2); });
+  els('townZoomIn').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom + 0.2); });
+  els('townZoomOut').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom - 0.2); });
   els('townHelp').addEventListener('click', startTour);
 
   // ---------- guided tour ----------
@@ -228,7 +309,7 @@
     els('townDialogStep').textContent = `${state.tour + 1} / ${TOUR.length}`;
     els('townDialogNext').focus({ preventScroll: true });
   }
-  function startTour() { state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
+  function startTour() { if (state.static) return; state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
   function nextTour() { if (state.tour + 1 >= TOUR.length) endTour(); else { state.tour += 1; showTourStep(); } }
   function endTour() {
     state.tour = -1;
@@ -254,8 +335,10 @@
     pauseStarted: 0, score: 0, combo: 0, x: 0.5, stars: [], clouds: [], last: 0,
     lastHudSecond: -1, lastHudScore: -1, lastHudCombo: -1, ticket: null };
   const gameCanvas = els('townGameCanvas');
-  const gctx = gameCanvas.getContext('2d');
+  let gctx = null;
+  try { gctx = gameCanvas.getContext ? gameCanvas.getContext('2d') : null; } catch { gctx = null; }
   function resizeGameCanvas() {
+    if (!gctx) return;
     const dpr = Math.min(root.devicePixelRatio || 1, 2);
     gameCanvas.width = Math.round(gameCanvas.clientWidth * dpr);
     gameCanvas.height = Math.round(gameCanvas.clientHeight * dpr);
@@ -264,6 +347,7 @@
   root.addEventListener('resize', () => { if (!els('townGame').hidden) resizeGameCanvas(); });
   function openGame() {
     if (!state.uid) { toast('登入後完成一次專注，就能拿到休息券。'); return; }
+    if (!gctx) { toast('這個瀏覽器無法顯示小遊戲。'); return; }
     const list = tickets();
     if (!list.length) { toast('還沒有休息券。完成一次 25 分鐘以上、由雲端確認的專注，就能來玩。'); return; }
     game.ticket = list[0];
@@ -399,6 +483,7 @@
 
   let last = performance.now();
   function frame(now) {
+    if (state.static || !ctx) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     if (!els('townGame').hidden) { if (game.running) tickGame(now); root.requestAnimationFrame(frame); return; }
@@ -462,7 +547,7 @@
       const p = toScreen(b.label);
       const el = labels.get(b.id);
       el.style.left = `${p.x}px`;
-      el.style.top = `${Math.max(64, p.y)}px`;
+      el.style.top = `${Math.max(labelTop, p.y)}px`;
       el.classList.toggle('is-near', state.near === b);
     }
     if (state.toastUntil && now > state.toastUntil) { els('townToast').hidden = true; state.toastUntil = 0; }
@@ -484,7 +569,8 @@
     if (!playerImage.src.endsWith(sprite)) playerImage.src = sprite;
     els('townAvatar').src = sprite;
     els('townName').textContent = user ? (data?.nickname || '自律夥伴') : '訪客';
-    els('townLevel').textContent = user ? `Lv ${state.level}` : 'Lv 1・登入後同步';
+    // Guests see no level, XP or sync status: there is no account data to show.
+    els('townLevel').textContent = user ? `Lv ${state.level}` : '自由探索中';
     refreshLabels();
     refreshTicket();
   }
@@ -513,11 +599,13 @@
 
   root.addEventListener('resize', resize);
   doc.addEventListener('firebase-ready', connect);
+  if (!ctx) enterStatic('這個瀏覽器無法顯示小鎮地圖');
   resize();
+  if (ctx) state.camera = clampCamera(state.player);
   refreshLabels();
   tickClock();
   root.setInterval(tickClock, 15000);
   root.setInterval(refreshTicket, 60000);
   if (store.get('nudge_town_tour_done') !== '1') startTour();
-  root.requestAnimationFrame(frame);
+  if (ctx) root.requestAnimationFrame(frame);
 })(typeof globalThis !== 'undefined' ? globalThis : this);
