@@ -26,6 +26,7 @@ Future<Map<String, int>> _pump(
   bool tour = false,
   int level = 7,
   String account = 'me',
+  int socialUnread = 0,
 }) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
@@ -46,6 +47,7 @@ Future<Map<String, int>> _pump(
           profile: AvatarProfile.initial(),
           level: level,
           accountKey: account,
+          socialUnread: socialUnread,
           coins: 128,
           streak: 6,
           now: DateTime(2026, 11, 23, 12),
@@ -281,5 +283,14 @@ void main() {
     await tester.runAsync(() => _pump(tester, level: 14, account: 'other'));
     await tester.pump(const Duration(milliseconds: 800));
     expect(find.byKey(const Key('cabin-celebration')), findsNothing);
+  });
+
+  testWidgets('the social slot shows a dot for unread news', (tester) async {
+    await tester.runAsync(() => _pump(tester));
+    expect(find.byKey(const Key('hotbar-social-dot')), findsNothing);
+    await tester.runAsync(() => _pump(tester, socialUnread: 2));
+    await tester.pump();
+    expect(find.byKey(const Key('hotbar-social-dot')), findsOneWidget);
+    expect(find.bySemanticsLabel('社交，有新消息'), findsOneWidget);
   });
 }
