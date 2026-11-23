@@ -14,18 +14,37 @@ Future<void> showQuestScroll(BuildContext context) {
     barrierDismissible: true,
     barrierLabel: '關閉委託',
     barrierColor: const Color(0x99140A05),
-    transitionDuration: const Duration(milliseconds: 260),
+    transitionDuration: const Duration(milliseconds: 420),
     pageBuilder: (_, _, _) => const _QuestScroll(),
     transitionBuilder: (context, animation, _, child) {
+      if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) return child;
+      // The scroll unrolls from its middle, top and bottom rods moving apart.
       final curved = CurvedAnimation(
         parent: animation,
-        curve: Curves.easeOutBack,
+        curve: Curves.easeOutCubic,
       );
       return FadeTransition(
         opacity: animation,
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.85, end: 1).animate(curved),
+        child: AnimatedBuilder(
+          animation: curved,
           child: child,
+          builder: (context, child) => ClipRect(
+            child: Align(
+              heightFactor: 1,
+              child: FractionalTranslation(
+                translation: Offset(0, 0.04 * (1 - curved.value)),
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.diagonal3Values(
+                    1,
+                    0.05 + 0.95 * curved.value,
+                    1,
+                  ),
+                  child: child,
+                ),
+              ),
+            ),
+          ),
         ),
       );
     },

@@ -6,6 +6,7 @@ import '../models/daily_next_action.dart';
 import '../models/cabin_presentation.dart';
 import '../widgets/companion_cabin_view.dart';
 import '../widgets/immersive_cabin.dart';
+import '../widgets/cabin_route.dart';
 import '../widgets/quest_scroll.dart';
 import '../models/cabin_layout.dart';
 import 'focus_page.dart';
@@ -62,7 +63,7 @@ class HomePage extends StatelessWidget {
   Widget _immersive(BuildContext context, AppState appState) {
     final capabilities = appState.experienceCapabilities;
     void push(Widget page) =>
-        Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+        Navigator.push(context, CabinRoute<void>(builder: (_) => page));
     final streak = appState.badgeRecords
         .where(
           (b) => b.badgeKey == 'focus_streak' || b.badgeKey == 'task_streak',
