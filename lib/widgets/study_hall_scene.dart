@@ -20,6 +20,8 @@ class StudyHallScene extends StatelessWidget {
     required this.lanternStage,
     required this.onMemberTap,
     this.reactions = const {},
+    this.fullBleed = false,
+    this.bannerTop = 12,
   });
 
   final StudyRoomType roomType;
@@ -33,12 +35,18 @@ class StudyHallScene extends StatelessWidget {
   /// Short-lived reaction glyphs above members, keyed by member id.
   final Map<String, String> reactions;
 
+  /// Fills its parent edge to edge (full-screen room) instead of a rounded card.
+  final bool fullBleed;
+
+  /// Distance of the head-count banner from the top, to clear overlays.
+  final double bannerTop;
+
   @override
   Widget build(BuildContext context) {
     final hall = StudyHallLayout.forType(roomType);
     final (lx, ly, lw, lh) = StudyHallLayout.lanternRect;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(fullBleed ? 0 : 22),
       child: AspectRatio(
         aspectRatio: StudyHallLayout.aspect,
         child: LayoutBuilder(
@@ -74,7 +82,7 @@ class StudyHallScene extends StatelessWidget {
                 Positioned(
                   left: 12,
                   right: 12,
-                  top: 12,
+                  top: bannerTop,
                   child: Center(
                     child: _Banner(text: '現在有 ${seating.activeCount} 人在房間裡'),
                   ),

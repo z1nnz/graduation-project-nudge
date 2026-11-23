@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/avatar_profile.dart';
 import '../models/room_activity_session.dart';
 import '../models/room_resonance.dart';
+import '../models/study_hall_layout.dart';
 import '../models/study_hall_seating.dart';
 import '../models/study_room_models.dart';
 import '../models/task_model.dart';
@@ -28,7 +29,6 @@ class StudyRoomLivePage extends StatefulWidget {
 class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   static const int _defaultFocusSeconds = 25 * 60;
 
-
   Timer? _timer;
   int _durationSeconds = _defaultFocusSeconds;
   int _remainingSeconds = _defaultFocusSeconds;
@@ -36,8 +36,9 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   bool _isRunning = false;
   DateTime? _sessionStartTime;
   String? _roomActivitySessionId;
-  bool _voiceJoined = false;
-  bool _micMuted = false;
+  // Voice joins the room once the App voice client lands (shared contract).
+  final bool _voiceJoined = false;
+  final bool _micMuted = false;
   DateTime? _chatLastRead;
   bool _chatReadLoaded = false;
   final Map<String, String> _reactions = {};
@@ -620,144 +621,35 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AppState>(
-      builder: (context, appState, _) {
-        final room = appState.getStudyRoomById(widget.roomId);
-        if (room == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('即時自律房')),
-            body: const Center(child: Text('找不到這個房間')),
-          );
-        }
-
-        final accent = room.accentColor;
-        final approvedMembers = room.members
-            .where((member) => member.isApproved)
-            .toList(growable: false);
-        final activityCount = _usesExternalProgress(room)
-            ? approvedMembers
-                  .where((member) => member.hasReachedPersonalGoal)
-                  .length
-            : approvedMembers
-                  .where(
-                    (member) => member.status == StudyMemberStatus.studying,
-                  )
-                  .length;
-        final currentMemberId = appState.currentUser?.id ?? 'local_user';
-        final hasApprovedMembership = approvedMembers.any(
-          (member) => member.memberId == currentMemberId,
-        );
-        final me = approvedMembers.firstWhere(
-          (member) => member.memberId == currentMemberId,
-          orElse: () => StudyMemberData(
-            memberId: 'local_user',
-            name: appState.profileNickname,
-            roomNickname: appState.profileNickname,
-            status: StudyMemberStatus.offline,
-            sessionSeconds: 0,
-            todayFocusSeconds: appState.focusSeconds,
-            todayMetricValue: 0,
-            avatarColor: const Color(0xFF7C6AE6),
-          ),
-        );
-        final externalProgress = room.dailyGoalValue <= 0
-            ? 0.0
-            : (me.todayMetricValue / room.dailyGoalValue)
-                  .clamp(0.0, 1.0)
-                  .toDouble();
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(room.name),
-            actions: [
-              if (_voiceJoined)
-                IconButton(
-                  icon: Icon(
-                    _micMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                    color: _micMuted ? Colors.red : const Color(0xFF10B981),
-                  ),
-                  tooltip: _micMuted ? '取消靜音' : '靜音',
-                  onPressed: () {
-                    setState(() {
-                      _micMuted = !_micMuted;
-                    });
-                  },
-                ),
-              IconButton(
-                icon: Icon(
-                  _voiceJoined
-                      ? Icons.headset_rounded
-                      : Icons.headset_off_rounded,
-                  color: _voiceJoined ? accent : null,
-                ),
-                tooltip: _voiceJoined ? '退出語音房' : '加入語音房',
-                onPressed: () async {
-                  if (_voiceJoined) {
-                    await appState.leaveVoiceRoom(widget.roomId);
-                    setState(() {
-                      _voiceJoined = false;
-                    });
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(const SnackBar(content: Text('已退出語音房間')));
-                    }
-                  } else {
-                    await appState.joinVoiceRoom(widget.roomId);
-                    setState(() {
-                      _voiceJoined = true;
-                      _micMuted = false;
-                    });
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('已進入自律語音房 (Firestore 信令準備中)'),
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Center(
-                  child: _LivePill(
-                    text: _usesExternalProgress(room)
-                        ? '$activityCount 人達標'
-                        : '$activityCount 人進行中',
-                    color: _usesExternalProgress(room)
-                        ? const Color(0xFF0EA5E9)
-                        : const Color(0xFF10B981),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(AppUI.pagePadding),
+  /// Timer length, health sync, resonance signals and room activity: the
+  /// tools that used to be stacked under the hall, now one tap away.
+  void _showRoomTools({
+    required AppState appState,
+    required StudyRoomData room,
+    required StudyMemberData me,
+    required double externalProgress,
+    required List<StudyMemberData> approvedMembers,
+    required String currentMemberId,
+    required bool hasApprovedMembership,
+  }) {
+    final accent = room.accentColor;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFFF6E7C8),
+      // The sheet does not rebuild with the page, so it ticks on its own
+      // to keep the countdown in step.
+      builder: (sheetContext) => _EverySecond(
+        builder: (_) => DraggableScrollableSheet(
+          key: const Key('room-tools-sheet'),
+          expand: false,
+          initialChildSize: 0.7,
+          maxChildSize: 0.95,
+          builder: (context, controller) => ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
-              StudyHallScene(
-                roomType: room.roomType,
-                seating: StudyHallSeating.assign([
-                  for (final member in approvedMembers)
-                    member.avatarProfile != null
-                        ? member
-                        : member.copyWith(
-                            avatarProfile: _memberAvatarProfile(
-                              appState,
-                              member,
-                            ),
-                          ),
-                ], myId: currentMemberId),
-                myId: currentMemberId,
-                lanternStage: _lanternStage(room, approvedMembers),
-                reactions: _reactions,
-                onMemberTap: (member) =>
-                    _showMember(appState, room, member, currentMemberId),
-              ),
-              const SizedBox(height: AppUI.sectionGap),
               if (_hasInRoomTimer(room))
                 _TimerPanel(
                   accent: accent,
@@ -770,7 +662,10 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                   startIcon: _startActionIcon(room),
                   onStart: () => _startSession(appState, room),
                   onPause: () => _pauseSession(appState, room),
-                  onStop: () => _stopSession(appState, room),
+                  onStop: () {
+                    Navigator.pop(sheetContext);
+                    _stopSession(appState, room);
+                  },
                   onDurationChanged: _setDuration,
                   selectedDuration: _durationSeconds,
                 )
@@ -828,19 +723,6 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                 },
               ),
               const SizedBox(height: AppUI.sectionGap),
-              _ChatEntry(
-                key: const Key('room-chat-entry'),
-                latest: room.messages.firstOrNull,
-                unread: _chatReadLoaded
-                    ? RoomChatReadState.unreadCount(
-                        room.messages,
-                        lastRead: _chatLastRead,
-                        myId: currentMemberId,
-                      )
-                    : 0,
-                onTap: () => _openChat(currentMemberId),
-              ),
-              const SizedBox(height: AppUI.sectionGap),
               Card(
                 shape: AppUI.cardShape(),
                 clipBehavior: Clip.antiAlias,
@@ -849,7 +731,230 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                   children: [_EventPanel(events: room.events, accent: accent)],
                 ),
               ),
-              const SizedBox(height: 28),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppState>(
+      builder: (context, appState, _) {
+        final room = appState.getStudyRoomById(widget.roomId);
+        if (room == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('即時自律房')),
+            body: const Center(child: Text('找不到這個房間')),
+          );
+        }
+
+        final approvedMembers = room.members
+            .where((member) => member.isApproved)
+            .toList(growable: false);
+        final activityCount = _usesExternalProgress(room)
+            ? approvedMembers
+                  .where((member) => member.hasReachedPersonalGoal)
+                  .length
+            : approvedMembers
+                  .where(
+                    (member) => member.status == StudyMemberStatus.studying,
+                  )
+                  .length;
+        final currentMemberId = appState.currentUser?.id ?? 'local_user';
+        final hasApprovedMembership = approvedMembers.any(
+          (member) => member.memberId == currentMemberId,
+        );
+        final me = approvedMembers.firstWhere(
+          (member) => member.memberId == currentMemberId,
+          orElse: () => StudyMemberData(
+            memberId: 'local_user',
+            name: appState.profileNickname,
+            roomNickname: appState.profileNickname,
+            status: StudyMemberStatus.offline,
+            sessionSeconds: 0,
+            todayFocusSeconds: appState.focusSeconds,
+            todayMetricValue: 0,
+            avatarColor: const Color(0xFF7C6AE6),
+          ),
+        );
+        final externalProgress = room.dailyGoalValue <= 0
+            ? 0.0
+            : (me.todayMetricValue / room.dailyGoalValue)
+                  .clamp(0.0, 1.0)
+                  .toDouble();
+
+        final unread = _chatReadLoaded
+            ? RoomChatReadState.unreadCount(
+                room.messages,
+                lastRead: _chatLastRead,
+                myId: currentMemberId,
+              )
+            : 0;
+        final hasSession = _isRunning || _roomActivitySessionId != null;
+        final timerRoom = _hasInRoomTimer(room);
+        final padding = MediaQuery.paddingOf(context);
+        final seating = StudyHallSeating.assign([
+          for (final member in approvedMembers)
+            member.avatarProfile != null
+                ? member
+                : member.copyWith(
+                    avatarProfile: _memberAvatarProfile(appState, member),
+                  ),
+        ], myId: currentMemberId);
+
+        void say(String text) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(text)));
+        }
+
+        void onVoice() {
+          if (!room.voiceEnabled) {
+            say('房主開啟語音後，就能一起開麥克風讀書');
+            return;
+          }
+          say('App 的語音自習即將開放，現在可以先在 Web 版加入');
+        }
+
+        Future<void> onMain() async {
+          if (!timerRoom) {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HealthPage()),
+            );
+            return;
+          }
+          if (_isRunning) {
+            await _pauseSession(appState, room);
+          } else {
+            await _startSession(appState, room);
+          }
+        }
+
+        final mainLabel = !timerRoom
+            ? '同步'
+            : _isRunning
+            ? '暫停'
+            : hasSession
+            ? '繼續'
+            : _startActionText(room);
+        final mainIcon = !timerRoom
+            ? Icons.sync_rounded
+            : _isRunning
+            ? Icons.pause_rounded
+            : _startActionIcon(room);
+
+        return Scaffold(
+          backgroundColor: const Color(0xFF1B1530),
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    // The portrait hall covers the whole screen.
+                    var w = box.maxWidth;
+                    var h = w / StudyHallLayout.aspect;
+                    if (h < box.maxHeight) {
+                      h = box.maxHeight;
+                      w = h * StudyHallLayout.aspect;
+                    }
+                    return ClipRect(
+                      child: OverflowBox(
+                        maxWidth: w,
+                        maxHeight: h,
+                        child: SizedBox(
+                          width: w,
+                          height: h,
+                          child: StudyHallScene(
+                            roomType: room.roomType,
+                            seating: seating,
+                            myId: currentMemberId,
+                            lanternStage: _lanternStage(room, approvedMembers),
+                            reactions: _reactions,
+                            fullBleed: true,
+                            bannerTop: padding.top + 72,
+                            onMemberTap: (member) => _showMember(
+                              appState,
+                              room,
+                              member,
+                              currentMemberId,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                top: padding.top + 10,
+                child: Row(
+                  children: [
+                    _WoodRoundButton(
+                      key: const Key('room-back'),
+                      icon: Icons.arrow_back_rounded,
+                      label: '離開房間',
+                      onTap: () => Navigator.maybePop(context),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _RoomNamePlate(
+                        key: const Key('room-title'),
+                        name: room.name,
+                        detail: _usesExternalProgress(room)
+                            ? '$activityCount 人達標'
+                            : '$activityCount 人進行中',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (timerRoom && hasSession)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: padding.top + 178,
+                  child: Center(
+                    child: _RoomClock(
+                      key: const Key('room-timer'),
+                      text: _timerText(),
+                      running: _isRunning,
+                      progress: _durationSeconds <= 0
+                          ? 0
+                          : 1 - (_remainingSeconds / _durationSeconds),
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: 8,
+                right: 8,
+                bottom: padding.bottom + 8,
+                child: _RoomControlBar(
+                  micOn: _voiceJoined && !_micMuted,
+                  voiceJoined: _voiceJoined,
+                  mainLabel: mainLabel,
+                  mainIcon: mainIcon,
+                  mainGlow: !_isRunning,
+                  unread: unread,
+                  onMic: onVoice,
+                  onVoice: onVoice,
+                  onMain: onMain,
+                  onChat: () => _openChat(currentMemberId),
+                  onMore: () => _showRoomTools(
+                    appState: appState,
+                    room: room,
+                    me: me,
+                    externalProgress: externalProgress,
+                    approvedMembers: approvedMembers,
+                    currentMemberId: currentMemberId,
+                    hasApprovedMembership: hasApprovedMembership,
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -1297,64 +1402,483 @@ class _EventPanel extends StatelessWidget {
   }
 }
 
-class _LivePill extends StatelessWidget {
-  final String text;
-  final Color color;
+/// Entry to the room chat page: latest message preview and unread count.
 
-  const _LivePill({required this.text, required this.color});
+const _font = 'Cubic11';
+
+class _WoodRoundButton extends StatelessWidget {
+  const _WoodRoundButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(AppUI.radiusPill),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: color,
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF8A5A34), Color(0xFF5A3826)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFC9934F), width: 2),
+            boxShadow: const [
+              BoxShadow(color: Color(0x99000000), offset: Offset(0, 3)),
+            ],
+          ),
+          child: Icon(icon, color: const Color(0xFFFFE6A3)),
         ),
       ),
     );
   }
 }
 
-/// Entry to the room chat page: latest message preview and unread count.
-class _ChatEntry extends StatelessWidget {
-  const _ChatEntry({
+class _RoomNamePlate extends StatelessWidget {
+  const _RoomNamePlate({super.key, required this.name, required this.detail});
+
+  final String name;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xEE8A5A34), Color(0xEE5A3826)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFC9934F), width: 2),
+        boxShadow: const [
+          BoxShadow(color: Color(0x99000000), offset: Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: _font,
+              fontSize: 18,
+              color: Color(0xFFFFF3D6),
+            ),
+          ),
+          Text(
+            detail,
+            style: const TextStyle(
+              fontFamily: _font,
+              fontSize: 13,
+              color: Color(0xFFFFD76A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The shared wall clock while my session runs.
+class _RoomClock extends StatelessWidget {
+  const _RoomClock({
     super.key,
-    required this.latest,
+    required this.text,
+    required this.running,
+    required this.progress,
+  });
+
+  final String text;
+  final bool running;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xEE3A2216),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFC9934F), width: 3),
+        boxShadow: const [
+          BoxShadow(color: Color(0x99000000), offset: Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            style: const TextStyle(
+              fontFamily: _font,
+              fontSize: 40,
+              color: Color(0xFFFFE6A3),
+            ),
+          ),
+          SizedBox(
+            width: 140,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                minHeight: 6,
+                backgroundColor: const Color(0x55000000),
+                color: running
+                    ? const Color(0xFFFFC54D)
+                    : const Color(0xFF9C8A70),
+              ),
+            ),
+          ),
+          if (!running)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                '已暫停',
+                style: TextStyle(
+                  fontFamily: _font,
+                  fontSize: 12,
+                  color: Color(0xFFE8D5B5),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bottom wooden bar: mic, voice, the big main action, chat and more.
+class _RoomControlBar extends StatelessWidget {
+  const _RoomControlBar({
+    required this.micOn,
+    required this.voiceJoined,
+    required this.mainLabel,
+    required this.mainIcon,
+    required this.mainGlow,
     required this.unread,
+    required this.onMic,
+    required this.onVoice,
+    required this.onMain,
+    required this.onChat,
+    required this.onMore,
+  });
+
+  final bool micOn;
+  final bool voiceJoined;
+  final String mainLabel;
+  final IconData mainIcon;
+  final bool mainGlow;
+  final int unread;
+  final VoidCallback onMic;
+  final VoidCallback onVoice;
+  final VoidCallback onMain;
+  final VoidCallback onChat;
+  final VoidCallback onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 80,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xEE8A5A34), Color(0xEE4A2D1E)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFC9934F), width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x99000000),
+                  offset: Offset(0, 4),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _BarSlot(
+                key: const Key('room-mic'),
+                icon: micOn ? Icons.mic_rounded : Icons.mic_off_rounded,
+                label: micOn ? '麥克風' : '靜音',
+                onTap: onMic,
+              ),
+              _BarSlot(
+                key: const Key('room-voice'),
+                icon: voiceJoined
+                    ? Icons.headset_rounded
+                    : Icons.headset_off_rounded,
+                label: voiceJoined ? '離開語音' : '加入語音',
+                onTap: onVoice,
+              ),
+              Expanded(
+                flex: 6,
+                child: _MainMedallion(
+                  key: const Key('room-main-action'),
+                  icon: mainIcon,
+                  label: mainLabel,
+                  glow: mainGlow,
+                  onTap: onMain,
+                ),
+              ),
+              _BarSlot(
+                key: const Key('room-chat'),
+                icon: Icons.forum_rounded,
+                label: '聊天',
+                badge: unread,
+                onTap: onChat,
+              ),
+              _BarSlot(
+                key: const Key('room-more'),
+                icon: Icons.more_horiz_rounded,
+                label: '更多',
+                onTap: onMore,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BarSlot extends StatelessWidget {
+  const _BarSlot({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: 5,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Semantics(
+          button: true,
+          label: badge > 0 ? '$label，$badge 則未讀' : label,
+          excludeSemantics: true,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Stack(
+              clipBehavior: Clip.none,
+              fit: StackFit.passthrough,
+              children: [
+                Container(
+                  height: 66,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6E7C8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF4A2D22),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: const Color(0xFF8A5A34), size: 28),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontFamily: _font,
+                          fontSize: 13,
+                          color: Color(0xFF3A1D0C),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (badge > 0)
+                  Positioned(
+                    top: -6,
+                    right: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD8452E),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFFFFF3D6),
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        '$badge',
+                        style: const TextStyle(
+                          fontFamily: _font,
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The big round gold button in the middle of the bar.
+class _MainMedallion extends StatelessWidget {
+  const _MainMedallion({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.glow,
     required this.onTap,
   });
 
-  final StudyRoomMessage? latest;
-  final int unread;
+  final IconData icon;
+  final String label;
+  final bool glow;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final preview = latest == null
-        ? '還沒有訊息，點這裡打聲招呼'
-        : '${latest!.senderName}：${latest!.text}';
-    return Card(
-      shape: AppUI.cardShape(),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        leading: Badge(
-          isLabelVisible: unread > 0,
-          label: Text('$unread'),
-          child: const Icon(Icons.chat_bubble_outline_rounded),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  center: Alignment(-0.3, -0.4),
+                  colors: [
+                    Color(0xFFFFF6D0),
+                    Color(0xFFFFC54D),
+                    Color(0xFFE07A1F),
+                  ],
+                  stops: [0, 0.55, 1],
+                ),
+                border: Border.all(color: const Color(0xFF4A2410), width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: glow
+                        ? const Color(0x99FFC85A)
+                        : const Color(0x66000000),
+                    blurRadius: glow ? 18 : 6,
+                    spreadRadius: glow ? 2 : 0,
+                  ),
+                ],
+              ),
+              child: Icon(icon, size: 40, color: const Color(0xFF4A2410)),
+            ),
+            Transform.translate(
+              offset: const Offset(0, -8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF9C7BEF), Color(0xFF6A4FC8)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF2E1A5C), width: 2),
+                ),
+                // Labels like 開始專注 shrink to fit instead of being cut.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontFamily: _font,
+                      fontSize: 15,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        title: const Text('聊天'),
-        subtitle: Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
-        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }
+}
+
+/// Rebuilds its child once a second while it is on screen.
+class _EverySecond extends StatefulWidget {
+  const _EverySecond({required this.builder});
+
+  final WidgetBuilder builder;
+
+  @override
+  State<_EverySecond> createState() => _EverySecondState();
+}
+
+class _EverySecondState extends State<_EverySecond> {
+  late final Timer _tick = Timer.periodic(
+    const Duration(seconds: 1),
+    (_) => setState(() {}),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _tick;
+  }
+
+  @override
+  void dispose() {
+    _tick.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context);
 }

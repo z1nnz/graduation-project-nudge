@@ -319,6 +319,9 @@ class StudyRoomData {
   final bool challengeCompleted;
   final bool syncTaskEnabled;
 
+  /// Owner switch for the voice study room (shared App/Web contract).
+  final bool voiceEnabled;
+
   final List<StudyRoomDailyRecord> dailyRecords;
   final List<StudyRoomMessage> messages;
   final List<StudyRoomEvent> events;
@@ -353,6 +356,7 @@ class StudyRoomData {
     this.challengeDeadlineLabel = '今天 23:59',
     this.challengeCompleted = false,
     this.syncTaskEnabled = false,
+    this.voiceEnabled = false,
     this.dailyRecords = const [],
     this.messages = const [],
     this.events = const [],
@@ -388,6 +392,7 @@ class StudyRoomData {
     String? challengeDeadlineLabel,
     bool? challengeCompleted,
     bool? syncTaskEnabled,
+    bool? voiceEnabled,
     List<StudyRoomDailyRecord>? dailyRecords,
     List<StudyRoomMessage>? messages,
     List<StudyRoomEvent>? events,
@@ -423,6 +428,7 @@ class StudyRoomData {
           challengeDeadlineLabel ?? this.challengeDeadlineLabel,
       challengeCompleted: challengeCompleted ?? this.challengeCompleted,
       syncTaskEnabled: syncTaskEnabled ?? this.syncTaskEnabled,
+      voiceEnabled: voiceEnabled ?? this.voiceEnabled,
       dailyRecords: dailyRecords ?? this.dailyRecords,
       messages: messages ?? this.messages,
       events: events ?? this.events,
@@ -460,6 +466,7 @@ class StudyRoomData {
       'challengeDeadlineLabel': challengeDeadlineLabel,
       'challengeCompleted': challengeCompleted,
       'syncTaskEnabled': syncTaskEnabled,
+      'voiceEnabled': voiceEnabled,
       'dailyRecords': dailyRecords.map((e) => e.toJson()).toList(),
       'messages': messages.map((e) => e.toJson()).toList(),
       'events': events.map((e) => e.toJson()).toList(),
@@ -529,6 +536,7 @@ class StudyRoomData {
           json['challengeDeadlineLabel'] as String? ?? '今天 23:59',
       challengeCompleted: json['challengeCompleted'] as bool? ?? false,
       syncTaskEnabled: json['syncTaskEnabled'] as bool? ?? false,
+      voiceEnabled: json['voiceEnabled'] as bool? ?? false,
       dailyRecords: recordsRaw
           .map(
             (e) => StudyRoomDailyRecord.fromJson(Map<String, dynamic>.from(e)),
