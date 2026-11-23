@@ -99,7 +99,7 @@ class AppUI {
         return '健身能量';
       case 'softGlow':
       default:
-        return '預設柔光';
+        return '黃昏木屋';
     }
   }
 
@@ -115,7 +115,7 @@ class AppUI {
         return '運動與行動任務用的高能量綠色主題。';
       case 'softGlow':
       default:
-        return '預設背景主題，所有使用者一開始就能套用。';
+        return '預設的黃昏木屋背景，和夥伴小屋同一種溫暖色調，所有使用者一開始就能套用。';
     }
   }
 
@@ -180,10 +180,11 @@ class AppUI {
           ];
         case 'softGlow':
         default:
+          // Dusk cabin: dark wood fading into violet night.
           return const [
-            Color(0xFF10131A),
-            Color(0xFF151923),
-            Color(0xFF111318),
+            Color(0xFF2A1A14),
+            Color(0xFF221726),
+            Color(0xFF1B1530),
           ];
       }
     }
@@ -199,7 +200,8 @@ class AppUI {
         return const [Color(0xFFFAFFFC), Color(0xFFE6F8EF), Color(0xFFF7F6FB)];
       case 'softGlow':
       default:
-        return const [Color(0xFFFBFAFF), Color(0xFFF4F1FF), Color(0xFFF7F6FB)];
+        // Dusk cabin: warm parchment fading into soft lavender.
+        return const [Color(0xFFFBEFD9), Color(0xFFF6E6E4), Color(0xFFEEDCF7)];
     }
   }
 
@@ -279,9 +281,14 @@ class AppUI {
     );
   }
 
+  /// Wooden frame shared by every card, matching the companion cabin.
+  /// A translucent wood tone reads on both parchment (light) and dark wood.
+  static const cardFrame = Color(0xCCA8743F);
+
   static ShapeBorder cardShape() {
     return RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radiusCard),
+      side: const BorderSide(color: cardFrame, width: 2),
     );
   }
 

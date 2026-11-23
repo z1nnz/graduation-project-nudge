@@ -171,7 +171,7 @@ class StudyRoomDetailPage extends StatelessWidget {
 
   String _liveRoomSubtitle(StudyRoomData room) {
     if (!_usesExternalProgress(room)) {
-      return '進入角色房間，開始倒數、聊天、送鼓勵貼圖。';
+      return '走進自習室，和大家一起開始倒數；聊天在房間裡的聊天頁。';
     }
 
     switch (room.roomType) {
@@ -183,7 +183,7 @@ class StudyRoomDetailPage extends StatelessWidget {
         return '步數由健康資料導入，房內查看排行榜並互相提醒去走走。';
       case StudyRoomType.study:
       case StudyRoomType.custom:
-        return '查看同步進度、聊天、送鼓勵貼圖。';
+        return '走進房間看大家的進度；聊天在房間裡的聊天頁。';
     }
   }
 

@@ -101,7 +101,7 @@ class _AppRoot extends StatelessWidget {
           brightness: Brightness.light,
         ),
         scaffoldBackgroundColor: Colors.transparent,
-        cardColor: Colors.white,
+        cardColor: GamePalette.light.panel,
         dividerColor: const Color(0xFFE5E7EB),
         shadowColor: Colors.black.withValues(alpha: 0.05),
         textTheme: const TextTheme(
@@ -113,10 +113,21 @@ class _AppRoot extends StatelessWidget {
           titleSmall: TextStyle(color: Color(0xFF2D2A32)),
         ),
         cardTheme: CardThemeData(
-          color: Colors.white,
+          color: GamePalette.light.panel,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppUI.cardFrame, width: 2),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: GamePalette.gold,
+            foregroundColor: const Color(0xFF2A1600),
+            textStyle: const TextStyle(fontWeight: FontWeight.w900),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
         appBarTheme: const AppBarTheme(
@@ -189,7 +200,7 @@ class _AppRoot extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         scaffoldBackgroundColor: Colors.transparent,
-        cardColor: const Color(0xFF1A1D24),
+        cardColor: GamePalette.dark.panel,
         dividerColor: const Color(0xFF2A2F3A),
         shadowColor: Colors.black.withValues(alpha: 0.20),
         textTheme: const TextTheme(
@@ -201,10 +212,21 @@ class _AppRoot extends StatelessWidget {
           titleSmall: TextStyle(color: Color(0xFFF3F4F6)),
         ),
         cardTheme: CardThemeData(
-          color: const Color(0xFF1A1D24),
+          color: GamePalette.dark.panel,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppUI.cardFrame, width: 2),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: GamePalette.gold,
+            foregroundColor: const Color(0xFF2A1600),
+            textStyle: const TextStyle(fontWeight: FontWeight.w900),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
         appBarTheme: const AppBarTheme(

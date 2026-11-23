@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nudge/theme/app_ui.dart';
 import 'package:nudge/theme/game_ui.dart';
 
 Widget _wrap(Widget child, {Brightness brightness = Brightness.light}) =>
@@ -72,5 +73,11 @@ void main() {
                 as BoxDecoration)
             .color!;
     expect(fill('進行中'), isNot(fill('完成')));
+  });
+
+  test('every app card gets the wooden frame', () {
+    final shape = AppUI.cardShape() as RoundedRectangleBorder;
+    expect(shape.side.width, 2);
+    expect(shape.side.style, BorderStyle.solid);
   });
 }
