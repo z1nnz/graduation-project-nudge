@@ -1,0 +1,77 @@
+{
+ "poses/pose_0_cheer.png": {
+  "source": "../pose-art/gen/pose_0_cheer.png",
+  "width": 256
+ },
+ "poses/pose_0_exercise.png": {
+  "source": "../pose-art/gen/pose_0_exercise.png",
+  "width": 256
+ },
+ "poses/pose_0_read.png": {
+  "source": "../pose-art/gen/pose_0_read.png",
+  "width": 256
+ },
+ "poses/pose_0_sleep.png": {
+  "source": "../pose-art/gen/pose_0_sleep.png",
+  "width": 256
+ },
+ "poses/pose_3_cheer.png": {
+  "source": "../pose-art/gen/pose_3_cheer.png",
+  "width": 256
+ },
+ "poses/pose_3_exercise.png": {
+  "source": "../pose-art/gen/pose_3_exercise.png",
+  "width": 256
+ },
+ "poses/pose_3_read.png": {
+  "source": "../pose-art/gen/pose_3_read.png",
+  "width": 256
+ },
+ "poses/pose_3_sleep.png": {
+  "source": "../pose-art/gen/pose_3_sleep.png",
+  "width": 256
+ },
+ "poses/pose_6_cheer.png": {
+  "source": "../pose-art/gen/pose_6_cheer.png",
+  "width": 256
+ },
+ "poses/pose_6_exercise.png": {
+  "source": "../pose-art/gen/pose_6_exercise.png",
+  "width": 256
+ },
+ "poses/pose_6_read.png": {
+  "source": "../pose-art/gen/pose_6_read.png",
+  "width": 256
+ },
+ "poses/pose_6_sleep.png": {
+  "source": "../pose-art/gen/pose_6_sleep.png",
+  "width": 256
+ },
+ "rooms/hall_study.png": {
+  "source": "../hall-art/gen/hall_study.png",
+  "width": 720,
+  "key": false
+ },
+ "rooms/hall_sleep.png": {
+  "source": "../hall-art/gen/hall_sleep.png",
+  "width": 720,
+  "key": false
+ },
+ "rooms/hall_exercise.png": {
+  "source": "../hall-art/gen/hall_exercise.png",
+  "width": 720,
+  "key": false
+ },
+ "rooms/lantern_0.png": {
+  "source": "../hall-art/gen/lantern_0.png",
+  "width": 160
+ },
+ "rooms/lantern_1.png": {
+  "source": "../hall-art/gen/lantern_1.png",
+  "width": 160
+ },
+ "rooms/lantern_2.png": {
+  "source": "../hall-art/gen/lantern_2.png",
+  "width": 160
+ }
+}
