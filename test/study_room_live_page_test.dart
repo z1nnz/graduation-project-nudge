@@ -67,38 +67,83 @@ Future<AppState> _open(WidgetTester tester) async {
 void main() {
   setUp(rootBundle.clear);
 
-  testWidgets('the room opens on the study hall with a chat entry', (
+  testWidgets('the room fills the screen: hall, name plate and control bar', (
     tester,
   ) async {
     await _open(tester);
+    expect(find.byType(AppBar), findsNothing);
     expect(find.byType(StudyHallScene), findsOneWidget);
     expect(find.text('現在有 2 人在房間裡'), findsOneWidget);
     expect(
-      find.text('房內聊天'),
-      findsNothing,
-      reason: 'chat moved to its own page',
+      find.descendant(
+        of: find.byKey(const Key('room-title')),
+        matching: find.text('期末衝刺房'),
+      ),
+      findsOneWidget,
     );
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('room-chat-entry')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.byKey(const Key('room-chat-entry')), findsOneWidget);
-    expect(find.textContaining('一起撐過期末！'), findsOneWidget);
-    expect(find.text('1'), findsWidgets, reason: 'unread badge');
+    for (final key in [
+      'room-back',
+      'room-mic',
+      'room-voice',
+      'room-main-action',
+      'room-chat',
+      'room-more',
+    ]) {
+      expect(find.byKey(Key(key)), findsOneWidget, reason: key);
+    }
   });
 
-  testWidgets('the chat entry opens the chat page', (tester) async {
+  testWidgets('the chat button shows unread messages and opens the chat', (
+    tester,
+  ) async {
     await _open(tester);
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('room-chat-entry')),
-      300,
-      scrollable: find.byType(Scrollable).first,
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('room-chat')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
     );
-    await tester.tap(find.byKey(const Key('room-chat-entry')));
+    await tester.tap(find.byKey(const Key('room-chat')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(StudyRoomChatPage), findsOneWidget);
+  });
+
+  testWidgets('voice waits until the owner turns it on', (tester) async {
+    await _open(tester);
+    await tester.tap(find.byKey(const Key('room-voice')));
+    await tester.pump();
+    expect(find.text('房主開啟語音後，就能一起開麥克風讀書'), findsOneWidget);
+  });
+
+  testWidgets('the main button starts my session and shows the clock', (
+    tester,
+  ) async {
+    await _open(tester);
+    expect(find.byKey(const Key('room-timer')), findsNothing);
+    await tester.tap(find.byKey(const Key('room-main-action')));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('room-timer')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('room-main-action')),
+        matching: find.text('暫停'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('more opens the room tools', (tester) async {
+    await _open(tester);
+    await tester.tap(find.byKey(const Key('room-more')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('room-tools-sheet')), findsOneWidget);
+    expect(find.text('房間動態'), findsOneWidget);
   });
 
   testWidgets(
