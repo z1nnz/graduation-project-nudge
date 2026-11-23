@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="assets/styles.css?v=17" />
     <link rel="stylesheet" href="assets/room-scene.css?v=3" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/focus_round.css?v=1" />
   </head>
   <body data-page="rooms" data-social-facility="tower">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -49,6 +51,15 @@
               <p>選擇左側房間後，即可控制自己的活動紀錄。</p>
             </div>
           </article>
+        </section>
+
+        <section class="w-panel focus-round" data-focus-round hidden aria-labelledby="focusRoundTitle">
+          <h2 id="focusRoundTitle">一起專注</h2>
+          <p data-focus-round-status role="status">正在同步伺服器時間…</p>
+          <time aria-label="專注或休息剩餘時間" hidden>00:00</time>
+          <p data-focus-round-celebration hidden aria-hidden="true">✦ ✺ ✦</p>
+          <button type="button" class="w-btn" data-focus-round-start disabled>發起 25 分鐘專注</button>
+          <button type="button" class="w-btn is-gold" data-focus-round-join hidden>加入這一輪</button>
         </section>
 
         <section class="scene-panel room-stage-panel" aria-labelledby="roomStageTitle">
@@ -133,6 +144,8 @@
     <script src="assets/town_routes.js?v=2"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
+    <script src="assets/focus_round_core.js?v=1"></script>
+    <script src="assets/focus_round.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

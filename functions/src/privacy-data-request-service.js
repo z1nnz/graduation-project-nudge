@@ -198,6 +198,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     roomResonancePreferences,
     roomReadMarkers,
     chatData,
+    focusRounds,
     roomResonanceSignals,
     authoredRoomResonanceAcknowledgements,
     receivedRoomResonanceAcknowledgements,
@@ -265,6 +266,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         true,
       ),
     ])),
+    collectQueryDocuments(firestore.collectionGroup("focus_rounds").where("startedBy", "==", userId)),
     readQuery(
       firestore,
       "room_resonance_signals",
@@ -337,6 +339,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       room_resonance_preferences: roomResonancePreferences.documents,
       room_read_markers: roomReadMarkers.documents,
       ...Object.fromEntries(chatData),
+      focus_rounds: focusRounds,
       room_resonance_signals: roomResonanceSignals.documents,
       room_resonance_acknowledgements: mergeDocuments(
         authoredRoomResonanceAcknowledgements.documents,

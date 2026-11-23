@@ -509,6 +509,18 @@ export class FirestoreAccountDeletionRepository {
       await mention.ref.update({ mentionUid: FieldValue.delete() });
     }
 
+    const startedRounds = await querySnapshots(
+      this.firestore.collectionGroup("focus_rounds").where("startedBy", "==", userId),
+    );
+    for (const round of startedRounds) {
+      await this.firestore.runTransaction(async transaction => {
+        const current = await transaction.get(round.ref);
+        if (current.data()?.startedBy === userId) {
+          transaction.update(round.ref, { startedBy: null });
+        }
+      });
+    }
+
     for (const groupId of plan.operations.leaveGroupIds) {
       const ref = this.firestore.collection("groups").doc(groupId);
       const summaryRef = ref.collection("member_summaries").doc(userId);
