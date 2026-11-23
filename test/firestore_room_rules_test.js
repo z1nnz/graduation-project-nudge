@@ -445,41 +445,59 @@ async function run() {
   );
 
   const aliceMessagePath = `${roomPath}/messages/message-alice`;
-  response = await createDoc(
-    aliceMessagePath,
-    message(roomId, alice.localId, "message-alice", now),
-    alice.idToken,
-  );
-  assert.equal(
-    response.status,
-    200,
-    "An approved member can create their own room message",
-  );
+  async function sendMessage(actor, id, data, previous = {}) {
+    const path = `${roomPath}/chat_throttles/${actor.localId}`;
+    const throttle = {
+      userId: actor.localId,
+      messageId: id,
+      t0: previous.t1 ?? null,
+      t1: previous.t2 ?? null,
+      t2: previous.t3 ?? null,
+      t3: previous.t4 ?? null,
+    };
+    const write = createWrite(path, throttle);
+    delete write.currentDocument;
+    for (const [field, value] of Object.entries(throttle)) {
+      if (field.startsWith("t") && value) write.update.fields[field] = { timestampValue: value };
+    }
+    write.updateTransforms = [{ fieldPath: "t4", setToServerValue: "REQUEST_TIME" }];
+    const response = await commit([
+      createWrite(`${roomPath}/messages/${id}`, data),
+      write,
+    ], actor.idToken);
+    if (response.ok) {
+      const stored = await request(path, actor.idToken);
+      assert.equal(stored.status, 200);
+      Object.assign(previous, (await stored.json()).fields);
+      // Keep typed Firestore timestamps for subsequent shifted writes.
+      for (const field of ["t0", "t1", "t2", "t3", "t4"]) {
+        previous[field] = previous[field]?.timestampValue ?? null;
+      }
+    }
+    return response;
+  }
 
+  const history = {};
   response = await createDoc(
-    `${roomPath}/messages/owner-forges-alice`,
-    message(roomId, alice.localId, "owner-forges-alice", now),
-    owner.idToken,
+    aliceMessagePath, message(roomId, alice.localId, "message-alice", now), alice.idToken,
   );
-  assert.equal(
-    response.status,
-    403,
-    "A room owner cannot impersonate another message sender",
-  );
-
-  response = await createDoc(
-    `${roomPath}/messages/alice-forges-name`,
-    {
-      ...message(roomId, alice.localId, "alice-forges-name", now),
-      senderName: "房主",
-    },
-    alice.idToken,
-  );
-  assert.equal(
-    response.status,
-    403,
-    "A member cannot forge the displayed message sender name",
-  );
+  assert.equal(response.status, 403, "A message requires a throttle write");
+  for (let index = 0; index < 5; index++) {
+    const id = index === 0 ? "message-alice" : `alice-message-${index}`;
+    response = await sendMessage(alice, id, message(roomId, alice.localId, id, now), history);
+    assert.equal(response.status, 200, `Approved member message ${index + 1}`);
+  }
+  response = await sendMessage(alice, "alice-sixth", message(roomId, alice.localId, "alice-sixth", now), history);
+  assert.equal(response.status, 403, "The sixth message in ten seconds is denied");
+  const forgery = message(roomId, alice.localId, "owner-forges-alice", now);
+  response = await sendMessage(owner, forgery.id, forgery);
+  assert.equal(response.status, 403, "A room owner cannot impersonate another message sender");
+  const wrongName = { ...message(roomId, owner.localId, "wrong-name", now), senderName: "偽造" };
+  response = await sendMessage(owner, wrongName.id, wrongName);
+  assert.equal(response.status, 403, "A member cannot forge the displayed message sender name");
+  const long = { ...message(roomId, owner.localId, "too-long", now), text: "a".repeat(501) };
+  response = await sendMessage(owner, long.id, long);
+  assert.equal(response.status, 403, "A 501-character message is denied");
 
   response = await request(aliceMessagePath, stranger.idToken);
   assert.equal(

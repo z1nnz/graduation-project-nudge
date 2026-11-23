@@ -487,6 +487,12 @@ export class FirestoreAccountDeletionRepository {
 
     for (const [collection, field] of [
       ["messages", "senderId"],
+      ["chat_throttles", "userId"],
+      ["chat_pin", "userId"],
+      ["chat_reactors", "userId"],
+      ["chat_hidden_messages", "userId"],
+      ["chat_reports", "userId"],
+      ["chat_reports", "senderId"],
       ["events", "actorId"],
       ["activity_sessions", "actorId"],
     ]) {
@@ -494,6 +500,13 @@ export class FirestoreAccountDeletionRepository {
         this.firestore,
         this.firestore.collectionGroup(collection).where(field, "==", userId),
       );
+    }
+
+    const mentions = await querySnapshots(
+      this.firestore.collectionGroup("messages").where("mentionUid", "==", userId),
+    );
+    for (const mention of mentions) {
+      await mention.ref.update({ mentionUid: FieldValue.delete() });
     }
 
     for (const groupId of plan.operations.leaveGroupIds) {

@@ -199,7 +199,7 @@ async function run() {
   await expectStatus(commit([
     createWrite(`${roomPath}/messages/m1`, message(roomId, owner.localId, "m1")),
     createWrite(`${roomPath}/messages/m2`, { ...message(roomId, owner.localId, "m2"), createdAt: later }),
-  ], owner.idToken), 200, "owner posts messages");
+  ], "owner"), 200, "seed messages for independent marker checks");
   await expectStatus(commit([
     updateWrite(roomPath, { memberIds: [owner.localId, alice.localId], updatedAt: now }),
     createWrite(alicePath, member(roomId, alice.localId, "member", "pending")),
