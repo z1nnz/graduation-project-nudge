@@ -1,0 +1,24 @@
+Use your built-in image generation tool several times, once per image listed below. Save every PNG into D:/nudge/cabin-art/gen/ with exactly the file name given. Do not read any skill files and do nothing else.
+
+Style for EVERY image: identical to the attached concept (ref_concept.png) and character sprite (ref_character.png): the same chunky pixel art, dark outlines, warm evening palette with violet accents and gold stars, front-facing view with the same slight top-down room perspective. All items must look like they were cut out of that concept room.
+
+1. room_base.png — portrait 9:16. The SAME room as ref_concept.png, same layout and camera, but EMPTY of these things: no character, no rug, no window curtains (bare window frame with the dusk sky), the bookshelf completely empty (no books, keep the shelves), no potted plant, nothing on the desk (no globe, no lamp, no books), the badge frame on the wall empty (three empty round slots). Keep the quest board with its three notes, both doors with their signs, wall lamps, desk, stool, floor and walls exactly. No text.
+
+For images 2-17: a single object only, centred, filling most of the frame, on a perfectly flat pure magenta (#FF00FF) background with no shadow on the background and no other objects. Square 1:1.
+2. rug_0.png — round violet rug with gold star pattern (as in the concept), seen from the same angle as the floor in the concept (a wide flat ellipse).
+3. rug_1.png — rectangular red-brick patterned rug, same flat angle.
+4. rug_2.png — fluffy white cloud-shaped rug, same flat angle.
+5. curtain_0.png — a pair of violet velvet curtains with a gold rod, open, framing an empty window opening (the window itself must be magenta / transparent area).
+6. curtain_1.png — a pair of pale blue sheer curtains with tiny gold stars, same shape.
+7. curtain_2.png — a pair of cream curtains with small orange flower print, same shape.
+8. lamp_0.png — a small lighthouse-shaped desk lamp, glowing warm.
+9. lamp_1.png — a small crescent-moon night lamp, glowing soft yellow.
+10. lamp_2.png — a small crystal star lamp, glowing violet.
+11. books_1.png — a few colourful books standing on ONE shelf row (about 5 books), seen from the front.
+12. books_2.png — two shelf rows' worth of colourful books, stacked as two horizontal rows, front view.
+13. books_3.png — three rows of colourful books, front view, full and tidy.
+14. plant_1.png — a small sprout in a violet pot with a gold star.
+15. plant_2.png — a medium leafy plant in the same pot.
+16. plant_3.png — a big lush plant with a few small flowers in the same pot.
+17. globe.png — a small round glowing desk globe with violet and gold land, on a brass stand.
+18. badge.png — one small round wall badge with a gold star, on magenta.
