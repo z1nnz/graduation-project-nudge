@@ -8,6 +8,7 @@ import '../models/task_model.dart';
 import '../services/cloud_privacy_data_gateway.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../utils/client_ids.dart';
 
 class PrivacyDataPage extends StatelessWidget {
   const PrivacyDataPage({super.key});
@@ -452,7 +453,7 @@ class _PrivacyDataRightsCardState extends State<_PrivacyDataRightsCard> {
   }
 
   String _requestId(String prefix) {
-    return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
+    return newClientId(prefix);
   }
 
   String _date(DateTime? value) {
