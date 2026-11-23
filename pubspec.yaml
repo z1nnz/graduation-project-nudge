@@ -92,6 +92,7 @@ flutter:
     - assets/home/
     - assets/avatar/poses/
     - assets/rooms/
+    - assets/ui/icons/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

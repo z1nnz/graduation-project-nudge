@@ -8,6 +8,13 @@ import '../widgets/companion_cabin_view.dart';
 import '../widgets/immersive_cabin.dart';
 import '../widgets/cabin_route.dart';
 import '../widgets/quest_scroll.dart';
+import '../widgets/backpack_sheet.dart';
+import 'avatar_shop_page.dart';
+import 'health_page.dart';
+import 'calendar_page.dart';
+import 'reminder_center_page.dart';
+import 'settings_page.dart';
+import 'account_page.dart';
 import '../models/cabin_layout.dart';
 import 'focus_page.dart';
 import 'social_page.dart';
@@ -111,7 +118,23 @@ class HomePage extends StatelessWidget {
             onOpenRooms: () => push(const StudyRoomListPage()),
             onOpenCharacter: () => push(const CharacterPage()),
             onOpenDecor: () => showHomeDecorSheet(context),
-            onOpenBackpack: () => _immersiveScaffold.currentState?.openDrawer(),
+            onOpenBackpack: () => showBackpack(
+              context,
+              onOpen: (id) => push(switch (id) {
+                'character' => const CharacterPage(),
+                'shop' => const AvatarShopPage(),
+                'health' => const HealthPage(),
+                'calendar' => const CalendarPage(),
+                'stats' => const PersonalAnalysisPage(),
+                'wallet' => CoinWalletPage(
+                  onOpenTasks: () => push(const TasksPage()),
+                ),
+                'reminders' => const ReminderCenterPage(),
+                'letter' => const FutureLetterPage(),
+                'settings' => const SettingsPage(),
+                _ => const AccountPage(),
+              }),
+            ),
           );
         },
       ),
