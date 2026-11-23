@@ -47,7 +47,7 @@
     d('room-chat', 'room-chat.html', 'tower', '房間聊天室', 'player', 'login', 'roomMember', 'cloud', '#83'),
     d('guardian', 'guardian.html', 'family', '家長陪伴中心', 'player', 'login', 'family', 'cloud', '#83'),
     d('guardian-link', 'guardian-link.html', 'family', '連結家人', 'player', 'login', null, 'cloud', '#83'),
-    d('family-courtyard', 'family-courtyard.html', 'family', '家庭庭院場景', 'player', 'login', 'family', 'cloud', '#83', 'planned'),
+    d('family-courtyard', 'family-courtyard.html', 'family', '家庭庭院場景', 'player', 'login', 'family', 'cloud', '#83'),
     d('groups', 'groups.html', 'guild', '團體任務與共同進度', 'player', 'login', 'group', 'cloud', '#83'),
     d('guardian-report', 'guardian-report.html', 'family', '孩子週報', 'player', 'login', 'family', 'cloud', '#83'),
     d('guardian-encouragement', 'guardian-encouragement.html', 'family', '鼓勵卡', 'player', 'login', 'family', 'cloud', '#83'),

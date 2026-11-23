@@ -5,30 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 家長陪伴中心</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/social_scene.css?v=1" />
   </head>
-  <body data-page="guardian">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>家長陪伴</small></span></a>
-        <nav class="nav">
-          <a href="dashboard.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a class="active" href="guardian.html">家長陪伴中心</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">商城頁</a>
-          <a href="research.html">研究 / 展示中心</a>
-          <a href="planet.html">自律城市 / 星球</a>
-        
-          <a href="profile.html">個人名片</a>
-        </nav>
-      </aside>
-      <main class="main">
-        <header class="hero split">
+  <body data-page="guardian" data-social-facility="family">
+    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
+    <header class="scene-topbar">
+      <a data-town-return href="town.html">← 回小鎮</a>
+      <span class="scene-place" data-scene-place>家庭庭院</span>
+    </header>
+    <nav class="scene-nav" data-scene-nav></nav>
+    <main class="main scene-main" id="sceneMain" tabindex="-1">
+        <header class="hero scene-hero">
           <div>
             <span class="eyebrow">Guardian Companion Hub</span>
             <h1 data-family-surface-title>家庭陪伴與自主中心</h1>
             <p data-family-surface-description>登入後會依正式家庭 Membership 顯示家長或孩子介面。</p>
-            <a class="secondary-btn" href="family-courtyard.html" data-family-courtyard-link>進入家庭庭院 →</a>
             <div class="subnav" data-family-guardian-tools hidden>
               <a class="active" href="guardian.html">中心總覽</a>
               <a href="guardian-report.html">孩子週報</a>
@@ -38,13 +29,13 @@
             </div>
           </div>
           <div class="hero-card">
-            <span>本週陪伴狀態</span>
-            <strong data-count="76">0</strong>
-            <p>孩子完成率穩定，但睡眠略低。</p>
+            <span>陪伴原則</span>
+            <strong>家長提議，孩子決定</strong>
+            <p>只顯示孩子已同意分享的摘要；沒有同意就不顯示數字。</p>
           </div>
         </header>
 
-        <section class="panel page-section" data-family-outcome>
+        <section class="scene-panel" data-family-outcome>
           <div class="panel-head">
             <div>
               <span class="eyebrow" data-family-role>等待家庭連結</span>
@@ -63,7 +54,7 @@
           <small>家庭樹與陪伴角色屬於這段關係，不會成為任一方的個人獎勵。</small>
         </section>
 
-        <section class="center-hub page-section" data-family-guardian-tools hidden>
+        <section class="center-hub" data-family-guardian-tools hidden>
           <a class="hub-card" href="guardian-report.html">
             <span>☺</span>
             <strong>孩子週報</strong>
@@ -90,7 +81,7 @@
           </a>
         </section>
  
-        <section class="care-note page-section" id="guardianCareNote">
+        <section class="care-note" id="guardianCareNote">
           <div>
             <span class="eyebrow">今日陪伴語氣</span>
             <h2>先理解，再提醒。</h2>
@@ -98,7 +89,9 @@
           <p>孩子這週不是退步，而是截止日和睡眠一起影響狀態。今晚可以先問「今天最卡的是哪一件事？」再一起決定明天的小目標。</p>
         </section>
       </main>
-    </div>
+    <script src="assets/town_routes.js?v=1"></script>
+    <script src="assets/town_return.js?v=1"></script>
+    <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>
