@@ -98,6 +98,18 @@ int main() {
     for (const auto& text : t.strings) tDemo |= text.find("DEMO") != std::string::npos;
     assert(oDemo && tDemo && frame.values == &data());
   }
+  // The report's three scenes are rendered by the real firmware painter.
+  const Scene reportScenes[] = {Scene::home, Scene::focus, Scene::complete};
+  const char* requiredLabels[] = {"NUDGE", "00:14", "ONE STEP FORWARD"};
+  for (unsigned i = 0; i < 3; ++i) {
+    Painter report(Device::orbit, false);
+    RecordCanvas output;
+    Frame frame{reportScenes[i], 6000, 20000, 300, 14, &data()};
+    report.render(output, frame, true);
+    bool found = false;
+    for (const auto& text : output.strings) found |= text == requiredLabels[i];
+    assert(found);
+  }
   // Focus animation never clears the background; duplicate frames draw nothing.
   Painter painter(Device::orbit); RecordCanvas c;
   Frame focus{Scene::focus, 0, 20000, 0, 20, &data()};
