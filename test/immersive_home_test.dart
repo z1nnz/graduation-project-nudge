@@ -50,7 +50,7 @@ Future<Map<String, int>> _pump(
           onOpenRooms: () => hit('rooms'),
           onOpenCharacter: () => hit('character'),
           onOpenDecor: () => hit('decor'),
-          onOpenBackpack: () => hit('backpack'),
+          onOpenMenu: () => hit('menu'),
         ),
       ),
     ),
@@ -72,13 +72,13 @@ void main() {
       'cabin-badges': 'badges',
       'cabin-door-family': 'companions',
       'cabin-door-group': 'rooms',
-      'cabin-backpack': 'backpack',
+      'cabin-menu': 'menu',
       'cabin-decor': 'decor',
     }.entries) {
       // Tap near the top-right of each object: the companion may stand in
       // front of its centre, and tapping the companion greets it instead.
       final r = tester.getRect(find.byKey(Key(entry.key)));
-      final round = entry.key == 'cabin-backpack' || entry.key == 'cabin-decor';
+      final round = entry.key == 'cabin-menu' || entry.key == 'cabin-decor';
       await tester.tapAt(round ? r.center : Offset(r.right - 6, r.top + 6));
       expect(opened[entry.value], 1, reason: entry.key);
     }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nudge/widgets/backpack_sheet.dart';
+import 'package:nudge/widgets/cabin_menu_sheet.dart';
 
 void main() {
-  testWidgets('the backpack is an item grid that opens each feature', (
+  testWidgets('the cabin menu is an icon grid that opens each feature', (
     tester,
   ) async {
     final opened = <String>[];
@@ -11,7 +11,7 @@ void main() {
       MaterialApp(
         home: Builder(
           builder: (context) => TextButton(
-            onPressed: () => showBackpack(context, onOpen: opened.add),
+            onPressed: () => showCabinMenu(context, onOpen: opened.add),
             child: const Text('open'),
           ),
         ),
@@ -20,7 +20,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.text('背包'), findsOneWidget);
+    expect(find.text('選單'), findsOneWidget);
     for (final label in [
       '角色',
       '商城',
@@ -38,6 +38,6 @@ void main() {
     await tester.tap(find.text('健康'));
     await tester.pumpAndSettle();
     expect(opened, ['health']);
-    expect(find.text('背包'), findsNothing, reason: 'closes after choosing');
+    expect(find.text('選單'), findsNothing, reason: 'closes after choosing');
   });
 }

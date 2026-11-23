@@ -429,7 +429,7 @@ class ImmersiveHome extends StatefulWidget {
     required this.onOpenRooms,
     required this.onOpenCharacter,
     required this.onOpenDecor,
-    required this.onOpenBackpack,
+    required this.onOpenMenu,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
     this.now,
@@ -450,7 +450,7 @@ class ImmersiveHome extends StatefulWidget {
   final VoidCallback onOpenRooms;
   final VoidCallback onOpenCharacter;
   final VoidCallback onOpenDecor;
-  final VoidCallback onOpenBackpack;
+  final VoidCallback onOpenMenu;
   final String? confirmedActivityLabel;
   final DateTime? now;
 
@@ -750,10 +750,10 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                   ),
                   const SizedBox(width: 6),
                   _HudButton(
-                    key: const Key('cabin-backpack'),
-                    icon: Icons.backpack_outlined,
-                    label: '背包',
-                    onTap: widget.onOpenBackpack,
+                    key: const Key('cabin-menu'),
+                    icon: Icons.menu_rounded,
+                    label: '選單',
+                    onTap: widget.onOpenMenu,
                   ),
                 ],
               ),

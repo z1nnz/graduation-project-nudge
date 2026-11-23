@@ -8,7 +8,7 @@ import '../widgets/companion_cabin_view.dart';
 import '../widgets/immersive_cabin.dart';
 import '../widgets/cabin_route.dart';
 import '../widgets/quest_scroll.dart';
-import '../widgets/backpack_sheet.dart';
+import '../widgets/cabin_menu_sheet.dart';
 import 'avatar_shop_page.dart';
 import 'health_page.dart';
 import 'calendar_page.dart';
@@ -118,7 +118,7 @@ class HomePage extends StatelessWidget {
             onOpenRooms: () => push(const StudyRoomListPage()),
             onOpenCharacter: () => push(const CharacterPage()),
             onOpenDecor: () => showHomeDecorSheet(context),
-            onOpenBackpack: () => showBackpack(
+            onOpenMenu: () => showCabinMenu(
               context,
               onOpen: (id) => push(switch (id) {
                 'character' => const CharacterPage(),
