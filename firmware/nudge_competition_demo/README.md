@@ -7,14 +7,11 @@ Station：XIAO ESP32S3 ＋ Waveshare 17344／2inch LCD Module，ST7789 家族、
 已補入真實 ST7789 adapter 與八幕 Painter；**發布設定沒有已確認 GPIO，預設只輸出診斷，不會操作 LCD**。
 周邊 adapter 已編譯／host 測試，但全部預設停用；不能當作 P0-A 或周邊實機成功。
 
-[逐項驗收與自評](../../docs/competition-demo/package07-08/README.md)包含工作包來源、身分卡、既有原圖連結、限制與待補項目。
-歷史 #23／package03-04 的文件與 binary 保留原交付版本，不代表本次的新版本。
-本 PR 沿用尚未合併 #24（含 #23 core／#21 修復）；建議依序審查 #21、#23、#24，再處理本輪 PR。所有 PR base 仍為 main。
 
 ## 建置
 
 Python 3.9 以上、PlatformIO 6.1.19、C++17／make。
-ESP32 平台固定 6.12.0，所有圖形與周邊 libraries 固定 Git commit，見 platformio.ini／[相依來源](../../docs/competition-demo/package05-06/dependencies.md)。
+ESP32 平台固定 6.12.0，所有圖形與周邊 libraries 固定 Git commit，見 platformio.ini。
 
 ```sh
 python -m pip install platformio==6.1.19
@@ -113,9 +110,8 @@ ST7789 init 沒有面板 ACK，geometry 符合不等於實物成功。PWM 失效
   visualsAccepted、tenReplaysAccepted 及 displayAvailable 全通過才初始化；本輪全為 false。
 - App 也要 5 個獨立 --dart-define：NUDGE_DEMO_BLE、NUDGE_DEMO_ORBIT_P0B、NUDGE_DEMO_STATION_P0B、
   NUDGE_DEMO_VISUALS、NUDGE_DEMO_TEN_REPLAYS，皆須 true；本輪不傳這些參數，按鈕預設停用。
-- 真正啟用前需完成兩台 P0-B、視覺與 10 次重播，再核對 [07 停止條件](../../docs/competition-demo/package07-08/package07-acceptance.md)。
+- 真正啟用前需完成兩台 P0-B、視覺與 10 次重播，再核對 07 停止條件。
   不把 CI／host 通過當作這些實機前置，也不在距比賽不足 3 天且未連續成功時新增 P2。
-- 完整協定、操作、已知限制與實機清單見 [07／08 交付](../../docs/competition-demo/package07-08/README.md)。
 
 ## 韌體檔與回復
 
@@ -126,5 +122,5 @@ Station 檔名含 _unconfigured，全部實機 verified=false，P1 armed=false�
 
 正式交付由乾淨 source commit 編譯，後續 evidence commit 的韌體 tree 必須相同。
 韌體檔是 application image，重刷應用 PlatformIO upload 處理 bootloader／partitions，不能把它單獨寫到 0x0。
-回復本輪 07／08 修改可回到 #24 原版本；Git revert 不會自動重刷實機，已燒錄者須另用先前已驗證版本還原。
+回復本輪 07／08 修改可回到前一版韌體；Git revert 不會自動重刷實機，已燒錄者須另用先前已驗證版本還原。
 本輪新增獨立 Demo Dart 入口，擴充共用 Android BLE adapter 與初始化保護；正式 Dart 啟動、Web／Cloud／Ledger、原正式韌體及接線未改，作者不合併 PR。
