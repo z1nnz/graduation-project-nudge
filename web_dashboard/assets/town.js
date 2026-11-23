@@ -275,6 +275,9 @@
     state.target = null;
     state.pendingBuilding = null;
     renderPanel(b);
+    const door = toScreen(b.door);
+    const canvasRect = canvas.getBoundingClientRect();
+    root.NudgeTownWindow?.setDoor(b.id, { x: canvasRect.left + door.x, y: canvasRect.top + door.y });
     els('townPanel').hidden = false;
     const first = els('townPanel').querySelector('.town-panel-list a, .town-panel-list button') || els('townPanelClose');
     first.focus({ preventScroll: true });
@@ -636,6 +639,10 @@
     state.camera = { x: state.camera.x + (goal.x - state.camera.x) * ease, y: state.camera.y + (goal.y - state.camera.y) * ease };
 
     state.near = state.tour < 0 ? core.nearestDoor(state.player, BUILDINGS, REACH) : null;
+    if (state.tour < 0) {
+      const prefetchDoor = core.nearestDoor(state.player, BUILDINGS, 96);
+      if (prefetchDoor) root.NudgeTownWindow?.nearDoor(prefetchDoor.id);
+    }
     const prompt = els('townPrompt');
     prompt.hidden = !state.near || Boolean(state.panel) || state.sceneOpen || els('townDirectory').classList.contains('is-open');
     if (state.near) {
