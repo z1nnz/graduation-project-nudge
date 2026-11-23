@@ -32,13 +32,10 @@
     nav.append(a);
   }
   const world = document.getElementById('museumWorld');
-  // #82 owns the world. Never create a competing town or redirect from user input.
-  fetch('town.html',{method:'HEAD',cache:'no-store'}).then(response => {
-    if (response.ok) {world.href=core.returnRoute(true);world.textContent='返回小鎮';}
-  }).catch(() => {});
+  // town_return.js owns the fixed return route and building arrival.
 
   function loadFeature(feature) {
-    const globals = {review:'NudgeGrowthReview',tools:'NudgeGrowthTools',capsules:'NudgeGrowthCapsules'};
+    const globals = {review:'NudgeGrowthReview',tools:'NudgeGrowthTools',capsules:'NudgeGrowthCapsules',identity:'NudgeGrowthIdentity'};
     const key = globals[feature];
     if (root[key]) return Promise.resolve(root[key]);
     return new Promise((resolve,reject) => {
@@ -96,7 +93,7 @@
   document.addEventListener('firebase-ready',start);
   if (isDemo) show({uid:'museum-demo'});
   else {
-    const script=node('script',null,{src:'assets/app.js?v=25&surface=growth-museum-1'});
+    const script=node('script',null,{src:'assets/app.js?v=27&surface=growth-museum-2'});
     script.onerror=() => {message('無法連線。請重試；沒有載入個人資料。');};
     document.head.append(script);
     start();

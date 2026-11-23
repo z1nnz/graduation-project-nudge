@@ -1,0 +1,553 @@
+LOCAL EMULATOR / SYNTHETIC DATA ONLY. No production seed/apply/deploy.
+00:00 +0: loading /private/tmp/nudge-game06-integrated/test/activity_ledger_outbox_test.dart
+00:00 +0: /private/tmp/nudge-game06-integrated/test/firebase_bootstrap_contract_test.dart: app bootstrap always supplies generated Firebase options
+00:00 +1: /private/tmp/nudge-game06-integrated/test/firebase_bootstrap_contract_test.dart: app bootstrap always supplies generated Firebase options
+00:00 +2: /private/tmp/nudge-game06-integrated/test/nudge_device_simulator_test.dart: pause and resume do not settle room progress or issue rewards
+00:00 +3: /private/tmp/nudge-game06-integrated/test/nudge_device_simulator_test.dart: online event stays queued until a lost acknowledgement is retried
+00:00 +4: /private/tmp/nudge-game06-integrated/test/nudge_device_simulator_test.dart: permanent invalid events do not block later queued events
+00:00 +5: /private/tmp/nudge-game06-integrated/test/nudge_device_simulator_test.dart: terminal events are not confirmed without a settlement receipt
+00:00 +6: /private/tmp/nudge-game06-integrated/test/nudge_device_simulator_test.dart: a receipt for another event cannot acknowledge the queue head
+00:00 +7: /private/tmp/nudge-game06-integrated/test/nudge_device_simulator_test.dart: a receipt with the wrong metric cannot acknowledge completion
+00:00 +8: /private/tmp/nudge-game06-integrated/test/activity_ledger_outbox_test.dart: retryable failures survive restart and flush exactly once
+00:00 +9: /private/tmp/nudge-game06-integrated/test/activity_ledger_outbox_test.dart: concurrent enqueues preserve every unique event
+00:00 +10: /private/tmp/nudge-game06-integrated/test/activity_ledger_outbox_test.dart: a queued event can be cancelled before its local mutation commits
+00:00 +11: /private/tmp/nudge-game06-integrated/test/activity_ledger_outbox_test.dart: pending activity is flushed only by its authenticated actor
+00:00 +12: /private/tmp/nudge-game06-integrated/test/activity_ledger_outbox_test.dart: an account switch during flush never dead-letters prior activity
+00:00 +13: /private/tmp/nudge-game06-integrated/test/activity_ledger_outbox_test.dart: a flush drains an event queued while its first call is in flight
+00:00 +14: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +15: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +16: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +17: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +18: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +19: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +20: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +21: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +22: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:00 +23: /private/tmp/nudge-game06-integrated/test/adventure_log_page_test.dart: the week reads like a page of an adventure journal
+00:01 +24: /private/tmp/nudge-game06-integrated/test/avatar_series_progress_key_test.dart: dynamic series use stable keys so display names cannot merge or erase EXP
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:01 +25: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +26: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +27: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +28: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +29: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +30: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +31: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +32: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +33: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +34: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +35: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:01 +36: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:02 +37: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:02 +38: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:02 +39: /private/tmp/nudge-game06-integrated/test/companion_cabin_view_test.dart: cabin shows the next action and opens quests
+00:02 +40: /private/tmp/nudge-game06-integrated/test/discipline_identity_page_test.dart: identity card explains evidence and private boundary
+00:02 +41: /private/tmp/nudge-game06-integrated/test/demo_controller_test.dart: standalone controller opens without Firebase or authentication and exposes both cards
+00:02 +42: /private/tmp/nudge-game06-integrated/test/demo_controller_test.dart: standalone controller opens without Firebase or authentication and exposes both cards
+00:02 +43: /private/tmp/nudge-game06-integrated/test/demo_controller_test.dart: standalone controller opens without Firebase or authentication and exposes both cards
+00:02 +44: /private/tmp/nudge-game06-integrated/test/demo_controller_test.dart: standalone controller opens without Firebase or authentication and exposes both cards
+00:02 +45: /private/tmp/nudge-game06-integrated/test/demo_controller_test.dart: standalone controller opens without Firebase or authentication and exposes both cards
+00:02 +46: /private/tmp/nudge-game06-integrated/test/demo_controller_test.dart: standalone controller opens without Firebase or authentication and exposes both cards
+00:02 +47: /private/tmp/nudge-game06-integrated/test/demo_controller_test.dart: standalone controller opens without Firebase or authentication and exposes both cards
+00:02 +48: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: room objects open their features
+00:02 +49: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: room objects open their features
+00:02 +50: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: room objects open their features
+00:02 +51: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: room objects open their features
+00:02 +52: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: room objects open their features
+00:02 +53: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: room objects open their features
+00:02 +54: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: room objects open their features
+00:02 +55: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: the HUD shows level, coins and streak without cards
+00:02 +56: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:02 +57: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:02 +58: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:02 +59: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:02 +60: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:02 +61: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:02 +62: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +63: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +64: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +65: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +66: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +67: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +68: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +69: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +70: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +71: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +72: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +73: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +74: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +75: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +76: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +77: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +78: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +79: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +80: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +81: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +82: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +83: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +84: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +85: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +86: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +87: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +88: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: tapping the floor walks the companion there
+00:03 +89: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +90: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +91: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +92: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +93: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +94: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +95: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +96: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +97: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +98: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +99: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +100: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +101: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +102: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +103: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +104: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +105: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +106: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +107: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +108: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +109: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: studying reads, resting sleeps, offline seats stay empty
+00:03 +110: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: the globe appears and opens the device once one is linked
+00:03 +111: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: the globe appears and opens the device once one is linked
+00:03 +112: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: the globe appears and opens the device once one is linked
+00:03 +113: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: the globe appears and opens the device once one is linked
+00:04 +114: /private/tmp/nudge-game06-integrated/test/study_hall_scene_test.dart: tapping a member reports them; overflow shows +N
+00:04 +115: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +116: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +116: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:04 +117: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +118: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +119: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +120: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +121: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +122: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +123: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +124: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +125: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +126: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +127: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +128: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +129: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +130: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +131: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +132: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +133: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +134: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +135: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: when the desk device focuses, the cabin companion reads too
+00:04 +136: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+00:04 +137: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+00:04 +138: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+00:04 +139: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+00:04 +139: /private/tmp/nudge-game06-integrated/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:04 +140: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+00:04 +140: /private/tmp/nudge-game06-integrated/test/app_state_discipline_identity_test.dart: AppState retains the Cloud-validated discipline identity
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:04 +141: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+00:05 +142: /private/tmp/nudge-game06-integrated/test/focus_page_companion_test.dart: the companion reads while the focus timer runs
+00:05 +143: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: no tour once it has been seen
+00:05 +144: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: a new level plays a full-screen celebration
+00:05 +145: /private/tmp/nudge-game06-integrated/test/immersive_home_test.dart: switching to an account with a higher level is no level-up
+00:05 +146: /private/tmp/nudge-game06-integrated/test/relationship_outcome_test.dart: parses formal family outcome and memory response
+00:05 +147: /private/tmp/nudge-game06-integrated/test/relationship_outcome_test.dart: rejects legacy or malformed relationship outcome projections
+00:05 +148: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: study room start updates local user as active and adds focus time
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +149: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +149: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: sleep room start marks local user as active without requiring focus
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +150: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +150: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: member controls their own room activity lifecycle
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +151: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +151: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: study room hours become a minute-based Ledger target
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +152: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +152: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: signed-in room start does not project before Cloud Ledger acceptance
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +153: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +153: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: room transition keeps prior state when Cloud Ledger command fails
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +154: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +154: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: health progress becomes a member-owned room activity
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +155: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +155: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: room messages and events are persisted on the room model
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +156: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +156: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: owner leaving an empty room closes that room
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +157: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +157: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: creating a study room creates a linked task goal
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +158: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +158: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: deleting a linked room task only disables sync and keeps room joined
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +159: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +159: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: approval room requests can be accepted or rejected by owner
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +160: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +160: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: room owner explicitly transfers ownership before leaving
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +161: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +161: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: leaving a room removes its linked task goal
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +162: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +163: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +163: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: score coin rewards respect weekly and monthly caps
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +164: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +164: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: future deadline tasks do not affect weighted score or allow completion
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +165: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +165: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: task completion does not mint coins or avatar XP before Cloud
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +166: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +166: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: task mutation re-resolves its identity after durable enqueue
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +167: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +167: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: repeated deadline tasks cannot mutate client reward counters
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +168: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +168: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: badges stay unlocked after the current condition drops
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +169: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +169: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: daily summary stores weighted score coins and tracked sources
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +170: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +170: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: health projection stays unchanged when durable Ledger enqueue fails
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +170: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +170: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: health projection stays unchanged when durable Ledger enqueue fails
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +170: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +170: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: health projection stays unchanged when durable Ledger enqueue fails
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +170: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +170: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: health projection stays unchanged when durable Ledger enqueue fails
+Unable to ingest Health Activity Ledger snapshots: Bad state: outbox unavailable
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to save the task catalog projection: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +171: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +171: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: health projection stays unchanged when Cloud rejects Ledger ingestion
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Health Activity Ledger ingestion was not fully accepted by Cloud; the local projection remains unchanged.
+00:05 +172: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +172: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: signed-in health metrics require snapshots before projection
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Signed-in health metrics were not projected because no canonical Health Activity Ledger snapshots were supplied.
+00:05 +173: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +173: /private/tmp/nudge-game06-integrated/test/app_state_study_room_test.dart: tasks added back-to-back get distinct ids
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +174: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +175: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +175: /private/tmp/nudge-game06-integrated/test/home_decor_state_test.dart: guest arrangement stays local and owned-only
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +176: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +177: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +178: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +179: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +179: /private/tmp/nudge-game06-integrated/test/home_decor_state_test.dart: signed-in arrangement applies the Cloud result
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +180: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +180: /private/tmp/nudge-game06-integrated/test/home_decor_state_test.dart: signed-in arrangement applies the Cloud result
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +181: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +181: /private/tmp/nudge-game06-integrated/test/home_decor_state_test.dart: sign-out clears the arrangement
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +182: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +182: /private/tmp/nudge-game06-integrated/test/home_decor_state_test.dart: sign-out clears the arrangement
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Push notification revoke error: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Push token deletion error: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Error signing out of Firebase: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:05 +183: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +184: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +185: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:05 +186: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer does not start when its Ledger event cannot be saved
+00:06 +186: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +187: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +187: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus timer keeps running when its pause event cannot be saved
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +188: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +189: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +190: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +190: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus reset preserves the running session when discard cannot be saved
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +191: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +192: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +193: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +194: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +195: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +196: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +197: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +198: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +199: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +199: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus completion does not project time when Ledger save fails
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +200: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +200: /private/tmp/nudge-game06-integrated/test/focus_page_ledger_test.dart: focus completion does not project time when Ledger save fails
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:06 +201: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +202: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +203: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +204: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +205: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +206: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the room opens on the study hall with a chat entry
+00:06 +207: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:06 +207: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: the chat entry opens the chat page
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:07 +207: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: desk mode is the cabin with a wall clock; starting makes the companion read
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:07 +208: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +209: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +210: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +211: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +212: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +213: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +214: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +215: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +216: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +216: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: tapping a member shows who they are, without replies when they have no signal
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:07 +216: /private/tmp/nudge-game06-integrated/test/app_state_room_resonance_test.dart: room resonance remains durable-first in AppState
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:07 +217: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +218: /private/tmp/nudge-game06-integrated/test/nudge_device_page_test.dart: device page exposes an explicit assigned-device connection
+00:07 +218: /private/tmp/nudge-game06-integrated/test/app_state_room_resonance_test.dart: room resonance remains durable-first in AppState
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:07 +219: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: desk mode is the cabin with a wall clock; starting makes the companion read
+00:07 +220: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: desk mode is the cabin with a wall clock; starting makes the companion read
+00:07 +221: /private/tmp/nudge-game06-integrated/test/study_room_live_page_test.dart: tapping a member shows who they are, without replies when they have no signal
+00:07 +221: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:07 +222: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +223: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +224: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +225: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +226: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +227: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +228: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +229: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +230: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +231: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +232: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +233: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +234: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +235: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +236: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:07 +237: /private/tmp/nudge-game06-integrated/test/focus_desk_test.dart: ending desk focus shows the game result screen
+00:08 +238: /private/tmp/nudge-game06-integrated/test/nudge_device_protocol_test.dart: maps a validated device event into canonical Ledger evidence
+00:08 +239: /private/tmp/nudge-game06-integrated/test/nudge_device_protocol_test.dart: rejects unsupported protocol versions
+00:08 +240: /private/tmp/nudge-game06-integrated/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:08 +241: /private/tmp/nudge-game06-integrated/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:08 +242: /private/tmp/nudge-game06-integrated/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:08 +243: /private/tmp/nudge-game06-integrated/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:08 +244: /private/tmp/nudge-game06-integrated/test/device_activity_correlation_test.dart: persists start before Cloud and returns canonical session
+00:08 +245: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +246: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +247: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +248: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +249: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +250: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +251: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +252: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +253: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +254: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard guardian sees companionship actions without child authority
+00:08 +255: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard child sees consent and decision actions
+00:08 +256: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard manager sees framework actions without member activity control
+00:08 +257: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipRoleSurfaceCard member keeps activity and sharing autonomy
+00:08 +258: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipContextCard family context switches between child and guardian memberships
+00:09 +259: /private/tmp/nudge-game06-integrated/test/relationship_role_surfaces_test.dart: RelationshipContextCard group contexts describe both manager and member boundaries
+00:09 +260: /private/tmp/nudge-game06-integrated/test/cabin_menu_sheet_test.dart: the cabin menu is an icon grid that opens each feature
+00:09 +261: /private/tmp/nudge-game06-integrated/test/cabin_menu_sheet_test.dart: the cabin menu is an icon grid that opens each feature
+00:09 +262: /private/tmp/nudge-game06-integrated/test/cabin_menu_sheet_test.dart: the cabin menu is an icon grid that opens each feature
+00:09 +262: /private/tmp/nudge-game06-integrated/test/quest_scroll_test.dart: the quest scroll lists today's quests and ticks them off
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:09 +263: /private/tmp/nudge-game06-integrated/test/cabin_menu_sheet_test.dart: the cabin menu is an icon grid that opens each feature
+00:09 +264: /private/tmp/nudge-game06-integrated/test/cabin_menu_sheet_test.dart: the cabin menu is an icon grid that opens each feature
+00:09 +265: /private/tmp/nudge-game06-integrated/test/cabin_menu_sheet_test.dart: the cabin menu is an icon grid that opens each feature
+00:09 +266: /private/tmp/nudge-game06-integrated/test/cabin_menu_sheet_test.dart: the cabin menu is an icon grid that opens each feature
+00:09 +267: /private/tmp/nudge-game06-integrated/test/quest_scroll_test.dart: the quest scroll lists today's quests and ticks them off
+00:09 +268: /private/tmp/nudge-game06-integrated/test/quest_scroll_test.dart: the quest scroll lists today's quests and ticks them off
+00:09 +269: /private/tmp/nudge-game06-integrated/test/quest_scroll_test.dart: the quest scroll lists today's quests and ticks them off
+00:09 +270: /private/tmp/nudge-game06-integrated/test/cloud_reward_avatar_gateway_test.dart: reward avatar gateway validates Cloud-owned equipment
+00:09 +271: /private/tmp/nudge-game06-integrated/test/cloud_reward_avatar_gateway_test.dart: reward avatar gateway rejects mismatched equipment
+00:09 +272: /private/tmp/nudge-game06-integrated/test/discipline_identity_snapshot_test.dart: parses a Cloud-built discipline identity snapshot
+00:10 +273: /private/tmp/nudge-game06-integrated/test/push_installation_test.dart: push gateway registers a token without weakening the response contract
+00:10 +274: /private/tmp/nudge-game06-integrated/test/discipline_identity_snapshot_test.dart: rejects snapshots for another user or a public visibility
+00:10 +275: /private/tmp/nudge-game06-integrated/test/push_installation_test.dart: push gateway rejects a mismatched audited response
+00:10 +276: /private/tmp/nudge-game06-integrated/test/push_installation_test.dart: push gateway rejects a mismatched audited response
+00:10 +277: /private/tmp/nudge-game06-integrated/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:10 +278: /private/tmp/nudge-game06-integrated/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:10 +279: /private/tmp/nudge-game06-integrated/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:10 +280: /private/tmp/nudge-game06-integrated/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:10 +281: /private/tmp/nudge-game06-integrated/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:10 +282: /private/tmp/nudge-game06-integrated/test/health_snapshot_outbox_test.dart: retryable health batches survive an outbox restart
+00:10 +283: /private/tmp/nudge-game06-integrated/test/health_snapshot_outbox_test.dart: an active flush drains a snapshot queued during its first call
+00:10 +284: /private/tmp/nudge-game06-integrated/test/cloud_room_resonance_gateway_test.dart: publish sends only the bounded resonance contract
+00:10 +285: /private/tmp/nudge-game06-integrated/test/cloud_room_resonance_gateway_test.dart: gateway rejects a public or cross-room signal
+00:10 +286: /private/tmp/nudge-game06-integrated/test/game_ui_test.dart: game button reports taps and is disabled without a handler
+00:10 +287: /private/tmp/nudge-game06-integrated/test/game_ui_test.dart: game button reports taps and is disabled without a handler
+00:10 +287: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: decor sheet buys then arranges
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:10 +288: /private/tmp/nudge-game06-integrated/test/game_ui_test.dart: game button reports taps and is disabled without a handler
+00:10 +289: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: decor sheet buys then arranges
+00:10 +290: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: decor sheet buys then arranges
+00:11 +291: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: decor sheet buys then arranges
+00:11 +292: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: decor sheet buys then arranges
+00:11 +293: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: decor sheet buys then arranges
+00:11 +294: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: decor sheet buys then arranges
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:11 +295: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: guest decor purchase asks to sign in
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:11 +296: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: guest decor purchase asks to sign in
+00:11 +297: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: guest decor purchase asks to sign in
+00:11 +298: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: guest decor purchase asks to sign in
+00:11 +299: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: guest decor purchase asks to sign in
+00:11 +300: /private/tmp/nudge-game06-integrated/test/home_decor_sheet_test.dart: guest decor purchase asks to sign in
+00:12 +301: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +302: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +303: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +304: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +305: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +306: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +307: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +308: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +309: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +310: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: shows the finished focus like a quest reward
+00:12 +311: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: a feedback that was already there does not count
+00:12 +312: /private/tmp/nudge-game06-integrated/test/focus_result_sheet_test.dart: starting the rest returns true; no rest hides the button
+00:12 +313: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: unread counts only newer messages from other people
+00:12 +314: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:12 +315: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:12 +316: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:12 +317: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:12 +318: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:12 +319: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:12 +320: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:12 +321: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:12 +322: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +323: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +324: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +325: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +326: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +327: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +328: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +329: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +330: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +331: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: chat page shows history oldest first and sends text
+00:13 +332: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: sticker chips send a sticker message
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:13 +333: /private/tmp/nudge-game06-integrated/test/study_room_chat_test.dart: sticker chips send a sticker message
+00:13 +334: /private/tmp/nudge-game06-integrated/test/cloud_activity_ledger_gateway_test.dart: gateway rejects non-map callable responses
+00:13 +335: /private/tmp/nudge-game06-integrated/test/cloud_activity_ledger_gateway_test.dart: gateway includes the canonical room session in one callable
+00:13 +336: /private/tmp/nudge-game06-integrated/test/relationship_membership_test.dart: one user can hold independent family and group memberships
+00:13 +337: /private/tmp/nudge-game06-integrated/test/relationship_membership_test.dart: membership rejects a user outside the canonical relationship
+00:13 +338: /private/tmp/nudge-game06-integrated/test/relationship_membership_test.dart: membership ids reject values that could escape a document path
+00:13 +339: /private/tmp/nudge-game06-integrated/test/relationship_membership_test.dart: formal membership parsing binds document, user and scoped role
+00:13 +340: /private/tmp/nudge-game06-integrated/test/relationship_membership_test.dart: ended membership keeps its scoped role and audit actor
+00:13 +341: /private/tmp/nudge-game06-integrated/test/avatar_purchase_test.dart: premium avatar series requires self-discipline coin purchase
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:13 +342: /private/tmp/nudge-game06-integrated/test/avatar_purchase_test.dart: signed-in purchases apply only the Cloud reward ledger result
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:13 +343: /private/tmp/nudge-game06-integrated/test/avatar_purchase_test.dart: signed-in avatar equipment uses the Cloud ownership result
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync avatar into room projections: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+Failed to sync to Firestore: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:13 +344: /private/tmp/nudge-game06-integrated/test/avatar_purchase_test.dart: background themes can be purchased and applied from shop state
+Error listening to auth state: [core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+00:13 +345: All tests passed!

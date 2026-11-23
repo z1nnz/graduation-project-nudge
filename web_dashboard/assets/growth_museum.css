@@ -19,3 +19,7 @@ h1{font-size:clamp(1.8rem,5vw,3rem);margin:8px 0}h2{font-size:1.35rem}.museum-ki
 pre{white-space:pre-wrap;overflow-wrap:anywhere}dialog{color:var(--paper);background:#242a30;border:1px solid var(--gold);border-radius:12px;max-width:92vw}
 @media(max-width:600px){.museum-header,main,.museum-footer{padding:16px}.museum-header{align-items:flex-start}.museum-books,.museum-grid{grid-template-columns:1fr}.museum-nav a{flex:1 1 120px}.museum-panel{padding:16px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+body[data-growth-museum]{height:auto;min-height:100%;overflow:auto}
+body[data-growth-museum] #museumWorld{position:fixed;left:16px;top:12px;z-index:20;background:#35271f}
+body[data-growth-museum] .museum-header{padding-top:82px}

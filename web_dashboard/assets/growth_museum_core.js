@@ -9,6 +9,7 @@
     {id:'strategy',file:'personal-template.html',label:'下一步工坊',description:'保存可編輯的策略，自己決定要不要行動。',feature:'tools'},
     {id:'letter',file:'personal-letter.html',label:'未來的信',description:'寫下此刻，保存、修改或帶走。',feature:'tools'},
     {id:'capsules',file:'personal-time-capsule.html',label:'時間膠囊',description:'封存一封只屬於你、到期才能讀的信。',feature:'capsules'},
+    {id:'identity',file:'personal-identity.html',label:'自律身分書',description:'由 Cloud 活動帳本整理可更新的行動模式，不是性格診斷。',feature:'identity'},
   ]);
   const sources = Object.freeze({
     activity:'activity_sessions: authenticated actor, completed only; Cloud-written',
@@ -18,7 +19,7 @@
     rewards:'Not derived here. Personal rewards and relationship outcomes remain separate.',
   });
   function routeFor(file) { return routes.find(r => r.file === file) || routes[0]; }
-  function returnRoute(available) { return available ? 'town.html' : 'dashboard.html'; }
+  function returnRoute(available) { return 'town.html'; }
   const api = {routes,sources,routeFor,returnRoute};
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NudgeGrowthMuseumCore = api;
