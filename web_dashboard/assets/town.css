@@ -186,3 +186,26 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); out
   .town-desk-clock { font-size: 44px; }
   .town-companion { height: 88px; }
 }
+
+/* ---------- town window: facility pages open over the town ---------- */
+.town-window { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+  padding: 3vh 3vw; background: rgba(15, 8, 4, 0.55); }
+.town-window[hidden] { display: none !important; }
+.town-window-box { width: min(1180px, 100%); height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  background: #1b1530; border: 4px solid #c9934f; border-radius: 16px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  animation: townWindowIn 0.22s ease-out; }
+.town-window-bar { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px;
+  background: linear-gradient(180deg, #8a5a34, #5a3826); border-bottom: 3px solid #3a2216; color: #ffe6a3; }
+.town-window-bar h2 { flex: 1; margin: 0; font-size: 18px; font-weight: 900; letter-spacing: 0.04em; }
+.town-window-sign { color: var(--town-gold); }
+.town-window-close { min-height: 40px; padding: 6px 14px; border-radius: 999px; border: 2px solid #3a2216; cursor: pointer;
+  background: var(--town-gold); color: #2a1600; font: inherit; font-weight: 900; }
+.town-window-close:focus-visible { outline: 3px solid #fff3d6; outline-offset: 2px; }
+.town-window-frame { flex: 1; width: 100%; border: 0; background: #1b1530; }
+@keyframes townWindowIn { from { transform: scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .town-window-box { animation: none; } }
+@media (max-width: 640px) {
+  .town-window { padding: 0; }
+  .town-window-box { border-width: 0; border-radius: 0; }
+  .town-window-close kbd { display: none; }
+}

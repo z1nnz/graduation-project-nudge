@@ -82,6 +82,16 @@
         <ul id="townPanelList" class="town-panel-list"></ul>
       </section>
 
+      <section id="townWindow" class="town-window" role="dialog" aria-modal="true" aria-labelledby="townWindowTitle" hidden>
+        <div class="town-window-box">
+          <header class="town-window-bar">
+            <span class="town-window-sign" aria-hidden="true">✦</span>
+            <h2 id="townWindowTitle"></h2>
+            <button id="townWindowClose" type="button" class="town-window-close" aria-label="關閉，回到小鎮">✕ 回小鎮 <kbd>Esc</kbd></button>
+          </header>
+          <iframe id="townWindowFrame" class="town-window-frame" title="設施內容" src="about:blank"></iframe>
+        </div>
+      </section>
       <section id="townDirectory" class="town-directory" aria-label="小鎮建築列表">
         <div class="town-panel-head">
           <h2>小鎮建築</h2>
@@ -104,7 +114,9 @@
     <script src="assets/daily_next_action.js?v=2"></script>
     <script src="assets/town_desk_core.js?v=1"></script>
     <script src="assets/town_scenes.js?v=1"></script>
+    <script src="assets/town_window_core.js?v=1"></script>
     <script src="assets/town.js?v=5"></script>
+    <script src="assets/town_window.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>
