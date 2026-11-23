@@ -3,17 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/models/study_hall_seating.dart';
 import 'package:nudge/models/study_room_models.dart';
 
-StudyMemberData _m(String id, StudyMemberStatus status, {bool approved = true}) =>
-    StudyMemberData(
-      memberId: id,
-      name: id,
-      roomNickname: id,
-      status: status,
-      sessionSeconds: 0,
-      todayFocusSeconds: 0,
-      avatarColor: Colors.purple,
-      isApproved: approved,
-    );
+StudyMemberData _m(
+  String id,
+  StudyMemberStatus status, {
+  bool approved = true,
+}) => StudyMemberData(
+  memberId: id,
+  name: id,
+  roomNickname: id,
+  status: status,
+  sessionSeconds: 0,
+  todayFocusSeconds: 0,
+  avatarColor: Colors.purple,
+  isApproved: approved,
+);
 
 void main() {
   test('me first, then studying, resting, offline', () {
