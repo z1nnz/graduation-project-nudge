@@ -18,6 +18,8 @@ import 'settings_page.dart';
 import 'account_page.dart';
 import '../models/cabin_layout.dart';
 import '../models/cabin_tour_memory.dart';
+import '../models/adventure_log.dart';
+import 'adventure_log_page.dart';
 import 'focus_page.dart';
 import 'social_page.dart';
 import 'study_room_list_page.dart';
@@ -114,7 +116,16 @@ class HomePage extends StatelessWidget {
             confirmedActivityLabel: appState.confirmedActivityFeedback?.label,
             onOpenQuests: () => showQuestScroll(context),
             onOpenDesk: () => push(const FocusPage(immersive: true)),
-            onOpenRecords: onOpenStatistics,
+            onOpenRecords: () => push(
+              AdventureLogPage(
+                log: AdventureLog.fromSummaries(
+                  appState.dailySummaries,
+                  todayKey: appState.todayKey,
+                ),
+                profile: appState.avatarProfile,
+                onOpenStatistics: onOpenStatistics,
+              ),
+            ),
             onOpenBadges: () => push(const BadgesPage()),
             onOpenCompanions: () => push(
               capabilities.isGuardian || capabilities.isChild

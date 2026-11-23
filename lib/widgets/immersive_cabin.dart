@@ -679,7 +679,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
               box,
               const CabinRect(0.11, 0.28, 0.24, 0.29),
               'cabin-shelf',
-              '紀錄',
+              '冒險日誌',
               widget.onOpenRecords,
             ),
             _hotspot(
