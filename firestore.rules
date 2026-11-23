@@ -320,6 +320,15 @@ service cloud.firestore {
       }
     }
 
+    // Private text is mutated only by the attested Cloud document endpoint.
+    match /users/{ownerUid}/growth_documents/{documentId} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false;
+    }
+    match /users/{ownerUid}/growth_document_operations/{documentId} {
+      allow read, write: if false;
+    }
+
     // ─── /public_profiles/{userId} ────────────────────────────────────
     // Explicit social lookup projection. Raw tasks, health, family and group
     // membership data remain private in /users/{userId}.
