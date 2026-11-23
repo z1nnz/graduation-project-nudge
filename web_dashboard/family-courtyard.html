@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 家庭庭院</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
+  </head>
+  <body data-page="family-courtyard">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="dashboard.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>家庭庭院</small></span>
+        </a>
+        <nav class="nav">
+          <!-- Dynamically populated by app.js -->
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Family Courtyard</span>
+            <h1>在庭院裡互相照顧</h1>
+            <p>家長送出鼓勵卡與共同目標的提議；孩子自己決定收下、接受與開始，也掌握分享同意。家庭樹只隨家庭互動成長。</p>
+            <div class="subnav">
+              <a href="guardian.html">家長陪伴中心</a>
+              <a href="dashboard.html" data-world-return>← 返回小鎮</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>切換家庭</span>
+            <label class="sr-only" for="socialScopePicker">選擇家庭</label>
+            <select id="socialScopePicker" data-social-scope-picker hidden></select>
+            <p>家長只能提議與鼓勵，無法代替孩子同意或開始活動。</p>
+          </div>
+        </header>
+        <div data-social-scene aria-live="polite"><p class="visit-empty">載入中…</p></div>
+      </main>
+    </div>
+    <script src="assets/relationship_membership_contract.js?v=1"></script>
+    <script src="assets/family_link_contract.js?v=1"></script>
+    <script src="assets/family_group_scenes.js?v=1"></script>
+    <script src="assets/app.js?v=25"></script>
+  </body>
+</html>
