@@ -39,6 +39,7 @@ class SvgCanvas final : public demo::Canvas {
   }
 };
 }
+#ifndef DEMO_CANVAS_ONLY
 int main(int argc, char** argv) {
   if (argc != 2 && argc != 3) return 2;
   const bool station=argc==3 && std::string(argv[2])=="station";
@@ -60,4 +61,6 @@ int main(int argc, char** argv) {
   out << "</svg>\n";
   if (!out) return 1;
   std::cout << "wrote "<<(station?"station-scene-preview.svg":"scene-preview.svg")<<" (software layout only; no hardware evidence)\n";
+  return 0;
 }
+#endif
