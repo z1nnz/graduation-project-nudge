@@ -1,0 +1,44 @@
+{
+  "issue": 84,
+  "slice": 5,
+  "title": "書架、卷軸與閱讀回饋",
+  "base_commit": "27f1e4d1c8e8bbeecd32e8466efd960d3917104b",
+  "threshold": 85,
+  "scope": "source implementation and local verification; not production acceptance",
+  "scores": {
+    "content": 25,
+    "criteria": 30,
+    "verification": 20,
+    "handoff": 15
+  },
+  "total": 90,
+  "criteria": [
+    "原創 CSS 書架／封蠟／書籤，與 #79 的木色、紫暮、金色語言相容",
+    "只有已符合條件的書籤與 Cloud opened metadata 影響閱讀回饋，不製造活動／XP",
+    "360px 無水平溢出；原生連結、表單與按鈕，鍵盤／跳至內容可用",
+    "八頁 axe WCAG A／AA 零違規、減少動態有相同操作；沒有 Canvas-only 操作"
+  ],
+  "limitations": "需要入口切片先提供 HTML 與基礎樣式；小鎮整體視覺／真人輔具與實機手機尚待整合驗收。",
+  "production_deployed": false,
+  "production_app_check_verified": false,
+  "real_device_verified": false,
+  "human_screen_reader_verified": false,
+  "source_issue_complete": false,
+  "pr_must_remain_draft": true,
+  "ci": "exact head six checks required; final status in PR",
+  "browser_transport": "Auth/Firestore loopback emulators, SDK 9.22.0, test attested-handler adapter. Actual shared bootstrap smoke also passed; no production network in that smoke.",
+  "browser_checks": {
+    "checks": 43,
+    "desktop": true,
+    "mobile360": true,
+    "reducedMotion": true,
+    "axe": "zero WCAG A/AA violations on eight pages",
+    "realProductionAccounts": false,
+    "transport": "loopback Auth/Firestore emulators and attested-handler adapter, not production App Check",
+    "errors": []
+  },
+  "evidence_sha256": {
+    "museum-desktop.png": "d791236b0cee6ed10c9ccd6dbc3a653dd6c109479e1e3a15d8d00cba43ff5804",
+    "museum-mobile-reduced-motion.png": "7118287e0d34d3a79b475c96c64663435c7d8cac640d835a181ebb1fce278e9f"
+  }
+}
