@@ -1,0 +1,142 @@
+{
+  "assertions": 58,
+  "pages": [
+    {
+      "page": "personal.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-identity.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-trends.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-weather.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-pressure.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-skill-tree.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-template.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-letter.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-time-capsule.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "personal-focus.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": true
+    },
+    {
+      "page": "museum-demo.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "index.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "login.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "research.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "research-scenario.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "research-anonymized.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "research-score-demo.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "presentation.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "operations-economy.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "operations-room-review.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "operations-shop-campaign.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    },
+    {
+      "page": "admin_dashboard.html",
+      "axeViolations": 0,
+      "mobileOverflow": false,
+      "focusInteriorOwnedBy104": false
+    }
+  ],
+  "errors": [],
+  "transport": "Real local Auth/Firestore SDK; test callable handler adapter and unused Storage/AppCheck facades. Production HTTPS blocked. Not production attestation.",
+  "before": "Original main static HTML with scripts removed; no fake graphs executed.",
+  "realDevice": false,
+  "humanScreenReader": false
+}

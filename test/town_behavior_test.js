@@ -360,9 +360,9 @@ test('first visit shows the skippable tour and Escape ends it for good', () => {
 
 test('the public landing page offers 探索小鎮 and keeps 進入 Nudge', () => {
   const index = fs.readFileSync('web_dashboard/index.html', 'utf8');
-  assert.match(index, /<a href="town.html"[^>]*>探索小鎮<\/a>/);
-  assert.match(index, /<a href="dashboard.html"[^>]*>進入 Nudge<\/a>/);
-  const townHrefs = [...index.matchAll(/href="([^"]*town[^"]*)"/g)].map(m => m[1]);
+  assert.match(index, /<a\b[^>]*href="town.html"[^>]*>探索小鎮<\/a>/);
+  assert.match(index, /<a\b[^>]*href="dashboard.html"[^>]*>進入 Nudge<\/a>/);
+  const townHrefs = [...index.matchAll(/<a\b[^>]*href="([^"]*town[^"]*)"/g)].map(m => m[1]);
   assert.ok(townHrefs.length >= 2);
   assert.deepEqual([...new Set(townHrefs)], ['town.html'], 'relative GitHub Pages paths');
 });
