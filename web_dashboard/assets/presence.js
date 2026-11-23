@@ -41,6 +41,7 @@
     let refreshRequested = false;
     let signInName = String(user.displayName || "自律夥伴").trim().slice(0, 40) || "自律夥伴";
     const sending = new Set();
+    const liveListeners = new Map();
 
     function render() {
       if (!root || stopped) return;
@@ -48,7 +49,7 @@
       toggle.checked = enabled === true;
       const live = visible.filter(item => friends.has(item.uid) && item.expiresAt > Date.now());
       const current = list.textContent;
-      const signature = JSON.stringify(live.map(item => [item.uid, item.name, item.building, sending.has(item.uid)]));
+      const signature = JSON.stringify(live.map(item => [item.uid, item.name, item.building, item.openCabin, sending.has(item.uid)]));
       if (list.dataset.signature !== signature || !current && live.length) {
         list.dataset.signature = signature;
         const focusedFriend = document.activeElement?.dataset.presenceCheer;
@@ -82,7 +83,16 @@
               render();
             }
           });
-          row.append(node("p", item.name + "正在" + routes.BUILDINGS[item.building].name), cheer);
+          const actions = node("div", "");
+          actions.className = "presence-actions";
+          actions.append(cheer);
+          if (item.openCabin) {
+            const cabin = node("a", "拜訪小屋");
+            cabin.className = "w-btn";
+            cabin.href = "friend-visits.html?friend=" + encodeURIComponent(item.uid);
+            actions.append(cabin);
+          }
+          row.append(node("p", item.name + "正在" + routes.BUILDINGS[item.building].name), actions);
           return row;
         }));
         if (focusedFriend) {
@@ -94,6 +104,29 @@
         !loaded ? "正在確認好友的在場狀態…" :
         !live.length ? "目前沒有可顯示的好友在場狀態。" : "");
       if (status.textContent !== message) status.textContent = message;
+    }
+
+    function dropFriendPresence(friendId) {
+      liveListeners.get(friendId)?.();
+      liveListeners.delete(friendId);
+      visible = visible.filter(item => item.uid !== friendId);
+      render();
+    }
+
+    function watchVisibleFriend(friendId) {
+      if (liveListeners.has(friendId)) return;
+      const unsubscribe = db.collection("presence").doc(friendId)
+        .onSnapshot({ includeMetadataChanges: true }, snapshot => {
+          if (stopped || snapshot.metadata.fromCache) return;
+          const latest = core.visiblePresence(snapshot.data(), routes.BUILDINGS, Date.now());
+          if (!latest || latest.uid !== friendId) {
+            dropFriendPresence(friendId);
+            return;
+          }
+          visible = visible.map(item => item.uid === friendId ? { ...item, ...latest } : item);
+          render();
+        }, () => dropFriendPresence(friendId));
+      liveListeners.set(friendId, unsubscribe);
     }
 
     async function refresh() {
@@ -116,14 +149,19 @@
               name = String(profile.data()?.nickname || "好友").slice(0, 40);
               if (friends.has(friendId)) friends.set(friendId, name);
             }
-            return { ...record, name };
+            const visitSettings = await db.collection("friend_visit_settings").doc(friendId)
+              .get({ source: "server" }).then(document => document.data()).catch(() => null);
+            return { ...record, name, openCabin: visitSettings?.allowVisits === true && visitSettings.shareCabin === true };
           } catch (caught) {
             if (caught.code !== "permission-denied") failed = true;
             return null;
           }
         }));
         if (stopped) return;
-        visible = people.filter(Boolean);
+        visible = people.filter(item => item && friends.has(item.uid));
+        const liveIds = new Set(visible.map(item => item.uid));
+        for (const id of liveListeners.keys()) if (!liveIds.has(id)) dropFriendPresence(id);
+        for (const id of liveIds) watchVisibleFriend(id);
         loaded = true;
         offline = failed;
         render();
@@ -159,6 +197,8 @@
       if (stopped) return;
       stopped = true;
       for (const unsubscribe of subscriptions) unsubscribe();
+      for (const unsubscribe of liveListeners.values()) unsubscribe();
+      liveListeners.clear();
       for (const timer of timers) clearInterval(timer);
       window.removeEventListener("pagehide", stop);
       if (toggle) {
@@ -226,10 +266,12 @@
         friends = new Map(snapshot.docs.map(friend => [
           friend.id, friends.get(friend.id) || friend.data().nickname || friend.data().displayName || "",
         ]));
+        for (const id of liveListeners.keys()) if (!friends.has(id)) dropFriendPresence(id);
         render();
         void refresh();
       }, () => {
         friends.clear();
+        for (const id of liveListeners.keys()) dropFriendPresence(id);
         offline = true;
         render();
       }));
