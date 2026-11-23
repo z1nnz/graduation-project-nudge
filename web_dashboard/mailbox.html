@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 小鎮郵箱</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/mailbox.css?v=1" />
+  </head>
+  <body data-page="mailbox">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="dashboard.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>小鎮郵箱</small></span>
+        </a>
+        <nav class="nav">
+          <!-- Dynamically populated by app.js -->
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Town Mailbox</span>
+            <h1>小鎮郵箱</h1>
+            <p>家庭與團體的邀請、接受或婉拒的結果都會寄到這裡；App 與 Web 讀的是同一份正式通知。點信件可以回到對應的場景處理。</p>
+            <div class="subnav">
+              <a href="notifications.html">通知設定</a>
+              <a href="dashboard.html" data-world-return>← 返回小鎮</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>未讀信件</span>
+            <strong data-mailbox-unread>0</strong>
+            <p>推播尚未在實機驗收，目前以站內信為準。</p>
+          </div>
+        </header>
+        <section class="panel page-section" aria-labelledby="mailboxTitle">
+          <span class="eyebrow">Letters</span>
+          <h2 id="mailboxTitle">信件</h2>
+          <p class="visit-note" data-mailbox-status aria-live="polite">正在打開信箱…</p>
+          <ul class="mailbox-list" data-mailbox-letters><li class="visit-empty">載入中…</li></ul>
+        </section>
+      </main>
+    </div>
+    <script src="assets/mailbox.js?v=1"></script>
+    <script src="assets/app.js?v=25"></script>
+  </body>
+</html>
