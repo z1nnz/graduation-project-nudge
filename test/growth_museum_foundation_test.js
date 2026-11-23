@@ -11,7 +11,9 @@ test('real personal pages no longer contain the old fabricated figures or unseal
     const html=fs.readFileSync('web_dashboard/'+r.file,'utf8');
     assert.doesNotMatch(html,/82 分|310 枚|截止日 78%|睡眠 54%|2026-06-15|data-capsule-message|data-toast/);
     assert.match(html,/data-museum-demo="false"/);assert.match(html,/role="status"/);assert.match(html,/id="museumWorld" data-town-return href="town.html"/);
-    assert.match(html,/growth_museum\.js/);
+    if(r.id==='trends'){
+      assert.match(html,/yearbook_core\.js/);assert.match(html,/yearbook\.js/);assert.match(html,/world_ui\.css/);
+    }else assert.match(html,/growth_museum\.js/);
   }
 });
 test('sample data has an explicit separate read-only page',()=>{

@@ -64,7 +64,7 @@
     d('group-hall', 'group-hall.html', 'guild', '團體會館場景', 'player', 'login', 'group', 'cloud', '#83'),
     d('museum', 'personal.html', 'library', '成長紀錄館', 'player', 'login', null, 'cloud', '#84'),
     d('identity', 'personal-identity.html', 'library', '自律身分書', 'player', 'login', null, 'cloud', '#84'),
-    d('trends', 'personal-trends.html', 'library', '行動年鑑', 'player', 'login', null, 'cloud', '#84'),
+    d('trends', 'personal-trends.html', 'library', '成長年鑑翻頁書', 'player', 'login', null, 'cloud', '#124'),
     d('skill-tree', 'personal-skill-tree.html', 'library', '技能書籤', 'player', 'login', null, 'cloud', '#84'),
     d('weather', 'personal-weather.html', 'library', '生活天氣回顧', 'player', 'login', null, 'cloud', '#84'),
     d('pressure', 'personal-pressure.html', 'library', '溫柔整理', 'player', 'login', null, 'cloud', '#84'),

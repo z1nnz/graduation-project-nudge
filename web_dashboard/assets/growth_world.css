@@ -1,0 +1,24 @@
+/* Page-owned additions; shared world UI and window remain the authority. */
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+body.w-page { font-size:16px; background:var(--w-wood-deep); }
+.w-hud { flex-wrap:wrap; }
+.w-hud a { display:inline-flex; align-items:center; min-height:44px; }
+.growth-nav { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.growth-nav a { min-height:44px; padding:10px; color:var(--w-ink); font-family:var(--w-pixel); }
+.growth-status { border-left:4px solid var(--w-gold); padding:12px; background:var(--w-wood-dark); }
+.growth-controls { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin:16px 0; }
+.growth-controls label { display:grid; gap:6px; }
+.growth-controls .w-btn { width:auto; }
+.growth-foot { padding:20px 0; color:var(--w-ink); }
+.growth-foot a { color:var(--w-gold); }
+button,select,input { font:inherit; }
+button { font-family:var(--w-pixel); }
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline:3px solid var(--w-gold); outline-offset:4px; }
+input,select { max-width:100%; }
+.w-main { overflow-wrap:anywhere; }
+.growth-dialog { max-width:min(560px,calc(100% - 24px)); max-height:90vh; overflow:auto; color:var(--w-ink-dark); background:var(--w-parchment); border:4px solid var(--w-wood); padding:24px; }
+.growth-dialog::backdrop { background:var(--w-wood-deep); opacity:.8; }
+.growth-dialog h2,.growth-number { font-family:var(--w-pixel); }
+@media(max-width:600px){.growth-controls{align-items:stretch}.growth-controls label{flex:1 1 120px}.growth-controls .w-btn{flex:1 1 120px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}}
