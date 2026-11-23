@@ -24,6 +24,8 @@ Future<Map<String, int>> _pump(
   bool device = false,
   bool focusing = false,
   bool tour = false,
+  int level = 7,
+  String account = 'me',
 }) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
@@ -42,7 +44,8 @@ Future<Map<String, int>> _pump(
           layout: layout,
           presentation: _presentation(device: device, focusing: focusing),
           profile: AvatarProfile.initial(),
-          level: 7,
+          level: level,
+          accountKey: account,
           coins: 128,
           streak: 6,
           now: DateTime(2026, 11, 23, 12),
@@ -256,5 +259,27 @@ void main() {
   testWidgets('no tour once it has been seen', (tester) async {
     await tester.runAsync(() => _pump(tester));
     expect(find.byKey(const Key('cabin-tour')), findsNothing);
+  });
+
+  testWidgets('a new level plays a full-screen celebration', (tester) async {
+    await tester.runAsync(() => _pump(tester));
+    expect(find.byKey(const Key('cabin-celebration')), findsNothing);
+    await tester.runAsync(() => _pump(tester, level: 8));
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(find.byKey(const Key('cabin-celebration')), findsOneWidget);
+    expect(find.text('升級！'), findsOneWidget);
+    expect(find.text('Lv 8'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('cabin-celebration')));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('cabin-celebration')), findsNothing);
+  });
+
+  testWidgets('switching to an account with a higher level is no level-up', (
+    tester,
+  ) async {
+    await tester.runAsync(() => _pump(tester));
+    await tester.runAsync(() => _pump(tester, level: 14, account: 'other'));
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(find.byKey(const Key('cabin-celebration')), findsNothing);
   });
 }

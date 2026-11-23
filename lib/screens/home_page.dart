@@ -140,6 +140,7 @@ class HomePage extends StatelessWidget {
             onOpenShop: () => push(const AvatarShopPage()),
             onOpenDevice: () => push(const NudgeDevicePage()),
             showTour: !tourSeen,
+            accountKey: appState.currentUser?.id,
             onTourDone: () {
               _cabinData = Future.value((layout, true));
               CabinTourMemory.markSeen();

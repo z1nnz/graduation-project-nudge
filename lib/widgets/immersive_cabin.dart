@@ -12,6 +12,8 @@ import '../models/companion_pose.dart';
 import 'companion_cabin_view.dart';
 import 'companion_sprite.dart';
 import 'cabin_tour.dart';
+import '../models/companion_celebration.dart';
+import 'celebration_overlay.dart';
 
 /// Pixel font for in-world text (HUD, signs, bubbles).
 const pixelFont = 'Cubic11';
@@ -434,6 +436,7 @@ class ImmersiveHome extends StatefulWidget {
     required this.onOpenShop,
     required this.onOpenDevice,
     this.showTour = false,
+    this.accountKey,
     this.onTourDone,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
@@ -462,6 +465,10 @@ class ImmersiveHome extends StatefulWidget {
   /// Show the first-visit tour; [onTourDone] runs when it is finished or
   /// skipped so the caller can remember it.
   final bool showTour;
+
+  /// Who is signed in; level and stage changes only celebrate within one
+  /// account, never when switching to another one.
+  final String? accountKey;
   final VoidCallback? onTourDone;
   final String? confirmedActivityLabel;
   final DateTime? now;
@@ -494,6 +501,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   int _pokeCount = 0;
   bool _still = false;
   late bool _touring = widget.showTour;
+  CompanionCelebration? _celebration;
   final _questKey = GlobalKey();
   final _companionKey = GlobalKey();
   final _focusKey = GlobalKey();
@@ -547,6 +555,15 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   @override
   void didUpdateWidget(ImmersiveHome old) {
     super.didUpdateWidget(old);
+    final grew = CompanionCelebration.between(
+      oldLevel: old.level,
+      newLevel: widget.level,
+      oldStageIndex: old.profile.faceShapeIndex,
+      newStageIndex: widget.profile.faceShapeIndex,
+    );
+    if (grew != null && old.accountKey == widget.accountKey) {
+      _celebration = grew;
+    }
     _brain.setActivity(_wantedActivity);
     final before = old.confirmedActivityLabel;
     final after = widget.confirmedActivityLabel;
@@ -831,6 +848,15 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 roomsKey: _roomsKey,
               ),
             ),
+            if (_celebration case final c?)
+              Positioned.fill(
+                child: CelebrationOverlay(
+                  key: const Key('cabin-celebration'),
+                  celebration: c,
+                  profile: widget.profile,
+                  onDone: () => setState(() => _celebration = null),
+                ),
+              ),
             if (_touring)
               Positioned.fill(
                 child: CabinTour(
