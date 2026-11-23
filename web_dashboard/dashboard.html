@@ -4,7 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge Web Center</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#7c6ae6" />
+    <link rel="apple-touch-icon" href="assets/landing/nudge_icon_180.png" />
     <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/companion_install.css?v=1" />
   </head>
   <body data-page="home">
     <div class="shell">
@@ -45,6 +49,17 @@
           <img src="assets/town/guide.png" alt="" width="64" height="64" style="image-rendering:pixelated;" />
           <span><strong style="display:block;font-size:18px;">進入 Nudge 夥伴小鎮</strong>走進小鎮，用建築開啟每一個功能；完成專注還能拿休息券到遊樂園玩。</span>
         </a>
+        <section class="panel page-section" aria-labelledby="companionInstallTitle">
+          <h2 id="companionInstallTitle">把日常夥伴放在桌面</h2>
+          <p>快速回到今日行動。可否安裝由瀏覽器決定，本版尚不提供完整離線操作。</p>
+          <button id="companionInstallButton" class="button ghost" type="button" aria-controls="companionInstallHelp">加入桌面／查看方式</button>
+          <p id="companionInstallStatus" role="status">安裝方式依瀏覽器而異，也可以直接使用網頁</p>
+          <p id="companionNetworkStatus" role="status">尚未取得瀏覽器連線提示</p>
+          <div id="companionInstallHelp" hidden>
+            <p>若瀏覽器提供「安裝」或「加入主畫面」，可從網址列、分享或選單操作；若沒有這些選項，請加入書籤繼續使用網頁。</p>
+            <p>安裝不會自動開啟通知，也不代表資料已同步。本版不快取個人任務、健康與家庭資料供離線瀏覽。</p>
+          </div>
+        </section>
         <header class="hero split hero-home cinematic">
           <div>
             <span class="eyebrow">Nudge Web Center</span>
@@ -229,10 +244,11 @@
         </section>
       </main>
     </div>
+    <script src="assets/companion_install.js?v=1"></script>
     <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script src="assets/daily_next_action.js?v=2"></script>
     <script src="assets/town_routes.js?v=2"></script>
     <script src="assets/town_return.js?v=1"></script>
-    <script src="assets/app.js?v=26"></script>
+    <script src="assets/app.js?v=27"></script>
   </body>
 </html>

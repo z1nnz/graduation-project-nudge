@@ -23,7 +23,9 @@ test("web exposes a real member-controlled activity room hub", () => {
   assert.match(html, /data-room-session-panel/);
   assert.match(html, /data-room-message-list/);
   assert.match(html, /data-room-event-list/);
-  assert.match(html, /data-room-message-input/);
+  assert.match(html, /data-room-chat-link/);
+  assert.doesNotMatch(html, /data-room-message-input/);
+  assert.match(read("web_dashboard/room-chat.html"), /data-room-message-input/);
   assert.match(html, /由你自己開始、暫停與完成/);
   assert.match(app, /function listenToWebRooms/);
   assert.match(app, /function startWebRoomSession/);

@@ -5,9 +5,10 @@
   // movement rules live in town_core.js. Nothing here writes rewards:
   // break-game scores stay local and every gate stays on the target page.
   const core = root.NudgeTownCore;
+  const gameCore = root.NudgeTownGameCore;
   const routes = root.NudgeTownRoutes;
   const doc = root.document;
-  if (!core || !routes || !doc || doc.body?.dataset.page !== 'town') return;
+  if (!core || !gameCore || !routes || !doc || doc.body?.dataset.page !== 'town') return;
 
   const MAP_W = 1672;
   const MAP_H = 941;
@@ -52,7 +53,8 @@
   const SOURCE_LABELS = { cloud: '正式資料', mixed: '部分示範', demo: '示範資料', static: '說明頁' };
   const els = id => doc.getElementById(id);
   const canvas = els('townCanvas');
-  const ctx = canvas.getContext('2d');
+  let ctx = null;
+  try { ctx = canvas.getContext ? canvas.getContext('2d') : null; } catch { ctx = null; }
   const reducedMotion = root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const store = {
     get(key) { try { return root.localStorage.getItem(key); } catch { return null; } },
@@ -80,9 +82,11 @@
     toastUntil: 0,
     celebrateUntil: 0,
     sceneOpen: false,
+    static: false,
   };
 
   const mapImage = new Image();
+  mapImage.addEventListener('error', () => enterStatic('小鎮地圖載入失敗'));
   mapImage.src = 'assets/town/town_map.jpg';
   const playerImage = new Image();
   playerImage.src = 'assets/avatar/characters/character_0.png';
@@ -115,8 +119,9 @@
   for (const b of BUILDINGS) {
     const el = doc.createElement('div');
     el.className = 'town-label';
-    el.innerHTML = `<strong></strong><span></span>`;
-    el.querySelector('strong').textContent = b.name;
+    const title = doc.createElement('strong');
+    title.textContent = b.name;
+    el.append(title, doc.createElement('span'));
     els('townLabels').appendChild(el);
     labels.set(b.id, el);
     const li = doc.createElement('li');
@@ -125,9 +130,14 @@
     button.className = 'town-directory-building';
     button.addEventListener('click', () => {
       // Close the list first so the panel is on top; Esc returns to the ☰ button.
-      els('townDirectory').classList.remove('is-open');
-      els('townDirectoryToggle').setAttribute('aria-expanded', 'false');
-      els('townDirectoryToggle').focus({ preventScroll: true });
+      // In static mode the list is the town, so it stays and focus returns here.
+      if (!state.static) {
+        els('townDirectory').classList.remove('is-open');
+        els('townDirectoryToggle').setAttribute('aria-expanded', 'false');
+        els('townDirectoryToggle').focus({ preventScroll: true });
+      } else {
+        button.focus({ preventScroll: true }); // Safari does not focus clicked buttons
+      }
       openPanel(b);
     });
     li.appendChild(button);
@@ -152,10 +162,25 @@
     }
     if (state.panel) renderPanel(state.panel);
   }
-  function setDirectoryOpen(open) {
-    els('townDirectory').classList.toggle('is-open', open);
-    els('townDirectoryToggle').setAttribute('aria-expanded', String(open));
-    if (open) els('townDirectory').querySelector('button, a')?.focus({ preventScroll: true });
+  function setDirectoryOpen(open, { focus = true } = {}) {
+    const show = open || state.static;
+    els('townDirectory').classList.toggle('is-open', show);
+    els('townDirectoryToggle').setAttribute('aria-expanded', String(show));
+    if (show && focus) els('townDirectoryList').querySelector('button, a')?.focus({ preventScroll: true });
+  }
+
+  /** Canvas or map art unavailable: keep the town usable as a plain list. */
+  function enterStatic(reason) {
+    if (state.static) return;
+    state.static = true;
+    doc.body.classList.add('town-static');
+    state.tour = -1;
+    els('townDialog').hidden = true;
+    els('townPrompt').hidden = true;
+    const note = els('townDirectoryNote');
+    note.hidden = false;
+    note.textContent = `${reason}，可以直接從下面的清單進入各建築。`;
+    setDirectoryOpen(true, { focus: false });
   }
   els('townDirectoryToggle').addEventListener('click', () => {
     setDirectoryOpen(!els('townDirectory').classList.contains('is-open'));
@@ -166,10 +191,17 @@
   });
 
   // ---------- view math ----------
-  function scale() {
-    const fit = Math.max(canvas.clientHeight / (MAP_H * 0.62), canvas.clientWidth / MAP_W);
-    return fit * state.zoom;
+  function baseFit() {
+    return Math.max(canvas.clientHeight / (MAP_H * 0.62), canvas.clientWidth / MAP_W);
   }
+  function scale() { return baseFit() * state.zoom; }
+  /** Smallest zoom that still covers the screen, so no empty band shows. */
+  function minZoom() {
+    const fit = baseFit();
+    if (!fit) return 1;
+    return Math.min(1, Math.max(canvas.clientWidth / MAP_W, canvas.clientHeight / MAP_H) / fit);
+  }
+  function setZoom(z) { state.zoom = Math.min(1.8, Math.max(minZoom(), z)); }
   function toScreen(p) {
     const s = scale();
     return { x: (p.x - state.camera.x) * s + canvas.clientWidth / 2, y: (p.y - state.camera.y) * s + canvas.clientHeight / 2 };
@@ -188,11 +220,20 @@
     };
   }
 
+  let labelTop = 64;
+  let zoomTouched = false;
   function resize() {
+    if (!ctx) return;
     const dpr = Math.min(root.devicePixelRatio || 1, 2);
     canvas.width = Math.round(canvas.clientWidth * dpr);
     canvas.height = Math.round(canvas.clientHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Phones start zoomed out so nearby buildings are on screen.
+    if (!zoomTouched) state.zoom = canvas.clientWidth < 560 ? minZoom() : 1;
+    else setZoom(state.zoom);
+    // On phones the tool bar spans the screen; keep building labels below it.
+    const tools = doc.querySelector('.town-hud-tools')?.getBoundingClientRect?.();
+    labelTop = tools && tools.width > canvas.clientWidth * 0.6 ? Math.max(64, tools.bottom + 36) : 64;
   }
 
   // ---------- interaction ----------
@@ -300,9 +341,14 @@
     const rect = canvas.getBoundingClientRect();
     const p = toMap(event.clientX - rect.left, event.clientY - rect.top);
     const b = buildingAt(p);
-    if (b) {
+    if (b && reducedMotion) {
+      // No walking animation: arrive at the door and open the panel at once.
+      state.player = { ...b.door };
+      enter(b);
+    } else if (b) {
       state.target = { ...b.door };
       state.pendingBuilding = b;
+      toast(`走向${b.name}…`, 1600);
     } else {
       state.target = p;
       state.pendingBuilding = null;
@@ -310,11 +356,20 @@
   });
 
   doc.addEventListener('keydown', event => {
-    if (event.target instanceof HTMLElement && event.target.closest('input, textarea')) return;
+    if (event.target?.closest?.('input, textarea')) return;
     const key = event.key.toLowerCase();
+    if (state.static && !state.panel) return;
     if (state.tour >= 0) {
       if (key === ' ' || key === 'enter') { event.preventDefault(); nextTour(); }
       if (key === 'escape') endTour();
+      return;
+    }
+    if (!els('townGame').hidden) {
+      if (key === 'escape' || key === 'p') { event.preventDefault(); toggleGamePause(); }
+      else if (['a', 'd', 'arrowleft', 'arrowright'].includes(key)) {
+        event.preventDefault();
+        if (game.running) state.keys.add(key);
+      }
       return;
     }
     if (state.sceneOpen) return;
@@ -327,7 +382,7 @@
       els('townDirectoryToggle').focus({ preventScroll: true });
       return;
     }
-    if (event.target instanceof HTMLElement && event.target.closest('#townDirectory')) return;
+    if (event.target?.closest?.('#townDirectory')) return;
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
       event.preventDefault();
       state.keys.add(key);
@@ -335,14 +390,16 @@
       state.pendingBuilding = null;
     }
     if (!els('townGame').hidden) return;
-    if (key === 'f' && state.near) enter(state.near);
+    const onMap = !event.target || event.target === doc.body || event.target === canvas;
+    if (state.near && (key === 'f' || (key === 'enter' && onMap))) enter(state.near);
   });
   doc.addEventListener('keyup', event => state.keys.delete(event.key.toLowerCase()));
-  root.addEventListener('blur', () => state.keys.clear());
+  root.addEventListener('blur', () => { state.keys.clear(); if (game.running) toggleGamePause(); });
+  doc.addEventListener('visibilitychange', () => { if (doc.hidden && game.running) toggleGamePause(); });
 
   els('townPromptEnter').addEventListener('click', () => state.near && enter(state.near));
-  els('townZoomIn').addEventListener('click', () => { state.zoom = Math.min(1.8, state.zoom + 0.2); });
-  els('townZoomOut').addEventListener('click', () => { state.zoom = Math.max(0.6, state.zoom - 0.2); });
+  els('townZoomIn').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom + 0.2); });
+  els('townZoomOut').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom - 0.2); });
   els('townHelp').addEventListener('click', startTour);
 
   // ---------- guided tour ----------
@@ -353,7 +410,7 @@
     els('townDialogStep').textContent = `${state.tour + 1} / ${TOUR.length}`;
     els('townDialogNext').focus({ preventScroll: true });
   }
-  function startTour() { state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
+  function startTour() { if (state.static) return; state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
   function nextTour() { if (state.tour + 1 >= TOUR.length) endTour(); else { state.tour += 1; showTourStep(); } }
   function endTour() {
     state.tour = -1;
@@ -375,36 +432,84 @@
   }
 
   // ---------- catch-the-stars break game ----------
-  const game = { running: false, end: 0, score: 0, x: 0.5, stars: [], clouds: [], last: 0, ticket: null };
+  const game = { running: false, paused: false, end: 0, started: 0, pausedTotal: 0,
+    pauseStarted: 0, score: 0, combo: 0, x: 0.5, stars: [], clouds: [], last: 0,
+    lastHudSecond: -1, lastHudScore: -1, lastHudCombo: -1, ticket: null };
   const gameCanvas = els('townGameCanvas');
-  const gctx = gameCanvas.getContext('2d');
+  let gctx = null;
+  try { gctx = gameCanvas.getContext ? gameCanvas.getContext('2d') : null; } catch { gctx = null; }
+  function resizeGameCanvas() {
+    if (!gctx) return;
+    const dpr = Math.min(root.devicePixelRatio || 1, 2);
+    gameCanvas.width = Math.round(gameCanvas.clientWidth * dpr);
+    gameCanvas.height = Math.round(gameCanvas.clientHeight * dpr);
+    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  root.addEventListener('resize', () => { if (!els('townGame').hidden) resizeGameCanvas(); });
   function openGame() {
     if (!state.uid) { toast('登入後完成一次專注，就能拿到休息券。'); return; }
+    if (!gctx) { toast('這個瀏覽器無法顯示小遊戲。'); return; }
     const list = tickets();
     if (!list.length) { toast('還沒有休息券。完成一次 25 分鐘以上、由雲端確認的專注，就能來玩。'); return; }
     game.ticket = list[0];
     store.set(usedKey(), JSON.stringify([...usedTickets(), game.ticket.receiptId].slice(-20)));
     refreshTicket();
     els('townGame').hidden = false;
-    const dpr = Math.min(root.devicePixelRatio || 1, 2);
-    gameCanvas.width = gameCanvas.clientWidth * dpr;
-    gameCanvas.height = gameCanvas.clientHeight * dpr;
-    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    Object.assign(game, { running: true, end: performance.now() + game.ticket.minutes * 60000, score: 0, x: 0.5, stars: [], clouds: [], last: performance.now() });
+    resizeGameCanvas();
+    const now = performance.now();
+    Object.assign(game, { running: true, paused: false, end: now + game.ticket.minutes * 60000,
+      started: now, pausedTotal: 0, pauseStarted: 0, score: 0, combo: 0, x: 0.5,
+      stars: [], clouds: [], last: now, lastHudSecond: -1, lastHudScore: -1, lastHudCombo: -1 });
+    els('townGamePause').textContent = '暫停 Esc';
+    els('townGamePause').setAttribute('aria-pressed', 'false');
+    els('townGameCombo').textContent = '連續 0';
+    els('townGameHint').textContent = '左右鍵、A/D、滑鼠或手指拖曳移動。連續接到五顆星會有加分，Esc 可暫停。遊戲分數不換自律幣或經驗值。';
+    els('townGamePause').focus({ preventScroll: true });
+  }
+  function toggleGamePause() {
+    if (els('townGame').hidden) return;
+    const now = performance.now();
+    if (game.running) {
+      game.running = false;
+      game.paused = true;
+      game.pauseStarted = now;
+      state.keys.clear();
+      els('townGamePause').textContent = '繼續 Esc';
+      els('townGamePause').setAttribute('aria-pressed', 'true');
+      els('townGameHint').textContent = '已暫停。按 Esc 或「繼續」再回到遊戲。';
+    } else if (game.paused) {
+      game.end = gameCore.resumeDeadline(game.end, game.pauseStarted, now);
+      game.pausedTotal += Math.max(0, now - game.pauseStarted);
+      game.last = now;
+      game.running = true;
+      game.paused = false;
+      els('townGamePause').textContent = '暫停 Esc';
+      els('townGamePause').setAttribute('aria-pressed', 'false');
+      els('townGameHint').textContent = '左右鍵、A/D、滑鼠或手指拖曳移動。連續接到五顆星會有加分，Esc 可暫停。遊戲分數不換自律幣或經驗值。';
+    }
   }
   function closeGame() {
     if (!game.running && els('townGame').hidden) return;
     game.running = false;
+    game.paused = false;
     els('townGame').hidden = true;
     const best = Number(store.get(`nudge_town_best_${state.uid}`) || 0);
     if (game.score > best) store.set(`nudge_town_best_${state.uid}`, String(game.score));
-    toast(`休息結束！這次接到 ${game.score} 顆星星。回到下一個委託吧。`, 4500);
+    toast(`休息結束！這次得到 ${game.score} 分。回到下一個委託吧。`, 4500);
   }
+  els('townGamePause').addEventListener('click', toggleGamePause);
   els('townGameClose').addEventListener('click', closeGame);
-  gameCanvas.addEventListener('pointermove', event => {
+  function moveGamePointer(event) {
+    if (!game.running) return;
     const rect = gameCanvas.getBoundingClientRect();
     game.x = Math.min(0.95, Math.max(0.05, (event.clientX - rect.left) / rect.width));
+  }
+  gameCanvas.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    gameCanvas.setPointerCapture?.(event.pointerId);
+    moveGamePointer(event);
   });
+  gameCanvas.addEventListener('pointermove', moveGamePointer);
   function tickGame(now) {
     const dt = Math.min(0.05, (now - game.last) / 1000);
     game.last = now;
@@ -412,17 +517,28 @@
     const h = gameCanvas.clientHeight;
     if (state.keys.has('arrowleft') || state.keys.has('a')) game.x = Math.max(0.05, game.x - dt * 0.9);
     if (state.keys.has('arrowright') || state.keys.has('d')) game.x = Math.min(0.95, game.x + dt * 0.9);
-    if (Math.random() < dt * 1.6) game.stars.push({ x: Math.random(), y: -0.05, v: 0.25 + Math.random() * 0.2 });
-    if (Math.random() < dt * 0.5) game.clouds.push({ x: Math.random(), y: -0.05, v: 0.2 + Math.random() * 0.15 });
+    const elapsed = (now - game.started - game.pausedTotal) / 1000;
+    const rates = gameCore.spawnRates(elapsed);
+    if (Math.random() < dt * rates.stars) game.stars.push({ x: Math.random(), y: -0.05, v: 0.25 + Math.random() * 0.2 });
+    if (Math.random() < dt * rates.clouds) game.clouds.push({ x: Math.random(), y: -0.05, v: 0.2 + Math.random() * 0.15 });
     const catchY = 0.86;
     for (const s of game.stars) s.y += s.v * dt;
     for (const c of game.clouds) c.y += c.v * dt;
     game.stars = game.stars.filter(s => {
-      if (s.y > catchY - 0.04 && s.y < catchY + 0.04 && Math.abs(s.x - game.x) < 0.08) { game.score += 1; return false; }
+      if (s.y > catchY - 0.04 && s.y < catchY + 0.04 && Math.abs(s.x - game.x) < 0.08) {
+        const result = gameCore.catchObject(game.score, game.combo, 'star');
+        game.score = result.score; game.combo = result.combo;
+        if (result.bonus) els('townGameHint').textContent = '五連星！多得 1 分。繼續保持節奏。';
+        return false;
+      }
       return s.y < 1.05;
     });
     game.clouds = game.clouds.filter(c => {
-      if (c.y > catchY - 0.04 && c.y < catchY + 0.04 && Math.abs(c.x - game.x) < 0.09) { game.score = Math.max(0, game.score - 2); return false; }
+      if (c.y > catchY - 0.04 && c.y < catchY + 0.04 && Math.abs(c.x - game.x) < 0.09) {
+        const result = gameCore.catchObject(game.score, game.combo, 'cloud');
+        game.score = result.score; game.combo = result.combo;
+        return false;
+      }
       return c.y < 1.05;
     });
     gctx.clearRect(0, 0, w, h);
@@ -439,8 +555,13 @@
       gctx.drawImage(playerImage, crop.x, crop.y, crop.w, crop.h, game.x * w - cw / 2, catchY * h - size * 0.7, cw, size);
     }
     const left = Math.max(0, game.end - now);
-    els('townGameScore').textContent = `${game.score} 顆`;
-    els('townGameTime').textContent = `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`;
+    const second = Math.ceil(left / 1000);
+    if (game.score !== game.lastHudScore || game.combo !== game.lastHudCombo || second !== game.lastHudSecond) {
+      els('townGameScore').textContent = `${game.score} 分`;
+      els('townGameCombo').textContent = `連續 ${game.combo}`;
+      els('townGameTime').textContent = `${Math.floor(second / 60)}:${String(second % 60).padStart(2, '0')}`;
+      game.lastHudSecond = second; game.lastHudScore = game.score; game.lastHudCombo = game.combo;
+    }
     if (left <= 0) closeGame();
   }
 
@@ -463,11 +584,14 @@
 
   let last = performance.now();
   function frame(now) {
+    if (state.static || !ctx) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    if (game.running) { tickGame(now); root.requestAnimationFrame(frame); return; }
+    if (!els('townGame').hidden) { if (game.running) tickGame(now); root.requestAnimationFrame(frame); return; }
 
-    const blockers = BUILDINGS.map(b => b.rect);
+    // The plaza fountain sits on the central crossroads: it is a tap target,
+    // not a wall, or walking to the tower would stall against it.
+    const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect);
     const dir = state.tour < 0 && !state.panel && !state.sceneOpen ? moveDirection() : null;
     if (dir) {
       const before = state.player;
@@ -529,7 +653,7 @@
       const p = toScreen(b.label);
       const el = labels.get(b.id);
       el.style.left = `${p.x}px`;
-      el.style.top = `${Math.max(64, p.y)}px`;
+      el.style.top = `${Math.max(labelTop, p.y)}px`;
       el.classList.toggle('is-near', state.near === b);
     }
     if (state.toastUntil && now > state.toastUntil) { els('townToast').hidden = true; state.toastUntil = 0; }
@@ -551,7 +675,8 @@
     if (!playerImage.src.endsWith(sprite)) playerImage.src = sprite;
     els('townAvatar').src = sprite;
     els('townName').textContent = user ? (data?.nickname || '自律夥伴') : '訪客';
-    els('townLevel').textContent = user ? `Lv ${state.level}` : 'Lv 1・登入後同步';
+    // Guests see no level, XP or sync status: there is no account data to show.
+    els('townLevel').textContent = user ? `Lv ${state.level}` : '自由探索中';
     refreshLabels();
     refreshTicket();
   }
@@ -592,7 +717,9 @@
 
   root.addEventListener('resize', resize);
   doc.addEventListener('firebase-ready', connect);
+  if (!ctx) enterStatic('這個瀏覽器無法顯示小鎮地圖');
   resize();
+  if (ctx) state.camera = clampCamera(state.camera);
   refreshLabels();
   tickClock();
   root.setInterval(tickClock, 15000);
@@ -600,5 +727,5 @@
   // Coming back from a page (?at=…) lands at that door without replaying the tour.
   if (!arrival && store.get('nudge_town_tour_done') !== '1') startTour();
   if (arrival) toast(`回到${arrival.name}門口。`, 2200);
-  root.requestAnimationFrame(frame);
+  if (ctx) root.requestAnimationFrame(frame);
 })(typeof globalThis !== 'undefined' ? globalThis : this);

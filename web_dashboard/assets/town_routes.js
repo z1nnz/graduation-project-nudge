@@ -81,6 +81,9 @@
     d('friend-visits', 'friend-visits.html', 'plaza', '好友拜訪紀錄', 'player', 'login', null, 'cloud', '#83'),
     d('privacy', 'privacy.html', 'plaza', '隱私與資料', 'player', 'login', null, 'cloud', 'core'),
     d('login', 'login.html', 'plaza', '登入／註冊', 'player', 'public', null, 'cloud', 'core'),
+    d('weekly-planner', 'weekly-planner.html', 'board', '七日委託規劃', 'player', 'login', null, 'cloud', 'core'),
+    d('story-chapters', 'story-chapters.html', 'plaza', '旅程手冊', 'player', 'login', null, 'cloud', 'core'),
+    d('seasonal-event', 'seasonal-event.html', 'plaza', '季節活動', 'player', 'login', null, 'cloud', 'core'),
     // ----- tools: labelled entries only, not world buildings -----
     d('landing', 'index.html', null, '產品介紹首頁', 'tool', 'public', null, 'static', 'core'),
     d('planet-builder', 'planet-builder.html', null, '星球建築規劃器', 'tool', 'login', null, 'demo', '#82'),
@@ -93,6 +96,7 @@
     d('research-scenario', 'research-scenario.html', null, 'Demo 場景產生器', 'tool', 'login', null, 'demo', 'core'),
     d('research-score-demo', 'research-score-demo.html', null, '自律分數展示', 'tool', 'login', null, 'demo', 'core'),
     d('presentation', 'presentation.html', null, '專題發表流程', 'tool', 'login', null, 'demo', 'core'),
+    d('museum-demo', 'museum-demo.html', null, '紀錄館展示', 'tool', 'public', null, 'demo', '#84'),
   ]);
 
   function d(id, href, building, title, audience, auth, gate, source, owner, status) {

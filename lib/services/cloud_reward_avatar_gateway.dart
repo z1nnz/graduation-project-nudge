@@ -20,6 +20,7 @@ class RewardAvatarResult {
     required this.rewardEntryId,
     required this.avatarProfile,
     required this.avatarSeries,
+    required this.avatarSeriesName,
     required this.backgroundTheme,
     required this.replayed,
   });
@@ -27,6 +28,7 @@ class RewardAvatarResult {
   final String rewardEntryId;
   final AvatarProfile avatarProfile;
   final String avatarSeries;
+  final String avatarSeriesName;
   final String backgroundTheme;
   final bool replayed;
 
@@ -40,6 +42,10 @@ class RewardAvatarResult {
             )
           : AvatarProfile.initial(),
       avatarSeries: data['avatarSeries'] as String? ?? '',
+      avatarSeriesName:
+          data['avatarSeriesName'] as String? ??
+          data['avatarSeries'] as String? ??
+          '',
       backgroundTheme: data['backgroundTheme'] as String? ?? '',
       replayed: data['replayed'] as bool? ?? false,
     );

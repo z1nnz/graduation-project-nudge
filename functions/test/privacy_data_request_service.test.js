@@ -382,6 +382,10 @@ test("privacy export includes only resonance records associated with the request
       { id: "room-one--user-one", data: { userId: "user-one", enabled: true } },
       { id: "room-one--other", data: { userId: "other", enabled: true } },
     ],
+    room_read_markers: [
+      { id: "room-one--user-one", data: { userId: "user-one", lastReadMessageId: "m1" } },
+      { id: "room-one--other", data: { userId: "other", lastReadMessageId: "m2" } },
+    ],
     room_resonance_signals: [
       {
         id: "room-one--user-one",
@@ -423,6 +427,10 @@ test("privacy export includes only resonance records associated with the request
 
   assert.deepEqual(
     result.collections.room_resonance_preferences.map(item => item.id),
+    ["room-one--user-one"],
+  );
+  assert.deepEqual(
+    result.collections.room_read_markers.map(item => item.id),
     ["room-one--user-one"],
   );
   assert.deepEqual(

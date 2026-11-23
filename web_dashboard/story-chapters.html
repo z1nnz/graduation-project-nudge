@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>旅程手冊｜Nudge 小鎮</title>
+    <link rel="stylesheet" href="assets/story_world.css?v=1" />
+  </head>
+  <body data-page="story-chapters">
+    <a class="story-skip" href="#storyContent">跳到旅程內容</a>
+    <main class="story-world" id="storyContent">
+      <header class="story-topbar">
+        <a class="story-back" href="town.html">← 返回小鎮</a>
+        <span class="story-kicker">Nudge · 旅程手冊</span>
+        <a class="story-utility" href="dashboard.html">功能目錄</a>
+      </header>
+
+      <section class="story-hero" aria-labelledby="storyTitle">
+        <div class="story-guide">
+          <img src="assets/town/guide.png" alt="" width="112" height="112" />
+          <p>歐莉說：每一步都會留下光。這本手冊只記錄雲端已確認的行動。</p>
+        </div>
+        <div>
+          <span class="story-eyebrow">最近 28 個自律日</span>
+          <h1 id="storyTitle">沿著星光，走自己的路</h1>
+          <p>做完一件小事，回來看看小鎮的故事如何展開。章節只是回顧與探索，不提供額外 XP 或自律幣。</p>
+          <div class="story-status" role="status" aria-live="polite" id="storyStatus">正在確認登入狀態…</div>
+        </div>
+      </section>
+
+      <section class="story-panel" aria-labelledby="chapterHeading">
+        <div class="story-section-heading">
+          <div><span class="story-eyebrow">Adventure chapters</span><h2 id="chapterHeading">你的冒險章節</h2></div>
+          <button type="button" class="story-button story-button-secondary" id="storyRefresh">重新讀取</button>
+        </div>
+        <p class="story-note">從本人、最近 28 個自律日的 Cloud 確認活動計算；每天最多算一個前進日。凌晨 05:00（台北時間）切換自律日。</p>
+        <div class="story-chapters" id="chapterList">
+          <p class="story-empty">登入後載入章節。</p>
+        </div>
+      </section>
+
+      <dialog class="story-dialog" id="chapterDialog" aria-labelledby="chapterDialogTitle">
+        <form method="dialog">
+          <span class="story-eyebrow">歐莉的故事</span>
+          <h2 id="chapterDialogTitle"></h2>
+          <p id="chapterDialogText"></p>
+          <button type="submit" class="story-button">繼續旅程</button>
+        </form>
+      </dialog>
+    </main>
+    <script src="assets/confirmed_activity_feedback.js?v=1"></script>
+    <script src="assets/story_chapters_core.js?v=1"></script>
+    <script src="assets/story_chapters.js?v=1"></script>
+    <script src="assets/app.js?v=27"></script>
+  </body>
+</html>
