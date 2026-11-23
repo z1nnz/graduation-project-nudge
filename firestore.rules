@@ -477,6 +477,102 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ─── /friend_visit_settings/{userId} ─────────────────────────────
+    // Host-owned, revocable visit visibility. Friends can read it only while
+    // visits are allowed; it exposes a scene key, never activity or health.
+    match /friend_visit_settings/{userId} {
+      function validFriendVisitSettings() {
+        let data = request.resource.data;
+        return data.keys().hasOnly([
+            'schemaVersion', 'userId', 'allowVisits', 'sceneKey', 'updatedAt'
+          ])
+          && data.keys().hasAll([
+            'schemaVersion', 'userId', 'allowVisits', 'sceneKey', 'updatedAt'
+          ])
+          && data.schemaVersion == 1
+          && data.userId == userId
+          && data.allowVisits is bool
+          && data.sceneKey in ['cabin', 'garden', 'study_corner']
+          && data.updatedAt is string
+          && data.updatedAt.size() <= 40;
+      }
+
+      allow read: if isOwner(userId)
+        || (
+          isAuth()
+          && resource.data.allowVisits == true
+          && areMutualFriends(request.auth.uid, userId)
+        );
+      allow create, update: if isOwner(userId) && validFriendVisitSettings();
+      allow delete: if isOwner(userId);
+    }
+
+    // ─── /friend_visits/{hostId}--{visitorId}--{dateKey} ─────────────
+    // One real visit per friend pair per day. Fixed reactions only; a visit
+    // never mints coins, XP or prosperity.
+    match /friend_visits/{visitId} {
+      function hostAllowsVisits(hostId) {
+        let settingsPath =
+          /databases/$(database)/documents/friend_visit_settings/$(hostId);
+        return exists(settingsPath)
+          && get(settingsPath).data.allowVisits == true;
+      }
+
+      function validFriendVisit() {
+        let data = request.resource.data;
+        return data.keys().hasOnly([
+            'schemaVersion', 'hostId', 'visitorId', 'dateKey', 'sceneKey',
+            'reactionKey', 'responseKey', 'createdAt', 'respondedAt'
+          ])
+          && data.keys().hasAll([
+            'schemaVersion', 'hostId', 'visitorId', 'dateKey', 'sceneKey',
+            'reactionKey', 'responseKey', 'createdAt', 'respondedAt'
+          ])
+          && data.schemaVersion == 1
+          && data.hostId is string
+          && data.visitorId is string
+          && data.hostId != data.visitorId
+          && data.dateKey is string
+          && data.dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && visitId == data.hostId + '--' + data.visitorId + '--' + data.dateKey
+          && data.sceneKey in ['cabin', 'garden', 'study_corner']
+          && data.reactionKey in ['cheer', 'wave', 'proud', 'rest_well']
+          && data.createdAt is string
+          && data.createdAt.size() <= 40;
+      }
+
+      allow read: if isAuth()
+        && (
+          resource.data.hostId == request.auth.uid
+          || resource.data.visitorId == request.auth.uid
+        );
+      allow create: if isAuth()
+        && validFriendVisit()
+        && request.resource.data.visitorId == request.auth.uid
+        && request.resource.data.responseKey == null
+        && request.resource.data.respondedAt == null
+        && areMutualFriends(request.auth.uid, request.resource.data.hostId)
+        && hostAllowsVisits(request.resource.data.hostId)
+        && request.resource.data.sceneKey == get(
+          /databases/$(database)/documents/friend_visit_settings/$(request.resource.data.hostId)
+        ).data.sceneKey;
+      // The host answers once with a fixed response; nothing else changes.
+      allow update: if isAuth()
+        && resource.data.hostId == request.auth.uid
+        && resource.data.responseKey == null
+        && validFriendVisit()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['responseKey', 'respondedAt'])
+        && request.resource.data.responseKey in ['thanks', 'see_you', 'heart']
+        && request.resource.data.respondedAt is string
+        && request.resource.data.respondedAt.size() <= 40;
+      allow delete: if isAuth()
+        && (
+          resource.data.hostId == request.auth.uid
+          || resource.data.visitorId == request.auth.uid
+        );
+    }
+
     // ─── /friend_messages/{messageId} ────────────────────────────────
     match /friend_messages/{messageId} {
       allow read: if isAuth() && (
