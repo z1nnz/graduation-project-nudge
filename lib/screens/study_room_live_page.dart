@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../models/avatar_profile.dart';
 import '../models/room_activity_session.dart';
+import '../models/room_chat_read_state.dart';
 import '../models/study_room_models.dart';
 import '../models/task_model.dart';
 import '../state/app_state.dart';
@@ -12,6 +13,7 @@ import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
 import '../widgets/room_resonance_panel.dart';
 import 'health_page.dart';
+import 'study_room_chat_page.dart';
 
 class StudyRoomLivePage extends StatefulWidget {
   final String roomId;
@@ -25,7 +27,8 @@ class StudyRoomLivePage extends StatefulWidget {
 class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   static const int _defaultFocusSeconds = 25 * 60;
 
-  final TextEditingController _chatController = TextEditingController();
+  String? _chatReadUserId;
+  Future<DateTime?>? _chatReadFuture;
 
   Timer? _timer;
   int _durationSeconds = _defaultFocusSeconds;
@@ -41,7 +44,6 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   void dispose() {
     _timer?.cancel();
     unawaited(_commitSessionAsResting());
-    _chatController.dispose();
     if (_voiceJoined) {
       try {
         context.read<AppState>().leaveVoiceRoom(widget.roomId);
@@ -346,52 +348,33 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     });
   }
 
-  Future<void> _sendMessage(AppState appState) async {
-    final text = _chatController.text.trim();
-    if (text.isEmpty) return;
-    _chatController.clear();
-    try {
-      await appState.addStudyRoomMessage(roomId: widget.roomId, text: text);
-    } catch (error) {
-      if (!mounted) return;
-      _chatController.text = text;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('訊息同步失敗：$error')));
+  Future<void> _openChat(AppState appState, String userId) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => StudyRoomChatPage(roomId: widget.roomId),
+      ),
+    );
+    if (!mounted || (appState.currentUser?.id ?? 'local_user') != userId) {
       return;
     }
-    await _recordRoomEvent(
-      appState,
-      roomId: widget.roomId,
-      text: '${appState.profileNickname} 傳送了一則訊息',
-      type: StudyRoomEventType.message,
-    );
-  }
-
-  Future<void> _sendSticker(
-    AppState appState,
-    StudyRoomData room,
-    String sticker,
-  ) async {
-    try {
-      await appState.addStudyRoomMessage(
-        roomId: room.id,
-        text: sticker,
-        type: StudyRoomMessageType.sticker,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('貼圖同步失敗：$error')));
+    final room = appState.getStudyRoomById(widget.roomId);
+    if (room == null ||
+        !room.members.any(
+          (member) => member.memberId == userId && member.isApproved,
+        )) {
       return;
     }
-    await _recordRoomEvent(
-      appState,
-      roomId: room.id,
-      text: '${appState.profileNickname} 送出鼓勵貼圖 $sticker',
-      type: StudyRoomEventType.sticker,
-    );
+    if (room.messages.isNotEmpty) {
+      final latest = room.messages
+          .map((message) => message.createdAt)
+          .reduce((a, b) => a.isAfter(b) ? a : b);
+      await RoomChatReadState.save(userId, widget.roomId, latest);
+    }
+    if (!mounted) return;
+    setState(() {
+      _chatReadFuture = RoomChatReadState.load(userId, widget.roomId);
+    });
   }
 
   bool _isFocusRoom(StudyRoomData room) {
@@ -569,6 +552,13 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         final hasApprovedMembership = approvedMembers.any(
           (member) => member.memberId == currentMemberId,
         );
+        if (_chatReadUserId != currentMemberId) {
+          _chatReadUserId = currentMemberId;
+          _chatReadFuture = RoomChatReadState.load(
+            currentMemberId,
+            widget.roomId,
+          );
+        }
         final me = approvedMembers.firstWhere(
           (member) => member.memberId == currentMemberId,
           orElse: () => StudyMemberData(
@@ -748,20 +738,29 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                 },
               ),
               const SizedBox(height: AppUI.sectionGap),
-              _StickerPanel(
-                accent: accent,
-                onStickerTap: (sticker) =>
-                    _sendSticker(appState, room, sticker),
-              ),
-              const SizedBox(height: AppUI.sectionGap),
-              _ChatPanel(
-                controller: _chatController,
-                messages: room.messages,
-                currentUserId: currentMemberId,
-                accent: accent,
-                onSend: () => _sendMessage(appState),
-              ),
-              const SizedBox(height: AppUI.sectionGap),
+              if (hasApprovedMembership) ...[
+                FutureBuilder<DateTime?>(
+                  future: _chatReadFuture,
+                  builder: (context, snapshot) {
+                    final unread =
+                        snapshot.connectionState == ConnectionState.done
+                        ? RoomChatReadState.unreadCount(
+                            room.messages.map((message) => message.createdAt),
+                            snapshot.data,
+                          )
+                        : 0;
+                    return _ChatEntry(
+                      latestMessage: room.messages.isEmpty
+                          ? null
+                          : room.messages.first,
+                      unreadCount: unread,
+                      accent: accent,
+                      onTap: () => _openChat(appState, currentMemberId),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppUI.sectionGap),
+              ],
               _EventPanel(events: room.events, accent: accent),
               const SizedBox(height: 28),
             ],
@@ -2121,167 +2120,73 @@ class _TimerPanel extends StatelessWidget {
   }
 }
 
-class _StickerPanel extends StatelessWidget {
+class _ChatEntry extends StatelessWidget {
+  final StudyRoomMessage? latestMessage;
+  final int unreadCount;
   final Color accent;
-  final ValueChanged<String> onStickerTap;
+  final VoidCallback onTap;
 
-  const _StickerPanel({required this.accent, required this.onStickerTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    const stickers = ['加油', '穩住', '太強了', '一起衝', '休息一下'];
-
-    return Card(
-      shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '鼓勵貼圖',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: primaryText,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: stickers.map((sticker) {
-                return ActionChip(
-                  avatar: Icon(
-                    Icons.volunteer_activism_outlined,
-                    color: accent,
-                    size: 18,
-                  ),
-                  label: Text(sticker),
-                  onPressed: () => onStickerTap(sticker),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatPanel extends StatelessWidget {
-  final TextEditingController controller;
-  final List<StudyRoomMessage> messages;
-  final String currentUserId;
-  final Color accent;
-  final VoidCallback onSend;
-
-  const _ChatPanel({
-    required this.controller,
-    required this.messages,
-    required this.currentUserId,
+  const _ChatEntry({
+    required this.latestMessage,
+    required this.unreadCount,
     required this.accent,
-    required this.onSend,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
+    final preview = latestMessage == null
+        ? '還沒有訊息，來打聲招呼吧。'
+        : '${latestMessage!.senderName}：${latestMessage!.text}';
     return Card(
       shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '房內聊天',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: primaryText,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(AppUI.innerPadding),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: accent.withValues(alpha: 0.15),
+                child: Icon(Icons.chat_bubble_outline, color: accent),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    decoration: const InputDecoration(
-                      hintText: '傳一句鼓勵或進度',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => onSend(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: onSend,
-                  icon: const Icon(Icons.send_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (messages.isEmpty)
-              Text(
-                '目前還沒有訊息，送出第一句鼓勵吧。',
-                style: TextStyle(fontSize: 13, color: secondaryText),
-              )
-            else
-              ...messages.take(5).map((message) {
-                final isMe = message.senderId == currentUserId;
-                final color = isMe ? accent : const Color(0xFF4F8CFF);
-                final isSticker = message.type == StudyRoomMessageType.sticker;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Align(
-                    alignment: isMe
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 260),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            message.senderName,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            message.text,
-                            style: TextStyle(
-                              fontSize: isSticker ? 17 : 13,
-                              height: 1.35,
-                              fontWeight: isSticker
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                              color: primaryText,
-                            ),
-                          ),
-                        ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '房內聊天',
+                      style: TextStyle(
+                        color: AppUI.textPrimaryOf(context),
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      preview,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: AppUI.textSecondaryOf(context)),
+                    ),
+                  ],
+                ),
+              ),
+              if (unreadCount > 0)
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: accent,
+                  child: Text(
+                    unreadCount > 9 ? '9+' : '$unreadCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
                   ),
-                );
-              }),
-          ],
+                ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
         ),
       ),
     );
