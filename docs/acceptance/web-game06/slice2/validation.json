@@ -14,6 +14,7 @@
   },
   "browser": {
     "assertions": 58,
+    "additional_guest_guard_checks": 3,
     "pages": 22,
     "axe_checked_pages": 21,
     "axe_violations": 0,
@@ -45,7 +46,7 @@
   ],
   "source_sha256": {
     "test/web_gate_auth_test.js": "f9f4467e99c678f100259f0d101d7f8ef2c4ba770a93d6983c889dccef047f4f",
-    "web_dashboard/assets/app.js": "f68a24ca86e6c1cb210bc75e406f9bc53b3725f65db7d16204f14834a613c072",
+    "web_dashboard/assets/app.js": "1c5bea40af86e658453ddda10127210b3091cd594538090823ae76cd669f9424",
     "web_dashboard/assets/town_gate.css": "578c354d2886245e0e710767750ad2691a2491ac3b8e899a532710604ed7d10f",
     "web_dashboard/assets/town_gate_auth.js": "d14e3657d4338ace63117b544a3a40ea88cde0b9bd1cff95d4e61f1af147a194",
     "web_dashboard/index.html": "7ea1475dd5c1b213724125f622bd43b7b24a1ed5008160d14f4253fbdfa972d6",

@@ -4678,7 +4678,7 @@ function initializeFirebaseWeb() {
 
           const auth = firebase.auth();
           const isPublic = () => {
-            if (document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) return true;
+            if (document.querySelector("[data-growth-museum], [data-town-gate]")) return true;
             const currentPath = window.location.pathname;
             return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("dashboard.html") || currentPath.endsWith("town.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
           };
