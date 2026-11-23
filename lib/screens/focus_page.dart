@@ -5,6 +5,7 @@ import '../services/focus_activity_ledger_controller.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../models/companion_pose.dart';
+import '../widgets/focus_result_sheet.dart';
 import '../widgets/companion_sprite.dart';
 import '../models/cabin_companion_brain.dart';
 import '../models/cabin_layout.dart';
@@ -242,6 +243,21 @@ class _FocusPageState extends State<FocusPage> {
 
     if (!mounted) return;
 
+    if (widget.immersive && finishedPhase == _PomodoroPhase.focus) {
+      final startRest = await _showResult(
+        minutes: finishedFocusMinutes,
+        round: completedPomodoros,
+        restMinutes: finishedRestMinutes,
+      );
+      if (!mounted) return;
+      if (startRest == true) {
+        unawaited(startTimer());
+      } else {
+        unawaited(Navigator.of(context).maybePop());
+      }
+      return;
+    }
+
     final shouldStartNext = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -272,6 +288,32 @@ class _FocusPageState extends State<FocusPage> {
 
     if (shouldStartNext == true && mounted) {
       unawaited(startTimer());
+    }
+  }
+
+  /// Desk mode celebrates a finished focus with the game result screen.
+  /// The reward line follows the Cloud's confirmed activity feedback.
+  Future<bool?> _showResult({
+    required int minutes,
+    required int round,
+    required int? restMinutes,
+  }) async {
+    final appState = context.read<AppState>();
+    final feedback = ValueNotifier(appState.confirmedActivityFeedback);
+    void sync() => feedback.value = appState.confirmedActivityFeedback;
+    appState.addListener(sync);
+    try {
+      return await showFocusResult(
+        context,
+        profile: appState.avatarProfile,
+        focusMinutes: minutes,
+        round: round,
+        restMinutes: restMinutes,
+        feedback: feedback,
+      );
+    } finally {
+      appState.removeListener(sync);
+      feedback.dispose();
     }
   }
 
@@ -413,6 +455,16 @@ class _FocusPageState extends State<FocusPage> {
       currentPhase = _PomodoroPhase.focus;
       remainingSeconds = focusSeconds;
     });
+
+    if (widget.immersive) {
+      await _showResult(
+        minutes: (savedSeconds / 60).round(),
+        round: completedPomodoros + 1,
+        restMinutes: null,
+      );
+      if (mounted) unawaited(Navigator.of(context).maybePop());
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('已記錄 ${formatDuration(savedSeconds)}專注時間')),
