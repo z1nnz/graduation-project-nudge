@@ -17,4 +17,14 @@ void main() {
     expect(catalog.variant('lamp', 9), isNull);
     expect(catalog.variant('curtain', 1)?.name, '星點紗簾');
   });
+
+  test('const tables match the catalog JSON', () {
+    expect(catalog.slots.map((s) => s.slot), HomeDecorCatalog.slotOrder);
+    final fromJson = <int, int>{
+      for (final slot in catalog.slots)
+        for (final v in slot.variants)
+          if (v.price > 0) catalog.itemIndex(slot.slot, v.index): v.price,
+    };
+    expect(fromJson, HomeDecorCatalog.prices);
+  });
 }

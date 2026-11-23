@@ -35,6 +35,45 @@ class HomeDecorCatalog {
   static const assetPath = 'assets/home/home_decor_catalog.json';
   static const category = 'homeDecor';
 
+  /// Slot order fixes the Cloud item index (slot order * 100 + variant).
+  static const slotOrder = ['rug', 'curtain', 'lamp'];
+
+  /// Synchronous price table keyed by Cloud item index. Locked to the JSON
+  /// catalog by test; variant 0 of each slot is free and not listed.
+  static const prices = <int, int>{
+    1: 30,
+    2: 60,
+    101: 25,
+    102: 50,
+    201: 35,
+    202: 70,
+  };
+
+  static const defaultArrangement = <String, int>{
+    'rug': 0,
+    'curtain': 0,
+    'lamp': 0,
+  };
+
+  static int cloudIndex(String slot, int index) =>
+      slotOrder.indexOf(slot) * 100 + index;
+
+  static bool isKnownVariant(String slot, int index) =>
+      slotOrder.contains(slot) &&
+      (index == 0 || prices.containsKey(cloudIndex(slot, index)));
+
+  /// Reads a Cloud `homeDecor` map; unknown slots are dropped and invalid
+  /// variants fall back to the free default.
+  static Map<String, int> parseHomeDecor(Object? raw) {
+    final result = Map<String, int>.of(defaultArrangement);
+    if (raw is! Map) return result;
+    for (final slot in slotOrder) {
+      final value = raw[slot];
+      if (value is int && isKnownVariant(slot, value)) result[slot] = value;
+    }
+    return result;
+  }
+
   final List<HomeDecorSlot> slots;
 
   factory HomeDecorCatalog.fromJson(Map<String, dynamic> json) {
@@ -44,8 +83,8 @@ class HomeDecorCatalog {
           slot: raw['slot'] as String,
           label: raw['label'] as String,
           variants: [
-            for (final v in (raw['variants'] as List)
-                .cast<Map<String, dynamic>>())
+            for (final v
+                in (raw['variants'] as List).cast<Map<String, dynamic>>())
               HomeDecorVariant(
                 index: v['index'] as int,
                 name: v['name'] as String,
