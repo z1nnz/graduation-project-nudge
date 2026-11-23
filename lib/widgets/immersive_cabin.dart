@@ -437,6 +437,7 @@ class ImmersiveHome extends StatefulWidget {
     required this.onOpenDevice,
     this.showTour = false,
     this.accountKey,
+    this.socialUnread = 0,
     this.onTourDone,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
@@ -469,6 +470,9 @@ class ImmersiveHome extends StatefulWidget {
   /// Who is signed in; level and stage changes only celebrate within one
   /// account, never when switching to another one.
   final String? accountKey;
+
+  /// Unread notifications (invites, encouragement); lights the social slot.
+  final int socialUnread;
   final VoidCallback? onTourDone;
   final String? confirmedActivityLabel;
   final DateTime? now;
@@ -844,6 +848,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 onOpenFocus: widget.onOpenDesk,
                 onOpenSocial: widget.onOpenCompanions,
                 onOpenShop: widget.onOpenShop,
+                socialUnread: widget.socialUnread,
                 focusKey: _focusKey,
                 roomsKey: _roomsKey,
               ),
@@ -903,10 +908,12 @@ class _Hotbar extends StatelessWidget {
     required this.onOpenShop,
     this.focusKey,
     this.roomsKey,
+    this.socialUnread = 0,
   });
 
   final GlobalKey? focusKey;
   final GlobalKey? roomsKey;
+  final int socialUnread;
   final int questCount;
   final Animation<double>? glow;
   final VoidCallback onOpenQuests;
@@ -978,6 +985,7 @@ class _Hotbar extends StatelessWidget {
               _HotbarSlot(
                 key: const Key('hotbar-social'),
                 label: '社交',
+                dot: socialUnread > 0,
                 icon: 'assets/ui/icons/icon_social.png',
                 fallback: Icons.favorite,
                 onTap: onOpenSocial,
@@ -1008,9 +1016,13 @@ class _HotbarSlot extends StatelessWidget {
     this.big = false,
     this.glow,
     this.tourKey,
+    this.dot = false,
   });
 
   final GlobalKey? tourKey;
+
+  /// A plain red dot: something new waits behind this slot.
+  final bool dot;
 
   final String label;
   final String icon;
@@ -1209,7 +1221,12 @@ class _HotbarSlot extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 3),
         child: Semantics(
           button: true,
-          label: count > 0 ? '$label，$count 件未完成' : label,
+          label: count > 0
+              ? '$label，$count 件未完成'
+              : dot
+              ? '$label，有新消息'
+              : label,
+          excludeSemantics: true,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onTap,
@@ -1218,6 +1235,26 @@ class _HotbarSlot extends StatelessWidget {
               fit: StackFit.passthrough,
               children: [
                 KeyedSubtree(key: tourKey, child: face),
+                if (dot && count == 0)
+                  Positioned(
+                    key: Key(
+                      '${(key as ValueKey<String>?)?.value ?? 'hotbar'}-dot',
+                    ),
+                    top: -4,
+                    right: 0,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD8452E),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFFFF3D6),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
                 if (count > 0)
                   Positioned(
                     top: -6,

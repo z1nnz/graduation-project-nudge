@@ -138,6 +138,7 @@ class HomePage extends StatelessWidget {
             onOpenCharacter: () => push(const CharacterPage()),
             onOpenDecor: () => showHomeDecorSheet(context),
             onOpenShop: () => push(const AvatarShopPage()),
+            socialUnread: appState.unreadUserNotificationCount,
             onOpenDevice: () => push(const NudgeDevicePage()),
             showTour: !tourSeen,
             accountKey: appState.currentUser?.id,
