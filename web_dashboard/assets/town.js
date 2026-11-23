@@ -80,6 +80,8 @@
     face: 0,
     walking: 0,
     toastUntil: 0,
+    celebrateUntil: 0,
+    sceneOpen: false,
     static: false,
   };
 
@@ -289,10 +291,22 @@
     const li = doc.createElement('li');
     const entry = routes.entryState(dest, viewer());
     let control;
+    const opener = dest.scene ? routes.sceneOpener(dest.scene) : null;
+    if (dest.scene && entry.kind === 'open' && !opener) {
+      entry.kind = 'planned';
+      entry.reason = '場景暫時無法載入，請重新整理';
+    }
     if (dest.id === 'break-game' && entry.kind === 'open') {
       control = doc.createElement('button');
       control.type = 'button';
       control.addEventListener('click', () => { closePanel(); openGame(); });
+    } else if (opener && entry.kind === 'open') {
+      control = doc.createElement('button');
+      control.type = 'button';
+      control.addEventListener('click', () => {
+        closePanel();
+        opener({ returnFocus: els('townDirectoryToggle') });
+      });
     } else if (entry.kind === 'open' || entry.kind === 'login') {
       control = doc.createElement('a');
       control.href = entry.href;
@@ -323,7 +337,7 @@
   }
 
   canvas.addEventListener('pointerdown', event => {
-    if (state.tour >= 0 || state.panel || !els('townGame').hidden) return;
+    if (state.tour >= 0 || state.panel || state.sceneOpen || !els('townGame').hidden) return;
     const rect = canvas.getBoundingClientRect();
     const p = toMap(event.clientX - rect.left, event.clientY - rect.top);
     const b = buildingAt(p);
@@ -358,6 +372,7 @@
       }
       return;
     }
+    if (state.sceneOpen) return;
     if (state.panel) {
       if (key === 'escape') { event.preventDefault(); closePanel(); }
       return;
@@ -577,7 +592,7 @@
     // The plaza fountain sits on the central crossroads: it is a tap target,
     // not a wall, or walking to the tower would stall against it.
     const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect);
-    const dir = state.tour < 0 && !state.panel ? moveDirection() : null;
+    const dir = state.tour < 0 && !state.panel && !state.sceneOpen ? moveDirection() : null;
     if (dir) {
       const before = state.player;
       state.player = core.step(state.player, dir, dt, SPEED, blockers, BOUNDS, RADIUS);
@@ -599,7 +614,7 @@
 
     state.near = state.tour < 0 ? core.nearestDoor(state.player, BUILDINGS, REACH) : null;
     const prompt = els('townPrompt');
-    prompt.hidden = !state.near || Boolean(state.panel) || els('townDirectory').classList.contains('is-open');
+    prompt.hidden = !state.near || Boolean(state.panel) || state.sceneOpen || els('townDirectory').classList.contains('is-open');
     if (state.near) {
       els('townPromptText').textContent = core.isUnlocked(state.near, state.level)
         ? `按 F 進入${state.near.name}` : `${state.near.name}：Lv ${state.near.minLevel} 開放`;
@@ -620,7 +635,10 @@
       const crop = playerCrop || { x: 0, y: 0, w: playerImage.naturalWidth, h: playerImage.naturalHeight };
       const ph = 44 * s;
       const pw = ph * crop.w / crop.h;
-      const bob = reducedMotion ? 0 : Math.abs(Math.sin(state.walking * 10)) * 3 * s;
+      const celebrating = state.celebrateUntil > now;
+      const bob = reducedMotion ? 0 : celebrating
+        ? Math.abs(Math.sin(now / 120)) * 12 * s
+        : Math.abs(Math.sin(state.walking * 10)) * 3 * s;
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.beginPath();
       ctx.ellipse(p.x, p.y, pw * 0.35, ph * 0.07, 0, 0, Math.PI * 2);
@@ -684,6 +702,18 @@
         }, () => {});
     });
   }
+
+  // Scenes announce a Cloud-confirmed result; the companion hops near the cabin.
+  doc.addEventListener('nudge-town-celebrate', event => {
+    state.celebrateUntil = reducedMotion ? 0 : performance.now() + 2600;
+    if (event.detail?.message) toast(event.detail.message, 4200);
+  });
+  // A scene can block walking while it is open (keys go to the scene instead).
+  doc.addEventListener('nudge-town-scene', event => {
+    state.sceneOpen = Boolean(event.detail?.open);
+    state.keys.clear();
+    state.target = null;
+  });
 
   root.addEventListener('resize', resize);
   doc.addEventListener('firebase-ready', connect);
