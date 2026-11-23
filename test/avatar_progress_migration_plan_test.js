@@ -34,3 +34,24 @@ test('ambiguous names and overlapping keys fail closed without guessing XP', asy
     assert.equal(result.updates.length, 0);
   }
 });
+
+test('unknown historical identities block a user while known stable and built-in keys remain valid', async () => {
+  const { buildAvatarProgressMigrationPlan: plan } = await import('../scripts/avatar_progress_migration_plan.mjs');
+  const catalogs = [catalog('night', '夜影')];
+  for (const account of [
+    user({ day: { 已改名舊角色: 100 } }),
+    { id: 'user-2', data: { avatarSeries: '已改名舊角色', avatarExperienceLedger: { day: { night: 100 } } } },
+    user({ day: { 夜影: 100, 已改名舊角色: 20 } }),
+  ]) {
+    const result = plan({ catalogs, users: [account] });
+    assert.equal(result.readyForApply, false);
+    assert.equal(result.updates.length, 0);
+    assert.ok(result.issues.some(issue => issue.reason === 'unknown_series_identity' &&
+      issue.seriesName === '已改名舊角色'));
+  }
+  const known = plan({ catalogs, users: [
+    { id: 'user-3', data: { avatarSeries: 'night', avatarExperienceLedger: { day: { night: 100, 星辰旅人: 20 } } } },
+  ] });
+  assert.deepEqual(known.issues, []);
+  assert.deepEqual(known.updates, []);
+});
