@@ -44,7 +44,7 @@ test("friend-visits page has no hard-coded people, counts or fake rewards", () =
   }
   assert.match(html, /data-visit-friends/);
   assert.match(html, /data-visit-allow/);
-  assert.match(html, /data-world-return/);
+  assert.match(html, /data-town-return/);
   assert.ok(html.indexOf("friend_visits.js") < html.indexOf("assets/app.js"));
   const script = read("web_dashboard/assets/friend_visits.js");
   assert.doesNotMatch(script, /addCoins|grantXp|coins\s*[+:=]|\bxp\s*[+:=]|prosperity\s*[+:=]/i);

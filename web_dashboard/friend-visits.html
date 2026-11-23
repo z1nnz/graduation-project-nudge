@@ -6,29 +6,22 @@
     <title>Nudge 好友拜訪</title>
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
+    <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/plaza_scene.css?v=1" />
   </head>
-  <body data-page="friend-visits">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html">
-          <span class="brand-mark">N</span>
-          <span><strong>Nudge</strong><small>好友拜訪</small></span>
-        </a>
-        <nav class="nav">
-          <!-- Dynamically populated by app.js -->
-        </nav>
-      </aside>
-      <main class="main">
-        <header class="hero split">
+  <body data-page="friend-visits" data-social-facility="plaza">
+    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
+    <header class="scene-topbar">
+      <a data-town-return href="town.html">← 回小鎮</a>
+      <span class="scene-place" data-scene-place>小鎮廣場</span>
+    </header>
+    <nav class="scene-nav" data-scene-nav></nav>
+    <main class="main scene-main" id="sceneMain" tabindex="-1">
+        <header class="hero scene-hero">
           <div>
             <span class="eyebrow">Friend Visits</span>
             <h1>到好友公開的場景走走</h1>
             <p>只有互相接受的正式好友能拜訪，而且只能看到對方選擇公開的場景。拜訪只會留下一個固定鼓勵，不會看到對方的活動、健康或專注數值，也不會產生任何獎勵。</p>
-            <div class="subnav">
-              <a href="friend.html">好友列表與動態</a>
-              <a class="active" href="friend-visits.html">好友拜訪</a>
-              <a href="dashboard.html" data-world-return>← 返回小鎮</a>
-            </div>
           </div>
           <div class="hero-card">
             <span>今天來訪的好友</span>
@@ -37,7 +30,7 @@
           </div>
         </header>
 
-        <section class="panel page-section visit-settings" aria-labelledby="visitSettingsTitle">
+        <section class="scene-panel visit-settings" aria-labelledby="visitSettingsTitle">
           <span class="eyebrow">My visibility</span>
           <h2 id="visitSettingsTitle">我的拜訪設定</h2>
           <div class="visit-setting-row">
@@ -53,13 +46,13 @@
           <p class="visit-note" data-visit-setting-status aria-live="polite">登入後可設定。</p>
         </section>
 
-        <section class="panel page-section" aria-labelledby="visitFriendsTitle">
+        <section class="scene-panel" aria-labelledby="visitFriendsTitle">
           <span class="eyebrow">Visit a friend</span>
           <h2 id="visitFriendsTitle">拜訪好友</h2>
           <div class="visit-friend-grid" data-visit-friends><p class="visit-empty">正在載入正式好友…</p></div>
         </section>
 
-        <section class="planet-depth page-section">
+        <section class="planet-depth">
           <article class="event-feed">
             <span class="eyebrow">Visits to you</span>
             <h2>誰來拜訪過我</h2>
@@ -72,8 +65,10 @@
           </article>
         </section>
       </main>
-    </div>
     <script src="assets/friend_visits.js?v=1"></script>
+    <script src="assets/town_routes.js?v=1"></script>
+    <script src="assets/town_return.js?v=1"></script>
+    <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

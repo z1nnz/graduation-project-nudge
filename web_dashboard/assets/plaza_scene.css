@@ -1,0 +1,21 @@
+/* #105 plaza scene: friend list/profile and notification centre pieces that
+   ship their own inline <style>. Scoped to the plaza facility only. */
+body[data-social-facility="plaza"] .friend-tabs { border-bottom: 6px solid var(--scene-wood); gap: 6px; }
+body[data-social-facility="plaza"] .friend-tab {
+  min-height: 44px; border-radius: 8px 8px 0 0; background: linear-gradient(100deg, #382922, #4d3930);
+  color: #f5e7cf; border: 1px solid #a37a51; border-bottom: 0;
+}
+body[data-social-facility="plaza"] .friend-tab.active { background: linear-gradient(110deg, #d6bc8b, #fae8bf); color: var(--scene-ink); }
+body[data-social-facility="plaza"] .friend-list-item {
+  background: linear-gradient(180deg, var(--scene-parchment), var(--scene-parchment-deep)); color: var(--scene-ink);
+  border: 3px solid var(--scene-wood); border-radius: 10px; box-shadow: 0 5px 0 #21141e;
+}
+body[data-social-facility="plaza"] .friend-list-item:hover { border-color: var(--town-gold-deep); transform: none; }
+body[data-social-facility="plaza"] .friend-list-item :is(.friend-name, .friend-meta, .friend-meta span, .friend-status) { color: var(--scene-ink); }
+body[data-social-facility="plaza"] .friend-avatar { background: #ecd5a8; }
+body[data-social-facility="plaza"] :is(.fb-profile-header-bar, .fb-profile-body) { background: var(--scene-parchment); color: var(--scene-ink); border-color: var(--scene-wood); }
+body[data-social-facility="plaza"] :is(.fb-profile-name, .fb-profile-signature, .fb-card-title, .fb-metric-label, .fb-metric-val) { color: var(--scene-ink); }
+body[data-social-facility="plaza"] [data-user-notifications] article { border-top-color: #c9a46b !important; }
+body[data-social-facility="plaza"] input:not([type="checkbox"]):not([type="radio"]) { min-height: 44px; }
+body[data-social-facility="plaza"] [data-notification-preferences] :is(select, label, span) { background-color: transparent; color: var(--scene-ink) !important; }
+body[data-social-facility="plaza"] [data-notification-preferences] select { background: #fffaf0 !important; border: 2px solid #b08a53 !important; min-height: 44px; }
