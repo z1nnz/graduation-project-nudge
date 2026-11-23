@@ -2,6 +2,7 @@
   margin-block: 16px;
   color: var(--w-ink);
 }
+.voice-room p { color: var(--w-ink); }
 .voice-room-controls {
   display: flex;
   flex-wrap: wrap;
