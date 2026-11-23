@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../widgets/app_drawer.dart';
 import '../models/daily_next_action.dart';
-import '../widgets/daily_companion_card.dart';
+import '../models/cabin_presentation.dart';
+import '../widgets/companion_cabin_view.dart';
+import '../widgets/home_decor_sheet.dart';
 import '../theme/app_ui.dart';
 import 'coin_wallet_page.dart';
 import 'badges_page.dart';
@@ -37,6 +39,14 @@ class HomePage extends StatelessWidget {
     if (width < 360) return 2.8;
     if (width < 520) return 2.9;
     return 2.6;
+  }
+
+  static double _levelProgress(AppState appState) {
+    final level = appState.avatarLevel;
+    final start = AppState.avatarExperienceRequiredForLevel(level);
+    final end = appState.avatarNextLevelExperience;
+    if (end <= start) return 1;
+    return ((appState.avatarExperience - start) / (end - start)).clamp(0, 1);
   }
 
   @override
@@ -180,16 +190,39 @@ class HomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: AppUI.sectionGap),
                 ],
-                heroCard!,
-                const SizedBox(height: AppUI.sectionGap),
-                DailyCompanionCard(
-                  action: DailyNextAction.resolve(appState.tasks),
+                CompanionCabinView(
+                  presentation: CabinPresentation.resolve(
+                    summaries: appState.dailySummaries,
+                    badges: appState.badgeRecords,
+                    decor: appState.homeDecor,
+                    action: DailyNextAction.resolve(appState.tasks),
+                    openTaskCount: totalTasks - completedCount,
+                    hasDevice: false,
+                    deviceFocusing: false,
+                  ),
                   profile: appState.avatarProfile,
-                  onOpenTasks: openTasksPage,
+                  level: appState.avatarLevel,
+                  levelProgress: _levelProgress(appState),
+                  coins: appState.disciplineCoins,
                   confirmedActivityLabel:
                       appState.confirmedActivityFeedback?.label,
-                  feedbackStatus: appState.activityFeedbackStatus,
+                  onOpenQuests: openTasksPage,
+                  onOpenDecor: () => showHomeDecorSheet(context),
+                  onOpenFamily: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const GuardianCenterPage(),
+                    ),
+                  ),
+                  onOpenGroup: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const GroupManagementPage(),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: AppUI.sectionGap),
+                heroCard!,
                 const SizedBox(height: AppUI.sectionGap),
 
                 // Show action center only if not guardian mode (guardian has separate dashboard metrics)

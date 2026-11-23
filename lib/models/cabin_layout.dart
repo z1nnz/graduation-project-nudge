@@ -32,8 +32,9 @@ class CabinLayerSpec {
 
   CabinRect rectFor(int imageIndex) {
     final list = rects;
-    if (list == null || imageIndex < 0 || imageIndex >= list.length)
+    if (list == null || imageIndex < 0 || imageIndex >= list.length) {
       return rect;
+    }
     return list[imageIndex];
   }
 
