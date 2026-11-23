@@ -24,7 +24,7 @@ Refs #106；base main @ 10cc51c。全部保持 Draft，審查與合併交給 z1n
 - 本分支 Functions：136 pass、28 skip、0 fail；skip 不算通過。
 - 三片整合目錄 Flutter analyze：No issues；Flutter test：345 pass。未改 Dart。
 - Java21／Firebase CLI15.18.0：按 CI project 跑完整 Rules／Ledger／帳號刪除／關係／Reward emulator，exit0。前一次不同 Auth project 的失敗不計通過。
-- 瀏覽器58項檢查通過；22頁360px無水平溢出；21頁 axe WCAG A／AA 零違規。personal-focus 只驗返回及版面，內部介面非本包範圍。
+- 瀏覽器58項檢查及另外3項訪客／登入門禁檢查通過；22頁360px無水平溢出；21頁 axe WCAG A／AA 零違規。personal-focus 只驗返回及版面，內部介面非本包範圍。
 - 真實本機 Auth／Firestore SDK；callable 使用 loopback test handler adapter，Storage／App Check 為未使用的介面 stub，不能冒稱 production attestation 或檔案上傳驗收。
 - SDK對外 HTTPS 全部阻擋；截圖都是明確標示的本機虛構帳號，不是正式網站或真人帳號。
 
