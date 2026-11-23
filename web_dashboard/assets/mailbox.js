@@ -29,20 +29,25 @@
   // Whitelisted presentation. route only resolves to fixed local pages, so a
   // notification can never inject an external link.
   function presentLetter(letter, requestStatus) {
+    const mention = letter.kind === "room_chat_mention" &&
+      typeof letter.roomId === "string" && letter.roomId.length > 0;
     const route = routes[letter.route] || null;
-    const scopeType = String(letter.sourceType || "").startsWith("family") ? "family" : "group";
+    const scopeType = mention ? "room" : String(letter.sourceType || "").startsWith("family") ? "family" : "group";
+    const cabinLetter = letter.kind === "friend_cabin_letter";
     const pendingInvitation = /_invitation$/.test(String(letter.kind || "")) && (requestStatus || "pending") === "pending";
     const resolved = requestStatus && requestStatus !== "pending";
-    const href = !route ? null : pendingInvitation ? route.manage : route.scene;
+    const href = mention ? `room-chat.html?room=${encodeURIComponent(letter.roomId)}` : !route ? null : pendingInvitation ? route.manage : route.scene;
     return Object.freeze({
       id: String(letter.id || letter.notificationId || ""),
       title: String(letter.title || "站內通知").slice(0, 80),
       body: String(letter.body || "").slice(0, 300),
       unread: letter.status === "unread",
-      scopeType,
+      scopeType: cabinLetter ? "friend" : scopeType,
+      sticker: cabinLetter && /^(cheer|study|sleep|thumbs-up|happy-tears|flex|coffee|heart|okay|wave|think|fire)$/.test(letter.stickerKey)
+        ? letter.stickerKey : null,
       requestStatusLabel: requestStatus ? (requestStatusLabels[requestStatus] || "") : "",
-      actionLabel: !route ? "" : pendingInvitation ? `前往${route.label}中心回覆` : `前往${route.label}${scopeType === "family" ? "庭院" : "會館"}`,
-      href,
+      actionLabel: mention ? "開啟聊天室" : cabinLetter ? "查看小屋留言" : !route ? "" : pendingInvitation ? `前往${route.label}中心回覆` : `前往${route.label}${scopeType === "family" ? "庭院" : "會館"}`,
+      href: cabinLetter ? "friend-visits.html" : href,
       resolved: Boolean(resolved),
     });
   }
@@ -91,7 +96,7 @@
     }
     if (!state.userId) { list.innerHTML = `<li class="visit-empty">登入後打開你的信箱。</li>`; return; }
     if (!state.letters.length) {
-      list.innerHTML = `<li class="visit-empty">信箱是空的。家庭或團體邀請與處理結果會寄到這裡。</li>`;
+      list.innerHTML = `<li class="visit-empty">信箱是空的。</li>`;
       return;
     }
     list.innerHTML = state.letters.slice(0, 50).map(raw => {
@@ -104,6 +109,7 @@
           ${letter.requestStatusLabel ? `<span class="social-badge is-muted">${esc(letter.requestStatusLabel)}</span>` : ""}
         </div>
         <p>${esc(letter.body)}</p>
+        ${letter.sticker ? `<img src="assets/chat_stickers/${esc(letter.sticker)}.png" width="96" height="96" alt="好友的鼓勵貼圖" style="image-rendering:pixelated" />` : ""}
         <div class="social-actions">
           ${letter.unread ? `<button type="button" data-mailbox-read="${esc(letter.id)}" ${busy}>標示已讀</button>` : ""}
           ${letter.href ? `<a class="secondary-btn" href="${esc(letter.href)}">${esc(letter.actionLabel)}</a>` : ""}

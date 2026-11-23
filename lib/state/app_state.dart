@@ -7662,12 +7662,25 @@ class AppState extends ChangeNotifier {
 
     final user = _currentUser;
     if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('rooms')
-          .doc(roomId)
-          .collection('messages')
-          .doc(message.id)
-          .set({...message.toJson(), 'roomId': roomId});
+      final firestore = FirebaseFirestore.instance;
+      final room = firestore.collection('rooms').doc(roomId);
+      final throttle = room.collection('chat_throttles').doc(user.id);
+      await firestore.runTransaction((transaction) async {
+        final previous = (await transaction.get(throttle)).data();
+        transaction.set(room.collection('messages').doc(message.id), {
+          ...message.toJson(),
+          'roomId': roomId,
+        });
+        transaction.set(throttle, {
+          'userId': user.id,
+          'messageId': message.id,
+          't0': previous?['t1'],
+          't1': previous?['t2'],
+          't2': previous?['t3'],
+          't3': previous?['t4'],
+          't4': FieldValue.serverTimestamp(),
+        });
+      });
     }
 
     _studyRooms = _studyRooms.map((room) {

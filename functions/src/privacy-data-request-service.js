@@ -115,7 +115,7 @@ async function readSingleDocument(firestore, collection, documentId) {
   return snapshot.exists ? [exportDocument(snapshot)] : [];
 }
 
-export async function collectQueryDocuments(query) {
+export async function collectQueryDocuments(query, includePath = false) {
   const documents = [];
   let cursor = null;
 
@@ -125,7 +125,10 @@ export async function collectQueryDocuments(query) {
       .limit(COLLECTION_EXPORT_LIMIT);
     if (cursor) pageQuery = pageQuery.startAfter(cursor);
     const snapshot = await pageQuery.get();
-    documents.push(...snapshot.docs.map(exportDocument));
+    documents.push(...snapshot.docs.map(document => ({
+      ...exportDocument(document),
+      ...(includePath ? { path: document.ref.path } : {}),
+    })));
     if (snapshot.size < COLLECTION_EXPORT_LIMIT) break;
     cursor = snapshot.docs.at(-1);
   }
@@ -194,6 +197,9 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     roomContributions,
     roomResonancePreferences,
     roomReadMarkers,
+    chatData,
+    focusRounds,
+    roomVoice,
     roomResonanceSignals,
     authoredRoomResonanceAcknowledgements,
     receivedRoomResonanceAcknowledgements,
@@ -250,6 +256,24 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "room_contributions", "actorUserId", "==", userId),
     readQuery(firestore, "room_resonance_preferences", "userId", "==", userId),
     readQuery(firestore, "room_read_markers", "userId", "==", userId),
+    Promise.all([
+      ["messages", "senderId"], ["chat_throttles", "userId"],
+      ["chat_pin", "userId"], ["chat_reactors", "userId"],
+      ["chat_hidden_messages", "userId"], ["chat_reports", "userId"],
+    ].map(async ([collection, field]) => [
+      collection,
+      await collectQueryDocuments(
+        firestore.collectionGroup(collection).where(field, "==", userId),
+        true,
+      ),
+    ])),
+    collectQueryDocuments(firestore.collectionGroup("focus_rounds").where("startedBy", "==", userId)),
+    Promise.all([
+      ["voice_participants", "uid"], ["voice_signals_sent", "from", "voice_signals"],
+      ["voice_signals_received", "to", "voice_signals"], ["voice_mute", "requestedBy"],
+    ].map(async ([key, field, collection = key]) => [key, await collectQueryDocuments(
+      firestore.collectionGroup(collection).where(field, "==", userId), true,
+    )])),
     readQuery(
       firestore,
       "room_resonance_signals",
@@ -321,6 +345,9 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       room_contributions: roomContributions.documents,
       room_resonance_preferences: roomResonancePreferences.documents,
       room_read_markers: roomReadMarkers.documents,
+      ...Object.fromEntries(chatData),
+      focus_rounds: focusRounds,
+      ...Object.fromEntries(roomVoice),
       room_resonance_signals: roomResonanceSignals.documents,
       room_resonance_acknowledgements: mergeDocuments(
         authoredRoomResonanceAcknowledgements.documents,
