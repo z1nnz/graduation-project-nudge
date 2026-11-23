@@ -1,0 +1,38 @@
+/* Study Room scene. Page-specific presentation only; shared layout stays in styles.css. */
+.room-world-return { display: inline-block; margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: #ffffff14; font-size: 13px; font-weight: 700; text-decoration: none; }
+.room-world-return:focus-visible, .room-stage-seat:focus-visible, .room-stage-actions button:focus-visible { outline: 3px solid #ffe6a6; outline-offset: 2px; }
+
+.room-stage-panel { background: linear-gradient(145deg, #1b273b, #20203b 58%, #35243d); }
+.room-stage-panel > p { color: var(--muted); }
+.room-stage-count { border-radius: 999px; padding: 8px 14px; color: #fce2a0; background: #ffffff12; white-space: nowrap; font-size: 13px; }
+.room-stage { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; min-height: 180px; padding: 24px 16px 17px; border: 1px solid #b9997166; border-radius: 18px; background: radial-gradient(ellipse at 50% 100%, #5b6e65 0, #3c5460 50%, #293851 100%); }
+.room-stage-seat { min-width: 104px; min-height: 132px; display: grid; justify-items: center; align-content: end; gap: 5px; border: 1px solid #d0b99480; border-radius: 48px 48px 14px 14px; padding: 12px 9px 10px; color: #fff7e9; background: linear-gradient(#567781, #34495d); box-shadow: inset 0 -13px #253a4a, 0 7px 0 #172c39; text-align: center; font: inherit; cursor: pointer; transition: transform .18s ease, background .18s ease; }
+.room-stage-seat:hover, .room-stage-seat:focus-visible, .room-stage-seat[aria-pressed=true] { border-color: #ffe6a6; background: linear-gradient(#788f87, #486472); transform: translateY(-3px); }
+.room-stage-seat.is-viewer { border-color: #ffe6a6; }
+.room-stage-seat.is-empty { cursor: default; opacity: .45; border-style: dashed; background: transparent; box-shadow: none; }
+.room-stage-seat.posture-away { opacity: .7; }
+.room-stage-seat-avatar { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 17px; font-size: 26px; background: #f9d899; color: #604468; box-shadow: 0 3px 0 #a9786c; }
+.room-stage-seat.posture-focusing .room-stage-seat-avatar { animation: room-seat-breathe 3.2s ease-in-out infinite; }
+.room-stage-seat.is-empty .room-stage-seat-avatar { background: #ffffff12; box-shadow: none; }
+.room-stage-seat strong { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.room-stage-seat small { font-size: 11px; color: #d7e8dd; }
+.room-stage-detail { min-height: 22px; margin: 10px 0 0; font-size: 13px; color: #dcebdc !important; }
+.room-stage-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.room-stage-actions button[hidden] { display: none; }
+.room-stage-actions button[disabled], .room-session-controls button[disabled] { opacity: .5; cursor: progress; }
+.room-leave-btn { border-color: #e7a0a066; }
+
+@keyframes room-seat-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+
+@media (max-width: 600px) {
+  .room-stage { gap: 10px; min-height: 150px; padding: 14px 10px; }
+  .room-stage-seat { min-width: calc(50% - 5px); min-height: 118px; }
+  .room-stage-actions button { flex: 1 1 100%; }
+  .room-panel-heading { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-stage-seat { transition: none; }
+  .room-stage-seat:hover, .room-stage-seat:focus-visible, .room-stage-seat[aria-pressed=true] { transform: none; }
+  .room-stage-seat.posture-focusing .room-stage-seat-avatar { animation: none; }
+}
