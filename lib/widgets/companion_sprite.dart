@@ -35,16 +35,36 @@ class CompanionSprite extends StatefulWidget {
 }
 
 class _CompanionSpriteState extends State<CompanionSprite>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _loop = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2000),
   );
 
+  /// Plays once when the pose changes: a squash-and-settle as the companion
+  /// sits, lies down or stands up.
+  late final AnimationController _settle = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+    value: 1,
+  );
+  bool _still = false;
+
+  @override
+  void didUpdateWidget(CompanionSprite old) {
+    super.didUpdateWidget(old);
+    final walkingChange =
+        old.pose == CompanionPose.walk || widget.pose == CompanionPose.walk;
+    if (old.pose != widget.pose && !walkingChange && !_still) {
+      _settle.forward(from: 0);
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final still = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    _still = still;
     if (still) {
       _loop
         ..stop()
@@ -57,6 +77,7 @@ class _CompanionSpriteState extends State<CompanionSprite>
   @override
   void dispose() {
     _loop.dispose();
+    _settle.dispose();
     super.dispose();
   }
 
@@ -118,9 +139,12 @@ class _CompanionSpriteState extends State<CompanionSprite>
       width: size,
       height: size,
       child: AnimatedBuilder(
-        animation: _loop,
+        animation: Listenable.merge([_loop, _settle]),
         builder: (context, child) {
-          final (dx, dy, scaleY) = _motion(_loop.value);
+          final (dx, dy, baseScaleY) = _motion(_loop.value);
+          // Squash then overshoot back to rest as a new pose lands.
+          final s = Curves.easeOutBack.transform(_settle.value);
+          final scaleY = baseScaleY * (0.9 + 0.1 * s);
           return Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.bottomCenter,
@@ -145,7 +169,20 @@ class _CompanionSpriteState extends State<CompanionSprite>
             ],
           );
         },
-        child: body,
+        child: AnimatedSwitcher(
+          duration: _still ? Duration.zero : const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          layoutBuilder: (current, previous) => Stack(
+            alignment: Alignment.bottomCenter,
+            children: [...previous, ?current],
+          ),
+          child: KeyedSubtree(
+            // Walking frames swap inside one pose; only poses cross-fade.
+            key: ValueKey('sprite-${widget.pose.name}'),
+            child: body,
+          ),
+        ),
       ),
     );
   }

@@ -65,4 +65,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.hasRunningAnimations, isFalse);
   });
+
+  testWidgets('changing pose cross-fades instead of snapping', (tester) async {
+    await tester.runAsync(() => _pump(tester, CompanionPose.idle, face: 0));
+    await tester.runAsync(() => _pump(tester, CompanionPose.read, face: 0));
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(find.byKey(const ValueKey('sprite-idle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('sprite-read')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byKey(const ValueKey('sprite-idle')), findsNothing);
+  });
 }
