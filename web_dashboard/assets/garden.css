@@ -1,0 +1,28 @@
+/* Starlight garden: reuses the town palette from town.css. */
+body[data-page="garden"] { overflow: auto; }
+.garden { max-width: 960px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 16px 32px; }
+.garden-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.garden-top h1 { margin: 0; font-size: 24px; color: var(--town-gold); flex: 1; }
+.garden-back { display: inline-flex; align-items: center; text-decoration: none; }
+.garden-level { background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 999px; padding: 4px 12px; font-weight: 800; }
+.garden-status { margin: 12px 0; opacity: 0.9; }
+.garden-card { background: var(--town-panel); border: 2px solid var(--town-gold); border-radius: 18px; padding: 16px; }
+.garden-card h2 { margin: 0 0 8px; }
+.garden-card .town-gold { display: inline-flex; align-items: center; text-decoration: none; margin-top: 8px; }
+
+/* The garden corner of the town map (x 74.5–100%, y 72–100%) is the stage. */
+.garden-stage { position: relative; width: 100%; aspect-ratio: 426 / 263; border-radius: 18px; overflow: hidden;
+  border: 2px solid var(--town-border); background-color: #2a3a1c;
+  background-image: url("town/town_map.jpg"); background-repeat: no-repeat;
+  background-size: 392% auto; background-position: 100% 100%; image-rendering: pixelated; }
+.garden-beds { position: absolute; inset: 30% 6% 8% 22%; margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4%; }
+.garden-bed { position: relative; border-radius: 12px; background: rgba(60, 34, 18, 0.55); border: 2px solid rgba(255, 220, 170, 0.35); }
+.garden-bed::after { content: "·"; position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); font-size: 28px; color: #c9a46b; }
+.garden-summary { margin: 10px 0; }
+.garden-bed-list { margin: 0; padding-left: 20px; line-height: 1.8; }
+
+@media (max-width: 560px) {
+  .garden-top h1 { font-size: 20px; }
+  .garden-beds { inset: 26% 4% 6% 12%; grid-template-columns: repeat(2, 1fr); }
+}

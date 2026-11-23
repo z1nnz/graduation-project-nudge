@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Nudge 星光花園</title>
+    <meta name="theme-color" content="#2a1a14" />
+    <link rel="stylesheet" href="assets/town.css?v=2" />
+    <link rel="stylesheet" href="assets/garden.css?v=1" />
+  </head>
+  <body data-page="garden">
+    <main class="garden" aria-labelledby="gardenTitle">
+      <header class="garden-top">
+        <a class="town-ghost garden-back" data-town-return="garden" href="town.html">← 返回小鎮</a>
+        <h1 id="gardenTitle">星光花園</h1>
+        <span id="gardenLevel" class="garden-level">讀取中</span>
+      </header>
+
+      <p id="gardenStatus" class="garden-status" role="status" aria-live="polite">正在確認你的角色等級…</p>
+
+      <section id="gardenLocked" class="garden-card" hidden>
+        <h2>花園還沒開門</h2>
+        <p id="gardenLockedText">角色 Lv 10 才能進入星光花園。</p>
+        <p>等級只會因為雲端確認的真實行動上升；小鎮不會替你加經驗值。</p>
+        <a class="town-gold" data-town-return="board" href="town.html">去告示板找今天的一步</a>
+      </section>
+
+      <section id="gardenScene" class="garden-scene" hidden aria-label="花園景物">
+        <div class="garden-stage" role="img" aria-labelledby="gardenSceneSummary">
+          <ol id="gardenBeds" class="garden-beds"></ol>
+        </div>
+        <p id="gardenSceneSummary" class="garden-summary"></p>
+        <ul id="gardenBedList" class="garden-bed-list" aria-label="花圃清單"></ul>
+      </section>
+    </main>
+
+    <script src="assets/confirmed_activity_feedback.js?v=1"></script>
+    <script src="assets/town_routes.js?v=1"></script>
+    <script src="assets/town_return.js?v=1"></script>
+    <script src="assets/garden_core.js?v=1"></script>
+    <script src="assets/garden.js?v=1"></script>
+    <script src="assets/app.js?v=26"></script>
+  </body>
+</html>
