@@ -25,8 +25,10 @@ class CabinCompanionBrain {
     Offset(0.72, 0.8),
   ];
 
-  /// Floor widths per second.
-  static const speed = 0.16;
+  /// Top walking speed in floor widths per second, with easing in and out.
+  static const speed = 0.18;
+  static const _accel = 0.9;
+  static const _glanceEvery = 1.4;
   static const _cheerSeconds = 1.2;
 
   final Random _random;
@@ -36,6 +38,8 @@ class CabinCompanionBrain {
   double _restTimer = 2;
   double _cheerTimer = 0;
   double _stepClock = 0;
+  double _speed = 0;
+  double _glanceTimer = _glanceEvery;
   bool _facingLeft = false;
 
   Offset get position => _position;
@@ -99,19 +103,29 @@ class CabinCompanionBrain {
     if (target != null) {
       final delta = target - _position;
       final distance = delta.distance;
-      final step = speed * dt;
-      if (distance <= step) {
+      // Ease in (accelerate) and ease out (brake so we stop on the spot).
+      final brake = sqrt(2 * _accel * distance);
+      _speed = min(min(speed, _speed + _accel * dt), max(brake, 0.02));
+      final step = _speed * dt;
+      if (distance <= max(step, 0.002)) {
         _position = target;
         _target = null;
+        _speed = 0;
         _restTimer = 3 + _random.nextDouble() * 5;
+        _glanceTimer = _glanceEvery;
       } else {
         _position += delta / distance * step;
         if (delta.dx.abs() > 0.002) _facingLeft = delta.dx < 0;
-        _stepClock += dt;
+        _stepClock += dt * (_speed / speed);
       }
       return;
     }
     if (_activity != CompanionActivity.wander) return;
+    _glanceTimer -= dt;
+    if (_glanceTimer <= 0) {
+      _facingLeft = !_facingLeft; // look around while waiting
+      _glanceTimer = _glanceEvery + _random.nextDouble();
+    }
     _restTimer -= dt;
     if (_restTimer <= 0) {
       final options = _wanderSpots

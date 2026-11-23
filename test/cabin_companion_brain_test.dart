@@ -20,7 +20,7 @@ void main() {
     b.tick(0.1);
     expect(b.pose, CompanionPose.walk);
     expect(b.facingLeft, isTrue);
-    _run(b, 2.2); // 0.3 floor widths at 0.16/s, then a short pause
+    _run(b, 2.8); // 0.3 floor widths with easing, then a short pause
     expect((b.position - const Offset(0.2, 0.75)).distance, lessThan(0.01));
     expect(b.pose, CompanionPose.idle);
   });
@@ -68,5 +68,30 @@ void main() {
     expect(b.pose, CompanionPose.cheer);
     _run(b, 2);
     expect(b.pose, CompanionPose.read);
+  });
+
+  test('walking eases in and out instead of starting at full speed', () {
+    final b = _brain();
+    b.walkTo(const Offset(0.15, 0.7));
+    final p0 = b.position;
+    b.tick(0.05);
+    final first = (b.position - p0).distance;
+    for (var i = 0; i < 10; i++) {
+      b.tick(0.05);
+    }
+    final p1 = b.position;
+    b.tick(0.05);
+    final cruise = (b.position - p1).distance;
+    expect(first, lessThan(cruise * 0.5));
+  });
+
+  test('a waiting companion glances around', () {
+    final b = _brain();
+    final seen = <bool>{b.facingLeft};
+    for (var t = 0.0; t < 3; t += 0.05) {
+      b.tick(0.05);
+      if (b.pose == CompanionPose.idle) seen.add(b.facingLeft);
+    }
+    expect(seen, {true, false});
   });
 }

@@ -74,6 +74,13 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Cubic 11 (俐方體11號), free pixel font with Traditional Chinese coverage.
+  # License: assets/fonts/Cubic11-LICENSE.txt
+  fonts:
+    - family: Cubic11
+      fonts:
+        - asset: assets/fonts/Cubic11.ttf
+
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/branding/
