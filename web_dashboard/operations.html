@@ -6,6 +6,20 @@
     <title>Nudge 商城頁面</title>
     <link rel="stylesheet" href="assets/styles.css" />
     <style>
+      /* The shop styles below were written against --c-* tokens that no page
+         defines; map them onto the shared styles.css palette (#82 slice 3). */
+      body[data-page="operations"] {
+        --c-panel-bg: var(--surface);
+        --c-border: var(--line);
+        --c-text: var(--text);
+        --c-text-muted: var(--muted);
+        --c-primary: var(--page-accent);
+        --c-primary-hover: var(--page-accent);
+        --c-primary-alpha: var(--page-wash);
+        --c-bg: var(--surface-strong);
+        --c-bg-hover: var(--surface-soft);
+        --shadow-color: rgba(0, 0, 0, 0.6);
+      }
       .shop-item-card {
         display: flex;
         flex-direction: column;
@@ -208,6 +222,15 @@
         margin-top: 0.5rem;
         display: none;
       }
+      .shop-status { margin: 0.75rem 0 0; color: var(--c-text-muted); }
+      .shop-empty { grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--c-text-muted); }
+      .shop-item-card img { max-width: 100%; max-height: 160px; object-fit: contain; image-rendering: pixelated; box-shadow: none; }
+      .shop-btn { color: #04121a; }
+      .shop-btn:focus-visible, .shop-tab-btn:focus-visible { outline: 3px solid var(--c-primary); outline-offset: 2px; }
+      .shop-item-card .shop-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+      .shop-note { min-height: 1.2em; margin: 0.5rem 0 0; font-size: 0.875rem; color: var(--c-text-muted); }
+      .shop-note[data-tone="ok"] { color: #16a34a; }
+      .shop-note[data-tone="bad"] { color: #dc2626; }
       /* Shop Tabs Styles */
       .shop-tab-btn {
         background: transparent;
@@ -280,14 +303,16 @@
             <div>
               <span class="eyebrow">Featured Characters</span>
               <h2>商城兌換區</h2>
-              <div class="shop-tabs" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                <button class="shop-tab-btn active" data-tab="permanent" onclick="switchShopTab('permanent')">常駐商城</button>
-                <button class="shop-tab-btn" data-tab="limited" onclick="switchShopTab('limited')">限時商城</button>
-                <button class="shop-tab-btn" data-tab="event_character" onclick="switchShopTab('event_character')">活動商城</button>
+              <div class="shop-tabs" role="tablist" aria-label="商城分類" style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="shop-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="shop-items-container" data-tab="permanent">常駐商城</button>
+                <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="limited">限時商城</button>
+                <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="event_character">活動商城</button>
+                <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="decor">小屋家具</button>
               </div>
+              <p id="shopStatus" class="shop-status" role="status" aria-live="polite">正在連線到雲端帳本…</p>
             </div>
           </div>
-          <div class="shop-grid" id="shop-items-container">
+          <div class="shop-grid" id="shop-items-container" role="tabpanel" aria-live="polite">
             <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--c-text-muted);">
               載入中...
             </div>
@@ -295,19 +320,19 @@
         </section>
         <section class="insight-strip page-section" style="margin-top: 3rem;">
           <div>
-            <small>商城提示</small>
-            <strong>限時折扣</strong>
-            <span>每月 15 號為自律商城品牌日，所有角色兌換需求降低 10%。</span>
+            <small>扣款方式</small>
+            <strong>雲端帳本</strong>
+            <span>每次兌換都由雲端確認餘額後扣款，網頁不會自行改變自律幣或解鎖商品。</span>
           </div>
           <div>
-            <small>更新預告</small>
-            <strong>即將推出</strong>
-            <span>下個月將開放「角色動態互動」系統，解鎖更多精靈互動。</span>
+            <small>重複按下</small>
+            <strong>不會重複扣款</strong>
+            <span>連線中斷時可以再按一次，同一個商品只會兌換一次。</span>
           </div>
           <div>
             <small>獲取管道</small>
-            <strong>每日任務</strong>
-            <span>只要連續完成自律任務，每天都能獲得穩定幣值收益。</span>
+            <strong>真實行動</strong>
+            <span>自律幣只來自雲端確認的任務與專注，商城沒有額外的折扣或活動加成。</span>
           </div>
         </section>
       </main>
@@ -315,156 +340,8 @@
     <script src="assets/town_routes.js?v=2"></script>
     <script src="assets/town_return.js?v=1"></script>
 
+    <script src="assets/reward_shop_core.js?v=1"></script>
+    <script src="assets/reward_shop.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
-    <script>
-      // Apply Discount Logic
-      document.addEventListener('DOMContentLoaded', () => {
-        const discountStr = localStorage.getItem('nudgeActiveDiscount');
-        if (discountStr) {
-          try {
-            const discount = JSON.parse(discountStr);
-            const now = new Date();
-            const start = new Date(discount.startTime);
-            const end = new Date(discount.endTime);
-            
-            if (now >= start && now <= end) {
-              const cards = document.querySelectorAll('.shop-item-card');
-              cards.forEach(card => {
-                const title = card.querySelector('strong').innerText;
-                if (title === discount.item) {
-                  const btn = card.querySelector('.shop-btn');
-                  const origPriceMatch = btn.innerText.match(/\d+/);
-                  if (origPriceMatch) {
-                    const origPrice = origPriceMatch[0];
-                    btn.innerHTML = `兌換 <s style="opacity:0.6;font-size:0.85em;">${origPrice}</s> <span style="color:#ff3333;font-weight:bold;">${discount.discountPrice} 幣</span>`;
-                    btn.onclick = () => alert(`兌換成功！以優惠價 ${discount.discountPrice} 幣 將「${title}」加入背包。`);
-                  }
-                  
-                  const badge = document.createElement('div');
-                  badge.style.cssText = "position:absolute; top:10px; right:10px; background:#ff3333; color:white; padding:4px 8px; border-radius:8px; font-weight:bold; font-size:12px; z-index:2; box-shadow:0 4px 10px rgba(255,51,51,0.4);";
-                  badge.innerText = "限時特價";
-                  card.appendChild(badge);
-                  card.style.borderColor = "#ff3333";
-                }
-              });
-            }
-          } catch(e) {}
-        }
-      let allActiveItems = [];
-      let currentShopTab = 'permanent';
-
-      async function fetchFrontendShopItems() {
-        try {
-          if (!db) throw new Error('Firestore 尚未初始化');
-          const snapshot = await db.collection('shop_items')
-            .where('status', '==', 'published')
-            .get();
-          const now = Math.floor(Date.now() / 1000);
-          allActiveItems = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(item =>
-              Array.isArray(item.character_stages) &&
-              (item.start_time == null || Number(item.start_time) <= now) &&
-              (item.end_time == null || Number(item.end_time) > now)
-            );
-        } catch (error) {
-          console.error("無法取得上架商品", error);
-          allActiveItems = [];
-          toast('目前無法讀取正式商城資料');
-        }
-        renderShopItems();
-      }
-
-      function switchShopTab(tab) {
-        currentShopTab = tab;
-        document.querySelectorAll('.shop-tab-btn').forEach(btn => {
-          btn.classList.remove('active');
-          if (btn.dataset.tab === tab) btn.classList.add('active');
-        });
-        renderShopItems();
-      }
-
-      function renderShopItems() {
-        const container = document.getElementById('shop-items-container');
-        container.innerHTML = '';
-
-        const filteredItems = allActiveItems.filter(item =>
-          currentShopTab === 'permanent'
-            ? ['permanent', 'avatar_series'].includes(item.type)
-            : item.type === currentShopTab
-        );
-
-        if (filteredItems.length === 0) {
-          container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--c-text-muted);">目前此分類下沒有商品。</div>`;
-          return;
-        }
-
-        filteredItems.forEach(item => {
-          const stage = item.character_stages.find(value =>
-            Number(value.stage) === 1 && value.shop_eligible === true
-          );
-          if (!stage) return;
-          const card = document.createElement('div');
-          card.className = 'shop-item-card';
-          if (item.end_time) {
-            const badge = document.createElement('div');
-            badge.className = 'expires-badge';
-            badge.textContent = `⏳ 期限: ${new Date(item.end_time * 1000).toLocaleString('zh-TW')}`;
-            card.appendChild(badge);
-          }
-          const image = document.createElement('img');
-          image.src = stage.character_asset || item.image_path || '';
-          image.alt = item.name || stage.name || '角色';
-          const name = document.createElement('strong');
-          name.textContent = item.name || stage.name || '角色';
-          const description = document.createElement('p');
-          description.textContent = item.description || '由營運後台發布的完整角色進化鏈。';
-          const button = document.createElement('button');
-          button.className = 'shop-btn';
-          button.type = 'button';
-          button.textContent = `兌換 (${stage.coin_price} 幣)`;
-          button.addEventListener('click', () => purchaseCatalogItem(item, stage, button));
-          card.append(image, name, description, button);
-          container.appendChild(card);
-        });
-      }
-
-      async function purchaseCatalogItem(item, stage, button) {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-          toast('請先登入自己的帳號再兌換角色');
-          return;
-        }
-        button.disabled = true;
-        try {
-          const purchase = firebase.functions('asia-east1')
-            .httpsCallable('purchaseRewardItem');
-          const response = await purchase({
-            category: 'faceShape',
-            index: Number(stage.catalog_index),
-            catalogItemId: item.id,
-            clientRequestId: `web-purchase-faceShape-${stage.catalog_index}`,
-            sourceSurface: 'web',
-          });
-          const result = response.data || {};
-          if (result.itemKey !== `faceShape:${stage.catalog_index}` ||
-              !Number.isInteger(result.disciplineCoins)) {
-            throw new Error('Cloud 商城回傳資料不一致');
-          }
-          const coinDisplay = document.querySelector('.hero-card strong');
-          if (coinDisplay) coinDisplay.textContent = String(result.disciplineCoins);
-          button.textContent = result.alreadyUnlocked ? '已擁有' : '兌換完成';
-          toast(result.alreadyUnlocked ? '這個角色已在背包中' : 'Cloud Ledger 已完成扣款與解鎖');
-        } catch (error) {
-          console.error('正式商城兌換失敗', error);
-          button.disabled = false;
-          toast(error?.message || '商城兌換失敗，未扣除自律幣');
-        }
-      }
-
-      document.addEventListener('DOMContentLoaded', () => {
-        fetchFrontendShopItems();
-      });
-    </script>
   </body>
 </html>

@@ -1,0 +1,154 @@
+{
+  "baseImage": "assets/home/room_base.png",
+  "aspect": 0.5629,
+  "layers": {
+    "rug": {
+      "rect": [
+        0.1,
+        0.625,
+        0.8,
+        0.14
+      ],
+      "z": 1,
+      "images": [
+        "assets/home/rug_0.png",
+        "assets/home/rug_1.png",
+        "assets/home/rug_2.png"
+      ]
+    },
+    "curtain": {
+      "rect": [
+        0.28,
+        0.07,
+        0.44,
+        0.235
+      ],
+      "z": 2,
+      "images": [
+        "assets/home/curtain_0.png",
+        "assets/home/curtain_1.png",
+        "assets/home/curtain_2.png"
+      ]
+    },
+    "books": {
+      "rect": [
+        0.153,
+        0.326,
+        0.19,
+        0.165
+      ],
+      "z": 3,
+      "images": [
+        "assets/home/books_1.png",
+        "assets/home/books_2.png",
+        "assets/home/books_3.png"
+      ],
+      "rects": [
+        [
+          0.153,
+          0.326,
+          0.19,
+          0.051
+        ],
+        [
+          0.153,
+          0.326,
+          0.19,
+          0.108
+        ],
+        [
+          0.153,
+          0.326,
+          0.19,
+          0.165
+        ]
+      ]
+    },
+    "badges": {
+      "rect": [
+        0.69,
+        0.338,
+        0.163,
+        0.038
+      ],
+      "z": 3,
+      "images": [
+        "assets/home/badge.png"
+      ]
+    },
+    "globe": {
+      "rect": [
+        0.43,
+        0.39,
+        0.08,
+        0.057
+      ],
+      "z": 4,
+      "images": [
+        "assets/home/globe.png"
+      ]
+    },
+    "lamp": {
+      "rect": [
+        0.735,
+        0.375,
+        0.075,
+        0.072
+      ],
+      "z": 4,
+      "images": [
+        "assets/home/lamp_0.png",
+        "assets/home/lamp_1.png",
+        "assets/home/lamp_2.png"
+      ]
+    },
+    "plant": {
+      "rect": [
+        0.03,
+        0.505,
+        0.17,
+        0.11
+      ],
+      "z": 5,
+      "images": [
+        "assets/home/plant_1.png",
+        "assets/home/plant_2.png",
+        "assets/home/plant_3.png"
+      ]
+    }
+  },
+  "character": {
+    "rect": [
+      0.27,
+      0.445,
+      0.46,
+      0.245
+    ]
+  },
+  "questBoard": {
+    "rect": [
+      0.388,
+      0.3,
+      0.262,
+      0.122
+    ]
+  },
+  "doors": {
+    "family": {
+      "rect": [
+        0.0,
+        0.27,
+        0.09,
+        0.33
+      ]
+    },
+    "group": {
+      "rect": [
+        0.91,
+        0.27,
+        0.09,
+        0.33
+      ]
+    }
+  }
+}
