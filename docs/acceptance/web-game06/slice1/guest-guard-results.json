@@ -1,8 +1,0 @@
-{
-  "checks": 3,
-  "unauthenticatedToolsRedirectToLogin": true,
-  "unauthenticatedAdminHidden": true,
-  "gateGuestFormUsable": true,
-  "productionHTTPSBlocked": true,
-  "errors": []
-}
