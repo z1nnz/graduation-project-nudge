@@ -1,6 +1,6 @@
 # WEB-GAME-06｜切片 1：紀錄館收尾與小鎮返回
 
-Refs #106；base main @ 10cc51c。全部保持 Draft，審查與合併交給 z1nnz。不部署、不推 main、不 force push。
+Refs #106；起始 base main @ 10cc51c；已同步 main @ 4e3eda4（#101含#107）。全部保持 Draft，審查與合併交給 z1nnz。不部署、不推 main、不 force push。
 
 ## 逐項核對
 
@@ -20,7 +20,7 @@ Refs #106；base main @ 10cc51c。全部保持 Draft，審查與合併交給 z1n
 
 ## 實際測試
 
-- 本分支 Node：230 pass、3 skip、0 fail。
+- 本分支 Node：250 pass、3 skip、0 fail。
 - 本分支 Functions：136 pass、28 skip、0 fail；skip 不算通過。
 - 三片整合目錄 Flutter analyze：No issues；Flutter test：345 pass。未改 Dart。
 - Java21／Firebase CLI15.18.0：按 CI project 跑完整 Rules／Ledger／帳號刪除／關係／Reward emulator，exit0。前一次不同 Auth project 的失敗不計通過。
@@ -55,9 +55,9 @@ Refs #106；base main @ 10cc51c。全部保持 Draft，審查與合併交給 z1n
 
 ## 依賴、限制與回復
 
-- 三個切片皆從 main 獨立建立；本機用變更覆蓋整合，沒有 merge 他人的分支。
+- 三個切片皆從 main 獨立建立；本機用變更覆蓋整合，只同步正式 main，沒有合併他人的功能分支。
 - 工具切片需先整合大門切片的 shared bootstrap 隔離；館內主模組使用 v2，新 shared app URL 沿 main v27 並加 surface query。
-- #107 同樣修改首頁，沒有複製其分支；與 #104／#105 的設施／社交頁保持分工，整合順序由 z1nnz 裁決。
+- #101（含 #107）已進 main；本輪同步後保留公開探索與舊總覽入口。#104／#105 設施／社交頁依原分工。
 - 無新增 Cloud、Rules、集合或資料欄位；無 production migration／seed／apply，回復為 revert 對應切片。既有保護與正式 Cloud 契約維持。
 - 研究與經濟彙總、獨立房間審核佇列尚無正式來源，故為空狀態；需要新的資料產品時另行審查。
 - 真人螢幕閱讀器、實機、正式 App Check、Google／Facebook provider 與 Storage 上傳留待驗收，Issue 不冒稱全部 production 完成。

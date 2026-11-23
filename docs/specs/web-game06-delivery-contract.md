@@ -1,6 +1,6 @@
 # WEB-GAME-06：交付與資料契約
 
-來源 Issue #106；基線 main 10cc51c。三個切片各開 Draft PR，最低85分才上傳，核對 exact-head 六項 CI 後請 z1nnz 審查；保留實機與正式環境驗收，不部署、不合併、不推 main、不 force push。
+來源 Issue #106；起始基線 main 10cc51c；本輪已同步正式 main 4e3eda4（#101含#107）。三個切片各開 Draft PR，最低85分才上傳，核對 exact-head 六項 CI 後請 z1nnz 審查；保留實機與正式環境驗收，不部署、不合併、不推 main、不 force push。
 
 ## 範圍與責任
 
@@ -12,7 +12,7 @@
 | 工具 | 四個 research 頁、presentation | 研究來源未提供時為空狀態；草稿與講稿是使用者文字及靜態說明，可下載，不是研究成果 |
 | 營運工具 | operations-economy／room-review／shop-campaign、admin_dashboard | 既有正式商品、角色進化鏈、裝置指派、隱私案件與稽核；缺正式彙總或佇列時明確說明 |
 
-personal-focus 的書桌內部場景屬 #104；本包只加返回連結。#104 的本機未提交工作保留在另一組 worktree，未混入本包。#107 亦修改首頁，沒有複製其分支；整合順序由 z1nnz 決定。
+personal-focus 的書桌內部場景屬 #104；本包只加返回連結。#104 的本機未提交工作保留在另一組 worktree，未混入本包。#101（含 #107）已進正式 main。本輪同步 main，保留新版大門與探索小鎮／進入 Nudge 入口；書桌只保留一組共用返回連結與腳本，整合順序由 z1nnz 決定。
 
 ## 共用路線、樣式與 bootstrap
 
@@ -36,7 +36,7 @@ personal-focus 的書桌內部場景屬 #104；本包只加返回連結。#104 �
 
 三片 source 在乾淨 ASCII 暫存目錄以變更覆蓋方式整合測試，沒有 merge 他人分支。逐項結果、前後與360px截圖、資料 hash、自評與限制在 docs/acceptance/web-game06/slice1–3。
 
-本機完成 Flutter analyze、345 Flutter tests、各分支 Node／Functions、Java21完整CI emulator、58 browser assertions；22頁無水平溢出，21頁 axe A／AA 零違規。personal-focus 的內部無障礙不在本包驗收範圍。
+本機完成 Flutter analyze、345 Flutter tests、各分支 Node／Functions、Java21完整CI emulator、58 browser assertions及3項訪客門禁檢查；22頁無水平溢出，21頁 axe A／AA 零違規。personal-focus 的內部無障礙不在本包驗收範圍。
 
 Google／Facebook provider、Storage 實際上傳、production App Check、真人螢幕閱讀器與實機仍待驗。截圖及 callable adapter 僅使用 loopback emulator 與虛構帳號，不能宣稱 production attestation。
 

@@ -1,12 +1,14 @@
 (function(root) {
   'use strict';
-  // Nudge companion town: a walkable pixel map where each building opens an
-  // existing Web feature. Rules live in town_core.js; this file draws and
-  // handles input. Nothing here writes rewards: break-game scores stay local.
+  // Nudge companion town: a walkable pixel map. Each building opens a panel
+  // of Web features taken from the world entry contract (town_routes.js);
+  // movement rules live in town_core.js. Nothing here writes rewards:
+  // break-game scores stay local and every gate stays on the target page.
   const core = root.NudgeTownCore;
   const gameCore = root.NudgeTownGameCore;
+  const routes = root.NudgeTownRoutes;
   const doc = root.document;
-  if (!core || !gameCore || !doc || doc.body?.dataset.page !== 'town') return;
+  if (!core || !gameCore || !routes || !doc || doc.body?.dataset.page !== 'town') return;
 
   const MAP_W = 1672;
   const MAP_H = 941;
@@ -14,18 +16,22 @@
   const r = (x, y, w, h) => ({ x: x * MAP_W, y: y * MAP_H, w: w * MAP_W, h: h * MAP_H });
 
   // Positions measured on assets/town/town_map.jpg (0-1 of width/height).
-  const BUILDINGS = [
-    { id: 'cabin', name: '你的小屋', desc: '夥伴與家具', href: 'personal.html', rect: r(0.04, 0.37, 0.165, 0.18), door: n(0.165, 0.585), label: n(0.12, 0.35) },
-    { id: 'board', name: '委託告示板', desc: '今天的小目標', href: 'dashboard.html', rect: r(0.29, 0.405, 0.075, 0.12), door: n(0.327, 0.555), label: n(0.327, 0.39) },
-    { id: 'tower', name: '專注塔', desc: '自律房，一起專注', href: 'rooms.html', rect: r(0.42, 0.06, 0.055, 0.25), door: n(0.447, 0.345), label: n(0.447, 0.05) },
-    { id: 'family', name: '家庭庭院', desc: '家庭連結與共同目標', href: 'guardian.html', rect: r(0.045, 0.14, 0.245, 0.17), door: n(0.18, 0.345), label: n(0.17, 0.12) },
-    { id: 'guild', name: '團體會館', desc: '團體挑戰與成員', href: 'groups.html', rect: r(0.55, 0.11, 0.205, 0.22), door: n(0.648, 0.365), label: n(0.652, 0.09) },
-    { id: 'library', name: '紀錄館', desc: '統計與每週回顧', href: 'personal-trends.html', rect: r(0.78, 0.34, 0.2, 0.2), door: n(0.875, 0.585), label: n(0.88, 0.31) },
-    { id: 'store', name: '雜貨店', desc: '角色與家具商城', href: 'profile.html', rect: r(0.13, 0.63, 0.155, 0.16), door: n(0.205, 0.82), label: n(0.205, 0.6) },
-    { id: 'park', name: '遊樂園', desc: '用休息券玩小遊戲', game: true, rect: r(0.6, 0.62, 0.2, 0.15), door: n(0.6, 0.79), label: n(0.7, 0.58) },
-    { id: 'observatory', name: '天文台', desc: 'Orbit 與 Station 裝置', href: 'personal-focus.html', rect: r(0.845, 0.04, 0.14, 0.2), door: n(0.93, 0.28), label: n(0.915, 0.03) },
-    { id: 'garden', name: '星光花園', desc: '更高等級開放', minLevel: 10, rect: r(0.745, 0.72, 0.255, 0.28), door: n(0.88, 0.92), label: n(0.86, 0.7) },
-  ];
+  // Names, descriptions and destinations come from town_routes.js.
+  const GEOMETRY = {
+    cabin: { rect: r(0.04, 0.37, 0.165, 0.18), door: n(0.165, 0.585), label: n(0.12, 0.35) },
+    board: { rect: r(0.29, 0.405, 0.075, 0.12), door: n(0.327, 0.555), label: n(0.327, 0.39) },
+    tower: { rect: r(0.42, 0.06, 0.055, 0.25), door: n(0.447, 0.345), label: n(0.447, 0.05) },
+    family: { rect: r(0.045, 0.14, 0.245, 0.17), door: n(0.18, 0.345), label: n(0.17, 0.12) },
+    guild: { rect: r(0.55, 0.11, 0.205, 0.22), door: n(0.648, 0.365), label: n(0.652, 0.09) },
+    library: { rect: r(0.78, 0.34, 0.2, 0.2), door: n(0.875, 0.585), label: n(0.88, 0.31) },
+    store: { rect: r(0.13, 0.63, 0.155, 0.16), door: n(0.205, 0.82), label: n(0.205, 0.6) },
+    park: { rect: r(0.6, 0.62, 0.2, 0.15), door: n(0.6, 0.79), label: n(0.7, 0.58), game: true },
+    observatory: { rect: r(0.845, 0.04, 0.14, 0.2), door: n(0.93, 0.28), label: n(0.915, 0.03) },
+    garden: { rect: r(0.745, 0.72, 0.255, 0.28), door: n(0.88, 0.92), label: n(0.86, 0.7), minLevel: 10 },
+    plaza: { rect: r(0.445, 0.475, 0.07, 0.09), door: n(0.48, 0.61), label: n(0.48, 0.44) },
+  };
+  const BUILDINGS = Object.keys(GEOMETRY).map(id => ({ id, ...routes.BUILDINGS[id], ...GEOMETRY[id] }));
+  const byId = id => BUILDINGS.find(b => b.id === id) || null;
   const BOUNDS = { x: 10, y: 0.22 * MAP_H, w: MAP_W - 20, h: 0.76 * MAP_H };
   const START = n(0.475, 0.66);
   const SPEED = 150;
@@ -34,30 +40,37 @@
 
   const TOUR = [
     { at: null, text: '歡迎來到 Nudge 夥伴小鎮！我是館長歐莉。用 WASD 或方向鍵走路，也可以直接點地面；走到建築旁按 F，或直接點建築就能進去。' },
-    { at: 'cabin', text: '這是你的小屋，夥伴住在這裡。你在 App 完成的真實行動，會讓書櫃、盆栽和徽章慢慢長出來。' },
-    { at: 'board', text: '委託告示板寫著今天的小目標。只要做一件小事，就是很好的開始。' },
+    { at: 'board', text: '委託告示板寫著今天的下一步和任務。只要做一件小事，就是很好的開始。' },
+    { at: 'cabin', text: '這是你的小屋，夥伴住在這裡，書桌也在裡面。坐下來專注，雲端確認後夥伴會有反應。' },
     { at: 'tower', text: '專注塔裡是自律房。大家各自開始自己的專注，坐在一起就不孤單。' },
     { at: 'family', text: '家庭庭院和團體會館是和家人、夥伴一起前進的地方。分享什麼，永遠由你自己決定。' },
-    { at: 'park', text: '遊樂園要用休息券才能玩。每完成一次 25 分鐘以上、由雲端確認的專注，就能拿到一張。' },
-    { at: 'garden', text: '星光花園還鎖著。角色升到 10 級就會開放，升級是有意義的！' },
+    { at: 'store', text: '雜貨店賣角色和家具，只能用雲端帳本裡的自律幣購買。' },
+    { at: 'plaza', text: '中間的噴泉廣場有郵箱、好友和隱私設定。找不到東西時，右上角的「☰」會列出所有地點。' },
+    { at: 'garden', text: '星光花園在角色 10 級時開放，會隨你自己的真實行動長出花草。' },
     { at: null, text: '導覽結束！右上角的問號可以再看一次。祝你今天也穩穩前進。' },
   ];
 
+  const SOURCE_LABELS = { cloud: '正式資料', mixed: '部分示範', demo: '示範資料', static: '說明頁' };
   const els = id => doc.getElementById(id);
   const canvas = els('townCanvas');
-  const ctx = canvas.getContext('2d');
+  let ctx = null;
+  try { ctx = canvas.getContext ? canvas.getContext('2d') : null; } catch { ctx = null; }
   const reducedMotion = root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const store = {
     get(key) { try { return root.localStorage.getItem(key); } catch { return null; } },
     set(key, value) { try { root.localStorage.setItem(key, value); } catch { /* private mode */ } },
   };
 
+  const arrival = byId(routes.arrivalBuilding(root.location?.search));
+  const startAt = arrival ? { ...arrival.door } : { ...START };
   const state = {
-    player: { ...START },
+    player: { ...startAt },
     target: null,
     pendingBuilding: null,
     keys: new Set(),
-    camera: { ...START },
+    camera: { ...startAt },
+    panel: null,
+    panelReturnFocus: null,
     zoom: 1,
     level: 1,
     uid: null,
@@ -67,9 +80,11 @@
     face: 0,
     walking: 0,
     toastUntil: 0,
+    static: false,
   };
 
   const mapImage = new Image();
+  mapImage.addEventListener('error', () => enterStatic('小鎮地圖載入失敗'));
   mapImage.src = 'assets/town/town_map.jpg';
   const playerImage = new Image();
   playerImage.src = 'assets/avatar/characters/character_0.png';
@@ -98,20 +113,42 @@
 
   // ---------- labels and directory ----------
   const labels = new Map();
+  const directoryButtons = new Map();
   for (const b of BUILDINGS) {
     const el = doc.createElement('div');
     el.className = 'town-label';
-    el.innerHTML = `<strong></strong><span></span>`;
-    el.querySelector('strong').textContent = b.name;
+    const title = doc.createElement('strong');
+    title.textContent = b.name;
+    el.append(title, doc.createElement('span'));
     els('townLabels').appendChild(el);
     labels.set(b.id, el);
     const li = doc.createElement('li');
-    const link = doc.createElement('a');
-    link.href = b.href || '#';
-    link.textContent = `${b.name}：${b.desc}`;
-    link.addEventListener('click', event => { event.preventDefault(); enter(b); });
-    li.appendChild(link);
+    const button = doc.createElement('button');
+    button.type = 'button';
+    button.className = 'town-directory-building';
+    button.addEventListener('click', () => {
+      // Close the list first so the panel is on top; Esc returns to the ☰ button.
+      // In static mode the list is the town, so it stays and focus returns here.
+      if (!state.static) {
+        els('townDirectory').classList.remove('is-open');
+        els('townDirectoryToggle').setAttribute('aria-expanded', 'false');
+        els('townDirectoryToggle').focus({ preventScroll: true });
+      } else {
+        button.focus({ preventScroll: true }); // Safari does not focus clicked buttons
+      }
+      openPanel(b);
+    });
+    li.appendChild(button);
     els('townDirectoryList').appendChild(li);
+    directoryButtons.set(b.id, button);
+  }
+  for (const dest of routes.DESTINATIONS.filter(x => x.audience === 'tool')) {
+    const li = doc.createElement('li');
+    const link = doc.createElement('a');
+    link.href = dest.href;
+    link.textContent = `${dest.title}（${SOURCE_LABELS[dest.source]}）`;
+    li.appendChild(link);
+    els('townToolList').appendChild(li);
   }
   function refreshLabels() {
     for (const b of BUILDINGS) {
@@ -119,14 +156,50 @@
       const el = labels.get(b.id);
       el.classList.toggle('is-locked', !unlocked);
       el.querySelector('span').textContent = unlocked ? b.desc : `Lv ${b.minLevel} 解鎖`;
+      directoryButtons.get(b.id).textContent = `${b.name}：${unlocked ? b.desc : `角色 Lv ${b.minLevel} 開放`}`;
     }
+    if (state.panel) renderPanel(state.panel);
+  }
+  function setDirectoryOpen(open, { focus = true } = {}) {
+    const show = open || state.static;
+    els('townDirectory').classList.toggle('is-open', show);
+    els('townDirectoryToggle').setAttribute('aria-expanded', String(show));
+    if (show && focus) els('townDirectoryList').querySelector('button, a')?.focus({ preventScroll: true });
   }
 
-  // ---------- view math ----------
-  function scale() {
-    const fit = Math.max(canvas.clientHeight / (MAP_H * 0.62), canvas.clientWidth / MAP_W);
-    return fit * state.zoom;
+  /** Canvas or map art unavailable: keep the town usable as a plain list. */
+  function enterStatic(reason) {
+    if (state.static) return;
+    state.static = true;
+    doc.body.classList.add('town-static');
+    state.tour = -1;
+    els('townDialog').hidden = true;
+    els('townPrompt').hidden = true;
+    const note = els('townDirectoryNote');
+    note.hidden = false;
+    note.textContent = `${reason}，可以直接從下面的清單進入各建築。`;
+    setDirectoryOpen(true, { focus: false });
   }
+  els('townDirectoryToggle').addEventListener('click', () => {
+    setDirectoryOpen(!els('townDirectory').classList.contains('is-open'));
+  });
+  els('townDirectoryClose').addEventListener('click', () => {
+    setDirectoryOpen(false);
+    els('townDirectoryToggle').focus({ preventScroll: true });
+  });
+
+  // ---------- view math ----------
+  function baseFit() {
+    return Math.max(canvas.clientHeight / (MAP_H * 0.62), canvas.clientWidth / MAP_W);
+  }
+  function scale() { return baseFit() * state.zoom; }
+  /** Smallest zoom that still covers the screen, so no empty band shows. */
+  function minZoom() {
+    const fit = baseFit();
+    if (!fit) return 1;
+    return Math.min(1, Math.max(canvas.clientWidth / MAP_W, canvas.clientHeight / MAP_H) / fit);
+  }
+  function setZoom(z) { state.zoom = Math.min(1.8, Math.max(minZoom(), z)); }
   function toScreen(p) {
     const s = scale();
     return { x: (p.x - state.camera.x) * s + canvas.clientWidth / 2, y: (p.y - state.camera.y) * s + canvas.clientHeight / 2 };
@@ -145,11 +218,20 @@
     };
   }
 
+  let labelTop = 64;
+  let zoomTouched = false;
   function resize() {
+    if (!ctx) return;
     const dpr = Math.min(root.devicePixelRatio || 1, 2);
     canvas.width = Math.round(canvas.clientWidth * dpr);
     canvas.height = Math.round(canvas.clientHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Phones start zoomed out so nearby buildings are on screen.
+    if (!zoomTouched) state.zoom = canvas.clientWidth < 560 ? minZoom() : 1;
+    else setZoom(state.zoom);
+    // On phones the tool bar spans the screen; keep building labels below it.
+    const tools = doc.querySelector('.town-hud-tools')?.getBoundingClientRect?.();
+    labelTop = tools && tools.width > canvas.clientWidth * 0.6 ? Math.max(64, tools.bottom + 36) : 64;
   }
 
   // ---------- interaction ----------
@@ -161,26 +243,98 @@
   }
 
   function enter(b) {
-    if (!core.isUnlocked(b, state.level)) {
-      toast(`${b.name}要角色 Lv ${b.minLevel} 才會開放，繼續累積真實行動吧！`);
-      return;
-    }
-    if (b.game) { openGame(); return; }
-    root.location.href = b.href;
+    if (b) openPanel(b);
   }
+
+  // ---------- building panel ----------
+  // Every building opens the same panel: its destinations from the route
+  // table, each marked open / sign in first / locked / under construction.
+  function viewer() { return { signedIn: Boolean(state.uid), level: state.level }; }
+
+  function openPanel(b) {
+    if (!state.panel) state.panelReturnFocus = doc.activeElement;
+    state.panel = b;
+    state.keys.clear();
+    state.target = null;
+    state.pendingBuilding = null;
+    renderPanel(b);
+    els('townPanel').hidden = false;
+    const first = els('townPanel').querySelector('.town-panel-list a, .town-panel-list button') || els('townPanelClose');
+    first.focus({ preventScroll: true });
+  }
+
+  function closePanel() {
+    if (!state.panel) return;
+    state.panel = null;
+    els('townPanel').hidden = true;
+    const back = state.panelReturnFocus;
+    state.panelReturnFocus = null;
+    if (back && doc.contains(back) && typeof back.focus === 'function') back.focus({ preventScroll: true });
+  }
+
+  function renderPanel(b) {
+    els('townPanelTitle').textContent = b.name;
+    const locked = !core.isUnlocked(b, state.level);
+    els('townPanelDesc').textContent = locked
+      ? `${b.name}要角色 Lv ${b.minLevel} 才會開放（目前 Lv ${state.level}）。升級只來自雲端確認的真實行動。`
+      : b.desc;
+    const list = els('townPanelList');
+    list.textContent = '';
+    for (const dest of routes.destinationsFor(b.id, { includePlanned: true })) {
+      list.appendChild(panelEntry(dest));
+    }
+  }
+
+  function panelEntry(dest) {
+    const li = doc.createElement('li');
+    const entry = routes.entryState(dest, viewer());
+    let control;
+    if (dest.id === 'break-game' && entry.kind === 'open') {
+      control = doc.createElement('button');
+      control.type = 'button';
+      control.addEventListener('click', () => { closePanel(); openGame(); });
+    } else if (entry.kind === 'open' || entry.kind === 'login') {
+      control = doc.createElement('a');
+      control.href = entry.href;
+      if (entry.kind === 'login') {
+        control.addEventListener('click', () => {
+          store.set('nudgePostLoginRedirect', dest.href.split('#')[0].split('?')[0]);
+        });
+      }
+    } else {
+      control = doc.createElement('span');
+      control.setAttribute('aria-disabled', 'true');
+    }
+    control.className = `town-panel-entry is-${entry.kind}`;
+    const title = doc.createElement('strong');
+    title.textContent = entry.kind === 'login' ? `${dest.title}（先登入）` : dest.title;
+    const note = doc.createElement('small');
+    const source = dest.source === 'cloud' ? '' : `・${SOURCE_LABELS[dest.source]}`;
+    note.textContent = `${entry.reason || (entry.kind === 'open' ? '進入' : '')}${source}`;
+    control.append(title, note);
+    li.appendChild(control);
+    return li;
+  }
+
+  els('townPanelClose').addEventListener('click', closePanel);
 
   function buildingAt(p) {
     return BUILDINGS.find(b => p.x >= b.rect.x && p.x <= b.rect.x + b.rect.w && p.y >= b.rect.y && p.y <= b.rect.y + b.rect.h) || null;
   }
 
   canvas.addEventListener('pointerdown', event => {
-    if (state.tour >= 0 || !els('townGame').hidden) return;
+    if (state.tour >= 0 || state.panel || !els('townGame').hidden) return;
     const rect = canvas.getBoundingClientRect();
     const p = toMap(event.clientX - rect.left, event.clientY - rect.top);
     const b = buildingAt(p);
-    if (b) {
+    if (b && reducedMotion) {
+      // No walking animation: arrive at the door and open the panel at once.
+      state.player = { ...b.door };
+      enter(b);
+    } else if (b) {
       state.target = { ...b.door };
       state.pendingBuilding = b;
+      toast(`走向${b.name}…`, 1600);
     } else {
       state.target = p;
       state.pendingBuilding = null;
@@ -188,8 +342,9 @@
   });
 
   doc.addEventListener('keydown', event => {
-    if (event.target instanceof HTMLElement && event.target.closest('input, textarea')) return;
+    if (event.target?.closest?.('input, textarea')) return;
     const key = event.key.toLowerCase();
+    if (state.static && !state.panel) return;
     if (state.tour >= 0) {
       if (key === ' ' || key === 'enter') { event.preventDefault(); nextTour(); }
       if (key === 'escape') endTour();
@@ -203,21 +358,33 @@
       }
       return;
     }
+    if (state.panel) {
+      if (key === 'escape') { event.preventDefault(); closePanel(); }
+      return;
+    }
+    if (key === 'escape' && els('townDirectory').classList.contains('is-open')) {
+      setDirectoryOpen(false);
+      els('townDirectoryToggle').focus({ preventScroll: true });
+      return;
+    }
+    if (event.target?.closest?.('#townDirectory')) return;
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
       event.preventDefault();
       state.keys.add(key);
       state.target = null;
       state.pendingBuilding = null;
     }
-    if (key === 'f' && state.near) enter(state.near);
+    if (!els('townGame').hidden) return;
+    const onMap = !event.target || event.target === doc.body || event.target === canvas;
+    if (state.near && (key === 'f' || (key === 'enter' && onMap))) enter(state.near);
   });
   doc.addEventListener('keyup', event => state.keys.delete(event.key.toLowerCase()));
   root.addEventListener('blur', () => { state.keys.clear(); if (game.running) toggleGamePause(); });
   doc.addEventListener('visibilitychange', () => { if (doc.hidden && game.running) toggleGamePause(); });
 
   els('townPromptEnter').addEventListener('click', () => state.near && enter(state.near));
-  els('townZoomIn').addEventListener('click', () => { state.zoom = Math.min(1.8, state.zoom + 0.2); });
-  els('townZoomOut').addEventListener('click', () => { state.zoom = Math.max(0.6, state.zoom - 0.2); });
+  els('townZoomIn').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom + 0.2); });
+  els('townZoomOut').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom - 0.2); });
   els('townHelp').addEventListener('click', startTour);
 
   // ---------- guided tour ----------
@@ -228,7 +395,7 @@
     els('townDialogStep').textContent = `${state.tour + 1} / ${TOUR.length}`;
     els('townDialogNext').focus({ preventScroll: true });
   }
-  function startTour() { state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
+  function startTour() { if (state.static) return; state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
   function nextTour() { if (state.tour + 1 >= TOUR.length) endTour(); else { state.tour += 1; showTourStep(); } }
   function endTour() {
     state.tour = -1;
@@ -254,8 +421,10 @@
     pauseStarted: 0, score: 0, combo: 0, x: 0.5, stars: [], clouds: [], last: 0,
     lastHudSecond: -1, lastHudScore: -1, lastHudCombo: -1, ticket: null };
   const gameCanvas = els('townGameCanvas');
-  const gctx = gameCanvas.getContext('2d');
+  let gctx = null;
+  try { gctx = gameCanvas.getContext ? gameCanvas.getContext('2d') : null; } catch { gctx = null; }
   function resizeGameCanvas() {
+    if (!gctx) return;
     const dpr = Math.min(root.devicePixelRatio || 1, 2);
     gameCanvas.width = Math.round(gameCanvas.clientWidth * dpr);
     gameCanvas.height = Math.round(gameCanvas.clientHeight * dpr);
@@ -264,6 +433,7 @@
   root.addEventListener('resize', () => { if (!els('townGame').hidden) resizeGameCanvas(); });
   function openGame() {
     if (!state.uid) { toast('登入後完成一次專注，就能拿到休息券。'); return; }
+    if (!gctx) { toast('這個瀏覽器無法顯示小遊戲。'); return; }
     const list = tickets();
     if (!list.length) { toast('還沒有休息券。完成一次 25 分鐘以上、由雲端確認的專注，就能來玩。'); return; }
     game.ticket = list[0];
@@ -399,12 +569,15 @@
 
   let last = performance.now();
   function frame(now) {
+    if (state.static || !ctx) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     if (!els('townGame').hidden) { if (game.running) tickGame(now); root.requestAnimationFrame(frame); return; }
 
-    const blockers = BUILDINGS.map(b => b.rect);
-    const dir = state.tour < 0 ? moveDirection() : null;
+    // The plaza fountain sits on the central crossroads: it is a tap target,
+    // not a wall, or walking to the tower would stall against it.
+    const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect);
+    const dir = state.tour < 0 && !state.panel ? moveDirection() : null;
     if (dir) {
       const before = state.player;
       state.player = core.step(state.player, dir, dt, SPEED, blockers, BOUNDS, RADIUS);
@@ -426,7 +599,7 @@
 
     state.near = state.tour < 0 ? core.nearestDoor(state.player, BUILDINGS, REACH) : null;
     const prompt = els('townPrompt');
-    prompt.hidden = !state.near;
+    prompt.hidden = !state.near || Boolean(state.panel) || els('townDirectory').classList.contains('is-open');
     if (state.near) {
       els('townPromptText').textContent = core.isUnlocked(state.near, state.level)
         ? `按 F 進入${state.near.name}` : `${state.near.name}：Lv ${state.near.minLevel} 開放`;
@@ -462,7 +635,7 @@
       const p = toScreen(b.label);
       const el = labels.get(b.id);
       el.style.left = `${p.x}px`;
-      el.style.top = `${Math.max(64, p.y)}px`;
+      el.style.top = `${Math.max(labelTop, p.y)}px`;
       el.classList.toggle('is-near', state.near === b);
     }
     if (state.toastUntil && now > state.toastUntil) { els('townToast').hidden = true; state.toastUntil = 0; }
@@ -484,7 +657,8 @@
     if (!playerImage.src.endsWith(sprite)) playerImage.src = sprite;
     els('townAvatar').src = sprite;
     els('townName').textContent = user ? (data?.nickname || '自律夥伴') : '訪客';
-    els('townLevel').textContent = user ? `Lv ${state.level}` : 'Lv 1・登入後同步';
+    // Guests see no level, XP or sync status: there is no account data to show.
+    els('townLevel').textContent = user ? `Lv ${state.level}` : '自由探索中';
     refreshLabels();
     refreshTicket();
   }
@@ -513,11 +687,15 @@
 
   root.addEventListener('resize', resize);
   doc.addEventListener('firebase-ready', connect);
+  if (!ctx) enterStatic('這個瀏覽器無法顯示小鎮地圖');
   resize();
+  if (ctx) state.camera = clampCamera(state.camera);
   refreshLabels();
   tickClock();
   root.setInterval(tickClock, 15000);
   root.setInterval(refreshTicket, 60000);
-  if (store.get('nudge_town_tour_done') !== '1') startTour();
-  root.requestAnimationFrame(frame);
+  // Coming back from a page (?at=…) lands at that door without replaying the tour.
+  if (!arrival && store.get('nudge_town_tour_done') !== '1') startTour();
+  if (arrival) toast(`回到${arrival.name}門口。`, 2200);
+  if (ctx) root.requestAnimationFrame(frame);
 })(typeof globalThis !== 'undefined' ? globalThis : this);

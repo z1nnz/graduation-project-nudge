@@ -555,3 +555,23 @@ h1, h2, h3 {
     gap: 16px;
   }
 }
+
+/* Town entry: a second public door next to 進入 Nudge (town.html). */
+.nav-actions, .footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.footer-actions { justify-content: center; }
+.hero-cta { flex-wrap: wrap; }
+
+@media (max-width: 480px) {
+  .nav-actions { gap: 6px; }
+  .nav-actions .btn { padding: 8px 12px; font-size: 0.9rem; }
+  .logo { font-size: 1.2rem; }
+}
+
+/* The decorative glows sit partly off-screen. Clip them at the root so phones
+   keep a device-width layout and the navbar entries stay on screen. */
+html { overflow-x: hidden; }

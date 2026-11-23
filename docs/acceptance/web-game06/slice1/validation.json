@@ -1,8 +1,8 @@
 {
-  "base": "10cc51c3931594ade600f7385477a3439aa01dd1",
+  "base": "4e3eda4b340458e3951c67aff45dd651c588473c",
   "root": {
-    "tests": 233,
-    "pass": 230,
+    "tests": 253,
+    "pass": 250,
     "fail": 0,
     "skipped": 3
   },
@@ -45,7 +45,7 @@
     "Tools require gate bootstrap isolation to merge first; no Cloud/Rules/migration changes"
   ],
   "source_sha256": {
-    "docs/specs/web-game06-delivery-contract.md": "f43af1ae7e7b81c41515e4a1e4e593bf34967104b3db1272a915286b115384f8",
+    "docs/specs/web-game06-delivery-contract.md": "f26ebf25466a693461842ef3385bbb6366f7288bdac9b46c52a651c3be87a7d2",
     "test/growth_museum_foundation_test.js": "f686fe14197854306ee621a00479b86fa853e3f0dd0f4bcd014a7fff28007721",
     "test/museum_town_return_test.js": "d91e0632d7c937c99b58b8540ae3dacae3c56d5a0953f3941aa82edf3e88c3fb",
     "web_dashboard/assets/growth_identity.js": "23a274fd90d14169993b58e56af239df0a7dd05cd1a769c990e24c52eaa0b5cb",
@@ -53,7 +53,7 @@
     "web_dashboard/assets/growth_museum.js": "e3a1375489aacdff371db00bbb8cfe5c9add1a1944806b46db6bc52b798fe7f2",
     "web_dashboard/assets/growth_museum_core.js": "b0bd6de8ce1fadd54e27abc406f9cfdae1497626df16b16e55591d25a424de77",
     "web_dashboard/assets/town_chrome.css": "60999fe61ec4fe0fcba478782b109f1f7e7e14551de1b9fe63d4cc503c6a3a07",
-    "web_dashboard/assets/town_routes.js": "897970b71d0cb2de3876425ee727055f44c5c0b6459c49dc7e0453422d8da9bf",
+    "web_dashboard/assets/town_routes.js": "b35979a7803fe44e06ce48bec12dd86603e1abed029b665e6bf4643b0a3478c0",
     "web_dashboard/museum-demo.html": "16f675e466fa22b766a4717df7edae4ae4cacd146bf3a580634eef64b7f2add9",
     "web_dashboard/personal-focus.html": "00717cc6609e75e8e18345fa9946546093dabcc30e550d5d887d086c65df9e28",
     "web_dashboard/personal-identity.html": "bd22e624f5a513ae94f2c6e57c65e57e4b1ffad47db12aa350eb5b86279e9e96",
@@ -65,5 +65,7 @@
     "web_dashboard/personal-trends.html": "add1cf5ed015f3cf80ebf676a0031c2564edd790ceb81a8918f1d016daf495af",
     "web_dashboard/personal-weather.html": "e272d9beec430eeb342b01fb19b48f6b4b13a6173401aba25b33d474955cc87c",
     "web_dashboard/personal.html": "51e6216e84a8a2e1fa9547ba0edddd7d8fe444371375309ea1691e7ec67fcde7"
-  }
+  },
+  "integration_main": "4e3eda4b340458e3951c67aff45dd651c588473c",
+  "main_sync_notes": "Synced official main (#101 including #107), retained both public entry contracts, removed duplicate focus return scripts/links. Web and Flutter verification rerun; Functions/Rules trees unchanged."
 }
