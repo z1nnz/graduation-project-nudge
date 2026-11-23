@@ -1,102 +1,30 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nudge 自律天氣預報</title>
-    <link rel="stylesheet" href="assets/styles.css" />
-  </head>
-  <body data-page="personal">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律天氣</small></span></a>
-        <nav class="nav">
-          <a href="dashboard.html">總覽入口</a>
-          <a class="active" href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">商城頁</a>
-          <a href="research.html">研究中心</a>
-          <a href="friend.html">好友功能</a>
-          <a href="planet.html">自律城市 / 星球</a>
-        
-          <a href="profile.html">個人名片</a>
-        </nav>
-      </aside>
-      <main class="main">
-        <div class="page-section" style="padding-bottom: 0; padding-top: 20px;"><div class="subnav" style="margin-bottom: 24px;">
-              <a href="personal.html">中心總覽</a>
-              <a href="personal-trends.html">趨勢</a>
-              <a href="personal-pressure.html">壓力雷達</a>
-              <a class="active" href="personal-weather.html">自律天氣</a>
-              <a href="personal-time-capsule.html">時間膠囊</a>
-              <a href="personal-letter.html">未來的信</a>
-              <a href="personal-skill-tree.html">人生技能樹</a>
-            </div></div>
-
-        <section class="page-section panel">
-          <span class="eyebrow">一週自律天氣</span>
-          <h2>把每天的風險變成一眼看懂的提醒。</h2>
-          <div class="weather-chart-container">
-            <div class="chart-bar-group">
-              <div class="chart-bar bar-sunny" style="height: 85%;">
-                <span class="chart-icon">☀️</span>
-              </div>
-              <span class="chart-label">週一</span>
-              <span class="chart-desc">晴朗穩定</span>
-            </div>
-            <div class="chart-bar-group">
-              <div class="chart-bar bar-sunny" style="height: 90%;">
-                <span class="chart-icon">☀️</span>
-              </div>
-              <span class="chart-label">週二</span>
-              <span class="chart-desc">狀態極佳</span>
-            </div>
-            <div class="chart-bar-group">
-              <div class="chart-bar bar-cloudy" style="height: 60%;">
-                <span class="chart-icon">☁️</span>
-              </div>
-              <span class="chart-label">週三</span>
-              <span class="chart-desc">能量下降</span>
-            </div>
-            <div class="chart-bar-group">
-              <div class="chart-bar bar-rain" style="height: 40%;">
-                <span class="chart-icon">🌧️</span>
-              </div>
-              <span class="chart-label">週四</span>
-              <span class="chart-desc">疲憊微雨</span>
-            </div>
-            <div class="chart-bar-group">
-              <div class="chart-bar bar-storm" style="height: 25%;">
-                <span class="chart-icon">⛈️</span>
-              </div>
-              <span class="chart-label">週五</span>
-              <span class="chart-desc">紅色警戒</span>
-            </div>
-            <div class="chart-bar-group">
-              <div class="chart-bar bar-cloudy" style="height: 65%;">
-                <span class="chart-icon">⛅</span>
-              </div>
-              <span class="chart-label">週六</span>
-              <span class="chart-desc">逐漸恢復</span>
-            </div>
-            <div class="chart-bar-group">
-              <div class="chart-bar bar-rainbow" style="height: 100%;">
-                <span class="chart-icon">🌈</span>
-              </div>
-              <span class="chart-label">週日</span>
-              <span class="chart-desc">狀態滿檔</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="result-board page-section">
-          <strong>預報建議</strong>
-          <p>週三前先完成報告初稿，週五不要排太重的任務。把自律幣目標放在週一到週四比較穩。</p>
-          <button class="button primary" data-toast="已把自律天氣加入下週規劃 Demo">加入下週規劃</button>
-        </section>
-      </main>
-    </div>
-    <script src="assets/app.js?v=25"></script>
-  </body>
-</html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nudge 生活天氣</title>
+<link rel="stylesheet" href="assets/growth_museum.css?v=1">
+<script defer src="assets/growth_museum_core.js?v=1"></script>
+<script defer src="assets/growth_museum.js?v=1"></script>
+</head>
+<body data-growth-museum="weather" data-museum-demo="false">
+<a class="skip-link" href="#museumMain">跳至紀錄內容</a>
+<header class="museum-header">
+<a class="museum-brand" href="personal.html">Nudge · 成長紀錄館</a>
+<a id="museumWorld" href="dashboard.html">返回總覽（小鎮待整合）</a>
+</header>
+<main id="museumMain" tabindex="-1">
+<p class="museum-kicker">YOUR GROWTH ARCHIVE</p>
+<h1 id="museumTitle">生活天氣</h1>
+<p id="museumDescription">回顧自己的行動，選擇下一步。</p>
+<nav id="museumNav" class="museum-nav" aria-label="紀錄館書籍"></nav>
+<p id="museumStatus" class="museum-status" role="status" aria-live="polite">尚未讀取雲端紀錄；沒有以範例代替個人資料。</p>
+<section id="museumView" class="museum-view" aria-label="生活天氣內容">
+<p class="museum-empty">啟用 JavaScript 並登入後讀取本人資料。<a href="login.html">登入帳號</a></p>
+</section>
+</main>
+<footer class="museum-footer">本人私有紀錄 · 成果與建議分開
+<p><a href="privacy.html">隱私與資料權利</a> · <a href="research.html">研究中心（獨立展示工具）</a> · <a href="presentation.html">發表展示（範例）</a> · <a href="admin_dashboard.html">後台（原角色門禁）</a></p>
+<p><a href="museum-demo.html">查看明確標示的虛構展示</a></p>
+</footer>
+</body></html>
