@@ -1,6 +1,7 @@
 .focus-round {
   margin-block: 16px;
 }
+.focus-round p { color: var(--w-ink); }
 .focus-round time {
   display: block;
   font: 2.2rem var(--w-pixel);
