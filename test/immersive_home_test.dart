@@ -51,6 +51,7 @@ Future<Map<String, int>> _pump(
           onOpenCharacter: () => hit('character'),
           onOpenDecor: () => hit('decor'),
           onOpenMenu: () => hit('menu'),
+          onOpenShop: () => hit('shop'),
         ),
       ),
     ),
@@ -147,5 +148,38 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
     expect(find.byKey(const Key('cabin-dust')), findsWidgets);
+  });
+
+  testWidgets('the hotbar opens the five main features', (tester) async {
+    late Map<String, int> opened;
+    await tester.runAsync(() async => opened = await _pump(tester));
+    for (final entry in {
+      'hotbar-quests': ('委託', 'quests'),
+      'hotbar-rooms': ('自律房', 'rooms'),
+      'hotbar-focus': ('專注', 'desk'),
+      'hotbar-social': ('社交', 'companions'),
+      'hotbar-shop': ('商城', 'shop'),
+    }.entries) {
+      final slot = find.byKey(Key(entry.key));
+      expect(
+        find.descendant(of: slot, matching: find.text(entry.value.$1)),
+        findsOneWidget,
+        reason: entry.key,
+      );
+      await tester.tap(slot);
+      expect(opened[entry.value.$2], 1, reason: entry.key);
+    }
+    // Open quests are counted on the quest slot.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('hotbar-quests')),
+        matching: find.text('3'),
+      ),
+      findsOneWidget,
+    );
+    // Focus is the main action, so its slot is the biggest.
+    final focus = tester.getSize(find.byKey(const Key('hotbar-focus')));
+    final shop = tester.getSize(find.byKey(const Key('hotbar-shop')));
+    expect(focus.height, greaterThan(shop.height));
   });
 }

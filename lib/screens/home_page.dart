@@ -118,6 +118,7 @@ class HomePage extends StatelessWidget {
             onOpenRooms: () => push(const StudyRoomListPage()),
             onOpenCharacter: () => push(const CharacterPage()),
             onOpenDecor: () => showHomeDecorSheet(context),
+            onOpenShop: () => push(const AvatarShopPage()),
             onOpenMenu: () => showCabinMenu(
               context,
               onOpen: (id) => push(switch (id) {

@@ -152,7 +152,7 @@ class SocialPage extends StatelessWidget {
 
     final previewLeaderboard = leaderboard.take(3).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('同伴')),
+      appBar: AppBar(title: const Text('社交')),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
         onPressed: () => _openAddFriendPage(context),

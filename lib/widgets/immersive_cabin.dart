@@ -430,6 +430,7 @@ class ImmersiveHome extends StatefulWidget {
     required this.onOpenCharacter,
     required this.onOpenDecor,
     required this.onOpenMenu,
+    required this.onOpenShop,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
     this.now,
@@ -451,6 +452,7 @@ class ImmersiveHome extends StatefulWidget {
   final VoidCallback onOpenCharacter;
   final VoidCallback onOpenDecor;
   final VoidCallback onOpenMenu;
+  final VoidCallback onOpenShop;
   final String? confirmedActivityLabel;
   final DateTime? now;
 
@@ -652,7 +654,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 box,
                 r,
                 'cabin-door-family',
-                '同伴',
+                '社交',
                 widget.onOpenCompanions,
               ),
             if (layout.doors['group'] case final r?)
@@ -758,8 +760,245 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 ],
               ),
             ),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: MediaQuery.paddingOf(context).bottom + 8,
+              child: _Hotbar(
+                questCount: widget.presentation.questCount,
+                glow: _still ? null : _pulse,
+                onOpenQuests: widget.onOpenQuests,
+                onOpenRooms: widget.onOpenRooms,
+                onOpenFocus: widget.onOpenDesk,
+                onOpenSocial: widget.onOpenCompanions,
+                onOpenShop: widget.onOpenShop,
+              ),
+            ),
           ];
         },
+      ),
+    );
+  }
+}
+
+/// Game-style hotbar along the bottom: the five main features, with focus
+/// as the big glowing centre slot. Room objects open the same pages.
+class _Hotbar extends StatelessWidget {
+  const _Hotbar({
+    required this.questCount,
+    required this.glow,
+    required this.onOpenQuests,
+    required this.onOpenRooms,
+    required this.onOpenFocus,
+    required this.onOpenSocial,
+    required this.onOpenShop,
+  });
+
+  final int questCount;
+  final Animation<double>? glow;
+  final VoidCallback onOpenQuests;
+  final VoidCallback onOpenRooms;
+  final VoidCallback onOpenFocus;
+  final VoidCallback onOpenSocial;
+  final VoidCallback onOpenShop;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xEE8A5A34), Color(0xEE4A2D1E)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFC9934F), width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x99000000),
+            offset: Offset(0, 4),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _HotbarSlot(
+            key: const Key('hotbar-quests'),
+            label: '委託',
+            icon: 'assets/ui/icons/icon_quest.png',
+            fallback: Icons.receipt_long,
+            count: questCount,
+            onTap: onOpenQuests,
+          ),
+          _HotbarSlot(
+            key: const Key('hotbar-rooms'),
+            label: '自律房',
+            icon: 'assets/ui/icons/icon_room.png',
+            fallback: Icons.groups,
+            onTap: onOpenRooms,
+          ),
+          _HotbarSlot(
+            key: const Key('hotbar-focus'),
+            label: '專注',
+            icon: 'assets/ui/icons/icon_focus.png',
+            fallback: Icons.hourglass_bottom,
+            big: true,
+            glow: glow,
+            onTap: onOpenFocus,
+          ),
+          _HotbarSlot(
+            key: const Key('hotbar-social'),
+            label: '社交',
+            icon: 'assets/ui/icons/icon_social.png',
+            fallback: Icons.favorite,
+            onTap: onOpenSocial,
+          ),
+          _HotbarSlot(
+            key: const Key('hotbar-shop'),
+            label: '商城',
+            icon: 'assets/ui/icons/icon_shop.png',
+            fallback: Icons.storefront,
+            onTap: onOpenShop,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HotbarSlot extends StatelessWidget {
+  const _HotbarSlot({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.fallback,
+    required this.onTap,
+    this.count = 0,
+    this.big = false,
+    this.glow,
+  });
+
+  final String label;
+  final String icon;
+  final IconData fallback;
+  final VoidCallback onTap;
+  final int count;
+  final bool big;
+  final Animation<double>? glow;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = big ? 52.0 : 34.0;
+    Widget face = Container(
+      height: big ? 80 : 62,
+      decoration: BoxDecoration(
+        gradient: big
+            ? const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFE6A3), Color(0xFFE0A84A)],
+              )
+            : null,
+        color: big ? null : const Color(0xFFF6E7C8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: big ? const Color(0xFF8A4A10) : const Color(0xFF4A2D22),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: size,
+            height: size,
+            child: Image.asset(
+              icon,
+              filterQuality: FilterQuality.none,
+              errorBuilder: (_, _, _) => Icon(
+                fallback,
+                size: size * 0.8,
+                color: const Color(0xFF8A5A34),
+              ),
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: pixelFont,
+              fontSize: big ? 14 : 12,
+              color: const Color(0xFF3A1D0C),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (glow case final g?) {
+      face = AnimatedBuilder(
+        animation: g,
+        child: face,
+        builder: (_, child) => DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Color.fromRGBO(255, 210, 110, 0.25 + 0.35 * g.value),
+                blurRadius: 10 + 8 * g.value,
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      );
+    }
+    return Expanded(
+      flex: big ? 6 : 5,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Semantics(
+          button: true,
+          label: count > 0 ? '$label，$count 件未完成' : label,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                face,
+                if (count > 0)
+                  Positioned(
+                    top: -6,
+                    right: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD8452E),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFFFFF3D6),
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        '$count',
+                        style: const TextStyle(
+                          fontFamily: pixelFont,
+                          fontSize: 11,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
