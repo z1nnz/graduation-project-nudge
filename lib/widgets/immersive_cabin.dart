@@ -220,7 +220,7 @@ class _WoodSign extends StatelessWidget {
         style: const TextStyle(
           fontFamily: pixelFont,
           color: Color(0xFFFFF3D6),
-          fontSize: 14,
+          fontSize: 16,
           shadows: [Shadow(color: Color(0xFF3B2418), offset: Offset(1, 1))],
         ),
       ),
@@ -254,7 +254,7 @@ class _Plate extends StatelessWidget {
         style: const TextStyle(
           fontFamily: pixelFont,
           color: Color(0xFFFFF3D6),
-          fontSize: 14,
+          fontSize: 17,
         ),
         child: child,
       ),
@@ -345,7 +345,7 @@ class _LevelBadge extends StatelessWidget {
               style: const TextStyle(
                 fontFamily: pixelFont,
                 color: Color(0xFF3A1D00),
-                fontSize: 16,
+                fontSize: 18,
               ),
             ),
           ),
@@ -400,7 +400,7 @@ class _SpeechBubble extends StatelessWidget {
     style: const TextStyle(
       fontFamily: pixelFont,
       color: Color(0xFF3A1D0C),
-      fontSize: 14,
+      fontSize: 16,
     ),
   );
 }
@@ -917,69 +917,82 @@ class _Hotbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xEE8A5A34), Color(0xEE4A2D1E)],
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 86,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xEE8A5A34), Color(0xEE4A2D1E)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFC9934F), width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x99000000),
+                  offset: Offset(0, 4),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC9934F), width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x99000000),
-            offset: Offset(0, 4),
-            blurRadius: 8,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _HotbarSlot(
+                key: const Key('hotbar-quests'),
+                label: '委託',
+                icon: 'assets/ui/icons/icon_quest.png',
+                fallback: Icons.receipt_long,
+                count: questCount,
+                onTap: onOpenQuests,
+              ),
+              _HotbarSlot(
+                key: const Key('hotbar-rooms'),
+                tourKey: roomsKey,
+                label: '自律房',
+                icon: 'assets/ui/icons/icon_room.png',
+                fallback: Icons.groups,
+                onTap: onOpenRooms,
+              ),
+              _HotbarSlot(
+                key: const Key('hotbar-focus'),
+                tourKey: focusKey,
+                label: '專注',
+                icon: 'assets/ui/icons/icon_focus.png',
+                fallback: Icons.hourglass_bottom,
+                big: true,
+                glow: glow,
+                onTap: onOpenFocus,
+              ),
+              _HotbarSlot(
+                key: const Key('hotbar-social'),
+                label: '社交',
+                icon: 'assets/ui/icons/icon_social.png',
+                fallback: Icons.favorite,
+                onTap: onOpenSocial,
+              ),
+              _HotbarSlot(
+                key: const Key('hotbar-shop'),
+                label: '商城',
+                icon: 'assets/ui/icons/icon_shop.png',
+                fallback: Icons.storefront,
+                onTap: onOpenShop,
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          _HotbarSlot(
-            key: const Key('hotbar-quests'),
-            label: '委託',
-            icon: 'assets/ui/icons/icon_quest.png',
-            fallback: Icons.receipt_long,
-            count: questCount,
-            onTap: onOpenQuests,
-          ),
-          _HotbarSlot(
-            key: const Key('hotbar-rooms'),
-            tourKey: roomsKey,
-            label: '自律房',
-            icon: 'assets/ui/icons/icon_room.png',
-            fallback: Icons.groups,
-            onTap: onOpenRooms,
-          ),
-          _HotbarSlot(
-            key: const Key('hotbar-focus'),
-            tourKey: focusKey,
-            label: '專注',
-            icon: 'assets/ui/icons/icon_focus.png',
-            fallback: Icons.hourglass_bottom,
-            big: true,
-            glow: glow,
-            onTap: onOpenFocus,
-          ),
-          _HotbarSlot(
-            key: const Key('hotbar-social'),
-            label: '社交',
-            icon: 'assets/ui/icons/icon_social.png',
-            fallback: Icons.favorite,
-            onTap: onOpenSocial,
-          ),
-          _HotbarSlot(
-            key: const Key('hotbar-shop'),
-            label: '商城',
-            icon: 'assets/ui/icons/icon_shop.png',
-            fallback: Icons.storefront,
-            onTap: onOpenShop,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1007,11 +1020,128 @@ class _HotbarSlot extends StatelessWidget {
   final bool big;
   final Animation<double>? glow;
 
+  /// The focus slot: a round gold medallion with a violet ribbon, rising
+  /// above the bar and glowing softly.
+  Widget _focusMedallion(BuildContext context) {
+    Widget medal = Container(
+      width: 84,
+      height: 84,
+      padding: const EdgeInsets.all(5),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: SweepGradient(
+          colors: [
+            Color(0xFFFFE6A3),
+            Color(0xFFE0A84A),
+            Color(0xFFFFF3C4),
+            Color(0xFFC4710B),
+            Color(0xFFFFE6A3),
+          ],
+        ),
+        border: Border.fromBorderSide(
+          BorderSide(color: Color(0xFF4A2410), width: 3),
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const RadialGradient(
+            center: Alignment(-0.3, -0.4),
+            colors: [Color(0xFFFFF6D0), Color(0xFFFFC54D), Color(0xFFE07A1F)],
+            stops: [0, 0.55, 1],
+          ),
+          border: Border.all(color: const Color(0xFFFFF3C4), width: 2),
+        ),
+        padding: const EdgeInsets.all(9),
+        child: Image.asset(
+          icon,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
+          errorBuilder: (_, _, _) =>
+              Icon(fallback, size: 40, color: const Color(0xFF8A4A10)),
+        ),
+      ),
+    );
+    if (glow case final g?) {
+      medal = AnimatedBuilder(
+        animation: g,
+        child: medal,
+        builder: (_, child) => DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color.fromRGBO(255, 200, 90, 0.35 + 0.4 * g.value),
+                blurRadius: 12 + 12 * g.value,
+                spreadRadius: 1 + 3 * g.value,
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      );
+    }
+    return Expanded(
+      flex: 6,
+      child: Semantics(
+        button: true,
+        label: label,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: KeyedSubtree(
+            key: tourKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                medal,
+                Transform.translate(
+                  offset: const Offset(0, -10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF9C7BEF), Color(0xFF6A4FC8)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF2E1A5C),
+                        width: 2,
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        fontFamily: pixelFont,
+                        fontSize: 18,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Color(0xFF2E1A5C),
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = big ? 52.0 : 34.0;
+    if (big) return _focusMedallion(context);
+    const size = 36.0;
     Widget face = Container(
-      height: big ? 80 : 62,
+      height: 70,
       decoration: BoxDecoration(
         gradient: big
             ? const LinearGradient(
@@ -1048,7 +1178,7 @@ class _HotbarSlot extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: pixelFont,
-              fontSize: big ? 14 : 12,
+              fontSize: 15,
               color: const Color(0xFF3A1D0C),
             ),
           ),
@@ -1109,7 +1239,7 @@ class _HotbarSlot extends StatelessWidget {
                         '$count',
                         style: const TextStyle(
                           fontFamily: pixelFont,
-                          fontSize: 11,
+                          fontSize: 13,
                           color: Colors.white,
                         ),
                       ),

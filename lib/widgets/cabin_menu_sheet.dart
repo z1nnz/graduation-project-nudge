@@ -209,7 +209,7 @@ class _Slot extends StatelessWidget {
                 item.label,
                 style: const TextStyle(
                   fontFamily: 'Cubic11',
-                  fontSize: 14,
+                  fontSize: 16,
                   color: Color(0xFF3A1D0C),
                 ),
               ),
