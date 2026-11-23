@@ -23,6 +23,7 @@ import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-st
 import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshots-handler.js";
 import { createRecordActivityHandler } from "./src/record-activity-handler.js";
 import { createRefreshRelationshipOutcomeHandler } from "./src/relationship-outcome-service.js";
+import { createCleanupRoomVoiceHandler, createLeaveRoomVoiceHandler } from "./src/room-voice-service.js";
 import { createManageRoomResonanceHandler } from "./src/room-resonance-service.js";
 import {
   createRefreshDisciplineIdentityHandler,
@@ -786,6 +787,16 @@ export const getFocusRoundServerTime = onCall(
 export const manageFriendCabinVisit = onCall(
   { timeoutSeconds: 15, memory: "256MiB" },
   createFriendCabinVisitHandler(getFirestore()),
+);
+
+export const leaveRoomVoice = onCall(
+  { timeoutSeconds: 10, memory: "256MiB" },
+  createLeaveRoomVoiceHandler(getFirestore()),
+);
+
+export const cleanupRoomVoice = onSchedule(
+  { schedule: "every 10 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120, memory: "256MiB" },
+  createCleanupRoomVoiceHandler(getFirestore()),
 );
 
 export const deliverPushNotification = onDocumentCreated(

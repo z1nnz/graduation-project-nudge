@@ -2855,6 +2855,18 @@ function renderWebRoomSessionPanel() {
         : null,
     );
   }
+  if (window.NudgeVoiceRoom) {
+    const uid = db ? firebase.auth().currentUser?.uid : null;
+    window.NudgeVoiceRoom.sync(uid && activeWebRoomMember?.approvalStatus === "approved" && activeWebRoom
+      ? {
+          db, uid, room: db.collection("rooms").doc(activeWebRoom.id),
+          owner: uid === activeWebRoom.ownerId,
+          enabled: activeWebRoom.voiceEnabled === true,
+          eligible: id => activeWebRoomMembers.some(member => member.memberId === id && member.approvalStatus === "approved"),
+          names: id => activeWebRoomMembers.find(member => member.memberId === id)?.displayName || "夥伴",
+        }
+      : null);
+  }
   const panel = $("[data-room-session-panel]");
   if (!panel) return;
   if (!activeWebRoom) {
@@ -3472,6 +3484,7 @@ async function removeWebRoomMember(memberId) {
 }
 
 function selectWebRoom(roomId, room) {
+  if (activeWebRoom?.id !== roomId) window.NudgeVoiceRoom?.sync(null);
   const userId = firebase.auth().currentUser?.uid;
   if (!db || !userId || !roomId) return;
   activeWebRoom = { ...room, id: roomId };
@@ -3620,7 +3633,13 @@ function listenToWebRooms(userId) {
       const selected = rooms.find(room => room.id === activeWebRoom?.id) ||
         rooms.find(room => room.id === requestedRoomId) ||
         rooms[0];
-      selectWebRoom(selected.id, selected);
+      if (window.NudgeVoiceRoom && activeWebRoom?.id === selected.id && activeWebRoomMember) {
+        activeWebRoom = selected;
+        renderWebRoomSessionPanel();
+        renderWebRoomMembers();
+      } else {
+        selectWebRoom(selected.id, selected);
+      }
     }, error => {
       console.warn("Room list sync failed:", error);
       resetWebRoomState();

@@ -1511,6 +1511,7 @@ service cloud.firestore {
 
       function validRoomMetadata() {
         return request.resource.data.schemaVersion == 2
+          && (!('voiceEnabled' in request.resource.data) || request.resource.data.voiceEnabled is bool)
           && request.resource.data.id == roomId
           && request.resource.data.ownerId is string
           && request.resource.data.ownerName is string
@@ -1635,6 +1636,7 @@ service cloud.firestore {
       allow create: if isAuth()
         && validRoomMetadata()
         && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.get('voiceEnabled', false) == false
         && request.resource.data.memberIds.hasOnly([request.auth.uid])
         && request.resource.data.status == 'active';
 
@@ -1855,6 +1857,107 @@ service cloud.firestore {
         allow update: if validNewFocusRound()
           && resource.data.startAt + duration.value(30, 'm') <= request.time;
       }
+
+      function voiceParticipantPath(uid) {
+        return /databases/$(database)/documents/rooms/$(roomId)/voice_participants/$(uid);
+      }
+
+      function voiceCapacityPath() {
+        return /databases/$(database)/documents/rooms/$(roomId)/voice_state/capacity;
+      }
+
+      function voiceRoomEnabled() {
+        return roomDocument().data.get('voiceEnabled', false) == true;
+      }
+
+      match /voice_state/capacity {
+        function validVoiceCapacity() {
+          let data = request.resource.data;
+          return data.keys().hasOnly(['uids'])
+            && data.uids is list && data.uids.size() <= 8
+            && data.uids.toSet().size() == data.uids.size();
+        }
+
+        function addOwnVoiceReservation(previous) {
+          let address = voiceParticipantPath(request.auth.uid);
+          return isApprovedActiveRoomParticipant() && voiceRoomEnabled()
+            && !(request.auth.uid in previous)
+            && request.resource.data.uids == previous.concat([request.auth.uid])
+            && !exists(address) && existsAfter(address);
+        }
+
+        function removeOwnVoiceReservation(previous) {
+          let address = voiceParticipantPath(request.auth.uid);
+          return isAuth() && request.auth.uid in previous
+            && request.resource.data.uids == previous.removeAll([request.auth.uid])
+            && exists(address) && !existsAfter(address);
+        }
+
+        allow get: if isApprovedRoomParticipant()
+          || (isAuth() && exists(voiceParticipantPath(request.auth.uid)));
+        allow create: if validVoiceCapacity() && addOwnVoiceReservation([]);
+        allow update: if validVoiceCapacity()
+          && (addOwnVoiceReservation(resource.data.uids)
+            || removeOwnVoiceReservation(resource.data.uids));
+      }
+
+      match /voice_participants/{uid} {
+        function validVoiceParticipant() {
+          let data = request.resource.data;
+          return data.keys().hasOnly(['uid', 'joinedAt', 'muted', 'handRaised', 'updatedAt'])
+            && data.uid == uid
+            && data.joinedAt is string
+            && data.joinedAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z$')
+            && data.joinedAt.size() <= 30
+            && data.muted is bool && data.handRaised is bool
+            && data.updatedAt == request.time;
+        }
+
+        allow get: if isOwner(uid) || isApprovedRoomParticipant();
+        allow list: if isApprovedRoomParticipant();
+        allow create: if isOwner(uid) && isApprovedActiveRoomParticipant()
+          && voiceRoomEnabled() && validVoiceParticipant()
+          && request.resource.data.muted == true && request.resource.data.handRaised == false
+          && uid in getAfter(voiceCapacityPath()).data.uids
+          && (!exists(voiceCapacityPath()) || !(uid in get(voiceCapacityPath()).data.uids));
+        allow update: if isOwner(uid) && isApprovedActiveRoomParticipant()
+          && voiceRoomEnabled() && validVoiceParticipant()
+          && request.resource.data.joinedAt == resource.data.joinedAt;
+        allow delete: if isOwner(uid)
+          && !(uid in getAfter(voiceCapacityPath()).data.uids);
+      }
+
+      match /voice_signals/{signalId} {
+        function involvesViewer() {
+          return isAuth() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+        }
+
+        allow read: if isApprovedRoomParticipant() && involvesViewer();
+        allow delete: if involvesViewer();
+        allow create: if isApprovedActiveRoomParticipant() && voiceRoomEnabled()
+          && request.resource.data.keys().hasOnly(['from', 'to', 'type', 'payload', 'createdAt'])
+          && request.resource.data.from == request.auth.uid
+          && request.resource.data.to != request.auth.uid
+          && exists(voiceParticipantPath(request.auth.uid))
+          && exists(voiceParticipantPath(request.resource.data.to))
+          && isAccountReferenceableAfter(request.resource.data.to)
+          && roomDocument().data.memberIds.hasAny([request.resource.data.to])
+          && get(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.resource.data.to)).data.approvalStatus == 'approved'
+          && request.resource.data.type in ['offer', 'answer', 'ice']
+          && request.resource.data.payload is string
+          && request.resource.data.payload.size() > 0 && request.resource.data.payload.size() <= 8000
+          && request.resource.data.createdAt == request.time;
+      }
+
+      match /voice_mute/current {
+        allow read: if isApprovedRoomParticipant();
+        allow create, update: if isApprovedActiveRoomParticipant() && voiceRoomEnabled()
+          && roomDocument().data.ownerId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['requestedBy', 'createdAt'])
+          && request.resource.data.requestedBy == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+      }
+
 
       match /messages/{messageId} {
         function validRoomMessage() {
