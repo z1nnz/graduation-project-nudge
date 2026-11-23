@@ -24,6 +24,7 @@ Future<void> _pump(
   VoidCallback? onOpenQuests,
   String? confirmed,
   bool disableAnimations = false,
+  DateTime? now,
 }) async {
   final layout = await CabinLayout.load(rootBundle);
   await tester.pumpWidget(
@@ -47,6 +48,7 @@ Future<void> _pump(
               onOpenFamily: () {},
               onOpenGroup: () {},
               confirmedActivityLabel: confirmed,
+              now: now ?? DateTime(2026, 11, 23, 12),
             ),
           ),
         ),
@@ -98,5 +100,12 @@ void main() {
     await tester.runAsync(() => _pump(tester, confirmed: 'B'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const Key('cabin-celebration')), findsNothing);
+  });
+
+  testWidgets('the companion sleeps at night and idles by day', (tester) async {
+    await tester.runAsync(() => _pump(tester, now: DateTime(2026, 11, 23, 23)));
+    expect(find.byKey(const Key('pose-effect-sleep')), findsOneWidget);
+    await tester.runAsync(() => _pump(tester, now: DateTime(2026, 11, 23, 12)));
+    expect(find.byKey(const Key('pose-effect-sleep')), findsNothing);
   });
 }
