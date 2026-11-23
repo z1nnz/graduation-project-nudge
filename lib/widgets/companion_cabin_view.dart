@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/avatar_profile.dart';
 import '../models/cabin_layout.dart';
 import '../models/cabin_presentation.dart';
-import 'avatar_preview.dart';
+import '../models/companion_pose.dart';
+import 'companion_sprite.dart';
 
 Widget _pixelImage(String asset) => Image.asset(
   asset,
@@ -127,8 +128,10 @@ class CompanionCabinView extends StatefulWidget {
     required this.onOpenDecor,
     required this.onOpenFamily,
     required this.onOpenGroup,
+    this.onOpenCharacter,
     this.confirmedActivityLabel,
     this.layout,
+    this.now,
   });
 
   final CabinPresentation presentation;
@@ -141,6 +144,9 @@ class CompanionCabinView extends StatefulWidget {
   final VoidCallback onOpenFamily;
   final VoidCallback onOpenGroup;
 
+  /// Character, wardrobe and codex; shown when provided.
+  final VoidCallback? onOpenCharacter;
+
   /// Latest Cloud-confirmed activity. A change to a new value (not the first
   /// value seen) plays the celebration.
   final String? confirmedActivityLabel;
@@ -148,16 +154,15 @@ class CompanionCabinView extends StatefulWidget {
   /// Injected in tests; otherwise loaded from the asset bundle.
   final CabinLayout? layout;
 
+  /// Clock for the companion's pose (sleeps at night); defaults to now.
+  final DateTime? now;
+
   @override
   State<CompanionCabinView> createState() => _CompanionCabinViewState();
 }
 
 class _CompanionCabinViewState extends State<CompanionCabinView>
     with TickerProviderStateMixin {
-  late final AnimationController _idle = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2400),
-  );
   late final AnimationController _celebrate = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2500),
@@ -170,13 +175,6 @@ class _CompanionCabinViewState extends State<CompanionCabinView>
     _layoutFuture ??= widget.layout != null
         ? Future.value(widget.layout)
         : CabinLayout.load(DefaultAssetBundle.of(context));
-    final still = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (still) {
-      _idle.stop();
-      _idle.value = 0;
-    } else if (!_idle.isAnimating) {
-      _idle.repeat(reverse: true);
-    }
   }
 
   @override
@@ -191,7 +189,6 @@ class _CompanionCabinViewState extends State<CompanionCabinView>
 
   @override
   void dispose() {
-    _idle.dispose();
     _celebrate.dispose();
     super.dispose();
   }
@@ -255,14 +252,14 @@ class _CompanionCabinViewState extends State<CompanionCabinView>
                     layout.character,
                     box,
                     AnimatedBuilder(
-                      animation: _idle,
-                      builder: (context, child) => Transform.translate(
-                        offset: Offset(0, -3 * _idle.value),
-                        child: child,
-                      ),
-                      child: FittedBox(
-                        child: AvatarPreview(
+                      animation: _celebrate,
+                      builder: (context, _) => FittedBox(
+                        child: CompanionSprite(
                           profile: widget.profile,
+                          pose: CompanionPose.resolve(
+                            now: widget.now ?? DateTime.now(),
+                            celebrating: _celebrate.isAnimating,
+                          ),
                           size: layout.character.height * box.maxHeight,
                         ),
                       ),
@@ -286,6 +283,16 @@ class _CompanionCabinViewState extends State<CompanionCabinView>
                       coins: widget.coins,
                     ),
                   ),
+                  if (widget.onOpenCharacter != null)
+                    Positioned(
+                      left: 12,
+                      bottom: 12,
+                      child: FilledButton.tonalIcon(
+                        onPressed: widget.onOpenCharacter,
+                        icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+                        label: const Text('角色'),
+                      ),
+                    ),
                   Positioned(
                     right: 12,
                     bottom: 12,
