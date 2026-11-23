@@ -75,7 +75,7 @@
 | `friend.html`、`friend-visits.html` | 好友與拜訪紀錄 | 登入 | cloud：`friend_requests`、`users/{uid}/friends`、`public_profiles` | 小鎮廣場 | `town.html?at=plaza` | #83 |
 | `privacy.html` | 健康資料同意、匯出與刪除申請 | 登入 | cloud：`privacy_consents`、`privacy_data_requests` | 小鎮廣場 | `town.html?at=plaza` | core |
 | `login.html` | 登入／註冊 | 公開 | cloud：Firebase Auth | 小鎮廣場（訪客） | 登入後回到原頁 | core |
-| 遊樂園（`town.html` 內） | 接星星休息遊戲 | 登入；需要休息券 | cloud：本人 25 分鐘以上的專注收據；分數只存本機，不換獎勵 | 遊樂園 | 遊戲結束留在小鎮 | #82 |
+| `arcade.html` | 遊戲機台大廳：接星星、星光釣魚、鐘塔節奏、夥伴記憶配對 | 登入；需要休息券 | cloud：本人 25 分鐘以上的專注收據（25 分鐘 1 張、50 分鐘 2 張，最多 2 張，2 小時內有效，每張 5 分鐘）；分數與圖鑑只存本機，不換獎勵 | 遊樂園 | 回遊樂園門口 | #82 |
 
 ### 不放進世界的工具頁
 
