@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 我的活動房</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/room-experience.css?v=1" />
   </head>
   <body data-page="rooms">
     <div class="shell">
@@ -23,16 +24,11 @@
         </nav>
       </aside>
       <main class="main">
-        <header class="hero split room-hero">
+        <header class="hero room-hero">
           <div>
-            <span class="eyebrow">Member-controlled Activity Rooms</span>
-            <h1>一起前進，但保留每個人的節奏。</h1>
-            <p>專注、運動、步數、睡眠與自訂活動都能形成房間。管理者維護規則與資格，每位成員自行決定何時開始與完成。</p>
-          </div>
-          <div class="hero-card">
-            <span>同步原則</span>
-            <strong>本人控制</strong>
-            <p>App 與 Web 使用同一筆活動 session，任何人都不能代替另一位成員變更紀錄。</p>
+            <span class="eyebrow">我的活動房 · 一起走一小段</span>
+            <h1>和夥伴同在，照自己的節奏前進。</h1>
+            <p>先選一間已加入的房間，再開始自己的活動。夥伴座位和聊天室讓支持更靠近，活動仍由每個人自己控制。</p>
           </div>
         </header>
 
@@ -58,6 +54,16 @@
           </article>
         </section>
 
+        <section class="panel page-section room-stage-panel" aria-labelledby="roomStageTitle">
+          <div class="room-panel-heading">
+            <div><span class="eyebrow">Together, at your own pace</span><h2 id="roomStageTitle">看看同伴都在這裡</h2></div>
+            <strong class="room-stage-count" data-room-stage-count>選擇活動房</strong>
+          </div>
+          <p>這裡只顯示已核准成員的有限狀態。每個人自行決定何時開始與休息。</p>
+          <div class="room-stage" data-room-stage><p class="room-inline-empty">選擇房間後，座位會在這裡出現。</p></div>
+          <p class="room-stage-detail" data-room-stage-detail aria-live="polite">點一位夥伴查看可見的狀態。</p>
+        </section>
+
         <section class="panel page-section room-resonance-panel">
           <div class="room-panel-heading">
             <div><span class="eyebrow">Asynchronous Resonance</span><h2>非同步共振</h2></div>
@@ -71,22 +77,16 @@
         </section>
 
         <section class="room-interaction-grid page-section">
-          <article class="panel room-conversation-panel">
+          <article class="panel room-conversation-panel room-chat-preview-panel">
             <div class="room-panel-heading">
-              <div><span class="eyebrow">Room Conversation</span><h2>互相鼓勵</h2></div>
-              <div class="room-stickers">
-                <button type="button" data-room-sticker="👏">👏</button>
-                <button type="button" data-room-sticker="🔥">🔥</button>
-                <button type="button" data-room-sticker="🌱">🌱</button>
-              </div>
+              <div><span class="eyebrow">Room Conversation</span><h2>夥伴聊天室</h2></div>
+              <span class="room-unread-badge" data-room-unread hidden></span>
             </div>
             <div class="room-message-list" data-room-message-list>
-              <p class="room-inline-empty">選擇房間後會同步 App 與 Web 訊息。</p>
+              <p class="room-inline-empty">選擇房間後查看最新訊息。</p>
             </div>
-            <div class="room-message-composer">
-              <input type="text" maxlength="500" placeholder="送出一句鼓勵…" aria-label="房間訊息" data-room-message-input />
-              <button class="primary-btn" type="button" data-room-message-send>傳送</button>
-            </div>
+            <a class="primary-btn room-chat-entry" href="room-chat.html" data-room-chat-link hidden>進入聊天室 <span aria-hidden="true">↗</span></a>
+            <p class="room-chat-note">未讀提示僅記在這台裝置，不跨裝置同步。</p>
           </article>
 
           <aside class="panel">
@@ -128,6 +128,7 @@
     </div>
     <script src="assets/room_activity_session_contract.js?v=2"></script>
     <script src="assets/room_resonance_contract.js?v=1"></script>
+    <script src="assets/room_read_state.js?v=1"></script>
     <script src="assets/app.js?v=26"></script>
   </body>
 </html>
