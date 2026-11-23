@@ -74,6 +74,7 @@
     d('shop', 'operations.html', 'store', '角色商城', 'player', 'login', null, 'cloud', '#82'),
     d('break-game', 'town.html#park', 'park', '接星星（休息券）', 'player', 'login', null, 'cloud', '#82'),
     d('planet', 'planet.html', 'observatory', '自律星球', 'player', 'login', null, 'mixed', '#82'),
+    d('planet-builder', 'planet-builder.html', 'observatory', '星球建築規劃器（示範）', 'player', 'login', null, 'demo', 'core'),
     d('garden-scene', 'garden.html', 'garden', '星光花園', 'player', 'login', 'level10', 'cloud', '#82'),
     d('mailbox', 'mailbox.html', 'plaza', '小鎮郵箱', 'player', 'login', null, 'cloud', '#83'),
     d('notifications', 'notifications.html', 'plaza', '通知與邀請', 'player', 'login', null, 'cloud', '#83'),
@@ -86,7 +87,6 @@
     d('seasonal-event', 'seasonal-event.html', 'plaza', '季節活動', 'player', 'login', null, 'cloud', 'core'),
     // ----- tools: labelled entries only, not world buildings -----
     d('landing', 'index.html', null, '產品介紹首頁', 'tool', 'public', null, 'static', 'core'),
-    d('planet-builder', 'planet-builder.html', null, '星球建築規劃器', 'tool', 'login', null, 'demo', '#82'),
     d('operations-economy', 'operations-economy.html', null, '自律幣經濟檢查', 'tool', 'login', 'staff', 'static', 'core'),
     d('operations-room-review', 'operations-room-review.html', null, '自律房審核', 'tool', 'login', 'staff', 'static', 'core'),
     d('operations-shop-campaign', 'operations-shop-campaign.html', null, '商城活動配置', 'tool', 'login', 'staff', 'cloud', 'core'),
