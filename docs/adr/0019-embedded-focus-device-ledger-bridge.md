@@ -1,4 +1,4 @@
-# ADR 0010: Embedded focus device uses an App-mediated Ledger bridge
+# ADR 0019: Embedded focus device uses an App-mediated Ledger bridge
 
 - Status: Accepted for prototype
 - Date: 2026-08-15

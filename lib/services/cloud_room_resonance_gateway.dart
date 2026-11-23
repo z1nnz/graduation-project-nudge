@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../models/room_resonance.dart';
+import '../utils/client_ids.dart';
 
 typedef RoomResonanceCallable =
     Future<Object?> Function(Map<String, dynamic> payload);
@@ -26,8 +27,7 @@ class CloudRoomResonanceGateway {
   final RoomResonanceCallable _call;
   final RoomResonanceRequestIdFactory _requestIdFactory;
 
-  static String _defaultRequestId() =>
-      'resonance_${DateTime.now().toUtc().microsecondsSinceEpoch}';
+  static String _defaultRequestId() => newClientId('resonance');
 
   factory CloudRoomResonanceGateway.firebase({FirebaseFunctions? functions}) {
     return CloudRoomResonanceGateway.withCallable((payload) async {
