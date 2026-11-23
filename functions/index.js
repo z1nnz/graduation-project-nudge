@@ -31,6 +31,7 @@ import {
   createHealthConsentChecker,
   createRecordPrivacyConsentHandler,
 } from "./src/privacy-consent-service.js";
+import { createManageFriendPresenceHandler } from "./src/friend-presence-service.js";
 import { createUpdateNotificationPreferencesHandler } from "./src/notification-preference-service.js";
 import {
   createMarkNotificationReadHandler,
@@ -767,6 +768,11 @@ export const notifyGroupRequestUpdated =
     "group_requests/{requestId}",
     handleGroupRequestUpdated,
   );
+
+export const manageFriendPresence = onCall(
+  { timeoutSeconds: 10, memory: "256MiB" },
+  createManageFriendPresenceHandler(getFirestore()),
+);
 
 export const deliverPushNotification = onDocumentCreated(
   {

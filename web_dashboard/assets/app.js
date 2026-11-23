@@ -4701,6 +4701,18 @@ function initializeFirebaseWeb() {
                 localStorage.setItem("nudgeWebLoggedIn", "true");
                 localStorage.setItem("nudgeActiveDemoUserId", user.uid);
               }
+              if (!user.isAnonymous && functions && (
+                document.querySelector("[data-friend-presence]") ||
+                window.frameElement?.id === "townWindowFrame"
+              )) {
+                Promise.all([
+                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=2", "Town routes unavailable"),
+                  loadWindowModule("NudgePresenceCore", "assets/presence_core.js?v=1", "Presence contract unavailable"),
+                  loadWindowModule("NudgeFriendPresence", "assets/presence.js?v=1", "Presence unavailable"),
+                ]).then(([, , presence]) => {
+                  if (auth.currentUser?.uid === user.uid) presence.start({ auth, db, functions, user });
+                }).catch(error => console.warn("Friend presence initialization failed:", error.message));
+              }
               startListeningToFirestoreData();
               if (!document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) ensureWebActivityLedgerOutbox()
                 .then(outbox => outbox.flush())

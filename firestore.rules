@@ -518,6 +518,25 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
 
+    match /presence_settings/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+
+    match /presence/{uid} {
+      function sharingEnabled() {
+        return get(/databases/$(database)/documents/presence_settings/$(uid)).data.enabled == true;
+      }
+      allow get: if isOwner(uid) || (
+        resource.data.expiresAt > request.time
+        && resource.data.updatedAt + duration.value(5, 'm') > request.time
+        && areMutualFriends(request.auth.uid, uid)
+        && sharingEnabled()
+        && !exists(/databases/$(database)/documents/account_deletion_fences/$(uid))
+      );
+      allow list, write: if false;
+    }
+
     // ─── /friend_visits/{hostId}--{visitorId}--{dateKey} ─────────────
     // One real visit per friend pair per day. Fixed reactions only; a visit
     // never mints coins, XP or prosperity.
