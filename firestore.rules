@@ -495,7 +495,7 @@ service cloud.firestore {
       function validFriendVisitSettings() {
         let data = request.resource.data;
         return data.keys().hasOnly([
-            'schemaVersion', 'userId', 'allowVisits', 'sceneKey', 'updatedAt'
+            'schemaVersion', 'userId', 'allowVisits', 'sceneKey', 'updatedAt', 'shareCabin'
           ])
           && data.keys().hasAll([
             'schemaVersion', 'userId', 'allowVisits', 'sceneKey', 'updatedAt'
@@ -503,6 +503,7 @@ service cloud.firestore {
           && data.schemaVersion == 1
           && data.userId == userId
           && data.allowVisits is bool
+          && (!('shareCabin' in data) || data.shareCabin is bool)
           && data.sceneKey in ['cabin', 'garden', 'study_corner']
           && data.updatedAt is string
           && data.updatedAt.size() <= 40;
@@ -577,7 +578,7 @@ service cloud.firestore {
         && request.resource.data.responseKey in ['thanks', 'see_you', 'heart']
         && request.resource.data.respondedAt is string
         && request.resource.data.respondedAt.size() <= 40;
-      allow delete: if isAuth()
+      allow delete: if isAuth() && resource.data.schemaVersion == 1
         && (
           resource.data.hostId == request.auth.uid
           || resource.data.visitorId == request.auth.uid

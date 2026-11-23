@@ -162,6 +162,19 @@ async function run() {
     "a visit must target the host's currently public scene");
   await expectStatus(commit([createWrite(visitPath, { ...visit(h, f), coins: 5 })], friend.idToken), 403,
     "a visit cannot carry reward fields");
+  const v2Path = `friend_visits/${h}--${f}--2026-11-24`;
+  const letter = {
+    schemaVersion: 2, hostId: h, visitorId: f, dateKey: "2026-11-24", sceneKey: "cabin",
+    noteKey: "cheer", stickerKey: "heart", removed: false, createdAt: now,
+  };
+  await expectStatus(commit([createWrite(v2Path, letter)], friend.idToken), 403,
+    "guestbook letters can only be written by Cloud");
+  await expectStatus(commit([createWrite(v2Path, letter)], "owner"), 200,
+    "seed a verified guestbook letter");
+  await expectStatus(commit([deleteWrite(v2Path)], friend.idToken), 403,
+    "the visitor cannot erase the daily limit");
+  await expectStatus(commit([deleteWrite(v2Path)], host.idToken), 403,
+    "the host must use the callable that removes the letter and retains the daily marker");
   await expectStatus(commit([createWrite(visitPath, visit(h, f))], friend.idToken), 200,
     "a mutual friend records a real visit");
   await expectStatus(commit([createWrite(visitPath, visit(h, f))], friend.idToken), 409,
