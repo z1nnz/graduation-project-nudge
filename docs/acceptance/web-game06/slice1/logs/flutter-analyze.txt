@@ -1,0 +1,3 @@
+LOCAL EMULATOR / SYNTHETIC DATA ONLY. No production seed/apply/deploy.
+Analyzing nudge-game06-integrated...
+No issues found! (ran in 2.9s)

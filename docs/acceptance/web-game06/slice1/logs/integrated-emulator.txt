@@ -1,0 +1,207 @@
+LOCAL EMULATOR / SYNTHETIC DATA ONLY. No production seed/apply/deploy.
+⚠  emulators: You are not currently authenticated so some features may not work correctly. Please run firebase login to authenticate the CLI.
+i  emulators: Starting emulators: auth, firestore
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: sh /tmp/nudge-game03-emulator-checks.sh
+PASS: latest receipt query, own-account isolation, and Cloud-only mutations.
+Firestore family/group scene rules integration test passed.
+Firestore family rules integration test passed.
+Firestore friend rules integration test passed.
+Firestore friend visit rules integration test passed.
+Firestore group rules integration test passed.
+✔ growth capsule privacy and Rules integration on loopback emulator (7327.209042ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7329.72875
+✔ growth text privacy and Rules integration on loopback emulator (7108.170791ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7110.623459
+✔ canonical growth review query integration on loopback emulator (628.83225ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 631.2335
+PASS: homeDecor is Cloud-only while ordinary profile edits still work.
+Firestore mailbox rules integration test passed.
+Firestore operations rules integration test passed.
+Firestore room read marker rules integration test passed.
+Firestore room rules integration test passed.
+Firestore room scene rules integration test passed.
+(node:94562) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94562) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+✔ Firestore commits room Ledger and member session projection together (124.472708ms)
+(node:94562) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+✔ Firestore persists one settlement and room contribution atomically (57.739792ms)
+✔ Firestore merges later eligible rooms into one persisted receipt (41.312917ms)
+(node:94562) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+(node:94562) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+✔ concurrent replays commit one receipt (3490.673292ms)
+✔ Firestore preserves health correction receipts and the latest session (71.11275ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3898.27225
+(node:94564) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ account deletion atomically records removed Relationship rollback evidence (259.572083ms)
+(node:94564) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+(node:94564) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+✔ account deletion executor removes Auth, Ledger and relationship data (509.92475ms)
+(node:94564) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+✔ stale deletion leases are reclaimable and partial failures cannot cancel (80.809917ms)
+✔ owned scopes are revalidated before recursive deletion (14.631583ms)
+(node:94564) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+(node:94564) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+✔ deletion fence blocks an existing client token and Auth is disabled (24.024792ms)
+✔ expired account deletion evidence and request-targeted audits are purged (22.167333ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1049.818209
+
+> nudge-scripts@1.0.0 test:relationships:emulator
+> node --test test/relationship_migration_execution.test.js test/relationship_migration_purge_execution.test.js
+
+APPLY relationship migration
+{
+  "familyLinks": 1,
+  "groups": 1,
+  "users": 2,
+  "existingMemberships": 0,
+  "membershipUpserts": 4,
+  "userProjectionCleanup": 1,
+  "issues": 0
+}
+APPLY relationship migration
+{
+  "familyLinks": 1,
+  "groups": 1,
+  "users": 2,
+  "existingMemberships": 0,
+  "membershipUpserts": 4,
+  "userProjectionCleanup": 1,
+  "issues": 0
+}
+Relationship cutover 已還原並解除 fence。
+APPLY relationship migration
+{
+  "familyLinks": 1,
+  "groups": 1,
+  "users": 2,
+  "existingMemberships": 0,
+  "membershipUpserts": 4,
+  "userProjectionCleanup": 1,
+  "issues": 0
+}
+APPLY relationship migration
+{
+  "familyLinks": 1,
+  "groups": 1,
+  "users": 2,
+  "existingMemberships": 1,
+  "membershipUpserts": 4,
+  "userProjectionCleanup": 1,
+  "issues": 0
+}
+Relationship cutover 已還原並解除 fence。
+APPLY relationship migration
+{
+  "familyLinks": 1,
+  "groups": 1,
+  "users": 2,
+  "existingMemberships": 0,
+  "membershipUpserts": 4,
+  "userProjectionCleanup": 1,
+  "issues": 0
+}
+APPLY relationship migration
+{
+  "familyLinks": 1,
+  "groups": 1,
+  "users": 2,
+  "existingMemberships": 4,
+  "membershipUpserts": 4,
+  "userProjectionCleanup": 0,
+  "issues": 0
+}
+Relationship cutover 已還原並解除 fence。
+APPLY relationship migration
+{
+  "familyLinks": 1,
+  "groups": 1,
+  "users": 2,
+  "existingMemberships": 0,
+  "membershipUpserts": 4,
+  "userProjectionCleanup": 1,
+  "issues": 0
+}
+✔ relationship migration is resumable, reversible, and fails closed on drift (1152.319167ms)
+✔ purge rejects incomplete production acceptance and preserves evidence (664.872791ms)
+Purged 1 Relationship before-images for relationship-run-resume.
+✔ purge resumes after interruption and writes one immutable audit (136.474333ms)
+✔ pre-existing purge audit fails before evidence is deleted (23.691666ms)
+Purged 0 Relationship before-images for relationship-run-privacy-delete.
+✔ privacy-deleted before-images reconcile with the final purge audit (40.835834ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1195.5065
+
+> nudge-scripts@1.0.0 test:rewards:emulator
+> node --test test/reward_migration_execution.test.js
+
+APPLY reward baseline migration
+{
+  "users": 1,
+  "rewardEntries": 1,
+  "baselineCreates": 1,
+  "userUpdates": 1,
+  "issues": 0
+}
+完成：1 筆基線、1 筆投影切換。
+Reward cutover 已回滾 1 位使用者並解除 fence。
+✔ reward baseline apply and rollback keep an owned cutover fence (363.309125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3147.141584
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

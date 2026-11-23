@@ -1,0 +1,31 @@
+LOCAL EMULATOR / SYNTHETIC DATA ONLY. No production seed/apply/deploy.
+phase login
+phase tools
+phase admin
+evidence personal.html
+evidence personal-identity.html
+evidence personal-trends.html
+evidence personal-weather.html
+evidence personal-pressure.html
+evidence personal-skill-tree.html
+evidence personal-template.html
+evidence personal-letter.html
+evidence personal-time-capsule.html
+evidence personal-focus.html
+evidence museum-demo.html
+evidence index.html
+evidence login.html
+evidence research.html
+evidence research-scenario.html
+evidence research-anonymized.html
+evidence research-score-demo.html
+evidence presentation.html
+evidence operations-economy.html
+evidence operations-room-review.html
+evidence operations-shop-campaign.html
+evidence admin_dashboard.html
+{
+  "checks": 58,
+  "axe": [],
+  "errors": []
+}

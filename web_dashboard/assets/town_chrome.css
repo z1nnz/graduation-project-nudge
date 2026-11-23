@@ -1,0 +1,4 @@
+/* Return control only: the focus interior belongs to WEB-GAME-04. */
+.town-page-return{position:fixed;top:12px;left:12px;z-index:1000;display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;background:#302039;color:#ffdb8d;border:2px solid #96673d;font:700 1rem system-ui;text-decoration:none}
+.town-page-return:focus-visible{outline:3px solid #87d8ee;outline-offset:3px}
+body:has(.town-page-return){padding-top:68px}

@@ -1,0 +1,71 @@
+{
+  "base": "4e3eda4b340458e3951c67aff45dd651c588473c",
+  "root": {
+    "tests": 253,
+    "pass": 250,
+    "fail": 0,
+    "skipped": 3
+  },
+  "functions": {
+    "tests": 164,
+    "pass": 136,
+    "fail": 0,
+    "skipped": 28
+  },
+  "browser": {
+    "assertions": 58,
+    "additional_guest_guard_checks": 3,
+    "pages": 22,
+    "axe_checked_pages": 21,
+    "axe_violations": 0,
+    "mobile_overflow": 0
+  },
+  "flutter": {
+    "analyze": "No issues found",
+    "tests_passed": 345,
+    "tests_failed": 0,
+    "local": "3.47.8",
+    "ci": "3.41.7",
+    "scope": "three slices combined in a clean ASCII temporary overlay; Dart unchanged"
+  },
+  "node_local": "26.4.0",
+  "node_ci": "22",
+  "full_java21_emulator": {
+    "result": "exit0",
+    "skipped_are_not_passed": true,
+    "command": "firebase-tools@15.18.0 emulators:exec --project nudge-discipline-app --only auth,firestore; exact CI script",
+    "initial_attempt": "An earlier run attached to a differently named Auth default project and failed USER_NOT_FOUND; not counted as passed. Rerun with the exact CI project passed."
+  },
+  "exact_head_ci": "required after publication; final record in PR",
+  "limitations": [
+    "Real devices and human screen reader not verified",
+    "Production App Check, OAuth provider configuration and Storage upload not verified",
+    "personal-focus interior belongs to #104; this scope adds only the shared return link",
+    "Research aggregate/economy aggregate/independent staff room-review endpoint not provided; honest empty states",
+    "Tools require gate bootstrap isolation to merge first; no Cloud/Rules/migration changes"
+  ],
+  "source_sha256": {
+    "docs/specs/web-game06-delivery-contract.md": "f26ebf25466a693461842ef3385bbb6366f7288bdac9b46c52a651c3be87a7d2",
+    "test/growth_museum_foundation_test.js": "f686fe14197854306ee621a00479b86fa853e3f0dd0f4bcd014a7fff28007721",
+    "test/museum_town_return_test.js": "d91e0632d7c937c99b58b8540ae3dacae3c56d5a0953f3941aa82edf3e88c3fb",
+    "web_dashboard/assets/growth_identity.js": "23a274fd90d14169993b58e56af239df0a7dd05cd1a769c990e24c52eaa0b5cb",
+    "web_dashboard/assets/growth_museum.css": "1c71eac65253c0163e46ffeb617d7dcd7b07304af828d6b8fdfc451f5ed6e409",
+    "web_dashboard/assets/growth_museum.js": "e3a1375489aacdff371db00bbb8cfe5c9add1a1944806b46db6bc52b798fe7f2",
+    "web_dashboard/assets/growth_museum_core.js": "b0bd6de8ce1fadd54e27abc406f9cfdae1497626df16b16e55591d25a424de77",
+    "web_dashboard/assets/town_chrome.css": "60999fe61ec4fe0fcba478782b109f1f7e7e14551de1b9fe63d4cc503c6a3a07",
+    "web_dashboard/assets/town_routes.js": "b35979a7803fe44e06ce48bec12dd86603e1abed029b665e6bf4643b0a3478c0",
+    "web_dashboard/museum-demo.html": "16f675e466fa22b766a4717df7edae4ae4cacd146bf3a580634eef64b7f2add9",
+    "web_dashboard/personal-focus.html": "00717cc6609e75e8e18345fa9946546093dabcc30e550d5d887d086c65df9e28",
+    "web_dashboard/personal-identity.html": "bd22e624f5a513ae94f2c6e57c65e57e4b1ffad47db12aa350eb5b86279e9e96",
+    "web_dashboard/personal-letter.html": "e57ae089d7c356622b1847c8981eca367c7b8c4cc1732111192dbbcf694efab5",
+    "web_dashboard/personal-pressure.html": "6eff9cb5f6911228f64ea51482aec6ae2bfa30e6c6d75fb895118a0a89a0e547",
+    "web_dashboard/personal-skill-tree.html": "21ffcb8ebc21505b41f02e1627a593670a26713b4be4c0b4ec67329ec812ece0",
+    "web_dashboard/personal-template.html": "5f14cb7e44339434213728cf6e750ab082b3f4f77d6548315256a9f1d83b5fff",
+    "web_dashboard/personal-time-capsule.html": "d06b14cdbdbea8046ccf5fac24d9968afc65ffb872fe41d6a6dafdfab1bb539a",
+    "web_dashboard/personal-trends.html": "add1cf5ed015f3cf80ebf676a0031c2564edd790ceb81a8918f1d016daf495af",
+    "web_dashboard/personal-weather.html": "e272d9beec430eeb342b01fb19b48f6b4b13a6173401aba25b33d474955cc87c",
+    "web_dashboard/personal.html": "51e6216e84a8a2e1fa9547ba0edddd7d8fe444371375309ea1691e7ec67fcde7"
+  },
+  "integration_main": "4e3eda4b340458e3951c67aff45dd651c588473c",
+  "main_sync_notes": "Synced official main (#101 including #107), retained both public entry contracts, removed duplicate focus return scripts/links. Web and Flutter verification rerun; Functions/Rules trees unchanged."
+}
