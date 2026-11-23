@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 我的活動房</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
-    <link rel="stylesheet" href="assets/room-scene.css?v=1" />
+    <link rel="stylesheet" href="assets/room-scene.css?v=2" />
   </head>
   <body data-page="rooms">
     <div class="shell">
@@ -87,22 +87,16 @@
         </section>
 
         <section class="room-interaction-grid page-section">
-          <article class="panel room-conversation-panel">
+          <article class="panel room-conversation-panel room-chat-preview-panel">
             <div class="room-panel-heading">
-              <div><span class="eyebrow">Room Conversation</span><h2>互相鼓勵</h2></div>
-              <div class="room-stickers">
-                <button type="button" data-room-sticker="👏">👏</button>
-                <button type="button" data-room-sticker="🔥">🔥</button>
-                <button type="button" data-room-sticker="🌱">🌱</button>
-              </div>
+              <div><span class="eyebrow">Room Conversation</span><h2>夥伴聊天室</h2></div>
+              <span class="room-unread-badge" data-room-unread role="status" hidden></span>
             </div>
             <div class="room-message-list" data-room-message-list>
-              <p class="room-inline-empty">選擇房間後會同步 App 與 Web 訊息。</p>
+              <p class="room-inline-empty">選擇房間後查看最新訊息。</p>
             </div>
-            <div class="room-message-composer">
-              <input type="text" maxlength="500" placeholder="送出一句鼓勵…" aria-label="房間訊息" data-room-message-input />
-              <button class="primary-btn" type="button" data-room-message-send>傳送</button>
-            </div>
+            <a class="primary-btn room-chat-entry" href="room-chat.html" data-room-chat-link hidden>進入聊天室 <span aria-hidden="true">↗</span></a>
+            <p class="room-chat-note">未讀狀態只屬於你，跨裝置同步；離開房間後立即失效。</p>
           </article>
 
           <aside class="panel">
@@ -145,6 +139,7 @@
     <script src="assets/room_activity_session_contract.js?v=2"></script>
     <script src="assets/room_resonance_contract.js?v=1"></script>
     <script src="assets/room_scene.js?v=1"></script>
+    <script src="assets/room_read_state.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

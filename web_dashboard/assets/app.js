@@ -1,4 +1,4 @@
-﻿const $ = (selector, root = document) => root.querySelector(selector);
+const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
 function loadWindowModule(globalKey, source, errorMessage) {
@@ -2315,6 +2315,82 @@ let activeWebRoomContribution = null;
 let activeWebRoomResonancePreference = null;
 let activeWebRoomResonanceSignals = [];
 let webRoomCommandPending = false;
+let webRoomChatSending = false;
+let webRoomReadMarkerSub = null;
+let activeWebRoomReadMarker = null;
+let activeWebRoomMessages = [];
+let webRoomLastAnnouncedMessageId = null;
+
+function isWebRoomChatPage() {
+  return document.body.dataset.page === "room-chat";
+}
+
+function renderWebRoomChatContext() {
+  const approved = activeWebRoomMember?.approvalStatus === "approved";
+  const title = $("[data-room-chat-title]");
+  const status = $("[data-room-chat-status]");
+  if (title) title.textContent = activeWebRoom?.name || "選擇活動房";
+  if (status) {
+    status.textContent = !activeWebRoom
+      ? "選擇一間已加入的活動房。"
+      : approved
+        ? "你是已核准成員，可以與夥伴互相鼓勵。"
+        : "正在確認成員資格；未核准前不能查看或傳送訊息。";
+  }
+  const roomQuery = activeWebRoom ? `?room=${encodeURIComponent(activeWebRoom.id)}` : "";
+  const back = $("[data-room-chat-back]");
+  if (back) back.href = `rooms.html${roomQuery}`;
+  const chatLink = $("[data-room-chat-link]");
+  if (chatLink) {
+    chatLink.href = `room-chat.html${roomQuery}`;
+    chatLink.hidden = !approved;
+  }
+  const disabled = !approved || webRoomChatSending;
+  const input = $("[data-room-message-input]");
+  if (input) input.disabled = !approved;
+  const send = $("[data-room-message-send]");
+  if (send) send.disabled = disabled;
+  $$("[data-room-sticker], [data-room-encouragement]").forEach(button => {
+    button.disabled = disabled;
+  });
+}
+
+function renderWebRoomUnread() {
+  const badge = $("[data-room-unread]");
+  if (!badge) return;
+  const userId = firebase.auth().currentUser?.uid;
+  const count = window.NudgeRoomReadState?.unreadCount(
+    activeWebRoomMessages,
+    activeWebRoomReadMarker,
+    userId,
+  ) || 0;
+  badge.hidden = count === 0;
+  badge.textContent = window.NudgeRoomReadState?.badgeText(count) || "";
+}
+
+// Writes the member-owned Cloud read marker only on the chat page while the
+// tab is visible, so a background tab never marks messages as read.
+async function markWebRoomMessagesRead() {
+  const userId = firebase.auth().currentUser?.uid;
+  if (!db || !userId || !activeWebRoom || !isWebRoomChatPage()) return;
+  if (document.visibilityState === "hidden") return;
+  if (activeWebRoomMember?.approvalStatus !== "approved") return;
+  const contract = window.NudgeRoomReadState;
+  const marker = contract?.nextMarker({
+    roomId: activeWebRoom.id,
+    userId,
+    newestMessage: activeWebRoomMessages[0],
+    current: activeWebRoomReadMarker,
+  });
+  if (!marker) return;
+  try {
+    await db.collection("room_read_markers")
+      .doc(contract.markerId(activeWebRoom.id, userId))
+      .set(marker);
+  } catch (error) {
+    console.warn("Room read marker was not saved:", error);
+  }
+}
 
 const webRoomResonanceCueLabels = Object.freeze({
   gentle_restart: "我正溫柔地重新開始",
@@ -2835,8 +2911,16 @@ function renderWebRoomSessionPanel() {
 function stopWebRoomInteractionListeners() {
   if (webRoomMessagesSub) webRoomMessagesSub();
   if (webRoomEventsSub) webRoomEventsSub();
+  if (webRoomReadMarkerSub) webRoomReadMarkerSub();
   webRoomMessagesSub = null;
   webRoomEventsSub = null;
+  webRoomReadMarkerSub = null;
+  activeWebRoomMessages = [];
+  activeWebRoomReadMarker = null;
+  webRoomLastAnnouncedMessageId = null;
+  renderWebRoomUnread();
+  const announcement = $("[data-room-chat-announcement]");
+  if (announcement) announcement.textContent = "";
   const messageList = $("[data-room-message-list]");
   const eventList = $("[data-room-event-list]");
   if (messageList) {
@@ -2996,7 +3080,9 @@ function resetWebRoomState() {
   activeWebRoomSession = null;
   activeWebRoomContribution = null;
   webRoomCommandPending = false;
+  webRoomChatSending = false;
   stopWebRoomDetailListeners();
+  renderWebRoomChatContext();
   renderWebRoomMembers();
   renderWebRoomSessionPanel();
 }
@@ -3096,17 +3182,43 @@ function listenToWebRoomInteractions(roomId) {
     .orderBy("createdAt", "desc")
     .limit(60)
     .onSnapshot(snapshot => {
-      const list = $("[data-room-message-list]");
-      if (!list) return;
       const messages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      list.innerHTML = messages.length
-        ? messages.map(message => `
-          <article class="room-message${message.senderId === userId ? " mine" : ""}">
-            <strong>${escapeHtml(message.senderName || "自律夥伴")}</strong>
-            <p>${escapeHtml(message.text || "")}</p>
-          </article>`).join("")
-        : `<p class="room-inline-empty">還沒有訊息，先送出一句鼓勵吧。</p>`;
-    }, error => console.warn("Room message sync failed:", error));
+      activeWebRoomMessages = messages;
+      const list = $("[data-room-message-list]");
+      if (list) {
+        const visible = isWebRoomChatPage() ? messages : messages.slice(0, 1);
+        list.innerHTML = visible.length
+          ? visible.map(message => `
+            <article class="room-message${message.senderId === userId ? " mine" : ""}">
+              <strong>${escapeHtml(message.senderName || "自律夥伴")}</strong>
+              <p>${escapeHtml(message.text || "")}</p>
+            </article>`).join("")
+          : `<p class="room-inline-empty">還沒有訊息，先送出一句鼓勵吧。</p>`;
+      }
+      const newest = messages[0];
+      const announcement = $("[data-room-chat-announcement]");
+      if (announcement && webRoomLastAnnouncedMessageId && newest &&
+          newest.id !== webRoomLastAnnouncedMessageId && newest.senderId !== userId) {
+        announcement.textContent = `${newest.senderName || "夥伴"} 傳來新訊息`;
+      }
+      webRoomLastAnnouncedMessageId = newest?.id || null;
+      renderWebRoomUnread();
+      markWebRoomMessagesRead();
+    }, error => {
+      console.warn("Room message sync failed:", error);
+      const list = $("[data-room-message-list]");
+      if (list) list.innerHTML = `<p class="room-inline-empty">訊息暫時無法同步，請檢查連線後重試。</p>`;
+    });
+
+  webRoomReadMarkerSub = db.collection("room_read_markers")
+    .doc(window.NudgeRoomReadState.markerId(roomId, userId))
+    .onSnapshot(snapshot => {
+      const data = snapshot.exists ? snapshot.data() : null;
+      activeWebRoomReadMarker =
+        data && data.userId === userId && data.roomId === roomId ? data : null;
+      renderWebRoomUnread();
+      if (!activeWebRoomReadMarker) markWebRoomMessagesRead();
+    }, error => console.warn("Room read marker sync failed:", error));
 
   webRoomEventsSub = db.collection("rooms").doc(roomId)
     .collection("events")
@@ -3188,31 +3300,49 @@ function bindWebRoomInteractionControls() {
   const input = $("[data-room-message-input]");
   if (sendButton && sendButton.dataset.bound !== "true") {
     sendButton.dataset.bound = "true";
-    const submit = async () => {
-      const text = input?.value || "";
-      try {
-        await sendWebRoomMessage(text);
-        if (input) input.value = "";
-      } catch (error) {
-        toast(error.message || "訊息傳送失敗");
-      }
-    };
+    const submit = () => sendWebRoomMessageOnce(input?.value || "", "text", () => {
+      if (input) input.value = "";
+    });
     sendButton.addEventListener("click", submit);
     input?.addEventListener("keydown", event => {
-      if (event.key === "Enter" && !event.shiftKey) {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         submit();
       }
     });
   }
-  $$("[data-room-sticker]").forEach(button => {
+  const encouragementList = $("[data-room-encouragements]");
+  if (encouragementList && !encouragementList.childElementCount) {
+    encouragementList.innerHTML = window.NudgeRoomReadState.encouragements
+      .map(item => `<button type="button" data-room-encouragement="${escapeHtml(item.key)}" disabled>${escapeHtml(item.text)}</button>`)
+      .join("");
+  }
+  $$("[data-room-sticker], [data-room-encouragement]").forEach(button => {
     if (button.dataset.bound === "true") return;
     button.dataset.bound = "true";
     button.addEventListener("click", () => {
-      sendWebRoomMessage(button.dataset.roomSticker, "sticker")
-        .catch(error => toast(error.message || "貼圖傳送失敗"));
+      const fixed = window.NudgeRoomReadState.encouragements
+        .find(item => item.key === button.dataset.roomEncouragement);
+      sendWebRoomMessageOnce(fixed?.text || button.dataset.roomSticker, "sticker");
     });
   });
+}
+
+// One send at a time: rapid clicks, Enter repeats and sticker taps cannot
+// create duplicate messages while a write is in flight.
+async function sendWebRoomMessageOnce(text, type, onSent) {
+  if (webRoomChatSending) return;
+  webRoomChatSending = true;
+  renderWebRoomChatContext();
+  try {
+    await sendWebRoomMessage(text, type);
+    onSent?.();
+  } catch (error) {
+    toast(error.message || "訊息傳送失敗");
+  } finally {
+    webRoomChatSending = false;
+    renderWebRoomChatContext();
+  }
 }
 
 async function transferWebRoomOwnership(newOwnerId) {
@@ -3286,9 +3416,15 @@ function selectWebRoom(roomId, room) {
   activeWebRoomContribution = null;
   stopWebRoomDetailListeners();
   renderWebRoomMembers();
+  renderWebRoomChatContext();
   $$("[data-room-id]").forEach(button => {
     button.classList.toggle("active", button.dataset.roomId === roomId);
   });
+  if (isWebRoomChatPage()) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("room", roomId);
+    window.history.replaceState(null, "", url);
+  }
   webRoomMemberSub = db.collection("rooms").doc(roomId)
     .collection("members")
     .onSnapshot(snapshot => {
@@ -3299,6 +3435,7 @@ function selectWebRoom(roomId, room) {
       activeWebRoomMember =
         activeWebRoomMembers.find(member => member.memberId === userId) || null;
       renderWebRoomMembers();
+      renderWebRoomChatContext();
       renderWebRoomSessionPanel();
       if (activeWebRoomMember?.approvalStatus !== "approved") {
         if (webRoomSessionsSub) webRoomSessionsSub();
@@ -3380,6 +3517,10 @@ function listenToWebRooms(userId) {
   if (!db || !list || !userId) return;
   bindWebRoomInteractionControls();
   bindWebRoomSceneControls();
+  if (document.body.dataset.roomReadVisibilityBound !== "true") {
+    document.body.dataset.roomReadVisibilityBound = "true";
+    document.addEventListener("visibilitychange", markWebRoomMessagesRead);
+  }
   if (webRoomsSub) webRoomsSub();
   webRoomsSub = db.collection("rooms")
     .where("memberIds", "array-contains", userId)
@@ -7999,7 +8140,7 @@ function listenToWebDisciplineIdentity(userId) {
 function listenToUser(userId) {
   if (!db) return;
   listenToRequests(userId);
-  if (document.body.dataset.page === "rooms") {
+  if (["rooms", "room-chat"].includes(document.body.dataset.page)) {
     listenToWebRooms(userId);
   }
   const authenticatedUid = firebase.auth().currentUser?.uid;
