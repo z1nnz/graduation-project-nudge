@@ -46,6 +46,8 @@
     scene('quest-board-scene', 'board', 'board', '看告示板：今天的一步', '#82'),
     d('quest-board', 'dashboard.html', 'board', '今日下一步', 'player', 'public', null, 'mixed', '#82'),
     d('tasks', 'planet.html', 'board', '今日任務清單', 'player', 'login', null, 'mixed', '#82'),
+    d('quest-book', 'quests.html', 'board', '委託冊：每週挑戰', 'player', 'login', null, 'cloud', 'core'),
+    d('townsfolk-request', 'quests.html?view=request', 'board', '鎮民的請託', 'player', 'login', null, 'cloud', 'core'),
     d('rooms', 'rooms.html', 'tower', '自律房', 'player', 'login', null, 'cloud', '#83'),
     d('room-chat', 'room-chat.html', 'tower', '房間聊天室', 'player', 'login', 'roomMember', 'cloud', '#83'),
     d('guardian', 'guardian.html', 'family', '家長陪伴中心', 'player', 'login', 'family', 'cloud', '#83'),
