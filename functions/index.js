@@ -40,6 +40,7 @@ import { createManageCatalogItemHandler } from "./src/catalog-management-service
 import { createManageDeviceAssignmentHandler } from "./src/device-assignment-service.js";
 import { createPurchaseRewardItemHandler } from "./src/reward-purchase-service.js";
 import { createEquipRewardAvatarHandler } from "./src/reward-avatar-service.js";
+import { createArrangeHomeDecorHandler } from "./src/home-decor-service.js";
 import {
   createDeliverPushJobHandler,
   createUpdatePushInstallationHandler,
@@ -183,6 +184,10 @@ const handlePurchaseRewardItem = createPurchaseRewardItemHandler({
   clock: () => new Date(),
 });
 const handleEquipRewardAvatar = createEquipRewardAvatarHandler({
+  firestore: getFirestore(),
+  clock: () => new Date(),
+});
+const handleArrangeHomeDecor = createArrangeHomeDecorHandler({
   firestore: getFirestore(),
   clock: () => new Date(),
 });
@@ -527,6 +532,26 @@ export const equipRewardAvatar = onCall(
       if (error instanceof HttpsError) throw error;
       console.error("equipRewardAvatar failed", error);
       throw new HttpsError("internal", "The avatar equipment could not be saved.");
+    }
+  },
+);
+
+export const arrangeHomeDecor = onCall(
+  {
+    enforceAppCheck: true,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async request => {
+    try {
+      return await withAccountOperation(
+        request,
+        () => handleArrangeHomeDecor(request),
+      );
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("arrangeHomeDecor failed", error);
+      throw new HttpsError("internal", "The home decor arrangement could not be saved.");
     }
   },
 );

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 
 import { HttpsError } from "firebase-functions/v2/https";
 
@@ -10,6 +11,14 @@ const BUILT_IN_PRICES = new Map([
   ["appBackground:3", 55],
   ["appBackground:4", 40],
 ]);
+const homeDecorCatalog = createRequire(import.meta.url)("./home-decor-catalog.json");
+// Cloud item index = slot order * 100 + variant index; free defaults are not sold.
+const HOME_DECOR_PRICES = new Map(
+  homeDecorCatalog.slots.flatMap((slot, order) =>
+    slot.variants
+      .filter(variant => variant.price > 0)
+      .map(variant => [order * 100 + variant.index, variant.price])),
+);
 const PURCHASE_POLICY_VERSION = "purchase-v1";
 const MAX_UNLOCKED_ITEMS = 500;
 
@@ -34,7 +43,7 @@ function normalizeInput(raw) {
   const clientRequestId = text(raw.clientRequestId, 128);
   const sourceSurface = text(raw.sourceSurface, 20);
   if (
-    !["faceShape", "appBackground"].includes(category) ||
+    !["faceShape", "appBackground", "homeDecor"].includes(category) ||
     !Number.isSafeInteger(index) ||
     index < 0 ||
     index > 1_000_000 ||
@@ -58,6 +67,21 @@ function activeCatalogItem(item, nowEpochSeconds) {
 
 async function resolvePrice(transaction, firestore, input, nowEpochSeconds) {
   const itemKey = `${input.category}:${input.index}`;
+  if (input.category === "homeDecor") {
+    if (input.catalogItemId !== null) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Home decor purchases cannot claim a catalog document.",
+      );
+    }
+    if (!HOME_DECOR_PRICES.has(input.index)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Only a priced home decor variant can be purchased.",
+      );
+    }
+    return HOME_DECOR_PRICES.get(input.index);
+  }
   if (BUILT_IN_PRICES.has(itemKey)) {
     if (input.catalogItemId !== null) {
       throw new HttpsError(

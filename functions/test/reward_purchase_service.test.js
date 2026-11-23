@@ -259,3 +259,63 @@ test("purchase respects the cutover fence and unlock projection limit", async ()
     error => error.code === "failed-precondition",
   );
 });
+
+function decorHandler(seedUser) {
+  const firestore = new MemoryFirestore({ "users/user-1": seedUser });
+  const handler = createPurchaseRewardItemHandler({
+    firestore,
+    clock: () => new Date("2026-11-23T10:00:00.000Z"),
+  });
+  return { firestore, handler };
+}
+
+test("home decor purchase debits the catalog price once", async () => {
+  const { firestore, handler } = decorHandler({
+    disciplineCoins: 100,
+    unlockedAvatarItems: [],
+  });
+  const input = {
+    category: "homeDecor",
+    index: 101,
+    catalogItemId: null,
+    clientRequestId: "decor-curtain-stars",
+    sourceSurface: "app",
+  };
+  const first = await handler(request(input));
+  assert.equal(first.itemKey, "homeDecor:101");
+  assert.equal(first.disciplineCoins, 75);
+  assert.ok(first.unlockedAvatarItems.includes("homeDecor:101"));
+  const replay = await handler(request(input));
+  assert.equal(replay.replayed, true);
+  assert.equal(firestore.data.get("users/user-1").disciplineCoins, 75);
+});
+
+test("free or unknown home decor variants are not purchasable", async () => {
+  for (const index of [0, 100, 150, 203]) {
+    const { handler } = decorHandler({ disciplineCoins: 500, unlockedAvatarItems: [] });
+    await assert.rejects(
+      handler(request({
+        category: "homeDecor",
+        index,
+        catalogItemId: null,
+        clientRequestId: `decor-${index}`,
+        sourceSurface: "app",
+      })),
+      error => error.code === "failed-precondition",
+    );
+  }
+});
+
+test("home decor purchase rejects a catalog document claim", async () => {
+  const { handler } = decorHandler({ disciplineCoins: 500, unlockedAvatarItems: [] });
+  await assert.rejects(
+    handler(request({
+      category: "homeDecor",
+      index: 1,
+      catalogItemId: "shop-doc",
+      clientRequestId: "decor-claim",
+      sourceSurface: "app",
+    })),
+    error => error.code === "invalid-argument" && /Home decor/.test(error.message),
+  );
+});
