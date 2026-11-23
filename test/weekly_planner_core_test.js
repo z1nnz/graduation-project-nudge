@@ -2,9 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const core = require('../web_dashboard/assets/weekly_planner_core.js');
 
-test('Taipei week starts Monday across UTC and year boundaries', () => {
-  assert.equal(core.weekStart(new Date('2026-11-22T15:59:00Z')), '2026-11-16');
-  assert.equal(core.weekStart(new Date('2026-11-22T16:01:00Z')), '2026-11-23');
+test('Taipei Nudge week starts Monday at 05:00 across UTC and year boundaries', () => {
+  assert.equal(core.weekStart(new Date('2026-11-22T20:59:00Z')), '2026-11-16');
+  assert.equal(core.weekStart(new Date('2026-11-22T21:01:00Z')), '2026-11-23');
   assert.deepEqual(core.weekDays('2026-12-28').at(-1), '2027-01-03');
 });
 test('only unfinished owned tasks are available once', () => {
