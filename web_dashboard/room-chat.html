@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 夥伴聊天室</title>
+    <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/room-scene.css?v=2" />
+  </head>
+  <body data-page="room-chat">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>夥伴聊天室</small></span></a>
+        <nav class="nav"><a href="dashboard.html">總覽入口</a><a class="active" href="rooms.html">我的活動房</a></nav>
+      </aside>
+      <main class="main room-chat-main">
+        <header class="room-chat-hero">
+          <a class="room-chat-back" href="rooms.html" data-room-chat-back>← 返回活動房</a>
+          <span class="eyebrow">Room Conversation</span>
+          <h1 data-room-chat-title>選擇活動房</h1>
+          <p data-room-chat-status>正在確認你的房間資格。</p>
+        </header>
+        <div class="room-chat-layout">
+          <aside class="panel room-chat-room-list" aria-label="切換已加入的活動房">
+            <h2>我的房間</h2>
+            <div class="room-list" data-room-list><p class="room-inline-empty">正在同步活動房。</p></div>
+          </aside>
+          <section class="panel room-chat-conversation" aria-label="房間對話">
+            <div class="room-chat-heading"><div><span class="eyebrow">一起走一小段</span><h2>互相鼓勵</h2></div><span>最近 60 則訊息</span></div>
+            <div class="room-message-list" data-room-message-list role="log" aria-label="房間訊息" aria-live="off" tabindex="0"><p class="room-inline-empty">核准成員才能查看訊息。</p></div>
+            <p class="room-chat-announcement" data-room-chat-announcement aria-live="polite"></p>
+            <div class="room-encouragements" data-room-encouragements role="group" aria-label="固定鼓勵動作"></div>
+            <div class="room-stickers" role="group" aria-label="送出鼓勵貼圖"><button type="button" data-room-sticker="👏" aria-label="鼓掌貼圖" disabled>👏</button><button type="button" data-room-sticker="🔥" aria-label="火焰貼圖" disabled>🔥</button><button type="button" data-room-sticker="🌱" aria-label="新芽貼圖" disabled>🌱</button></div>
+            <div class="room-message-composer"><input type="text" maxlength="500" placeholder="送出一句鼓勵…" aria-label="房間訊息" data-room-message-input disabled /><button class="primary-btn" type="button" data-room-message-send disabled>傳送</button></div>
+            <p class="room-chat-note">只有已核准成員能讀取和傳送；離開房間後立即無法再讀寫。已讀位置跨裝置同步，訊息不會增加個人 XP 或金幣。</p>
+          </section>
+        </div>
+        <section class="panel page-section room-resonance-panel">
+          <div class="room-panel-heading">
+            <div><span class="eyebrow">Asynchronous Resonance</span><h2>非同步共振</h2></div>
+            <label class="room-resonance-toggle"><input type="checkbox" data-room-resonance-enabled /><span>選擇分享</span></label>
+          </div>
+          <p class="room-resonance-privacy">由你選擇是否分享一個 24 小時內有效的有限提示；關閉後目前訊號立即撤回。</p>
+          <div class="room-resonance-cues" data-room-resonance-cues></div>
+          <div class="room-resonance-list" data-room-resonance-list><p class="room-inline-empty">選擇已核准的活動房後載入共振訊號。</p></div>
+        </section>
+      </main>
+    </div>
+    <script src="assets/room_activity_session_contract.js?v=2"></script>
+    <script src="assets/room_resonance_contract.js?v=1"></script>
+    <script src="assets/room_scene.js?v=1"></script>
+    <script src="assets/room_read_state.js?v=1"></script>
+    <script src="assets/app.js?v=27"></script>
+  </body>
+</html>
