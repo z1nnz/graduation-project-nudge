@@ -1,3 +1,4 @@
+import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
 import { initializeApp } from "firebase-admin/app";
@@ -262,6 +263,27 @@ const handleGroupRequestUpdated = createRelationshipRequestUpdatedHandler({
   firestore: getFirestore(),
   scopeType: "group",
 });
+
+const handleManageGrowthCapsule = createManageGrowthCapsuleHandler({ firestore: getFirestore() });
+const handleNotifyDueGrowthCapsules = createNotifyDueGrowthCapsulesHandler({ firestore: getFirestore() });
+
+export const manageGrowthCapsule = onCall(
+  { enforceAppCheck: true, timeoutSeconds: 30, memory: "256MiB" },
+  async request => {
+    try {
+      return await withAccountOperation(request, () => handleManageGrowthCapsule(request));
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("manageGrowthCapsule failed", { code: error?.code || "unknown" });
+      throw new HttpsError("internal", "未完成膠囊操作，請稍後重試。");
+    }
+  },
+);
+
+export const notifyDueGrowthCapsules = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120, memory: "256MiB", retryCount: 3 },
+  handleNotifyDueGrowthCapsules,
+);
 
 export const recordActivity = onCall(
   {

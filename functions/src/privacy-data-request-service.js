@@ -1,3 +1,4 @@
+import { collectGrowthCapsuleExport } from "./growth-capsule-service.js";
 import { createHash, randomUUID } from "node:crypto";
 import { FieldPath } from "firebase-admin/firestore";
 
@@ -171,7 +172,8 @@ export function buildRelationshipScopeExport(membership) {
   };
 }
 
-export async function collectPrivacyExportData({ firestore, userId }) {
+export async function collectPrivacyExportData({ firestore, userId, now = new Date() }) {
+  const growthCapsules = await collectGrowthCapsuleExport({ firestore, userId, now, collect: collectQueryDocuments });
   const [
     user,
     publicProfile,
@@ -323,11 +325,14 @@ export async function collectPrivacyExportData({ firestore, userId }) {
       ),
       audit_events: auditEvents.documents,
       privacy_data_requests: privacyRequests.documents,
+      growth_capsules: growthCapsules,
     },
     excludedServerSecrets: [
       "push_installations.token",
       "push_token_claims",
       "privacy_export_access.downloadToken",
+      "growth_capsule_secrets (withheld before server unlock time)",
+      "growth_capsule_operations.digest",
     ],
     truncatedCollections: [],
   };
@@ -390,7 +395,7 @@ export function createRequestPrivacyDataActionHandler({
   clock,
   randomToken = randomUUID,
   collectUserData = userId =>
-    collectPrivacyExportData({ firestore, userId }),
+    collectPrivacyExportData({ firestore, userId, now: clock() }),
 }) {
   return async request => {
     const userId = request.auth?.uid;
