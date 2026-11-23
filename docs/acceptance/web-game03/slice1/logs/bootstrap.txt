@@ -1,2 +1,0 @@
-LOCAL EMULATOR / SYNTHETIC DATA ONLY. No production apply, seed or deploy.
-PASS actual shared bootstrap, cache isolation and logout
