@@ -340,3 +340,45 @@ test("catalog update preserves indexes and archive is audited", async () => {
     2,
   );
 });
+
+test("catalog update keeps the immutable avatar series key", async () => {
+  const existing = {
+    ...normalizeCatalogPayload(avatarSeriesPayload()),
+    id: "catalog-item-001",
+    catalog_index_base: 43,
+    character_stages: normalizeCatalogPayload(
+      avatarSeriesPayload(),
+    ).character_stages.map((stage, index) => ({
+      ...stage,
+      catalog_index: 43 + index,
+    })),
+    created_at: 1_700_000_000,
+    updated_at: 1_700_000_000,
+  };
+  const firestore = fakeFirestore({
+    "users/admin-one": { staffRole: "admin" },
+    "shop_items/catalog-item-001": existing,
+  });
+  const handler = createManageCatalogItemHandler({
+    firestore,
+    clock: () => new Date("2026-07-29T04:00:00.000Z"),
+  });
+
+  await assert.rejects(
+    () => handler({
+      auth: { uid: "admin-one" },
+      data: {
+        action: "update",
+        itemId: "catalog-item-001",
+        clientRequestId: "catalog-update-new-key",
+        sourceSurface: "admin_web",
+        payload: avatarSeriesPayload({ series_key: "renamed-key" }),
+      },
+    }),
+    error => error.code === "failed-precondition",
+  );
+  assert.equal(
+    firestore.documents.get("shop_items/catalog-item-001").series_key,
+    "night-academy",
+  );
+});

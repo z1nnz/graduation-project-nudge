@@ -188,6 +188,9 @@ test(
             visibility: "private",
             personaKey: "steady_builder",
           }),
+        firestore.collection("room_read_markers")
+          .doc(`${roomId}--${subjectUserId}`)
+          .set({ schemaVersion: 1, roomId, userId: subjectUserId, lastReadMessageId: "m1", lastReadCreatedAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }),
         firestore.collection("room_resonance_preferences")
           .doc(resonancePreferenceId)
           .set({
@@ -473,6 +476,7 @@ test(
         `users/${subjectUserId}`,
         `public_profiles/${subjectUserId}`,
         `discipline_identity_snapshots/${subjectUserId}`,
+        `room_read_markers/${roomId}--${subjectUserId}`,
         `room_resonance_preferences/${resonancePreferenceId}`,
         `room_resonance_signals/${resonanceSignalId}`,
         `room_resonance_acknowledgements/${authoredResonanceAckId}`,

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudge 團體會館</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
+  </head>
+  <body data-page="group-hall">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="dashboard.html">
+          <span class="brand-mark">N</span>
+          <span><strong>Nudge</strong><small>團體會館</small></span>
+        </a>
+        <nav class="nav">
+          <!-- Dynamically populated by app.js -->
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="hero split">
+          <div>
+            <span class="eyebrow">Group Hall</span>
+            <h1>一起約好，各自出發</h1>
+            <p>管理者提出挑戰、共同時段與模板；成員自己決定是否參與、何時打卡，以及要不要分享成果摘要。</p>
+            <div class="subnav">
+              <a href="groups.html">團體 / 教育管理</a>
+              <a href="dashboard.html" data-world-return>← 返回小鎮</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <span>切換團體</span>
+            <label class="sr-only" for="socialScopePicker">選擇團體</label>
+            <select id="socialScopePicker" data-social-scope-picker hidden></select>
+            <p>管理者無法替成員打卡或讀取未分享的個人資料。</p>
+          </div>
+        </header>
+        <div data-social-scene aria-live="polite"><p class="visit-empty">載入中…</p></div>
+      </main>
+    </div>
+    <script src="assets/relationship_membership_contract.js?v=1"></script>
+    <script src="assets/family_link_contract.js?v=1"></script>
+    <script src="assets/family_group_scenes.js?v=1"></script>
+    <script src="assets/app.js?v=27"></script>
+  </body>
+</html>

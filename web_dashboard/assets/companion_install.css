@@ -1,0 +1,10 @@
+/* Let the dashboard grid item shrink below its children's intrinsic width. */
+body[data-page="home"] .main {
+  min-width: 0;
+}
+
+#companionInstallHelp,
+#companionNetworkStatus,
+#dailyActionTitle {
+  overflow-wrap: anywhere;
+}

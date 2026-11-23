@@ -37,6 +37,7 @@ class MainActivity : FlutterFragmentActivity() {
     private lateinit var permissionLauncher: ActivityResultLauncher<Set<String>>
     private var pendingPermissionResult: MethodChannel.Result? = null
     private lateinit var nudgeBleController: NudgeBleController
+    private lateinit var demoBleController: NudgeBleController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,10 +48,13 @@ class MainActivity : FlutterFragmentActivity() {
             pendingPermissionResult = null
             result.success(granted.containsAll(healthPermissions))
         }
-        nudgeBleController = NudgeBleController(this)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        // Flutter can configure its engine during super.onCreate. Initialize
+        // channels here rather than using a not-yet-initialized lateinit field.
+        if (!::nudgeBleController.isInitialized) nudgeBleController = NudgeBleController(this)
+        if (!::demoBleController.isInitialized) demoBleController = NudgeBleController(this, demoMode = true)
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(
@@ -64,10 +68,12 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
         nudgeBleController.register(flutterEngine.dartExecutor.binaryMessenger)
+        demoBleController.register(flutterEngine.dartExecutor.binaryMessenger)
     }
 
     override fun onDestroy() {
         if (::nudgeBleController.isInitialized) nudgeBleController.close()
+        if (::demoBleController.isInitialized) demoBleController.close()
         super.onDestroy()
     }
 

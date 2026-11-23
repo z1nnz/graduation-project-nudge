@@ -1,3 +1,4 @@
+import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
 import { initializeApp } from "firebase-admin/app";
@@ -15,6 +16,7 @@ import {
 } from "firebase-functions/v2/firestore";
 
 import { ActivityLedgerService } from "./src/activity-ledger-service.js";
+import { createManageGrowthDocumentHandler } from "./src/growth-document-service.js";
 import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
 import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshots-handler.js";
@@ -261,6 +263,27 @@ const handleGroupRequestUpdated = createRelationshipRequestUpdatedHandler({
   firestore: getFirestore(),
   scopeType: "group",
 });
+
+const handleManageGrowthCapsule = createManageGrowthCapsuleHandler({ firestore: getFirestore() });
+const handleNotifyDueGrowthCapsules = createNotifyDueGrowthCapsulesHandler({ firestore: getFirestore() });
+
+export const manageGrowthCapsule = onCall(
+  { enforceAppCheck: true, timeoutSeconds: 30, memory: "256MiB" },
+  async request => {
+    try {
+      return await withAccountOperation(request, () => handleManageGrowthCapsule(request));
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      console.error("manageGrowthCapsule failed", { code: error?.code || "unknown" });
+      throw new HttpsError("internal", "未完成膠囊操作，請稍後重試。");
+    }
+  },
+);
+
+export const notifyDueGrowthCapsules = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120, memory: "256MiB", retryCount: 3 },
+  handleNotifyDueGrowthCapsules,
+);
 
 export const recordActivity = onCall(
   {
@@ -753,4 +776,17 @@ export const deliverPushNotification = onDocumentCreated(
     memory: "256MiB",
   },
   handleDeliverPushJob,
+);
+
+const handleManageGrowthDocument = createManageGrowthDocumentHandler({firestore:getFirestore()});
+export const manageGrowthDocument = onCall(
+  {enforceAppCheck:true,timeoutSeconds:30,memory:"256MiB"},
+  async request=>{
+    try{return await withAccountOperation(request,()=>handleManageGrowthDocument(request));}
+    catch(error){
+      if(error instanceof HttpsError)throw error;
+      console.error("manageGrowthDocument failed",{code:error?.code||"unknown"});
+      throw new HttpsError("internal","文件操作未完成，請稍後重試。");
+    }
+  },
 );

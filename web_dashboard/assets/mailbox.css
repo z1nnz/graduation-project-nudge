@@ -1,0 +1,14 @@
+/* Town mailbox page. Page-specific only. */
+.mailbox-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.mailbox-letter { padding: 14px; border: 1px solid #ffffff22; border-radius: 16px; background: #ffffff08; }
+.mailbox-letter.is-unread { border-color: #ffe3a4aa; background: linear-gradient(145deg, #2c2840, #1d2740); }
+.mailbox-letter-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mailbox-letter p { margin: 6px 0; color: var(--muted); font-size: 14px; }
+.visit-note, .visit-empty { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+.social-badge { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; background: #ffe3a4; color: #2d233a; }
+.social-badge.is-muted { background: #ffffff1a; color: inherit; }
+.social-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.social-actions button, .social-actions a { min-height: 36px; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; }
+.social-actions button[disabled] { opacity: .5; cursor: not-allowed; }
+.social-actions button:focus-visible, .social-actions a:focus-visible { outline: 3px solid #ffe6a6; outline-offset: 2px; }
+@media (max-width: 600px) { .social-actions button, .social-actions a { flex: 1 1 100%; text-align: center; } }
