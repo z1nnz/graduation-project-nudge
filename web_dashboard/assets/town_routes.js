@@ -38,9 +38,12 @@
   const DESTINATIONS = Object.freeze([
     // ----- world -----
     d('town', 'town.html', null, '夥伴小鎮', 'player', 'public', null, 'cloud', '#82'),
+    scene('cabin-feedback', 'cabin', 'cabin', '夥伴的反應', '#82'),
+    scene('desk-scene', 'desk', 'cabin', '坐到書桌前專注', '#82'),
     d('cabin-scene', 'cabin.html', 'cabin', '小屋擺設', 'player', 'login', null, 'cloud', '#82', 'planned'),
     d('focus-desk', 'personal-focus.html', 'cabin', '書桌專注', 'player', 'login', null, 'cloud', '#82'),
     d('profile', 'profile.html', 'cabin', '我的名片與角色', 'player', 'login', null, 'cloud', '#82'),
+    scene('quest-board-scene', 'board', 'board', '看告示板：今天的一步', '#82'),
     d('quest-board', 'dashboard.html', 'board', '今日下一步', 'player', 'public', null, 'mixed', '#82'),
     d('tasks', 'planet.html', 'board', '今日任務清單', 'player', 'login', null, 'mixed', '#82'),
     d('rooms', 'rooms.html', 'tower', '自律房', 'player', 'login', null, 'cloud', '#83'),
@@ -95,9 +98,29 @@
   function d(id, href, building, title, audience, auth, gate, source, owner, status) {
     return Object.freeze({
       id, href, building, title, audience, auth, gate: gate || null, source, owner,
-      status: status || 'available',
+      status: status || 'available', scene: null,
     });
   }
+
+  // An in-town scene: opened inside town.html by the script that registered it.
+  function scene(id, sceneId, building, title, owner) {
+    return Object.freeze({
+      ...d(id, `town.html#${sceneId}`, building, title, 'player', 'login', null, 'cloud', owner),
+      scene: sceneId,
+    });
+  }
+
+  // Scene registry: a scene script calls registerScene('desk', open) and the
+  // town panel opens it in place. Other packages can register their own
+  // in-town scenes the same way.
+  const scenes = new Map();
+  function registerScene(sceneId, open) {
+    if (typeof sceneId !== 'string' || !/^[a-z][a-z0-9-]*$/.test(sceneId) || typeof open !== 'function') {
+      throw new Error('registerScene needs a lowercase id and an open() function');
+    }
+    scenes.set(sceneId, open);
+  }
+  function sceneOpener(sceneId) { return scenes.get(sceneId) || null; }
 
   const ARRIVAL_PARAM = 'at';
   const TOWN_PAGE = 'town.html';
@@ -176,5 +199,7 @@
     destinationForPage,
     returnHrefForPage,
     entryState,
+    registerScene,
+    sceneOpener,
   });
 });
