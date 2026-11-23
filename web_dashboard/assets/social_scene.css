@@ -1,0 +1,189 @@
+/* Social facility scenes (#105). Same dusk-violet + gold palette as the town
+   (assets/town.css --town-*), pixel accents, wooden frames and parchment panels.
+   Loaded after styles.css; everything is scoped to body[data-social-facility] so
+   the shared dashboard stylesheet keeps working for tool pages. */
+body[data-social-facility] {
+  --town-ink: #fbefe2;
+  --town-ink-dark: #3a1d0c;
+  --town-panel: rgba(32, 18, 12, 0.82);
+  --town-border: rgba(255, 220, 170, 0.28);
+  --town-gold: #ffc54d;
+  --town-gold-deep: #c4710b;
+  --town-violet: #8b6cf0;
+  --scene-parchment: #f6e7c8;
+  --scene-parchment-deep: #ecd5a8;
+  --scene-wood: #6b452c;
+  --scene-wood-dark: #3b261d;
+  --scene-ink: #3a1d0c;
+  --scene-ink-soft: #6b4a33;
+  --muted: #6b4a33;
+  min-height: 100vh;
+  margin: 0;
+  display: block;
+  color: var(--town-ink);
+  font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse at 12% 0%, #5a3d78 0, transparent 45%),
+    radial-gradient(ellipse at 90% 30%, #6b3f22 0, transparent 38%),
+    linear-gradient(180deg, #2a1f45 0, #1b1530 60%, #140f22 100%);
+  background-attachment: fixed;
+}
+body[data-social-facility]::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .18; z-index: 0;
+  background-image: radial-gradient(#ffc54d 1px, transparent 1px);
+  background-size: 36px 36px; image-rendering: pixelated;
+}
+body[data-social-facility] > * { position: relative; z-index: 1; }
+
+/* ---- top bar: fixed town return + place name ---- */
+.scene-topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left));
+  background: var(--town-panel); border-bottom: 3px solid var(--scene-wood); box-shadow: 0 3px 0 #130e17;
+  backdrop-filter: blur(6px);
+}
+.scene-topbar [data-town-return] {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px;
+  background: var(--scene-wood-dark); border: 2px solid #a77b4d; color: var(--town-ink);
+  font-weight: 800; text-decoration: none; box-shadow: 0 3px 0 #130e17; white-space: nowrap;
+}
+.scene-topbar [data-town-return]:hover { border-color: var(--town-gold); }
+.scene-place { font-weight: 900; letter-spacing: .06em; color: var(--town-gold); text-shadow: 0 2px #20141a; }
+
+/* ---- in-scene navigation between rooms of the facility ---- */
+.scene-nav {
+  display: flex; gap: 6px; overflow-x: auto; padding: 12px max(14px, env(safe-area-inset-left)) 0;
+  max-width: 1120px; margin: 0 auto; border-bottom: 6px solid var(--scene-wood);
+  scrollbar-width: thin;
+}
+.scene-nav a {
+  flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px;
+  border: 1px solid #a37a51; border-bottom: 0; border-radius: 8px 8px 0 0;
+  background: linear-gradient(100deg, #382922, #4d3930); color: #f5e7cf; text-decoration: none; font-size: 14px;
+}
+.scene-nav a[aria-current="page"] {
+  background: linear-gradient(110deg, #d6bc8b, #fae8bf); color: var(--scene-ink); font-weight: 900; border-color: #c99a43;
+}
+
+/* ---- page frame (legacy .main / .hero hooks are kept for app.js) ---- */
+body[data-social-facility] .main.scene-main {
+  width: min(1120px, 100%); margin: 0 auto; padding: 22px max(14px, env(safe-area-inset-left)) 90px;
+}
+body[data-social-facility] .hero.scene-hero {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: start;
+  margin: 0 0 22px; padding: 20px 22px; border-radius: 12px;
+  background: linear-gradient(180deg, #4a2f20, #3b261d); border: 3px solid #81512e;
+  box-shadow: 0 5px 0 #180e14, inset 0 0 0 2px #2a1a12; color: var(--town-ink);
+}
+body[data-social-facility] .scene-hero h1 {
+  margin: 4px 0 8px; font-size: clamp(24px, 3.4vw, 38px); font-weight: 900; color: var(--town-ink);
+  text-shadow: 0 3px #20141a; letter-spacing: .04em;
+}
+body[data-social-facility] .scene-hero p { margin: 0; color: #e6d4bb; line-height: 1.65; max-width: 70ch; }
+body[data-social-facility] .scene-hero .eyebrow { color: var(--town-gold); letter-spacing: .16em; font-size: 12px; font-weight: 800; }
+body[data-social-facility] .scene-hero .hero-card {
+  min-width: 180px; padding: 12px 16px; border-radius: 10px; text-align: center;
+  background: var(--scene-parchment); color: var(--scene-ink); border: 2px solid #b08a53; box-shadow: 0 4px 0 #8b5d35;
+}
+body[data-social-facility] .scene-hero .hero-card span,
+body[data-social-facility] .scene-hero .hero-card p { color: var(--scene-ink-soft); font-size: 13px; }
+body[data-social-facility] .scene-hero .hero-card strong { display: block; font-size: 30px; color: var(--scene-ink); }
+body[data-social-facility] .subnav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+/* ---- wooden-frame parchment panel ---- */
+body[data-social-facility] :is(.scene-panel, .tool-panel) {
+  margin: 0 0 22px; padding: 20px 22px; border-radius: 10px;
+  background: linear-gradient(180deg, var(--scene-parchment), var(--scene-parchment-deep));
+  color: var(--scene-ink); border: 4px solid var(--scene-wood);
+  box-shadow: 0 6px 0 #21141e, inset 0 0 0 2px #c9a46b, inset 0 0 26px rgba(139, 93, 53, .25);
+}
+body[data-social-facility] :is(.scene-panel, .tool-panel) :is(h2, h3, strong) { color: var(--scene-ink); }
+body[data-social-facility] :is(.scene-panel, .tool-panel) :is(p, small, span, li, label) { color: inherit; }
+body[data-social-facility] :is(.scene-panel, .tool-panel) .eyebrow { color: #8b5d35; letter-spacing: .14em; font-size: 12px; font-weight: 800; }
+body[data-social-facility] :is(.scene-panel, .tool-panel) :is(.visit-note, .visit-empty, .room-inline-empty, .room-chat-note, .visit-closed, .visit-done) { color: var(--scene-ink-soft); }
+body[data-social-facility] :is(.scene-panel, .tool-panel) :is(article, li, .room-list-card, .social-scene-card, .visit-friend-card, .mailbox-letter, .room-member-row, .room-event-row, .room-message, .room-resonance-card, .room-progress-card, .room-empty-state) {
+  background: #fbf1dc; color: var(--scene-ink); border-color: #c9a46b;
+}
+body[data-social-facility] :is(.scene-panel, .tool-panel) .room-message.mine { background: #ffe7a8; }
+body[data-social-facility] :is(.scene-panel, .tool-panel) :is(input, select, textarea) {
+  min-height: 44px; border-radius: 8px; border: 2px solid #b08a53; background: #fffaf0; color: var(--scene-ink); font: inherit; padding: 6px 10px;
+}
+/* Legacy inline colours rendered by app.js for light-on-dark cards. */
+body[data-social-facility] :is(.scene-panel, .tool-panel) [style*="color:#fff"],
+body[data-social-facility] :is(.scene-panel, .tool-panel) [style*="color: #fff"],
+body[data-social-facility] :is(.scene-panel, .tool-panel) [style*="color:var(--muted)"] { color: var(--scene-ink) !important; }
+
+/* ---- buttons: gold primary, wooden secondary, 44px targets ---- */
+body[data-social-facility] :is(.primary-btn, .town-gold) {
+  min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--town-gold); color: #2a1600; font-weight: 900; box-shadow: 0 4px 0 var(--town-gold-deep); text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+body[data-social-facility] .secondary-btn,
+body[data-social-facility] :is(.scene-panel, .tool-panel) button:not(.primary-btn):not(.room-stage-seat) {
+  min-height: 44px; padding: 0 14px; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 700;
+  background: #fff6e2; color: var(--scene-ink); border: 2px solid #a77b4d; box-shadow: 0 3px 0 #8b5d35;
+  display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+}
+body[data-social-facility] :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--town-violet); outline-offset: 2px;
+}
+body[data-social-facility] button[disabled] { opacity: .5; cursor: not-allowed; }
+
+.scene-skip-link { position: absolute; left: -9999px; top: 8px; z-index: 40; padding: 10px 14px; border-radius: 8px; background: var(--town-gold); color: #2a1600; font-weight: 900; }
+.scene-skip-link:focus { left: 12px; }
+
+/* Floating helpers injected by app.js stay above the scene. */
+body[data-social-facility] #sidebarToggleBtn, body[data-social-facility] #sidebarBackdrop { display: none !important; }
+
+@media (max-width: 720px) {
+  body[data-social-facility] .hero.scene-hero { grid-template-columns: 1fr; padding: 16px; }
+  body[data-social-facility] :is(.scene-panel, .tool-panel) { padding: 16px 14px; }
+  .scene-place { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-social-facility] *, body[data-social-facility] *::before, body[data-social-facility] *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* ---- legacy content cards used by guardian / group / friend pages ---- */
+body[data-social-facility] :is(.hub-card, .metric-card, .result-board, .generated-card, .mini-card, .intro-item, .event-feed, .fb-card, .saved-list > article, .chart-card) {
+  background: linear-gradient(180deg, var(--scene-parchment), var(--scene-parchment-deep)); color: var(--scene-ink);
+  border: 3px solid var(--scene-wood); border-radius: 10px; box-shadow: 0 5px 0 #21141e, inset 0 0 0 2px #c9a46b;
+  text-decoration: none;
+}
+body[data-social-facility] :is(.hub-card, .metric-card, .result-board, .generated-card, .mini-card, .intro-item, .event-feed, .fb-card, .chart-card) :is(h2, h3, strong, label, span) { color: var(--scene-ink); }
+body[data-social-facility] :is(.hub-card, .metric-card, .result-board, .generated-card, .mini-card, .intro-item, .event-feed, .fb-card, .chart-card) :is(p, small) { color: var(--scene-ink-soft); }
+body[data-social-facility] .hub-card:hover, body[data-social-facility] .hub-card:focus-visible { border-color: var(--town-gold-deep); }
+body[data-social-facility] .saved-list > article :is(strong, span, p, small) { color: var(--scene-ink); }
+body[data-social-facility] :is(.button.primary, button.primary) {
+  min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--town-gold); color: #2a1600;
+  font-weight: 900; box-shadow: 0 4px 0 var(--town-gold-deep); cursor: pointer;
+}
+body[data-social-facility] :is(.button.ghost, .button.secondary, .button:not(.primary)) {
+  min-height: 44px; padding: 0 14px; border-radius: 10px; background: #fff6e2; color: var(--scene-ink);
+  border: 2px solid #a77b4d; box-shadow: 0 3px 0 #8b5d35; font-weight: 700; cursor: pointer;
+}
+body[data-social-facility] .field :is(input, select, textarea) {
+  min-height: 44px; border-radius: 8px; border: 2px solid #b08a53; background: #fffaf0; color: var(--scene-ink); font: inherit; padding: 6px 10px;
+}
+body[data-social-facility] .field { color: var(--scene-ink); }
+/* The in-scene navigation replaces the legacy role-gated sub navigation bars;
+   the role-gated content they toggle stays untouched. */
+body[data-social-facility] .subnav:is([data-family-guardian-tools], [data-group-manager-tools]) { display: none !important; }
+/* Linked-family banner injected by app.js with inline colours. */
+body[data-social-facility] #webGuardianLinkedBanner {
+  background: var(--scene-parchment) !important; border: 3px solid var(--scene-wood) !important; color: var(--scene-ink);
+}
+body[data-social-facility] #webGuardianLinkedBanner span { color: var(--scene-ink-soft) !important; }
+/* Guidance banners and the group info card carry legacy inline dark styles. */
+body[data-social-facility] :is(.care-note, #webGroupInfoCard) {
+  background: linear-gradient(180deg, #4a2f20, #3b261d) !important; border: 3px solid #81512e !important;
+  box-shadow: 0 5px 0 #180e14 !important; color: var(--town-ink);
+}
+body[data-social-facility] :is(.care-note, #webGroupInfoCard) :is(h2, strong) { color: var(--town-ink) !important; }
+body[data-social-facility] :is(.care-note, #webGroupInfoCard) :is(p, span:not(.eyebrow)) { color: #e6d4bb !important; }
+body[data-social-facility] .care-note .eyebrow { color: var(--town-gold) !important; }
+/* Short pages: keep the dusk colour below the body instead of white. */
+html:has(body[data-social-facility]) { background: #140f22; }
