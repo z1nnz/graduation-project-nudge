@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "slots": [
+    {
+      "slot": "rug",
+      "label": "地毯",
+      "variants": [
+        { "index": 0, "name": "星夜圓毯", "price": 0 },
+        { "index": 1, "name": "紅磚方毯", "price": 30 },
+        { "index": 2, "name": "雲朵絨毯", "price": 60 }
+      ]
+    },
+    {
+      "slot": "curtain",
+      "label": "窗簾",
+      "variants": [
+        { "index": 0, "name": "紫絨窗簾", "price": 0 },
+        { "index": 1, "name": "星點紗簾", "price": 25 },
+        { "index": 2, "name": "晨光碎花", "price": 50 }
+      ]
+    },
+    {
+      "slot": "lamp",
+      "label": "桌燈",
+      "variants": [
+        { "index": 0, "name": "燈塔小燈", "price": 0 },
+        { "index": 1, "name": "月亮夜燈", "price": 35 },
+        { "index": 2, "name": "水晶星燈", "price": 70 }
+      ]
+    }
+  ]
+}
