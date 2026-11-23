@@ -6,15 +6,12 @@ import 'state/app_state.dart';
 import 'services/notification_service.dart';
 import 'services/firebase_app_check_service.dart';
 import 'screens/home_page.dart';
-import 'screens/focus_page.dart';
-import 'screens/health_page.dart';
 import 'screens/statistics_page.dart';
 import 'screens/social_page.dart';
-import 'screens/character_page.dart';
-import 'screens/account_page.dart';
 import 'screens/group_management_page.dart';
 import 'screens/guardian_center_page.dart';
 import 'theme/app_ui.dart';
+import 'theme/game_ui.dart';
 import 'screens/onboarding_page.dart';
 
 Future<void> main() async {
@@ -101,7 +98,7 @@ class _AppRoot extends StatelessWidget {
           brightness: Brightness.light,
         ),
         scaffoldBackgroundColor: Colors.transparent,
-        cardColor: Colors.white,
+        cardColor: GamePalette.light.panel,
         dividerColor: const Color(0xFFE5E7EB),
         shadowColor: Colors.black.withValues(alpha: 0.05),
         textTheme: const TextTheme(
@@ -113,10 +110,21 @@ class _AppRoot extends StatelessWidget {
           titleSmall: TextStyle(color: Color(0xFF2D2A32)),
         ),
         cardTheme: CardThemeData(
-          color: Colors.white,
+          color: GamePalette.light.panel,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppUI.cardFrame, width: 2),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: GamePalette.gold,
+            foregroundColor: const Color(0xFF2A1600),
+            textStyle: const TextStyle(fontWeight: FontWeight.w900),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
         appBarTheme: const AppBarTheme(
@@ -144,14 +152,7 @@ class _AppRoot extends StatelessWidget {
             return const IconThemeData(color: Color(0xFF6B7280));
           }),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
+        elevatedButtonTheme: GameTheme.primaryButton(),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
@@ -175,12 +176,8 @@ class _AppRoot extends StatelessWidget {
             borderSide: const BorderSide(color: seedColor, width: 1.4),
           ),
         ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-        ),
+        dialogTheme: GameTheme.dialog(dark: false),
+        textButtonTheme: GameTheme.secondaryButton(dark: false),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -189,7 +186,7 @@ class _AppRoot extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         scaffoldBackgroundColor: Colors.transparent,
-        cardColor: const Color(0xFF1A1D24),
+        cardColor: GamePalette.dark.panel,
         dividerColor: const Color(0xFF2A2F3A),
         shadowColor: Colors.black.withValues(alpha: 0.20),
         textTheme: const TextTheme(
@@ -201,10 +198,21 @@ class _AppRoot extends StatelessWidget {
           titleSmall: TextStyle(color: Color(0xFFF3F4F6)),
         ),
         cardTheme: CardThemeData(
-          color: const Color(0xFF1A1D24),
+          color: GamePalette.dark.panel,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppUI.cardFrame, width: 2),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: GamePalette.gold,
+            foregroundColor: const Color(0xFF2A1600),
+            textStyle: const TextStyle(fontWeight: FontWeight.w900),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
         appBarTheme: const AppBarTheme(
@@ -232,14 +240,7 @@ class _AppRoot extends StatelessWidget {
             return const IconThemeData(color: Color(0xFFB6BDC9));
           }),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
+        elevatedButtonTheme: GameTheme.primaryButton(),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
@@ -263,12 +264,8 @@ class _AppRoot extends StatelessWidget {
             borderSide: const BorderSide(color: seedColor, width: 1.4),
           ),
         ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: const Color(0xFF1A1D24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-        ),
+        dialogTheme: GameTheme.dialog(dark: true),
+        textButtonTheme: GameTheme.secondaryButton(dark: true),
       ),
       // App always goes directly to main shell — sign in/register via Account tab
       home: !appState.isHydrated
@@ -351,7 +348,10 @@ class _MainShellState extends State<MainShell> {
           );
           break;
         default:
-          changeTab(3);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SocialPage()),
+          );
       }
     });
   }
@@ -360,72 +360,12 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     _schedulePushRoute(appState);
-    final accentColor = appState.currentIconColor;
 
-    final pages = [
-      HomePage(onNavigate: changeTab, onOpenStatistics: openStatisticsPage),
-      const CharacterPage(),
-      const FocusPage(),
-      const SocialPage(),
-      const HealthPage(),
-      const AccountPage(),
-    ];
-
-    return Scaffold(
-      body: IndexedStack(index: currentIndex, children: pages),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarTheme.of(context).copyWith(
-          indicatorColor: accentColor.withValues(
-            alpha: AppUI.isDark(context) ? 0.22 : 0.14,
-          ),
-          iconTheme: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return IconThemeData(color: accentColor);
-            }
-            return IconThemeData(
-              color: AppUI.isDark(context)
-                  ? const Color(0xFFB6BDC9)
-                  : const Color(0xFF6B7280),
-            );
-          }),
-        ),
-        child: NavigationBar(
-          selectedIndex: currentIndex,
-          onDestinationSelected: changeTab,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: '首頁',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.auto_awesome_outlined),
-              selectedIcon: Icon(Icons.auto_awesome),
-              label: '角色',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.timer_outlined),
-              selectedIcon: Icon(Icons.timer),
-              label: '專注',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.people_alt_outlined),
-              selectedIcon: Icon(Icons.people_alt),
-              label: '社交',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.favorite_border),
-              selectedIcon: Icon(Icons.favorite),
-              label: '健康',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: '帳號',
-            ),
-          ],
-        ),
-      ),
+    // The cabin is the whole App: room objects open every feature, so there
+    // is no bottom navigation bar.
+    return HomePage(
+      onNavigate: changeTab,
+      onOpenStatistics: openStatisticsPage,
     );
   }
 }

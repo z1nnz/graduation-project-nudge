@@ -1729,7 +1729,7 @@ class _TasksPageState extends State<TasksPage> {
     final completedTasks = sortedTasks.where((task) => task.isDone).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('任務管理')),
+      appBar: AppBar(title: const Text('今日委託')),
       body: Column(
         children: [
           Container(
