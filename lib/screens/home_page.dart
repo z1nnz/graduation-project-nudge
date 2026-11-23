@@ -17,6 +17,7 @@ import 'reminder_center_page.dart';
 import 'settings_page.dart';
 import 'account_page.dart';
 import '../models/cabin_layout.dart';
+import '../models/cabin_tour_memory.dart';
 import 'focus_page.dart';
 import 'social_page.dart';
 import 'study_room_list_page.dart';
@@ -65,7 +66,9 @@ class HomePage extends StatelessWidget {
     return ((appState.avatarExperience - start) / (end - start)).clamp(0, 1);
   }
 
-  static Future<CabinLayout>? _cabinLayout;
+  /// Cabin layout and whether the first-visit tour was already seen,
+  /// loaded once so rebuilds do not restart the loading.
+  static Future<(CabinLayout, bool)>? _cabinData;
   static final _immersiveScaffold = GlobalKey<ScaffoldState>();
 
   Widget _immersive(BuildContext context, AppState appState) {
@@ -77,14 +80,18 @@ class HomePage extends StatelessWidget {
           (b) => b.badgeKey == 'focus_streak' || b.badgeKey == 'task_streak',
         )
         .fold<int>(0, (best, b) => b.progress > best ? b.progress : best);
-    _cabinLayout ??= CabinLayout.load(DefaultAssetBundle.of(context));
+    _cabinData ??= Future.wait<Object>([
+      CabinLayout.load(DefaultAssetBundle.of(context)),
+      CabinTourMemory.seen(),
+    ]).then((v) => (v[0] as CabinLayout, v[1] as bool));
     return Scaffold(
       key: _immersiveScaffold,
       drawer: AppDrawer(onOpenTasks: () => push(const TasksPage())),
-      body: FutureBuilder<CabinLayout>(
-        future: _cabinLayout,
+      body: FutureBuilder<(CabinLayout, bool)>(
+        future: _cabinData,
         builder: (context, snapshot) {
-          final layout = snapshot.data;
+          final (layout, tourSeen) =
+              snapshot.data ?? (null as CabinLayout?, true);
           if (layout == null) return const ColoredBox(color: Color(0xFF3B2418));
           return ImmersiveHome(
             layout: layout,
@@ -121,6 +128,11 @@ class HomePage extends StatelessWidget {
             onOpenDecor: () => showHomeDecorSheet(context),
             onOpenShop: () => push(const AvatarShopPage()),
             onOpenDevice: () => push(const NudgeDevicePage()),
+            showTour: !tourSeen,
+            onTourDone: () {
+              _cabinData = Future.value((layout, true));
+              CabinTourMemory.markSeen();
+            },
             onOpenMenu: () => showCabinMenu(
               context,
               onOpen: (id) => push(switch (id) {

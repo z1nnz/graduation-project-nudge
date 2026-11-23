@@ -11,6 +11,7 @@ import '../models/cabin_presentation.dart';
 import '../models/companion_pose.dart';
 import 'companion_cabin_view.dart';
 import 'companion_sprite.dart';
+import 'cabin_tour.dart';
 
 /// Pixel font for in-world text (HUD, signs, bubbles).
 const pixelFont = 'Cubic11';
@@ -432,6 +433,8 @@ class ImmersiveHome extends StatefulWidget {
     required this.onOpenMenu,
     required this.onOpenShop,
     required this.onOpenDevice,
+    this.showTour = false,
+    this.onTourDone,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
     this.now,
@@ -455,6 +458,11 @@ class ImmersiveHome extends StatefulWidget {
   final VoidCallback onOpenMenu;
   final VoidCallback onOpenShop;
   final VoidCallback onOpenDevice;
+
+  /// Show the first-visit tour; [onTourDone] runs when it is finished or
+  /// skipped so the caller can remember it.
+  final bool showTour;
+  final VoidCallback? onTourDone;
   final String? confirmedActivityLabel;
   final DateTime? now;
 
@@ -485,6 +493,17 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   String? _pokeLine;
   int _pokeCount = 0;
   bool _still = false;
+  late bool _touring = widget.showTour;
+  final _questKey = GlobalKey();
+  final _companionKey = GlobalKey();
+  final _focusKey = GlobalKey();
+  final _roomsKey = GlobalKey();
+  final _menuKey = GlobalKey();
+
+  void _endTour() {
+    setState(() => _touring = false);
+    widget.onTourDone?.call();
+  }
 
   bool get _night {
     final hour = (widget.now ?? DateTime.now()).hour;
@@ -545,7 +564,8 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     if (dt <= 0) return;
     setState(() {
       final step = math.min(dt, 0.05);
-      _brain.tick(step);
+      // The companion stands still while the tour points at things.
+      if (!_touring) _brain.tick(step);
       for (final d in _dust) {
         d.age += step;
       }
@@ -597,15 +617,19 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     CabinRect rect,
     String key,
     String label,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    GlobalKey? tourKey,
+  }) {
     return Positioned.fromRect(
       rect: _inBox(box, rect),
-      child: CabinHotspot(
-        key: Key(key),
-        label: label,
-        onTap: onTap,
-        glow: _still ? null : _pulse,
+      child: KeyedSubtree(
+        key: tourKey,
+        child: CabinHotspot(
+          key: Key(key),
+          label: label,
+          onTap: onTap,
+          glow: _still ? null : _pulse,
+        ),
       ),
     );
   }
@@ -642,6 +666,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
               'cabin-quest-board',
               '委託 ${widget.presentation.questCount}',
               widget.onOpenQuests,
+              tourKey: _questKey,
             ),
             _hotspot(
               box,
@@ -716,12 +741,15 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                   behavior: HitTestBehavior.opaque,
                   onTap: _onPoke,
                   onLongPress: widget.onOpenCharacter,
-                  child: CompanionSprite(
-                    profile: widget.profile,
-                    pose: _brain.pose,
-                    size: charHeight,
-                    facingLeft: _brain.facingLeft,
-                    stepPhase: _brain.stepPhase,
+                  child: KeyedSubtree(
+                    key: _companionKey,
+                    child: CompanionSprite(
+                      profile: widget.profile,
+                      pose: _brain.pose,
+                      size: charHeight,
+                      facingLeft: _brain.facingLeft,
+                      stepPhase: _brain.stepPhase,
+                    ),
                   ),
                 ),
               ),
@@ -775,11 +803,14 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                     onTap: widget.onOpenDecor,
                   ),
                   const SizedBox(width: 6),
-                  _HudButton(
-                    key: const Key('cabin-menu'),
-                    icon: Icons.menu_rounded,
-                    label: '選單',
-                    onTap: widget.onOpenMenu,
+                  KeyedSubtree(
+                    key: _menuKey,
+                    child: _HudButton(
+                      key: const Key('cabin-menu'),
+                      icon: Icons.menu_rounded,
+                      label: '選單',
+                      onTap: widget.onOpenMenu,
+                    ),
                   ),
                 ],
               ),
@@ -796,8 +827,36 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 onOpenFocus: widget.onOpenDesk,
                 onOpenSocial: widget.onOpenCompanions,
                 onOpenShop: widget.onOpenShop,
+                focusKey: _focusKey,
+                roomsKey: _roomsKey,
               ),
             ),
+            if (_touring)
+              Positioned.fill(
+                child: CabinTour(
+                  steps: [
+                    CabinTourStep(
+                      '嗨！我是你的夥伴，以後就住在這間小屋。點我會打招呼，點地板我會走過去喔。',
+                      target: _companionKey,
+                    ),
+                    CabinTourStep(
+                      '這是委託板。今天要做的事都貼在這裡，完成會蓋上「達成」章。',
+                      target: _questKey,
+                    ),
+                    CabinTourStep('按「專注」就會到書桌前，我會陪你一起讀書。', target: _focusKey),
+                    CabinTourStep('自律房裡有一起專注的夥伴，人越多房間越亮。', target: _roomsKey),
+                    CabinTourStep('日曆、健康、設定這些功能都收在選單裡。', target: _menuKey),
+                    const CabinTourStep(
+                      '專注完成、經雲端確認後就能拿到金幣，用來布置我們的小屋！要不要現在就來第一次專注？',
+                    ),
+                  ],
+                  onSkip: _endTour,
+                  onStart: () {
+                    _endTour();
+                    widget.onOpenDesk();
+                  },
+                ),
+              ),
           ];
         },
       ),
@@ -816,8 +875,12 @@ class _Hotbar extends StatelessWidget {
     required this.onOpenFocus,
     required this.onOpenSocial,
     required this.onOpenShop,
+    this.focusKey,
+    this.roomsKey,
   });
 
+  final GlobalKey? focusKey;
+  final GlobalKey? roomsKey;
   final int questCount;
   final Animation<double>? glow;
   final VoidCallback onOpenQuests;
@@ -859,6 +922,7 @@ class _Hotbar extends StatelessWidget {
           ),
           _HotbarSlot(
             key: const Key('hotbar-rooms'),
+            tourKey: roomsKey,
             label: '自律房',
             icon: 'assets/ui/icons/icon_room.png',
             fallback: Icons.groups,
@@ -866,6 +930,7 @@ class _Hotbar extends StatelessWidget {
           ),
           _HotbarSlot(
             key: const Key('hotbar-focus'),
+            tourKey: focusKey,
             label: '專注',
             icon: 'assets/ui/icons/icon_focus.png',
             fallback: Icons.hourglass_bottom,
@@ -903,7 +968,10 @@ class _HotbarSlot extends StatelessWidget {
     this.count = 0,
     this.big = false,
     this.glow,
+    this.tourKey,
   });
+
+  final GlobalKey? tourKey;
 
   final String label;
   final String icon;
@@ -993,7 +1061,7 @@ class _HotbarSlot extends StatelessWidget {
               clipBehavior: Clip.none,
               fit: StackFit.passthrough,
               children: [
-                face,
+                KeyedSubtree(key: tourKey, child: face),
                 if (count > 0)
                   Positioned(
                     top: -6,

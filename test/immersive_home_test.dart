@@ -23,6 +23,7 @@ Future<Map<String, int>> _pump(
   bool still = false,
   bool device = false,
   bool focusing = false,
+  bool tour = false,
 }) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
@@ -56,6 +57,8 @@ Future<Map<String, int>> _pump(
           onOpenMenu: () => hit('menu'),
           onOpenShop: () => hit('shop'),
           onOpenDevice: () => hit('device'),
+          showTour: tour,
+          onTourDone: () => hit('tourDone'),
         ),
       ),
     ),
@@ -210,5 +213,48 @@ void main() {
     }
     expect(find.byKey(const Key('sprite-read')), findsOneWidget);
     expect(find.text('桌上的我也在專注，一起加油！'), findsOneWidget);
+  });
+
+  testWidgets('first visit: the companion walks the user through the cabin', (
+    tester,
+  ) async {
+    late Map<String, int> opened;
+    await tester.runAsync(() async => opened = await _pump(tester, tour: true));
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.byKey(const Key('cabin-tour')), findsOneWidget);
+    expect(find.textContaining('我是你的夥伴'), findsOneWidget);
+    expect(find.text('1 / 6'), findsOneWidget);
+
+    for (var step = 2; step <= 6; step++) {
+      await tester.tap(find.text('下一步'));
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.text('$step / 6'), findsOneWidget);
+    }
+    // While the tour runs, room objects stay out of reach.
+    expect(opened['quests'], isNull);
+
+    await tester.tap(find.text('開始第一次專注'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(opened['desk'], 1);
+    expect(opened['tourDone'], 1);
+    expect(find.byKey(const Key('cabin-tour')), findsNothing);
+  });
+
+  testWidgets('the tour can be skipped at any step', (tester) async {
+    late Map<String, int> opened;
+    await tester.runAsync(() async => opened = await _pump(tester, tour: true));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.tap(find.text('下一步'));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.tap(find.text('略過'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(opened['tourDone'], 1);
+    expect(opened['desk'], isNull);
+    expect(find.byKey(const Key('cabin-tour')), findsNothing);
+  });
+
+  testWidgets('no tour once it has been seen', (tester) async {
+    await tester.runAsync(() => _pump(tester));
+    expect(find.byKey(const Key('cabin-tour')), findsNothing);
   });
 }
