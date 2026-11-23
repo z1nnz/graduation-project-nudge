@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,9 @@ import '../models/cabin_presentation.dart';
 import '../models/companion_pose.dart';
 import 'companion_cabin_view.dart';
 import 'companion_sprite.dart';
+
+/// Pixel font for in-world text (HUD, signs, bubbles).
+const pixelFont = 'Cubic11';
 
 /// Where the 9:16 cabin sits on a taller phone screen: full width,
 /// vertically centred; wood tones extend above and below.
@@ -74,93 +78,182 @@ class CabinStage extends StatelessWidget {
   }
 }
 
-/// A glowing, tappable room object.
-class CabinHotspot extends StatelessWidget {
+/// A room object you can tap. At rest it only glows softly; while pressed a
+/// wooden sign names it.
+class CabinHotspot extends StatefulWidget {
   const CabinHotspot({
     super.key,
     required this.label,
     required this.onTap,
-    this.showSpark = true,
+    this.glow,
   });
 
   final String label;
   final VoidCallback onTap;
-  final bool showSpark;
+
+  /// Shared pulse (0..1); null shows a static glow.
+  final Animation<double>? glow;
+
+  @override
+  State<CabinHotspot> createState() => _CabinHotspotState();
+}
+
+class _CabinHotspotState extends State<CabinHotspot> {
+  bool _pressed = false;
+  Timer? _release;
+
+  @override
+  void dispose() {
+    _release?.cancel();
+    super.dispose();
+  }
+
+  void _press(bool value) {
+    if (_pressed != value) setState(() => _pressed = value);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final glow = widget.glow;
     return Semantics(
       button: true,
-      label: label,
+      label: widget.label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: showSpark
-            ? Align(
-                alignment: Alignment.topCenter,
-                child: _Spark(label: label),
-              )
-            : const SizedBox.expand(),
+        onTapDown: (_) => _press(true),
+        onTapCancel: () => _press(false),
+        onTapUp: (_) {
+          _release?.cancel();
+          _release = Timer(
+            const Duration(milliseconds: 160),
+            () => mounted ? _press(false) : null,
+          );
+        },
+        onTap: widget.onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: glow == null
+                    ? const _Glow(t: 0.5)
+                    : AnimatedBuilder(
+                        animation: glow,
+                        builder: (_, _) => _Glow(t: glow.value),
+                      ),
+              ),
+            ),
+            Positioned(
+              top: -30,
+              child: IgnorePointer(
+                child: AnimatedScale(
+                  scale: _pressed ? 1 : 0.6,
+                  duration: const Duration(milliseconds: 140),
+                  curve: Curves.easeOutBack,
+                  child: AnimatedOpacity(
+                    opacity: _pressed ? 1 : 0,
+                    duration: const Duration(milliseconds: 120),
+                    child: _pressed
+                        ? _WoodSign(text: widget.label)
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _Spark extends StatelessWidget {
-  const _Spark({required this.label});
+/// Soft golden rim light around a room object.
+class _Glow extends StatelessWidget {
+  const _Glow({required this.t});
 
-  final String label;
+  final double t;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [Color(0xFFFFF7C2), Color(0xFFFFCF5A), Color(0x00FFCF5A)],
-            ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFCF5A).withValues(alpha: 0.10 + 0.18 * t),
+            blurRadius: 10 + 8 * t,
+            spreadRadius: -2,
           ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10.5,
-            fontWeight: FontWeight.w900,
-            shadows: [Shadow(color: Colors.black, blurRadius: 3)],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _HudChip extends StatelessWidget {
-  const _HudChip({required this.text});
+class _WoodSign extends StatelessWidget {
+  const _WoodSign({required this.text});
 
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(10, 3, 10, 5),
       decoration: BoxDecoration(
-        color: const Color(0xB3201008),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0x4DFFDCAA)),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFB98552), Color(0xFF8A5A34)],
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF4A2D22), width: 2),
+        boxShadow: const [
+          BoxShadow(color: Color(0x80000000), offset: Offset(0, 3)),
+        ],
       ),
       child: Text(
         text,
         style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: 12.5,
+          fontFamily: pixelFont,
+          color: Color(0xFFFFF3D6),
+          fontSize: 14,
+          shadows: [Shadow(color: Color(0xFF3B2418), offset: Offset(1, 1))],
         ),
+      ),
+    );
+  }
+}
+
+/// Wooden HUD plate.
+class _Plate extends StatelessWidget {
+  const _Plate({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(9, 3, 10, 5),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF8A5A34), Color(0xFF5A3826)],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFC9934F), width: 2),
+        boxShadow: const [
+          BoxShadow(color: Color(0x99000000), offset: Offset(0, 3)),
+        ],
+      ),
+      child: DefaultTextStyle.merge(
+        style: const TextStyle(
+          fontFamily: pixelFont,
+          color: Color(0xFFFFF3D6),
+          fontSize: 14,
+        ),
+        child: child,
       ),
     );
   }
@@ -180,47 +273,141 @@ class _HudButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xB3201008),
-      shape: const CircleBorder(side: BorderSide(color: Color(0x4DFFDCAA))),
-      child: IconButton(
-        tooltip: label,
-        onPressed: onTap,
-        icon: Icon(icon, color: Colors.white, size: 20),
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF8A5A34), Color(0xFF5A3826)],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFC9934F), width: 2),
+            boxShadow: const [
+              BoxShadow(color: Color(0x99000000), offset: Offset(0, 3)),
+            ],
+          ),
+          child: Icon(icon, color: const Color(0xFFFFE6A3), size: 22),
+        ),
       ),
     );
   }
 }
 
-class _SpeechBubble extends StatelessWidget {
-  const _SpeechBubble({required this.text});
+/// Level badge with an experience ring.
+class _LevelBadge extends StatelessWidget {
+  const _LevelBadge({required this.level, required this.progress});
 
-  final String text;
+  final int level;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 220),
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFAF0),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF8A5A34), width: 2),
-        boxShadow: const [
-          BoxShadow(color: Color(0x40000000), offset: Offset(0, 3)),
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(end: progress.clamp(0, 1)),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (_, value, _) => CircularProgressIndicator(
+              value: value,
+              strokeWidth: 4,
+              backgroundColor: const Color(0x66000000),
+              color: const Color(0xFF7CF7C4),
+            ),
+          ),
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFD76A), Color(0xFFFF8F3A)],
+              ),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: const Color(0xFF8A4A10), width: 2),
+            ),
+            child: Text(
+              '$level',
+              style: const TextStyle(
+                fontFamily: pixelFont,
+                color: Color(0xFF3A1D00),
+                fontSize: 16,
+              ),
+            ),
+          ),
         ],
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Color(0xFF3A1D0C),
-          fontWeight: FontWeight.w900,
-          fontSize: 12.5,
-        ),
       ),
     );
   }
+}
+
+/// Speech bubble that pops in and types its line out.
+class _SpeechBubble extends StatelessWidget {
+  const _SpeechBubble({required this.text, required this.instant});
+
+  final String text;
+  final bool instant;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: Duration(milliseconds: instant ? 0 : 220),
+      transitionBuilder: (child, animation) => ScaleTransition(
+        scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+        child: FadeTransition(opacity: animation, child: child),
+      ),
+      child: Container(
+        key: ValueKey(text),
+        constraints: const BoxConstraints(maxWidth: 230),
+        padding: const EdgeInsets.fromLTRB(11, 5, 11, 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFAF0),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF8A5A34), width: 2),
+          boxShadow: const [
+            BoxShadow(color: Color(0x40000000), offset: Offset(0, 3)),
+          ],
+        ),
+        child: instant
+            ? _bubbleText(text)
+            : TweenAnimationBuilder<int>(
+                tween: IntTween(begin: 0, end: text.characters.length),
+                duration: Duration(milliseconds: 45 * text.characters.length),
+                builder: (_, shown, _) =>
+                    _bubbleText(text.characters.take(shown).toString()),
+              ),
+      ),
+    );
+  }
+
+  static Widget _bubbleText(String text) => Text(
+    text,
+    textAlign: TextAlign.center,
+    style: const TextStyle(
+      fontFamily: pixelFont,
+      color: Color(0xFF3A1D0C),
+      fontSize: 14,
+    ),
+  );
+}
+
+class _Dust {
+  _Dust(this.at, this.drift);
+
+  final Offset at;
+  final double drift;
+  double age = 0;
 }
 
 /// The home screen: the whole cabin, a companion who lives in it, and room
@@ -243,6 +430,7 @@ class ImmersiveHome extends StatefulWidget {
     required this.onOpenCharacter,
     required this.onOpenDecor,
     required this.onOpenBackpack,
+    this.levelProgress = 0,
     this.confirmedActivityLabel,
     this.now,
   });
@@ -251,6 +439,7 @@ class ImmersiveHome extends StatefulWidget {
   final CabinPresentation presentation;
   final AvatarProfile profile;
   final int level;
+  final double levelProgress;
   final int coins;
   final int streak;
   final VoidCallback onOpenQuests;
@@ -270,7 +459,7 @@ class ImmersiveHome extends StatefulWidget {
 }
 
 class _ImmersiveHomeState extends State<ImmersiveHome>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const _pokeLines = [
     '嘿嘿，被你發現了！',
     '今天也一起加油！',
@@ -281,7 +470,14 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
 
   late final CabinCompanionBrain _brain = CabinCompanionBrain();
   late final Ticker _ticker = createTicker(_onTick);
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+  final List<_Dust> _dust = [];
+  final _random = math.Random();
   Duration _last = Duration.zero;
+  double _dustClock = 0;
   String? _pokeLine;
   int _pokeCount = 0;
   bool _still = false;
@@ -303,9 +499,15 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     _still = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (_still) {
       if (_ticker.isActive) _ticker.stop();
-    } else if (!_ticker.isActive) {
-      _last = Duration.zero;
-      _ticker.start();
+      _pulse
+        ..stop()
+        ..value = 0.5;
+    } else {
+      if (!_ticker.isActive) {
+        _last = Duration.zero;
+        _ticker.start();
+      }
+      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
     }
   }
 
@@ -326,12 +528,27 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
         : (elapsed - _last).inMicroseconds / 1e6;
     _last = elapsed;
     if (dt <= 0) return;
-    setState(() => _brain.tick(math.min(dt, 0.05)));
+    setState(() {
+      final step = math.min(dt, 0.05);
+      _brain.tick(step);
+      for (final d in _dust) {
+        d.age += step;
+      }
+      _dust.removeWhere((d) => d.age > 0.6);
+      if (_brain.pose == CompanionPose.walk) {
+        _dustClock += step;
+        if (_dustClock > 0.18) {
+          _dustClock = 0;
+          _dust.add(_Dust(_brain.position, _random.nextDouble() - 0.5));
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _ticker.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
@@ -345,7 +562,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
       _pokeLine = null;
       if (_still) {
         // No walking animation: the companion appears at the spot.
-        for (var i = 0; i < 200 && _brain.pose == CompanionPose.walk; i++) {
+        for (var i = 0; i < 400 && _brain.pose == CompanionPose.walk; i++) {
           _brain.tick(0.05);
         }
         setState(() {});
@@ -360,6 +577,24 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     });
   }
 
+  Widget _hotspot(
+    Rect box,
+    CabinRect rect,
+    String key,
+    String label,
+    VoidCallback onTap,
+  ) {
+    return Positioned.fromRect(
+      rect: _inBox(box, rect),
+      child: CabinHotspot(
+        key: Key(key),
+        label: label,
+        onTap: onTap,
+        glow: _still ? null : _pulse,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final layout = widget.layout;
@@ -369,10 +604,9 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
         presentation: widget.presentation,
         builder: (context, box) {
           final charHeight = layout.character.height * box.height;
-          final feet = Offset(
-            box.left + _brain.position.dx * box.width,
-            box.top + _brain.position.dy * box.height,
-          );
+          Offset toScreen(Offset p) =>
+              Offset(box.left + p.dx * box.width, box.top + p.dy * box.height);
+          final feet = toScreen(_brain.position);
           final bubble =
               _pokeLine ??
               (_brain.activity == CompanionActivity.rest
@@ -385,54 +619,62 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 onTapUp: (d) => _onFloorTap(d, box),
               ),
             ),
-            Positioned.fromRect(
-              rect: _inBox(box, layout.questBoard),
-              child: CabinHotspot(
-                key: const Key('cabin-quest-board'),
-                label: '委託 ${widget.presentation.questCount}',
-                onTap: widget.onOpenQuests,
-              ),
+            _hotspot(
+              box,
+              layout.questBoard,
+              'cabin-quest-board',
+              '委託 ${widget.presentation.questCount}',
+              widget.onOpenQuests,
             ),
-            Positioned.fromRect(
-              rect: _inBox(box, const CabinRect(0.39, 0.45, 0.45, 0.14)),
-              child: CabinHotspot(
-                key: const Key('cabin-desk'),
-                label: '書桌・專注',
-                onTap: widget.onOpenDesk,
-              ),
+            _hotspot(
+              box,
+              const CabinRect(0.39, 0.45, 0.45, 0.14),
+              'cabin-desk',
+              '書桌・專注',
+              widget.onOpenDesk,
             ),
-            Positioned.fromRect(
-              rect: _inBox(box, const CabinRect(0.11, 0.28, 0.24, 0.29)),
-              child: CabinHotspot(
-                key: const Key('cabin-shelf'),
-                label: '紀錄',
-                onTap: widget.onOpenRecords,
-              ),
+            _hotspot(
+              box,
+              const CabinRect(0.11, 0.28, 0.24, 0.29),
+              'cabin-shelf',
+              '紀錄',
+              widget.onOpenRecords,
             ),
-            Positioned.fromRect(
-              rect: _inBox(box, const CabinRect(0.67, 0.3, 0.2, 0.08)),
-              child: CabinHotspot(
-                key: const Key('cabin-badges'),
-                label: '徽章',
-                onTap: widget.onOpenBadges,
-              ),
+            _hotspot(
+              box,
+              const CabinRect(0.67, 0.3, 0.2, 0.08),
+              'cabin-badges',
+              '徽章',
+              widget.onOpenBadges,
             ),
             if (layout.doors['family'] case final r?)
-              Positioned.fromRect(
-                rect: _inBox(box, r),
-                child: CabinHotspot(
-                  key: const Key('cabin-door-family'),
-                  label: '同伴',
-                  onTap: widget.onOpenCompanions,
-                ),
+              _hotspot(
+                box,
+                r,
+                'cabin-door-family',
+                '同伴',
+                widget.onOpenCompanions,
               ),
             if (layout.doors['group'] case final r?)
-              Positioned.fromRect(
-                rect: _inBox(box, r),
-                child: CabinHotspot(
-                  key: const Key('cabin-door-group'),
-                  label: '自律房',
-                  onTap: widget.onOpenRooms,
+              _hotspot(box, r, 'cabin-door-group', '自律房', widget.onOpenRooms),
+            for (final d in _dust)
+              Positioned(
+                key: ObjectKey(d),
+                left: toScreen(d.at).dx - 5 + d.drift * 24 * d.age,
+                top: toScreen(d.at).dy - 8 - 14 * d.age,
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: (1 - d.age / 0.6).clamp(0, 1) * 0.7,
+                    child: Container(
+                      key: const Key('cabin-dust'),
+                      width: 8 + 10 * d.age,
+                      height: 8 + 10 * d.age,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8D5B5),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             Positioned(
@@ -461,9 +703,11 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
             Positioned(
               left: 0,
               right: 0,
-              top: feet.dy - charHeight - 34,
+              top: feet.dy - charHeight - 36,
               child: IgnorePointer(
-                child: Center(child: _SpeechBubble(text: bubble)),
+                child: Center(
+                  child: _SpeechBubble(text: bubble, instant: _still),
+                ),
               ),
             ),
             Positioned(
@@ -472,28 +716,31 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
               top: MediaQuery.paddingOf(context).top + 10,
               child: Row(
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFD76A), Color(0xFFFF8F3A)],
-                      ),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Text(
-                      '${widget.level}',
-                      style: const TextStyle(
-                        color: Color(0xFF3A1D00),
-                        fontWeight: FontWeight.w900,
-                      ),
+                  _LevelBadge(
+                    level: widget.level,
+                    progress: widget.levelProgress,
+                  ),
+                  const SizedBox(width: 6),
+                  _Plate(
+                    child: TweenAnimationBuilder<int>(
+                      tween: IntTween(end: widget.coins),
+                      duration: Duration(milliseconds: _still ? 0 : 700),
+                      builder: (_, value, _) => Text('◎ $value'),
                     ),
                   ),
                   const SizedBox(width: 6),
-                  _HudChip(text: '◎ ${widget.coins}'),
-                  const SizedBox(width: 6),
-                  _HudChip(text: '🔥 ${widget.streak}'),
+                  _Plate(
+                    child: _still
+                        ? Text('🔥 ${widget.streak}')
+                        : AnimatedBuilder(
+                            animation: _pulse,
+                            builder: (_, child) => Transform.scale(
+                              scale: 1 + 0.06 * _pulse.value,
+                              child: child,
+                            ),
+                            child: Text('🔥 ${widget.streak}'),
+                          ),
+                  ),
                   const Spacer(),
                   _HudButton(
                     key: const Key('cabin-decor'),

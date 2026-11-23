@@ -92,6 +92,9 @@ void main() {
     expect(find.text('◎ 128'), findsOneWidget);
     expect(find.text('🔥 6'), findsOneWidget);
     expect(find.byType(Card), findsNothing);
+    // The bubble types its line out.
+    expect(find.text('完成 2 小時讀書'), findsNothing);
+    await tester.pump(const Duration(seconds: 2));
     expect(find.text('完成 2 小時讀書'), findsOneWidget);
   });
 
@@ -123,5 +126,26 @@ void main() {
     await tester.runAsync(() => _pump(tester, still: true));
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.hasRunningAnimations, isFalse);
+  });
+
+  testWidgets('object signs appear only while pressing', (tester) async {
+    await tester.runAsync(() => _pump(tester));
+    expect(find.text('委託 3'), findsNothing);
+    final r = tester.getRect(find.byKey(const Key('cabin-quest-board')));
+    final gesture = await tester.startGesture(Offset(r.right - 6, r.top + 6));
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(find.text('委託 3'), findsOneWidget);
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('委託 3'), findsNothing);
+  });
+
+  testWidgets('walking kicks up dust', (tester) async {
+    await tester.runAsync(() => _pump(tester));
+    await tester.tapAt(const Offset(80, 640));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.byKey(const Key('cabin-dust')), findsWidgets);
   });
 }

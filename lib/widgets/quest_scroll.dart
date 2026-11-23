@@ -81,9 +81,9 @@ class _QuestScroll extends StatelessWidget {
                           const Text(
                             '今日委託',
                             style: TextStyle(
+                              fontFamily: 'Cubic11',
                               color: _ink,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
                               letterSpacing: 2,
                             ),
                           ),

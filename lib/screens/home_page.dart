@@ -92,6 +92,7 @@ class HomePage extends StatelessWidget {
             ),
             profile: appState.avatarProfile,
             level: appState.avatarLevel,
+            levelProgress: _levelProgress(appState),
             coins: appState.disciplineCoins,
             streak: streak,
             confirmedActivityLabel: appState.confirmedActivityFeedback?.label,

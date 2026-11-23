@@ -713,8 +713,9 @@ class _FocusPageState extends State<FocusPage> {
                           Text(
                             formattedTime,
                             style: const TextStyle(
+                              fontFamily: 'Cubic11',
                               color: Color(0xFFFFE6A3),
-                              fontSize: 44,
+                              fontSize: 48,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 2,
                               fontFeatures: [FontFeature.tabularFigures()],
