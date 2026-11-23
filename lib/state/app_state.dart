@@ -12,6 +12,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 import '../models/avatar_catalog.dart';
+import '../models/companion_device_link.dart';
 import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
@@ -256,6 +257,13 @@ class AppState extends ChangeNotifier {
   /// The current user's Firestore uid, falling back to 'local_user' when
   /// the user is not signed in (guest mode / offline).
   String get _myId => _currentUser?.id ?? 'local_user';
+
+  /// The physical companion as seen through its Cloud activity sessions.
+  CompanionDeviceLink get companionDeviceLink =>
+      CompanionDeviceLink.fromSessions(
+        _canonicalActivitySessionDocuments,
+        actorUserId: _myId,
+      );
 
   bool get isNudgeDeviceSupported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;

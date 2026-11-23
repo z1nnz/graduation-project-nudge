@@ -10,6 +10,7 @@ import '../widgets/cabin_route.dart';
 import '../widgets/quest_scroll.dart';
 import '../widgets/cabin_menu_sheet.dart';
 import 'avatar_shop_page.dart';
+import 'nudge_device_page.dart';
 import 'health_page.dart';
 import 'calendar_page.dart';
 import 'reminder_center_page.dart';
@@ -95,8 +96,8 @@ class HomePage extends StatelessWidget {
               openTaskCount:
                   appState.todayActionableTaskTotal -
                   appState.todayActionableTaskCompleted,
-              hasDevice: false,
-              deviceFocusing: false,
+              hasDevice: appState.companionDeviceLink.hasDevice,
+              deviceFocusing: appState.companionDeviceLink.deviceFocusing,
             ),
             profile: appState.avatarProfile,
             level: appState.avatarLevel,
@@ -119,6 +120,7 @@ class HomePage extends StatelessWidget {
             onOpenCharacter: () => push(const CharacterPage()),
             onOpenDecor: () => showHomeDecorSheet(context),
             onOpenShop: () => push(const AvatarShopPage()),
+            onOpenDevice: () => push(const NudgeDevicePage()),
             onOpenMenu: () => showCabinMenu(
               context,
               onOpen: (id) => push(switch (id) {

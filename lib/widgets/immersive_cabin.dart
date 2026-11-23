@@ -431,6 +431,7 @@ class ImmersiveHome extends StatefulWidget {
     required this.onOpenDecor,
     required this.onOpenMenu,
     required this.onOpenShop,
+    required this.onOpenDevice,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
     this.now,
@@ -453,6 +454,7 @@ class ImmersiveHome extends StatefulWidget {
   final VoidCallback onOpenDecor;
   final VoidCallback onOpenMenu;
   final VoidCallback onOpenShop;
+  final VoidCallback onOpenDevice;
   final String? confirmedActivityLabel;
   final DateTime? now;
 
@@ -489,10 +491,20 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     return hour >= 22 || hour < 6;
   }
 
+  static const _deviceLine = '桌上的我也在專注，一起加油！';
+
+  /// The desk device focusing wins over the night: the cabin companion keeps
+  /// the device company at the desk.
+  CompanionActivity get _wantedActivity => widget.presentation.globeGlowing
+      ? CompanionActivity.focus
+      : _night
+      ? CompanionActivity.rest
+      : CompanionActivity.wander;
+
   @override
   void initState() {
     super.initState();
-    if (_night) _brain.setActivity(CompanionActivity.rest);
+    _brain.setActivity(_wantedActivity);
   }
 
   @override
@@ -516,6 +528,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   @override
   void didUpdateWidget(ImmersiveHome old) {
     super.didUpdateWidget(old);
+    _brain.setActivity(_wantedActivity);
     final before = old.confirmedActivityLabel;
     final after = widget.confirmedActivityLabel;
     if (before != null && after != null && before != after) {
@@ -611,7 +624,9 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
           final feet = toScreen(_brain.position);
           final bubble =
               _pokeLine ??
-              (_brain.activity == CompanionActivity.rest
+              (widget.presentation.globeGlowing
+                  ? _deviceLine
+                  : _brain.activity == CompanionActivity.rest
                   ? '呼……晚安'
                   : widget.presentation.bubbleText);
           return [
@@ -649,6 +664,15 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
               '徽章',
               widget.onOpenBadges,
             ),
+            if (widget.presentation.showGlobe)
+              if (layout.layers['globe'] case final globe?)
+                _hotspot(
+                  box,
+                  globe.rect,
+                  'cabin-globe',
+                  widget.presentation.globeGlowing ? '裝置・專注中' : '裝置',
+                  widget.onOpenDevice,
+                ),
             if (layout.doors['family'] case final r?)
               _hotspot(
                 box,

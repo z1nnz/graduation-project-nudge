@@ -6,20 +6,23 @@ import 'package:nudge/models/cabin_layout.dart';
 import 'package:nudge/models/cabin_presentation.dart';
 import 'package:nudge/widgets/immersive_cabin.dart';
 
-CabinPresentation _presentation() => const CabinPresentation(
-  bookStage: 2,
-  plantStage: 2,
-  badgeCount: 2,
-  showGlobe: false,
-  globeGlowing: false,
-  decor: {'rug': 0, 'curtain': 0, 'lamp': 0},
-  bubbleText: '完成 2 小時讀書',
-  questCount: 3,
-);
+CabinPresentation _presentation({bool device = false, bool focusing = false}) =>
+    CabinPresentation(
+      bookStage: 2,
+      plantStage: 2,
+      badgeCount: 2,
+      showGlobe: device,
+      globeGlowing: device && focusing,
+      decor: {'rug': 0, 'curtain': 0, 'lamp': 0},
+      bubbleText: '完成 2 小時讀書',
+      questCount: 3,
+    );
 
 Future<Map<String, int>> _pump(
   WidgetTester tester, {
   bool still = false,
+  bool device = false,
+  bool focusing = false,
 }) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
@@ -36,7 +39,7 @@ Future<Map<String, int>> _pump(
         ),
         child: ImmersiveHome(
           layout: layout,
-          presentation: _presentation(),
+          presentation: _presentation(device: device, focusing: focusing),
           profile: AvatarProfile.initial(),
           level: 7,
           coins: 128,
@@ -52,6 +55,7 @@ Future<Map<String, int>> _pump(
           onOpenDecor: () => hit('decor'),
           onOpenMenu: () => hit('menu'),
           onOpenShop: () => hit('shop'),
+          onOpenDevice: () => hit('device'),
         ),
       ),
     ),
@@ -181,5 +185,30 @@ void main() {
     final focus = tester.getSize(find.byKey(const Key('hotbar-focus')));
     final shop = tester.getSize(find.byKey(const Key('hotbar-shop')));
     expect(focus.height, greaterThan(shop.height));
+  });
+
+  testWidgets('the globe appears and opens the device once one is linked', (
+    tester,
+  ) async {
+    late Map<String, int> opened;
+    await tester.runAsync(() async => opened = await _pump(tester));
+    expect(find.byKey(const Key('cabin-globe')), findsNothing);
+    await tester.runAsync(
+      () async => opened = await _pump(tester, device: true),
+    );
+    final r = tester.getRect(find.byKey(const Key('cabin-globe')));
+    await tester.tapAt(Offset(r.right - 3, r.top + 3));
+    expect(opened['device'], 1);
+  });
+
+  testWidgets('when the desk device focuses, the cabin companion reads too', (
+    tester,
+  ) async {
+    await tester.runAsync(() => _pump(tester, device: true, focusing: true));
+    for (var i = 0; i < 120; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.byKey(const Key('sprite-read')), findsOneWidget);
+    expect(find.text('桌上的我也在專注，一起加油！'), findsOneWidget);
   });
 }
