@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 我的活動房</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/room-scene.css?v=1" />
   </head>
   <body data-page="rooms">
     <div class="shell">
@@ -28,6 +29,7 @@
             <span class="eyebrow">Member-controlled Activity Rooms</span>
             <h1>一起前進，但保留每個人的節奏。</h1>
             <p>專注、運動、步數、睡眠與自訂活動都能形成房間。管理者維護規則與資格，每位成員自行決定何時開始與完成。</p>
+            <a class="room-world-return" href="dashboard.html" data-world-return>← 返回小鎮</a>
           </div>
           <div class="hero-card">
             <span>同步原則</span>
@@ -56,6 +58,20 @@
               <p>選擇左側房間後，即可控制自己的活動紀錄。</p>
             </div>
           </article>
+        </section>
+
+        <section class="panel page-section room-stage-panel" aria-labelledby="roomStageTitle">
+          <div class="room-panel-heading">
+            <div><span class="eyebrow">Room Scene</span><h2 id="roomStageTitle">房內座位</h2></div>
+            <strong class="room-stage-count" data-room-stage-count>選擇活動房</strong>
+          </div>
+          <p>只顯示已核准成員與有限姿態（專注中、在座位上、暫時離座），不顯示任何人的精確數值或活動紀錄。</p>
+          <div class="room-stage" data-room-stage role="group" aria-label="房內座位"><p class="room-inline-empty">選擇房間後，座位會在這裡出現。</p></div>
+          <p class="room-stage-detail" data-room-stage-detail aria-live="polite"></p>
+          <div class="room-stage-actions">
+            <button class="secondary-btn" type="button" data-room-seat-toggle hidden>入座</button>
+            <button class="secondary-btn room-leave-btn" type="button" data-room-leave hidden>離開房間</button>
+          </div>
         </section>
 
         <section class="panel page-section room-resonance-panel">
@@ -128,6 +144,7 @@
     </div>
     <script src="assets/room_activity_session_contract.js?v=2"></script>
     <script src="assets/room_resonance_contract.js?v=1"></script>
-    <script src="assets/app.js?v=25"></script>
+    <script src="assets/room_scene.js?v=1"></script>
+    <script src="assets/app.js?v=26"></script>
   </body>
 </html>
