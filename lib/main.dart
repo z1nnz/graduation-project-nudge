@@ -6,9 +6,6 @@ import 'state/app_state.dart';
 import 'services/notification_service.dart';
 import 'services/firebase_app_check_service.dart';
 import 'screens/home_page.dart';
-import 'screens/focus_page.dart';
-import 'screens/study_room_list_page.dart';
-import 'screens/tasks_page.dart';
 import 'screens/statistics_page.dart';
 import 'screens/social_page.dart';
 import 'screens/group_management_page.dart';
@@ -329,36 +326,6 @@ class _AppLoadingScreen extends StatelessWidget {
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
-  /// The game-world sections. Character, shop, health and account live in
-  /// the drawer ("backpack") and the cabin.
-  static const destinations = [
-    NavigationDestination(
-      icon: Icon(Icons.cottage_outlined),
-      selectedIcon: Icon(Icons.cottage),
-      label: '小屋',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.assignment_outlined),
-      selectedIcon: Icon(Icons.assignment),
-      label: '委託',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.timer_outlined),
-      selectedIcon: Icon(Icons.timer),
-      label: '專注',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.menu_book_outlined),
-      selectedIcon: Icon(Icons.menu_book),
-      label: '自律房',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.people_alt_outlined),
-      selectedIcon: Icon(Icons.people_alt),
-      label: '同伴',
-    ),
-  ];
-
   @override
   State<MainShell> createState() => _MainShellState();
 }
@@ -403,7 +370,10 @@ class _MainShellState extends State<MainShell> {
           );
           break;
         default:
-          changeTab(4);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SocialPage()),
+          );
       }
     });
   }
@@ -413,55 +383,11 @@ class _MainShellState extends State<MainShell> {
     final appState = context.watch<AppState>();
     _schedulePushRoute(appState);
 
-    final pages = [
-      HomePage(onNavigate: changeTab, onOpenStatistics: openStatisticsPage),
-      const TasksPage(),
-      const FocusPage(),
-      const StudyRoomListPage(),
-      const SocialPage(),
-    ];
-
-    return Scaffold(
-      body: IndexedStack(index: currentIndex, children: pages),
-      bottomNavigationBar: Builder(
-        builder: (context) {
-          final palette = GamePalette.of(context);
-          return NavigationBarTheme(
-            data: NavigationBarTheme.of(context).copyWith(
-              backgroundColor: palette.panel,
-              indicatorColor: GamePalette.gold.withValues(alpha: 0.55),
-              labelTextStyle: WidgetStateProperty.resolveWith(
-                (states) => TextStyle(
-                  fontSize: 12,
-                  fontWeight: states.contains(WidgetState.selected)
-                      ? FontWeight.w900
-                      : FontWeight.w600,
-                  color: palette.ink,
-                ),
-              ),
-              iconTheme: WidgetStateProperty.resolveWith(
-                (states) => IconThemeData(
-                  color: states.contains(WidgetState.selected)
-                      ? palette.ink
-                      : palette.inkMuted,
-                ),
-              ),
-            ),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: palette.panelBorder, width: 3),
-                ),
-              ),
-              child: NavigationBar(
-                selectedIndex: currentIndex,
-                onDestinationSelected: changeTab,
-                destinations: MainShell.destinations,
-              ),
-            ),
-          );
-        },
-      ),
+    // The cabin is the whole App: room objects open every feature, so there
+    // is no bottom navigation bar.
+    return HomePage(
+      onNavigate: changeTab,
+      onOpenStatistics: openStatisticsPage,
     );
   }
 }

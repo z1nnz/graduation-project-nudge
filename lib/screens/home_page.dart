@@ -5,6 +5,12 @@ import '../widgets/app_drawer.dart';
 import '../models/daily_next_action.dart';
 import '../models/cabin_presentation.dart';
 import '../widgets/companion_cabin_view.dart';
+import '../widgets/immersive_cabin.dart';
+import '../widgets/quest_scroll.dart';
+import '../models/cabin_layout.dart';
+import 'focus_page.dart';
+import 'social_page.dart';
+import 'study_room_list_page.dart';
 import '../widgets/home_decor_sheet.dart';
 import '../theme/app_ui.dart';
 import 'coin_wallet_page.dart';
@@ -48,6 +54,66 @@ class HomePage extends StatelessWidget {
     final end = appState.avatarNextLevelExperience;
     if (end <= start) return 1;
     return ((appState.avatarExperience - start) / (end - start)).clamp(0, 1);
+  }
+
+  static Future<CabinLayout>? _cabinLayout;
+  static final _immersiveScaffold = GlobalKey<ScaffoldState>();
+
+  Widget _immersive(BuildContext context, AppState appState) {
+    final capabilities = appState.experienceCapabilities;
+    void push(Widget page) =>
+        Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    final streak = appState.badgeRecords
+        .where(
+          (b) => b.badgeKey == 'focus_streak' || b.badgeKey == 'task_streak',
+        )
+        .fold<int>(0, (best, b) => b.progress > best ? b.progress : best);
+    _cabinLayout ??= CabinLayout.load(DefaultAssetBundle.of(context));
+    return Scaffold(
+      key: _immersiveScaffold,
+      drawer: AppDrawer(onOpenTasks: () => push(const TasksPage())),
+      body: FutureBuilder<CabinLayout>(
+        future: _cabinLayout,
+        builder: (context, snapshot) {
+          final layout = snapshot.data;
+          if (layout == null) return const ColoredBox(color: Color(0xFF3B2418));
+          return ImmersiveHome(
+            layout: layout,
+            presentation: CabinPresentation.resolve(
+              summaries: appState.dailySummaries,
+              badges: appState.badgeRecords,
+              decor: appState.homeDecor,
+              action: DailyNextAction.resolve(appState.tasks),
+              openTaskCount:
+                  appState.todayActionableTaskTotal -
+                  appState.todayActionableTaskCompleted,
+              hasDevice: false,
+              deviceFocusing: false,
+            ),
+            profile: appState.avatarProfile,
+            level: appState.avatarLevel,
+            coins: appState.disciplineCoins,
+            streak: streak,
+            confirmedActivityLabel: appState.confirmedActivityFeedback?.label,
+            onOpenQuests: () => showQuestScroll(context),
+            onOpenDesk: () => push(const FocusPage(immersive: true)),
+            onOpenRecords: onOpenStatistics,
+            onOpenBadges: () => push(const BadgesPage()),
+            onOpenCompanions: () => push(
+              capabilities.isGuardian || capabilities.isChild
+                  ? const GuardianCenterPage()
+                  : capabilities.isGroupExperience
+                  ? const GroupManagementPage()
+                  : const SocialPage(),
+            ),
+            onOpenRooms: () => push(const StudyRoomListPage()),
+            onOpenCharacter: () => push(const CharacterPage()),
+            onOpenDecor: () => showHomeDecorSheet(context),
+            onOpenBackpack: () => _immersiveScaffold.currentState?.openDrawer(),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -130,6 +196,10 @@ class HomePage extends StatelessWidget {
         accentColor: accentColor,
       );
     }
+
+    // Everyone who is not waiting on a family or group binding lives in the
+    // cabin; bindings keep their gate so the redesign cannot bypass them.
+    if (!isGated) return _immersive(context, appState);
 
     return Scaffold(
       backgroundColor: AppUI.scaffoldBackgroundOf(context),
