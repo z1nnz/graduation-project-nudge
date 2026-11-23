@@ -1,0 +1,31 @@
+/* Gate and account entrance use the canonical town palette. */
+html:has([data-town-gate]),body[data-town-gate]{height:auto;min-height:100%;overflow:auto}
+body[data-town-gate]{background:radial-gradient(ellipse at 50% 5%,#624765,transparent 58%),#1b1530;color:var(--town-ink);font-family:system-ui,"Noto Sans TC",sans-serif;line-height:1.7}
+.gate-wrap{max-width:1100px;margin:auto;padding:24px}
+.gate-top{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:3px solid #90613c;padding-bottom:20px}
+.gate-top>a{color:var(--town-gold);min-height:44px;display:inline-flex;align-items:center}
+.gate-brand{font-weight:900;letter-spacing:.1em}.gate-intro{text-align:center;padding:36px 0 18px}.gate-intro h1{font-size:clamp(2rem,7vw,4rem);line-height:1.2;color:#ffe3a4;margin:12px 0}.gate-intro p{max-width:55ch;margin:16px auto}
+.gate-kicker{font:700 .8rem monospace;letter-spacing:.22em;color:var(--town-gold)}
+.gate-door{position:relative;display:block;max-width:780px;min-height:300px;margin:25px auto 40px;border:12px solid #62422c;border-top:26px solid #96613a;outline:3px solid #bb8b51;background:linear-gradient(#281d4840,#281d4880),url("town/town_map.jpg") center 48%/cover;image-rendering:pixelated;box-shadow:inset 24px 0 #4c3026,inset -24px 0 #4c3026,0 12px 0 #130f1d}
+.gate-door::before{content:"";position:absolute;left:calc(50% - 54px);top:-40px;width:108px;height:32px;border:4px solid #b08a4f;background:#39253c;box-shadow:0 4px #231425}
+.gate-door::after{content:"";position:absolute;bottom:0;left:8%;right:8%;height:26px;background:repeating-linear-gradient(90deg,#8c745c 0 38px,#6b5546 38px 42px);border-top:5px solid #c1a67b}
+.gate-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin:24px 0}
+[data-town-gate] button,[data-town-gate] .gate-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 20px;border:2px solid #9f671e;border-radius:3px;background:var(--town-gold);color:#321d0b;box-shadow:0 4px #75420f;font:800 1rem system-ui;text-decoration:none;cursor:pointer}
+[data-town-gate] .gate-secondary{background:#382b3d;color:#ffe4ae;border-color:#aa8457}
+[data-town-gate] button:disabled{opacity:.6;cursor:wait;box-shadow:none}
+[data-town-gate] a{color:#ffda89}
+.gate-paper{border:4px solid #8b5d36;background:linear-gradient(130deg,#fae8c5,#ead0a0);color:var(--town-ink-dark);padding:26px;box-shadow:6px 7px #120e1d}
+.gate-paper h2{color:#4d2a0b}.gate-paper a{color:#654009}.gate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin:38px 0}.gate-grid h2{font-size:1.2rem}
+.gate-login{max-width:540px;margin:30px auto}.gate-tabs{display:flex;gap:12px;margin-bottom:20px}.gate-tabs button{flex:1}.gate-tabs button[aria-pressed="false"]{background:#f5dfb9;box-shadow:none}
+[data-town-gate] label{display:grid;gap:6px;margin:16px 0;font-weight:700}
+[data-town-gate] input{width:100%;min-height:48px;border:2px solid #8c6b4f;background:#fff8e8;color:#321d0b;padding:12px;font:inherit;border-radius:3px}
+.gate-password{display:flex;align-items:stretch;gap:8px}.gate-password input{flex:1}.gate-password button{font-size:.85rem;padding:8px;box-shadow:none}
+.gate-notice{min-height:30px;overflow-wrap:anywhere}.gate-error{color:#852e2e;font-weight:700}
+.gate-auth-options{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.gate-auth-options button{flex:1 1 140px}
+.gate-divider{border-top:1px solid #a78c69;margin-top:24px;padding-top:18px}
+.gate-footer{border-top:2px solid #725332;margin-top:44px;padding:24px 0;color:#ddc9aa;display:flex;gap:20px;flex-wrap:wrap}
+[data-town-gate] :focus-visible{outline:3px solid #247c94;outline-offset:4px}
+.gate-skip{position:absolute;left:-10000px}.gate-skip:focus{position:fixed;left:12px;top:8px;background:#fff2d7;color:#321d0b;z-index:100;padding:12px}
+@media(max-width:600px){.gate-wrap{padding:18px 16px}.gate-grid{grid-template-columns:1fr}.gate-door{min-height:210px;margin-top:30px}.gate-paper{padding:20px}.gate-top{font-size:.9rem}.gate-actions>a{flex:1 1 140px}.gate-password{flex-wrap:wrap}.gate-password button{min-width:100%;min-height:44px}.gate-intro{padding-top:25px}}
+@media(prefers-reduced-motion:reduce){[data-town-gate],[data-town-gate]::before,[data-town-gate]::after,[data-town-gate] *,[data-town-gate] *::before,[data-town-gate] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(forced-colors:active){.gate-paper,.gate-door{border:3px solid CanvasText;box-shadow:none}.gate-door{background:Canvas}.gate-door::before,.gate-door::after{display:none}}

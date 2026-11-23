@@ -1,0 +1,54 @@
+{
+  "base": "10cc51c3931594ade600f7385477a3439aa01dd1",
+  "root": {
+    "tests": 234,
+    "pass": 231,
+    "fail": 0,
+    "skipped": 3
+  },
+  "functions": {
+    "tests": 164,
+    "pass": 136,
+    "fail": 0,
+    "skipped": 28
+  },
+  "browser": {
+    "assertions": 58,
+    "pages": 22,
+    "axe_checked_pages": 21,
+    "axe_violations": 0,
+    "mobile_overflow": 0
+  },
+  "flutter": {
+    "analyze": "No issues found",
+    "tests_passed": 345,
+    "tests_failed": 0,
+    "local": "3.47.8",
+    "ci": "3.41.7",
+    "scope": "three slices combined in a clean ASCII temporary overlay; Dart unchanged"
+  },
+  "node_local": "26.4.0",
+  "node_ci": "22",
+  "full_java21_emulator": {
+    "result": "exit0",
+    "skipped_are_not_passed": true,
+    "command": "firebase-tools@15.18.0 emulators:exec --project nudge-discipline-app --only auth,firestore; exact CI script",
+    "initial_attempt": "An earlier run attached to a differently named Auth default project and failed USER_NOT_FOUND; not counted as passed. Rerun with the exact CI project passed."
+  },
+  "exact_head_ci": "required after publication; final record in PR",
+  "limitations": [
+    "Real devices and human screen reader not verified",
+    "Production App Check, OAuth provider configuration and Storage upload not verified",
+    "personal-focus interior belongs to #104; this scope adds only the shared return link",
+    "Research aggregate/economy aggregate/independent staff room-review endpoint not provided; honest empty states",
+    "Tools require gate bootstrap isolation to merge first; no Cloud/Rules/migration changes"
+  ],
+  "source_sha256": {
+    "test/web_gate_auth_test.js": "f9f4467e99c678f100259f0d101d7f8ef2c4ba770a93d6983c889dccef047f4f",
+    "web_dashboard/assets/app.js": "f68a24ca86e6c1cb210bc75e406f9bc53b3725f65db7d16204f14834a613c072",
+    "web_dashboard/assets/town_gate.css": "578c354d2886245e0e710767750ad2691a2491ac3b8e899a532710604ed7d10f",
+    "web_dashboard/assets/town_gate_auth.js": "d14e3657d4338ace63117b544a3a40ea88cde0b9bd1cff95d4e61f1af147a194",
+    "web_dashboard/index.html": "7ea1475dd5c1b213724125f622bd43b7b24a1ed5008160d14f4253fbdfa972d6",
+    "web_dashboard/login.html": "08a162cc69305a626e54763a655e66535b23d504b88abf10d79d3beb872ad7a4"
+  }
+}

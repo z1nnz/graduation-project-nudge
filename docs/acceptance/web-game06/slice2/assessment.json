@@ -1,0 +1,38 @@
+{
+  "issue": 106,
+  "slice": 2,
+  "title": "小鎮大門與登入",
+  "threshold": 85,
+  "total": 89,
+  "scores": {
+    "content_25": 25,
+    "criteria_35": 30,
+    "verification_25": 20,
+    "handoff_15": 14
+  },
+  "scope": "source implementation and local verification; not production or real-device acceptance",
+  "criteria": [
+    "首頁以既有小鎮素材、木造大門與紫金色票呈現；訪客入口 town.html，不寫入假身分或假統計",
+    "原生登入／註冊按鈕、具標籤表單、密碼顯示、錯誤後可重試；Google／Facebook 沿 Firebase provider",
+    "Email 真實 Auth emulator 登入與註冊、確認密碼錯誤、登出與既有登入帳號繼續皆可操作",
+    "本人 profile 交易只在不存在時建立；重試保留既有任務，不初始化獎勵或 staff 權限",
+    "登入完成固定 town.html，清除舊任意 redirect；身分驗證或資料同步未完成不冒稱成功",
+    "最小 app.js 隔離大門／工具，保留既有 Firebase/App Check 初始化；工具切片需此隔離先合併"
+  ],
+  "base": "10cc51c3931594ade600f7385477a3439aa01dd1",
+  "draft_required": true,
+  "production_deployed": false,
+  "real_device_verified": false,
+  "human_screen_reader_verified": false,
+  "production_app_check_verified": false,
+  "oauth_providers_verified": false,
+  "storage_upload_verified": false,
+  "evidence_sha256": {
+    "before-index.png": "411c89c52c2512f05787e25fb08fcd4d87ef958fa9e210a7c72aa03f2dadee35",
+    "after-index.png": "645986d60f3ba94af0cc4d122260c88bfd2139e8f9b001ef65b1ecdedd9df392",
+    "mobile-index.png": "a40ccde53876e11aa99614cc2d65bcb46ab863bcb870e48a07f0761f07e7ffb4",
+    "before-login.png": "f67b0ac245a8057fbd483d8105b4788ee61a0cd8a304337af7ed8bad462e7d19",
+    "after-login.png": "48e6980542b44b266398953fcd6260d08c000f01e6ed5d4eba0898fbe4da2804",
+    "mobile-login.png": "6bce13cc70982bc2f66ced4682d0a16d49bea82244d388518e6198b120d5a59b"
+  }
+}
