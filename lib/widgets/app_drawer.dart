@@ -12,6 +12,7 @@ import '../screens/account_page.dart';
 import '../screens/avatar_shop_page.dart';
 import '../screens/calendar_page.dart';
 import '../screens/character_page.dart';
+import '../screens/health_page.dart';
 import '../screens/coin_wallet_page.dart';
 import '../screens/my_profile_page.dart';
 import '../screens/reminder_center_page.dart';
@@ -258,6 +259,13 @@ class AppDrawer extends StatelessWidget {
                   ),
                   _drawerSectionDivider(context),
                   _drawerSectionLabel(context, '角色與獎勵'),
+                  _drawerItem(
+                    context: context,
+                    icon: Icons.favorite_border,
+                    title: '健康紀錄',
+                    onTap: () => _openPage(context, const HealthPage()),
+                    accentColor: accentColor,
+                  ),
                   _drawerItem(
                     context: context,
                     icon: Icons.auto_awesome_outlined,
