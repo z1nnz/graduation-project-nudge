@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Nudge 像素介面元件</title>
+  <link rel="stylesheet" href="assets/world_ui.css?v=1">
+</head>
+<body class="w-page">
+  <header class="w-hud">
+    <a data-town-return href="town.html">← 回小鎮</a>
+    <h1>像素介面元件</h1>
+  </header>
+  <main class="w-main">
+    <h1 class="w-title">夥伴小鎮介面元件</h1>
+    <p class="w-subtitle">每個 Web 頁面都用這一頁的元件與 <code>assets/world_ui.css</code> 的色票。</p>
+
+    <section class="w-grid">
+      <article class="w-parchment w-pop">
+        <h2>羊皮紙卡片 .w-parchment</h2>
+        <p class="w-muted">放內容、表單、清單。</p>
+        <p><span class="w-chip is-ok">✓ 雲端已確認</span> <span class="w-chip is-wait">雲端確認中…</span> <span class="w-chip is-alert">需要處理</span></p>
+        <button class="w-btn is-gold" type="button">主要按鈕 .is-gold</button>
+      </article>
+      <article class="w-panel">
+        <h2>木框面板 .w-panel</h2>
+        <p>放在深色場景上的資訊。</p>
+        <button class="w-btn" type="button">次要按鈕 .w-btn</button>
+        <button class="w-btn is-violet" type="button">特別按鈕 .is-violet</button>
+        <button class="w-btn" type="button" disabled>停用</button>
+      </article>
+      <article class="w-parchment">
+        <h2>表單</h2>
+        <div class="w-field">
+          <label for="kitName">名稱</label>
+          <input id="kitName" class="w-input" placeholder="例如：每天讀書 25 分鐘">
+        </div>
+        <div class="w-field">
+          <label for="kitPick">類型</label>
+          <select id="kitPick" class="w-select"><option>專注</option><option>運動</option></select>
+        </div>
+      </article>
+      <article class="w-panel">
+        <h2>分頁 .w-tabs</h2>
+        <div class="w-tabs" role="tablist">
+          <button role="tab" aria-selected="true" type="button">今日</button>
+          <button role="tab" aria-selected="false" type="button">本週</button>
+          <button role="tab" aria-selected="false" type="button">本月</button>
+        </div>
+        <p>未讀 <span class="w-badge">3</span></p>
+        <p class="w-empty">沒有資料時顯示 .w-empty</p>
+      </article>
+    </section>
+  </main>
+  <script src="assets/town_routes.js?v=2"></script>
+  <script src="assets/town_return.js?v=2"></script>
+</body>
+</html>

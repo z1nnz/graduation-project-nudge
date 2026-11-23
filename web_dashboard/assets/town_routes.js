@@ -97,6 +97,7 @@
     d('research-score-demo', 'research-score-demo.html', null, '自律分數展示', 'tool', 'login', null, 'static', 'core'),
     d('presentation', 'presentation.html', null, '專題發表流程', 'tool', 'login', null, 'static', 'core'),
     d('museum-demo', 'museum-demo.html', null, '紀錄館展示', 'tool', 'public', null, 'demo', '#84'),
+    d('world-ui-kit', 'world-ui-kit.html', null, '像素介面元件', 'tool', 'public', null, 'static', 'core'),
   ]);
 
   function d(id, href, building, title, audience, auth, gate, source, owner, status) {
