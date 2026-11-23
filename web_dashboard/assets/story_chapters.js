@@ -88,8 +88,8 @@
     const user = currentUser;
     const request = ++generation;
     if (!user) {
-      list.innerHTML = '<p class="story-empty">請先登入，章節才會讀取你自己的確認紀錄。</p>';
-      setStatus('登入後開始自己的冒險。', 'guest');
+      render(core.progress([], 'guest', new Date()));
+      setStatus('展示章節開場。登入後才會讀取你的 Cloud 確認進度。', 'guest');
       return;
     }
     setStatus('正在讀取 Cloud 確認紀錄…', 'loading');

@@ -56,6 +56,8 @@
   function render() {
     const tray = byId('plannerTasks');
     const board = byId('plannerDays');
+    byId('plannerTaskTitle').disabled = !loaded;
+    byId('plannerAddTask').disabled = !loaded;
     tray.replaceChildren(); board.replaceChildren();
     const all = [...tasks, ...draftTasks];
     if (!all.length) { const empty = doc.createElement('p'); empty.className = 'story-empty'; empty.textContent = '還沒有待完成任務。從上方新增一件小事。'; tray.append(empty); }
