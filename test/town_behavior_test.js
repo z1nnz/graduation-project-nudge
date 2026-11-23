@@ -8,7 +8,7 @@ const fs = require('node:fs');
 const routes = require('../web_dashboard/assets/town_routes.js');
 
 const html = fs.readFileSync('web_dashboard/town.html', 'utf8');
-const sources = ['town_core.js', 'town_game_core.js', 'town_routes.js', 'town.js']
+const sources = ['town_core.js', 'town_avatar_core.js', 'town_game_core.js', 'town_routes.js', 'town.js']
   .map(name => fs.readFileSync(`web_dashboard/assets/${name}`, 'utf8'));
 
 const MAP_W = 1672;

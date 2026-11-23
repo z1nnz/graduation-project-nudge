@@ -7,8 +7,9 @@
   const core = root.NudgeTownCore;
   const gameCore = root.NudgeTownGameCore;
   const routes = root.NudgeTownRoutes;
+  const avatarCore = root.NudgeTownAvatarCore;
   const doc = root.document;
-  if (!core || !gameCore || !routes || !doc || doc.body?.dataset.page !== 'town') return;
+  if (!core || !gameCore || !routes || !avatarCore || !doc || doc.body?.dataset.page !== 'town') return;
 
   const MAP_W = 1672;
   const MAP_H = 941;
@@ -77,7 +78,9 @@
     receipts: [],
     tour: -1,
     near: null,
-    face: 0,
+    face: 'south',
+    faceIndex: 0,
+    moving: false,
     walking: 0,
     toastUntil: 0,
     celebrateUntil: 0,
@@ -90,6 +93,18 @@
   mapImage.src = 'assets/town/town_map.jpg';
   const playerImage = new Image();
   playerImage.src = 'assets/avatar/characters/character_0.png';
+  let walkImages = {};
+  function loadWalkImages(faceIndex) {
+    walkImages = {};
+    for (const frame of ['a', 'p', 'b']) {
+      const path = avatarCore.sidePath(faceIndex, frame);
+      if (!path) return;
+      const image = new Image();
+      image.src = path;
+      walkImages[frame] = image;
+    }
+  }
+  loadWalkImages(0);
   // Character art has wide transparent margins; draw only the visible box.
   let playerCrop = null;
   playerImage.addEventListener('load', () => {
@@ -596,13 +611,21 @@
     if (dir) {
       const before = state.player;
       state.player = core.step(state.player, dir, dt, SPEED, blockers, BOUNDS, RADIUS);
-      if (dir.x) state.face = dir.x < 0 ? -1 : 1;
-      state.walking += dt;
+      const dx = state.player.x - before.x;
+      const dy = state.player.y - before.y;
+      state.moving = Math.hypot(dx, dy) > 0.01;
+      if (state.moving) {
+        state.face = avatarCore.facing(dx, dy, state.face);
+        state.walking += dt;
+      } else {
+        state.walking = 0;
+      }
       if (state.target && Math.hypot(state.player.x - before.x, state.player.y - before.y) < 0.01) {
         state.target = null; // stuck against a wall
         if (state.pendingBuilding) { const b = state.pendingBuilding; state.pendingBuilding = null; enter(b); }
       }
     } else {
+      state.moving = false;
       state.walking = 0;
     }
 
@@ -632,7 +655,12 @@
     }
     if (playerImage.complete && playerImage.naturalWidth) {
       const p = toScreen(state.player);
-      const crop = playerCrop || { x: 0, y: 0, w: playerImage.naturalWidth, h: playerImage.naturalHeight };
+      const pose = avatarCore.pose(state.faceIndex, state.face, state.moving, state.walking);
+      const sideImage = pose.kind === 'side' ? walkImages[pose.frame] : null;
+      const image = sideImage?.complete && sideImage.naturalWidth ? sideImage : playerImage;
+      const crop = image === playerImage
+        ? (playerCrop || { x: 0, y: 0, w: playerImage.naturalWidth, h: playerImage.naturalHeight })
+        : { x: 0, y: 0, w: image.naturalWidth, h: image.naturalHeight };
       const ph = 44 * s;
       const pw = ph * crop.w / crop.h;
       const celebrating = state.celebrateUntil > now;
@@ -645,8 +673,8 @@
       ctx.fill();
       ctx.save();
       ctx.translate(p.x, p.y - bob);
-      if (state.face < 0) ctx.scale(-1, 1);
-      ctx.drawImage(playerImage, crop.x, crop.y, crop.w, crop.h, -pw / 2, -ph, pw, ph);
+      if (pose.flip) ctx.scale(-1, 1);
+      ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, -pw / 2, -ph, pw, ph);
       ctx.restore();
     }
     for (const b of BUILDINGS) {
@@ -671,8 +699,13 @@
     state.uid = user?.uid || null;
     state.level = Math.max(1, Number(data?.avatarLevel) || 1);
     const face = Number(data?.avatarProfile?.faceShapeIndex);
-    const sprite = `assets/avatar/characters/character_${Number.isInteger(face) && face >= 0 ? face : 0}.png`;
+    const faceIndex = Number.isInteger(face) && face >= 0 ? face : 0;
+    const sprite = `assets/avatar/characters/character_${faceIndex}.png`;
     if (!playerImage.src.endsWith(sprite)) playerImage.src = sprite;
+    if (state.faceIndex !== faceIndex) {
+      state.faceIndex = faceIndex;
+      loadWalkImages(faceIndex);
+    }
     els('townAvatar').src = sprite;
     els('townName').textContent = user ? (data?.nickname || '自律夥伴') : '訪客';
     // Guests see no level, XP or sync status: there is no account data to show.
