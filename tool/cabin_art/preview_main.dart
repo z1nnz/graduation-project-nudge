@@ -18,6 +18,9 @@ String _key(DateTime d) =>
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final today = DateTime.now();
+  // This preview runs on in-memory example data on purpose, so it never
+  // touches a real account or browser storage.
+  // ignore: invalid_use_of_visible_for_testing_member
   SharedPreferences.setMockInitialValues({
     'onboarding_completed_setting': true,
     'discipline_coins_setting': 128,
