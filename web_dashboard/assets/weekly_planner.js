@@ -50,7 +50,7 @@
     });
     label.append(select);
     card.append(title, label);
-    if (task._draft) { const note = doc.createElement('small'); note.textContent = '新任務 · 尚未儲存'; card.append(note); }
+    if (task._draft) { const note = doc.createElement('small'); note.textContent = '每日固定任務 · 尚未儲存'; card.append(note); }
     return card;
   }
   function render() {
@@ -115,7 +115,7 @@
     const id = root.crypto?.randomUUID?.();
     if (!id) { setStatus('瀏覽器無法建立安全的任務識別碼，請更新瀏覽器。', 'error'); return; }
     draftTasks.push({ id, userId: user.uid, title, _draft: true });
-    input.value = ''; render(); setStatus('新任務已加入草稿；儲存後才會同步到 App。', 'draft');
+    input.value = ''; render(); setStatus('每日固定任務已加入草稿；儲存後才會同步到 App。', 'draft');
   });
   saveButton.addEventListener('click', async () => {
     if (saving || !loaded || !user || user.isAnonymous) return;
