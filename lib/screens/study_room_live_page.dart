@@ -5,13 +5,16 @@ import 'package:provider/provider.dart';
 
 import '../models/avatar_profile.dart';
 import '../models/room_activity_session.dart';
+import '../models/room_resonance.dart';
+import '../models/study_hall_seating.dart';
 import '../models/study_room_models.dart';
 import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
-import '../widgets/avatar_preview.dart';
 import '../widgets/room_resonance_panel.dart';
+import '../widgets/study_hall_scene.dart';
 import 'health_page.dart';
+import 'study_room_chat_page.dart';
 
 class StudyRoomLivePage extends StatefulWidget {
   final String roomId;
@@ -25,7 +28,6 @@ class StudyRoomLivePage extends StatefulWidget {
 class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   static const int _defaultFocusSeconds = 25 * 60;
 
-  final TextEditingController _chatController = TextEditingController();
 
   Timer? _timer;
   int _durationSeconds = _defaultFocusSeconds;
@@ -36,12 +38,149 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   String? _roomActivitySessionId;
   bool _voiceJoined = false;
   bool _micMuted = false;
+  DateTime? _chatLastRead;
+  bool _chatReadLoaded = false;
+  final Map<String, String> _reactions = {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final appState = context.read<AppState>();
+      _loadChatRead(appState.currentUser?.id ?? 'local_user');
+    });
+  }
+
+  Future<void> _loadChatRead(String myId) async {
+    final value = await RoomChatReadState.lastRead(widget.roomId, myId);
+    if (!mounted) return;
+    setState(() {
+      _chatLastRead = value;
+      _chatReadLoaded = true;
+    });
+  }
+
+  Future<void> _openChat(String myId) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StudyRoomChatPage(roomId: widget.roomId),
+      ),
+    );
+    await _loadChatRead(myId);
+  }
+
+  /// Shared-goal lantern: 0 unlit, 1 half way, 2 reached.
+  int _lanternStage(StudyRoomData room, List<StudyMemberData> members) {
+    final goal = room.challengeGoalSeconds;
+    if (goal <= 0) return 0;
+    final total = members.fold<int>(0, (sum, m) => sum + m.todayFocusSeconds);
+    final ratio = total / goal;
+    if (ratio >= 1) return 2;
+    if (ratio >= 0.5) return 1;
+    return 0;
+  }
+
+  String _reactionGlyph(RoomResonanceResponse response) => switch (response) {
+    RoomResonanceResponse.withYou => '🤝',
+    RoomResonanceResponse.cheer => '✨',
+    RoomResonanceResponse.takeYourTime => '🍵',
+  };
+
+  Future<void> _respond(
+    AppState appState,
+    RoomResonanceSignal signal,
+    RoomResonanceResponse response,
+    String memberId,
+  ) async {
+    try {
+      await appState.acknowledgeRoomResonance(
+        signal: signal,
+        response: response,
+      );
+      if (!mounted) return;
+      setState(() => _reactions[memberId] = _reactionGlyph(response));
+      Future<void>.delayed(const Duration(seconds: 4), () {
+        if (mounted) setState(() => _reactions.remove(memberId));
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('回應沒有送出：$error')));
+    }
+  }
+
+  void _showMember(
+    AppState appState,
+    StudyRoomData room,
+    StudyMemberData member,
+    String myId,
+  ) {
+    final name = member.roomNickname.isEmpty
+        ? member.name
+        : member.roomNickname;
+    final mine = member.memberId == myId;
+    final signal = appState
+        .roomResonanceSignals(room.id)
+        .where(
+          (s) =>
+              s.ownerUserId == member.memberId &&
+              s.status == RoomResonanceStatus.active,
+        )
+        .firstOrNull;
+    final minutes = member.todayFocusSeconds ~/ 60;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          key: const Key('room-member-sheet'),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                mine ? '$name（你）' : name,
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(_memberStatusText(room, member.status)),
+              Text('今天累積 $minutes 分鐘'),
+              if (!mine && signal != null) ...[
+                const SizedBox(height: 14),
+                Text('$name：${signal.cue.label}'),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final response in RoomResonanceResponse.values)
+                      FilledButton.tonal(
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          _respond(appState, signal, response, member.memberId);
+                        },
+                        child: Text(response.label),
+                      ),
+                  ],
+                ),
+              ] else if (!mine) ...[
+                const SizedBox(height: 12),
+                const Text('對方沒有發出共鳴信號時，安靜陪伴就是最好的支持。'),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {
     _timer?.cancel();
     unawaited(_commitSessionAsResting());
-    _chatController.dispose();
     if (_voiceJoined) {
       try {
         context.read<AppState>().leaveVoiceRoom(widget.roomId);
@@ -346,54 +485,6 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     });
   }
 
-  Future<void> _sendMessage(AppState appState) async {
-    final text = _chatController.text.trim();
-    if (text.isEmpty) return;
-    _chatController.clear();
-    try {
-      await appState.addStudyRoomMessage(roomId: widget.roomId, text: text);
-    } catch (error) {
-      if (!mounted) return;
-      _chatController.text = text;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('訊息同步失敗：$error')));
-      return;
-    }
-    await _recordRoomEvent(
-      appState,
-      roomId: widget.roomId,
-      text: '${appState.profileNickname} 傳送了一則訊息',
-      type: StudyRoomEventType.message,
-    );
-  }
-
-  Future<void> _sendSticker(
-    AppState appState,
-    StudyRoomData room,
-    String sticker,
-  ) async {
-    try {
-      await appState.addStudyRoomMessage(
-        roomId: room.id,
-        text: sticker,
-        type: StudyRoomMessageType.sticker,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('貼圖同步失敗：$error')));
-      return;
-    }
-    await _recordRoomEvent(
-      appState,
-      roomId: room.id,
-      text: '${appState.profileNickname} 送出鼓勵貼圖 $sticker',
-      type: StudyRoomEventType.sticker,
-    );
-  }
-
   bool _isFocusRoom(StudyRoomData room) {
     return room.goalSourceType == TaskSourceType.studyRoom ||
         room.goalSourceType == TaskSourceType.focusMinutes;
@@ -504,17 +595,6 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         return '休息中';
       case StudyMemberStatus.offline:
         return '離線';
-    }
-  }
-
-  Color _memberStatusColor(StudyMemberStatus status) {
-    switch (status) {
-      case StudyMemberStatus.studying:
-        return const Color(0xFF10B981);
-      case StudyMemberStatus.resting:
-        return const Color(0xFFF59E0B);
-      case StudyMemberStatus.offline:
-        return const Color(0xFF64748B);
     }
   }
 
@@ -658,24 +738,24 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
           body: ListView(
             padding: const EdgeInsets.all(AppUI.pagePadding),
             children: [
-              _LiveRoomHeader(
-                room: room,
-                activeCount: activityCount,
-                messageCount: room.messages.length,
-                eventCount: room.events.length,
-                accent: accent,
-                metricName: _metricName(room),
-              ),
-              const SizedBox(height: AppUI.cardGap),
-              _LiveStage(
-                room: room,
-                members: approvedMembers,
-                themeKey: appState.backgroundThemeSetting,
-                accent: accent,
-                statusTextFor: (status) => _memberStatusText(room, status),
-                statusColorFor: _memberStatusColor,
-                avatarProfileFor: (member) =>
-                    _memberAvatarProfile(appState, member),
+              StudyHallScene(
+                roomType: room.roomType,
+                seating: StudyHallSeating.assign([
+                  for (final member in approvedMembers)
+                    member.avatarProfile != null
+                        ? member
+                        : member.copyWith(
+                            avatarProfile: _memberAvatarProfile(
+                              appState,
+                              member,
+                            ),
+                          ),
+                ], myId: currentMemberId),
+                myId: currentMemberId,
+                lanternStage: _lanternStage(room, approvedMembers),
+                reactions: _reactions,
+                onMemberTap: (member) =>
+                    _showMember(appState, room, member, currentMemberId),
               ),
               const SizedBox(height: AppUI.sectionGap),
               if (_hasInRoomTimer(room))
@@ -748,1056 +828,32 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                 },
               ),
               const SizedBox(height: AppUI.sectionGap),
-              _StickerPanel(
-                accent: accent,
-                onStickerTap: (sticker) =>
-                    _sendSticker(appState, room, sticker),
+              _ChatEntry(
+                key: const Key('room-chat-entry'),
+                latest: room.messages.firstOrNull,
+                unread: _chatReadLoaded
+                    ? RoomChatReadState.unreadCount(
+                        room.messages,
+                        lastRead: _chatLastRead,
+                        myId: currentMemberId,
+                      )
+                    : 0,
+                onTap: () => _openChat(currentMemberId),
               ),
               const SizedBox(height: AppUI.sectionGap),
-              _ChatPanel(
-                controller: _chatController,
-                messages: room.messages,
-                currentUserId: currentMemberId,
-                accent: accent,
-                onSend: () => _sendMessage(appState),
+              Card(
+                shape: AppUI.cardShape(),
+                clipBehavior: Clip.antiAlias,
+                child: ExpansionTile(
+                  title: const Text('房間動態'),
+                  children: [_EventPanel(events: room.events, accent: accent)],
+                ),
               ),
-              const SizedBox(height: AppUI.sectionGap),
-              _EventPanel(events: room.events, accent: accent),
               const SizedBox(height: 28),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _LiveRoomHeader extends StatelessWidget {
-  final StudyRoomData room;
-  final int activeCount;
-  final int messageCount;
-  final int eventCount;
-  final Color accent;
-  final String metricName;
-
-  const _LiveRoomHeader({
-    required this.room,
-    required this.activeCount,
-    required this.messageCount,
-    required this.eventCount,
-    required this.accent,
-    required this.metricName,
-  });
-
-  String _roomTypeLabel() {
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return '讀書房';
-      case StudyRoomType.sleep:
-        return '睡眠房';
-      case StudyRoomType.exercise:
-        return '運動房';
-      case StudyRoomType.steps:
-        return '步數房';
-      case StudyRoomType.custom:
-        return '自訂房';
-    }
-  }
-
-  IconData _roomIcon() {
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return Icons.menu_book_rounded;
-      case StudyRoomType.sleep:
-        return Icons.bedtime_outlined;
-      case StudyRoomType.exercise:
-        return Icons.fitness_center;
-      case StudyRoomType.steps:
-        return Icons.directions_walk;
-      case StudyRoomType.custom:
-        return Icons.auto_awesome_outlined;
-    }
-  }
-
-  bool _usesExternalProgress() {
-    return room.goalSourceType == TaskSourceType.sleepHours ||
-        room.goalSourceType == TaskSourceType.exerciseMinutes ||
-        room.goalSourceType == TaskSourceType.steps;
-  }
-
-  String _activityLabel() {
-    return _usesExternalProgress() ? '達標' : '進行中';
-  }
-
-  IconData _activityIcon() {
-    return _usesExternalProgress()
-        ? Icons.verified_outlined
-        : Icons.local_fire_department_outlined;
-  }
-
-  Color _activityColor() {
-    return _usesExternalProgress()
-        ? const Color(0xFF0EA5E9)
-        : const Color(0xFF10B981);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
-    return Container(
-      padding: const EdgeInsets.all(AppUI.innerPadding),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: accent.withValues(alpha: AppUI.isDark(context) ? 0.28 : 0.14),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(_roomIcon(), color: accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      room.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: primaryText,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_roomTypeLabel()} · 今日$metricName目標 ${room.dailyGoalValue % 1 == 0 ? room.dailyGoalValue.toInt() : room.dailyGoalValue} ${room.goalUnitLabel}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _HeaderMetric(
-                  label: _activityLabel(),
-                  value: '$activeCount',
-                  icon: _activityIcon(),
-                  color: _activityColor(),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _HeaderMetric(
-                  label: '訊息',
-                  value: '$messageCount',
-                  icon: Icons.chat_bubble_outline,
-                  color: const Color(0xFF4F8CFF),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _HeaderMetric(
-                  label: '事件',
-                  value: '$eventCount',
-                  icon: Icons.bolt_outlined,
-                  color: accent,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _HeaderMetric({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: primaryText,
-                  ),
-                ),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: secondaryText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LiveStage extends StatelessWidget {
-  final StudyRoomData room;
-  final List<StudyMemberData> members;
-  final String themeKey;
-  final Color accent;
-  final String Function(StudyMemberStatus status) statusTextFor;
-  final Color Function(StudyMemberStatus status) statusColorFor;
-  final AvatarProfile Function(StudyMemberData member) avatarProfileFor;
-
-  const _LiveStage({
-    required this.room,
-    required this.members,
-    required this.themeKey,
-    required this.accent,
-    required this.statusTextFor,
-    required this.statusColorFor,
-    required this.avatarProfileFor,
-  });
-
-  String _stageTitle() {
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return '專注書桌區';
-      case StudyRoomType.sleep:
-        return '睡眠休息區';
-      case StudyRoomType.exercise:
-        return '運動訓練區';
-      case StudyRoomType.steps:
-        return '步數散步道';
-      case StudyRoomType.custom:
-        return '自律集合區';
-    }
-  }
-
-  String _stageSubtitle() {
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return '大家各自安靜讀書，進度會同步到房間。';
-      case StudyRoomType.sleep:
-        return '睡眠時數由健康資料同步，房內負責提醒與陪伴。';
-      case StudyRoomType.exercise:
-        return '運動分鐘由健康資料同步，房內負責打卡與鼓勵。';
-      case StudyRoomType.steps:
-        return '今日步數由健康資料同步，房內負責排行榜與提醒。';
-      case StudyRoomType.custom:
-        return '開始自律後，房內成員會一起進入狀態。';
-    }
-  }
-
-  Color _skyColor(BuildContext context) {
-    if (AppUI.isDark(context)) return const Color(0xFF111827);
-    if (themeKey != 'softGlow') {
-      return AppUI.backgroundThemeColors(themeKey, AppUI.isDark(context)).first;
-    }
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return const Color(0xFFEFF6FF);
-      case StudyRoomType.sleep:
-        return const Color(0xFFEDE9FE);
-      case StudyRoomType.exercise:
-        return const Color(0xFFECFDF5);
-      case StudyRoomType.steps:
-        return const Color(0xFFF0FDFA);
-      case StudyRoomType.custom:
-        return const Color(0xFFFFF7ED);
-    }
-  }
-
-  Color _floorColor(BuildContext context) {
-    if (AppUI.isDark(context)) return const Color(0xFF1F2937);
-    if (themeKey != 'softGlow') {
-      final colors = AppUI.backgroundThemeColors(
-        themeKey,
-        AppUI.isDark(context),
-      );
-      return Color.lerp(colors.last, accent, 0.12) ?? colors.last;
-    }
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return const Color(0xFFDDEBFF);
-      case StudyRoomType.sleep:
-        return const Color(0xFFE4D8FF);
-      case StudyRoomType.exercise:
-        return const Color(0xFFD1FAE5);
-      case StudyRoomType.steps:
-        return const Color(0xFFCCFBF1);
-      case StudyRoomType.custom:
-        return const Color(0xFFFFEDD5);
-    }
-  }
-
-  IconData _ambientIcon() {
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return Icons.menu_book_rounded;
-      case StudyRoomType.sleep:
-        return Icons.nights_stay_outlined;
-      case StudyRoomType.exercise:
-        return Icons.fitness_center;
-      case StudyRoomType.steps:
-        return Icons.directions_walk;
-      case StudyRoomType.custom:
-        return Icons.auto_awesome_outlined;
-    }
-  }
-
-  List<IconData> _propIcons() {
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return const [
-          Icons.menu_book_rounded,
-          Icons.edit_note_rounded,
-          Icons.coffee_outlined,
-          Icons.lightbulb_outline,
-        ];
-      case StudyRoomType.sleep:
-        return const [
-          Icons.bedtime_outlined,
-          Icons.hotel_rounded,
-          Icons.nights_stay_outlined,
-          Icons.alarm_rounded,
-        ];
-      case StudyRoomType.exercise:
-        return const [
-          Icons.fitness_center,
-          Icons.monitor_heart_outlined,
-          Icons.sports_gymnastics_rounded,
-          Icons.water_drop_outlined,
-        ];
-      case StudyRoomType.steps:
-        return const [
-          Icons.directions_walk,
-          Icons.route_outlined,
-          Icons.park_outlined,
-          Icons.flag_outlined,
-        ];
-      case StudyRoomType.custom:
-        return const [
-          Icons.auto_awesome_outlined,
-          Icons.check_circle_outline,
-          Icons.bolt_outlined,
-          Icons.track_changes_outlined,
-        ];
-    }
-  }
-
-  List<Offset> _seatPositions(double width, double height) {
-    switch (room.roomType) {
-      case StudyRoomType.study:
-        return [
-          Offset(width * 0.36, 86),
-          Offset(width * 0.10, 128),
-          Offset(width * 0.64, 128),
-          Offset(width * 0.24, 218),
-          Offset(width * 0.54, 218),
-          Offset(width * 0.78, 225),
-          Offset(width * 0.04, 230),
-          Offset(width * 0.42, 258),
-        ];
-      case StudyRoomType.sleep:
-        return [
-          Offset(width * 0.40, 82),
-          Offset(width * 0.14, 142),
-          Offset(width * 0.66, 142),
-          Offset(width * 0.26, 225),
-          Offset(width * 0.56, 225),
-          Offset(width * 0.78, 236),
-          Offset(width * 0.04, 238),
-          Offset(width * 0.42, 268),
-        ];
-      case StudyRoomType.exercise:
-        return [
-          Offset(width * 0.40, 72),
-          Offset(width * 0.12, 118),
-          Offset(width * 0.68, 118),
-          Offset(width * 0.22, 204),
-          Offset(width * 0.56, 204),
-          Offset(width * 0.78, 218),
-          Offset(width * 0.04, 225),
-          Offset(width * 0.42, 250),
-        ];
-      case StudyRoomType.steps:
-        return [
-          Offset(width * 0.18, 90),
-          Offset(width * 0.48, 112),
-          Offset(width * 0.70, 145),
-          Offset(width * 0.34, 180),
-          Offset(width * 0.08, 218),
-          Offset(width * 0.58, 228),
-          Offset(width * 0.78, 252),
-          Offset(width * 0.30, 270),
-        ];
-      case StudyRoomType.custom:
-        return [
-          Offset(width * 0.42, 74),
-          Offset(width * 0.12, 124),
-          Offset(width * 0.68, 124),
-          Offset(width * 0.24, 212),
-          Offset(width * 0.55, 212),
-          Offset(width * 0.78, 225),
-          Offset(width * 0.04, 232),
-          Offset(width * 0.42, 262),
-        ];
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final visibleMembers = [...members]
-      ..sort((a, b) {
-        final aActive = a.status == StudyMemberStatus.studying ? 0 : 1;
-        final bActive = b.status == StudyMemberStatus.studying ? 0 : 1;
-        if (aActive != bActive) return aActive.compareTo(bActive);
-        return b.todayFocusSeconds.compareTo(a.todayFocusSeconds);
-      });
-    final stageMembers = visibleMembers.take(8).toList();
-
-    return Container(
-      height: 360,
-      decoration: BoxDecoration(
-        color: _skyColor(context),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: accent.withValues(alpha: AppUI.isDark(context) ? 0.28 : 0.16),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final height = constraints.maxHeight;
-          final positions = _seatPositions(width, height);
-          final propIcons = _propIcons();
-
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _RoomStagePainter(
-                    roomType: room.roomType,
-                    accent: accent,
-                    themeKey: themeKey,
-                    skyColor: _skyColor(context),
-                    floorColor: _floorColor(context),
-                    isDark: AppUI.isDark(context),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 18,
-                top: 18,
-                right: 18,
-                child: _StageTitlePanel(
-                  title: _stageTitle(),
-                  subtitle: _stageSubtitle(),
-                  icon: _ambientIcon(),
-                  accent: accent,
-                ),
-              ),
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 18,
-                child: _StagePropStrip(icons: propIcons, accent: accent),
-              ),
-              Positioned(
-                left: width * 0.10,
-                top: height * 0.48,
-                child: _StageFloorMark(color: accent),
-              ),
-              Positioned(
-                right: width * 0.12,
-                top: height * 0.55,
-                child: _StageFloorMark(color: accent.withValues(alpha: 0.65)),
-              ),
-              ...stageMembers.asMap().entries.map((entry) {
-                final index = entry.key;
-                final member = entry.value;
-                final avatarProfile = avatarProfileFor(member);
-                final statusColor = statusColorFor(member.status);
-                final position = positions[index];
-                final isActive = member.status == StudyMemberStatus.studying;
-                final avatarSize = isActive ? 82.0 : 68.0;
-
-                return Positioned(
-                  left: position.dx.clamp(8.0, width - 104.0),
-                  top: position.dy,
-                  child: _StageMemberAvatar(
-                    member: member,
-                    avatarProfile: avatarProfile,
-                    avatarSize: avatarSize,
-                    statusText: statusTextFor(member.status),
-                    statusColor: statusColor,
-                    dimmed: member.status == StudyMemberStatus.offline,
-                  ),
-                );
-              }),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _StageTitlePanel extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color accent;
-
-  const _StageTitlePanel({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor.withValues(alpha: 0.90),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: accent.withValues(alpha: AppUI.isDark(context) ? 0.25 : 0.14),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: accent, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    color: primaryText,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    height: 1.25,
-                    fontWeight: FontWeight.w600,
-                    color: secondaryText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoomStagePainter extends CustomPainter {
-  final StudyRoomType roomType;
-  final Color accent;
-  final String themeKey;
-  final Color skyColor;
-  final Color floorColor;
-  final bool isDark;
-
-  const _RoomStagePainter({
-    required this.roomType,
-    required this.accent,
-    required this.themeKey,
-    required this.skyColor,
-    required this.floorColor,
-    required this.isDark,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final skyPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [skyColor, Color.lerp(skyColor, floorColor, 0.28)!],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, skyPaint);
-
-    final floorTop = size.height * 0.66;
-    final floorPaint = Paint()..color = floorColor;
-    canvas.drawRect(
-      Rect.fromLTWH(0, floorTop, size.width, size.height - floorTop),
-      floorPaint,
-    );
-
-    final horizonPaint = Paint()
-      ..color = accent.withValues(alpha: isDark ? 0.18 : 0.12)
-      ..strokeWidth = 2;
-    canvas.drawLine(
-      Offset(0, floorTop),
-      Offset(size.width, floorTop),
-      horizonPaint,
-    );
-
-    switch (roomType) {
-      case StudyRoomType.study:
-        _drawStudyRoom(canvas, size, floorTop);
-        break;
-      case StudyRoomType.sleep:
-        _drawSleepRoom(canvas, size, floorTop);
-        break;
-      case StudyRoomType.exercise:
-        _drawExerciseRoom(canvas, size, floorTop);
-        break;
-      case StudyRoomType.steps:
-        _drawStepsRoom(canvas, size, floorTop);
-        break;
-      case StudyRoomType.custom:
-        _drawCustomRoom(canvas, size, floorTop);
-        break;
-    }
-
-    _drawThemeMotifs(canvas, size);
-  }
-
-  void _drawThemeMotifs(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = accent.withValues(alpha: isDark ? 0.16 : 0.13);
-    switch (themeKey) {
-      case 'nightStudy':
-        for (final point in [
-          Offset(size.width * 0.18, size.height * 0.18),
-          Offset(size.width * 0.36, size.height * 0.12),
-          Offset(size.width * 0.82, size.height * 0.28),
-        ]) {
-          canvas.drawCircle(point, 3, paint);
-        }
-        break;
-      case 'sakuraWalk':
-        for (final point in [
-          Offset(size.width * 0.16, size.height * 0.26),
-          Offset(size.width * 0.30, size.height * 0.18),
-          Offset(size.width * 0.76, size.height * 0.22),
-        ]) {
-          canvas.drawOval(
-            Rect.fromCenter(center: point, width: 12, height: 7),
-            paint,
-          );
-        }
-        break;
-      case 'galaxySleep':
-        canvas.drawCircle(
-          Offset(size.width * 0.78, size.height * 0.18),
-          34,
-          paint,
-        );
-        canvas.drawCircle(
-          Offset(size.width * 0.80, size.height * 0.16),
-          29,
-          Paint()..color = skyColor,
-        );
-        break;
-      case 'gymEnergy':
-        final linePaint = Paint()
-          ..color = accent.withValues(alpha: 0.16)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3;
-        final path = Path()
-          ..moveTo(size.width * 0.12, size.height * 0.30)
-          ..lineTo(size.width * 0.24, size.height * 0.24)
-          ..lineTo(size.width * 0.34, size.height * 0.34)
-          ..lineTo(size.width * 0.48, size.height * 0.18);
-        canvas.drawPath(path, linePaint);
-        break;
-      case 'softGlow':
-      default:
-        break;
-    }
-  }
-
-  void _drawStudyRoom(Canvas canvas, Size size, double floorTop) {
-    final linePaint = Paint()
-      ..color = accent.withValues(alpha: 0.18)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    final fillPaint = Paint()..color = accent.withValues(alpha: 0.10);
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.08, size.height * 0.16, 78, 54),
-        const Radius.circular(10),
-      ),
-      fillPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.08, size.height * 0.16, 78, 54),
-        const Radius.circular(10),
-      ),
-      linePaint,
-    );
-
-    for (var i = 0; i < 3; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(
-          size.width * 0.66 + i * 18,
-          floorTop - 48 - i * 5,
-          12,
-          48 + i * 5,
-        ),
-        Paint()..color = accent.withValues(alpha: 0.14 + i * 0.04),
-      );
-    }
-    _drawDesk(
-      canvas,
-      Offset(size.width * 0.15, floorTop + 28),
-      size.width * 0.25,
-    );
-    _drawDesk(
-      canvas,
-      Offset(size.width * 0.54, floorTop + 26),
-      size.width * 0.26,
-    );
-  }
-
-  void _drawSleepRoom(Canvas canvas, Size size, double floorTop) {
-    final moonPaint = Paint()
-      ..color = Colors.white.withValues(alpha: isDark ? 0.80 : 0.65);
-    canvas.drawCircle(
-      Offset(size.width * 0.78, size.height * 0.20),
-      28,
-      moonPaint,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.80, size.height * 0.18),
-      25,
-      Paint()..color = skyColor,
-    );
-
-    final starPaint = Paint()..color = accent.withValues(alpha: 0.32);
-    for (final point in [
-      Offset(size.width * 0.18, size.height * 0.18),
-      Offset(size.width * 0.34, size.height * 0.25),
-      Offset(size.width * 0.62, size.height * 0.13),
-      Offset(size.width * 0.72, size.height * 0.35),
-    ]) {
-      canvas.drawCircle(point, 3, starPaint);
-    }
-
-    _drawBed(
-      canvas,
-      Offset(size.width * 0.10, floorTop + 34),
-      size.width * 0.35,
-    );
-    _drawBed(
-      canvas,
-      Offset(size.width * 0.52, floorTop + 36),
-      size.width * 0.34,
-    );
-  }
-
-  void _drawExerciseRoom(Canvas canvas, Size size, double floorTop) {
-    final matPaint = Paint()..color = accent.withValues(alpha: 0.16);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.14, floorTop + 42, size.width * 0.28, 18),
-        const Radius.circular(999),
-      ),
-      matPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.54, floorTop + 54, size.width * 0.30, 18),
-        const Radius.circular(999),
-      ),
-      matPaint,
-    );
-
-    final weightPaint = Paint()
-      ..color = accent.withValues(alpha: 0.24)
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(size.width * 0.18, floorTop - 40),
-      Offset(size.width * 0.36, floorTop - 40),
-      weightPaint,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.16, floorTop - 40),
-      12,
-      Paint()..color = accent.withValues(alpha: 0.18),
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.38, floorTop - 40),
-      12,
-      Paint()..color = accent.withValues(alpha: 0.18),
-    );
-
-    final chartPaint = Paint()
-      ..color = accent.withValues(alpha: 0.20)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    final path = Path()
-      ..moveTo(size.width * 0.58, size.height * 0.34)
-      ..lineTo(size.width * 0.64, size.height * 0.28)
-      ..lineTo(size.width * 0.70, size.height * 0.36)
-      ..lineTo(size.width * 0.78, size.height * 0.22);
-    canvas.drawPath(path, chartPaint);
-  }
-
-  void _drawStepsRoom(Canvas canvas, Size size, double floorTop) {
-    final pathPaint = Paint()
-      ..color = accent.withValues(alpha: 0.18)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 20
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(size.width * 0.08, size.height * 0.80)
-      ..quadraticBezierTo(
-        size.width * 0.28,
-        size.height * 0.58,
-        size.width * 0.46,
-        size.height * 0.72,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.68,
-        size.height * 0.88,
-        size.width * 0.90,
-        size.height * 0.62,
-      );
-    canvas.drawPath(path, pathPaint);
-
-    final treePaint = Paint()..color = accent.withValues(alpha: 0.20);
-    for (final x in [size.width * 0.14, size.width * 0.72, size.width * 0.84]) {
-      canvas.drawRect(Rect.fromLTWH(x - 3, floorTop - 28, 6, 28), treePaint);
-      canvas.drawCircle(Offset(x, floorTop - 36), 16, treePaint);
-    }
-
-    final flagPaint = Paint()..color = accent.withValues(alpha: 0.35);
-    canvas.drawRect(
-      Rect.fromLTWH(size.width * 0.82, floorTop - 72, 4, 60),
-      flagPaint,
-    );
-    final flag = Path()
-      ..moveTo(size.width * 0.826, floorTop - 72)
-      ..lineTo(size.width * 0.90, floorTop - 58)
-      ..lineTo(size.width * 0.826, floorTop - 44)
-      ..close();
-    canvas.drawPath(flag, flagPaint);
-  }
-
-  void _drawCustomRoom(Canvas canvas, Size size, double floorTop) {
-    final ringPaint = Paint()
-      ..color = accent.withValues(alpha: 0.18)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    for (final rect in [
-      Rect.fromCircle(
-        center: Offset(size.width * 0.22, floorTop - 42),
-        radius: 30,
-      ),
-      Rect.fromCircle(
-        center: Offset(size.width * 0.68, floorTop - 48),
-        radius: 38,
-      ),
-      Rect.fromCircle(
-        center: Offset(size.width * 0.48, size.height * 0.30),
-        radius: 24,
-      ),
-    ]) {
-      canvas.drawOval(rect, ringPaint);
-    }
-
-    final cardPaint = Paint()..color = accent.withValues(alpha: 0.12);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.10, floorTop + 32, 82, 48),
-        const Radius.circular(14),
-      ),
-      cardPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.width * 0.62, floorTop + 38, 88, 46),
-        const Radius.circular(14),
-      ),
-      cardPaint,
-    );
-  }
-
-  void _drawDesk(Canvas canvas, Offset origin, double width) {
-    final paint = Paint()..color = accent.withValues(alpha: 0.18);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(origin.dx, origin.dy, width, 14),
-        const Radius.circular(999),
-      ),
-      paint,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(origin.dx + width * 0.16, origin.dy + 12, 8, 34),
-      paint,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(origin.dx + width * 0.78, origin.dy + 12, 8, 34),
-      paint,
-    );
-  }
-
-  void _drawBed(Canvas canvas, Offset origin, double width) {
-    final paint = Paint()..color = accent.withValues(alpha: 0.16);
-    final pillowPaint = Paint()
-      ..color = Colors.white.withValues(alpha: isDark ? 0.18 : 0.64);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(origin.dx, origin.dy, width, 32),
-        const Radius.circular(12),
-      ),
-      paint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(origin.dx + 8, origin.dy + 6, width * 0.28, 18),
-        const Radius.circular(8),
-      ),
-      pillowPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _RoomStagePainter oldDelegate) {
-    return oldDelegate.roomType != roomType ||
-        oldDelegate.accent != accent ||
-        oldDelegate.themeKey != themeKey ||
-        oldDelegate.skyColor != skyColor ||
-        oldDelegate.floorColor != floorColor ||
-        oldDelegate.isDark != isDark;
-  }
-}
-
-class _StagePropStrip extends StatelessWidget {
-  final List<IconData> icons;
-  final Color accent;
-
-  const _StagePropStrip({required this.icons, required this.accent});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: icons.map((icon) {
-        return Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: accent.withValues(alpha: 0.78), size: 20),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _StageFloorMark extends StatelessWidget {
-  final Color color;
-
-  const _StageFloorMark({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: -0.16,
-      child: Container(
-        width: 84,
-        height: 18,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(AppUI.radiusPill),
-        ),
-      ),
     );
   }
 }
@@ -2121,173 +1177,6 @@ class _TimerPanel extends StatelessWidget {
   }
 }
 
-class _StickerPanel extends StatelessWidget {
-  final Color accent;
-  final ValueChanged<String> onStickerTap;
-
-  const _StickerPanel({required this.accent, required this.onStickerTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    const stickers = ['加油', '穩住', '太強了', '一起衝', '休息一下'];
-
-    return Card(
-      shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '鼓勵貼圖',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: primaryText,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: stickers.map((sticker) {
-                return ActionChip(
-                  avatar: Icon(
-                    Icons.volunteer_activism_outlined,
-                    color: accent,
-                    size: 18,
-                  ),
-                  label: Text(sticker),
-                  onPressed: () => onStickerTap(sticker),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatPanel extends StatelessWidget {
-  final TextEditingController controller;
-  final List<StudyRoomMessage> messages;
-  final String currentUserId;
-  final Color accent;
-  final VoidCallback onSend;
-
-  const _ChatPanel({
-    required this.controller,
-    required this.messages,
-    required this.currentUserId,
-    required this.accent,
-    required this.onSend,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
-    return Card(
-      shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '房內聊天',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: primaryText,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    decoration: const InputDecoration(
-                      hintText: '傳一句鼓勵或進度',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => onSend(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: onSend,
-                  icon: const Icon(Icons.send_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (messages.isEmpty)
-              Text(
-                '目前還沒有訊息，送出第一句鼓勵吧。',
-                style: TextStyle(fontSize: 13, color: secondaryText),
-              )
-            else
-              ...messages.take(5).map((message) {
-                final isMe = message.senderId == currentUserId;
-                final color = isMe ? accent : const Color(0xFF4F8CFF);
-                final isSticker = message.type == StudyRoomMessageType.sticker;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Align(
-                    alignment: isMe
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 260),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            message.senderName,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            message.text,
-                            style: TextStyle(
-                              fontSize: isSticker ? 17 : 13,
-                              height: 1.35,
-                              fontWeight: isSticker
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                              color: primaryText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _EventPanel extends StatelessWidget {
   final List<StudyRoomEvent> events;
   final Color accent;
@@ -2408,102 +1297,6 @@ class _EventPanel extends StatelessWidget {
   }
 }
 
-class _StageMemberAvatar extends StatelessWidget {
-  final StudyMemberData member;
-  final AvatarProfile avatarProfile;
-  final double avatarSize;
-  final String statusText;
-  final Color statusColor;
-  final bool dimmed;
-
-  const _StageMemberAvatar({
-    required this.member,
-    required this.avatarProfile,
-    required this.avatarSize,
-    required this.statusText,
-    required this.statusColor,
-    required this.dimmed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final name = member.roomNickname.isEmpty
-        ? member.name
-        : member.roomNickname;
-
-    return Opacity(
-      opacity: dimmed ? 0.48 : 1,
-      child: SizedBox(
-        width: 96,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: avatarSize,
-              height: avatarSize,
-              decoration: BoxDecoration(
-                color: avatarProfile.backgroundColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: AvatarPreview(
-                profile: avatarProfile,
-                size: avatarSize,
-                showBackgroundRing: false,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              constraints: const BoxConstraints(maxWidth: 90),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(AppUI.radiusPill),
-              ),
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: AppUI.textPrimaryOf(context),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(AppUI.radiusPill),
-              ),
-              child: Text(
-                statusText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: statusColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _LivePill extends StatelessWidget {
   final String text;
   final Color color;
@@ -2525,6 +1318,42 @@ class _LivePill extends StatelessWidget {
           fontWeight: FontWeight.bold,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+/// Entry to the room chat page: latest message preview and unread count.
+class _ChatEntry extends StatelessWidget {
+  const _ChatEntry({
+    super.key,
+    required this.latest,
+    required this.unread,
+    required this.onTap,
+  });
+
+  final StudyRoomMessage? latest;
+  final int unread;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = latest == null
+        ? '還沒有訊息，點這裡打聲招呼'
+        : '${latest!.senderName}：${latest!.text}';
+    return Card(
+      shape: AppUI.cardShape(),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        onTap: onTap,
+        leading: Badge(
+          isLabelVisible: unread > 0,
+          label: Text('$unread'),
+          child: const Icon(Icons.chat_bubble_outline_rounded),
+        ),
+        title: const Text('聊天'),
+        subtitle: Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: const Icon(Icons.chevron_right_rounded),
       ),
     );
   }
