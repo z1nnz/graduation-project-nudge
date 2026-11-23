@@ -128,6 +128,7 @@ class CompanionCabinView extends StatefulWidget {
     required this.onOpenDecor,
     required this.onOpenFamily,
     required this.onOpenGroup,
+    this.onOpenCharacter,
     this.confirmedActivityLabel,
     this.layout,
     this.now,
@@ -142,6 +143,9 @@ class CompanionCabinView extends StatefulWidget {
   final VoidCallback onOpenDecor;
   final VoidCallback onOpenFamily;
   final VoidCallback onOpenGroup;
+
+  /// Character, wardrobe and codex; shown when provided.
+  final VoidCallback? onOpenCharacter;
 
   /// Latest Cloud-confirmed activity. A change to a new value (not the first
   /// value seen) plays the celebration.
@@ -279,6 +283,16 @@ class _CompanionCabinViewState extends State<CompanionCabinView>
                       coins: widget.coins,
                     ),
                   ),
+                  if (widget.onOpenCharacter != null)
+                    Positioned(
+                      left: 12,
+                      bottom: 12,
+                      child: FilledButton.tonalIcon(
+                        onPressed: widget.onOpenCharacter,
+                        icon: const Icon(Icons.auto_awesome_outlined, size: 18),
+                        label: const Text('角色'),
+                      ),
+                    ),
                   Positioned(
                     right: 12,
                     bottom: 12,

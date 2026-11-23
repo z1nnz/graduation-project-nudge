@@ -11,6 +11,7 @@ import 'coin_wallet_page.dart';
 import 'badges_page.dart';
 import 'tasks_page.dart';
 import 'today_data_page.dart';
+import 'character_page.dart';
 import 'guardian_center_page.dart';
 import 'guardian_parent_page.dart';
 import 'group_management_page.dart';
@@ -208,6 +209,10 @@ class HomePage extends StatelessWidget {
                       appState.confirmedActivityFeedback?.label,
                   onOpenQuests: openTasksPage,
                   onOpenDecor: () => showHomeDecorSheet(context),
+                  onOpenCharacter: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CharacterPage()),
+                  ),
                   onOpenFamily: () => Navigator.push(
                     context,
                     MaterialPageRoute(

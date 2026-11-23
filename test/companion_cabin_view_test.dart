@@ -22,6 +22,7 @@ Future<void> _pump(
   WidgetTester tester, {
   CabinPresentation? presentation,
   VoidCallback? onOpenQuests,
+  VoidCallback? onOpenCharacter,
   String? confirmed,
   bool disableAnimations = false,
   DateTime? now,
@@ -47,6 +48,7 @@ Future<void> _pump(
               onOpenDecor: () {},
               onOpenFamily: () {},
               onOpenGroup: () {},
+              onOpenCharacter: onOpenCharacter ?? () {},
               confirmedActivityLabel: confirmed,
               now: now ?? DateTime(2026, 11, 23, 12),
             ),
@@ -107,5 +109,13 @@ void main() {
     expect(find.byKey(const Key('pose-effect-sleep')), findsOneWidget);
     await tester.runAsync(() => _pump(tester, now: DateTime(2026, 11, 23, 12)));
     expect(find.byKey(const Key('pose-effect-sleep')), findsNothing);
+  });
+
+  testWidgets('the character button opens the character page', (tester) async {
+    var opened = 0;
+    await tester.runAsync(() => _pump(tester, onOpenCharacter: () => opened++));
+    await tester.ensureVisible(find.text('角色'));
+    await tester.tap(find.text('角色'));
+    expect(opened, 1);
   });
 }

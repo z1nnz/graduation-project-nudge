@@ -7,14 +7,14 @@ import 'services/notification_service.dart';
 import 'services/firebase_app_check_service.dart';
 import 'screens/home_page.dart';
 import 'screens/focus_page.dart';
-import 'screens/health_page.dart';
+import 'screens/study_room_list_page.dart';
+import 'screens/tasks_page.dart';
 import 'screens/statistics_page.dart';
 import 'screens/social_page.dart';
-import 'screens/character_page.dart';
-import 'screens/account_page.dart';
 import 'screens/group_management_page.dart';
 import 'screens/guardian_center_page.dart';
 import 'theme/app_ui.dart';
+import 'theme/game_ui.dart';
 import 'screens/onboarding_page.dart';
 
 Future<void> main() async {
@@ -307,6 +307,36 @@ class _AppLoadingScreen extends StatelessWidget {
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
+  /// The game-world sections. Character, shop, health and account live in
+  /// the drawer ("backpack") and the cabin.
+  static const destinations = [
+    NavigationDestination(
+      icon: Icon(Icons.cottage_outlined),
+      selectedIcon: Icon(Icons.cottage),
+      label: '小屋',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.assignment_outlined),
+      selectedIcon: Icon(Icons.assignment),
+      label: '委託',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.timer_outlined),
+      selectedIcon: Icon(Icons.timer),
+      label: '專注',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.menu_book_outlined),
+      selectedIcon: Icon(Icons.menu_book),
+      label: '自律房',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.people_alt_outlined),
+      selectedIcon: Icon(Icons.people_alt),
+      label: '同伴',
+    ),
+  ];
+
   @override
   State<MainShell> createState() => _MainShellState();
 }
@@ -351,7 +381,7 @@ class _MainShellState extends State<MainShell> {
           );
           break;
         default:
-          changeTab(3);
+          changeTab(4);
       }
     });
   }
@@ -360,71 +390,55 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     _schedulePushRoute(appState);
-    final accentColor = appState.currentIconColor;
 
     final pages = [
       HomePage(onNavigate: changeTab, onOpenStatistics: openStatisticsPage),
-      const CharacterPage(),
+      const TasksPage(),
       const FocusPage(),
+      const StudyRoomListPage(),
       const SocialPage(),
-      const HealthPage(),
-      const AccountPage(),
     ];
 
     return Scaffold(
       body: IndexedStack(index: currentIndex, children: pages),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarTheme.of(context).copyWith(
-          indicatorColor: accentColor.withValues(
-            alpha: AppUI.isDark(context) ? 0.22 : 0.14,
-          ),
-          iconTheme: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return IconThemeData(color: accentColor);
-            }
-            return IconThemeData(
-              color: AppUI.isDark(context)
-                  ? const Color(0xFFB6BDC9)
-                  : const Color(0xFF6B7280),
-            );
-          }),
-        ),
-        child: NavigationBar(
-          selectedIndex: currentIndex,
-          onDestinationSelected: changeTab,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: '首頁',
+      bottomNavigationBar: Builder(
+        builder: (context) {
+          final palette = GamePalette.of(context);
+          return NavigationBarTheme(
+            data: NavigationBarTheme.of(context).copyWith(
+              backgroundColor: palette.panel,
+              indicatorColor: GamePalette.gold.withValues(alpha: 0.55),
+              labelTextStyle: WidgetStateProperty.resolveWith(
+                (states) => TextStyle(
+                  fontSize: 12,
+                  fontWeight: states.contains(WidgetState.selected)
+                      ? FontWeight.w900
+                      : FontWeight.w600,
+                  color: palette.ink,
+                ),
+              ),
+              iconTheme: WidgetStateProperty.resolveWith(
+                (states) => IconThemeData(
+                  color: states.contains(WidgetState.selected)
+                      ? palette.ink
+                      : palette.inkMuted,
+                ),
+              ),
             ),
-            NavigationDestination(
-              icon: Icon(Icons.auto_awesome_outlined),
-              selectedIcon: Icon(Icons.auto_awesome),
-              label: '角色',
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: palette.panelBorder, width: 3),
+                ),
+              ),
+              child: NavigationBar(
+                selectedIndex: currentIndex,
+                onDestinationSelected: changeTab,
+                destinations: MainShell.destinations,
+              ),
             ),
-            NavigationDestination(
-              icon: Icon(Icons.timer_outlined),
-              selectedIcon: Icon(Icons.timer),
-              label: '專注',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.people_alt_outlined),
-              selectedIcon: Icon(Icons.people_alt),
-              label: '社交',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.favorite_border),
-              selectedIcon: Icon(Icons.favorite),
-              label: '健康',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: '帳號',
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
