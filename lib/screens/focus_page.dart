@@ -263,9 +263,6 @@ class _FocusPageState extends State<FocusPage> {
       builder: (dialogContext) {
         final isFinishedFocus = finishedPhase == _PomodoroPhase.focus;
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
           title: Text(isFinishedFocus ? '專注完成，休息一下' : '休息完成，回到專注'),
           content: Text(
             isFinishedFocus
@@ -364,9 +361,6 @@ class _FocusPageState extends State<FocusPage> {
         context: context,
         builder: (context) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
             title: const Text('提前結束休息'),
             content: const Text('現在是休息階段，提前結束不會增加專注時間。要直接回到下一輪專注嗎？'),
             actions: [
@@ -410,9 +404,6 @@ class _FocusPageState extends State<FocusPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
           title: const Text('提前結束'),
           content: Text(
             '你目前已專注 ${formatDuration(savedSeconds)}，是否要提前結束並記錄這段時間？',
@@ -503,9 +494,6 @@ class _FocusPageState extends State<FocusPage> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
           title: const Text('自訂番茄鐘'),
           content: Column(
             mainAxisSize: MainAxisSize.min,

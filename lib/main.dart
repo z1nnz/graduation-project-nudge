@@ -152,14 +152,7 @@ class _AppRoot extends StatelessWidget {
             return const IconThemeData(color: Color(0xFF6B7280));
           }),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
+        elevatedButtonTheme: GameTheme.primaryButton(),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
@@ -183,12 +176,8 @@ class _AppRoot extends StatelessWidget {
             borderSide: const BorderSide(color: seedColor, width: 1.4),
           ),
         ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-        ),
+        dialogTheme: GameTheme.dialog(dark: false),
+        textButtonTheme: GameTheme.secondaryButton(dark: false),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -251,14 +240,7 @@ class _AppRoot extends StatelessWidget {
             return const IconThemeData(color: Color(0xFFB6BDC9));
           }),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
+        elevatedButtonTheme: GameTheme.primaryButton(),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
@@ -282,12 +264,8 @@ class _AppRoot extends StatelessWidget {
             borderSide: const BorderSide(color: seedColor, width: 1.4),
           ),
         ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: const Color(0xFF1A1D24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-        ),
+        dialogTheme: GameTheme.dialog(dark: true),
+        textButtonTheme: GameTheme.secondaryButton(dark: true),
       ),
       // App always goes directly to main shell — sign in/register via Account tab
       home: !appState.isHydrated

@@ -80,4 +80,40 @@ void main() {
     expect(shape.side.width, 2);
     expect(shape.side.style, BorderStyle.solid);
   });
+
+  testWidgets('dialogs look like wooden game panels', (tester) async {
+    for (final dark in [false, true]) {
+      final theme = GameTheme.dialog(dark: dark);
+      final shape = theme.shape! as RoundedRectangleBorder;
+      expect(shape.side.width, 4);
+      expect(theme.titleTextStyle?.fontFamily, 'Cubic11');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            dialogTheme: theme,
+            elevatedButtonTheme: GameTheme.primaryButton(),
+          ),
+          home: const AlertDialog(
+            title: Text('提前結束'),
+            actions: [ElevatedButton(onPressed: null, child: Text('好'))],
+          ),
+        ),
+      );
+      final material = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(AlertDialog),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect((material.shape! as RoundedRectangleBorder).side.width, 4);
+    }
+    final gold = GameTheme.primaryButton().style!.backgroundColor!.resolve({});
+    expect(gold, GamePalette.gold);
+    final wood = GameTheme.secondaryButton(
+      dark: false,
+    ).style!.foregroundColor!.resolve({});
+    expect(wood, const Color(0xFF8A5A34));
+  });
 }

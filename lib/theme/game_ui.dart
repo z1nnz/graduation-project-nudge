@@ -63,6 +63,59 @@ Color _toneColor(GameTone tone, GamePalette p) => switch (tone) {
 };
 
 /// Warm gradient page background behind game panels.
+/// Theme pieces that make system widgets (dialogs, primary buttons) match
+/// the wooden game UI.
+class GameTheme {
+  GameTheme._();
+
+  static const _wood = Color(0xFF8A5A34);
+  static const _ink = Color(0xFF3A1D0C);
+
+  /// Parchment panel with a thick wood frame and pixel-font title.
+  static DialogThemeData dialog({required bool dark}) => DialogThemeData(
+    backgroundColor: dark ? const Color(0xFF2A1A12) : const Color(0xFFF6E7C8),
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(color: dark ? const Color(0xFFC9934F) : _wood, width: 4),
+    ),
+    titleTextStyle: TextStyle(
+      fontFamily: 'Cubic11',
+      fontSize: 22,
+      color: dark ? const Color(0xFFFFE6A3) : _ink,
+    ),
+    contentTextStyle: TextStyle(
+      fontSize: 15,
+      height: 1.5,
+      color: dark ? const Color(0xFFF3E6CF) : _ink,
+    ),
+  );
+
+  /// Text buttons (cancel, later) in wood brown instead of the seed violet.
+  static TextButtonThemeData secondaryButton({required bool dark}) =>
+      TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: dark ? const Color(0xFFFFE6A3) : _wood,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      );
+
+  /// Gold primary buttons, like the HUD and result screens.
+  static ElevatedButtonThemeData primaryButton() => ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: GamePalette.gold,
+      foregroundColor: const Color(0xFF2A1600),
+      disabledBackgroundColor: const Color(0x66C9934F),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+      textStyle: const TextStyle(fontWeight: FontWeight.w900),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFF8A4A10), width: 2),
+      ),
+    ),
+  );
+}
+
 class GameBackground extends StatelessWidget {
   const GameBackground({super.key, required this.child});
 
