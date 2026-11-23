@@ -92,7 +92,7 @@ test("message sends are single-flight and ids carry client entropy", () => {
   const once = app.slice(app.indexOf("async function sendWebRoomMessageOnce"));
   assert.match(once, /if \(webRoomChatSending\) return;/);
   assert.match(once, /finally \{\s*webRoomChatSending = false;/);
-  assert.match(app, /message_\$\{userId\}_\$\{Date\.now\(\)\}_\$\{webClientSuffix\(\)\}/);
+  assert.match(app, /message_\$\{userId\}_\$\{webUniqueSuffix\(\)\}/);
   assert.match(app, /event\.isComposing/);
 });
 
