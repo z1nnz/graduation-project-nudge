@@ -15,7 +15,8 @@
     return date.toISOString().slice(0, 10);
   }
   function weekStart(now) {
-    const day = taipeiDay(now);
+    // A Nudge task day (and its week) rolls over at 05:00 Asia/Taipei.
+    const day = taipeiDay(new Date(now.getTime() - 5 * 60 * 60 * 1000));
     const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
     return addDays(day, -(weekday + 6) % 7);
   }
