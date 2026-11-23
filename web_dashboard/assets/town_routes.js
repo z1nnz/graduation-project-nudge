@@ -58,7 +58,7 @@
     d('groups-challenge', 'groups-challenge.html', 'guild', '團體挑戰建立器', 'player', 'login', 'groupManager', 'cloud', '#83'),
     d('groups-study-schedule', 'groups-study-schedule.html', 'guild', '讀書時段管理', 'player', 'login', 'groupManager', 'cloud', '#83'),
     d('groups-templates', 'groups-templates.html', 'guild', '考試倒數模板', 'player', 'login', 'groupManager', 'cloud', '#83'),
-    d('group-hall', 'group-hall.html', 'guild', '團體會館場景', 'player', 'login', 'group', 'cloud', '#83', 'planned'),
+    d('group-hall', 'group-hall.html', 'guild', '團體會館場景', 'player', 'login', 'group', 'cloud', '#83'),
     d('museum', 'personal.html', 'library', '個人分析入口', 'player', 'login', null, 'mixed', '#84'),
     d('identity', 'personal-identity.html', 'library', '自律人格與復原步驟', 'player', 'login', null, 'cloud', '#84'),
     d('trends', 'personal-trends.html', 'library', '自律趨勢分析', 'player', 'login', null, 'demo', '#84'),
