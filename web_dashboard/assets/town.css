@@ -108,6 +108,16 @@ kbd { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: rgba(25
 .town-panel-entry.is-locked, .town-panel-entry.is-planned { cursor: default; opacity: 0.7; border-style: dashed; }
 .town-directory { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .town-directory-hint { margin: 6px 0 10px; font-size: 13px; opacity: 0.8; }
+.town-directory-note { margin: 8px 0 4px; font-size: 14px; line-height: 1.5; color: var(--town-gold); }
+
+/* Static mode: Canvas or the map art is unavailable, so the list is the town. */
+.town-static .town { overflow: auto; background: #1b1530; }
+.town-static .town-canvas, .town-static .town-labels, .town-static .town-prompt,
+.town-static .town-hud-zoom, .town-static .town-hud-clock, .town-static #townHelp,
+.town-static #townDirectoryToggle, .town-static #townDirectoryClose { display: none !important; }
+.town-static .town-directory.is-open { position: relative; left: auto; top: auto; bottom: auto; transform: none;
+  margin: 132px auto 24px; width: min(calc(100% - 24px), 560px); max-height: none; overflow: visible; }
+.town-static .town-panel { position: fixed; }
 .town-directory a { color: var(--town-ink); }
 .town-tool-list a { display: inline-block; min-height: 32px; padding: 4px 0; }
 .town-skip { position: absolute; left: -999px; top: 8px; z-index: 30; background: var(--town-gold); color: #2a1600; padding: 8px 12px; border-radius: 8px; }
@@ -123,7 +133,16 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); out
   .town-hud-tools a, .town-hud-tools button { width: 40px; height: 40px; }
   .town-hud-tools a[title="傳統版面"] { display: none; }
   .town-hud-tools a, .town-hud-tools button { width: 40px; height: 44px; }
+  /* Wrap instead of overflowing when text is enlarged. */
+  .town-hud-tools { left: max(14px, env(safe-area-inset-left)); justify-content: space-between; flex-wrap: wrap; }
   .town-panel, .town-directory.is-open, .town-directory:focus-within {
     top: auto; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); max-height: 72vh; }
+  .town-label strong { font-size: 12px; }
+  .town-label span { display: none; }
+  .town-prompt { max-width: calc(100vw - 24px); }
+  .town-prompt button { white-space: nowrap; }
+}
+@media (max-width: 400px) {
+  .town-hud-clock { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
