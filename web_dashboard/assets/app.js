@@ -2973,6 +2973,7 @@ function stopWebRoomInteractionListeners() {
 
 function stopWebRoomDetailListeners() {
   window.NudgeFocusRound?.stop();
+  window.NudgeStudyHall?.stop();
   if (webRoomMemberSub) webRoomMemberSub();
   if (webRoomSessionsSub) webRoomSessionsSub();
   if (webRoomContributionsSub) webRoomContributionsSub();
@@ -2986,6 +2987,7 @@ function stopWebRoomDetailListeners() {
 function renderWebRoomScene() {
   const stage = $("[data-room-stage]");
   if (!stage || !window.NudgeRoomScene) return;
+  stage.classList.remove("is-study-hall");
   const userId = firebase.auth().currentUser?.uid || null;
   const scene = window.NudgeRoomScene.buildScene({
     members: activeWebRoom ? activeWebRoomMembers : [],
@@ -3014,36 +3016,18 @@ function renderWebRoomScene() {
     leaveButton.disabled = webRoomCommandPending;
   }
   if (!activeWebRoom) {
+    window.NudgeStudyHall?.stop();
     stage.innerHTML = `<p class="room-inline-empty">選擇房間後，座位會在這裡出現。</p>`;
     if (detail) detail.textContent = "";
     return;
   }
   if (!scene.viewerApproved) {
+    window.NudgeStudyHall?.stop();
     stage.innerHTML = `<p class="room-inline-empty">房間管理者核准你的資格後，才會看見房內座位。</p>`;
     if (detail) detail.textContent = "";
     return;
   }
-  const seats = scene.seats.map(seat => `
-    <button class="room-stage-seat posture-${escapeHtml(seat.postureKey)}${seat.isViewer ? " is-viewer" : ""}" type="button"
-      data-room-stage-member="${escapeHtml(seat.memberId)}" aria-pressed="false"
-      aria-label="${escapeHtml(`${seat.displayName}${seat.isOwner ? "（房主）" : ""}：${seat.postureLabel}`)}">
-      <span class="room-stage-seat-avatar" aria-hidden="true">${escapeHtml(seat.glyph)}</span>
-      <strong>${escapeHtml(seat.isViewer ? "我" : seat.displayName)}</strong>
-      <small>${escapeHtml(seat.postureLabel)}</small>
-    </button>`).join("");
-  const empty = Array.from({ length: scene.emptySeats }, () =>
-    `<span class="room-stage-seat is-empty" aria-hidden="true"><span class="room-stage-seat-avatar"></span><small>空位</small></span>`,
-  ).join("");
-  stage.innerHTML = seats + empty;
-  $$("[data-room-stage-member]", stage).forEach(button => {
-    button.addEventListener("click", () => {
-      const seat = scene.seats.find(item => item.memberId === button.dataset.roomStageMember);
-      if (!seat || !detail) return;
-      detail.textContent = `${seat.displayName}${seat.isOwner ? "（房主）" : ""} · ${seat.postureLabel}`;
-      $$("[data-room-stage-member]", stage).forEach(item =>
-        item.setAttribute("aria-pressed", String(item === button)));
-    });
-  });
+  window.NudgeStudyHall?.render({ db, room: activeWebRoom, scene, stage, detail });
 }
 
 async function setOwnWebRoomPresence(presenceStatus) {

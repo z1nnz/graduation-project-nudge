@@ -9,15 +9,16 @@
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
     <link rel="stylesheet" href="assets/world_ui.css?v=1" />
     <link rel="stylesheet" href="assets/focus_round.css?v=1" />
+    <link rel="stylesheet" href="assets/study_hall.css?v=1" />
   </head>
-  <body data-page="rooms" data-social-facility="tower">
+  <body class="w-page" data-page="rooms" data-social-facility="tower">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
-    <header class="scene-topbar">
+    <header class="w-hud">
       <a data-town-return href="town.html">← 回小鎮</a>
-      <span class="scene-place" data-scene-place>專注塔 · 自律房</span>
+      <h1>專注塔 · 自律房</h1>
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
-    <main class="main scene-main" id="sceneMain" tabindex="-1">
+    <main class="main w-main" id="sceneMain" tabindex="-1">
         <header class="hero room-hero scene-hero">
           <div>
             <span class="eyebrow">Member-controlled Activity Rooms</span>
@@ -64,10 +65,10 @@
 
         <section class="scene-panel room-stage-panel" aria-labelledby="roomStageTitle">
           <div class="room-panel-heading">
-            <div><span class="eyebrow">Room Scene</span><h2 id="roomStageTitle">房內座位</h2></div>
+            <h2 id="roomStageTitle">自習大廳</h2>
             <strong class="room-stage-count" data-room-stage-count>選擇活動房</strong>
           </div>
-          <p>只顯示已核准成員與有限姿態（專注中、在座位上、暫時離座），不顯示任何人的精確數值或活動紀錄。</p>
+          <p>點選座位查看成員目前狀態與今天已確認的房內時間。</p>
           <div class="room-stage" data-room-stage role="group" aria-label="房內座位"><p class="room-inline-empty">選擇房間後，座位會在這裡出現。</p></div>
           <p class="room-stage-detail" data-room-stage-detail aria-live="polite"></p>
           <div class="room-stage-actions">
@@ -146,6 +147,7 @@
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/focus_round_core.js?v=1"></script>
     <script src="assets/focus_round.js?v=1"></script>
+    <script src="assets/study_hall.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

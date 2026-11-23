@@ -98,7 +98,10 @@ test("rooms page renders the scene from the shared membership listener", () => {
     app.indexOf("async function setOwnWebRoomPresence"),
   );
   assert.match(sceneRender, /NudgeRoomScene\.buildScene/);
-  assert.match(sceneRender, /escapeHtml\(seat\.isViewer \? "我" : seat\.displayName\)/);
+  assert.match(sceneRender, /NudgeStudyHall\?\.render/);
+  const hall = read("web_dashboard/assets/study_hall.js");
+  assert.match(hall, /seat\.isViewer \? "你" : seat\.displayName/);
+  assert.match(hall, /Math\.min\(8,/);
   assert.doesNotMatch(sceneRender, /metricValue|sessionSeconds|activeSessionId/);
 
   const presence = app.slice(
