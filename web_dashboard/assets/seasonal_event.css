@@ -1,0 +1,13 @@
+.event-hero { position: relative; overflow: hidden; }
+.event-hero::after { content: '✦'; position: absolute; right: 40px; top: 15px; font-size: 5rem; color: var(--season-color, #dba877); opacity: .25; pointer-events: none; }
+.event-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 25px; }
+.event-place { position: relative; min-height: 240px; padding: 20px; border: 3px solid #9d6a50; border-radius: 20px; color: #fff1d5; background: linear-gradient(160deg, #503642e8, #2a2638f4), url('town/town_map.jpg') center / cover; text-align: left; transition: transform .15s ease, box-shadow .15s ease; }
+.event-place:hover:not(:disabled), .event-place:focus-visible { transform: translateY(-5px); box-shadow: 0 12px 0 #251928, 0 18px 30px #0008; }
+.event-place:disabled { opacity: .62; cursor: not-allowed; }
+.event-place .event-icon { display: block; font-size: 2.8rem; margin-bottom: 18px; color: var(--season-color, #e8b675); }
+.event-place strong { display: block; font-size: 1.35rem; }
+.event-place small { display: block; margin-top: 15px; line-height: 1.5; }
+.event-dialogue { display: flex; align-items: center; gap: 16px; margin-top: 22px; padding: 16px; border: 2px solid var(--season-color, #dba877); border-radius: 16px; background: #241b2b; }
+.event-dialogue img { flex: none; object-fit: contain; image-rendering: pixelated; }
+.event-dialogue p { margin: 0; line-height: 1.7; }
+@media (max-width: 760px) { .event-map { grid-template-columns: 1fr; } .event-place { min-height: 170px; } }

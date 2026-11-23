@@ -1,3 +1,4 @@
+import { collectGrowthCapsuleExport } from "./growth-capsule-service.js";
 import { createHash, randomUUID } from "node:crypto";
 import { FieldPath } from "firebase-admin/firestore";
 
@@ -171,7 +172,8 @@ export function buildRelationshipScopeExport(membership) {
   };
 }
 
-export async function collectPrivacyExportData({ firestore, userId }) {
+export async function collectPrivacyExportData({ firestore, userId, now = new Date() }) {
+  const growthCapsules = await collectGrowthCapsuleExport({ firestore, userId, now, collect: collectQueryDocuments });
   const [
     user,
     publicProfile,
@@ -181,6 +183,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     deviceAssignments,
     pushDeliveryState,
     friends,
+    growthDocuments,
     memberships,
     activityEvents,
     activityReceipts,
@@ -190,6 +193,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     activitySessions,
     roomContributions,
     roomResonancePreferences,
+    roomReadMarkers,
     roomResonanceSignals,
     authoredRoomResonanceAcknowledgements,
     receivedRoomResonanceAcknowledgements,
@@ -197,6 +201,9 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     notifications,
     sentFriendRequests,
     receivedFriendRequests,
+    friendVisitSettings,
+    hostedFriendVisits,
+    madeFriendVisits,
     auditEvents,
     privacyRequests,
   ] = await Promise.all([
@@ -214,6 +221,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     ),
     readSingleDocument(firestore, "push_delivery_state", userId),
     readSubcollection(firestore, `users/${userId}/friends`),
+    readSubcollection(firestore, `users/${userId}/growth_documents`),
     readQuery(
       firestore,
       "relationship_memberships",
@@ -241,6 +249,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     readQuery(firestore, "activity_sessions", "actorUserId", "==", userId),
     readQuery(firestore, "room_contributions", "actorUserId", "==", userId),
     readQuery(firestore, "room_resonance_preferences", "userId", "==", userId),
+    readQuery(firestore, "room_read_markers", "userId", "==", userId),
     readQuery(
       firestore,
       "room_resonance_signals",
@@ -272,6 +281,9 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     ),
     readQuery(firestore, "friend_requests", "senderId", "==", userId),
     readQuery(firestore, "friend_requests", "receiverId", "==", userId),
+    readSingleDocument(firestore, "friend_visit_settings", userId),
+    readQuery(firestore, "friend_visits", "hostId", "==", userId),
+    readQuery(firestore, "friend_visits", "visitorId", "==", userId),
     readQuery(firestore, "audit_events", "actorUserId", "==", userId),
     readQuery(firestore, "privacy_data_requests", "userId", "==", userId),
   ]);
@@ -294,6 +306,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
       device_assignments: deviceAssignments.documents,
       push_delivery_state: pushDeliveryState,
       users_friends: friends.documents,
+      growth_documents: growthDocuments.documents,
       relationship_memberships: memberships.documents,
       family_links: familyLinks,
       groups,
@@ -307,6 +320,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
       activity_sessions: activitySessions.documents,
       room_contributions: roomContributions.documents,
       room_resonance_preferences: roomResonancePreferences.documents,
+      room_read_markers: roomReadMarkers.documents,
       room_resonance_signals: roomResonanceSignals.documents,
       room_resonance_acknowledgements: mergeDocuments(
         authoredRoomResonanceAcknowledgements.documents,
@@ -318,13 +332,21 @@ export async function collectPrivacyExportData({ firestore, userId }) {
         sentFriendRequests.documents,
         receivedFriendRequests.documents,
       ),
+      friend_visit_settings: friendVisitSettings,
+      friend_visits: mergeDocuments(
+        hostedFriendVisits.documents,
+        madeFriendVisits.documents,
+      ),
       audit_events: auditEvents.documents,
       privacy_data_requests: privacyRequests.documents,
+      growth_capsules: growthCapsules,
     },
     excludedServerSecrets: [
       "push_installations.token",
       "push_token_claims",
       "privacy_export_access.downloadToken",
+      "growth_capsule_secrets (withheld before server unlock time)",
+      "growth_capsule_operations.digest",
     ],
     truncatedCollections: [],
   };
@@ -387,7 +409,7 @@ export function createRequestPrivacyDataActionHandler({
   clock,
   randomToken = randomUUID,
   collectUserData = userId =>
-    collectPrivacyExportData({ firestore, userId }),
+    collectPrivacyExportData({ firestore, userId, now: clock() }),
 }) {
   return async request => {
     const userId = request.auth?.uid;

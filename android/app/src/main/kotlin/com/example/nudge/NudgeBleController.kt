@@ -30,9 +30,11 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import org.json.JSONObject
 
 class NudgeBleController(
-    private val activity: FlutterFragmentActivity
+    private val activity: FlutterFragmentActivity,
+    private val demoMode: Boolean = false
 ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
     companion object {
         private const val METHOD_CHANNEL = "nudge/device_ble"
@@ -49,6 +51,14 @@ class NudgeBleController(
             UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
         private val DEVICE_ID_PATTERN = Regex("^nudge-[A-Za-z0-9._-]{2,90}$")
     }
+
+    private val serviceUuid = if (demoMode) UUID.fromString(DemoBleSpec.serviceUuid) else SERVICE_UUID
+    private val commandUuid = if (demoMode) UUID.fromString(DemoBleSpec.commandUuid) else COMMAND_UUID
+    private val stateUuid = if (demoMode) UUID.fromString(DemoBleSpec.stateUuid) else STATE_UUID
+    private var demoTarget: String? = null
+    private var demoEpoch = 0
+    private var demoTimeout: Runnable? = null
+    private var demoWriteTimeout: Runnable? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val bluetoothManager =
@@ -81,12 +91,13 @@ class NudgeBleController(
     private var pendingReadResult: MethodChannel.Result? = null
     private var pendingWriteResult: MethodChannel.Result? = null
     private var scanCallback: ScanCallback? = null
+    private var activeScanResult: MethodChannel.Result? = null
     private var scanTimeout: Runnable? = null
     private var negotiatedMtu = 23
 
     fun register(messenger: BinaryMessenger) {
-        MethodChannel(messenger, METHOD_CHANNEL).setMethodCallHandler(this)
-        EventChannel(messenger, EVENT_CHANNEL).setStreamHandler(this)
+        MethodChannel(messenger, if (demoMode) "nudge/demo_ble" else METHOD_CHANNEL).setMethodCallHandler(this)
+        EventChannel(messenger, if (demoMode) "nudge/demo_ble_events" else EVENT_CHANNEL).setStreamHandler(this)
     }
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
@@ -99,10 +110,26 @@ class NudgeBleController(
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "scanAndConnect" -> requestScan(result)
-            "readPendingEvent" -> readPendingEvent(result)
+            "scanAndConnect" -> {
+                if (demoMode) {
+                    val target = call.argument<String>("device")
+                    if (!DemoBleSpec.names.containsKey(target)) {
+                        result.error("ble-demo-target", "Choose Orbit or Station Demo.", null)
+                        return
+                    }
+                    if (scanCallback != null || bluetoothGatt != null || pendingScanResult != null) {
+                        result.error("ble-busy", "Only one Demo connection is allowed.", null)
+                        return
+                    }
+                    demoEpoch++
+                    demoTarget = target
+                }
+                requestScan(result)
+            }
+            "readPendingEvent" -> if (demoMode) result.error("ble-demo-only", "Demo has no activity events.", null) else readPendingEvent(result)
             "writeCommand" -> writeCommand(call, result)
             "disconnect" -> {
+                if (demoMode) demoEpoch++
                 disconnectGatt()
                 result.success(true)
             }
@@ -125,10 +152,6 @@ class NudgeBleController(
             result.error("ble-unavailable", "This Android device does not support BLE.", null)
             return
         }
-        if (!bluetoothManager.adapter.isEnabled) {
-            result.error("ble-disabled", "Bluetooth is turned off.", null)
-            return
-        }
         val missing = requiredPermissions().filterNot(::hasPermission)
         if (missing.isNotEmpty()) {
             if (pendingScanResult != null) {
@@ -144,15 +167,23 @@ class NudgeBleController(
 
     @SuppressLint("MissingPermission")
     private fun beginScan(result: MethodChannel.Result) {
+        // Android 12+ requires CONNECT even to read adapter state. This runs
+        // only after requestScan/the permission callback granted permissions.
+        val adapter = bluetoothManager.adapter
+        if (adapter == null || !adapter.isEnabled) {
+            result.error("ble-disabled", "Bluetooth is turned off or unavailable.", null)
+            return
+        }
         if (scanCallback != null || bluetoothGatt != null) {
             result.error("ble-busy", "A Nudge BLE connection is already active.", null)
             return
         }
-        val scanner = bluetoothManager.adapter.bluetoothLeScanner
+        val scanner = adapter.bluetoothLeScanner
         if (scanner == null) {
             result.error("ble-unavailable", "Android BLE scanner is unavailable.", null)
             return
         }
+        activeScanResult = result
         emit(mapOf("type" to "scanning"))
         var completed = false
         val callback = object : ScanCallback() {
@@ -162,10 +193,13 @@ class NudgeBleController(
                 val candidateId = advertisedName
                     ?.removePrefix("Nudge ")
                     ?.trim()
-                if (candidateId == null || !DEVICE_ID_PATTERN.matches(candidateId)) return
+                if (demoMode) {
+                    if (advertisedName != DemoBleSpec.names[demoTarget]) return
+                } else if (candidateId == null || !DEVICE_ID_PATTERN.matches(candidateId)) return
                 completed = true
+                activeScanResult = null
                 stopScan()
-                connectedDeviceId = candidateId
+                connectedDeviceId = if (demoMode) demoTarget else candidateId
                 bluetoothGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     scanResult.device.connectGatt(
                         activity,
@@ -176,12 +210,18 @@ class NudgeBleController(
                 } else {
                     scanResult.device.connectGatt(activity, false, gattCallback)
                 }
+                if (demoMode) {
+                    val timeout = Runnable { emitError("改用裝置自動展示：Demo 連線逾時"); disconnectGatt() }
+                    demoTimeout = timeout
+                    mainHandler.postDelayed(timeout, 15_000L)
+                }
                 result.success(true)
             }
 
             override fun onScanFailed(errorCode: Int) {
                 if (completed) return
                 completed = true
+                activeScanResult = null
                 stopScan()
                 result.error("ble-scan-failed", "BLE scan failed ($errorCode).", null)
                 emitError("BLE scan failed ($errorCode).")
@@ -191,6 +231,7 @@ class NudgeBleController(
         val timeout = Runnable {
             if (completed) return@Runnable
             completed = true
+            activeScanResult = null
             stopScan()
             result.error("ble-not-found", "No nearby Nudge device was found.", null)
             emitError("找不到附近的 Nudge 裝置。")
@@ -198,7 +239,7 @@ class NudgeBleController(
         scanTimeout = timeout
         mainHandler.postDelayed(timeout, SCAN_TIMEOUT_MS)
         scanner.startScan(
-            listOf(ScanFilter.Builder().setServiceUuid(ParcelUuid(SERVICE_UUID)).build()),
+            listOf(ScanFilter.Builder().setServiceUuid(ParcelUuid(serviceUuid)).build()),
             ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build(),
@@ -208,18 +249,24 @@ class NudgeBleController(
 
     @SuppressLint("MissingPermission")
     private fun stopScan() {
-        val callback = scanCallback ?: return
-        bluetoothManager.adapter.bluetoothLeScanner?.stopScan(callback)
+        val callback = scanCallback
         scanCallback = null
+        if (callback != null) runCatching { bluetoothManager.adapter?.bluetoothLeScanner?.stopScan(callback) }
         scanTimeout?.let(mainHandler::removeCallbacks)
         scanTimeout = null
+        activeScanResult?.error("ble-cancelled", "BLE scan cancelled.", null)
+        activeScanResult = null
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            if (bluetoothGatt !== gatt) return
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
-                if (!gatt.requestMtu(TARGET_MTU)) discoverServices(gatt)
+                if (!gatt.requestMtu(TARGET_MTU)) {
+                    if (demoMode) { emitError("Demo requires a larger BLE MTU; 改用裝置自動展示"); disconnectGatt() }
+                    else discoverServices(gatt)
+                }
                 return
             }
             if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
@@ -230,23 +277,28 @@ class NudgeBleController(
 
         @SuppressLint("MissingPermission")
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            if (bluetoothGatt !== gatt) return
+            if (demoMode && (status != BluetoothGatt.GATT_SUCCESS || mtu < 99)) {
+                emitError("Demo MTU unavailable; 改用裝置自動展示"); disconnectGatt(); return
+            }
             if (status == BluetoothGatt.GATT_SUCCESS) negotiatedMtu = mtu
             discoverServices(gatt)
         }
 
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            if (bluetoothGatt !== gatt) return
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 emitError("Nudge BLE service discovery failed ($status).")
                 disconnectGatt()
                 return
             }
-            val service: BluetoothGattService? = gatt.getService(SERVICE_UUID)
-            commandCharacteristic = service?.getCharacteristic(COMMAND_UUID)
-            stateCharacteristic = service?.getCharacteristic(STATE_UUID)
+            val service: BluetoothGattService? = gatt.getService(serviceUuid)
+            commandCharacteristic = service?.getCharacteristic(commandUuid)
+            stateCharacteristic = service?.getCharacteristic(stateUuid)
             eventCharacteristic = service?.getCharacteristic(EVENT_UUID)
             val state = stateCharacteristic
-            if (commandCharacteristic == null || state == null || eventCharacteristic == null) {
+            if (commandCharacteristic == null || state == null || (!demoMode && eventCharacteristic == null)) {
                 emitError("Connected device does not expose the Nudge BLE contract.")
                 disconnectGatt()
                 return
@@ -268,11 +320,14 @@ class NudgeBleController(
             descriptor: BluetoothGattDescriptor,
             status: Int
         ) {
+            if (bluetoothGatt !== gatt) return
             if (descriptor.uuid != CLIENT_CONFIGURATION_UUID || status != BluetoothGatt.GATT_SUCCESS) {
                 emitError("Nudge state subscription failed ($status).")
                 disconnectGatt()
                 return
             }
+            demoTimeout?.let(mainHandler::removeCallbacks)
+            demoTimeout = null
             emit(mapOf("type" to "connected", "deviceId" to connectedDeviceId))
             readState(gatt)
         }
@@ -282,6 +337,7 @@ class NudgeBleController(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic
         ) {
+            if (bluetoothGatt !== gatt) return
             handleCharacteristicChanged(characteristic, characteristic.value ?: byteArrayOf())
         }
 
@@ -290,6 +346,7 @@ class NudgeBleController(
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
+            if (bluetoothGatt !== gatt) return
             handleCharacteristicChanged(characteristic, value)
         }
 
@@ -299,6 +356,7 @@ class NudgeBleController(
             characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
+            if (bluetoothGatt !== gatt) return
             handleCharacteristicRead(characteristic, characteristic.value ?: byteArrayOf(), status)
         }
 
@@ -308,6 +366,7 @@ class NudgeBleController(
             value: ByteArray,
             status: Int
         ) {
+            if (bluetoothGatt !== gatt) return
             handleCharacteristicRead(characteristic, value, status)
         }
 
@@ -316,7 +375,9 @@ class NudgeBleController(
             characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
-            if (characteristic.uuid != COMMAND_UUID) return
+            if (bluetoothGatt !== gatt || characteristic.uuid != commandUuid) return
+            demoWriteTimeout?.let(mainHandler::removeCallbacks)
+            demoWriteTimeout = null
             val result = pendingWriteResult ?: return
             pendingWriteResult = null
             post {
@@ -338,7 +399,7 @@ class NudgeBleController(
         characteristic: BluetoothGattCharacteristic,
         value: ByteArray
     ) {
-        if (characteristic.uuid != STATE_UUID) return
+        if (characteristic.uuid != stateUuid) return
         emit(
             mapOf(
                 "type" to "state",
@@ -353,7 +414,7 @@ class NudgeBleController(
         value: ByteArray,
         status: Int
     ) {
-        if (characteristic.uuid == STATE_UUID) {
+        if (characteristic.uuid == stateUuid) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 handleCharacteristicChanged(characteristic, value)
             }
@@ -401,13 +462,17 @@ class NudgeBleController(
         val bytes = commandJson?.toByteArray(StandardCharsets.UTF_8)
         val gatt = bluetoothGatt
         val characteristic = commandCharacteristic
-        val maxPayloadBytes = minOf(MAX_COMMAND_BYTES, negotiatedMtu - ATT_HEADER_BYTES)
+        val maxPayloadBytes = minOf(if (demoMode) 96 else MAX_COMMAND_BYTES, negotiatedMtu - ATT_HEADER_BYTES)
         if (bytes == null || bytes.isEmpty() || bytes.size > maxPayloadBytes) {
             result.error(
                 "ble-command-invalid",
                 "BLE command is empty or exceeds the negotiated $maxPayloadBytes-byte payload.",
                 null
             )
+            return
+        }
+        if (demoMode && !validDemoCommand(commandJson)) {
+            result.error("ble-demo-command", "Only v1 Demo actions are accepted.", null)
             return
         }
         if (gatt == null || characteristic == null) {
@@ -419,6 +484,16 @@ class NudgeBleController(
             return
         }
         pendingWriteResult = result
+        if (demoMode) {
+            val timeout = Runnable {
+                val pending = pendingWriteResult
+                pendingWriteResult = null
+                pending?.error("ble-write-timeout", "改用裝置自動展示", null)
+                disconnectGatt()
+            }
+            demoWriteTimeout = timeout
+            mainHandler.postDelayed(timeout, 8_000L)
+        }
         val accepted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             gatt.writeCharacteristic(
                 characteristic,
@@ -431,6 +506,8 @@ class NudgeBleController(
             gatt.writeCharacteristic(characteristic)
         }
         if (!accepted) {
+            demoWriteTimeout?.let(mainHandler::removeCallbacks)
+            demoWriteTimeout = null
             pendingWriteResult = null
             result.error("ble-write-failed", "Android rejected the BLE command write.", null)
         }
@@ -452,6 +529,8 @@ class NudgeBleController(
 
     @SuppressLint("MissingPermission")
     private fun disconnectGatt() {
+        pendingScanResult?.error("ble-cancelled", "BLE permission request cancelled.", null)
+        pendingScanResult = null
         stopScan()
         bluetoothGatt?.disconnect()
         clearGatt(bluetoothGatt)
@@ -459,6 +538,8 @@ class NudgeBleController(
 
     private fun clearGatt(gatt: BluetoothGatt?) {
         if (gatt != null && bluetoothGatt !== gatt) return
+        demoTimeout?.let(mainHandler::removeCallbacks); demoTimeout = null
+        demoWriteTimeout?.let(mainHandler::removeCallbacks); demoWriteTimeout = null
         bluetoothGatt = null
         commandCharacteristic = null
         stateCharacteristic = null
@@ -472,7 +553,18 @@ class NudgeBleController(
         gatt?.close()
     }
 
-    private fun emit(event: Map<String, Any?>) = post { eventSink?.success(event) }
+    private fun validDemoCommand(raw: String?): Boolean = try {
+        val json = JSONObject(raw ?: "")
+        val keys = json.keys().asSequence().toSet()
+        keys == setOf("v", "type", "action") && json.opt("v") is Int &&
+            json.getInt("v") == 1 && json.opt("type") == "demo" &&
+            DemoBleSpec.actions.any { it == json.opt("action") }
+    } catch (_: Exception) { false }
+
+    private fun emit(event: Map<String, Any?>) {
+        val epoch = demoEpoch
+        post { if (!demoMode || epoch == demoEpoch) eventSink?.success(event) }
+    }
 
     private fun emitError(message: String) = emit(mapOf("type" to "error", "message" to message))
 

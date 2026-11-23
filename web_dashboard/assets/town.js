@@ -5,9 +5,10 @@
   // movement rules live in town_core.js. Nothing here writes rewards:
   // break-game scores stay local and every gate stays on the target page.
   const core = root.NudgeTownCore;
+  const gameCore = root.NudgeTownGameCore;
   const routes = root.NudgeTownRoutes;
   const doc = root.document;
-  if (!core || !routes || !doc || doc.body?.dataset.page !== 'town') return;
+  if (!core || !gameCore || !routes || !doc || doc.body?.dataset.page !== 'town') return;
 
   const MAP_W = 1672;
   const MAP_H = 941;
@@ -303,6 +304,14 @@
       if (key === 'escape') endTour();
       return;
     }
+    if (!els('townGame').hidden) {
+      if (key === 'escape' || key === 'p') { event.preventDefault(); toggleGamePause(); }
+      else if (['a', 'd', 'arrowleft', 'arrowright'].includes(key)) {
+        event.preventDefault();
+        if (game.running) state.keys.add(key);
+      }
+      return;
+    }
     if (state.panel) {
       if (key === 'escape') { event.preventDefault(); closePanel(); }
       return;
@@ -323,7 +332,8 @@
     if (key === 'f' && state.near) enter(state.near);
   });
   doc.addEventListener('keyup', event => state.keys.delete(event.key.toLowerCase()));
-  root.addEventListener('blur', () => state.keys.clear());
+  root.addEventListener('blur', () => { state.keys.clear(); if (game.running) toggleGamePause(); });
+  doc.addEventListener('visibilitychange', () => { if (doc.hidden && game.running) toggleGamePause(); });
 
   els('townPromptEnter').addEventListener('click', () => state.near && enter(state.near));
   els('townZoomIn').addEventListener('click', () => { state.zoom = Math.min(1.8, state.zoom + 0.2); });
@@ -360,9 +370,18 @@
   }
 
   // ---------- catch-the-stars break game ----------
-  const game = { running: false, end: 0, score: 0, x: 0.5, stars: [], clouds: [], last: 0, ticket: null };
+  const game = { running: false, paused: false, end: 0, started: 0, pausedTotal: 0,
+    pauseStarted: 0, score: 0, combo: 0, x: 0.5, stars: [], clouds: [], last: 0,
+    lastHudSecond: -1, lastHudScore: -1, lastHudCombo: -1, ticket: null };
   const gameCanvas = els('townGameCanvas');
   const gctx = gameCanvas.getContext('2d');
+  function resizeGameCanvas() {
+    const dpr = Math.min(root.devicePixelRatio || 1, 2);
+    gameCanvas.width = Math.round(gameCanvas.clientWidth * dpr);
+    gameCanvas.height = Math.round(gameCanvas.clientHeight * dpr);
+    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  root.addEventListener('resize', () => { if (!els('townGame').hidden) resizeGameCanvas(); });
   function openGame() {
     if (!state.uid) { toast('登入後完成一次專注，就能拿到休息券。'); return; }
     const list = tickets();
@@ -371,25 +390,61 @@
     store.set(usedKey(), JSON.stringify([...usedTickets(), game.ticket.receiptId].slice(-20)));
     refreshTicket();
     els('townGame').hidden = false;
-    const dpr = Math.min(root.devicePixelRatio || 1, 2);
-    gameCanvas.width = gameCanvas.clientWidth * dpr;
-    gameCanvas.height = gameCanvas.clientHeight * dpr;
-    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    Object.assign(game, { running: true, end: performance.now() + game.ticket.minutes * 60000, score: 0, x: 0.5, stars: [], clouds: [], last: performance.now() });
+    resizeGameCanvas();
+    const now = performance.now();
+    Object.assign(game, { running: true, paused: false, end: now + game.ticket.minutes * 60000,
+      started: now, pausedTotal: 0, pauseStarted: 0, score: 0, combo: 0, x: 0.5,
+      stars: [], clouds: [], last: now, lastHudSecond: -1, lastHudScore: -1, lastHudCombo: -1 });
+    els('townGamePause').textContent = '暫停 Esc';
+    els('townGamePause').setAttribute('aria-pressed', 'false');
+    els('townGameCombo').textContent = '連續 0';
+    els('townGameHint').textContent = '左右鍵、A/D、滑鼠或手指拖曳移動。連續接到五顆星會有加分，Esc 可暫停。遊戲分數不換自律幣或經驗值。';
+    els('townGamePause').focus({ preventScroll: true });
+  }
+  function toggleGamePause() {
+    if (els('townGame').hidden) return;
+    const now = performance.now();
+    if (game.running) {
+      game.running = false;
+      game.paused = true;
+      game.pauseStarted = now;
+      state.keys.clear();
+      els('townGamePause').textContent = '繼續 Esc';
+      els('townGamePause').setAttribute('aria-pressed', 'true');
+      els('townGameHint').textContent = '已暫停。按 Esc 或「繼續」再回到遊戲。';
+    } else if (game.paused) {
+      game.end = gameCore.resumeDeadline(game.end, game.pauseStarted, now);
+      game.pausedTotal += Math.max(0, now - game.pauseStarted);
+      game.last = now;
+      game.running = true;
+      game.paused = false;
+      els('townGamePause').textContent = '暫停 Esc';
+      els('townGamePause').setAttribute('aria-pressed', 'false');
+      els('townGameHint').textContent = '左右鍵、A/D、滑鼠或手指拖曳移動。連續接到五顆星會有加分，Esc 可暫停。遊戲分數不換自律幣或經驗值。';
+    }
   }
   function closeGame() {
     if (!game.running && els('townGame').hidden) return;
     game.running = false;
+    game.paused = false;
     els('townGame').hidden = true;
     const best = Number(store.get(`nudge_town_best_${state.uid}`) || 0);
     if (game.score > best) store.set(`nudge_town_best_${state.uid}`, String(game.score));
-    toast(`休息結束！這次接到 ${game.score} 顆星星。回到下一個委託吧。`, 4500);
+    toast(`休息結束！這次得到 ${game.score} 分。回到下一個委託吧。`, 4500);
   }
+  els('townGamePause').addEventListener('click', toggleGamePause);
   els('townGameClose').addEventListener('click', closeGame);
-  gameCanvas.addEventListener('pointermove', event => {
+  function moveGamePointer(event) {
+    if (!game.running) return;
     const rect = gameCanvas.getBoundingClientRect();
     game.x = Math.min(0.95, Math.max(0.05, (event.clientX - rect.left) / rect.width));
+  }
+  gameCanvas.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    gameCanvas.setPointerCapture?.(event.pointerId);
+    moveGamePointer(event);
   });
+  gameCanvas.addEventListener('pointermove', moveGamePointer);
   function tickGame(now) {
     const dt = Math.min(0.05, (now - game.last) / 1000);
     game.last = now;
@@ -397,17 +452,28 @@
     const h = gameCanvas.clientHeight;
     if (state.keys.has('arrowleft') || state.keys.has('a')) game.x = Math.max(0.05, game.x - dt * 0.9);
     if (state.keys.has('arrowright') || state.keys.has('d')) game.x = Math.min(0.95, game.x + dt * 0.9);
-    if (Math.random() < dt * 1.6) game.stars.push({ x: Math.random(), y: -0.05, v: 0.25 + Math.random() * 0.2 });
-    if (Math.random() < dt * 0.5) game.clouds.push({ x: Math.random(), y: -0.05, v: 0.2 + Math.random() * 0.15 });
+    const elapsed = (now - game.started - game.pausedTotal) / 1000;
+    const rates = gameCore.spawnRates(elapsed);
+    if (Math.random() < dt * rates.stars) game.stars.push({ x: Math.random(), y: -0.05, v: 0.25 + Math.random() * 0.2 });
+    if (Math.random() < dt * rates.clouds) game.clouds.push({ x: Math.random(), y: -0.05, v: 0.2 + Math.random() * 0.15 });
     const catchY = 0.86;
     for (const s of game.stars) s.y += s.v * dt;
     for (const c of game.clouds) c.y += c.v * dt;
     game.stars = game.stars.filter(s => {
-      if (s.y > catchY - 0.04 && s.y < catchY + 0.04 && Math.abs(s.x - game.x) < 0.08) { game.score += 1; return false; }
+      if (s.y > catchY - 0.04 && s.y < catchY + 0.04 && Math.abs(s.x - game.x) < 0.08) {
+        const result = gameCore.catchObject(game.score, game.combo, 'star');
+        game.score = result.score; game.combo = result.combo;
+        if (result.bonus) els('townGameHint').textContent = '五連星！多得 1 分。繼續保持節奏。';
+        return false;
+      }
       return s.y < 1.05;
     });
     game.clouds = game.clouds.filter(c => {
-      if (c.y > catchY - 0.04 && c.y < catchY + 0.04 && Math.abs(c.x - game.x) < 0.09) { game.score = Math.max(0, game.score - 2); return false; }
+      if (c.y > catchY - 0.04 && c.y < catchY + 0.04 && Math.abs(c.x - game.x) < 0.09) {
+        const result = gameCore.catchObject(game.score, game.combo, 'cloud');
+        game.score = result.score; game.combo = result.combo;
+        return false;
+      }
       return c.y < 1.05;
     });
     gctx.clearRect(0, 0, w, h);
@@ -424,8 +490,13 @@
       gctx.drawImage(playerImage, crop.x, crop.y, crop.w, crop.h, game.x * w - cw / 2, catchY * h - size * 0.7, cw, size);
     }
     const left = Math.max(0, game.end - now);
-    els('townGameScore').textContent = `${game.score} 顆`;
-    els('townGameTime').textContent = `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`;
+    const second = Math.ceil(left / 1000);
+    if (game.score !== game.lastHudScore || game.combo !== game.lastHudCombo || second !== game.lastHudSecond) {
+      els('townGameScore').textContent = `${game.score} 分`;
+      els('townGameCombo').textContent = `連續 ${game.combo}`;
+      els('townGameTime').textContent = `${Math.floor(second / 60)}:${String(second % 60).padStart(2, '0')}`;
+      game.lastHudSecond = second; game.lastHudScore = game.score; game.lastHudCombo = game.combo;
+    }
     if (left <= 0) closeGame();
   }
 
@@ -450,7 +521,7 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    if (game.running) { tickGame(now); root.requestAnimationFrame(frame); return; }
+    if (!els('townGame').hidden) { if (game.running) tickGame(now); root.requestAnimationFrame(frame); return; }
 
     const blockers = BUILDINGS.map(b => b.rect);
     const dir = state.tour < 0 && !state.panel ? moveDirection() : null;

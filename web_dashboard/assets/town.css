@@ -80,7 +80,8 @@ kbd { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: rgba(25
 
 .town-game { position: absolute; inset: 0; z-index: 10; background: rgba(15, 10, 30, 0.94);
   display: flex; flex-direction: column; align-items: center; padding: max(12px, env(safe-area-inset-top)) 12px 12px; }
-.town-game-bar { width: min(100%, 640px); display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.town-game-bar { width: min(100%, 640px); display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.town-game-bar #townGameCombo { color: var(--town-gold); font-weight: 900; }
 .town-game-canvas { width: min(100%, 640px); flex: 1; min-height: 0; margin-top: 10px; border-radius: 16px;
   background: linear-gradient(#251a4d, #4a2a5e); touch-action: none; image-rendering: pixelated; }
 .town-game-hint { font-size: 12px; opacity: 0.75; text-align: center; }
@@ -118,6 +119,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); out
   .town-hud-clock { font-size: 20px; }
   .town-dialog-portrait { width: 64px; height: 64px; }
   .town-dialog p { font-size: 15px; }
+  .town-hud-tools { top: calc(max(14px, env(safe-area-inset-top)) + 62px); }
+  .town-hud-tools a, .town-hud-tools button { width: 40px; height: 40px; }
   .town-hud-tools a[title="傳統版面"] { display: none; }
   .town-hud-tools a, .town-hud-tools button { width: 40px; height: 44px; }
   .town-panel, .town-directory.is-open, .town-directory:focus-within {
