@@ -50,6 +50,9 @@ import '../services/cloud_relationship_outcome_gateway.dart';
 import '../services/cloud_room_resonance_gateway.dart';
 import '../services/cloud_reward_avatar_gateway.dart';
 import '../services/cloud_reward_purchase_gateway.dart';
+import '../services/cloud_home_decor_gateway.dart';
+import '../models/home_decor_catalog.dart';
+import '../utils/client_ids.dart';
 import '../services/cloud_user_notification_gateway.dart';
 import '../services/health_snapshot_outbox.dart';
 import '../services/android_nudge_ble_transport.dart';
@@ -126,6 +129,7 @@ class AppState extends ChangeNotifier {
   final CloudUserNotificationGateway _userNotificationGateway;
   final CloudRewardAvatarGateway _rewardAvatarGateway;
   final CloudRewardPurchaseGateway _rewardPurchaseGateway;
+  final CloudHomeDecorGateway _homeDecorGateway;
   final PushNotificationService _pushNotificationService;
   final RoomActivitySessionLedgerGateway _roomActivitySessionLedgerGateway;
 
@@ -140,6 +144,7 @@ class AppState extends ChangeNotifier {
     CloudUserNotificationGateway? userNotificationGateway,
     CloudRewardAvatarGateway? rewardAvatarGateway,
     CloudRewardPurchaseGateway? rewardPurchaseGateway,
+    CloudHomeDecorGateway? homeDecorGateway,
     PushNotificationService? pushNotificationService,
     RoomActivitySessionLedgerGateway? roomActivitySessionLedgerGateway,
   }) : _activityLedgerOutbox =
@@ -168,6 +173,7 @@ class AppState extends ChangeNotifier {
            userNotificationGateway ?? CloudUserNotificationGateway.firebase(),
        _rewardAvatarGateway =
            rewardAvatarGateway ?? CloudRewardAvatarGateway.firebase(),
+       _homeDecorGateway = homeDecorGateway ?? CloudHomeDecorGateway.firebase(),
        _rewardPurchaseGateway =
            rewardPurchaseGateway ?? CloudRewardPurchaseGateway.firebase(),
        _pushNotificationService =
@@ -536,6 +542,7 @@ class AppState extends ChangeNotifier {
                   List<String>.from(data['unlockedAvatarItems']),
                 );
               }
+              _homeDecor = HomeDecorCatalog.parseHomeDecor(data['homeDecor']);
               if (data['unlockedBadgeDates'] != null) {
                 _unlockedBadgeDates = Map<String, String>.from(
                   data['unlockedBadgeDates'] as Map,
@@ -2103,6 +2110,7 @@ class AppState extends ChangeNotifier {
             List<String>.from(data['unlockedAvatarItems']),
           );
         }
+        _homeDecor = HomeDecorCatalog.parseHomeDecor(data['homeDecor']);
         if (data['unlockedBadgeDates'] != null) {
           _unlockedBadgeDates = Map<String, String>.from(
             data['unlockedBadgeDates'],
@@ -2329,6 +2337,9 @@ class AppState extends ChangeNotifier {
   Map<String, int> _dailyCoinEarned = <String, int>{};
   Map<String, int> _monthlyDeadlineCoinEarned = <String, int>{};
   Set<String> _unlockedAvatarItemKeys = <String>{};
+  Map<String, int> _homeDecor = Map<String, int>.of(
+    HomeDecorCatalog.defaultArrangement,
+  );
   Map<String, Map<String, int>> _avatarExperienceLedger =
       <String, Map<String, int>>{};
 
@@ -2559,7 +2570,8 @@ class AppState extends ChangeNotifier {
   }
 
   int get currentMonthCoinEarned {
-    final now = DateTime.now();
+    // Coin ledger keys use the 05:00 logical day, so month windows must too.
+    final now = _logicalNow();
     final start = DateTime(now.year, now.month);
     final end = DateTime(now.year, now.month + 1);
     return _coinEarnedBetween(start, end);
@@ -2939,6 +2951,48 @@ class AppState extends ChangeNotifier {
     return _unlockedAvatarItemKeys.contains(avatarItemKey(category, index));
   }
 
+  Map<String, int> get homeDecor => Map.unmodifiable(_homeDecor);
+
+  bool isHomeDecorOwned(String slot, int index) {
+    if (!HomeDecorCatalog.isKnownVariant(slot, index)) return false;
+    if (index == 0) return true;
+    return _unlockedAvatarItemKeys.contains(
+      avatarItemKey(
+        HomeDecorCatalog.category,
+        HomeDecorCatalog.cloudIndex(slot, index),
+      ),
+    );
+  }
+
+  /// Signed-in users go through Cloud `arrangeHomeDecor`; guests keep the
+  /// arrangement on this device. Either way only owned variants are allowed.
+  Future<bool> arrangeHomeDecor(Map<String, int> arrangement) async {
+    final normalized = HomeDecorCatalog.parseHomeDecor(arrangement);
+    for (final slot in HomeDecorCatalog.slotOrder) {
+      final index = arrangement[slot];
+      if (index == null ||
+          normalized[slot] != index ||
+          !isHomeDecorOwned(slot, index)) {
+        return false;
+      }
+    }
+    if (_currentUser != null) {
+      try {
+        _homeDecor = await _homeDecorGateway.arrange(
+          normalized,
+          clientRequestId: newClientId('app_decor'),
+        );
+      } catch (error) {
+        debugPrint('Cloud home decor arrangement failed: $error');
+        return false;
+      }
+    } else {
+      _homeDecor = normalized;
+    }
+    notifyListeners();
+    return true;
+  }
+
   int avatarItemPrice(String category, int index) {
     switch (category) {
       case 'faceShape':
@@ -2946,6 +3000,8 @@ class AppState extends ChangeNotifier {
       case 'appBackground':
         if (index < 0 || index >= AppUI.backgroundThemeKeys.length) return 0;
         return AppUI.backgroundThemePrice(AppUI.backgroundThemeKeys[index]);
+      case HomeDecorCatalog.category:
+        return HomeDecorCatalog.prices[index] ?? 0;
       default:
         return 8 + (index * 3);
     }
@@ -4747,8 +4803,7 @@ class AppState extends ChangeNotifier {
     } else {
       final result = await _privacyConsentGateway.update(
         accepted: true,
-        clientRequestId:
-            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('privacy'),
       );
       _cloudPrivacyConsent = result.consent;
       _hasAcceptedPrivacyPolicy = result.consent.isCurrentHealthConsent;
@@ -4788,8 +4843,7 @@ class AppState extends ChangeNotifier {
     if (userId != null) {
       final result = await _privacyConsentGateway.update(
         accepted: false,
-        clientRequestId:
-            'privacy_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('privacy'),
       );
       _cloudPrivacyConsent = result.consent;
       notifyListeners();
@@ -4866,8 +4920,7 @@ class AppState extends ChangeNotifier {
     try {
       final result = await _notificationPreferenceGateway.update(
         channels: _notificationPreferenceChannelPayload(),
-        clientRequestId:
-            'notification_${DateTime.now().toUtc().microsecondsSinceEpoch}',
+        clientRequestId: newClientId('notification'),
       );
       if (result.preferences.userId != userId) {
         throw const NotificationPreferenceException(
@@ -5562,8 +5615,22 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Local time shifted so the logical day rolls over at 05:00, matching
+  /// [_todayKey] and the per-day coin ledger keys.
+  DateTime _logicalNow() => DateTime.now().subtract(const Duration(hours: 5));
+
+  int _localIdSequence = 0;
+
+  /// Unique id for locally created entities. Timestamps alone collide on
+  /// platforms with coarse clocks (Windows, Web), so append a sequence.
+  String _nextLocalId(String prefix, [DateTime? at]) {
+    final stamp = (at ?? DateTime.now()).microsecondsSinceEpoch;
+    _localIdSequence = (_localIdSequence + 1) % 1000000;
+    return '${prefix}_${stamp}_$_localIdSequence';
+  }
+
   DateTime _currentWeekStart() {
-    final now = DateTime.now();
+    final now = _logicalNow();
     final today = DateTime(now.year, now.month, now.day);
     return today.subtract(Duration(days: today.weekday - DateTime.monday));
   }
@@ -6243,6 +6310,7 @@ class AppState extends ChangeNotifier {
     _currentUser = null;
     _pushInstallationConfigured = null;
     _isGuestMode = false;
+    _homeDecor = Map<String, int>.of(HomeDecorCatalog.defaultArrangement);
     notifyListeners();
     await _saveCurrentUser();
   }
@@ -6782,7 +6850,7 @@ class AppState extends ChangeNotifier {
     }
 
     _tasks.add({
-      'id': 'task_${DateTime.now().microsecondsSinceEpoch}',
+      'id': _nextLocalId('task'),
       'userId': 'local_user',
       'title': title,
       'done': false,
@@ -7041,6 +7109,7 @@ class AppState extends ChangeNotifier {
     _dailyCoinEarned = <String, int>{};
     _monthlyDeadlineCoinEarned = <String, int>{};
     _unlockedAvatarItemKeys = <String>{};
+    _homeDecor = Map<String, int>.of(HomeDecorCatalog.defaultArrangement);
     _avatarExperienceLedger = <String, Map<String, int>>{};
 
     _themeModeSetting = 'system';
@@ -7331,7 +7400,7 @@ class AppState extends ChangeNotifier {
   }) {
     final now = DateTime.now().toUtc();
     return StudyRoomEvent(
-      id: 'event_${now.microsecondsSinceEpoch}',
+      id: _nextLocalId('event', now),
       actorId: _myId,
       actorName: _studyRoomIdentityName(roomId),
       text: text.trim(),
@@ -7545,7 +7614,7 @@ class AppState extends ChangeNotifier {
     final now = DateTime.now().toUtc();
     final resolvedSenderId = senderId == 'local_user' ? _myId : senderId;
     final message = StudyRoomMessage(
-      id: 'message_${now.microsecondsSinceEpoch}',
+      id: _nextLocalId('message', now),
       senderId: resolvedSenderId,
       senderName: senderName ?? _studyRoomIdentityName(roomId),
       text: trimmed,
@@ -7827,7 +7896,7 @@ class AppState extends ChangeNotifier {
       ],
       events: [
         StudyRoomEvent(
-          id: 'event_${now.microsecondsSinceEpoch}',
+          id: _nextLocalId('event', now),
           actorId: resolvedOwnerId,
           actorName: safeOwnerName,
           text: '$safeOwnerName 建立了這間自律房',
@@ -7941,7 +8010,7 @@ class AppState extends ChangeNotifier {
         members: [localMember, ...existingRoom.members],
         events: [
           StudyRoomEvent(
-            id: 'event_${now.microsecondsSinceEpoch}',
+            id: _nextLocalId('event', now),
             actorId: _myId,
             actorName: _profileNickname,
             text: isApproved
@@ -7963,7 +8032,7 @@ class AppState extends ChangeNotifier {
           members: [localMember, ...room.members],
           events: [
             StudyRoomEvent(
-              id: 'event_${now.microsecondsSinceEpoch}',
+              id: _nextLocalId('event', now),
               actorId: _myId,
               actorName: _profileNickname,
               text: isApproved
@@ -8234,8 +8303,10 @@ class AppState extends ChangeNotifier {
     final now = DateTime.now().toUtc();
     final actorId = _myId;
     final session = RoomActivitySession.start(
-      sessionId: '${actorId}_${room.id}_${now.microsecondsSinceEpoch}'
-          .replaceAll('/', '_'),
+      sessionId: newClientId(
+        '${actorId}_${room.id}',
+        at: now,
+      ).replaceAll('/', '_'),
       roomId: room.id,
       actorId: actorId,
       activityKind: _activityKindForRoom(room),
@@ -9363,7 +9434,7 @@ ${historyBuffer.toString()}
     final payload = GroupPublicationContract.buildChallenge(
       group: group,
       publisherId: user.id,
-      challengeId: 'challenge_${now.toUtc().microsecondsSinceEpoch}',
+      challengeId: newClientId('challenge', at: now),
       type: type,
       days: days,
       reward: reward,

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'cloud_push_installation_gateway.dart';
 import 'notification_service.dart';
+import '../utils/client_ids.dart';
 
 typedef PushRouteHandler = void Function(String route);
 
@@ -214,7 +215,7 @@ class PushNotificationService {
   }
 
   String _requestId(String prefix) {
-    return '${prefix}_${DateTime.now().toUtc().microsecondsSinceEpoch}';
+    return newClientId(prefix);
   }
 
   void _handleOpenedMessage(RemoteMessage message) {
