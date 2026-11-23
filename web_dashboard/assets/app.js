@@ -1771,7 +1771,7 @@ function bindExamTemplates() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  if (document.querySelector("[data-growth-museum]")) return;
+  if (document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) return;
   try { injectSidebarControls(); } catch(e){}
   try { injectModuleMenu(); } catch(e){}
   try { injectAdminSwitch(); } catch(e){ console.warn("Admin switch init failed:", e); }
@@ -2051,7 +2051,7 @@ function injectAdminSwitch() {
 }
 
 async function bootFirebaseBackedData() {
-  if (document.querySelector("[data-growth-museum]")) {
+  if (document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) {
     initializeFirebaseWeb();
     return;
   }
@@ -4679,7 +4679,7 @@ function initializeFirebaseWeb() {
 
           const auth = firebase.auth();
           const isPublic = () => {
-            if (document.querySelector("[data-growth-museum]")) return true;
+            if (document.querySelector("[data-growth-museum], [data-town-gate]")) return true;
             const currentPath = window.location.pathname;
             return currentPath.endsWith("/") || currentPath.endsWith("index.html") || currentPath.endsWith("dashboard.html") || currentPath.endsWith("town.html") || currentPath.endsWith("login.html") || currentPath.includes("admin_dashboard.html");
           };
@@ -4702,7 +4702,7 @@ function initializeFirebaseWeb() {
                 localStorage.setItem("nudgeActiveDemoUserId", user.uid);
               }
               startListeningToFirestoreData();
-              if (!document.querySelector("[data-growth-museum]")) ensureWebActivityLedgerOutbox()
+              if (!document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) ensureWebActivityLedgerOutbox()
                 .then(outbox => outbox.flush())
                 .catch(error => {
                   console.warn("Activity Ledger resume failed:", error);
@@ -4762,7 +4762,7 @@ function initializeFirebaseWeb() {
 }
 
 function startListeningToFirestoreData() {
-  if (document.querySelector("[data-growth-museum]")) return;
+  if (document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) return;
   if (!db) return;
 
   const currentUser = firebase.auth().currentUser;

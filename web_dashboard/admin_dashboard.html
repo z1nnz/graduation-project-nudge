@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 營運後台 - 管理總覽</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
       /* Admin Specific Styles */
       .admin-panel {
@@ -205,124 +205,39 @@
       }
     </style>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    </head>
-  <body data-page="operations">
-    <div class="shell">
-      <aside class="sidebar" style="border-right: 1px solid var(--c-primary-alpha);">
-        <a class="brand" href="dashboard.html">
+
+
+
+    <link rel="stylesheet" href="assets/town.css?v=1"><link rel="stylesheet" href="assets/town_workbench.css?v=1"><script defer src="assets/town_routes.js?v=2"></script><script defer src="assets/town_return.js?v=1"></script></head>
+  <body data-page="operations" data-town-tool="admin">
+<a class="workbench-skip" href="#workbenchMain">跳至後台內容</a>
+    <div class="workbench-frame">
+      <header class="workbench-navigation" style="border-right: 1px solid var(--c-primary-alpha);">
+        <a data-town-return href="town.html">← 回小鎮</a>
+<a class="brand" href="admin_dashboard.html">
           <span class="brand-mark">N</span>
           <span><strong>Admin</strong><small>營運總覽中心</small></span>
         </a>
         <nav class="nav">
-          <a class="active" href="#" onclick="switchTab('planet-section', this); return false;">行星控制</a>
+          <a href="#" onclick="switchTab('planet-section', this); return false;">行星控制</a>
           <a href="#" onclick="switchTab('data-section', this); return false;">各項數據分析</a>
-          <a href="#" onclick="switchTab('shop-section', this); return false;">商城上架</a>
+          <a class="active" href="#" onclick="switchTab('shop-section', this); return false;">商城上架</a>
           <a href="#" onclick="switchTab('device-section', this); return false;">實體裝置</a>
           <a href="#" onclick="switchTab('audit-section', this); return false;">Cloud 稽核紀錄</a>
         </nav>
-      </aside>
+      </header>
 
-      <main class="main" style="position: relative;">
+      <main id="workbenchMain" tabindex="-1" class="workbench-main" style="position: relative;">
+<h1>營運工作台</h1><p id="adminSessionStatus" class="workbench-status" role="status">正在確認後台權限；尚未顯示正式資料。</p><div id="adminWorkbench" hidden>
         <!-- Planet Management Section (Tab) -->
-        <div id="planet-section" class="tab-content active">
-          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
-            <div>
-              <span class="eyebrow" style="color: #22c55e;">Planet Control</span>
-              <h2 style="margin: 0; font-size: 1.5rem;">行星控制 (即時預覽)</h2>
-              <p style="margin-top: 0.5rem; color: var(--c-text-muted);">直接新增、修改與刪除板塊，所有變化將即時同步至前台。</p>
-            </div>
-          </header>
-          <div class="admin-grid" style="margin-bottom: 2rem;">
-            <!-- Left: Planet View -->
-            <div class="planet-preview-box">
-              <div class="planet-preview-scale view-solar-system active" style="display: block;">
-                <div class="starfield"></div>
-                <div class="planet-shadow"></div>
-                <div class="planet planet-target active" id="adminPlanet" onclick="selectTarget(this, 'planet')">
-                  </div>
-
-                <div class="orbit-line orbit-one" id="orbit1">
-                  <div class="mission-satellite s1" onclick="selectTarget(this, 'sat1')"></div>
-                </div>
-                <div class="orbit-line orbit-two" id="orbit2">
-                  <div class="mission-satellite s2" onclick="selectTarget(this, 'sat2')"></div>
-                </div>
-                <div class="orbit-line orbit-three" id="orbit3">
-                  <div class="mission-satellite s3" onclick="selectTarget(this, 'sat3')"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right: Planet CRUD Tools -->
-            <div class="admin-panel" style="margin-bottom: 0;">
-              <h2>星球元素操作 (CRUD)</h2>
-              <p style="color: var(--c-text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">直接對左側的星球與軌道衛星進行新增、修改與刪除操作，所有變化將即時呈現並同步至前台。</p>
-
-              <div class="crud-action-group">
-                <strong style="width: 80px;">衛星管理</strong>
-                <button class="admin-btn" onclick="addSatellite()">＋ 新增衛星</button>
-                <button class="admin-btn danger" onclick="removeSatellite()">－ 刪除衛星</button>
-              </div>
-
-
-
-              <div class="crud-action-group" style="margin-top: 1.5rem; align-items: flex-start;">
-                <strong style="width: 80px; padding-top: 0.5rem;">修改風格</strong>
-                <div style="flex-grow: 1;">
-                  <div class="admin-form-group">
-                    <label>目標主要顏色</label>
-                    <input type="color" id="planetColor" value="#22c55e" style="height: 40px; padding: 2px;" onchange="applyColorToTarget(this.value)" />
-                  </div>
-                  <small style="color: var(--c-text-muted);">選擇顏色後會立刻變更您所選定星球或衛星的色調，並且儲存同步至前台的自律星球。</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <section id="planet-section" class="tab-content"><h2>星球外觀與正式成果</h2><p>本機顏色試作不會同步成正式星球成果。請由小鎮天文台查看已確認資料。</p><a href="planet.html">前往天文台</a></section>
 
         <!-- Charts Section (Tab) -->
-        <div id="data-section" class="tab-content">
-          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
-            <div>
-              <span class="eyebrow" style="color: #3b82f6;">Data Analytics</span>
-              <h2 style="margin: 0; font-size: 1.5rem;">各項數據分析</h2>
-              <p style="margin-top: 0.5rem; color: var(--c-text-muted);">查看全站總活躍用戶與商城自律幣消耗趨勢。</p>
-            </div>
-            <div class="hero-card" style="border-color: #3b82f6; background: transparent; padding: 0;">
-              <span>全站總活躍用戶</span>
-              <strong style="font-size: 2rem; color: white;">12,540</strong>
-            </div>
-          </header>
-          <div class="admin-grid">
-            <div class="admin-panel">
-              <h2>功能使用狀況 (本週)</h2>
-              <div class="chart-container">
-                <canvas id="usageChart"></canvas>
-              </div>
-            </div>
-            <div class="admin-panel">
-              <h2>商城自律幣消耗趨勢</h2>
-              <div class="chart-container">
-                <canvas id="economyChart"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <!-- Purchase Chart -->
-          <div class="admin-panel" style="margin-top: 1.5rem;">
-            <h2>近期商品購買比例</h2>
-            <div class="chart-container" style="height: 250px;">
-              <canvas id="purchaseChart"></canvas>
-            </div>
-          </div>
-        </div>
+        <section id="data-section" class="tab-content"><h2>全站統計尚未提供</h2><p class="workbench-empty" role="status">沒有正式授權的全站統計來源；不顯示固定活躍人數或樣本圖表。正式稽核紀錄在 Cloud 稽核頁籤。</p></section>
 
         <!-- Shop Management Section (Tab) -->
-        <div id="shop-section" class="tab-content">
-          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+        <div id="shop-section" class="tab-content active">
+          <header class="workbench-heading" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
             <div>
               <span class="eyebrow" style="color: #f59e0b;">Shop Management</span>
               <h2 style="margin: 0; font-size: 1.5rem;">商城上架</h2>
@@ -350,11 +265,11 @@
                 <div id="adminTimeGroup" style="display: none; gap: 1rem; margin-bottom: 1rem;">
                   <div class="admin-form-group" style="flex: 1; margin-bottom: 0;">
                     <label>開始時間</label>
-                    <input type="text" id="shopItemStart" placeholder="選擇開始時間..." />
+                    <input type="datetime-local" id="shopItemStart" placeholder="選擇開始時間..." />
                   </div>
                   <div class="admin-form-group" style="flex: 1; margin-bottom: 0;">
                     <label>結束時間</label>
-                    <input type="text" id="shopItemEnd" placeholder="選擇結束時間..." />
+                    <input type="datetime-local" id="shopItemEnd" placeholder="選擇結束時間..." />
                   </div>
                 </div>
                 <div class="admin-form-group">
@@ -499,43 +414,11 @@
               </div>
           </div>
 
-          <!-- Discount Settings Panel -->
-          <div class="admin-panel" style="margin-top: 1.5rem;">
-            <h2>商品折扣與活動設定</h2>
-            <form onsubmit="handleDiscount(event)">
-              <div class="admin-grid">
-                <div class="admin-form-group">
-                  <label>選擇現有商品</label>
-                  <select id="discountItem" required onchange="calculateDiscount()">
-                    <option value="">請選擇...</option>
-                    <option value="月影見習忍">月影見習忍 (原價: 120)</option>
-                    <option value="森芽靈童">森芽靈童 (原價: 120)</option>
-                    <option value="星際探險家">星際探險家 (原價: 150)</option>
-                  </select>
-                </div>
-                <div class="admin-form-group">
-                  <label>折扣折數 (例如輸入8代表8折)</label>
-                  <div style="display: flex; gap: 10px;">
-                    <input type="number" id="discountPercent" placeholder="8" oninput="calculateDiscount()" required style="width: 50%;" />
-                    <input type="text" id="discountResult" placeholder="折後自律幣" readonly style="width: 50%; background: rgba(255,255,255,0.05);" />
-                  </div>
-                </div>
-                <div class="admin-form-group">
-                  <label>活動開始時間</label>
-                  <input type="text" id="discountStart" placeholder="選擇開始時間..." required />
-                </div>
-                <div class="admin-form-group">
-                  <label>活動結束時間 (有效期限)</label>
-                  <input type="text" id="discountEnd" placeholder="選擇結束時間..." required />
-                </div>
-              </div>
-              <button type="submit" class="admin-btn" style="margin-top: 1rem;">設定折扣活動</button>
-            </form>
-          </div>
         </div>
 
+        </div>
         <div id="device-section" class="tab-content">
-          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+          <header class="workbench-heading" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
             <div>
               <span class="eyebrow" style="color:#38bdf8;">Device Assignment</span>
               <h2 style="margin:0; font-size:1.5rem;">Nudge 實體專注裝置指派</h2>
@@ -584,7 +467,7 @@
         </div>
 
         <div id="audit-section" class="tab-content">
-          <header class="hero split" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
+          <header class="workbench-heading" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--c-panel-bg); border-radius: 16px; border: 1px solid var(--c-border);">
             <div>
               <span class="eyebrow" style="color: #a78bfa;">Immutable Audit</span>
               <h2 style="margin: 0; font-size: 1.5rem;">Cloud 稽核紀錄</h2>
@@ -670,6 +553,7 @@
           </div>
         </div>
 
+</div>
       </main>
     </div>
 
@@ -680,119 +564,17 @@
       // Tab Switching Logic
       function switchTab(tabId, element) {
         // Update sidebar active state
-        document.querySelectorAll('.sidebar .nav a').forEach(a => a.classList.remove('active'));
+        document.querySelectorAll('.workbench-navigation .nav a').forEach(a => a.classList.remove('active'));
         element.classList.add('active');
 
         // Hide all tabs, show selected tab
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
+        const section=document.getElementById(tabId);section.classList.add('active');section.tabIndex=-1;section.focus();
+        for(const a of document.querySelectorAll('.workbench-navigation .nav a'))a.removeAttribute('aria-current');element.setAttribute('aria-current','page');
       }
 
       // The targeted color logic handles the initialization below.
 
-
-      // Targeted Color Selection Logic
-      let currentTarget = document.getElementById('adminPlanet');
-      let currentTargetId = 'planet';
-
-      function selectTarget(element, targetId) {
-        document.querySelectorAll('.planet-target, .mission-satellite').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        currentTarget = element;
-        currentTargetId = targetId;
-
-        const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
-        if (colors[targetId]) {
-          document.getElementById('planetColor').value = colors[targetId];
-        }
-      }
-
-      function applyColorToTarget(colorCode) {
-        const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
-        colors[currentTargetId] = colorCode;
-        localStorage.setItem('nudgeColors', JSON.stringify(colors));
-
-        if (currentTargetId === 'planet') {
-          currentTarget.style.background = `radial-gradient(circle at 38% 28%, ${colorCode}44, transparent 30%), linear-gradient(145deg, #0a0f25, ${colorCode})`;
-          currentTarget.style.boxShadow = `inset 0 0 40px ${colorCode}66, 0 0 20px ${colorCode}33`;
-        } else {
-          currentTarget.style.background = colorCode;
-          currentTarget.style.boxShadow = `0 0 15px ${colorCode}`;
-        }
-      }
-
-      // Initialize targeted colors on load
-      document.addEventListener('DOMContentLoaded', () => {
-        const colors = JSON.parse(localStorage.getItem('nudgeColors') || '{}');
-        if (colors['planet']) {
-          document.getElementById('planetColor').value = colors['planet'];
-          const p = document.getElementById('adminPlanet');
-          p.style.background = `radial-gradient(circle at 38% 28%, ${colors['planet']}44, transparent 30%), linear-gradient(145deg, #0a0f25, ${colors['planet']})`;
-          p.style.boxShadow = `inset 0 0 40px ${colors['planet']}66, 0 0 20px ${colors['planet']}33`;
-        }
-        ['sat1', 'sat2', 'sat3'].forEach(satId => {
-          if (colors[satId]) {
-            const sat = document.querySelector(`.mission-satellite.${satId.replace('sat', 's')}`);
-            if (sat) {
-              sat.style.background = colors[satId];
-              sat.style.boxShadow = `0 0 15px ${colors[satId]}`;
-            }
-          }
-        });
-
-        // Initialize Flatpickr
-        flatpickr("#discountStart", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
-        flatpickr("#discountEnd", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
-        flatpickr("#shopItemStart", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
-        flatpickr("#shopItemEnd", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
-      });
-
-      function calculateDiscount() {
-        const itemSelect = document.getElementById('discountItem');
-        const percentInput = document.getElementById('discountPercent').value;
-        const resultInput = document.getElementById('discountResult');
-
-        if (!itemSelect.value || !percentInput) {
-          resultInput.value = '';
-          return;
-        }
-
-        let originalPrice = 120;
-        if (itemSelect.value === '星際探險家') originalPrice = 150;
-
-        let percent = parseFloat(percentInput);
-        if (percent > 10 && percent < 100) percent = percent / 100;
-        else if (percent > 0 && percent <= 10) percent = percent / 10;
-
-        const finalPrice = Math.round(originalPrice * percent);
-        resultInput.value = finalPrice + ' 幣';
-      }
-
-      // Planet CRUD Logic
-
-
-      let satCount = 3;
-      function addSatellite() {
-        const orbits = ['orbit1', 'orbit2', 'orbit3'];
-        const randomOrbit = document.getElementById(orbits[Math.floor(Math.random() * orbits.length)]);
-        const sat = document.createElement('div');
-        satCount++;
-        const satId = 'sat' + satCount;
-        sat.className = 'mission-satellite s' + (satCount > 12 ? Math.floor(Math.random()*12+1) : satCount) + ' ' + satId;
-        sat.setAttribute('onclick', `selectTarget(this, '${satId}')`);
-        randomOrbit.appendChild(sat);
-      }
-
-      function removeSatellite() {
-        const orbits = ['orbit1', 'orbit2', 'orbit3'];
-        for (let i = 0; i < orbits.length; i++) {
-          const orbit = document.getElementById(orbits[i]);
-          if (orbit.lastElementChild) {
-            orbit.removeChild(orbit.lastElementChild);
-            break;
-          }
-        }
-      }
 
       // Image Upload (Base64) & Mock Save Logic
       let currentBase64Image = null;
@@ -875,7 +657,8 @@
         if (!user || user.isAnonymous) {
           throw new Error('請先使用開發者或營運者 Firebase 帳號登入。');
         }
-        const userDoc = await db.collection('users').doc(user.uid).get();
+        const userDoc = await db.collection('users').doc(user.uid).get({source:'server'});
+        if(firebase.auth().currentUser?.uid!==user.uid)throw new Error('帳號已切換。');
         const profile = userDoc.exists ? userDoc.data() : {};
         const staffRole = profile.staffRole;
         const allowedRoles = ['developer', 'operator', 'admin'];
@@ -886,7 +669,7 @@
       }
 
       async function manageCatalogItemCommand({ action, itemId, payload, clientRequestId }) {
-        await getDeveloperUserOrThrow();
+        const actor = await getDeveloperUserOrThrow();
         if (!functions) {
           throw new Error('Cloud Functions 尚未初始化，請重新整理後再試。');
         }
@@ -897,6 +680,7 @@
           clientRequestId,
           sourceSurface: 'admin_web'
         });
+        if(firebase.auth().currentUser?.uid!==actor.uid)throw new Error("帳號已切換，忽略舊回應。");
         const result = response && response.data;
         if (!result || result.itemId !== itemId || !result.auditEventId) {
           throw new Error('Cloud 回傳的商城稽核結果無法驗證。');
@@ -906,7 +690,7 @@
 
       async function handleDeviceAssignment(event) {
         event.preventDefault();
-        await getDeveloperUserOrThrow();
+        const actor = await getDeveloperUserOrThrow();
         if (!functions) {
           throw new Error('Cloud Functions 尚未初始化，請重新整理後再試。');
         }
@@ -925,6 +709,7 @@
         status.textContent = 'Cloud 正在驗證帳號、房間成員資格與裝置指派…';
         status.style.display = 'block';
         const response = await functions.httpsCallable('manageDeviceAssignment')(command);
+        if(firebase.auth().currentUser?.uid!==actor.uid)throw new Error('帳號已切換，忽略舊回應。');
         const result = response?.data;
         if (
           !result ||
@@ -942,7 +727,7 @@
       }
 
       async function loadDeviceAssignment() {
-        await getDeveloperUserOrThrow();
+        const actor=await getDeveloperUserOrThrow();
         const deviceId = document.getElementById('deviceAssignmentId').value.trim();
         const validation = NudgeAdminDeviceAssignments.validateDeviceAssignmentDraft({
           action: 'assign',
@@ -955,7 +740,8 @@
         if (deviceError) throw new Error(deviceError);
         const output = document.getElementById('deviceAssignmentReadback');
         output.textContent = `正在讀取 device_assignments/${deviceId}…`;
-        const snapshot = await db.collection('device_assignments').doc(deviceId).get();
+        const snapshot = await db.collection('device_assignments').doc(deviceId).get({source:'server'});
+        if(firebase.auth().currentUser?.uid!==actor.uid)throw new Error('帳號已切換，忽略舊回應。');
         if (!snapshot.exists) {
           output.textContent = `Cloud 尚無 ${deviceId} 的正式指派。`;
           return;
@@ -1050,9 +836,13 @@
       }
 
       async function fetchAdminActiveItems() {
+        const catalogEpoch=adminAccessGeneration;
+        const catalogUid=typeof firebase!=='undefined'?firebase.auth().currentUser?.uid:null;
+        if(!catalogUid)return;
         if (typeof db !== 'undefined' && db) {
           try {
-            const querySnapshot = await db.collection("shop_items").get();
+            const querySnapshot = await db.collection("shop_items").get({source:"server"});
+            if(catalogEpoch!==adminAccessGeneration||firebase.auth().currentUser?.uid!==catalogUid)return;
             const items = [];
             querySnapshot.forEach((doc) => {
               items.push({ id: doc.id, ...doc.data() });
@@ -1100,7 +890,7 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                  <td><img src="${escapeHtml(imgSrc)}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
+                  <td><img alt="" src="${escapeHtml(imgSrc)}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
                   <td><strong>${escapeHtml(item.name)}</strong></td>
                   <td>${escapeHtml(typeText)}</td>
                   <td>${Number(item.price) || 0}</td>
@@ -1147,7 +937,7 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                  <td><img src="${escapeHtml(item.image_path && item.image_path.startsWith('https://') ? item.image_path : '/' + (item.image_path || ''))}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
+                  <td><img alt="" src="${escapeHtml(item.image_path && item.image_path.startsWith('https://') ? item.image_path : '/' + (item.image_path || ''))}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" /></td>
                   <td><strong>${escapeHtml(item.name)}</strong></td>
                   <td>${escapeHtml(typeText)}</td>
                   <td>${Number(item.price) || 0}</td>
@@ -1348,19 +1138,6 @@
             `「${name}」已由 Cloud 驗證並同步至 App 商城。稽核事件：${commandResult.auditEventId}`
           );
 
-          const tbody = document.getElementById('purchaseTableBody');
-          if (tbody) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>#UAdmin</td>
-              <td>${name} (上架)</td>
-              <td>${price}</td>
-              <td><span class="status-badge" style="background: rgba(59,130,246,0.1); color: #3b82f6;">上架</span></td>
-              <td>剛剛</td>
-            `;
-            tbody.prepend(tr);
-          }
-
           fetchAdminActiveItems();
           event.target.reset();
           delete event.target.dataset.pendingCatalogItemId;
@@ -1381,117 +1158,12 @@
         }
       }
 
-      function handleDiscount(event) {
-        event.preventDefault();
-        const item = document.getElementById('discountItem').value;
-        const price = document.getElementById('discountResult').value.replace(' 幣', '');
-        const start = document.getElementById('discountStart').value;
-        const end = document.getElementById('discountEnd').value;
-
-        // Mock save to localStorage
-        const discountEvent = {
-          item: item,
-          discountPrice: price,
-          startTime: start,
-          endTime: end
-        };
-        localStorage.setItem('nudgeActiveDiscount', JSON.stringify(discountEvent));
-
-        alert(`成功設定！「${item}」將於 ${start.replace('T', ' ')} 開始特價 ${price} 自律幣，期限至 ${end.replace('T', ' ')}。`);
-        event.target.reset();
-      }
     </script>
 
-    <!-- Chart.js Logic -->
-    <script>
-      const ctxUsage = document.getElementById('usageChart').getContext('2d');
-      new Chart(ctxUsage, {
-        type: 'bar',
-        data: {
-          labels: ['自律房', '每日任務', '健康同步', '專注時間', '社群互動'],
-          datasets: [{
-            label: '本週活躍次數',
-            data: [4500, 8200, 3100, 1200, 5600],
-            backgroundColor: 'rgba(124, 106, 230, 0.7)',
-            borderColor: 'rgba(124, 106, 230, 1)',
-            borderWidth: 1,
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: { beginAtZero: true }
-          }
-        }
-      });
 
-      const ctxEconomy = document.getElementById('economyChart').getContext('2d');
-      new Chart(ctxEconomy, {
-        type: 'line',
-        data: {
-          labels: ['週一', '週二', '週三', '週四', '週五', '週六', '週日'],
-          datasets: [{
-            label: '每日兌換消耗 (幣)',
-            data: [1200, 1900, 1500, 2200, 2800, 4100, 3900],
-            fill: true,
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            borderColor: 'rgba(34, 197, 94, 1)',
-            tension: 0.4,
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: { beginAtZero: true }
-          }
-        }
-      });
-
-      // Purchase Pie Chart
-      const ctxPurchase = document.getElementById('purchaseChart').getContext('2d');
-      new Chart(ctxPurchase, {
-        type: 'doughnut',
-        data: {
-          labels: ['月影見習忍', '森芽靈童', '星際探險家'],
-          datasets: [{
-            data: [65, 25, 10],
-            backgroundColor: [
-              'rgba(124, 106, 230, 0.8)',
-              'rgba(34, 197, 94, 0.8)',
-              'rgba(245, 158, 11, 0.8)'
-            ],
-            borderColor: [
-              'rgba(124, 106, 230, 1)',
-              'rgba(34, 197, 94, 1)',
-              'rgba(245, 158, 11, 1)'
-            ],
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: { color: '#a1a1aa' }
-            }
-          }
-        }
-      });
-    </script>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/app.js?v=27&amp;surface=town-tools-1"></script>
     <script>
+      let adminAccessGeneration = 0;
       let adminAuditUnsubscribe = null;
       let adminAuditEvents = [];
       let adminPrivacyRequestUnsubscribe = null;
@@ -1539,6 +1211,7 @@
 
       function startAdminAuditLog() {
         if (!db || adminAuditUnsubscribe) return;
+        const sessionEpoch=adminAccessGeneration;
         const status = document.getElementById('adminAuditStatus');
         if (status) {
           status.textContent = '正在讀取最近 100 筆 Cloud 稽核事件…';
@@ -1547,7 +1220,9 @@
         adminAuditUnsubscribe = db.collection('audit_events')
           .orderBy('createdAt', 'desc')
           .limit(100)
-          .onSnapshot(snapshot => {
+          .onSnapshot({includeMetadataChanges:true},snapshot => {
+            if(sessionEpoch!==adminAccessGeneration)return;
+            if(snapshot.metadata.fromCache||snapshot.metadata.hasPendingWrites){adminAuditEvents=[];renderAdminAuditLog();document.getElementById('adminAuditCount').textContent='待確認';if(status)status.textContent='資料尚待 Cloud 確認。';return;}
             adminAuditEvents = snapshot.docs.map(doc => ({
               id: doc.id,
               ...doc.data()
@@ -1558,6 +1233,8 @@
             }
             renderAdminAuditLog();
           }, error => {
+            if(sessionEpoch!==adminAccessGeneration)return;
+            clearAdminWorkbench('無法讀取正式後台資料，請重新確認權限。');
             if (status) {
               status.textContent = '稽核紀錄讀取失敗：' + error.message;
               status.style.display = 'block';
@@ -1646,7 +1323,7 @@
       }
 
       async function manageAdminPrivacyRequest(action, requestId) {
-        await getDeveloperUserOrThrow();
+        const actor = await getDeveloperUserOrThrow();
         if (!functions) throw new Error('Cloud Functions 尚未初始化。');
         const actionLabel = {
           start_review: '開始審核',
@@ -1702,11 +1379,14 @@
 
       function startAdminPrivacyRequestQueue() {
         if (!db || adminPrivacyRequestUnsubscribe) return;
+        const sessionEpoch=adminAccessGeneration;
         const status = document.getElementById('adminPrivacyRequestStatus');
         if (status) status.textContent = '正在讀取帳號刪除申請…';
         adminPrivacyRequestUnsubscribe = db.collection('privacy_data_requests')
           .where('type', '==', 'account_deletion')
-          .onSnapshot(snapshot => {
+          .onSnapshot({includeMetadataChanges:true},snapshot => {
+            if(sessionEpoch!==adminAccessGeneration)return;
+            if(snapshot.metadata.fromCache||snapshot.metadata.hasPendingWrites){adminPrivacyRequests=[];renderAdminPrivacyRequests();document.getElementById('adminPrivacyRequestCount').textContent='待確認';if(status)status.textContent='資料尚待 Cloud 確認。';return;}
             adminPrivacyRequests = snapshot.docs
               .map(doc => ({ id: doc.id, ...doc.data() }))
               .sort((a, b) =>
@@ -1718,6 +1398,8 @@
             }
             renderAdminPrivacyRequests();
           }, error => {
+            if(sessionEpoch!==adminAccessGeneration)return;
+            clearAdminWorkbench('無法讀取正式後台資料，請重新確認權限。');
             if (status) status.textContent = '資料權利申請讀取失敗：' + error.message;
           });
       }
@@ -1727,40 +1409,35 @@
       document.getElementById('adminAuditSearch')
         ?.addEventListener('input', renderAdminAuditLog);
 
-      async function enforceAdminAccess() {
-        const banner = document.getElementById('adminAuthBanner');
-        if (typeof firebase === 'undefined' || !firebase.auth || !db) return;
-        const user = firebase.auth().currentUser;
-        if (!user || user.isAnonymous) {
-          localStorage.setItem('nudgePostLoginRedirect', 'admin_dashboard.html');
-          if (banner) banner.style.display = 'block';
-          window.location.href = 'login.html';
-          return;
-        }
-        try {
-          const doc = await db.collection('users').doc(user.uid).get();
-          const data = doc.exists ? doc.data() : {};
-          const staffRole = data.staffRole;
-          const allowedRoles = ['developer', 'operator', 'admin'];
-          if (data.developerAccess === true || allowedRoles.includes(staffRole)) {
-            if (banner) banner.style.display = 'none';
-            startAdminAuditLog();
-            startAdminPrivacyRequestQueue();
-            return;
-          }
-          if (banner) {
-            banner.textContent = '此帳號尚未開通後台權限。請在 Firestore users/' + user.uid + ' 設定 developerAccess: true。';
-            banner.style.display = 'block';
-          }
-        } catch (error) {
-          if (banner) {
-            banner.textContent = '後台權限檢查失敗：' + error.message;
-            banner.style.display = 'block';
-          }
-        }
+      function clearAdminWorkbench(message) {
+        ++adminAccessGeneration;
+        adminAuditUnsubscribe?.();adminAuditUnsubscribe=null;
+        adminPrivacyRequestUnsubscribe?.();adminPrivacyRequestUnsubscribe=null;
+        adminAuditEvents=[];adminPrivacyRequests=[];
+        document.getElementById('adminWorkbench').hidden=true;
+        document.getElementById('adminSessionStatus').textContent=message;
+        for(const id of ['activeShopTableBody','adminAuditTableBody','adminPrivacyRequestTableBody'])document.getElementById(id)?.replaceChildren();
+        document.getElementById('deviceAssignmentReadback').textContent='尚未讀取 Cloud 指派。';
+        return adminAccessGeneration;
       }
-      document.addEventListener('firebase-ready', enforceAdminAccess);
-      setTimeout(enforceAdminAccess, 1600);
+      async function enforceAdminAccess() {
+        const epoch=clearAdminWorkbench('正在確認後台權限。');
+        if(typeof firebase==='undefined'||!firebase.auth||!db)return;
+        const user=firebase.auth().currentUser;
+        if(!user||user.isAnonymous){document.getElementById('adminSessionStatus').textContent='請使用已授權帳號登入；一般帳號不會顯示後台資料。';return;}
+        try {
+          const snapshot=await db.collection('users').doc(user.uid).get({source:'server'});
+          if(epoch!==adminAccessGeneration||firebase.auth().currentUser?.uid!==user.uid)return;
+          const data=snapshot.exists?snapshot.data():{};
+          if(data.developerAccess!==true&&!['developer','operator','admin'].includes(data.staffRole)){
+            document.getElementById('adminSessionStatus').textContent='這個帳號沒有後台權限，請聯絡專案管理者。';return;
+          }
+          document.getElementById('adminWorkbench').hidden=false;
+          document.getElementById('adminSessionStatus').textContent='已確認本人後台權限；所有正式操作仍由 Cloud 驗證。';
+          document.getElementById('adminAuthBanner').style.display='none';
+          startAdminAuditLog();startAdminPrivacyRequestQueue();fetchAdminActiveItems();
+        } catch(error) {if(epoch===adminAccessGeneration)clearAdminWorkbench('無法確認後台權限，請連線後重試。');}
+      }
     </script>
-  </body>
+  <script src="assets/town_tools.js?v=1"></script></body>
 </html>

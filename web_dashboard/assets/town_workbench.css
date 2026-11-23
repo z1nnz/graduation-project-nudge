@@ -1,0 +1,32 @@
+/* Plain workbenches share town colors without a dashboard sidebar. */
+html:has([data-town-tool]),body[data-town-tool]{height:auto;min-height:100%;overflow:auto}
+body[data-town-tool]{background:radial-gradient(ellipse at 5% 0,#483052,transparent 52%),#1b1530;color:var(--town-ink);font-family:system-ui,"Noto Sans TC",sans-serif;line-height:1.7}
+.workbench-frame{display:block;max-width:1200px;margin:auto;padding:20px 24px 50px}
+.workbench-navigation{display:block;background:#302337;border:3px solid #895c36;padding:14px 18px;margin-bottom:28px}
+.workbench-navigation .brand{color:#ffe0a3;display:inline-flex;gap:8px;text-decoration:none}
+.workbench-navigation nav,.workbench-navigation .nav{display:flex;flex-wrap:wrap;gap:10px 20px;padding-top:12px}
+.workbench-navigation a{display:inline-flex;align-items:center;min-height:44px;color:#ffe0a3;text-decoration:underline}
+.workbench-main{padding:0;width:100%;min-width:0;margin:0}
+.workbench-heading{display:block;padding:20px 0 24px}.workbench-heading h1{font-size:clamp(1.9rem,5vw,3rem);color:#ffe1a3;line-height:1.25}
+.workbench-heading h2{color:#ffe1a3}.workbench-heading p{max-width:70ch}
+.workbench-card,.workbench-paper,.admin-panel{background:linear-gradient(135deg,#f8e7c7,#e9d1a4)!important;border:3px solid #93643d!important;border-radius:3px!important;color:#39220f!important;padding:24px!important;margin:22px 0;box-shadow:5px 6px #120e1c}
+[data-town-tool] .workbench-card a,[data-town-tool] .workbench-paper a,[data-town-tool] .admin-panel a{color:#61400a}
+[data-town-tool] .admin-panel :is(p,span,strong,small,label,h2,h3,td,th,code){color:#39220f!important}
+[data-town-tool] .admin-panel .admin-btn,[data-town-tool] button,[data-town-tool] .button{min-height:44px;padding:10px 16px;border:2px solid #9c681f;border-radius:3px;background:var(--town-gold);color:#321b09;font:700 1rem system-ui;cursor:pointer;box-shadow:0 3px #724414;text-decoration:none}
+[data-town-tool] button:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+[data-town-tool] :is(input,select,textarea){min-height:44px;max-width:100%;padding:10px;background:#fff8e9!important;color:#321b09!important;font:inherit;border:2px solid #97724d;border-radius:3px}
+[data-town-tool] label{display:grid;gap:6px;margin:12px 0}
+[data-town-tool] :is(a,button,input,textarea,select,summary):focus-visible{outline:3px solid #2d879b;outline-offset:4px}
+[data-town-tool] a{color:#ffda8d}
+.workbench-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.workbench-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.workbench-empty{padding:24px;border:2px dashed #8d6b45}.workbench-skip{position:absolute;left:-10000px}.workbench-skip:focus{position:fixed;left:12px;top:8px;background:#ffedc7;color:#321b09;z-index:200;padding:12px}
+.workbench-status{padding:14px 18px;border-left:4px solid var(--town-gold);background:#302638;overflow-wrap:anywhere}
+[data-town-tool] pre{white-space:pre-wrap;overflow-wrap:anywhere}
+[data-town-tool] table{min-width:620px}[data-town-tool] .admin-grid{min-width:0}
+[data-town-tool] .admin-auth-banner{color:#442306;background:#f9e2b6}
+[data-town-tool] [hidden]{display:none!important}
+@media(max-width:650px){.workbench-frame{padding:16px}.workbench-card,.workbench-paper,.admin-panel{padding:18px!important}.workbench-grid,[data-town-tool] .admin-grid{grid-template-columns:1fr!important}.workbench-navigation{padding:12px}.workbench-navigation nav{gap:8px 14px}.workbench-row>button{flex:1 1 140px}.workbench-heading h1{overflow-wrap:anywhere}[data-town-tool] .stage-preview-row{flex-wrap:wrap}[data-town-tool] .admin-form-group input{width:100%}}
+@media(prefers-reduced-motion:reduce){[data-town-tool],[data-town-tool]::before,[data-town-tool]::after,[data-town-tool] *,[data-town-tool] *::before,[data-town-tool] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(forced-colors:active){.workbench-card,.workbench-paper,.admin-panel,.workbench-navigation{border:2px solid CanvasText!important;box-shadow:none}}
+
+[data-town-tool] .workbench-navigation small,[data-town-tool] .workbench-status{color:#f5e5c9!important}

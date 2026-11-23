@@ -5,38 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 團體組織連結</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/social_scene.css?v=1" />
   </head>
-  <body data-page="groups">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html">
-          <span class="brand-mark">N</span>
-          <span><strong>Nudge</strong><small>團體管理</small></span>
-        </a>
-        <nav class="nav">
-          <a href="dashboard.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a class="active" href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">商城頁</a>
-          <a href="research.html">研究 / 展示中心</a>
-          <a href="planet.html">自律城市 / 星球</a>
-          <a href="profile.html">個人名片</a>
-        </nav>
-      </aside>
-      <main class="main">
-        <header class="hero split">
+  <body data-page="groups" data-social-facility="guild">
+    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
+    <header class="scene-topbar">
+      <a data-town-return href="town.html">← 回小鎮</a>
+      <span class="scene-place" data-scene-place>團體會館</span>
+    </header>
+    <nav class="scene-nav" data-scene-nav></nav>
+    <main class="main scene-main" id="sceneMain" tabindex="-1">
+        <header class="hero scene-hero">
           <div>
             <span class="eyebrow">Organization Joining</span>
             <h1>加入或創建你的自律團體。</h1>
             <p>透過團體 ID 快速加入已有班級、企業或讀書會，或在此處一鍵創建專屬團體以啟用管理功能。</p>
-            <div class="subnav">
-              <a href="groups.html">中心總覽</a>
-              <a href="groups-challenge.html">挑戰建立</a>
-              <a href="groups-study-schedule.html">讀書時段</a>
-              <a href="groups-ranking.html">排行與週報</a>
-              <a href="groups-templates.html">考試模板</a>
-            </div>
           </div>
           <div class="hero-card">
             <span>自律團體狀態</span>
@@ -45,8 +28,8 @@
           </div>
         </header>
 
-        <section id="groupsLinkContainer" class="page-section" style="max-width: 600px; margin: 34px auto 0;">
-          <div id="webBindingGatedCard" class="panel" style="padding: 30px;">
+        <section id="groupsLinkContainer" class="" style="max-width: 600px; margin: 34px auto 0;">
+          <div id="webBindingGatedCard" class="scene-panel" style="padding: 30px;">
             <span class="eyebrow">Group Linking</span>
             <h2>👥 團體自律組織連結</h2>
             <p style="margin-bottom: 24px;">請先創建新的自律團體（獲取最高房主權限並生成團體 ID），或輸入已有組織 ID 加入，以解鎖專注挑戰、共同目標等功能：</p>
@@ -63,7 +46,9 @@
           </div>
         </section>
       </main>
-    </div>
+    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/town_return.js?v=1"></script>
+    <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

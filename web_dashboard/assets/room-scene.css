@@ -69,3 +69,13 @@
 .room-chat-conversation button:focus-visible, .room-chat-entry:focus-visible, .room-chat-back:focus-visible, .room-message-list:focus-visible { outline: 3px solid #ffe6a6; outline-offset: 2px; }
 @media (max-width: 850px) { .room-chat-layout { grid-template-columns: 1fr; } .room-chat-room-list .room-list { display: flex; overflow-x: auto; } .room-chat-room-list .room-list-card { min-width: 180px; } .room-chat-conversation .room-message-list { height: 45vh; } }
 @media (max-width: 600px) { .room-chat-main { padding-inline: 14px; } .room-chat-heading > span { display: none; } .room-chat-conversation .room-message-list { min-height: 260px; } .room-chat-conversation .room-message { max-width: 94%; } .room-chat-conversation .room-message-composer { flex-wrap: wrap; } .room-chat-conversation .room-message-composer button { width: 100%; } }
+
+/* #105 study tower scene: room pieces inside parchment panels. */
+body[data-social-facility] .room-stage-seat :is(strong, small) { color: #fff7e9; }
+body[data-social-facility] .room-stage-seat.is-empty small { color: #d7e8dd; }
+body[data-social-facility] .scene-panel .room-stage { box-shadow: inset 0 0 0 3px #3b261d; }
+body[data-social-facility] .scene-panel .room-list-card { display: grid; gap: 2px; width: 100%; text-align: left; padding: 10px 12px; }
+body[data-social-facility] .scene-panel .room-list-card.active { border-color: var(--town-gold-deep); box-shadow: 0 0 0 2px var(--town-gold); }
+body[data-social-facility] .room-chat-conversation .room-message-list { background: #e9d3a6; border: 2px solid #b08a53; }
+body[data-social-facility] .room-chat-hero .room-chat-back { color: var(--town-ink); background: var(--scene-wood-dark); border: 1px solid #a77b4d; min-height: 44px; display: inline-flex; align-items: center; }
+body[data-social-facility] .room-unread-badge { background: var(--town-violet); color: #fff; }

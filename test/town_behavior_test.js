@@ -154,7 +154,16 @@ function town({ reducedMotion = false, canvas = true, tourDone = true, failMap =
     },
   };
   vm.createContext(context);
-  for (const source of sources) vm.runInContext(source, context);
+  // Stand-ins for the in-town scenes town_scenes.js registers (board, desk, cabin).
+  const sceneCalls = [];
+  for (const [i, source] of sources.entries()) {
+    if (i === sources.length - 1) {
+      for (const id of new Set(routes.DESTINATIONS.filter(x => x.scene).map(x => x.scene))) {
+        context.NudgeTownRoutes.registerScene(id, opts => sceneCalls.push({ id, opts }));
+      }
+    }
+    vm.runInContext(source, context);
+  }
   if (failMap) images.find(i => i.src.includes('town_map')).fire('error');
   (docListeners['firebase-ready'] || []).forEach(cb => cb());
 
@@ -163,7 +172,7 @@ function town({ reducedMotion = false, canvas = true, tourDone = true, failMap =
     (docListeners[type] || []).forEach(cb => cb(e));
   };
   const t = {
-    nodes, doc, location, storage, frames,
+    nodes, doc, location, storage, frames, sceneCalls,
     el: id => nodes.get(id),
     keydown: (k, target) => key('keydown', k, target),
     keyup: k => key('keyup', k),
@@ -206,6 +215,13 @@ test('every building panel lists exactly its route-table destinations', () => {
     for (const [i, dest] of expected.entries()) {
       if (dest.status !== 'available') assert.equal(shown[i].tag, 'span', `${dest.id} under construction is not linked`);
       else if (dest.id === 'break-game') assert.equal(shown[i].tag, 'button');
+      else if (dest.scene) {
+        assert.equal(shown[i].tag, 'button', `${dest.id} opens in town`);
+        shown[i].control.click();
+        assert.equal(t.sceneCalls.at(-1).id, dest.scene);
+        assert.equal(t.el('townPanel').hidden, true, 'the panel closes for the scene');
+        t.building(b.name).click();
+      }
       else assert.equal(shown[i].href, dest.href, `${dest.id} links to its page`);
     }
   }
@@ -236,7 +252,11 @@ test('guests explore with no fake level and every login page says so', () => {
   shop.control.click();
   assert.equal(t.storage.get('nudgePostLoginRedirect'), 'operations.html');
   t.building('委託告示板').click();
-  assert.equal(t.entries()[0].href, 'dashboard.html', 'the public board opens for guests');
+  const board = t.entries();
+  assert.ok(board.some(e => e.href === 'dashboard.html' && e.kind === 'open'), 'the public board page opens for guests');
+  const scene = board.find(e => e.title.startsWith('看告示板'));
+  assert.equal(scene.kind, 'login', 'in-town scenes need sign-in');
+  assert.equal(t.sceneCalls.length, 0);
 });
 
 test('signed-in identity shows the Cloud level and the garden follows it', () => {
@@ -360,9 +380,9 @@ test('first visit shows the skippable tour and Escape ends it for good', () => {
 
 test('the public landing page offers 探索小鎮 and keeps 進入 Nudge', () => {
   const index = fs.readFileSync('web_dashboard/index.html', 'utf8');
-  assert.match(index, /<a href="town.html"[^>]*>探索小鎮<\/a>/);
-  assert.match(index, /<a href="dashboard.html"[^>]*>進入 Nudge<\/a>/);
-  const townHrefs = [...index.matchAll(/href="([^"]*town[^"]*)"/g)].map(m => m[1]);
+  assert.match(index, /<a\b[^>]*href="town.html"[^>]*>探索小鎮<\/a>/);
+  assert.match(index, /<a\b[^>]*href="dashboard.html"[^>]*>進入 Nudge<\/a>/);
+  const townHrefs = [...index.matchAll(/<a\b[^>]*href="([^"]*town[^"]*)"/g)].map(m => m[1]);
   assert.ok(townHrefs.length >= 2);
   assert.deepEqual([...new Set(townHrefs)], ['town.html'], 'relative GitHub Pages paths');
 });

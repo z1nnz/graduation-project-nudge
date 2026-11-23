@@ -39,12 +39,12 @@ test("mailbox reads shared notifications and marks read only via the audited cal
   const script = read("web_dashboard/assets/mailbox.js");
   assert.match(html, /data-page="mailbox"/);
   assert.match(html, /data-mailbox-letters/);
-  assert.match(html, /data-world-return/);
+  assert.match(html, /data-town-return/);
   assert.match(html, /推播尚未在實機驗收/);
   assert.ok(html.indexOf("mailbox.js") < html.indexOf("assets/app.js"));
   assert.match(script, /collection\("user_notifications"\)\s*\.where\("recipientUserId", "==", uid\)/);
   assert.match(script, /httpsCallable\("markNotificationRead"\)/);
   assert.doesNotMatch(script, /collection\("user_notifications"\)\.doc\([^)]*\)\.(set|update|delete)/);
   assert.doesNotMatch(script, /\.update\(\{\s*status:/);
-  assert.match(read("web_dashboard/notifications.html"), /href="mailbox\.html"/);
+  assert.ok(require("../web_dashboard/assets/social_scene.js").SCENES.plaza.rooms.some(([href]) => href === "mailbox.html"));
 });

@@ -1,0 +1,41 @@
+/* Web companion cabin: reuses the town palette from town.css. */
+body[data-page="cabin"] { overflow: auto; }
+.cabin { max-width: 960px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 16px 32px; }
+.cabin-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cabin-top h1 { margin: 0; font-size: 24px; color: var(--town-gold); flex: 1; }
+.cabin-back { display: inline-flex; align-items: center; text-decoration: none; }
+.cabin-chip { background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 999px; padding: 4px 12px; font-weight: 800; }
+.cabin-status { margin: 12px 0; opacity: 0.9; }
+
+/* The stage keeps the App's layout fractions (assets/home/cabin_layout.json). */
+.cabin-stage { position: relative; width: min(100%, 440px, calc(62vh * 0.5629)); margin: 0 auto; aspect-ratio: 0.5629 / 1;
+  border-radius: 18px; overflow: hidden; border: 2px solid var(--town-border); background: #2a1a14; }
+.cabin-layer { position: absolute; display: block; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
+.cabin-base { inset: 0; width: 100%; height: 100%; object-fit: fill; z-index: 0; } /* App: BoxFit.fill */
+.cabin-character { z-index: 10; object-position: bottom; }
+.cabin-summary { margin: 10px auto; max-width: 440px; line-height: 1.6; }
+.cabin-summary[data-fallback="true"]::before { content: "小屋圖片載入失敗，改用文字顯示："; display: block; color: var(--town-gold); }
+
+.cabin-form { margin-top: 16px; background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 18px; padding: 14px 16px; }
+.cabin-hint { font-size: 14px; line-height: 1.6; opacity: 0.9; }
+.cabin-hint a { color: var(--town-gold); }
+.cabin-slots { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.cabin-slot { border: 1px solid var(--town-border); border-radius: 14px; padding: 8px 12px 12px; margin: 0; min-width: 0; }
+.cabin-slot legend { padding: 0 6px; font-weight: 800; color: var(--town-gold); }
+.cabin-choice { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center;
+  min-height: 44px; padding: 6px 8px; border-radius: 10px; cursor: pointer; }
+.cabin-choice small { grid-column: 2; font-size: 12px; opacity: 0.8; }
+.cabin-choice input { width: 20px; height: 20px; accent-color: var(--town-gold); grid-row: span 2; }
+.cabin-choice:has(input:checked) { background: rgba(255, 197, 77, 0.16); }
+.cabin-choice:has(input:focus-visible) { outline: 3px solid var(--town-gold); outline-offset: 2px; }
+.cabin-choice.is-locked { cursor: not-allowed; opacity: 0.6; }
+.cabin-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.cabin-actions .town-ghost, .cabin-actions .town-gold { display: inline-flex; align-items: center; text-decoration: none; }
+.cabin-actions button:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+.cabin-save-status { min-height: 1.4em; margin: 10px 0 0; }
+.cabin-save-status[data-tone="ok"] { color: #9ef0b0; }
+.cabin-save-status[data-tone="bad"] { color: #ffb3a8; }
+
+@media (max-width: 560px) {
+  .cabin-top h1 { font-size: 20px; }
+}

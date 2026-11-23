@@ -38,16 +38,19 @@
   const DESTINATIONS = Object.freeze([
     // ----- world -----
     d('town', 'town.html', null, '夥伴小鎮', 'player', 'public', null, 'cloud', '#82'),
-    d('cabin-scene', 'cabin.html', 'cabin', '小屋擺設', 'player', 'login', null, 'cloud', '#82', 'planned'),
+    scene('cabin-feedback', 'cabin', 'cabin', '夥伴的反應', '#82'),
+    scene('desk-scene', 'desk', 'cabin', '坐到書桌前專注', '#82'),
+    d('cabin-scene', 'cabin.html', 'cabin', '小屋擺設', 'player', 'login', null, 'cloud', '#82'),
     d('focus-desk', 'personal-focus.html', 'cabin', '書桌專注', 'player', 'login', null, 'cloud', '#82'),
     d('profile', 'profile.html', 'cabin', '我的名片與角色', 'player', 'login', null, 'cloud', '#82'),
+    scene('quest-board-scene', 'board', 'board', '看告示板：今天的一步', '#82'),
     d('quest-board', 'dashboard.html', 'board', '今日下一步', 'player', 'public', null, 'mixed', '#82'),
     d('tasks', 'planet.html', 'board', '今日任務清單', 'player', 'login', null, 'mixed', '#82'),
     d('rooms', 'rooms.html', 'tower', '自律房', 'player', 'login', null, 'cloud', '#83'),
-    d('room-chat', 'room-chat.html', 'tower', '房間聊天室', 'player', 'login', 'roomMember', 'cloud', '#83', 'planned'),
+    d('room-chat', 'room-chat.html', 'tower', '房間聊天室', 'player', 'login', 'roomMember', 'cloud', '#83'),
     d('guardian', 'guardian.html', 'family', '家長陪伴中心', 'player', 'login', 'family', 'cloud', '#83'),
     d('guardian-link', 'guardian-link.html', 'family', '連結家人', 'player', 'login', null, 'cloud', '#83'),
-    d('family-courtyard', 'family-courtyard.html', 'family', '家庭庭院場景', 'player', 'login', 'family', 'cloud', '#83', 'planned'),
+    d('family-courtyard', 'family-courtyard.html', 'family', '家庭庭院場景', 'player', 'login', 'family', 'cloud', '#83'),
     d('groups', 'groups.html', 'guild', '團體任務與共同進度', 'player', 'login', 'group', 'cloud', '#83'),
     d('guardian-report', 'guardian-report.html', 'family', '孩子週報', 'player', 'login', 'family', 'cloud', '#83'),
     d('guardian-encouragement', 'guardian-encouragement.html', 'family', '鼓勵卡', 'player', 'login', 'family', 'cloud', '#83'),
@@ -58,21 +61,21 @@
     d('groups-challenge', 'groups-challenge.html', 'guild', '團體挑戰建立器', 'player', 'login', 'groupManager', 'cloud', '#83'),
     d('groups-study-schedule', 'groups-study-schedule.html', 'guild', '讀書時段管理', 'player', 'login', 'groupManager', 'cloud', '#83'),
     d('groups-templates', 'groups-templates.html', 'guild', '考試倒數模板', 'player', 'login', 'groupManager', 'cloud', '#83'),
-    d('group-hall', 'group-hall.html', 'guild', '團體會館場景', 'player', 'login', 'group', 'cloud', '#83', 'planned'),
-    d('museum', 'personal.html', 'library', '個人分析入口', 'player', 'login', null, 'mixed', '#84'),
-    d('identity', 'personal-identity.html', 'library', '自律人格與復原步驟', 'player', 'login', null, 'cloud', '#84'),
-    d('trends', 'personal-trends.html', 'library', '自律趨勢分析', 'player', 'login', null, 'demo', '#84'),
-    d('skill-tree', 'personal-skill-tree.html', 'library', '人生技能樹', 'player', 'login', null, 'demo', '#84'),
-    d('weather', 'personal-weather.html', 'library', '自律天氣預報', 'player', 'login', null, 'demo', '#84'),
-    d('pressure', 'personal-pressure.html', 'library', '壓力雷達', 'player', 'login', null, 'demo', '#84'),
-    d('task-template', 'personal-template.html', 'library', '任務模板產生器', 'player', 'login', null, 'demo', '#84'),
-    d('future-letter', 'personal-letter.html', 'library', '未來的自己寄來的信', 'player', 'login', null, 'demo', '#84'),
-    d('time-capsule', 'personal-time-capsule.html', 'library', '自律時間膠囊', 'player', 'login', null, 'demo', '#84'),
+    d('group-hall', 'group-hall.html', 'guild', '團體會館場景', 'player', 'login', 'group', 'cloud', '#83'),
+    d('museum', 'personal.html', 'library', '成長紀錄館', 'player', 'login', null, 'cloud', '#84'),
+    d('identity', 'personal-identity.html', 'library', '自律身分書', 'player', 'login', null, 'cloud', '#84'),
+    d('trends', 'personal-trends.html', 'library', '行動年鑑', 'player', 'login', null, 'cloud', '#84'),
+    d('skill-tree', 'personal-skill-tree.html', 'library', '技能書籤', 'player', 'login', null, 'cloud', '#84'),
+    d('weather', 'personal-weather.html', 'library', '生活天氣回顧', 'player', 'login', null, 'cloud', '#84'),
+    d('pressure', 'personal-pressure.html', 'library', '溫柔整理', 'player', 'login', null, 'cloud', '#84'),
+    d('task-template', 'personal-template.html', 'library', '下一步工坊', 'player', 'login', null, 'cloud', '#84'),
+    d('future-letter', 'personal-letter.html', 'library', '未來的信', 'player', 'login', null, 'cloud', '#84'),
+    d('time-capsule', 'personal-time-capsule.html', 'library', '自律時間膠囊', 'player', 'login', null, 'cloud', '#84'),
     d('shop', 'operations.html', 'store', '角色商城', 'player', 'login', null, 'cloud', '#82'),
     d('break-game', 'town.html#park', 'park', '接星星（休息券）', 'player', 'login', null, 'cloud', '#82'),
     d('planet', 'planet.html', 'observatory', '自律星球', 'player', 'login', null, 'mixed', '#82'),
     d('garden-scene', 'garden.html', 'garden', '星光花園', 'player', 'login', 'level10', 'cloud', '#82'),
-    d('mailbox', 'mailbox.html', 'plaza', '小鎮郵箱', 'player', 'login', null, 'cloud', '#83', 'planned'),
+    d('mailbox', 'mailbox.html', 'plaza', '小鎮郵箱', 'player', 'login', null, 'cloud', '#83'),
     d('notifications', 'notifications.html', 'plaza', '通知與邀請', 'player', 'login', null, 'cloud', '#83'),
     d('friends', 'friend.html', 'plaza', '好友', 'player', 'login', null, 'cloud', '#83'),
     d('friend-visits', 'friend-visits.html', 'plaza', '好友拜訪紀錄', 'player', 'login', null, 'cloud', '#83'),
@@ -86,22 +89,42 @@
     d('planet-builder', 'planet-builder.html', null, '星球建築規劃器', 'tool', 'login', null, 'demo', '#82'),
     d('operations-economy', 'operations-economy.html', null, '自律幣經濟檢查', 'tool', 'login', 'staff', 'static', 'core'),
     d('operations-room-review', 'operations-room-review.html', null, '自律房審核', 'tool', 'login', 'staff', 'static', 'core'),
-    d('operations-shop-campaign', 'operations-shop-campaign.html', null, '商城活動配置', 'tool', 'login', 'staff', 'mixed', 'core'),
+    d('operations-shop-campaign', 'operations-shop-campaign.html', null, '商城活動配置', 'tool', 'login', 'staff', 'cloud', 'core'),
     d('admin', 'admin_dashboard.html', null, '營運後台', 'tool', 'public', 'staff', 'cloud', 'core'),
-    d('research', 'research.html', null, '研究中心', 'tool', 'login', null, 'demo', 'core'),
-    d('research-anonymized', 'research-anonymized.html', null, '匿名資料分析', 'tool', 'login', null, 'demo', 'core'),
-    d('research-scenario', 'research-scenario.html', null, 'Demo 場景產生器', 'tool', 'login', null, 'demo', 'core'),
-    d('research-score-demo', 'research-score-demo.html', null, '自律分數展示', 'tool', 'login', null, 'demo', 'core'),
-    d('presentation', 'presentation.html', null, '專題發表流程', 'tool', 'login', null, 'demo', 'core'),
+    d('research', 'research.html', null, '研究中心', 'tool', 'login', null, 'static', 'core'),
+    d('research-anonymized', 'research-anonymized.html', null, '匿名資料分析', 'tool', 'login', null, 'static', 'core'),
+    d('research-scenario', 'research-scenario.html', null, 'Demo 場景產生器', 'tool', 'login', null, 'static', 'core'),
+    d('research-score-demo', 'research-score-demo.html', null, '自律分數展示', 'tool', 'login', null, 'static', 'core'),
+    d('presentation', 'presentation.html', null, '專題發表流程', 'tool', 'login', null, 'static', 'core'),
     d('museum-demo', 'museum-demo.html', null, '紀錄館展示', 'tool', 'public', null, 'demo', '#84'),
   ]);
 
   function d(id, href, building, title, audience, auth, gate, source, owner, status) {
     return Object.freeze({
       id, href, building, title, audience, auth, gate: gate || null, source, owner,
-      status: status || 'available',
+      status: status || 'available', scene: null,
     });
   }
+
+  // An in-town scene: opened inside town.html by the script that registered it.
+  function scene(id, sceneId, building, title, owner) {
+    return Object.freeze({
+      ...d(id, `town.html#${sceneId}`, building, title, 'player', 'login', null, 'cloud', owner),
+      scene: sceneId,
+    });
+  }
+
+  // Scene registry: a scene script calls registerScene('desk', open) and the
+  // town panel opens it in place. Other packages can register their own
+  // in-town scenes the same way.
+  const scenes = new Map();
+  function registerScene(sceneId, open) {
+    if (typeof sceneId !== 'string' || !/^[a-z][a-z0-9-]*$/.test(sceneId) || typeof open !== 'function') {
+      throw new Error('registerScene needs a lowercase id and an open() function');
+    }
+    scenes.set(sceneId, open);
+  }
+  function sceneOpener(sceneId) { return scenes.get(sceneId) || null; }
 
   const ARRIVAL_PARAM = 'at';
   const TOWN_PAGE = 'town.html';
@@ -180,5 +203,7 @@
     destinationForPage,
     returnHrefForPage,
     entryState,
+    registerScene,
+    sceneOpener,
   });
 });

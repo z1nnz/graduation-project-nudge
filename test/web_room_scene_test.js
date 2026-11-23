@@ -89,7 +89,7 @@ test("rooms page renders the scene from the shared membership listener", () => {
   assert.match(html, /data-room-stage\b/);
   assert.match(html, /data-room-seat-toggle/);
   assert.match(html, /data-room-leave/);
-  assert.match(html, /data-world-return/);
+  assert.match(html, /data-town-return/);
   assert.match(html, /assets\/room_scene\.js\?v=\d+/);
   assert.ok(html.indexOf("room_scene.js") < html.indexOf("assets/app.js"));
 
