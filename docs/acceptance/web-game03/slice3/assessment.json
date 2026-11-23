@@ -1,0 +1,43 @@
+{
+  "issue": 84,
+  "slice": 3,
+  "title": "技能、下一步、模板與未來的信",
+  "base_commit": "27f1e4d1c8e8bbeecd32e8466efd960d3917104b",
+  "threshold": 85,
+  "scope": "source implementation and local verification; not production acceptance",
+  "scores": {
+    "content": 25,
+    "criteria": 30,
+    "verification": 20,
+    "handoff": 15
+  },
+  "total": 90,
+  "criteria": [
+    "模板／信件的本人私有 Cloud 文件、跨裝置更新、revision 衝突與未知結果重試",
+    "可編輯／保存／修改／下載／刪除，所有文字用 textContent 呈現",
+    "使用者編輯且明確確認才建立現有 tasks 格式的未完成手動任務，使用安全亂數 ID",
+    "新資料納正式隱私匯出與 user recursive deletion；App Check callable＋operation lease 寫入，Rules 禁止 client mutation，刪除 tombstone 防重試恢復"
+  ],
+  "limitations": "正式技能 Lv／獎勵解鎖規則尚未提供。可解釋書籤與非診斷提示由回顧模組提供，不是新獎勵；實際 App／真人操作未驗。",
+  "production_deployed": false,
+  "production_app_check_verified": false,
+  "real_device_verified": false,
+  "human_screen_reader_verified": false,
+  "source_issue_complete": false,
+  "pr_must_remain_draft": true,
+  "ci": "exact head six checks required; final status in PR",
+  "browser_transport": "Auth/Firestore loopback emulators, SDK 9.22.0, test attested-handler adapter. Actual shared bootstrap smoke also passed; no production network in that smoke.",
+  "browser_checks": {
+    "checks": 43,
+    "desktop": true,
+    "mobile360": true,
+    "reducedMotion": true,
+    "axe": "zero WCAG A/AA violations on eight pages",
+    "realProductionAccounts": false,
+    "transport": "loopback Auth/Firestore emulators and attested-handler adapter, not production App Check",
+    "errors": []
+  },
+  "evidence_sha256": {
+    "strategy-cross-device.png": "af8d59b3569980388a1834dc6d6d092f32183911d534f383df7305ec15ccdcf9"
+  }
+}

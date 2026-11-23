@@ -1,0 +1,64 @@
+{
+  "local_node": "26.4.0",
+  "ci_node": "22",
+  "local_flutter": "3.47.8",
+  "ci_flutter": "3.41.7",
+  "java": "21.0.13",
+  "firebase_tools": "15.18.0",
+  "results": {
+    "root": {
+      "tests": 140,
+      "pass": 139,
+      "fail": 0,
+      "skipped": 1
+    },
+    "functions": {
+      "tests": 148,
+      "pass": 122,
+      "fail": 0,
+      "skipped": 26
+    },
+    "new_feature_rules_entry": {
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0,
+      "server": "Java21 loopback Auth/Firestore"
+    },
+    "combined_full_emulator": {
+      "passed": true,
+      "log": "../slice1/logs/integrated-emulator.txt in foundation PR",
+      "scope": "all existing Rules, Ledger transactions, account deletion, relationship and reward emulator suites plus new entries"
+    },
+    "flutter": {
+      "analyze": "No issues found",
+      "tests_passed": 227,
+      "tests_failed": 0,
+      "scope": "current combined overlay; no Dart source changed in these slices",
+      "environment_note": "Unicode workspace analyze hit LSP parse error; full analyze passed in ASCII temporary overlay"
+    },
+    "browser": {
+      "assertions": 43,
+      "axe_pages": 8,
+      "axe_violations": 0,
+      "cross_device": true,
+      "actual_shared_bootstrap_smoke": true,
+      "production_app_check": false,
+      "real_device": false,
+      "human_screen_reader": false
+    }
+  },
+  "exact_head_ci": "pending publication; final receipt in PR",
+  "no_production_changes": true,
+  "skipped_are_not_passed": true,
+  "source_sha256": {
+    "firestore.rules": "a6c2d292de98fce0eb40b0ee00467766e391cccb6bd991198ee154ae270daffb",
+    "functions/index.js": "8e636e5fd3f488602c1e92d02ebbff01a48547c4471e0a914dce63599af33b21",
+    "functions/src/growth-document-service.js": "d732d353093be93a565ab390f3b66e2f8884626f5d76cbfc265e1a52e7e806a6",
+    "functions/src/privacy-data-request-service.js": "8633d3ff59b0d8ccc611fa4b94e935fd5506326efc184d9e611e1c6d8223cb6b",
+    "functions/test/growth_document_service.test.js": "9b720a60319b5598b75402aacf00f221e497486d1c9f5334f29ed917d0c989ce",
+    "functions/test/growth_documents_emulator.test.js": "e55a4e1e7e769f6b0d8cc7a5d92264d97be82beb0f46a0c8e8e3b901cec86a32",
+    "test/firestore_growth_documents_rules_test.js": "53e7f8f6a188305935a67dbf6fe609935122ffd5bde58e8db591bb839199f631",
+    "test/growth_tools_test.js": "979b4c54268a9e02bdc4c4b4b21f02dd9df1598b851f615047aee68b7d779ef8",
+    "web_dashboard/assets/growth_tools.js": "30a43aa2723ad9c7428a483b4c15b414a4a608b399e23d8dfa28ea9bb46ca312"
+  }
+}

@@ -15,6 +15,7 @@ import {
 } from "firebase-functions/v2/firestore";
 
 import { ActivityLedgerService } from "./src/activity-ledger-service.js";
+import { createManageGrowthDocumentHandler } from "./src/growth-document-service.js";
 import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
 import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshots-handler.js";
@@ -728,4 +729,17 @@ export const deliverPushNotification = onDocumentCreated(
     memory: "256MiB",
   },
   handleDeliverPushJob,
+);
+
+const handleManageGrowthDocument = createManageGrowthDocumentHandler({firestore:getFirestore()});
+export const manageGrowthDocument = onCall(
+  {enforceAppCheck:true,timeoutSeconds:30,memory:"256MiB"},
+  async request=>{
+    try{return await withAccountOperation(request,()=>handleManageGrowthDocument(request));}
+    catch(error){
+      if(error instanceof HttpsError)throw error;
+      console.error("manageGrowthDocument failed",{code:error?.code||"unknown"});
+      throw new HttpsError("internal","文件操作未完成，請稍後重試。");
+    }
+  },
 );

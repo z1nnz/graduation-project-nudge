@@ -181,6 +181,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     deviceAssignments,
     pushDeliveryState,
     friends,
+    growthDocuments,
     memberships,
     activityEvents,
     activityReceipts,
@@ -214,6 +215,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
     ),
     readSingleDocument(firestore, "push_delivery_state", userId),
     readSubcollection(firestore, `users/${userId}/friends`),
+    readSubcollection(firestore, `users/${userId}/growth_documents`),
     readQuery(
       firestore,
       "relationship_memberships",
@@ -294,6 +296,7 @@ export async function collectPrivacyExportData({ firestore, userId }) {
       device_assignments: deviceAssignments.documents,
       push_delivery_state: pushDeliveryState,
       users_friends: friends.documents,
+      growth_documents: growthDocuments.documents,
       relationship_memberships: memberships.documents,
       family_links: familyLinks,
       groups,
