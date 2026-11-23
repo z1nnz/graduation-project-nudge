@@ -1,0 +1,62 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {initializeApp,deleteApp} from "firebase-admin/app";
+import {getFirestore} from "firebase-admin/firestore";
+import {initializeTestEnvironment,assertFails,assertSucceeds} from "@firebase/rules-unit-testing";
+import {doc,setDoc,getDoc,updateDoc,serverTimestamp,deleteDoc} from "firebase/firestore";
+import {createManageGrowthDocumentHandler} from "../src/growth-document-service.js";
+import {collectPrivacyExportData} from "../src/privacy-data-request-service.js";
+import {FirestoreAccountDeletionRepository} from "../src/firestore-account-deletion-repository.js";
+test("growth text emulator: cross-device versions, owner-only text, formal export and recursive erasure",{
+  skip:!process.env.FIRESTORE_EMULATOR_HOST,timeout:120000,
+},async()=>{
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST,/^(127\.0\.0\.1|localhost):\d+$/);
+  const projectId="demo-growth-text-"+process.pid;
+  const [host,port]=process.env.FIRESTORE_EMULATOR_HOST.split(":");
+  const env=await initializeTestEnvironment({projectId,firestore:{host,port:Number(port),rules:readFileSync(new URL("../../firestore.rules",import.meta.url),"utf8")}});
+  const app=initializeApp({projectId},"growth-text-"+process.pid),db=getFirestore(app);
+  const one=env.authenticatedContext("owner").firestore(),two=env.authenticatedContext("owner").firestore(),other=env.authenticatedContext("other").firestore();
+  const path="users/owner/growth_documents/growth_test_001";
+  try{
+    await db.doc("users/owner").set({nickname:"Owner"});await db.doc("users/other").set({nickname:"Other"});
+    const handle=createManageGrowthDocumentHandler({firestore:db,clock:()=>new Date("2026-11-23T00:00:00.000Z")});
+    const call=data=>handle({auth:{uid:"owner"},app:{appId:"emulator-attested-fixture"},data});
+    const value={action:"save",documentId:"growth_test_001",revision:0,kind:"letter",title:"Title",body:"PRIVATE LETTER"};
+    await assertFails(setDoc(doc(one,path),{...value,ownerUid:"owner"}));
+    const results=await Promise.all([call(value),call(value)]);
+    assert.equal(results.every(r=>r.revision===1),true);
+    assert.equal((await getDoc(doc(two,path))).data().body,"PRIVATE LETTER");
+    await assertFails(getDoc(doc(other,path)));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),path)));
+    await assertFails(updateDoc(doc(two,path),{revision:2,body:"client overwrite",updatedAt:serverTimestamp()}));
+    await assertFails(deleteDoc(doc(one,path)));
+    await assert.rejects(call({...value,title:"conflicting retry"}),e=>e.code==="aborted");
+    await call({...value,revision:1,body:"Updated from device two"});
+    assert.equal((await getDoc(doc(one,path))).data().body,"Updated from device two");
+    await assert.rejects(call({action:"delete",documentId:value.documentId,revision:1}),e=>e.code==="aborted");
+    const exported=await collectPrivacyExportData({firestore:db,userId:"owner"});
+    assert.equal(exported.collections.growth_documents[0].data.body,"Updated from device two");
+    const task={action:"createTask",taskId:"museum_task_001",title:"One small step"};
+    await Promise.all([call(task),call(task)]);
+    let tasks=(await db.doc("users/owner").get()).data().tasks;
+    assert.equal(tasks.length,1);assert.equal(tasks[0].isDone,false);assert.equal(tasks[0].userId,"owner");assert.equal(tasks[0].sourceType,"manual");
+    tasks[0].isDone=true;await db.doc("users/owner").update({tasks});
+    assert.equal((await call(task)).status,"existing");
+    assert.equal((await db.doc("users/owner").get()).data().tasks[0].isDone,true);
+    await assert.rejects(call({...task,title:"different task"}),e=>e.code==="already-exists");
+    await call({action:"delete",documentId:value.documentId,revision:2});
+    await call({action:"delete",documentId:value.documentId,revision:2});
+    await assert.rejects(call(value),e=>e.code==="failed-precondition");
+    await assertFails(getDoc(doc(one,"users/owner/growth_document_operations/"+value.documentId)));
+    await call({...value,documentId:"growth_survives_erase"});
+    await db.doc("account_deletion_fences/owner").set({active:true});
+    await assertFails(getDoc(doc(one,path)));await assertFails(deleteDoc(doc(one,path)));
+    await assert.rejects(call({...value,documentId:"growth_fenced_001"}),e=>e.code==="failed-precondition");
+    const repo=new FirestoreAccountDeletionRepository({firestore:db,auth:null,bucket:null});
+    await repo.eraseAccountData({userId:"owner",request:{requestId:"text-deletion"},plan:{operations:{leaveGroupIds:[],deleteOwnedRoomIds:[],deleteFamilyLinkIds:[],redactEndedFamilyLinkIds:[],deleteOwnedGroupIds:[]}},now:"2026-11-23T00:00:00.000Z"});
+    assert.equal((await db.doc(path).get()).exists,false);
+    assert.equal((await db.collection("users/owner/growth_documents").get()).empty,true);
+    assert.equal((await db.collection("users/owner/growth_document_operations").get()).empty,true);assert.equal((await db.doc("users/other").get()).exists,true);
+  }finally{await env.cleanup();await deleteApp(app);}
+});
