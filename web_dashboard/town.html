@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>夥伴小鎮 · Nudge</title>
+    <meta name="description" content="走進 Nudge 夥伴小鎮，從一個地方開始今天的行動。" />
+    <link rel="stylesheet" href="assets/town.css?v=1" />
+  </head>
+  <body>
+    <a class="skip-link" href="#townDirectory">跳到地點清單</a>
+    <main class="town-shell">
+      <header class="town-header">
+        <a class="town-brand" href="index.html"><span class="town-brand-mark">✦</span><span>Nudge <small>夥伴小鎮</small></span></a>
+        <nav aria-label="網站導覽">
+          <a href="dashboard.html">我的總覽</a>
+          <a href="login.html" class="town-login">登入</a>
+        </nav>
+      </header>
+
+      <section class="town-intro" aria-labelledby="townTitle">
+        <p class="town-eyebrow">YOUR LITTLE WORLD · 先從一小步開始</p>
+        <h1 id="townTitle">今天想去哪裡走走？</h1>
+        <p>點選地點，或用方向鍵帶著夥伴散步。小鎮可以自由探索；個人功能會在進入時確認登入與權限。</p>
+      </section>
+
+      <div class="town-workspace">
+        <section class="town-map-card" aria-label="互動小鎮地圖">
+          <div class="town-map-toolbar">
+            <span><span class="town-status-dot" aria-hidden="true"></span> 小鎮散步中</span>
+            <span>方向鍵移動 · 點地點查看</span>
+          </div>
+          <div class="town-viewport" tabindex="0" aria-label="小鎮地圖，使用方向鍵移動角色，Enter 查看附近地點" data-town-viewport>
+            <div class="town-scene" data-town-scene>
+              <div class="town-island" aria-hidden="true"></div>
+              <div class="town-path town-path--horizontal" aria-hidden="true"></div>
+              <div class="town-path town-path--vertical" aria-hidden="true"></div>
+              <div class="town-plaza" aria-hidden="true"><span>✦</span></div>
+              <div class="town-pond" aria-hidden="true"><span>✧</span></div>
+              <div class="town-tree town-tree--a" aria-hidden="true"></div>
+              <div class="town-tree town-tree--b" aria-hidden="true"></div>
+              <div class="town-tree town-tree--c" aria-hidden="true"></div>
+              <div class="town-tree town-tree--d" aria-hidden="true"></div>
+              <div class="town-flower town-flower--a" aria-hidden="true">✿ ✿</div>
+              <div class="town-flower town-flower--b" aria-hidden="true">✿ ✿ ✿</div>
+              <div class="town-flower town-flower--c" aria-hidden="true">✿</div>
+
+              <button class="town-place town-place--daily" type="button" data-town-place="daily" aria-label="查看今日廣場">
+                <span class="town-building town-building--daily" aria-hidden="true"><span class="town-roof"></span><span class="town-wall"><span class="town-window"></span><span class="town-door"></span></span></span>
+                <span class="town-place-sign">今日廣場</span>
+              </button>
+              <button class="town-place town-place--rooms" type="button" data-town-place="rooms" aria-label="查看同伴會館">
+                <span class="town-building town-building--rooms" aria-hidden="true"><span class="town-roof"></span><span class="town-wall"><span class="town-window"></span><span class="town-door"></span></span></span>
+                <span class="town-place-sign">同伴會館</span>
+              </button>
+              <button class="town-place town-place--profile" type="button" data-town-place="profile" aria-label="查看角色小屋">
+                <span class="town-building town-building--profile" aria-hidden="true"><span class="town-roof"></span><span class="town-wall"><span class="town-window"></span><span class="town-door"></span></span></span>
+                <span class="town-place-sign">角色小屋</span>
+              </button>
+              <div class="town-companion" aria-hidden="true" data-town-companion><img src="assets/character15.png" alt="" /></div>
+            </div>
+          </div>
+          <div class="town-map-footer">
+            <div class="town-move-controls" aria-label="移動角色">
+              <button type="button" data-town-move="left" aria-label="向左移動">←</button>
+              <button type="button" data-town-move="up" aria-label="向上移動">↑</button>
+              <button type="button" data-town-move="down" aria-label="向下移動">↓</button>
+              <button type="button" data-town-move="right" aria-label="向右移動">→</button>
+            </div>
+            <button class="town-nearby" type="button" data-town-nearby>查看附近地點</button>
+          </div>
+        </section>
+
+        <aside class="town-side-panel">
+          <section class="town-place-detail" aria-live="polite">
+            <div class="town-detail-star" aria-hidden="true">✦</div>
+            <p class="town-eyebrow">現在選取的地點</p>
+            <h2 data-town-title>今天的小鎮</h2>
+            <p data-town-description>沿著步道看看三個地方。你可以隨時從下方清單直接前往。</p>
+            <a class="town-enter" href="dashboard.html" data-town-enter>前往我的總覽 <span aria-hidden="true">↗</span></a>
+          </section>
+          <section class="town-directory" id="townDirectory" aria-labelledby="townDirectoryTitle">
+            <p class="town-eyebrow">快速抵達</p>
+            <h2 id="townDirectoryTitle">小鎮地點</h2>
+            <ul>
+              <li><a href="dashboard.html"><span class="town-directory-icon">✦</span><span><strong>今日廣場</strong><small>看看我的下一步與雲端確認</small></span><span aria-hidden="true">↗</span></a></li>
+              <li><a href="rooms.html"><span class="town-directory-icon">♧</span><span><strong>同伴會館</strong><small>走進自己已加入的活動房</small></span><span aria-hidden="true">↗</span></a></li>
+              <li><a href="profile.html"><span class="town-directory-icon">⌂</span><span><strong>角色小屋</strong><small>查看自己的角色與名片</small></span><span aria-hidden="true">↗</span></a></li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+      <footer class="town-footer">小鎮只提供導覽。任務、房間資格和成果仍由原有服務確認。</footer>
+    </main>
+    <script src="assets/town.js?v=1"></script>
+  </body>
+</html>
