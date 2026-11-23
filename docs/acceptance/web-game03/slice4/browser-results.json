@@ -1,0 +1,10 @@
+{
+  "checks": 43,
+  "desktop": true,
+  "mobile360": true,
+  "reducedMotion": true,
+  "axe": "zero WCAG A/AA violations on eight pages",
+  "realProductionAccounts": false,
+  "transport": "loopback Auth/Firestore emulators and attested-handler adapter, not production App Check",
+  "errors": []
+}

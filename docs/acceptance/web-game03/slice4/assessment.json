@@ -1,0 +1,46 @@
+{
+  "issue": 84,
+  "slice": 4,
+  "title": "真正的時間膠囊",
+  "base_commit": "27f1e4d1c8e8bbeecd32e8466efd960d3917104b",
+  "threshold": 85,
+  "scope": "source implementation and local verification; not production acceptance",
+  "scores": {
+    "content": 25,
+    "criteria": 27,
+    "verification": 18,
+    "handoff": 15
+  },
+  "total": 85,
+  "criteria": [
+    "App Check callable＋account operation lease；owner UID 只取 verified auth",
+    "正文／operation server-only；client 連本人都拒讀，只有 server clock 到期可取回",
+    "seal ID＋digest 重試防重，取消擦除正文，刪除保留無正文重試 tombstone，不因重試恢復",
+    "到期站內通知不含正文且去重，fence／取消／刪除後不再新建通知",
+    "正式匯出未到期不含正文，到期可含；帳號刪除清理全部 user 子集合",
+    "Web 開封／下載／取消／刪除／新草稿／失敗重試，不以 Date.now 或 localStorage 開封"
+  ],
+  "limitations": "未部署 callable／index／scheduler，未驗 production App Check 或真實裝置；瀏覽器使用 loopback attested-handler adapter，不能當正式 attestation 驗收。",
+  "production_deployed": false,
+  "production_app_check_verified": false,
+  "real_device_verified": false,
+  "human_screen_reader_verified": false,
+  "source_issue_complete": false,
+  "pr_must_remain_draft": true,
+  "ci": "exact head six checks required; final status in PR",
+  "browser_transport": "Auth/Firestore loopback emulators, SDK 9.22.0, test attested-handler adapter. Actual shared bootstrap smoke also passed; no production network in that smoke.",
+  "browser_checks": {
+    "checks": 43,
+    "desktop": true,
+    "mobile360": true,
+    "reducedMotion": true,
+    "axe": "zero WCAG A/AA violations on eight pages",
+    "realProductionAccounts": false,
+    "transport": "loopback Auth/Firestore emulators and attested-handler adapter, not production App Check",
+    "errors": []
+  },
+  "evidence_sha256": {
+    "capsule-sealed.png": "73ab562fbf3d61627de7065b19283b125cb97b3a9de2519933894b9aa5ac5cb1",
+    "capsule-opened.png": "cf2198628e76e702087262e1ba3c2f66208d3917c6a966a9016607b4efe5cfb1"
+  }
+}

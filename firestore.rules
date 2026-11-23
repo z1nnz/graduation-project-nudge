@@ -2136,6 +2136,19 @@ service cloud.firestore {
       }
     }
 
+    // Capsule metadata is private to its owner; content and retry tombstones
+    // are server-only even for the owner. Unlock time is never client-writable.
+    match /users/{ownerUid}/growth_capsules/{capsuleId} {
+      allow read: if isOwner(ownerUid);
+      allow write: if false;
+    }
+    match /users/{ownerUid}/growth_capsule_secrets/{capsuleId} {
+      allow read, write: if false;
+    }
+    match /users/{ownerUid}/growth_capsule_operations/{capsuleId} {
+      allow read, write: if false;
+    }
+
     // ─── Cloud Activity Ledger ─────────────────────────────────────────
     // Activity Ledger writes are Cloud-only. Clients can read only their own
     // evidence, sessions and receipts; room aggregates require membership.
