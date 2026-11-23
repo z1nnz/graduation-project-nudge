@@ -16,11 +16,19 @@ class CompanionSprite extends StatefulWidget {
     required this.profile,
     required this.pose,
     required this.size,
+    this.facingLeft = false,
+    this.stepPhase = 0,
   });
 
   final AvatarProfile profile;
   final CompanionPose pose;
   final double size;
+
+  /// Mirror the sprite while walking left.
+  final bool facingLeft;
+
+  /// 0..1 walk-cycle phase from the caller; picks the step frame.
+  final double stepPhase;
 
   @override
   State<CompanionSprite> createState() => _CompanionSpriteState();
@@ -58,6 +66,9 @@ class _CompanionSpriteState extends State<CompanionSprite>
     switch (widget.pose) {
       case CompanionPose.idle:
         return (0, -2 * wave.abs(), 1);
+      case CompanionPose.walk:
+        final step = math.sin(widget.stepPhase * 2 * math.pi);
+        return (0, -4 * step.abs(), 1 - 0.02 * step.abs());
       case CompanionPose.read:
         return (0, -1.5 * wave, 1);
       case CompanionPose.sleep:
@@ -73,7 +84,20 @@ class _CompanionSpriteState extends State<CompanionSprite>
   Widget build(BuildContext context) {
     final size = widget.size;
     final poseAsset = widget.pose.assetFor(widget.profile.faceShapeIndex);
-    final body = poseAsset != null
+    final walkFrames = widget.pose == CompanionPose.walk
+        ? CompanionPose.walkFrames(widget.profile.faceShapeIndex)
+        : null;
+    final Widget body = walkFrames != null
+        ? Image.asset(
+            walkFrames[widget.stepPhase < 0.5 ? 0 : 1],
+            width: size,
+            height: size,
+            fit: BoxFit.contain,
+            alignment: Alignment.bottomCenter,
+            filterQuality: FilterQuality.none,
+            gaplessPlayback: true,
+          )
+        : poseAsset != null
         ? Image.asset(
             poseAsset,
             width: size,
@@ -98,10 +122,11 @@ class _CompanionSpriteState extends State<CompanionSprite>
               Transform(
                 alignment: Alignment.bottomCenter,
                 transform: Matrix4.translationValues(dx, dy, 0)
-                  ..scaleByDouble(1, scaleY, 1, 1),
+                  ..scaleByDouble(widget.facingLeft ? -1 : 1, scaleY, 1, 1),
                 child: child,
               ),
-              if (widget.pose != CompanionPose.idle)
+              if (widget.pose != CompanionPose.idle &&
+                  widget.pose != CompanionPose.walk)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: _PoseEffect(
@@ -196,6 +221,7 @@ class _PoseEffect extends StatelessWidget {
               ],
             );
           case CompanionPose.idle:
+          case CompanionPose.walk:
             return const SizedBox.shrink();
         }
       },

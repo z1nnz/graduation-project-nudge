@@ -3,6 +3,7 @@ import 'study_room_models.dart';
 /// What the companion character is doing right now.
 enum CompanionPose {
   idle,
+  walk,
   read,
   sleep,
   exercise,
@@ -59,9 +60,20 @@ enum CompanionPose {
   /// with code-drawn motion instead.
   String? assetFor(int faceShapeIndex) {
     if (this == CompanionPose.idle ||
+        this == CompanionPose.walk ||
         !poseArtIndexes.contains(faceShapeIndex)) {
       return null;
     }
     return 'assets/avatar/poses/pose_${faceShapeIndex}_$name.png';
+  }
+
+  /// Two-step walk frames for first-stage characters, or null to fall back
+  /// to the base sprite with code-drawn steps.
+  static List<String>? walkFrames(int faceShapeIndex) {
+    if (!poseArtIndexes.contains(faceShapeIndex)) return null;
+    return [
+      'assets/avatar/poses/walk_${faceShapeIndex}_a.png',
+      'assets/avatar/poses/walk_${faceShapeIndex}_b.png',
+    ];
   }
 }
