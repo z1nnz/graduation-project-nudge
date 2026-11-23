@@ -5,31 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 我的活動房</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
-    <link rel="stylesheet" href="assets/room-scene.css?v=2" />
+    <link rel="stylesheet" href="assets/room-scene.css?v=3" />
+    <link rel="stylesheet" href="assets/social_scene.css?v=1" />
   </head>
-  <body data-page="rooms">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html">
-          <span class="brand-mark">N</span>
-          <span><strong>Nudge</strong><small>我的活動房</small></span>
-        </a>
-        <nav class="nav">
-          <a href="dashboard.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a class="active" href="rooms.html">我的活動房</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a href="profile.html">個人名片</a>
-        </nav>
-      </aside>
-      <main class="main">
-        <header class="hero split room-hero">
+  <body data-page="rooms" data-social-facility="tower">
+    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
+    <header class="scene-topbar">
+      <a data-town-return href="town.html">← 回小鎮</a>
+      <span class="scene-place" data-scene-place>專注塔 · 自律房</span>
+    </header>
+    <nav class="scene-nav" data-scene-nav></nav>
+    <main class="main scene-main" id="sceneMain" tabindex="-1">
+        <header class="hero room-hero scene-hero">
           <div>
             <span class="eyebrow">Member-controlled Activity Rooms</span>
             <h1>一起前進，但保留每個人的節奏。</h1>
             <p>專注、運動、步數、睡眠與自訂活動都能形成房間。管理者維護規則與資格，每位成員自行決定何時開始與完成。</p>
-            <a class="room-world-return" href="dashboard.html" data-world-return>← 返回小鎮</a>
           </div>
           <div class="hero-card">
             <span>同步原則</span>
@@ -38,8 +29,8 @@
           </div>
         </header>
 
-        <section class="room-workspace page-section">
-          <aside class="panel room-list-panel">
+        <section class="room-workspace">
+          <aside class="scene-panel room-list-panel">
             <span class="eyebrow">Joined Rooms</span>
             <h2>我已加入的房間</h2>
             <p>這裡只顯示你的正式房間，不使用假資料。</p>
@@ -51,7 +42,7 @@
             </div>
           </aside>
 
-          <article class="panel room-session-panel" data-room-session-panel>
+          <article class="scene-panel room-session-panel" data-room-session-panel>
             <div class="room-empty-state">
               <span>尚未選擇房間</span>
               <strong>由你自己開始、暫停與完成</strong>
@@ -60,7 +51,7 @@
           </article>
         </section>
 
-        <section class="panel page-section room-stage-panel" aria-labelledby="roomStageTitle">
+        <section class="scene-panel room-stage-panel" aria-labelledby="roomStageTitle">
           <div class="room-panel-heading">
             <div><span class="eyebrow">Room Scene</span><h2 id="roomStageTitle">房內座位</h2></div>
             <strong class="room-stage-count" data-room-stage-count>選擇活動房</strong>
@@ -74,7 +65,7 @@
           </div>
         </section>
 
-        <section class="panel page-section room-resonance-panel">
+        <section class="scene-panel room-resonance-panel">
           <div class="room-panel-heading">
             <div><span class="eyebrow">Asynchronous Resonance</span><h2>非同步共振</h2></div>
             <label class="room-resonance-toggle"><input type="checkbox" data-room-resonance-enabled /><span>選擇分享</span></label>
@@ -86,8 +77,8 @@
           </div>
         </section>
 
-        <section class="room-interaction-grid page-section">
-          <article class="panel room-conversation-panel room-chat-preview-panel">
+        <section class="room-interaction-grid">
+          <article class="scene-panel room-conversation-panel room-chat-preview-panel">
             <div class="room-panel-heading">
               <div><span class="eyebrow">Room Conversation</span><h2>夥伴聊天室</h2></div>
               <span class="room-unread-badge" data-room-unread role="status" hidden></span>
@@ -99,7 +90,7 @@
             <p class="room-chat-note">未讀狀態只屬於你，跨裝置同步；離開房間後立即失效。</p>
           </article>
 
-          <aside class="panel">
+          <aside class="scene-panel">
             <span class="eyebrow">Room Governance</span>
             <h2>成員與房主</h2>
             <p>房主可管理資格或明確移交；活動紀錄仍由成員本人控制。</p>
@@ -109,7 +100,7 @@
           </aside>
         </section>
 
-        <section class="panel page-section room-events-panel">
+        <section class="scene-panel room-events-panel">
           <span class="eyebrow">Activity Timeline</span>
           <h2>房間歷程</h2>
           <div class="room-event-list" data-room-event-list>
@@ -117,29 +108,31 @@
           </div>
         </section>
 
-        <section class="card-grid-3 page-section">
-          <article class="panel">
+        <section class="card-grid-3">
+          <article class="scene-panel">
             <span class="eyebrow">Personal control</span>
             <h2>每人獨立活動</h2>
             <p>同一個房間裡，成員不必同時開始，也不會因管理者離開就被中止。</p>
           </article>
-          <article class="panel">
+          <article class="scene-panel">
             <span class="eyebrow">Shared progress</span>
             <h2>共享的是進度</h2>
             <p>房間聚合同儕進度與鼓勵，不把彼此的行程變成強制排程。</p>
           </article>
-          <article class="panel">
+          <article class="scene-panel">
             <span class="eyebrow">Cross-platform</span>
             <h2>App / Web 同步</h2>
             <p>登入同一帳號，就能在兩端看見一致的房間資格與活動狀態。</p>
           </article>
         </section>
       </main>
-    </div>
     <script src="assets/room_activity_session_contract.js?v=2"></script>
     <script src="assets/room_resonance_contract.js?v=1"></script>
     <script src="assets/room_scene.js?v=1"></script>
     <script src="assets/room_read_state.js?v=1"></script>
+    <script src="assets/town_routes.js?v=1"></script>
+    <script src="assets/town_return.js?v=1"></script>
+    <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>
