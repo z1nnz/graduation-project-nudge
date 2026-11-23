@@ -116,7 +116,7 @@ class _CompanionSpriteState extends State<CompanionSprite>
             maxHeight: size * 1.28,
             alignment: Alignment.bottomCenter,
             child: Image.asset(
-              walkFrames[widget.stepPhase < 0.5 ? 0 : 1],
+              CompanionPose.walkFrameAt(walkFrames, widget.stepPhase),
               height: size * 1.28,
               fit: BoxFit.contain,
               alignment: Alignment.bottomCenter,

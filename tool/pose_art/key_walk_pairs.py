@@ -1,12 +1,21 @@
-"""Key out walk-cycle pairs with one shared crop box per character, so the
-two step frames line up and the sprite does not jitter while walking.
+"""Key out walk-cycle frames (step a, step b and the passing frame p) so they
+line up and the sprite does not jitter while walking.
 
-  python tool/pose_art/key_walk_pairs.py <generated_dir> assets/avatar/poses
+Frames are generated separately, so instead of one shared crop box every
+frame is aligned on two anchors: the feet (bottom of the visible pixels) and
+the head (horizontal centre of the top third). All frames of one character
+use one scale.
+
+  python tool/pose_art/key_walk_pairs.py <generated_dir>... assets/avatar/poses
+
+Each generated_dir is searched for walk_<face>_{a,b,p}.png.
 """
 import sys
 from pathlib import Path
 
 from PIL import Image
+
+HEIGHT = 256
 
 
 def keyed(path):
@@ -21,20 +30,42 @@ def keyed(path):
     return im
 
 
+def head_x(im):
+    """Horizontal centre of the top third of the visible pixels."""
+    left, top, right, bottom = im.getbbox()
+    head = im.crop((left, top, right, top + (bottom - top) // 3)).getbbox()
+    return left + (head[0] + head[2]) / 2
+
+
 def main():
-    src, out = Path(sys.argv[1]), Path(sys.argv[2])
-    for a in sorted(src.glob('walk_*_a.png')):
-        b = a.with_name(a.name.replace('_a.png', '_b.png'))
-        ia, ib = keyed(a), keyed(b)
-        boxes = [ia.getbbox(), ib.getbbox()]
-        box = (min(x[0] for x in boxes), min(x[1] for x in boxes),
-               max(x[2] for x in boxes), max(x[3] for x in boxes))
-        for im, name in ((ia, a.name), (ib, b.name)):
-            c = im.crop(box)
-            scale = 256 / c.height
-            c = c.resize((max(1, round(c.width * scale)), 256), Image.NEAREST)
-            c.save(out / name, optimize=True)
-            print('wrote', out / name, c.size)
+    *sources, out = (Path(a) for a in sys.argv[1:])
+    found = {}
+    for src in sources:
+        for f in src.glob('walk_*_[abp].png'):
+            found[f.name] = f
+    faces = sorted({n.split('_')[1] for n in found}, key=int)
+    for face in faces:
+        names = [f'walk_{face}_{k}.png' for k in 'abp' if f'walk_{face}_{k}.png' in found]
+        ims = {n: keyed(found[n]) for n in names}
+        boxes = {n: im.getbbox() for n, im in ims.items()}
+        heads = {n: head_x(im) for n, im in ims.items()}
+        scale = HEIGHT / max(b[3] - b[1] for b in boxes.values())
+        # Room left and right of the head anchor, shared by every frame.
+        left = max(heads[n] - boxes[n][0] for n in names)
+        right = max(boxes[n][2] - heads[n] for n in names)
+        width = round((left + right) * scale)
+        for n in names:
+            box = boxes[n]
+            part = ims[n].crop(box)
+            part = part.resize(
+                (max(1, round(part.width * scale)), max(1, round(part.height * scale))),
+                Image.NEAREST,
+            )
+            canvas = Image.new('RGBA', (width, HEIGHT), (0, 0, 0, 0))
+            x = round((left - (heads[n] - box[0])) * scale)
+            canvas.paste(part, (x, HEIGHT - part.height), part)
+            canvas.save(out / n, optimize=True)
+            print('wrote', out / n, canvas.size)
 
 
 if __name__ == '__main__':

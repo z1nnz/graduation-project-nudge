@@ -1,0 +1,9 @@
+Use your built-in image generation tool once per image below. Attach and match the style of D:/nudge/cabin-art/ref_concept.png (cozy evening pixel-art cabin, chunky pixels, dark outlines, warm wood with violet and gold accents). Save each PNG into D:/nudge/hall-art/gen/ with exactly the given name. Do not read skill files and do nothing else. No text, letters, numbers or people/characters in any image.
+
+1. hall_study.png — portrait 9:16. A cozy pixel-art study hall seen from the front with a slight top-down angle, like a small library classroom. Back wall with tall windows showing a dusk sky, bookshelves on the sides, warm hanging lamps. Floor area holds EIGHT empty wooden study desks with chairs in TWO rows of four (back row smaller/further, front row larger/closer), evenly spaced, each desk with a small unlit desk lamp. A clear empty spot on the centre of the back wall for a big lantern. Leave the top 10% simple ceiling and bottom 12% simple floor.
+2. hall_sleep.png — same layout and camera as hall_study, but a calm night dormitory / nap room: EIGHT small cushions/beanbags with blankets in two rows of four instead of desks, moon and stars outside, soft violet lighting.
+3. hall_exercise.png — same layout and camera, but a cosy pixel gym: EIGHT exercise mats in two rows of four, a few dumbbells on racks along the walls, a window with sunset.
+For images 4-6: a single object centred on a perfectly flat pure magenta (#FF00FF) background, square 1:1, no shadow on the background.
+4. lantern_0.png — a large hanging paper lantern with gold frame and star motif, UNLIT (dim violet paper).
+5. lantern_1.png — the same lantern, half lit, soft warm glow.
+6. lantern_2.png — the same lantern, fully lit, bright warm golden glow with small sparkles.

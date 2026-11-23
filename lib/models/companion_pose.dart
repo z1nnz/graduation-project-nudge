@@ -71,9 +71,19 @@ enum CompanionPose {
   /// to the base sprite with code-drawn steps.
   static List<String>? walkFrames(int faceShapeIndex) {
     if (!poseArtIndexes.contains(faceShapeIndex)) return null;
+    final pass = 'assets/avatar/poses/walk_${faceShapeIndex}_p.png';
+    // Step, legs passing, other step, legs passing: a smooth 4-frame cycle.
     return [
       'assets/avatar/poses/walk_${faceShapeIndex}_a.png',
+      pass,
       'assets/avatar/poses/walk_${faceShapeIndex}_b.png',
+      pass,
     ];
+  }
+
+  /// The frame shown at [phase] (0–1 per full cycle; wraps around).
+  static T walkFrameAt<T>(List<T> frames, double phase) {
+    final wrapped = phase - phase.floorToDouble();
+    return frames[(wrapped * frames.length).floor() % frames.length];
   }
 }

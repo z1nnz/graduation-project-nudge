@@ -83,4 +83,24 @@ void main() {
     expect(CompanionPose.read.assetFor(1), isNull);
     expect(CompanionPose.idle.assetFor(0), isNull);
   });
+
+  test('walk cycle is four frames: step, pass, step, pass', () {
+    expect(CompanionPose.walkFrames(3), [
+      'assets/avatar/poses/walk_3_a.png',
+      'assets/avatar/poses/walk_3_p.png',
+      'assets/avatar/poses/walk_3_b.png',
+      'assets/avatar/poses/walk_3_p.png',
+    ]);
+    expect(CompanionPose.walkFrames(1), isNull);
+  });
+
+  test('walk frame follows the step phase', () {
+    const frames = ['a', 'p1', 'b', 'p2'];
+    expect(CompanionPose.walkFrameAt(frames, 0), 'a');
+    expect(CompanionPose.walkFrameAt(frames, 0.3), 'p1');
+    expect(CompanionPose.walkFrameAt(frames, 0.5), 'b');
+    expect(CompanionPose.walkFrameAt(frames, 0.99), 'p2');
+    expect(CompanionPose.walkFrameAt(frames, 1.0), 'a');
+    expect(CompanionPose.walkFrameAt(frames, -0.25), 'p2');
+  });
 }
