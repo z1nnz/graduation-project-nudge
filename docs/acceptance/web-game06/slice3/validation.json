@@ -1,0 +1,61 @@
+{
+  "base": "10cc51c3931594ade600f7385477a3439aa01dd1",
+  "root": {
+    "tests": 235,
+    "pass": 232,
+    "fail": 0,
+    "skipped": 3
+  },
+  "functions": {
+    "tests": 164,
+    "pass": 136,
+    "fail": 0,
+    "skipped": 28
+  },
+  "browser": {
+    "assertions": 58,
+    "pages": 22,
+    "axe_checked_pages": 21,
+    "axe_violations": 0,
+    "mobile_overflow": 0
+  },
+  "flutter": {
+    "analyze": "No issues found",
+    "tests_passed": 345,
+    "tests_failed": 0,
+    "local": "3.47.8",
+    "ci": "3.41.7",
+    "scope": "three slices combined in a clean ASCII temporary overlay; Dart unchanged"
+  },
+  "node_local": "26.4.0",
+  "node_ci": "22",
+  "full_java21_emulator": {
+    "result": "exit0",
+    "skipped_are_not_passed": true,
+    "command": "firebase-tools@15.18.0 emulators:exec --project nudge-discipline-app --only auth,firestore; exact CI script",
+    "initial_attempt": "An earlier run attached to a differently named Auth default project and failed USER_NOT_FOUND; not counted as passed. Rerun with the exact CI project passed."
+  },
+  "exact_head_ci": "required after publication; final record in PR",
+  "limitations": [
+    "Real devices and human screen reader not verified",
+    "Production App Check, OAuth provider configuration and Storage upload not verified",
+    "personal-focus interior belongs to #104; this scope adds only the shared return link",
+    "Research aggregate/economy aggregate/independent staff room-review endpoint not provided; honest empty states",
+    "Tools require gate bootstrap isolation to merge first; no Cloud/Rules/migration changes"
+  ],
+  "source_sha256": {
+    "test/town_tool_content_test.js": "2bf9d765cd71d51366cbf93f07d20d53f4a3319f96f696e7505c0628ca3b6418",
+    "web_dashboard/admin_dashboard.html": "714a36192d5b70324661a427be48a3f80a283b8ecbe2b12fab0e3848c3e3b244",
+    "web_dashboard/assets/town_routes.js": "cbf57ae189cc7a9e457fa27f2a0f4e2f87805a58232ce1df137862eae7cae9af",
+    "web_dashboard/assets/town_tools.js": "0c4f9cd0283e70b553814b7b1ba3d80d7031a3ff2b6d38f0f3374821488aa839",
+    "web_dashboard/assets/town_workbench.css": "51d090bf7a1b2ad4afa75e29117eb6f17b54bdb87e1d23e8895e67e0ca317332",
+    "web_dashboard/operations-economy.html": "0c8e54e4c6122e99c17ad98a1b44001038548dcd68a497f921aaeee053576047",
+    "web_dashboard/operations-room-review.html": "f1d6de8e6b219b9659c56a46e0fc0b9d0b2b56ccb2ad010314dbef189ace6f68",
+    "web_dashboard/operations-shop-campaign.html": "8a633fda5498e5b21ec65397e68d51442ad23e8baa872b817150c8bc0e585c37",
+    "web_dashboard/presentation.html": "f2161d7fadfdc788c5630814710ce28bf1a736fd6a3d08880ed210cc474d37f5",
+    "web_dashboard/research-anonymized.html": "2e08c9cab753f4a0f3c7b1060c9f4f3c445b10022c4debb0a2df42db543890c6",
+    "web_dashboard/research-scenario.html": "23bb1cbdfb398458560d9511551d09239bba5d836af927f28c08889ee47fe195",
+    "web_dashboard/research-score-demo.html": "226ad82af85cd1842a0b60e6c19328d34034edb8e5eb698bc92f0668d4736ecc",
+    "web_dashboard/research.html": "b275ea5cebdd50fc49da46e2a6724d8b13c8a8fbdea287878d70b39ebfd55214"
+  }
+}
