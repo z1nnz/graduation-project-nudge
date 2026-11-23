@@ -321,9 +321,6 @@ class FriendPublicProfilePage extends StatelessWidget {
                             showDialog(
                               context: context,
                               builder: (context) => AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
                                 title: const Row(
                                   children: [
                                     Icon(
