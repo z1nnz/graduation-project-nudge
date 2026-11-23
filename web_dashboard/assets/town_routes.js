@@ -40,7 +40,7 @@
     d('town', 'town.html', null, '夥伴小鎮', 'player', 'public', null, 'cloud', '#82'),
     scene('cabin-feedback', 'cabin', 'cabin', '夥伴的反應', '#82'),
     scene('desk-scene', 'desk', 'cabin', '坐到書桌前專注', '#82'),
-    d('cabin-scene', 'cabin.html', 'cabin', '小屋擺設', 'player', 'login', null, 'cloud', '#82', 'planned'),
+    d('cabin-scene', 'cabin.html', 'cabin', '小屋擺設', 'player', 'login', null, 'cloud', '#82'),
     d('focus-desk', 'personal-focus.html', 'cabin', '書桌專注', 'player', 'login', null, 'cloud', '#82'),
     d('profile', 'profile.html', 'cabin', '我的名片與角色', 'player', 'login', null, 'cloud', '#82'),
     scene('quest-board-scene', 'board', 'board', '看告示板：今天的一步', '#82'),

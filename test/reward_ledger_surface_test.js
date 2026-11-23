@@ -12,7 +12,10 @@ test("formal rewards are Cloud-written and client reward projections are protect
   const store = read("functions/src/firestore-activity-ledger-store.js");
   const rules = read("firestore.rules");
   const appState = read("lib/state/app_state.dart");
-  const webShop = read("web_dashboard/operations.html");
+  // The shop page loads its purchase logic from assets/reward_shop.js (#82 slice 3).
+  const webShopPage = read("web_dashboard/operations.html");
+  assert.match(webShopPage, /assets\/reward_shop\.js/);
+  const webShop = webShopPage + read("web_dashboard/assets/reward_shop.js");
   const functionsIndex = read("functions/index.js");
   const deletionRepository = read(
     "functions/src/firestore-account-deletion-repository.js",

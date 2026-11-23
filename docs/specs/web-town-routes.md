@@ -32,7 +32,6 @@
 | family-courtyard | `family-courtyard.html` | 家庭庭院 | #83 切片 4（PR #92） |
 | group-hall | `group-hall.html` | 團體會館 | #83 切片 4（PR #92） |
 | mailbox | `mailbox.html` | 小鎮廣場 | #83 切片 5（PR #93） |
-| cabin-scene | `cabin.html` | 你的小屋 | #82 切片 3 |
 | garden-scene | `garden.html` | 星光花園 | #82 切片 1／4 |
 
 ## 建築對照：#79 原本的落差與修正
@@ -57,8 +56,9 @@
 | `town.html` | 夥伴小鎮 | 公開；訪客只看導覽 | cloud：本人 `users/{uid}`、`activity_receipts`（唯讀） | — | — | #82 |
 | `personal-focus.html` | 書桌專注計時 | 登入 | cloud：`queueWebStandaloneFocusLedgerEvent` → Activity Ledger outbox → `recordActivity`。目前計時狀態只在記憶體，重新整理會中斷（切片 2 修正） | 你的小屋 | `town.html?at=cabin` | #82 |
 | `profile.html` | 我的名片、角色與徽章 | 登入 | cloud：本人 `users`、`public_profiles` | 你的小屋 | `town.html?at=cabin` | #82 |
+| `cabin.html` | 小屋擺設：正式角色與已擁有家具 | 登入 | cloud：本人 `users`（`unlockedAvatarItems`、`homeDecor`、`avatarProfile`）；保存只走 `arrangeHomeDecor` callable，Cloud 再檢查擁有權；圖與目錄是 `assets/home/` 的同檔複本（測試檢查與 App 一致） | 你的小屋 | `town.html?at=cabin` | #82 |
 | `dashboard.html` | 今日下一步、Web 功能介紹 | 公開；未登入顯示登入提示 | mixed：`daily_next_action.js` 讀本人任務與最新收據；其餘為介紹文字 | 委託告示板 | `town.html?at=board` | #82 |
-| `planet.html` | 任務清單與自律星球 | 登入 | mixed：任務讀寫本人 `users.tasks`，勾選經 `queueWebTaskLedgerEvent`；星球讀 `unlockedPlanets`，但沒有登入身分時會退回示範帳號 `an_nudge`，且用 `planetCount` 自動補星球（切片 3 移除或標示） | 告示板（任務）、天文台（星球） | `town.html?at=observatory` | #82 |
+| `planet.html` | 任務清單與自律星球 | 登入 | mixed：任務讀寫本人 `users.tasks`，勾選經 `queueWebTaskLedgerEvent`；星球只讀登入者本人的 `unlockedPlanets`（切片 3 移除示範帳號 `an_nudge` 退回）。只有舊版 `planetCount` 時只顯示數量並標示「類型未記錄」，不再自動編出星球種類 | 告示板（任務）、天文台（星球） | `town.html?at=observatory` | #82 |
 | `rooms.html` | 自律房 | 登入；房主只管資格，不控制成員活動 | cloud：`rooms`、`activity_sessions`、`recordActivity` | 專注塔 | `town.html?at=tower` | #83 |
 | `guardian.html` | 家長陪伴中心 | 登入；需已連結家庭（`canViewGuardianHub`），否則導到 `guardian-link.html` | cloud：`family_links`、`relationship_memberships`、`relationship_outcomes` | 家庭庭院 | `town.html?at=family` | #83 |
 | `guardian-link.html` | 連結家人 | 登入 | cloud：親屬邀請 | 家庭庭院 | `town.html?at=family` | #83 |
@@ -70,7 +70,7 @@
 | `personal.html` | 個人分析入口（紀錄館） | 登入 | mixed（#84 切片 1 正在把固定數字換成正式資料或空狀態） | 紀錄館 | `town.html?at=library` | #84 |
 | `personal-identity.html` | 自律人格與復原步驟 | 登入 | cloud：`discipline_identity_snapshots`、`refreshDisciplineIdentity` | 紀錄館 | `town.html?at=library` | #84 |
 | `personal-trends.html`、`personal-skill-tree.html`、`personal-weather.html`、`personal-pressure.html`、`personal-template.html`、`personal-letter.html`、`personal-time-capsule.html` | 紀錄館各分析工具 | 登入 | demo：目前是固定數字（#84 負責改成正式資料） | 紀錄館 | `town.html?at=library` | #84 |
-| `operations.html` | 角色商城 | 登入 | cloud：`shop_items`（published）、`purchaseRewardItem`。目前頁面腳本有語法錯誤，商品不會載入；另有讀 `localStorage` 折扣、直接跳「兌換成功」的假流程（切片 3 修正） | 雜貨店 | `town.html?at=store` | #82 |
+| `operations.html` | 角色與家具商城 | 登入 | cloud：`shop_items`（published、在上架期間）與共用家具目錄；購買只走 `purchaseRewardItem`，每個商品固定一個請求 id（重按不重複扣款）。切片 3 移除了有語法錯誤的頁內腳本、讀 `localStorage` 的折扣和假「兌換成功」，邏輯移到 `assets/reward_shop_core.js`／`reward_shop.js` | 雜貨店 | `town.html?at=store` | #82 |
 | `notifications.html` | 通知、邀請、提醒設定 | 登入 | cloud：`user_notifications`、`notification_preferences` | 小鎮廣場（郵箱） | `town.html?at=plaza` | #83 |
 | `friend.html`、`friend-visits.html` | 好友與拜訪紀錄 | 登入 | cloud：`friend_requests`、`users/{uid}/friends`、`public_profiles` | 小鎮廣場 | `town.html?at=plaza` | #83 |
 | `privacy.html` | 健康資料同意、匯出與刪除申請 | 登入 | cloud：`privacy_consents`、`privacy_data_requests` | 小鎮廣場 | `town.html?at=plaza` | core |
