@@ -74,5 +74,7 @@ test('focus desk controls parse and keep the Cloud pending state explicit', () =
   assert.match(html, /data-focus-mins="25"/);
   assert.match(html, /data-focus-mins="50"/);
   assert.match(html, /獎勵由雲端確認中/);
-  assert.doesNotMatch(html, /✓ 已確認/);
+  assert.match(html, /activitySessionId.*completedSessionId/);
+  assert.match(html, /NudgeConfirmedActivityFeedback\?\.parse/);
+  assert.match(html, /獎勵仍以雲端獎勵帳本為準/);
 });

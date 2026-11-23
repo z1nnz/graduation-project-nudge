@@ -53,6 +53,7 @@
       <div class="focus-ambient" id="hyperdriveBg" aria-hidden="true"></div>
     </div>
     <script src="assets/app.js?v=27"></script>
+    <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -64,6 +65,7 @@
         let timerId = null;
         let sessionId = null;
         let timerState = 'idle';
+        let unsubscribeReceipt = null;
         const display = document.getElementById('focusTimerDisplay');
         const status = document.getElementById('focusTimerStatus');
         const btnStart = document.getElementById('btnStartFocus');
@@ -92,6 +94,27 @@
           display.textContent = `${m}:${s}`;
         };
         updateDisplay();
+
+        const watchCompletedReceipt = completedSessionId => {
+          unsubscribeReceipt?.();
+          const userId = window.firebase?.auth()?.currentUser?.uid;
+          if (!userId) return;
+          unsubscribeReceipt = window.firebase.firestore().collection('activity_receipts')
+            .where('actorUserId', '==', userId)
+            .where('activitySessionId', '==', completedSessionId)
+            .limit(5)
+            .onSnapshot({ includeMetadataChanges: true }, snapshot => {
+              if (window.firebase.auth().currentUser?.uid !== userId || snapshot.metadata.hasPendingWrites) return;
+              const confirmed = snapshot.docs.some(doc =>
+                window.NudgeConfirmedActivityFeedback?.parse(doc.id, doc.data(), userId));
+              if (!confirmed) return;
+              settlement.textContent = '✓ 活動紀錄已由雲端確認；獎勵仍以雲端獎勵帳本為準。';
+              unsubscribeReceipt?.();
+              unsubscribeReceipt = null;
+            }, () => {
+              settlement.textContent = '暫時無法讀取雲端確認，連線恢復後再查看。';
+            });
+        };
 
         const queueLedger = async (eventType) => {
           if (typeof window.queueWebStandaloneFocusLedgerEvent !== 'function') {
@@ -123,6 +146,8 @@
           }
           btnStart.disabled = false;
           timerState = 'active';
+          unsubscribeReceipt?.();
+          unsubscribeReceipt = null;
           settlement.hidden = true;
           setPresetAvailability(false);
           hyperdriveBg.classList.add('active');
@@ -172,6 +197,7 @@
             if (eventType === 'completed') {
               settlement.textContent = '專注完成！活動已送出，獎勵由雲端確認中。';
               settlement.hidden = false;
+              watchCompletedReceipt(sessionId);
             }
           } catch (error) {
             message = error.message || '活動已停止，但 Ledger 尚未保存。';
@@ -201,6 +227,7 @@
         if (autoStart) {
           document.addEventListener('firebase-ready', startTimer, { once: true });
         }
+        window.addEventListener('pagehide', () => unsubscribeReceipt?.(), { once: true });
       });
     </script>
   </body>
