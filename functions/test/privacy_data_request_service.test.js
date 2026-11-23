@@ -16,6 +16,7 @@ import {
 function fakeExportFirestore(seed = {}) {
   const snapshot = record => ({
     id: record.id,
+    ref: { path: record.path },
     exists: true,
     data: () => structuredClone(record.data),
   });
@@ -34,6 +35,9 @@ function fakeExportFirestore(seed = {}) {
     },
   });
   return {
+    collectionGroup(name) {
+      return this.collection(name);
+    },
     collection(name) {
       const records = seed[name] ?? [];
       return {

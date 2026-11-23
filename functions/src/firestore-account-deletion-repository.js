@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { FieldPath, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { removeVoiceParticipant } from "./room-voice-service.js";
+
 const PAGE_SIZE = 400;
 const EXECUTION_LEASE_MS = 15 * 60 * 1000;
 const EVIDENCE_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
@@ -487,6 +489,15 @@ export class FirestoreAccountDeletionRepository {
 
     for (const [collection, field] of [
       ["messages", "senderId"],
+      ["chat_throttles", "userId"],
+      ["chat_pin", "userId"],
+      ["chat_reactors", "userId"],
+      ["chat_hidden_messages", "userId"],
+      ["chat_reports", "userId"],
+      ["chat_reports", "senderId"],
+      ["voice_signals", "from"],
+      ["voice_signals", "to"],
+      ["voice_mute", "requestedBy"],
       ["events", "actorId"],
       ["activity_sessions", "actorId"],
     ]) {
@@ -494,6 +505,32 @@ export class FirestoreAccountDeletionRepository {
         this.firestore,
         this.firestore.collectionGroup(collection).where(field, "==", userId),
       );
+    }
+
+    const mentions = await querySnapshots(
+      this.firestore.collectionGroup("messages").where("mentionUid", "==", userId),
+    );
+    for (const mention of mentions) {
+      await mention.ref.update({ mentionUid: FieldValue.delete() });
+    }
+
+    const startedRounds = await querySnapshots(
+      this.firestore.collectionGroup("focus_rounds").where("startedBy", "==", userId),
+    );
+    for (const round of startedRounds) {
+      await this.firestore.runTransaction(async transaction => {
+        const current = await transaction.get(round.ref);
+        if (current.data()?.startedBy === userId) {
+          transaction.update(round.ref, { startedBy: null });
+        }
+      });
+    }
+
+    const voiceParticipants = await querySnapshots(
+      this.firestore.collectionGroup("voice_participants").where("uid", "==", userId),
+    );
+    for (const presence of voiceParticipants) {
+      if (await removeVoiceParticipant(this.firestore, presence.ref)) deletedDocuments++;
     }
 
     for (const groupId of plan.operations.leaveGroupIds) {

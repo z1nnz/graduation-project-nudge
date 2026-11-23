@@ -5,26 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 隱私與資料</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=2" />
   </head>
-  <body data-page="privacy">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html">
-          <span class="brand-mark">N</span>
-          <span><strong>Nudge</strong><small>隱私與資料</small></span>
-        </a>
-        <nav class="nav">
-          <a href="dashboard.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a href="notifications.html">通知與邀請</a>
-          <a class="active" href="privacy.html">隱私與資料</a>
-        </nav>
-      </aside>
-      <main class="main">
+  <body class="w-page world-page" data-page="privacy">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>鎮公所</h1></header>
+    <div class="world-shell">
+
+      <main class="main w-main">
         <header class="hero split">
           <div>
-            <span class="eyebrow">Privacy & Data Rights</span>
-            <h1>健康資料同意必須可驗證、可撤回。</h1>
+            <span class="eyebrow">鎮公所 · 資料窗口</span>
+            <h1>你的資料，由你決定。</h1>
             <p>App 與 Web 共用同一份 Cloud consent。沒有目前版本的有效同意，Health Connect／Apple Health ingestion 會直接被拒絕。</p>
           </div>
           <div class="hero-card">
@@ -78,6 +69,8 @@
         </section>
       </main>
     </div>
+    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/town_return.js?v=2"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

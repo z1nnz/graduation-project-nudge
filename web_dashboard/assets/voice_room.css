@@ -1,0 +1,24 @@
+.voice-room {
+  margin-block: 16px;
+  color: var(--w-ink);
+}
+.voice-room p { color: var(--w-ink); }
+.voice-room-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.voice-room-controls [hidden], [data-voice-setting][hidden] { display: none; }
+[data-voice-hold] { touch-action: none; user-select: none; }
+[data-voice-speaking="true"] :is(.room-stage-seat-avatar, .study-hall-avatar) {
+  outline: 3px solid var(--w-gold);
+  border-radius: 50%;
+  animation: voice-wave 200ms ease-out;
+}
+@keyframes voice-wave {
+  from { outline-offset: 1px; }
+  to { outline-offset: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-voice-speaking="true"] :is(.room-stage-seat-avatar, .study-hall-avatar) { animation: none; }
+}

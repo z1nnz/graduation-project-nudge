@@ -7,37 +7,42 @@
     <link rel="stylesheet" href="assets/styles.css?v=17" />
     <link rel="stylesheet" href="assets/room-scene.css?v=3" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/room_chat.css?v=1" />
   </head>
-  <body data-page="room-chat" data-social-facility="tower">
+  <body class="w-page" data-page="room-chat" data-social-facility="tower">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
-    <header class="scene-topbar">
+    <header class="w-hud">
       <a data-town-return href="town.html">← 回小鎮</a>
-      <span class="scene-place" data-scene-place>專注塔 · 自律房</span>
+      <h1>夥伴聊天室</h1>
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
-    <main class="main scene-main" id="sceneMain" tabindex="-1">
-        <header class="hero scene-hero room-chat-hero"><div>
+    <main class="main w-main" id="sceneMain" tabindex="-1">
+        <header class="hero w-panel room-chat-hero"><div>
           <a class="room-chat-back" href="rooms.html" data-room-chat-back>← 返回活動房</a>
-          <span class="eyebrow">Room Conversation</span>
           <h1 data-room-chat-title>選擇活動房</h1>
           <p data-room-chat-status>正在確認你的房間資格。</p>
         </div></header>
         <div class="room-chat-layout">
-          <aside class="scene-panel room-chat-room-list" aria-label="切換已加入的活動房">
+          <aside class="w-panel room-chat-room-list" aria-label="切換已加入的活動房">
             <h2>我的房間</h2>
             <div class="room-list" data-room-list><p class="room-inline-empty">正在同步活動房。</p></div>
           </aside>
-          <section class="scene-panel room-chat-conversation" aria-label="房間對話">
-            <div class="room-chat-heading"><div><span class="eyebrow">一起走一小段</span><h2>互相鼓勵</h2></div><span>最近 60 則訊息</span></div>
+          <section class="w-panel room-chat-conversation" aria-label="房間對話">
+            <div class="room-chat-heading"><h2>對話</h2><span>最近 60 則訊息</span></div>
+            <aside data-chat-pin hidden aria-label="置頂公告"></aside>
             <div class="room-message-list" data-room-message-list role="log" aria-label="房間訊息" aria-live="off" tabindex="0"><p class="room-inline-empty">核准成員才能查看訊息。</p></div>
             <p class="room-chat-announcement" data-room-chat-announcement aria-live="polite"></p>
             <div class="room-encouragements" data-room-encouragements role="group" aria-label="固定鼓勵動作"></div>
-            <div class="room-stickers" role="group" aria-label="送出鼓勵貼圖"><button type="button" data-room-sticker="👏" aria-label="鼓掌貼圖" disabled>👏</button><button type="button" data-room-sticker="🔥" aria-label="火焰貼圖" disabled>🔥</button><button type="button" data-room-sticker="🌱" aria-label="新芽貼圖" disabled>🌱</button></div>
+            <details class="chat-sticker-picker"><summary>像素貼圖</summary><div data-chat-stickers></div></details>
+            <p data-chat-reply hidden><span></span> <button type="button" class="w-btn">取消引用</button></p>
+            <label>提及成員 <select data-chat-mention disabled><option value="">不提及</option></select></label>
+            <details data-chat-hidden hidden><summary>已隱藏的訊息</summary><div></div></details>
             <div class="room-message-composer"><input type="text" maxlength="500" placeholder="送出一句鼓勵…" aria-label="房間訊息" data-room-message-input disabled /><button class="primary-btn" type="button" data-room-message-send disabled>傳送</button></div>
             <p class="room-chat-note">只有已核准成員能讀取和傳送；離開房間後立即無法再讀寫。已讀位置跨裝置同步，訊息不會增加個人 XP 或金幣。</p>
           </section>
         </div>
-        <section class="scene-panel room-resonance-panel">
+        <section class="w-panel room-resonance-panel">
           <div class="room-panel-heading">
             <div><span class="eyebrow">Asynchronous Resonance</span><h2>非同步共振</h2></div>
             <label class="room-resonance-toggle"><input type="checkbox" data-room-resonance-enabled /><span>選擇分享</span></label>
@@ -47,6 +52,14 @@
           <div class="room-resonance-list" data-room-resonance-list><p class="room-inline-empty">選擇已核准的活動房後載入共振訊號。</p></div>
         </section>
       </main>
+    <dialog class="w-parchment" role="dialog" aria-labelledby="roomChatReportTitle" data-chat-report-dialog>
+      <form method="dialog">
+        <h2 id="roomChatReportTitle">檢舉訊息</h2>
+        <p>這則訊息會提供給有權審查的營運人員。</p>
+        <button class="w-btn" value="cancel" autofocus>取消</button>
+        <button class="w-btn" value="report">送出檢舉</button>
+      </form>
+    </dialog>
     <script src="assets/room_activity_session_contract.js?v=2"></script>
     <script src="assets/room_resonance_contract.js?v=1"></script>
     <script src="assets/room_scene.js?v=1"></script>
@@ -54,6 +67,7 @@
     <script src="assets/town_routes.js?v=2"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
+    <script src="assets/room_chat.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>
