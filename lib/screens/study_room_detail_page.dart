@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/avatar_profile.dart';
+import '../models/study_hall_seating.dart';
 import '../models/study_room_models.dart';
 import '../models/task_model.dart';
 import '../state/app_state.dart';
+import '../widgets/study_hall_scene.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
 import 'health_page.dart';
@@ -169,7 +171,7 @@ class StudyRoomDetailPage extends StatelessWidget {
 
   String _liveRoomSubtitle(StudyRoomData room) {
     if (!_usesExternalProgress(room)) {
-      return '進入角色房間，開始倒數、聊天、送鼓勵貼圖。';
+      return '走進自習室，和大家一起開始倒數；聊天在房間裡的聊天頁。';
     }
 
     switch (room.roomType) {
@@ -181,7 +183,7 @@ class StudyRoomDetailPage extends StatelessWidget {
         return '步數由健康資料導入，房內查看排行榜並互相提醒去走走。';
       case StudyRoomType.study:
       case StudyRoomType.custom:
-        return '查看同步進度、聊天、送鼓勵貼圖。';
+        return '走進房間看大家的進度；聊天在房間裡的聊天頁。';
     }
   }
 
@@ -1187,6 +1189,41 @@ class StudyRoomDetailPage extends StatelessWidget {
 
                     const SizedBox(height: AppUI.sectionGap),
 
+                    StudyHallScene(
+                      roomType: room.roomType,
+                      seating: StudyHallSeating.assign([
+                        for (final member in approvedMembers)
+                          member.avatarProfile != null
+                              ? member
+                              : member.copyWith(
+                                  avatarProfile: _memberAvatarProfile(
+                                    appState,
+                                    member,
+                                  ),
+                                ),
+                      ], myId: currentMemberId),
+                      myId: currentMemberId,
+                      lanternStage: () {
+                        final goal = room.challengeGoalSeconds;
+                        if (goal <= 0) return 0;
+                        final total = approvedMembers.fold<int>(
+                          0,
+                          (sum, m) => sum + m.todayFocusSeconds,
+                        );
+                        return total >= goal
+                            ? 2
+                            : total * 2 >= goal
+                            ? 1
+                            : 0;
+                      }(),
+                      onMemberTap: (_) => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StudyRoomLivePage(roomId: room.id),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppUI.sectionGap),
                     _SectionHeader(
                       title: '我的房內狀態',
                       subtitle: '查看自己在這間房的狀態與今日進度。',

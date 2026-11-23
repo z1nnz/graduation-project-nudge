@@ -300,9 +300,6 @@ class _BadgesPageState extends State<BadgesPage> {
         return AlertDialog(
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
           contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
           title: Row(
             children: [
               Container(
