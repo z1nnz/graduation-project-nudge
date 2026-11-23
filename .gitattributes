@@ -1,0 +1,26 @@
+# Keep the repository LF everywhere so source-matching tests, SHA-256
+# evidence hashes and firmware generators behave the same on Windows,
+# macOS and Linux checkouts (core.autocrlf=true would otherwise rewrite them).
+* text=auto eol=lf
+
+# Windows-only launchers keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.bin binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.glb binary
