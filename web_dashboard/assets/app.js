@@ -2822,6 +2822,37 @@ function roomSessionStatusLabel(status) {
 }
 
 function renderWebRoomSessionPanel() {
+  if (window.NudgeFocusRound) {
+    const viewerId = db ? firebase.auth().currentUser?.uid : null;
+    const roomId = activeWebRoom?.id;
+    window.NudgeFocusRound.sync(
+      viewerId && roomId && activeWebRoomMember?.approvalStatus === "approved" &&
+      roomActivityKind(activeWebRoom) === "focus"
+        ? {
+            roomId, userId: viewerId, db,
+            canJoin: () => !webRoomCommandPending &&
+              !["active", "paused"].includes(activeWebRoomSession?.status),
+            startOwnActivity: async () => {
+              if (activeWebRoom?.id !== roomId || webRoomCommandPending) {
+                throw new Error("請確認目前所在房間和活動狀態。");
+              }
+              webRoomCommandPending = true;
+              renderWebRoomSessionPanel();
+              try {
+                await startWebRoomSession();
+              } finally {
+                webRoomCommandPending = false;
+                renderWebRoomSessionPanel();
+              }
+            },
+            getServerTime: async () => {
+              const result = await functions.httpsCallable("getFocusRoundServerTime")({});
+              return result.data.serverMillis;
+            },
+          }
+        : null,
+    );
+  }
   const panel = $("[data-room-session-panel]");
   if (!panel) return;
   if (!activeWebRoom) {
@@ -2935,6 +2966,7 @@ function stopWebRoomInteractionListeners() {
 }
 
 function stopWebRoomDetailListeners() {
+  window.NudgeFocusRound?.stop();
   if (webRoomMemberSub) webRoomMemberSub();
   if (webRoomSessionsSub) webRoomSessionsSub();
   if (webRoomContributionsSub) webRoomContributionsSub();

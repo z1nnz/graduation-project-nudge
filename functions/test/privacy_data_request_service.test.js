@@ -34,6 +34,9 @@ function fakeExportFirestore(seed = {}) {
     },
   });
   return {
+    collectionGroup(name) {
+      return this.collection(name);
+    },
     collection(name) {
       const records = seed[name] ?? [];
       return {

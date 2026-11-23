@@ -444,6 +444,38 @@ async function run() {
     "A stranger cannot read room activity sessions",
   );
 
+  const focusRound = `${roomPath}/focus_rounds/current`;
+  function roundWrite(path, startedBy, durationMin = 25) {
+    const write = createWrite(path, { startedBy, durationMin, breakMin: 5 });
+    delete write.currentDocument;
+    write.updateTransforms = [{ fieldPath: "startAt", setToServerValue: "REQUEST_TIME" }];
+    return write;
+  }
+  response = await commit([roundWrite(focusRound, stranger.localId)], stranger.idToken);
+  assert.equal(response.status, 403, "Outsiders cannot start the shared timer");
+  response = await commit([roundWrite(focusRound, owner.localId)], alice.idToken);
+  assert.equal(response.status, 403, "Members cannot forge the initiator");
+  response = await commit([roundWrite(focusRound, alice.localId, 1)], alice.idToken);
+  assert.equal(response.status, 403, "Clients cannot shorten the round");
+  const contests = await Promise.all([
+    commit([roundWrite(focusRound, alice.localId)], alice.idToken),
+    commit([roundWrite(focusRound, owner.localId)], owner.idToken),
+  ]);
+  assert.deepEqual(contests.map(result => result.status).sort(), [200, 403],
+    "Simultaneous starts result in exactly one shared round");
+  response = await commit([roundWrite(`${roomPath}/focus_rounds/another`, alice.localId)], alice.idToken);
+  assert.equal(response.status, 403, "An alternate document cannot bypass the single active round");
+  response = await request(focusRound, stranger.idToken);
+  assert.equal(response.status, 403, "Outsiders cannot read the timer");
+  response = await request(focusRound, alice.idToken);
+  assert.equal(response.status, 200, "Approved members share the timer");
+  const advanceClock = updateWrite(focusRound, { startAt: "" });
+  advanceClock.update.fields.startAt = { timestampValue: now };
+  response = await commit([advanceClock], "owner");
+  assert.equal(response.status, 200, "Seed a past round with the emulator admin");
+  response = await commit([roundWrite(focusRound, alice.localId)], alice.idToken);
+  assert.equal(response.status, 200, "After the break an approved member can replace the round");
+
   const aliceMessagePath = `${roomPath}/messages/message-alice`;
   response = await createDoc(
     aliceMessagePath,

@@ -768,6 +768,14 @@ export const notifyGroupRequestUpdated =
     handleGroupRequestUpdated,
   );
 
+export const getFocusRoundServerTime = onCall(
+  { timeoutSeconds: 5, memory: "256MiB" },
+  request => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Sign-in is required.");
+    return { serverMillis: Date.now() };
+  },
+);
+
 export const deliverPushNotification = onDocumentCreated(
   {
     document: "push_delivery_jobs/{jobId}",

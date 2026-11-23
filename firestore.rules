@@ -1771,6 +1771,20 @@ service cloud.firestore {
         allow read, write: if false;
       }
 
+      match /focus_rounds/{roundId} {
+        function validNewFocusRound() {
+          let data = request.resource.data;
+          return roundId == 'current' && isApprovedActiveRoomParticipant()
+            && data.keys().hasOnly(['startedBy', 'startAt', 'durationMin', 'breakMin'])
+            && data.startedBy == request.auth.uid && data.startAt == request.time
+            && data.durationMin == 25 && data.breakMin == 5;
+        }
+        allow read: if isApprovedActiveRoomParticipant();
+        allow create: if validNewFocusRound();
+        allow update: if validNewFocusRound()
+          && resource.data.startAt + duration.value(30, 'm') <= request.time;
+      }
+
       match /messages/{messageId} {
         function validRoomMessage() {
           return request.resource.data.keys().hasOnly([
