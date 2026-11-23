@@ -4,47 +4,86 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Nudge 你的小屋</title>
-    <meta name="theme-color" content="#2a1a14" />
-    <link rel="stylesheet" href="assets/town.css?v=4" />
-    <link rel="stylesheet" href="assets/cabin.css?v=1" />
+    <meta name="theme-color" content="#1b1530" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/cabin.css?v=2" />
   </head>
-  <body data-page="cabin">
-    <main class="cabin" aria-labelledby="cabinTitle">
-      <header class="cabin-top">
-        <a class="town-ghost cabin-back" data-town-return="cabin" href="town.html">← 返回小鎮</a>
-        <h1 id="cabinTitle">你的小屋</h1>
-        <span id="cabinCoins" class="cabin-chip">讀取中</span>
-      </header>
+  <body class="w-page" data-page="cabin">
+    <header class="w-hud">
+      <a data-town-return="cabin" href="town.html">← 回小鎮</a>
+      <h1 id="cabinTitle">你的小屋</h1>
+      <span id="cabinCoins" class="w-chip is-wait">雲端確認中</span>
+    </header>
 
+    <main id="cabinMain" class="w-main cabin" aria-labelledby="cabinTitle">
       <p id="cabinStatus" class="cabin-status" role="status" aria-live="polite">正在讀取你的小屋…</p>
 
       <section id="cabinScene" class="cabin-scene" hidden>
-        <div id="cabinStage" class="cabin-stage" role="img" aria-labelledby="cabinSummary">
-          <img id="cabinBase" class="cabin-layer cabin-base" alt="" />
-          <div id="cabinLayers"></div>
-          <img id="cabinCharacter" class="cabin-layer cabin-character" alt="" />
-        </div>
-        <p id="cabinSummary" class="cabin-summary"></p>
-
-        <form id="cabinForm" class="cabin-form" aria-describedby="cabinFormHint">
-          <p id="cabinFormHint" class="cabin-hint">只能擺放你已擁有的家具。每個位置的第一個選項免費。保存後，其他裝置也會看到同樣的擺設。</p>
-          <div id="cabinSlots" class="cabin-slots"></div>
-          <div class="cabin-actions">
-            <button id="cabinSave" type="submit" class="town-gold" disabled>保存擺設</button>
-            <button id="cabinRevert" type="button" class="town-ghost" disabled>復原成雲端版本</button>
-            <a class="town-ghost" href="operations.html#decor">到雜貨店買家具</a>
+        <div class="cabin-room">
+          <div id="cabinStage" class="cabin-stage" role="group" aria-label="小屋房間" aria-describedby="cabinSummary">
+            <img id="cabinBase" class="cabin-layer cabin-base" alt="" draggable="false" />
+            <div id="cabinLayers" class="cabin-layers"></div>
+            <div id="cabinNight" class="cabin-night" aria-hidden="true"></div>
+            <button id="cabinCompanion" class="cabin-companion" type="button" aria-label="夥伴：點一下打招呼">
+              <img id="cabinCharacter" alt="" draggable="false" />
+              <span id="cabinGlyph" class="cabin-glyph" aria-hidden="true"></span>
+            </button>
+            <p id="cabinBubble" class="cabin-bubble" role="status" aria-live="polite" hidden></p>
+            <div id="cabinGrid" class="cabin-grid" aria-hidden="true" hidden></div>
+            <div id="cabinSpots" class="cabin-spots" hidden></div>
+            <div id="cabinGhost" class="cabin-ghost" aria-hidden="true" hidden><img alt="" draggable="false" /></div>
           </div>
-          <p id="cabinSaveStatus" class="cabin-save-status" role="status" aria-live="polite"></p>
-        </form>
+          <p id="cabinSummary" class="cabin-summary"></p>
+        </div>
 
-        <p class="cabin-hint">想專注的話，<a data-town-return="cabin" href="town.html">回到小鎮的小屋門口</a>，打開「坐到書桌前專注」。</p>
+        <div class="cabin-side">
+          <div class="w-panel cabin-toolbar">
+            <div id="cabinViewTools" class="cabin-tools">
+              <button id="cabinDecorate" type="button" class="w-btn is-gold">布置</button>
+              <a class="w-btn" href="operations.html#decor">到雜貨店買家具</a>
+            </div>
+            <div id="cabinEditTools" class="cabin-tools" hidden>
+              <button id="cabinUndo" type="button" class="w-btn" aria-keyshortcuts="Control+Z" disabled>↶ 復原</button>
+              <button id="cabinRedo" type="button" class="w-btn" aria-keyshortcuts="Control+Y" disabled>↷ 重做</button>
+              <button id="cabinReset" type="button" class="w-btn">還原預設</button>
+              <button id="cabinCancel" type="button" class="w-btn">離開布置</button>
+              <button id="cabinSave" type="button" class="w-btn is-gold" disabled>儲存</button>
+            </div>
+            <p id="cabinSaveStatus" class="cabin-save-status" role="status" aria-live="polite"></p>
+          </div>
+
+          <section id="cabinTray" class="w-parchment cabin-tray" aria-labelledby="cabinTrayTitle" hidden>
+            <h2 id="cabinTrayTitle">我的家具</h2>
+            <p id="cabinTrayHint" class="w-muted cabin-hint">把家具拖到房間裡發光的位置，或點一下直接換上。點房間裡的家具、或用方向鍵 ← → 也能切換款式。只能擺你已擁有的家具，按「儲存」後其他裝置也會看到。</p>
+            <div id="cabinSlots" class="cabin-slots"></div>
+          </section>
+
+          <p class="cabin-hint">想專注的話，<a data-town-return="cabin" href="town.html">回到小鎮的小屋門口</a>，打開「坐到書桌前專注」。夥伴會到書桌陪你讀書。</p>
+        </div>
       </section>
     </main>
+
+    <div id="cabinLock" class="cabin-lock" hidden>
+      <p class="w-panel" role="status" aria-live="polite">雲端確認中…</p>
+    </div>
+
+    <div id="cabinDialog" class="cabin-dialog-backdrop" hidden>
+      <div class="w-parchment cabin-dialog" role="dialog" aria-modal="true" aria-labelledby="cabinDialogTitle" aria-describedby="cabinDialogText">
+        <h2 id="cabinDialogTitle">還有沒儲存的布置</h2>
+        <p id="cabinDialogText">離開布置會放棄這些變更，小屋會回到雲端目前的擺設。</p>
+        <div class="cabin-tools">
+          <button id="cabinDialogStay" type="button" class="w-btn is-gold">繼續布置</button>
+          <button id="cabinDialogLeave" type="button" class="w-btn">放棄變更</button>
+        </div>
+      </div>
+    </div>
 
     <script src="assets/town_routes.js?v=2"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/cabin_core.js?v=1"></script>
-    <script src="assets/cabin.js?v=1"></script>
+    <script src="assets/cabin_layout_core.js?v=1"></script>
+    <script src="assets/cabin_companion_core.js?v=1"></script>
+    <script src="assets/cabin.js?v=2"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>

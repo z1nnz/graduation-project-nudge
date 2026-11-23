@@ -1,41 +1,188 @@
-/* Web companion cabin: reuses the town palette from town.css. */
-body[data-page="cabin"] { overflow: auto; }
-.cabin { max-width: 960px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 16px 32px; }
-.cabin-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.cabin-top h1 { margin: 0; font-size: 24px; color: var(--town-gold); flex: 1; }
-.cabin-back { display: inline-flex; align-items: center; text-decoration: none; }
-.cabin-chip { background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 999px; padding: 4px 12px; font-weight: 800; }
-.cabin-status { margin: 12px 0; opacity: 0.9; }
+/* Web companion cabin 2.0. Colours and fonts come from world_ui.css tokens. */
+.cabin { display: block; }
+.cabin-status { margin: 4px 0 12px; color: var(--w-ink); }
 
-/* The stage keeps the App's layout fractions (assets/home/cabin_layout.json). */
-.cabin-stage { position: relative; width: min(100%, 440px, calc(62vh * 0.5629)); margin: 0 auto; aspect-ratio: 0.5629 / 1;
-  border-radius: 18px; overflow: hidden; border: 2px solid var(--town-border); background: #2a1a14; }
+.cabin-scene {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+.cabin-room { display: grid; justify-items: center; gap: 8px; }
+
+/* The room is drawn at exactly half the art's 720 px width, the same layout
+   fractions as the App (assets/home/cabin_layout.json). */
+.cabin-stage {
+  position: relative;
+  width: 360px;
+  max-width: 100%;
+  aspect-ratio: 0.5629 / 1;
+  overflow: hidden;
+  border: 3px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  box-shadow: var(--w-shadow);
+  background: var(--w-wood-deep);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
 .cabin-layer { position: absolute; display: block; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
-.cabin-base { inset: 0; width: 100%; height: 100%; object-fit: fill; z-index: 0; } /* App: BoxFit.fill */
-.cabin-character { z-index: 10; object-position: bottom; }
-.cabin-summary { margin: 10px auto; max-width: 440px; line-height: 1.6; }
-.cabin-summary[data-fallback="true"]::before { content: "小屋圖片載入失敗，改用文字顯示："; display: block; color: var(--town-gold); }
+.cabin-base { inset: 0; width: 100%; height: 100%; object-fit: fill; z-index: 0; pointer-events: auto; } /* App: BoxFit.fill */
+.cabin-layers { position: absolute; inset: 0; pointer-events: none; }
+.cabin-night {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: var(--w-violet-deep); opacity: 0.22; mix-blend-mode: multiply;
+}
+.cabin-summary { margin: 0; max-width: 360px; line-height: 1.6; font-size: 14px; }
+.cabin-summary[data-fallback="true"]::before { content: "小屋圖片載入失敗，改用文字顯示："; display: block; color: var(--w-gold); }
 
-.cabin-form { margin-top: 16px; background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 18px; padding: 14px 16px; }
-.cabin-hint { font-size: 14px; line-height: 1.6; opacity: 0.9; }
-.cabin-hint a { color: var(--town-gold); }
-.cabin-slots { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-.cabin-slot { border: 1px solid var(--town-border); border-radius: 14px; padding: 8px 12px 12px; margin: 0; min-width: 0; }
-.cabin-slot legend { padding: 0 6px; font-weight: 800; color: var(--town-gold); }
-.cabin-choice { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center;
-  min-height: 44px; padding: 6px 8px; border-radius: 10px; cursor: pointer; }
-.cabin-choice small { grid-column: 2; font-size: 12px; opacity: 0.8; }
-.cabin-choice input { width: 20px; height: 20px; accent-color: var(--town-gold); grid-row: span 2; }
-.cabin-choice:has(input:checked) { background: rgba(255, 197, 77, 0.16); }
-.cabin-choice:has(input:focus-visible) { outline: 3px solid var(--town-gold); outline-offset: 2px; }
-.cabin-choice.is-locked { cursor: not-allowed; opacity: 0.6; }
-.cabin-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-.cabin-actions .town-ghost, .cabin-actions .town-gold { display: inline-flex; align-items: center; text-decoration: none; }
-.cabin-actions button:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-.cabin-save-status { min-height: 1.4em; margin: 10px 0 0; }
-.cabin-save-status[data-tone="ok"] { color: #9ef0b0; }
-.cabin-save-status[data-tone="bad"] { color: #ffb3a8; }
+/* ---------- companion ---------- */
+.cabin-companion {
+  position: absolute;
+  z-index: 6;
+  transform: translate(-50%, -100%);
+  aspect-ratio: 2 / 3;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+.cabin-companion img { height: 100%; width: auto; max-width: none; image-rendering: pixelated; pointer-events: none; }
+.cabin-companion[data-flip="true"] img { transform: scaleX(-1); }
+.cabin-companion:focus-visible { outline: 3px solid var(--w-gold); outline-offset: 2px; border-radius: 8px; }
+.cabin-companion.is-jump { animation: cabin-hop 240ms ease-out; }
+@keyframes cabin-hop {
+  0% { transform: translate(-50%, -100%); }
+  45% { transform: translate(-50%, calc(-100% - 14px)); }
+  100% { transform: translate(-50%, -100%); }
+}
+.cabin-glyph {
+  position: absolute; top: 6%; right: -6%;
+  font-family: var(--w-pixel); font-size: 16px; color: var(--w-gold);
+  text-shadow: 1px 1px 0 var(--w-wood-deep);
+  pointer-events: none;
+}
+.cabin-companion[data-pose="sleep"] .cabin-glyph { color: var(--w-violet); }
+.cabin-bubble {
+  position: absolute; z-index: 9; margin: 0;
+  transform: translate(-50%, -100%);
+  max-width: 70%;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 2px solid var(--w-wood);
+  background: var(--w-parchment-hi);
+  color: var(--w-ink-dark);
+  font-family: var(--w-pixel);
+  font-size: 14px;
+  white-space: nowrap;
+  animation: w-pop 0.2s ease-out;
+}
 
-@media (max-width: 560px) {
-  .cabin-top h1 { font-size: 20px; }
+/* ---------- decorate mode ---------- */
+.cabin-grid {
+  position: absolute; inset: 0; z-index: 8; pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--w-gold) 28%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--w-gold) 28%, transparent) 1px, transparent 1px);
+  background-size: var(--cabin-cell-w, 4.1667%) var(--cabin-cell-h, 2.345%);
+}
+.cabin-stage.is-decorating .cabin-companion { opacity: 0.55; pointer-events: none; }
+.cabin-spots { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+.cabin-spot {
+  position: absolute;
+  pointer-events: auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 2px dashed var(--w-gold);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--w-gold) 12%, transparent);
+  cursor: grab;
+  touch-action: none;
+}
+.cabin-spot:hover, .cabin-spot:focus-visible { background: color-mix(in srgb, var(--w-gold) 26%, transparent); outline: 3px solid var(--w-parchment-hi); outline-offset: 1px; }
+.cabin-spot.is-goal { border-style: solid; background: color-mix(in srgb, var(--w-green) 30%, transparent); border-color: var(--w-green); }
+.cabin-spot-tag {
+  position: absolute; left: 4px; top: 4px;
+  padding: 0 6px; border-radius: 6px;
+  background: var(--w-wood-deep); color: var(--w-gold);
+  font-family: var(--w-pixel); font-size: 12px;
+}
+.cabin-ghost {
+  position: absolute; z-index: 12; pointer-events: none;
+  border: 2px solid var(--w-green); border-radius: 8px;
+  background: color-mix(in srgb, var(--w-green) 18%, transparent);
+  transition: left 120ms ease-out, top 120ms ease-out;
+}
+.cabin-ghost[data-ok="false"] { border-color: var(--w-red); background: color-mix(in srgb, var(--w-red) 20%, transparent); }
+.cabin-ghost img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; opacity: 0.85; }
+
+/* ---------- side panel ---------- */
+.cabin-side { display: grid; gap: 14px; min-width: 0; }
+.cabin-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.cabin-save-status { min-height: 1.4em; margin: 10px 0 0; line-height: 1.5; }
+.cabin-save-status[data-tone="ok"] { color: var(--w-gold); }
+.cabin-save-status[data-tone="bad"] { color: var(--w-parchment); text-decoration: underline wavy var(--w-red); text-underline-offset: 4px; }
+.cabin-tray h2 { font-size: 20px; }
+.cabin-hint { font-size: 14px; line-height: 1.6; }
+.cabin-hint a { color: var(--w-gold); }
+.w-parchment .cabin-hint a { color: var(--w-violet-deep); }
+.cabin-slots { display: grid; gap: 10px; }
+.cabin-slot { border: 2px solid var(--w-wood); border-radius: 10px; padding: 6px 10px 10px; margin: 0; min-width: 0; }
+.cabin-slot legend { padding: 0 6px; font-family: var(--w-pixel); color: var(--w-ink-dark); }
+.cabin-tiles { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.cabin-tile {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px;
+  border: 2px solid var(--w-wood);
+  border-radius: 10px;
+  background: var(--w-parchment-hi);
+  color: var(--w-ink-dark);
+  font: inherit;
+  cursor: grab;
+  touch-action: none;
+}
+.cabin-tile img { width: 64px; height: 48px; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
+.cabin-tile-name { font-family: var(--w-pixel); font-size: 13px; }
+.cabin-tile small { font-size: 12px; color: var(--w-ink-soft); }
+.cabin-tile.is-current { border-color: var(--w-gold-deep); background: var(--w-parchment); box-shadow: inset 0 0 0 2px var(--w-gold); }
+.cabin-tile.is-locked { cursor: not-allowed; opacity: 0.55; }
+.cabin-tile:focus-visible { outline: 3px solid var(--w-violet); outline-offset: 2px; }
+
+/* ---------- lock + dialog ---------- */
+.cabin-lock {
+  position: fixed; inset: 0; z-index: 40;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--w-night) 55%, transparent);
+  cursor: progress;
+}
+.cabin-lock p { font-family: var(--w-pixel); margin: 0; }
+.cabin-dialog-backdrop {
+  position: fixed; inset: 0; z-index: 45;
+  display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--w-night) 60%, transparent);
+}
+.cabin-dialog { max-width: 360px; animation: w-pop 0.22s ease-out; }
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cabin-companion.is-jump, .cabin-bubble, .cabin-dialog { animation: none; }
+  .cabin-ghost { transition: none; }
+}
+
+@media (max-width: 720px) {
+  .cabin-scene { grid-template-columns: minmax(0, 1fr); }
+  .cabin-tools .w-btn { width: auto; flex: 1 1 calc(50% - 8px); }
+}
+@media (max-width: 384px) {
+  .cabin-stage { width: 100%; }
+  .cabin-tiles { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
 }
