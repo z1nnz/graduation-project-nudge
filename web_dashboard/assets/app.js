@@ -2323,9 +2323,16 @@ const webRoomResonanceResponseLabels = Object.freeze({
   take_your_time: "慢慢來也可以",
 });
 
+// Date.now() ticks in milliseconds, so two ids created in the same tick
+// collide and Cloud treats the second write as a replay. Always add entropy.
+function webUniqueSuffix() {
+  const random = globalThis.crypto?.randomUUID?.().replaceAll("-", "").slice(0, 12) ||
+    Math.random().toString(36).slice(2, 14);
+  return `${Date.now()}_${random}`;
+}
+
 function webRoomResonanceRequestId() {
-  const suffix = globalThis.crypto?.randomUUID?.() ||
-    `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const suffix = globalThis.crypto?.randomUUID?.() || webUniqueSuffix();
   return `resonance_${suffix}`;
 }
 
@@ -3120,7 +3127,7 @@ function buildWebRoomEvent(type, text) {
     throw new Error("尚未載入房間成員身分");
   }
   const now = new Date().toISOString();
-  const eventId = `event_${userId}_${Date.now()}`.replaceAll("/", "_");
+  const eventId = `event_${userId}_${webUniqueSuffix()}`.replaceAll("/", "_");
   return {
     id: eventId,
     roomId: activeWebRoom.id,
@@ -3148,7 +3155,7 @@ async function sendWebRoomMessage(rawText, type = "text") {
   const text = String(rawText || "").trim();
   if (!text) throw new Error("請輸入訊息");
   const now = new Date().toISOString();
-  const messageId = `message_${userId}_${Date.now()}`.replaceAll("/", "_");
+  const messageId = `message_${userId}_${webUniqueSuffix()}`.replaceAll("/", "_");
   const senderName = String(activeWebRoomMember.displayName || "自律夥伴")
     .slice(0, 40);
   const roomRef = db.collection("rooms").doc(activeWebRoom.id);
@@ -3420,7 +3427,7 @@ async function startWebRoomSession() {
     throw new Error("健康型房間只能從 App 的受信任健康來源同步");
   }
   const contract = await loadRoomActivitySessionContract();
-  const safeIdentity = `${userId}_${activeWebRoom.id}_${Date.now()}`.replaceAll("/", "_");
+  const safeIdentity = `${userId}_${activeWebRoom.id}_${webUniqueSuffix()}`.replaceAll("/", "_");
   const session = contract.start({
     sessionId: safeIdentity,
     roomId: activeWebRoom.id,
@@ -6598,7 +6605,7 @@ async function publishCanonicalWebGroupChallenge({ type, days, reward }) {
   const payload = window.NudgeGroupContract.buildGroupChallenge({
     group,
     publisherId: userId,
-    challengeId: `challenge_${Date.now()}_${userId.slice(0, 8)}`,
+    challengeId: `challenge_${webUniqueSuffix()}_${userId.slice(0, 8)}`,
     type,
     days,
     reward,
@@ -6697,7 +6704,7 @@ async function deleteCanonicalWebGroupTemplate(templateId) {
 }
 
 function generateWebGroupId() {
-  return `GRP-${Date.now().toString(36).toUpperCase()}`;
+  return `GRP-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 async function createCanonicalWebGroup(userId, name) {
