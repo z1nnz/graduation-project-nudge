@@ -718,6 +718,7 @@ export class FirestoreAccountDeletionRepository {
       ["activity_sessions", "actorUserId"],
       ["room_contributions", "actorUserId"],
       ["room_resonance_preferences", "userId"],
+      ["room_read_markers", "userId"],
       ["room_resonance_signals", "ownerUserId"],
       ["room_resonance_acknowledgements", "actorUserId"],
       ["room_resonance_acknowledgements", "signalOwnerUserId"],

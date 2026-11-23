@@ -2187,6 +2187,55 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Member-owned cross-device chat read marker. Readable and writable only
+    // by its owner while they remain an approved member of the room, and it
+    // may only point at an existing message of that room.
+    match /room_read_markers/{markerId} {
+      function validRoomReadMarker() {
+        let data = request.resource.data;
+        let messagePath =
+          /databases/$(database)/documents/rooms/$(data.roomId)/messages/$(data.lastReadMessageId);
+        return data.keys().hasOnly([
+            'schemaVersion', 'roomId', 'userId', 'lastReadMessageId',
+            'lastReadCreatedAt', 'updatedAt'
+          ])
+          && data.keys().hasAll([
+            'schemaVersion', 'roomId', 'userId', 'lastReadMessageId',
+            'lastReadCreatedAt', 'updatedAt'
+          ])
+          && data.schemaVersion == 1
+          && data.userId == request.auth.uid
+          && data.roomId is string
+          && markerId == data.roomId + '--' + request.auth.uid
+          && data.lastReadMessageId is string
+          && data.lastReadMessageId.size() > 0
+          && data.lastReadMessageId.size() <= 160
+          && data.lastReadCreatedAt is string
+          && data.updatedAt is string
+          && data.updatedAt.size() <= 40
+          && exists(messagePath)
+          && get(messagePath).data.createdAt == data.lastReadCreatedAt;
+      }
+
+      // Read is decided from the deterministic id so a member can listen
+      // before their first marker exists.
+      allow read: if isAuth()
+        && markerId.split('--').size() == 2
+        && markerId.split('--')[1] == request.auth.uid
+        && isApprovedRoomMember(markerId.split('--')[0]);
+      allow create: if isAuth()
+        && validRoomReadMarker()
+        && isApprovedRoomMember(request.resource.data.roomId);
+      allow update: if isAuth()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.roomId == resource.data.roomId
+        && request.resource.data.lastReadCreatedAt
+          >= resource.data.lastReadCreatedAt
+        && validRoomReadMarker()
+        && isApprovedRoomMember(request.resource.data.roomId);
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
     match /room_resonance_signals/{signalId} {
       allow read: if isApprovedRoomMember(resource.data.roomId);
       allow write: if false;
