@@ -19,7 +19,7 @@
     "登入完成固定 town.html，清除舊任意 redirect；身分驗證或資料同步未完成不冒稱成功",
     "最小 app.js 隔離大門／工具，保留既有 Firebase/App Check 初始化；工具切片需此隔離先合併"
   ],
-  "base": "10cc51c3931594ade600f7385477a3439aa01dd1",
+  "base": "4e3eda4b340458e3951c67aff45dd651c588473c",
   "draft_required": true,
   "production_deployed": false,
   "real_device_verified": false,
@@ -28,11 +28,11 @@
   "oauth_providers_verified": false,
   "storage_upload_verified": false,
   "evidence_sha256": {
-    "before-index.png": "411c89c52c2512f05787e25fb08fcd4d87ef958fa9e210a7c72aa03f2dadee35",
-    "after-index.png": "645986d60f3ba94af0cc4d122260c88bfd2139e8f9b001ef65b1ecdedd9df392",
-    "mobile-index.png": "a40ccde53876e11aa99614cc2d65bcb46ab863bcb870e48a07f0761f07e7ffb4",
+    "before-index.png": "3730ef8d9c96c356905cf71b315551d58a9e5fa02545237c2acb67b50af7eca3",
+    "after-index.png": "68cb727edcd4c6420a90ff1a6c27500b8e4919f3398504cd81a1b1099deef603",
+    "mobile-index.png": "51d2f5bd911ad8b2710bb23433264699c45ca2700e6d3a65d1a2eaf602da6edd",
     "before-login.png": "f67b0ac245a8057fbd483d8105b4788ee61a0cd8a304337af7ed8bad462e7d19",
-    "after-login.png": "3efde9e6a325cc39a2d07ac67ba7de52225746b8d6ac860c8bd843f47a576c1a",
-    "mobile-login.png": "64024c0582352b79da303d0a19c156e2adf40f8047ce9ab86f94a34072a7982f"
+    "after-login.png": "b382912648be879169cae101c41f03379b74bb1d374460101a99565a77e986e0",
+    "mobile-login.png": "8ea397a25c49a9d242413b1c16a9eef1d61e961f7f1f8f5efefd2f4e22c27dc9"
   }
 }
