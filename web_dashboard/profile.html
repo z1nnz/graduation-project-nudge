@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 個人名片</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=2" />
     <style>
       /* Page specific HSL tokens and custom styles for Facebook-style profile page */
       body[data-page="profile"] {
@@ -651,33 +652,12 @@
       }
     </style>
   </head>
-  <body data-page="profile">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html">
-          <span class="brand-mark">N</span>
-          <span>
-            <strong>Nudge</strong>
-            <small>自律名片</small>
-          </span>
-        </a>
-        <nav class="nav">
-          <!-- Dynamically populated by app.js with local navigation entries -->
-          <a href="dashboard.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">商城頁</a>
-          <a href="research.html">研究中心</a>
-          <a href="friend.html">好友功能</a>
-          <a href="planet.html">自律星球</a>
-          <a href="presentation.html">專題發表流程</a>
-          <a href="profile.html">個人名片</a>
-        </nav>
-      </aside>
+  <body class="w-page world-page" data-page="profile">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>夥伴名片</h1></header>
+    <div class="world-shell">
 
-      <main class="main">
-        <a class="button town-return-link" data-town-return href="town.html">← 返回小鎮</a>
+
+      <main class="main w-main">
         <div class="profile-container">
           <!-- Facebook Style Profile Layout Block -->
           <section class="fb-cover-card">
@@ -685,7 +665,7 @@
             <div class="fb-cover-banner" id="profileCoverBanner">
               <div class="glowing-orb"></div>
             </div>
-            
+
             <!-- 2. Overlapping Avatar & Name Header -->
             <div class="fb-profile-header-bar">
               <div class="fb-profile-avatar-wrapper">
@@ -696,7 +676,7 @@
                   <h1 class="fb-profile-name" id="profileMainName">讀取中...</h1>
                   <!-- Inline Nickname input -->
                   <input type="text" id="editProfileNicknameInline" style="display: none; font-size: 28px; font-weight: 800; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 4px 10px; width: 220px; outline: none;" maxLength="12" />
-                  
+
                   <span class="fb-profile-badge" id="profileMainBadge" style="display: none;">🏆 稱號</span>
                   <!-- Inline Badge Dropdown -->
                   <select id="editProfileTitleInline" style="display: none; background: #161c2d; color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 4px 8px; font-size: 13px; cursor: pointer;"></select>
@@ -852,10 +832,10 @@
       function switchProfileTab(tab) {
         const links = document.querySelectorAll(".fb-profile-subnav a");
         links.forEach(link => link.classList.remove("active"));
-        
+
         // Mark target active
         event.currentTarget.classList.add("active");
-        
+
         if (tab === 'timeline') {
           toast("已切換至「動態牆」");
         } else if (tab === 'about') {
