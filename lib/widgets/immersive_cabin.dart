@@ -917,6 +917,7 @@ class _HotbarSlot extends StatelessWidget {
             height: size,
             child: Image.asset(
               icon,
+              fit: BoxFit.contain,
               filterQuality: FilterQuality.none,
               errorBuilder: (_, _, _) => Icon(
                 fallback,
@@ -966,6 +967,7 @@ class _HotbarSlot extends StatelessWidget {
             onTap: onTap,
             child: Stack(
               clipBehavior: Clip.none,
+              fit: StackFit.passthrough,
               children: [
                 face,
                 if (count > 0)

@@ -196,6 +196,7 @@ class _Slot extends StatelessWidget {
               Expanded(
                 child: Image.asset(
                   item.icon,
+                  fit: BoxFit.contain,
                   filterQuality: FilterQuality.none,
                   errorBuilder: (_, _, _) => Icon(
                     item.fallback,
