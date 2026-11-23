@@ -30,7 +30,7 @@
 - 回顧：採 Asia/Taipei 05:00 邏輯日、週一週起點、曆月；來源 ID、時間、類別、單位與比較視窗可展開查閱。比較前須讀完整選定視窗；缺頁／拒讀／快取不會顯示成完整總計。
 - 同一 session 只計一次，roomIds 不會倍增個人成果；家庭／團體 outcomes 不納入個人 XP、自律幣或私人分析。
 - 書籤條件是可解釋的閱讀回饋，不是核定的技能 Lv、物品或獎勵解鎖；未核定規則顯示尚未提供。
-- 使用者策略／信件：users/{auth.uid}/growth_documents，schemaVersion=1、ownerUid、kind、title、body、revision、createdAt、updatedAt。只表示本人文字，不是正式成果。伺服器時間與遞增版本防止默默覆蓋另一裝置。
+- 使用者策略／信件：users/{auth.uid}/growth_documents，schemaVersion=1、ownerUid、kind、title、body、revision、createdAt、updatedAt。只表示本人文字，不是正式成果。所有保存／刪除及新增任務都經 enforceAppCheck callable 與 account operation lease；Rules 只准本人讀文件、禁止 client 寫入。伺服器時間與遞增版本防止默默覆蓋另一裝置。growth_document_operations 只存無正文的刪除 tombstone，client 完全拒讀寫，延遲重試不能恢復刪除文件。
 - 建立任務：只在使用者編輯並明確確認後，進現有 users/{auth.uid}.tasks 的手動／fixed／未完成任務流程。使用安全亂數 ID；不開始活動、不改 Ledger、不發獎勵。
 - 新膠囊：users/{auth.uid}/growth_capsules 只含 metadata；growth_capsule_secrets 正文完全禁止 client 讀寫；growth_capsule_operations 只存 server retry tombstone。所有建立／開封／取消／刪除經 App Check callable，server clock 判定。
 - 正式隱私匯出：包含新文件／膠囊 metadata；未到期不匯出正文，到期才可包含。帳號刪除的 user recursive purge 擦除全部三個膠囊集合及文件；到期站內通知不包含正文。

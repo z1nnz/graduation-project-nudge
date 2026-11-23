@@ -92,11 +92,11 @@
     authOff=root.firebase.auth().onAuthStateChanged(show);
   }
   root.addEventListener('pagehide',() => {++generation;cleanup();authOff?.();authOff=null;started=false;host.replaceChildren();});
-  root.addEventListener('pageshow',start);
+  root.addEventListener('pageshow',()=>{if(isDemo)show({uid:'museum-demo'});else start();});
   document.addEventListener('firebase-ready',start);
   if (isDemo) show({uid:'museum-demo'});
   else {
-    const script=node('script',null,{src:'assets/app.js?v=25'});
+    const script=node('script',null,{src:'assets/app.js?v=25&surface=growth-museum-1'});
     script.onerror=() => {message('無法連線。請重試；沒有載入個人資料。');};
     document.head.append(script);
     start();

@@ -1,0 +1,66 @@
+{
+  "local_node": "26.4.0",
+  "ci_node": "22",
+  "local_flutter": "3.47.8",
+  "ci_flutter": "3.41.7",
+  "java": "21.0.13",
+  "firebase_tools": "15.18.0",
+  "results": {
+    "root": {
+      "tests": 139,
+      "pass": 139,
+      "fail": 0,
+      "skipped": 0
+    },
+    "functions": {
+      "tests": 145,
+      "pass": 120,
+      "fail": 0,
+      "skipped": 25
+    },
+    "combined_full_emulator": {
+      "passed": true,
+      "log": "../slice1/logs/integrated-emulator.txt in foundation PR",
+      "scope": "all existing Rules, Ledger transactions, account deletion, relationship and reward emulator suites plus new entries"
+    },
+    "flutter": {
+      "analyze": "No issues found",
+      "tests_passed": 227,
+      "tests_failed": 0,
+      "scope": "current combined overlay; no Dart source changed in these slices",
+      "environment_note": "Unicode workspace analyze hit LSP parse error; full analyze passed in ASCII temporary overlay"
+    },
+    "browser": {
+      "assertions": 43,
+      "axe_pages": 8,
+      "axe_violations": 0,
+      "cross_device": true,
+      "actual_shared_bootstrap_smoke": true,
+      "production_app_check": false,
+      "real_device": false,
+      "human_screen_reader": false
+    }
+  },
+  "exact_head_ci": "pending publication; final receipt in PR",
+  "no_production_changes": true,
+  "skipped_are_not_passed": true,
+  "source_sha256": {
+    "docs/specs/web-growth-museum/contract.md": "558c6c74410f8252c56eb2ba589863cdb556dbc593b6dafff0c53d977e82b86c",
+    "test/growth_museum_foundation_test.js": "44e8a98087fee2ce4f4774273210028687eee3e7cf913fef442a13a622c36528",
+    "web_dashboard/assets/app.js": "c753f7cc820a4acaa34c999d7e568943e87e53d8ea5da266ce88342638a451c5",
+    "web_dashboard/assets/growth_museum.css": "706372c5a47811ffdb8900d8b4ca66ffd26e9f16f46d6374eaf6c1c83331fd84",
+    "web_dashboard/assets/growth_museum.js": "c687f1c15427307e810904d40ad243ca16b7b27a0640bfa01cb46f99d1f6af9e",
+    "web_dashboard/assets/growth_museum_core.js": "c845052862bf1bd2d8c103197a08c26a26b14a26da0a34c4bf46d52415799f59",
+    "web_dashboard/museum-demo.html": "d2e64cd1a5c3b471fcba1d1b27716db4fb77708992b2a6a94c98d57298d7b462",
+    "web_dashboard/personal-letter.html": "908ecfad7bfc46d558a7b74b7d18194d57e8ceb6dd1521ed28b51bf40fb5c4f5",
+    "web_dashboard/personal-pressure.html": "e14998d1941c5760a5ff30c7f0bec7cfe0422fa6793d80f7f583d194f77a22d5",
+    "web_dashboard/personal-skill-tree.html": "59e1ba3106d634ee7a3f8bbd1e0c46bc61da76607d091293d00df7dd5dc07f3e",
+    "web_dashboard/personal-template.html": "a385bea838101f08f0a2fb2b6cff2a0a175bcf83b4e4d56ff57c8866eb081934",
+    "web_dashboard/personal-time-capsule.html": "c5de3df3d82b4d52b2a508803f915a2c23bcb4e33a186e3eafbae68a361a669e",
+    "web_dashboard/personal-trends.html": "f1e82be7961abfd732eb565457859ec416b7e65a731a8d4a5e69cdaf4400717d",
+    "web_dashboard/personal-weather.html": "7d9706f2aae0abbebb9f349ffab2364e2f06f14cd80aecf504222e803083344e",
+    "web_dashboard/personal.html": "088df868e45b554a36ac28b72b18dd6b86d96b1fb9c4130bcea836935c95a5af",
+    "web_dashboard/presentation.html": "95b430a40f149bb1e3317a6406982f490c4d54c8ee7c529aaf665a164eb59d4f",
+    "web_dashboard/research.html": "a913321ae076df2400c930aa4d777777f6a4f980f74ed123c4ccee0d9ed4acab"
+  }
+}
