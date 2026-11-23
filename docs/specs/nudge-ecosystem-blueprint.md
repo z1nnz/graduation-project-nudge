@@ -435,7 +435,7 @@ stateDiagram-v2
 2026-08-15 個人專注樣機例外：第一版 BLE 事件由已登入 App 依正式
 `DeviceAssignment` 轉為 `source=app` 的 Ledger evidence；因此目前只繼承
 App 身分驗證，尚未構成裝置簽章或實體活動證明。Cloud-side device source、
-簽章、時間證明與金鑰輪替仍是未驗收的 production gate，詳見 ADR 0010。
+簽章、時間證明與金鑰輪替仍是未驗收的 production gate，詳見 ADR 0019（原誤編為 0010）。
 
 ## 8. 房主、團體、家庭與個人權限
 
