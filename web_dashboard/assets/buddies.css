@@ -9,7 +9,7 @@
   background: url(buddies/frame.png) no-repeat center / 240px 120px; image-rendering: pixelated;
   display: flex; align-items: center; justify-content: space-evenly; }
 .buddy-frame img { width: 40px; height: 40px; object-fit: contain; }
-.buddy-lights { position: relative; width: 240px; height: 72px; max-width: 100%; }
-.buddy-lights img { position: absolute; inset: 0; width: 240px; height: 72px; }
+.buddy-lights { position: relative; width: 160px; height: 48px; max-width: 100%; }
+.buddy-lights img { position: absolute; inset: 0; width: 160px; height: 48px; }
 #buddyRemove { width: min(28rem, calc(100% - 2rem)); box-sizing: border-box; }
 #buddyRemove::backdrop { background: var(--w-night); opacity: .7; }

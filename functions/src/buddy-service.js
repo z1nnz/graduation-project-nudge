@@ -79,10 +79,11 @@ export function createBuddyHandler(db, clock = () => new Date()) {
         byMember(uid).get(), db.collection("users").doc(uid).collection("friends").get(),
         ownAccount.get(), safetyDocument(db, uid).get(),
       ]);
-      const ids = new Set(friends.docs.map(doc => doc.id));
+      const ids = new Set([uid, ...friends.docs.map(doc => doc.id)]);
       mine.docs.forEach(doc => ids.add(doc.data().participantIds.find(member => member !== uid)));
       const profiles = ids.size ? await db.getAll(...[...ids].map(id => db.collection("public_profiles").doc(id))) : [];
       const names = new Map(profiles.map(doc => [doc.id, doc.data()?.nickname || doc.data()?.displayName || "小鎮夥伴"]));
+      const avatars = new Map(profiles.map(doc => [doc.id, doc.data()?.avatarProfile?.faceShapeIndex]));
       const outgoingFriends = new Set(friends.docs.map(doc => doc.id));
       const pairingPeers = [...new Set(mine.docs.map(doc => doc.data().participantIds.find(member => member !== uid)))];
       const availability = await Promise.all(pairingPeers.map(async peer => {
@@ -113,7 +114,8 @@ export function createBuddyHandler(db, clock = () => new Date()) {
         pairs: mine.docs.map(doc => {
           const { status, proposerId, time, proposal, paused, participantIds } = doc.data();
           const peerId = participantIds.find(member => member !== uid);
-          return { id: doc.id, peerId, name: names.get(peerId), status, proposerId, time, proposal,
+          return { id: doc.id, peerId, name: names.get(peerId), ownAvatar: avatars.get(uid) ?? 0,
+            peerAvatar: avatars.get(peerId) ?? 0, status, proposerId, time, proposal,
             blocked: !canShare.get(peerId), paused: paused?.length > 0, pausedByMe: paused?.includes(uid),
             checkIn: checkIns.get(doc.id) || null };
         }),
