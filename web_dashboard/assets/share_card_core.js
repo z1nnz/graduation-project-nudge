@@ -17,7 +17,7 @@
   function card({kind='weekly',profile={},summary,badge,visible={}}){
     if(!['weekly','achievement'].includes(kind))throw Error('Invalid card kind');
     const index=profile.avatarProfile?.faceShapeIndex;
-    const result={kind,width:1080,height:1350,nickname:nickname(profile.nickname),character:Number.isInteger(index)&&index>=0&&index<18?index:null};
+    const result={kind,width:1080,height:1350,nickname:nickname(profile.nickname),character:Number.isInteger(index)&&index>=0&&index<18&&index!==11?index:null};
     if(kind==='achievement'){
       if(!badge?.unlocked||typeof badge.name!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(badge.unlockedAt)||!Number.isInteger(badge.icon)||badge.icon<0||badge.icon>23)throw Error('Cloud-unlocked badge required');
       return {...result,badge:{name:badge.name.slice(0,40),date:visible.badgeDate===false?null:badge.unlockedAt,icon:badge.icon}};
@@ -28,6 +28,6 @@
       totalFocus:focus?summary.totalFocus:null,quests:quests?summary.quests:null,bestDay:focus&&visible.bestDay!==false?summary.bestDay:null,
       companion:visible.companion===false?null:focus&&quests?(summary.activeDays===0?'新的冒險隨時可以開始！':summary.activeDays===7?'這週每一天都有前進！':`這週有 ${summary.activeDays} 天一起前進。`):'每一個小行動，都值得溫柔記下。'};
   }
-  function layout(){return {width:1080,height:1350,padding:72,character:{x:720,y:310,w:256,h:432},daySlots:Array.from({length:7},(_,i)=>({x:80+i*132,y:780,w:128,h:300})),footerY:1240};}
+  function layout(){return {width:1080,height:1350,padding:72,character:{x:720,y:310,w:256,h:384},daySlots:Array.from({length:7},(_,i)=>({x:80+i*132,y:780,w:128,h:300})),footerY:1240};}
   return Object.freeze({dayKey,weekRange,week,nickname,card,layout});
 });

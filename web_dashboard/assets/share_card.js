@@ -14,7 +14,7 @@
       const kind=$('shareKind').value,visible=Object.fromEntries([...controls.querySelectorAll('[data-share-visible]')].map(i=>[i.dataset.shareVisible,i.checked]));
       const payload=core.card({kind,profile,summary,badge:badges.find(b=>b.key===$('shareBadge').value),visible}),layout=core.layout();
       await document.fonts.load('44px Cubic11');
-      const [character,trophy]=await Promise.all([payload.character===null?null:image('assets/avatar/characters/character_'+payload.character+'.png'),payload.badge?image('assets/growth/trophy-'+payload.badge.icon+'.png'):null]);
+      const [character,trophy]=await Promise.all([payload.character===null?null:image('assets/growth/characters/character_'+payload.character+'.png'),payload.badge?image('assets/growth/trophy-'+payload.badge.icon+'.png'):null]);
       if(!scope.alive()||own!==version)return;
       g.imageSmoothingEnabled=false;g.fillStyle=ink('--w-wood-deep');g.fillRect(0,0,1080,1350);g.fillStyle=ink('--w-frame');g.fillRect(32,32,1016,1286);g.fillStyle=ink('--w-parchment');g.fillRect(48,48,984,1254);
       text('NUDGE · 成長紀錄館',80,130,36,'--w-violet-deep');text(kind==='weekly'?'這一週的小小冒險':'值得記住的一座獎盃',80,210,52);text(payload.nickname,80,290,42);
