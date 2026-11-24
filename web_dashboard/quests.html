@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>委託冊｜Nudge 小鎮</title>
+  <link rel="stylesheet" href="assets/world_ui.css?v=2">
+  <link rel="stylesheet" href="assets/quest_book.css?v=1">
+</head>
+<body class="w-page world-page" data-page="quests">
+  <header class="w-hud">
+    <a data-town-return href="town.html">← 回小鎮</a>
+    <h1>委託冊</h1>
+  </header>
+  <main class="w-main">
+    <section class="qb-hero">
+      <img class="qb-book" src="assets/quests/quest_book.png" width="480" height="300" alt="">
+      <div>
+        <h1 class="w-title">每週委託冊</h1>
+        <p class="w-subtitle">把你自己的任務排成一條委託鏈。每格印章都來自雲端確認的專注、運動、睡眠、步數或任務；委託冊不發金幣、經驗值或徽章。</p>
+        <p class="qb-status"><span id="qbStatus" class="w-chip is-wait" role="status" aria-live="polite">雲端確認中…</span></p>
+        <button id="qbRefresh" class="w-btn" type="button">重新讀取雲端紀錄</button>
+      </div>
+    </section>
+
+    <section id="request" class="w-panel qb-request" aria-labelledby="qbRequestTitle" tabindex="-1">
+      <h2 id="qbRequestTitle">鎮民的請託 <span class="qb-day" id="qbRequestDay"></span></h2>
+      <div class="qb-request-body">
+        <figure class="qb-portrait"><img id="qbNpcImg" src="assets/town/guide.png" width="96" height="124" alt=""></figure>
+        <div>
+          <p class="qb-npc"><strong id="qbNpcName">歐莉</strong> <span id="qbNpcRole">告示板管理員</span></p>
+          <p id="qbRequestLine" class="qb-line">登入後，鎮民會從你今天的任務裡挑一件來拜託你。</p>
+          <p><span id="qbRequestState" class="w-chip" hidden></span></p>
+          <a id="qbRequestLink" class="w-btn is-gold" href="planet.html">打開今日任務清單</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="qb-section" aria-labelledby="qbActiveTitle">
+      <h2 id="qbActiveTitle" class="qb-heading">進行中的委託</h2>
+      <p class="qb-note">一天從清晨 5:00 開始。連續型委託只要有一天整天沒蓋章，就從下一個印章重新數起。同時最多進行 3 條。</p>
+      <div id="qbChains" class="qb-chains"><p class="w-empty">雲端確認中…</p></div>
+    </section>
+
+    <section class="qb-section" aria-labelledby="qbTemplatesTitle">
+      <h2 id="qbTemplatesTitle" class="qb-heading">接一條新委託</h2>
+      <div id="qbTemplates" class="w-grid"></div>
+    </section>
+
+    <section class="qb-section" aria-labelledby="qbCertsTitle">
+      <h2 id="qbCertsTitle" class="qb-heading">委託完成證書</h2>
+      <p class="qb-note">證書只收在這台裝置、這個帳號底下，是紀念，不是獎勵。</p>
+      <div id="qbCerts" class="qb-certs"><p class="w-empty">完成第一條委託鏈，就會在這裡放一張證書。</p></div>
+    </section>
+  </main>
+
+  <dialog id="qbCertDialog" class="qb-dialog" role="dialog" aria-modal="true" aria-labelledby="qbCertTitle">
+    <div class="w-parchment qb-cert">
+      <p class="qb-cert-kicker">委託完成證書</p>
+      <h2 id="qbCertTitle">三天讀書挑戰</h2>
+      <img id="qbCertStamp" class="qb-cert-stamp" src="assets/quests/stamp_gold.png" width="96" height="92" alt="">
+      <p id="qbCertText"></p>
+      <p class="w-muted">每一格印章都是雲端確認過的行動。</p>
+      <button id="qbCertClose" class="w-btn is-gold" type="button">收好證書</button>
+    </div>
+  </dialog>
+
+  <div id="qbToast" class="w-toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="assets/quest_chain_core.js?v=1"></script>
+  <script src="assets/quest_book.js?v=1"></script>
+  <script src="assets/app.js?v=29"></script>
+  <script src="assets/town_routes.js?v=4"></script>
+  <script src="assets/town_return.js?v=2"></script>
+</body>
+</html>

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../models/cabin_sky.dart';
 import '../models/avatar_profile.dart';
 import '../models/cabin_companion_brain.dart';
 import '../models/cabin_layout.dart';
@@ -14,21 +16,33 @@ import 'companion_sprite.dart';
 import 'cabin_tour.dart';
 import '../models/companion_celebration.dart';
 import 'celebration_overlay.dart';
+import 'cabin_weather_sheet.dart';
 
 /// Pixel font for in-world text (HUD, signs, bubbles).
 const pixelFont = 'Cubic11';
 
-/// Where the 9:16 cabin sits on a taller phone screen: full width,
-/// vertically centred; wood tones extend above and below.
+/// Most the room may be cropped on each side to fill a tall phone; more would
+/// hide the side doors.
+const cabinMaxSideCrop = 0.03;
+
+/// Where the 9:16 cabin sits on screen. Taller phones scale it up to cover
+/// the screen, cropping at most [cabinMaxSideCrop] per side; any strip left
+/// over is filled by a blurred extension of the room (see [CabinStage]).
 Rect cabinBoxFor(Size screen, double aspect) {
-  final width = screen.width;
-  final height = width / aspect;
-  if (height <= screen.height) {
-    return Rect.fromLTWH(0, (screen.height - height) / 2, width, height);
+  if (screen.width / screen.height > aspect) {
+    final h = screen.height;
+    final w = h * aspect;
+    return Rect.fromLTWH((screen.width - w) / 2, 0, w, h);
   }
-  final h = screen.height;
-  final w = h * aspect;
-  return Rect.fromLTWH((screen.width - w) / 2, 0, w, h);
+  final coverWidth = screen.height * aspect;
+  final width = math.min(coverWidth, screen.width / (1 - 2 * cabinMaxSideCrop));
+  final height = width / aspect;
+  return Rect.fromLTWH(
+    (screen.width - width) / 2,
+    (screen.height - height) / 2,
+    width,
+    height,
+  );
 }
 
 Rect _inBox(Rect box, CabinRect r) => Rect.fromLTWH(
@@ -58,16 +72,32 @@ class CabinStage extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final box = cabinBoxFor(constraints.biggest, layout.aspect);
-        return DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF3B2418), Color(0xFF4A2D22), Color(0xFF6D4527)],
-            ),
-          ),
+        return ColoredBox(
+          color: const Color(0xFF3B2418),
           child: Stack(
             children: [
+              // Blurred, slightly darker copy of the room fills any strip the
+              // room itself cannot cover, so the screen never shows bare bands.
+              Positioned.fill(
+                key: const Key('cabin-fill'),
+                child: ExcludeSemantics(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: ColorFiltered(
+                      colorFilter: const ColorFilter.mode(
+                        Color(0x33000000),
+                        BlendMode.darken,
+                      ),
+                      child: Image.asset(
+                        layout.baseImage,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.low,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Positioned.fromRect(
                 rect: box,
                 child: CabinRoom(layout: layout, presentation: presentation),
@@ -438,6 +468,8 @@ class ImmersiveHome extends StatefulWidget {
     this.showTour = false,
     this.accountKey,
     this.socialUnread = 0,
+    this.parcelCount = 0,
+    this.onOpenParcel,
     this.onTourDone,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
@@ -473,6 +505,10 @@ class ImmersiveHome extends StatefulWidget {
 
   /// Unread notifications (invites, encouragement); lights the social slot.
   final int socialUnread;
+
+  /// Unopened letters waiting at the door (see `CabinParcels`).
+  final int parcelCount;
+  final VoidCallback? onOpenParcel;
   final VoidCallback? onTourDone;
   final String? confirmedActivityLabel;
   final DateTime? now;
@@ -536,6 +572,22 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   void initState() {
     super.initState();
     _brain.setActivity(_wantedActivity);
+    CabinSkyController.instance.addListener(_onSky);
+  }
+
+  void _onSky() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openWeather() async {
+    final sky = CabinSkyController.instance;
+    final picked = await showModalBottomSheet<Object>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CabinWeatherSheet(current: sky.city),
+    );
+    if (picked == null) return;
+    await sky.chooseCity(picked is CabinCity ? picked : null);
   }
 
   @override
@@ -603,6 +655,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
 
   @override
   void dispose() {
+    CabinSkyController.instance.removeListener(_onSky);
     _ticker.dispose();
     _pulse.dispose();
     super.dispose();
@@ -641,8 +694,19 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     VoidCallback onTap, {
     GlobalKey? tourKey,
   }) {
+    // The stage is centred on the box, so the screen spans 0..2*centre.
+    // Keep cropped edge objects (the side doors) tappable on screen.
+    final full = _inBox(box, rect);
+    final screenWidth = box.center.dx * 2;
+    const minTap = 40.0;
+    var left = math.max(full.left, 0.0);
+    var right = math.min(full.right, screenWidth);
+    if (right - left < minTap) {
+      if (full.left < 0) right = math.min(left + minTap, full.right);
+      if (full.right > screenWidth) left = math.max(right - minTap, full.left);
+    }
     return Positioned.fromRect(
-      rect: _inBox(box, rect),
+      rect: Rect.fromLTRB(left, full.top, right, full.bottom),
       child: KeyedSubtree(
         key: tourKey,
         child: CabinHotspot(
@@ -667,13 +731,16 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
           Offset toScreen(Offset p) =>
               Offset(box.left + p.dx * box.width, box.top + p.dy * box.height);
           final feet = toScreen(_brain.position);
-          final bubble =
+          final rainLine = CabinSky.companionLine(
+            CabinSkyController.instance.weather,
+          );
+          final String bubble =
               _pokeLine ??
               (widget.presentation.globeGlowing
                   ? _deviceLine
                   : _brain.activity == CompanionActivity.rest
                   ? '呼……晚安'
-                  : widget.presentation.bubbleText);
+                  : rainLine ?? widget.presentation.bubbleText);
           return [
             Positioned.fill(
               child: GestureDetector(
@@ -695,6 +762,31 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
               'cabin-desk',
               '書桌・專注',
               widget.onOpenDesk,
+            ),
+            if (widget.parcelCount > 0 && widget.onOpenParcel != null)
+              Positioned(
+                left: box.left + box.width * 0.1,
+                top: box.top + box.height * 0.6,
+                width: box.width * 0.13,
+                height: box.width * 0.13,
+                child: _Parcel(
+                  key: const Key('cabin-parcel'),
+                  count: widget.parcelCount,
+                  still: _still,
+                  onTap: widget.onOpenParcel!,
+                ),
+              ),
+            _hotspot(
+              box,
+              CabinRect(
+                CabinSky.windowRect.left,
+                CabinSky.windowRect.top,
+                CabinSky.windowRect.width,
+                CabinSky.windowRect.height,
+              ),
+              'cabin-window',
+              '窗外的天氣',
+              _openWeather,
             ),
             _hotspot(
               box,
@@ -785,6 +877,16 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 ),
               ),
             ),
+            if (_pokeCount > 0 && !_still)
+              Positioned(
+                left: feet.dx - charHeight / 2,
+                top: feet.dy - charHeight * 0.95,
+                width: charHeight,
+                height: charHeight * 0.6,
+                child: IgnorePointer(
+                  child: _HeartBurst(key: ValueKey(_pokeCount)),
+                ),
+              ),
             Positioned(
               left: 12,
               right: 12,
@@ -1289,4 +1391,180 @@ class _HotbarSlot extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A few pixel hearts float up when you pat the companion, then vanish.
+class _HeartBurst extends StatefulWidget {
+  const _HeartBurst({super.key});
+
+  @override
+  State<_HeartBurst> createState() => _HeartBurstState();
+}
+
+class _HeartBurstState extends State<_HeartBurst>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        if (_c.isCompleted) return const SizedBox.shrink();
+        final t = Curves.easeOut.transform(_c.value);
+        return Stack(
+          key: const Key('companion-hearts'),
+          children: [
+            for (final (dx, delay, size) in const [
+              (0.30, 0.0, 22.0),
+              (0.52, 0.12, 28.0),
+              (0.70, 0.22, 20.0),
+            ])
+              Align(
+                alignment: Alignment(
+                  dx * 2 - 1,
+                  1 - 2 * ((t - delay).clamp(0.0, 1.0)),
+                ),
+                child: Opacity(
+                  opacity: (1 - t).clamp(0.0, 1.0),
+                  child: Text(
+                    '♥',
+                    style: TextStyle(
+                      fontSize: size,
+                      color: const Color(0xFFFF6B8A),
+                      shadows: const [
+                        Shadow(color: Color(0xFF7A1F35), offset: Offset(1, 2)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// A little wrapped parcel by the door that bobs until you open it.
+class _Parcel extends StatefulWidget {
+  const _Parcel({
+    super.key,
+    required this.count,
+    required this.still,
+    required this.onTap,
+  });
+
+  final int count;
+  final bool still;
+  final VoidCallback onTap;
+
+  @override
+  State<_Parcel> createState() => _ParcelState();
+}
+
+class _ParcelState extends State<_Parcel> with SingleTickerProviderStateMixin {
+  late final AnimationController _bob = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.still) _bob.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '門口有 ${widget.count} 份包裹，點一下拆開',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _bob,
+          builder: (context, child) => Transform.translate(
+            offset: Offset(0, -4 * Curves.easeInOut.transform(_bob.value)),
+            child: child,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Positioned.fill(
+                child: CustomPaint(painter: _ParcelPainter()),
+              ),
+              Positioned(
+                right: -6,
+                top: -6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD6455D),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Text(
+                    '${widget.count}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ParcelPainter extends CustomPainter {
+  const _ParcelPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.width / 10;
+    void px(int x, int y, int w, int h, Color color) => canvas.drawRect(
+      Rect.fromLTWH(x * c, y * c, w * c + 0.5, h * c + 0.5),
+      Paint()..color = color,
+    );
+    const outline = Color(0xFF3A1D0C);
+    const box = Color(0xFFC98B4F);
+    const shade = Color(0xFFA06A35);
+    const ribbon = Color(0xFFD6455D);
+    px(1, 3, 8, 6, outline);
+    px(2, 4, 6, 4, box);
+    px(2, 7, 6, 1, shade);
+    px(0, 2, 10, 2, outline);
+    px(1, 2, 8, 1, box);
+    px(4, 2, 2, 7, ribbon);
+    px(2, 0, 2, 2, ribbon);
+    px(6, 0, 2, 2, ribbon);
+  }
+
+  @override
+  bool shouldRepaint(_ParcelPainter old) => false;
 }

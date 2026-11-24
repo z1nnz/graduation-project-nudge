@@ -1,0 +1,7 @@
+.web-push { max-width: 800px; margin: 34px auto 0; }
+.web-push p { color: var(--w-ink-dark); }
+.web-push :is(fieldset, .web-push-actions) { display: flex; flex-wrap: wrap; gap: 8px 12px; min-width: 0; }
+.web-push label { display: inline-flex; align-items: center; min-height: 44px; gap: 5px; }
+.web-push form { display: grid; gap: 10px; }
+.web-push legend { font-family: var(--w-pixel); }
+.web-push input[type="time"] { min-height: 44px; }

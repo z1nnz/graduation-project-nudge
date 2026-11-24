@@ -1,0 +1,9 @@
+Nudge town audio, generated 2026-11-24
+
+town_day.wav, town_night.wav, ui_click.wav, door_open.wav,
+door_close.wav, stamp.wav, level_up.wav
+
+All audio in this directory is original procedural synthesis by the Nudge
+project, generated with scripts/generate_town_audio.py. No third-party
+recordings or samples are included. The files may be used, modified, and
+redistributed with the Nudge project.

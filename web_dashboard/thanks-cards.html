@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>感謝卡與卡片冊</title>
+  <link rel="stylesheet" href="assets/world_ui.css?v=2">
+  <link rel="stylesheet" href="assets/social_scene.css?v=1">
+  <link rel="stylesheet" href="assets/thanks_cards.css?v=1">
+</head>
+<body class="w-page world-page" data-page="thanks-cards" data-social-facility="plaza">
+  <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>感謝卡與卡片冊</h1></header>
+  <nav class="scene-nav" data-scene-nav></nav>
+  <main class="w-main thanks_cards">
+    <p id="thanksStatus" role="status">登入後可查看你的感謝卡。</p>
+    <section class="w-parchment" id="thanksCompose" hidden>
+      <h2 id="thanksRecipient">送感謝卡</h2>
+      <form id="thanksForm">
+        <label>卡片樣式 <select name="pattern" required></select></label>
+        <img id="thanksPreview" width="240" height="160" alt="卡片預覽">
+        <label>套用句型 <select name="template">
+          <option value="">自由書寫</option><option>謝謝你陪我一起努力。</option><option>有你在，這一輪更有意思。</option>
+          <option>謝謝你為我加油。</option><option>我很高興今天遇見你。</option>
+        </select></label>
+        <label>留一句話（最多 60 字） <textarea name="text" required maxlength="60"></textarea></label>
+        <button class="w-btn is-gold">送出感謝卡</button>
+      </form>
+    </section>
+    <section class="w-panel">
+      <h2>待收藏</h2>
+      <div id="thanksInbox"></div>
+    </section>
+    <section class="w-panel">
+      <h2>卡片冊</h2>
+      <div id="thanksAlbum"></div>
+    </section>
+  </main>
+  <dialog class="w-parchment" role="dialog" id="thanksDelete" aria-labelledby="thanksDeleteTitle">
+    <form method="dialog">
+      <h2 id="thanksDeleteTitle">刪除這張卡片</h2><p>這張卡片會從你的卡片冊及郵箱移除。</p>
+      <button class="w-btn" value="cancel" autofocus>取消</button><button class="w-btn" value="yes">確認刪除</button>
+    </form>
+  </dialog>
+  <script src="assets/town_routes.js?v=4"></script>
+  <script src="assets/town_return.js?v=2"></script>
+  <script src="assets/social_scene.js?v=1"></script>
+  <script src="assets/thanks_cards.js?v=1"></script>
+  <script src="assets/app.js?v=29"></script>
+</body>
+</html>

@@ -325,6 +325,21 @@ void six_visual_states_have_safe_frames() {
   assert(offline.lit_pixels == 1);
 }
 
+void a_hug_glows_pink_for_three_seconds() {
+  const auto start = nudge::hug_frame(0, 10);
+  assert(start.active);
+  assert(start.lit_pixels == 10);
+  assert(start.color.red > start.color.green && start.color.red > 100);
+  const auto mid = nudge::hug_frame(750, 10);
+  const auto peak = nudge::hug_frame(0, 10);
+  // It breathes: brightness changes during the hug.
+  assert(mid.color.red != peak.color.red);
+  assert(nudge::hug_frame(2999, 10).active);
+  assert(!nudge::hug_frame(3000, 10).active);
+  assert(!nudge::hug_frame(60000, 10).active);
+  assert(nudge::hug_frame(0, 0).lit_pixels == 0);
+}
+
 void idle_room_selection_is_frozen_into_the_next_event() {
   nudge::FocusSession session("desk-room");
   assert(session
@@ -354,6 +369,7 @@ int main() {
   ambient_brightness_is_bounded_smooth_and_fail_safe();
   device_context_is_bounded_and_rotation_is_deterministic();
   six_visual_states_have_safe_frames();
+  a_hug_glows_pink_for_three_seconds();
   idle_room_selection_is_frozen_into_the_next_event();
   std::cout << "nudge_focus_device native tests passed\n";
   return 0;

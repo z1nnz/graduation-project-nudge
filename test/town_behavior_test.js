@@ -8,7 +8,7 @@ const fs = require('node:fs');
 const routes = require('../web_dashboard/assets/town_routes.js');
 
 const html = fs.readFileSync('web_dashboard/town.html', 'utf8');
-const sources = ['town_core.js', 'town_avatar_core.js', 'town_game_core.js', 'town_routes.js', 'town.js']
+const sources = ['town_core.js', 'town_avatar_core.js', 'town_image.js', 'town_game_core.js', 'town_routes.js', 'town.js']
   .map(name => fs.readFileSync(`web_dashboard/assets/${name}`, 'utf8'));
 
 const MAP_W = 1672;
@@ -80,7 +80,8 @@ class FakeElement {
  * user: null for a guest, or { uid, data } for a signed-in account whose
  * users/{uid} document is `data`. Firebase is only read, never written.
  */
-function town({ reducedMotion = false, canvas = true, tourDone = true, failMap = false, search = '', user = null } = {}) {
+function town({ reducedMotion = false, canvas = true, tourDone = true, failMap = false,
+  search = '', user = null, cachedUser = false } = {}) {
   const storage = new Map(tourDone ? [['nudge_town_tour_done', '1']] : []);
   const frames = [];
   const images = [];
@@ -125,11 +126,19 @@ function town({ reducedMotion = false, canvas = true, tourDone = true, failMap =
     fire(name) { (this.listeners[name] || []).forEach(cb => cb()); }
   }
 
-  const snapshot = cb => cb({ exists: true, data: () => user.data, docs: [] });
-  const query = { where: () => query, orderBy: () => query, limit: () => query, onSnapshot: cb => { cb({ docs: [] }); return () => {}; } };
+  const callback = (options, listener) => typeof options === 'function' ? options : listener;
+  const snapshot = cb => cb({ exists: true, data: () => user.data, docs: [],
+    metadata: { fromCache: cachedUser, hasPendingWrites: false } });
+  const query = { where: () => query, orderBy: () => query, limit: () => query,
+    onSnapshot: (options, listener) => {
+      callback(options, listener)({ docs: [], size: 0, metadata: { fromCache: false, hasPendingWrites: false } });
+      return () => {};
+    } };
   const firestore = () => ({
     collection: name => (name === 'users'
-      ? { doc: () => ({ onSnapshot: cb => { snapshot(cb); return () => {}; } }) }
+      ? { doc: () => ({ onSnapshot: (options, listener) => {
+        snapshot(callback(options, listener)); return () => {};
+      } }) }
       : query),
   });
 
@@ -164,7 +173,11 @@ function town({ reducedMotion = false, canvas = true, tourDone = true, failMap =
     }
     vm.runInContext(source, context);
   }
-  if (failMap) images.find(i => i.src.includes('town_map')).fire('error');
+  if (failMap) {
+    const map = images.find(i => i.src.includes('town_map'));
+    map.fire('error'); // WebP failed: try the original JPEG.
+    map.fire('error'); // Original also failed: enter the static directory.
+  }
   (docListeners['firebase-ready'] || []).forEach(cb => cb());
 
   const key = (type, k, target = doc.body) => {
@@ -271,6 +284,13 @@ test('signed-in identity shows the Cloud level and the garden follows it', () =>
   const high = town({ user: member(10) });
   high.building('星光花園').click();
   assert.equal(high.entries()[0].href, 'garden.html');
+});
+
+test('cached account values do not unlock a garden before Cloud confirmation', () => {
+  const cached = town({ user: member(10), cachedUser: true });
+  assert.equal(cached.el('townLevel').textContent, '雲端同步中');
+  cached.building('星光花園').click();
+  assert.equal(cached.entries()[0].tag, 'span');
 });
 
 test('tapping a building walks the companion to its door, then opens the panel', () => {

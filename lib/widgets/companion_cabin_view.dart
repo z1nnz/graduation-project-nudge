@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../models/cabin_sky.dart';
 import '../models/avatar_profile.dart';
 import '../models/cabin_layout.dart';
 import '../models/cabin_presentation.dart';
@@ -80,6 +83,7 @@ class CabinRoom extends StatelessWidget {
               fit: BoxFit.fill,
               filterQuality: FilterQuality.none,
             ),
+            _CabinWindow(box: box),
             for (final entry in ordered)
               if (entry.key == 'badges' && presentation.badgeCount > 0)
                 _place(
@@ -448,6 +452,101 @@ class _Bubble extends StatelessWidget {
           fontSize: 13,
         ),
       ),
+    );
+  }
+}
+
+/// The window glass: real time of day and (if a city is chosen) real
+/// weather, with falling rain when it rains. Also dims the room at night.
+class _CabinWindow extends StatefulWidget {
+  const _CabinWindow({required this.box});
+
+  final BoxConstraints box;
+
+  @override
+  State<_CabinWindow> createState() => _CabinWindowState();
+}
+
+class _CabinWindowState extends State<_CabinWindow> {
+  final _sky = CabinSkyController.instance;
+  Timer? _rain;
+  int _frame = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _sky.addListener(_changed);
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  void _syncRain(bool raining, bool still) {
+    if (raining && !still) {
+      _rain ??= Timer.periodic(const Duration(milliseconds: 140), (_) {
+        if (mounted) setState(() => _frame = (_frame + 1) % 3);
+      });
+    } else {
+      _rain?.cancel();
+      _rain = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _sky.removeListener(_changed);
+    _rain?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final time = _sky.time;
+    final weather = _sky.weather;
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final raining = weather == CabinWeather.rain;
+    _syncRain(raining, still);
+    final asset = CabinSky.windowAsset(time, weather);
+    final r = CabinSky.windowRect;
+    final w = widget.box.maxWidth;
+    final h = widget.box.maxHeight;
+    final tint = CabinSky.roomTint(time);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (asset != null)
+          Positioned(
+            key: Key('cabin-window-${time.name}-${weather.name}'),
+            left: r.left * w,
+            top: r.top * h,
+            width: r.width * w,
+            height: r.height * h,
+            child: Image.asset(
+              asset,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.none,
+              gaplessPlayback: true,
+            ),
+          ),
+        if (raining)
+          Positioned(
+            left: r.left * w,
+            top: r.top * h,
+            width: r.width * w,
+            height: r.height * h,
+            child: Image.asset(
+              'assets/home/window/window_rain_$_frame.png',
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.none,
+              gaplessPlayback: true,
+            ),
+          ),
+        if (tint != null)
+          IgnorePointer(
+            child: ColoredBox(key: const Key('cabin-night-tint'), color: tint),
+          ),
+      ],
     );
   }
 }

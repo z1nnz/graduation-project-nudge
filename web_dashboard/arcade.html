@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Nudge 遊樂園</title>
+  <meta name="theme-color" content="#1b1530">
+  <link rel="stylesheet" href="assets/world_ui.css?v=1">
+  <link rel="stylesheet" href="assets/arcade.css?v=1">
+</head>
+<body class="w-page" data-page="arcade">
+  <header class="w-hud">
+    <a data-town-return href="town.html">← 回小鎮</a>
+    <h1>遊樂園</h1>
+    <span id="arcadeTicket" class="w-chip is-wait arcade-ticket" role="status" aria-live="polite">雲端確認中…</span>
+  </header>
+
+  <main class="w-main arcade-main">
+    <section id="arcadeHall" class="arcade-hall" aria-labelledby="arcadeHallTitle">
+      <h2 id="arcadeHallTitle" class="w-title">遊戲機台大廳</h2>
+      <p class="w-subtitle">25 分鐘以上、雲端確認的專注換 1 張休息券，50 分鐘以上換 2 張（最多持有 2 張，2 小時內有效）。每張券可玩 5 分鐘。分數只留在這台裝置，不換自律幣或經驗值。</p>
+      <div id="arcadeStage" class="arcade-stage">
+        <ul id="arcadeCabinets" class="arcade-cabinets" aria-label="遊戲機台"></ul>
+      </div>
+      <p id="arcadeStatus" class="arcade-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="arcadeGame" class="arcade-game" hidden aria-labelledby="gameTitle">
+      <div class="arcade-game-bar w-panel">
+        <h2 id="gameTitle">遊戲</h2>
+        <span class="arcade-game-stat">剩餘 <b id="gameTime">5:00</b></span>
+        <span class="arcade-game-stat" id="gameScore" aria-live="polite"></span>
+        <button id="gamePause" class="w-btn" type="button" aria-pressed="false">暫停 <kbd>Esc</kbd></button>
+        <button id="gameExit" class="w-btn" type="button">回大廳</button>
+      </div>
+      <p id="gameHint" class="arcade-hint"></p>
+      <div id="gameStage" class="arcade-game-stage">
+        <!-- each game fills its own view -->
+        <div id="viewStars" class="arcade-view" data-view="stars" hidden>
+          <canvas id="starsCanvas" class="arcade-canvas" width="320" height="180" role="img" aria-label="接星星：左右移動接住落下的星星，避開雲朵"></canvas>
+        </div>
+        <div id="viewFishing" class="arcade-view" data-view="fishing" hidden>
+          <canvas id="fishingCanvas" class="arcade-canvas" width="320" height="180" tabindex="0" role="img" aria-label="星光釣魚湖面：按住空白鍵或長按畫面拋竿"></canvas>
+          <p id="fishingSay" class="arcade-say" aria-live="assertive"></p>
+          <div class="arcade-dex w-panel">
+            <h3>本機圖鑑 <span id="fishingDexCount">0 / 10</span></h3>
+            <ol id="fishingDex" class="arcade-dex-list"></ol>
+          </div>
+        </div>
+        <div id="viewRhythm" class="arcade-view" data-view="rhythm" hidden>
+          <div id="rhythmPick" class="arcade-song-pick">
+            <h3 class="arcade-pick-title">選一首曲子</h3>
+            <ul id="rhythmSongs" class="arcade-song-list"></ul>
+          </div>
+          <div id="rhythmPlay" class="arcade-rhythm" hidden>
+            <canvas id="rhythmCanvas" class="arcade-canvas" width="180" height="320" role="img" aria-label="鐘塔節奏：三條軌道，音符到金色判定線時按 J、K、L 或點軌道"></canvas>
+            <p id="rhythmJudge" class="arcade-say" aria-live="polite"></p>
+          </div>
+        </div>
+        <div id="viewMemory" class="arcade-view" data-view="memory" hidden>
+          <div class="w-tabs" role="tablist" aria-label="難度" id="memoryLevels"></div>
+          <div id="memoryBoard" class="arcade-memory" role="group" aria-label="夥伴記憶配對"></div>
+        </div>
+
+        <div id="gamePaused" class="arcade-paused" hidden>
+          <div class="w-parchment">
+            <h3>暫停中</h3>
+            <p>休息券的時間也一起停下來了。</p>
+            <button id="gameResume" class="w-btn is-gold" type="button">繼續</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="arcadeInfo" class="arcade-dialog" role="dialog" aria-modal="true" aria-labelledby="infoTitle" hidden>
+    <div class="w-parchment arcade-dialog-box">
+      <h2 id="infoTitle"></h2>
+      <p id="infoDesc"></p>
+      <h3>操作方式</h3>
+      <p id="infoControls"></p>
+      <h3>你的最佳紀錄（本機）</h3>
+      <div id="infoBest"></div>
+      <p id="infoTicket" class="arcade-ticket-note"></p>
+      <div class="arcade-dialog-actions">
+        <button id="infoStart" class="w-btn is-gold" type="button">開始</button>
+        <a id="infoDesk" class="w-btn is-violet" href="personal-focus.html" hidden>去書桌專注</a>
+        <button id="infoClose" class="w-btn" type="button">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="arcadeCard" class="arcade-dialog" role="dialog" aria-modal="true" aria-labelledby="cardTitle" hidden>
+    <div class="w-parchment arcade-dialog-box arcade-catch">
+      <p id="cardRarity" class="w-chip"></p>
+      <span id="cardFish" class="arcade-fish-icon is-big" aria-hidden="true"></span>
+      <h2 id="cardTitle"></h2>
+      <p id="cardNote"></p>
+      <p id="cardCount" class="w-muted"></p>
+      <div class="arcade-dialog-actions">
+        <button id="cardClose" class="w-btn is-gold" type="button">收進圖鑑，繼續釣</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="arcadeResult" class="arcade-dialog" role="dialog" aria-modal="true" aria-labelledby="resultTitle" hidden>
+    <div class="w-parchment arcade-dialog-box">
+      <h2 id="resultTitle">結算</h2>
+      <p id="resultGrade" class="arcade-grade" hidden></p>
+      <ul id="resultLines" class="arcade-result-lines"></ul>
+      <p id="resultBest" class="w-muted"></p>
+      <p class="w-muted">分數不換自律幣或經驗值，只是好好休息的紀念。</p>
+      <div class="arcade-dialog-actions">
+        <button id="resultAgain" class="w-btn is-gold" type="button">再玩一次</button>
+        <button id="resultHall" class="w-btn" type="button">回大廳</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="arcadeToast" class="w-toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="assets/confirmed_activity_feedback.js?v=1"></script>
+  <script src="assets/town_routes.js?v=4"></script>
+  <script src="assets/town_return.js?v=2"></script>
+  <script src="assets/town_game_core.js?v=1"></script>
+  <script src="assets/arcade_core.js?v=1"></script>
+  <script src="assets/arcade_fishing_core.js?v=1"></script>
+  <script src="assets/arcade_rhythm_core.js?v=1"></script>
+  <script src="assets/arcade_memory_core.js?v=1"></script>
+  <script src="assets/arcade.js?v=1"></script>
+  <script src="assets/arcade_games.js?v=1"></script>
+  <script src="assets/app.js?v=29"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+name: Refresh iOS Podfile.lock
+
+# Windows machines cannot run CocoaPods. When a branch adds a native Flutter
+# plugin, run this workflow on that branch: a Mac runner regenerates
+# ios/Podfile.lock with the pinned CocoaPods and commits it back.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to refresh (never main)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    name: Regenerate Podfile.lock
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Refuse the default branch
+        if: inputs.branch == 'main'
+        run: |
+          echo "Run this on a feature branch, not main."
+          exit 1
+
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.7
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install pinned CocoaPods
+        run: sudo gem install cocoapods -v 1.16.2 --no-document
+
+      - name: Regenerate lockfile
+        run: pod _1.16.2_ install --repo-update --project-directory=ios
+
+      - name: Commit lockfile if it changed
+        run: |
+          if git diff --quiet -- ios/Podfile.lock; then
+            echo "Podfile.lock already up to date."
+            exit 0
+          fi
+          git config user.name "z1nnz"
+          git config user.email "202040543+z1nnz@users.noreply.github.com"
+          git add ios/Podfile.lock
+          git commit -m "chore(ios): 更新 Podfile.lock"
+          git push origin "HEAD:${{ inputs.branch }}"

@@ -161,6 +161,36 @@ void main() {
     await transport.close();
   });
 
+  test('a hug is passed to the device only while it is connected', () async {
+    final transport = FakeBleTransport();
+    final coordinator = NudgeDeviceCoordinator(
+      transport: transport,
+      bridge: NudgeDeviceBridge(
+        resolveAssignment: (_) async => null,
+        resolveRoomIds: (_) async => const [],
+        currentActorUserId: () => 'alice',
+        enqueueEvidence: (_) async {},
+        writeAcknowledgement: transport.writeCommand,
+      ),
+      validateAssignment: (_) async => true,
+    );
+    await coordinator.start();
+    expect(await coordinator.sendHug(), isFalse);
+    expect(transport.commands, isEmpty);
+
+    transport.controller.add(
+      const NudgeBleTransportEvent(
+        type: NudgeBleEventType.connected,
+        deviceId: 'nudge-a1b2c3',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(await coordinator.sendHug(), isTrue);
+    expect(transport.commands.single, contains('"type":"hug"'));
+    await coordinator.close();
+    await transport.close();
+  });
+
   test('lifecycle action revalidates assignment after connection', () async {
     final transport = FakeBleTransport();
     var assigned = true;

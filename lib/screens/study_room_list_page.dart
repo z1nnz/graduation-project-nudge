@@ -1,3 +1,5 @@
+import '../theme/game_ui.dart';
+import '../widgets/room_door_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -510,10 +512,9 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
     final secondaryText = AppUI.textSecondaryOf(context);
 
     if (rooms.isEmpty) {
-      return Card(
-        shape: AppUI.cardShape(),
+      return GamePanel(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(8),
           child: Column(
             children: [
               Icon(Icons.search_off_rounded, size: 40, color: secondaryText),
@@ -605,9 +606,21 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('自律房'),
+          backgroundColor: const Color(0xFF5A3826),
+          foregroundColor: const Color(0xFFFFE6A3),
+          surfaceTintColor: Colors.transparent,
+          title: const Text(
+            '自律房大廳',
+            style: TextStyle(fontFamily: 'Cubic11', fontSize: 24),
+          ),
           bottom: const TabBar(
+            labelColor: Color(0xFFFFE6A3),
+            unselectedLabelColor: Color(0xFFD8BFA8),
+            indicatorColor: GamePalette.gold,
+            indicatorWeight: 4,
+            labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
             tabs: [
               Tab(text: '探索'),
               Tab(text: '進行中'),
@@ -618,283 +631,293 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
         floatingActionButton: FloatingActionButton.extended(
           heroTag: null,
           onPressed: () => _openCreateRoomPage(context),
-          backgroundColor: accentColor.withValues(alpha: 0.30),
-          foregroundColor: accentColor,
-          icon: const Icon(Icons.add),
-          label: const Text('建立自律房'),
+          backgroundColor: GamePalette.gold,
+          foregroundColor: const Color(0xFF2A1600),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFF8A4A10), width: 3),
+          ),
+          icon: const Icon(Icons.add_home_rounded),
+          label: const Text(
+            '蓋一間自律房',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
         ),
-        body: TabBarView(
-          children: [
-            ListView(
-              padding: const EdgeInsets.all(AppUI.pagePadding),
-              children: [
-                _SectionHeader(
-                  title: '探索公開房間',
-                  subtitle: '搜尋房間名稱或 ID，也可以加入系統推薦的免密碼、需審核或密碼房。',
-                ),
-                const SizedBox(height: AppUI.cardGap),
-                Card(
-                  shape: AppUI.cardShape(),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _searchController,
-                          onChanged: (value) {
-                            setState(() {
-                              _searchQuery = value;
-                            });
-                          },
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.search_rounded),
-                            hintText: '搜尋房間名稱、ID、標籤',
-                            suffixIcon: _searchQuery.isEmpty
-                                ? null
-                                : IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _searchQuery = '';
-                                        _searchController.clear();
-                                      });
-                                    },
-                                    icon: const Icon(Icons.close_rounded),
-                                  ),
+        body: GameBackground(
+          child: TabBarView(
+            children: [
+              ListView(
+                padding: const EdgeInsets.all(AppUI.pagePadding),
+                children: [
+                  _SectionHeader(
+                    title: '探索公開房間',
+                    subtitle: '搜尋房間名稱或 ID，也可以加入系統推薦的免密碼、需審核或密碼房。',
+                  ),
+                  const SizedBox(height: AppUI.cardGap),
+                  GamePanel(
+                    child: Padding(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search_rounded),
+                              hintText: '搜尋房間名稱、ID、標籤',
+                              suffixIcon: _searchQuery.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _searchQuery = '';
+                                          _searchController.clear();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.close_rounded),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _RoomFilterPill(
+                                  label: '進行中',
+                                  selected: _onlyActive,
+                                  onTap: () {
+                                    setState(() {
+                                      _onlyActive = !_onlyActive;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _RoomFilterPill(
+                                  label: '快滿房',
+                                  selected: _onlyNearFull,
+                                  onTap: () {
+                                    setState(() {
+                                      _onlyNearFull = !_onlyNearFull;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _RoomFilterPill(
+                                  label: '我建立的',
+                                  selected: _onlyMine,
+                                  onTap: () {
+                                    setState(() {
+                                      _onlyMine = !_onlyMine;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _resetFilters,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('重設'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppUI.sectionGap),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '推薦與搜尋結果',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: primaryText,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _RoomFilterPill(
-                                label: '進行中',
-                                selected: _onlyActive,
-                                onTap: () {
-                                  setState(() {
-                                    _onlyActive = !_onlyActive;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _RoomFilterPill(
-                                label: '快滿房',
-                                selected: _onlyNearFull,
-                                onTap: () {
-                                  setState(() {
-                                    _onlyNearFull = !_onlyNearFull;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
+                      ),
+                      Text(
+                        '共 ${discoveryRooms.length} 間',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: secondaryText,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _RoomFilterPill(
-                                label: '我建立的',
-                                selected: _onlyMine,
-                                onTap: () {
-                                  setState(() {
-                                    _onlyMine = !_onlyMine;
-                                  });
-                                },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildRoomList(
+                    context: context,
+                    rooms: discoveryRooms,
+                    emptyTitle: '目前找不到房間',
+                    emptySubtitle: '可以換個關鍵字，或建立自己的自律房。',
+                    discoveryMode: true,
+                  ),
+                  const SizedBox(height: 84),
+                ],
+              ),
+              ListView(
+                padding: const EdgeInsets.all(AppUI.pagePadding),
+                children: [
+                  _SectionHeader(
+                    title: '正在進行中的自律房',
+                    subtitle: '目前有人正在自律的房間會優先顯示。',
+                  ),
+                  const SizedBox(height: AppUI.cardGap),
+                  _buildRoomList(
+                    context: context,
+                    rooms: activeRooms,
+                    emptyTitle: '目前沒有進行中的房間',
+                    emptySubtitle: '等好友開始自律，或自己進入房間開始一輪專注。',
+                  ),
+                  const SizedBox(height: 84),
+                ],
+              ),
+              ListView(
+                padding: const EdgeInsets.all(AppUI.pagePadding),
+                children: [
+                  _SectionHeader(
+                    title: '我已加入的自律房',
+                    subtitle: '這裡只放你已經加入或建立的房間。',
+                  ),
+                  const SizedBox(height: AppUI.cardGap),
+                  GamePanel(
+                    child: Padding(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.tune_rounded,
+                                color: accentColor,
+                                size: 20,
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '篩選我的房間',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    color: primaryText,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
                                 onPressed: _resetFilters,
-                                icon: const Icon(Icons.refresh_rounded),
-                                label: const Text('重設'),
+                                child: const Text('重設'),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppUI.sectionGap),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '推薦與搜尋結果',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryText,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '共 ${discoveryRooms.length} 間',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: secondaryText,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildRoomList(
-                  context: context,
-                  rooms: discoveryRooms,
-                  emptyTitle: '目前找不到房間',
-                  emptySubtitle: '可以換個關鍵字，或建立自己的自律房。',
-                  discoveryMode: true,
-                ),
-                const SizedBox(height: 84),
-              ],
-            ),
-            ListView(
-              padding: const EdgeInsets.all(AppUI.pagePadding),
-              children: [
-                _SectionHeader(
-                  title: '正在進行中的自律房',
-                  subtitle: '目前有人正在自律的房間會優先顯示。',
-                ),
-                const SizedBox(height: AppUI.cardGap),
-                _buildRoomList(
-                  context: context,
-                  rooms: activeRooms,
-                  emptyTitle: '目前沒有進行中的房間',
-                  emptySubtitle: '等好友開始自律，或自己進入房間開始一輪專注。',
-                ),
-                const SizedBox(height: 84),
-              ],
-            ),
-            ListView(
-              padding: const EdgeInsets.all(AppUI.pagePadding),
-              children: [
-                _SectionHeader(title: '我已加入的自律房', subtitle: '這裡只放你已經加入或建立的房間。'),
-                const SizedBox(height: AppUI.cardGap),
-                Card(
-                  shape: AppUI.cardShape(),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.tune_rounded,
-                              color: accentColor,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '篩選我的房間',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: primaryText,
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: _resetFilters,
-                              child: const Text('重設'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final itemWidth = (constraints.maxWidth - 8) / 2;
-                            return Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: allTags.map((tag) {
-                                final selected = _selectedTag == tag;
-                                return SizedBox(
-                                  width: itemWidth,
-                                  child: _RoomFilterPill(
-                                    label: tag,
-                                    selected: selected,
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedTag = tag;
-                                      });
-                                    },
-                                  ),
-                                );
-                              }).toList(),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<_RoomSortType>(
-                          initialValue: _sortType,
-                          decoration: const InputDecoration(
-                            labelText: '排序',
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            border: OutlineInputBorder(),
+                            ],
                           ),
-                          items: _RoomSortType.values
-                              .map(
-                                (type) => DropdownMenuItem(
-                                  value: type,
-                                  child: Text(_sortLabel(type)),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) return;
-                            setState(() {
-                              _sortType = value;
-                            });
-                          },
-                        ),
-                      ],
+                          const SizedBox(height: 10),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final itemWidth = (constraints.maxWidth - 8) / 2;
+                              return Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: allTags.map((tag) {
+                                  final selected = _selectedTag == tag;
+                                  return SizedBox(
+                                    width: itemWidth,
+                                    child: _RoomFilterPill(
+                                      label: tag,
+                                      selected: selected,
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedTag = tag;
+                                        });
+                                      },
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<_RoomSortType>(
+                            initialValue: _sortType,
+                            decoration: const InputDecoration(
+                              labelText: '排序',
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _RoomSortType.values
+                                .map(
+                                  (type) => DropdownMenuItem(
+                                    value: type,
+                                    child: Text(_sortLabel(type)),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() {
+                                _sortType = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: AppUI.sectionGap),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '自律房列表',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryText,
+                  const SizedBox(height: AppUI.sectionGap),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '自律房列表',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: primaryText,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      '共 ${displayRooms.length} 間',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: secondaryText,
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        '共 ${displayRooms.length} 間',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: secondaryText,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildRoomList(
-                  context: context,
-                  rooms: displayRooms,
-                  emptyTitle: '目前沒有符合條件的房間',
-                  emptySubtitle: '你可以調整篩選條件，或直接建立新的房間。',
-                ),
-                const SizedBox(height: 84),
-              ],
-            ),
-          ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildRoomList(
+                    context: context,
+                    rooms: displayRooms,
+                    emptyTitle: '目前沒有符合條件的房間',
+                    emptySubtitle: '你可以調整篩選條件，或直接建立新的房間。',
+                  ),
+                  const SizedBox(height: 84),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2480,8 +2503,8 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontFamily: 'Cubic11',
+            fontSize: 22,
             color: primaryText,
           ),
         ),
@@ -2583,325 +2606,35 @@ class _StudyRoomCard extends StatelessWidget {
     required this.onTap,
   });
 
-  String _joinModeLabel() {
-    switch (room.joinMode) {
-      case StudyRoomJoinMode.instant:
-        return '立即加入';
-      case StudyRoomJoinMode.approval:
-        return '審核加入';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final approvedCount = room.members
         .where((member) => member.isApproved)
         .length;
     final pendingCount = room.members.length - approvedCount;
-    final isFull = approvedCount >= room.memberLimit;
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-    final accent = room.accentColor;
-
-    return Card(
-      shape: AppUI.cardShape(),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppUI.radiusCard),
-        onTap: isJoining ? null : onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppUI.innerPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(roomTypeIcon, color: accent),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          room.name,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: primaryText,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          room.description.isEmpty
-                              ? '一起完成今天的$roomTypeLabel目標。'
-                              : room.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: secondaryText,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  if (isJoining)
-                    SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        valueColor: AlwaysStoppedAnimation<Color>(accent),
-                      ),
-                    )
-                  else
-                    Icon(Icons.chevron_right, color: secondaryText),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _RoomTag(
-                    text: roomTypeLabel,
-                    bgColor: AppUI.isDark(context)
-                        ? accent.withValues(alpha: 0.14)
-                        : accent.withValues(alpha: 0.08),
-                    textColor: accent,
-                  ),
-                  _RoomTag(
-                    text: room.category,
-                    bgColor: AppUI.isDark(context)
-                        ? accent.withValues(alpha: 0.14)
-                        : accent.withValues(alpha: 0.08),
-                    textColor: accent,
-                  ),
-                  _RoomTag(
-                    text: '房主 ${room.ownerName}',
-                    bgColor: AppUI.isDark(context)
-                        ? const Color(0xFF273041)
-                        : const Color(0xFFF3F4F6),
-                    textColor: secondaryText,
-                  ),
-                  _RoomTag(
-                    text: '$approvedCount/${room.memberLimit} 人',
-                    bgColor: AppUI.isDark(context)
-                        ? const Color(0xFF273041)
-                        : const Color(0xFFF3F4F6),
-                    textColor: secondaryText,
-                  ),
-                  if (pendingCount > 0)
-                    const _RoomTag(
-                      text: '有待審',
-                      bgColor: Color(0xFFFFEDD5),
-                      textColor: Color(0xFFEA580C),
-                    ),
-                  _RoomTag(
-                    text: _joinModeLabel(),
-                    bgColor: AppUI.isDark(context)
-                        ? const Color(0xFF273041)
-                        : const Color(0xFFF3F4F6),
-                    textColor: secondaryText,
-                  ),
-                  if (room.password.isNotEmpty)
-                    const _RoomTag(
-                      text: '需密碼',
-                      bgColor: Color(0xFFEDE9FE),
-                      textColor: Color(0xFF7C3AED),
-                    ),
-                  _RoomTag(
-                    text:
-                        '每日 ${room.dailyGoalValue % 1 == 0 ? room.dailyGoalValue.toInt() : room.dailyGoalValue} ${room.goalUnitLabel}',
-                    bgColor: const Color(0xFFE8F7EC),
-                    textColor: const Color(0xFF16A34A),
-                  ),
-                  if (room.joinQuestionsEnabled)
-                    const _RoomTag(
-                      text: '有加入問題',
-                      bgColor: Color(0xFFFFEDD5),
-                      textColor: Color(0xFFEA580C),
-                    ),
-                  if (room.nicknameRuleEnabled)
-                    const _RoomTag(
-                      text: '有暱稱規則',
-                      bgColor: Color(0xFFEDE9FE),
-                      textColor: Color(0xFF7C3AED),
-                    ),
-                  if (isFull)
-                    const _RoomTag(
-                      text: '已滿',
-                      bgColor: Color(0xFFFEE2E2),
-                      textColor: Color(0xFFDC2626),
-                    )
-                  else if (nearFull)
-                    const _RoomTag(
-                      text: '快滿房',
-                      bgColor: Color(0xFFFFEDD5),
-                      textColor: Color(0xFFEA580C),
-                    ),
-                ],
-              ),
-              if (tags.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: tags
-                      .map(
-                        (tag) => _RoomTag(
-                          text: '#$tag',
-                          bgColor: AppUI.isDark(context)
-                              ? accent.withValues(alpha: 0.14)
-                              : accent.withValues(alpha: 0.08),
-                          textColor: accent,
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _RoomMiniInfo(
-                      title: '今日累積',
-                      value: trackedValueText,
-                      icon: Icons.access_time,
-                      color: accent,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _RoomMiniInfo(
-                      title: '挑戰進度',
-                      value: '${(progress * 100).round()}%',
-                      icon: Icons.flag_outlined,
-                      color: accent,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppUI.radiusPill),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 8,
-                  backgroundColor: AppUI.isDark(context)
-                      ? const Color(0xFF2A2F3A)
-                      : const Color(0xFFE5E7EB),
-                  valueColor: AlwaysStoppedAnimation<Color>(accent),
-                ),
-              ),
-              if (topMember != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  '今日領先：${topMember!.roomNickname.isNotEmpty ? topMember!.roomNickname : topMember!.name}（$topMemberValueText）',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: secondaryText,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RoomMiniInfo extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _RoomMiniInfo({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: AppUI.softCardOf(context, color),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 11, color: secondaryText),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: primaryText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoomTag extends StatelessWidget {
-  final String text;
-  final Color bgColor;
-  final Color textColor;
-
-  const _RoomTag({
-    required this.text,
-    required this.bgColor,
-    required this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(AppUI.radiusPill),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: textColor,
-        ),
-      ),
+    final leader = topMember;
+    return RoomDoorCard(
+      name: room.name,
+      subtitle: room.description.isEmpty
+          ? '一起完成今天的$roomTypeLabel目標。'
+          : room.description,
+      accent: room.accentColor,
+      typeLabel: roomTypeLabel,
+      typeIcon: roomTypeIcon,
+      approvedCount: approvedCount,
+      memberLimit: room.memberLimit,
+      activeCount: activeCount,
+      progress: progress,
+      trackedValueText: trackedValueText,
+      leaderLine: leader == null
+          ? null
+          : '今日領先：${leader.roomNickname.isNotEmpty ? leader.roomNickname : leader.name}（$topMemberValueText）',
+      locked: room.password.isNotEmpty,
+      needsApproval: room.joinMode == StudyRoomJoinMode.approval,
+      nearFull: nearFull,
+      hasPending: pendingCount > 0,
+      isJoining: isJoining,
+      onTap: onTap,
     );
   }
 }

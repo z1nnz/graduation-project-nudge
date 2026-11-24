@@ -1,0 +1,19 @@
+.safety-panel { display: grid; gap: .75rem; }
+.safety-panel [hidden], .safety-dialog [hidden] { display: none; }
+.safety-panel h2, .safety-panel button, .safety-dialog h2, .safety-dialog button { font-family: var(--w-pixel); }
+.safety-panel form, .safety-dialog form { display: grid; gap: .65rem; }
+.safety-panel label, .safety-dialog label { display: grid; gap: .35rem; }
+.safety-panel [type="checkbox"] { width: 24px; height: 24px; }
+.safety-panel button, .safety-dialog button, .safety-panel input:not([type="checkbox"]), .safety-dialog select { min-height: 44px; }
+.safety-panel input:not([type="checkbox"]), .safety-dialog input, .safety-dialog select, .safety-dialog textarea {
+  color: var(--w-ink-dark); background: var(--w-parchment-hi); width: 100%; min-width: 0; box-sizing: border-box;
+  border: 2px solid var(--w-frame);
+}
+.safety-dialog {
+  width: min(100% - 1.25rem, 32rem); box-sizing: border-box; max-height: 90vh; overflow: auto;
+  background: var(--w-parchment); color: var(--w-ink-dark); border: 4px solid var(--w-wood-dark);
+}
+.safety-dialog::backdrop { background: var(--w-night); opacity: .7; }
+.safety-panel ul { padding-inline-start: 1rem; }
+.safety-panel li { margin: .5rem 0; overflow-wrap: anywhere; }
+.safety-panel li button { margin-inline: .5rem; }

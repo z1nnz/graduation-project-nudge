@@ -1,0 +1,14 @@
+.family-garden { margin-block: 16px; }
+.family-garden-plot {
+  position: relative; display: flex; justify-content: center; align-items: center;
+  min-height: 150px; aspect-ratio: 16 / 9; max-width: 640px;
+  background: var(--w-wood-dark) url("family_garden/plot.png") center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.family-garden-plot img { margin: 8px; }
+.family-garden p { color: var(--w-ink-dark); overflow-wrap: anywhere; }
+.family-review-cover { display: block; width: min(100%, 480px); height: auto; image-rendering: pixelated; }
+.family-garden form { display: grid; gap: 10px; max-width: 580px; }
+.family-garden form[hidden], .family-garden [hidden] { display: none; }
+.family-garden label { display: grid; gap: 4px; }
+.family-garden :is(textarea, select, input[type="date"]) { min-height: 44px; width: 100%; font: inherit; }

@@ -354,6 +354,22 @@ class NudgeDeviceCoordinator extends ChangeNotifier {
     }
   }
 
+  /// Pass a friend's hug to the device (it glows pink). False when no
+  /// device is connected, so the hug can wait for the next connection.
+  Future<bool> sendHug() async {
+    if (_state.status != NudgeDeviceConnectionStatus.connected ||
+        _state.deviceId == null) {
+      return false;
+    }
+    await _transport.writeCommand(
+      jsonEncode({
+        'protocolVersion': nudgeDeviceProtocolVersion,
+        'type': 'hug',
+      }),
+    );
+    return true;
+  }
+
   Future<void> sendAction(String action) async {
     final deviceId = _state.deviceId;
     if (!const {'start', 'pause', 'resume', 'complete'}.contains(action) ||

@@ -66,5 +66,28 @@
     }
   }
 
-  return Object.freeze({ windowPath, hashFor, pathFromHash, embedUrl, isTownEmbed });
+  function transitionForBuilding(building) {
+    if (building === 'tower' || building === 'observatory') return 'portal';
+    if (building === 'store' || building === 'park') return 'curtain';
+    return 'door';
+  }
+
+  function swipeShouldClose(distance, height) {
+    return Number.isFinite(distance) && Number.isFinite(height) && height > 0 &&
+      distance > 0 && distance >= height * 0.25;
+  }
+
+  function loadingTimedOut(startedAt, now) {
+    return Number.isFinite(startedAt) && Number.isFinite(now) && now - startedAt >= 8000;
+  }
+
+  function prefetchPath(destinations, building) {
+    if (!Array.isArray(destinations)) return null;
+    const preferred = destinations.find(d => d.building === building && d.audience === 'player' &&
+      d.status === 'available' && d.href && !d.href.startsWith('town.html'));
+    return preferred ? preferred.href.split('#')[0] : null;
+  }
+
+  return Object.freeze({ windowPath, hashFor, pathFromHash, embedUrl, isTownEmbed,
+    transitionForBuilding, swipeShouldClose, loadingTimedOut, prefetchPath });
 });
