@@ -7645,6 +7645,8 @@ class AppState extends ChangeNotifier {
     StudyRoomMessageType type = StudyRoomMessageType.text,
     String senderId = 'local_user',
     String? senderName,
+    String? replyTo,
+    String? mentionUid,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -7658,6 +7660,8 @@ class AppState extends ChangeNotifier {
       text: trimmed,
       type: type,
       createdAt: now,
+      replyTo: replyTo,
+      mentionUid: mentionUid == resolvedSenderId ? null : mentionUid,
     );
 
     final user = _currentUser;
