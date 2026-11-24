@@ -130,7 +130,9 @@ void main() {
     await tester.tap(find.byKey(const Key('cabin-companion')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const Key('pose-effect-cheer')), findsOneWidget);
+    expect(find.byKey(const Key('companion-hearts')), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
+    expect(find.byKey(const Key('companion-hearts')), findsNothing);
     await tester.longPress(find.byKey(const Key('cabin-companion')));
     expect(opened['character'], 1);
   });

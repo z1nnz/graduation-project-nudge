@@ -46,6 +46,19 @@ void main() {
         findsOneWidget,
       );
 
+      await tester.tap(find.text('先 2 分鐘'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+      expect(find.text('02:00'), findsOneWidget);
+      await tester.tap(find.text('25 + 5'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+      expect(find.text('25:00'), findsOneWidget);
+
       await tester.tap(find.text('開始專注'));
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 100)),
