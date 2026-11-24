@@ -117,6 +117,7 @@
     okay: "沒問題", wave: "招呼", think: "思考", fire: "火力全開",
   };
   let activeCabin = null;
+  let requestedCabin = new URLSearchParams(location.search).get("friend");
   let settings = null;
   let friends = [];
   let friendSettings = {};
@@ -248,6 +249,18 @@
   function render() {
     renderSettings();
     renderFriends();
+    if (requestedCabin && friends.includes(requestedCabin) && friendSettings[requestedCabin]?.shareCabin && !activeCabin) {
+      const hostId = requestedCabin;
+      const opener = [...document.querySelectorAll("[data-visit-cabin-open]")].find(button =>
+        button.dataset.visitCabinOpen === hostId);
+      if (opener) {
+        requestedCabin = null;
+        const url = new URL(location.href);
+        url.searchParams.delete("friend");
+        history.replaceState(null, "", url);
+        void openCabin(hostId, opener);
+      }
+    }
     renderVisits("incoming", "[data-visit-incoming]");
     renderVisits("outgoing", "[data-visit-outgoing]");
     const count = $("[data-visit-today-count]");

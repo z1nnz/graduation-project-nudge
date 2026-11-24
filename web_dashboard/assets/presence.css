@@ -1,0 +1,10 @@
+.friend-presence { margin-block: 16px; }
+.friend-presence label { display: inline-flex; align-items: center; min-height: 44px; gap: 8px; }
+.friend-presence ul { padding: 0; list-style: none; }
+.friend-presence li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-block: 8px; border-block-start: 1px solid var(--w-frame); }
+.presence-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.friend-presence li p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.friend-presence p { color: var(--w-ink-dark); }
+@media (prefers-reduced-motion: reduce) {
+  .friend-presence * { animation: none !important; transition: none !important; }
+}
