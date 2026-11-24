@@ -12,6 +12,10 @@ import '../models/cabin_layout.dart';
 import '../models/cabin_presentation.dart';
 import '../models/daily_next_action.dart';
 import '../widgets/immersive_cabin.dart';
+import '../models/focus_sound.dart';
+import '../services/audioplayers_focus_backend.dart';
+import '../widgets/focus_sound_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum _PomodoroPhase { focus, rest }
 
@@ -45,6 +49,27 @@ class _FocusPageState extends State<FocusPage> {
   int completedPomodoros = 0;
   FocusActivityLedgerController? _ledgerController;
   AppState? _ledgerAppState;
+  FocusSoundController? _sound;
+
+  /// Created only when needed, so pages without sound never touch audio.
+  FocusSoundController _ensureSound() =>
+      _sound ??= FocusSoundController(backend: AudioplayersFocusBackend());
+
+  Future<void> _restoreSavedSound() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted || !prefs.containsKey('focus_sound_id')) return;
+    final sound = _ensureSound();
+    await sound.restore();
+    if (mounted && isRunning) await sound.resume();
+  }
+
+  Future<void> _openSoundSheet() async {
+    final sound = _ensureSound();
+    if (sound.current == null) await sound.restore();
+    if (!mounted) return;
+    await showFocusSoundSheet(context, sound);
+    if (mounted) setState(() {});
+  }
 
   bool get isFocusPhase => currentPhase == _PomodoroPhase.focus;
 
@@ -61,6 +86,7 @@ class _FocusPageState extends State<FocusPage> {
     super.initState();
     selectedFocusMinutes = widget.initialFocusMinutes;
     remainingSeconds = selectedFocusMinutes * 60;
+    if (widget.immersive) unawaited(_restoreSavedSound());
     if (widget.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(startTimer());
@@ -162,6 +188,7 @@ class _FocusPageState extends State<FocusPage> {
 
   Future<void> startTimer() async {
     if (isRunning) return;
+    unawaited(_sound?.resume());
     if (isFocusPhase) {
       try {
         await _ledgerController?.startOrResume(elapsedSeconds: elapsedSeconds);
@@ -315,6 +342,7 @@ class _FocusPageState extends State<FocusPage> {
   }
 
   Future<void> pauseTimer() async {
+    unawaited(_sound?.pause());
     if (isFocusPhase) {
       try {
         await _ledgerController?.pause(elapsedSeconds: elapsedSeconds);
@@ -465,6 +493,7 @@ class _FocusPageState extends State<FocusPage> {
   @override
   void dispose() {
     timer?.cancel();
+    _sound?.dispose();
     if (isFocusPhase) {
       final pendingDiscard = _ledgerController?.discard(
         elapsedSeconds: elapsedSeconds,
@@ -790,6 +819,39 @@ class _FocusPageState extends State<FocusPage> {
                       tooltip: '回到小屋',
                       onPressed: () => Navigator.maybePop(context),
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  top: top + 6,
+                  child: Material(
+                    color: const Color(0xB3201008),
+                    shape: const StadiumBorder(),
+                    child: InkWell(
+                      key: const Key('desk-sound'),
+                      customBorder: const StadiumBorder(),
+                      onTap: _openSoundSheet,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.music_note_rounded,
+                              color: Color(0xFFFFE6A3),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _sound?.current?.label ?? '聲音',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

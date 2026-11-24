@@ -24,3 +24,6 @@
 *.woff2 binary
 *.mp4 binary
 *.glb binary
+*.wav binary
+*.mp3 binary
+*.m4a binary
