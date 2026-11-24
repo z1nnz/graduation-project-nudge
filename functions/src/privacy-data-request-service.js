@@ -207,6 +207,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     notifications,
     sentFriendRequests,
     receivedFriendRequests,
+    gardenData,
     friendVisitSettings,
     hostedFriendVisits,
     madeFriendVisits,
@@ -305,6 +306,12 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     ),
     readQuery(firestore, "friend_requests", "senderId", "==", userId),
     readQuery(firestore, "friend_requests", "receiverId", "==", userId),
+    Promise.all([
+      readQuery(firestore, "family_weekly_notes", "authorId", "==", userId),
+      readQuery(firestore, "family_scheduled_letters", "guardianId", "==", userId),
+      readQuery(firestore, "family_scheduled_letters", "childId", "==", userId),
+      readQuery(firestore, "family_letter_preferences", "userId", "==", userId),
+    ]),
     readSingleDocument(firestore, "friend_visit_settings", userId),
     readQuery(firestore, "friend_visits", "hostId", "==", userId),
     readQuery(firestore, "friend_visits", "visitorId", "==", userId),
@@ -359,6 +366,12 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         sentFriendRequests.documents,
         receivedFriendRequests.documents,
       ),
+      family_weekly_notes: gardenData[0].documents,
+      family_scheduled_letters: mergeDocuments(
+        gardenData[1].documents,
+        gardenData[2].documents.filter(entry => entry.data.status === "sent"),
+      ),
+      family_letter_preferences: gardenData[3].documents,
       friend_visit_settings: friendVisitSettings,
       friend_visits: mergeDocuments(
         hostedFriendVisits.documents,

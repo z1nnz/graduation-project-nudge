@@ -1025,6 +1025,16 @@ service cloud.firestore {
       }
     }
 
+    match /family_weekly_notes/{noteId} {
+      allow read, write: if false;
+    }
+    match /family_scheduled_letters/{letterId} {
+      allow read, write: if false;
+    }
+    match /family_letter_preferences/{linkId} {
+      allow read, write: if false;
+    }
+
     // ─── /groups/{groupId} ────────────────────────────────────────────
     // Canonical group state. Scoped roles live in relationship_memberships;
     // clients may not recreate the retired single-group user projection.

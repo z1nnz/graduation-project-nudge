@@ -135,6 +135,7 @@
     state.userId = null;
     state.memberships = [];
     state.selected = null;
+    window.NudgeFamilyGarden?.select(null);
     render();
   }
 
@@ -171,11 +172,19 @@
   function selectScope(membership) {
     resetScope();
     state.selected = membership;
-    if (!membership) { render(); return; }
+    if (!membership) {
+      window.NudgeFamilyGarden?.select(null);
+      render();
+      return;
+    }
     const id = membership.scopeId;
     const fs = store();
     if (scopeType === "family") {
       const link = fs.collection("family_links").doc(id);
+      if (window.NudgeFamilyGarden) {
+        window.NudgeFamilyGarden.select(id);
+        scopeSubs.push(link.onSnapshot(snapshot => window.NudgeFamilyGarden.refresh(snapshot.data())));
+      }
       listen(link, "link");
       listen(link.collection("encouragements").orderBy("createdAt", "desc").limit(20), "encouragements", docs);
       listen(link.collection("goals").orderBy("createdAt", "desc").limit(20), "goals", docs);
