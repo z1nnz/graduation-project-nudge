@@ -348,6 +348,14 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "thanks_cards", "recipientId", "==", userId),
     readQuery(firestore, "thanks_card_budgets", "userId", "==", userId),
   ]);
+  const journalBooks = await readQuery(firestore, "exchange_journals", "participantIds", "array-contains", userId);
+  const exchangeJournals = await Promise.all(journalBooks.documents
+    .filter(book => book.data.status !== "deleted" && (!book.data.expiresAt || book.data.expiresAt > new Date().toISOString()))
+    .map(async book => {
+      const entries = await collectQueryDocuments(firestore.collection("exchange_journals").doc(book.id)
+        .collection("entries").where("authorId", "==", userId));
+      return { ...book, entries };
+    }));
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -405,6 +413,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       sent_thanks_cards: sentThanks.documents,
       received_thanks_cards: receivedThanks.documents,
       thanks_card_usage: thanksUsage.documents,
+      exchange_journals: exchangeJournals,
       safety_actions: moderationActions.documents.map(({ data }) => ({
         action: data.action, reason: data.reason, createdAt: data.createdAt,
       })),
