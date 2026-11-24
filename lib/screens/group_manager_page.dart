@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/community_scene_header.dart';
 import 'package:provider/provider.dart';
 import '../models/relationship_membership.dart';
 import '../state/app_state.dart';
@@ -222,6 +224,11 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
+          const CommunitySceneHeader(
+            family: false,
+            greeting: '打開辦公室的門，可以維護團體活動和成員資料。',
+          ),
+          const SizedBox(height: AppUI.sectionGap),
           // Hero banner
           Container(
             padding: const EdgeInsets.all(18),

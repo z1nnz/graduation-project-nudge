@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/community_scene_header.dart';
 import 'package:provider/provider.dart';
 
 import '../models/relationship_membership.dart';
@@ -94,6 +96,11 @@ class _GuardianParentPageState extends State<GuardianParentPage> {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
+          const CommunitySceneHeader(
+            family: true,
+            greeting: '在庭院裡看共同目標，或到信箱寄一封鼓勵信。',
+          ),
+          const SizedBox(height: AppUI.sectionGap),
           Container(
             padding: const EdgeInsets.all(18),
             decoration: AppUI.heroGradient(accentColor),

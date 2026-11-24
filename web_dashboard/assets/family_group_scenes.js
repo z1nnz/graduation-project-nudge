@@ -352,6 +352,20 @@
     const challenge = state.data.challenge;
     const mine = state.data.participation;
     const joinedCurrent = mine && challenge && mine.challengeId === challenge.challengeId;
+    const mural = $("[data-community-mural]");
+    if (mural) {
+      const done = joinedCurrent ? Number(mine.completedDays) : 0;
+      const target = joinedCurrent ? Number(mine.totalDays) : 0;
+      const quarters = target > 0 ? Math.min(12, Math.round(12 * done / target)) : 0;
+      mural.replaceChildren(...Array.from({ length: 12 }, (_, index) => {
+        const piece = document.createElement("span");
+        piece.classList.toggle("is-painted", index < quarters);
+        return piece;
+      }));
+      $("[data-community-mural-status]").textContent = target > 0
+        ? "我的挑戰進度：" + done + "／" + target + " 天"
+        : "參加挑戰後，壁畫會顯示自己的挑戰進度。";
+    }
     const digest = api.groupResultDigest(state.data.summaries || []);
     const mySummary = (state.data.summaries || []).find(item => item.memberId === state.userId);
     const templates = state.data.templates || [];

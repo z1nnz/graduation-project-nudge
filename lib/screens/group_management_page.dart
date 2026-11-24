@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../widgets/community_scene_header.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
@@ -31,6 +33,11 @@ class GroupManagementPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
+          const CommunitySceneHeader(
+            family: false,
+            greeting: '走到壁畫旁，可以查看團體任務。安排團體活動時，請從辦公室進入。',
+          ),
+          const SizedBox(height: AppUI.sectionGap),
           Container(
             padding: const EdgeInsets.all(18),
             decoration: AppUI.heroGradient(accentColor),

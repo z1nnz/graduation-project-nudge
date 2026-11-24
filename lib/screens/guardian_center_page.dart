@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/community_scene_header.dart';
 import 'package:provider/provider.dart';
 
 import '../models/family_link_contract.dart';
@@ -28,6 +30,11 @@ class GuardianCenterPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
+          const CommunitySceneHeader(
+            family: true,
+            greeting: '庭院的桌上放著家庭連結與分享設定。',
+          ),
+          const SizedBox(height: AppUI.sectionGap),
           Container(
             padding: const EdgeInsets.all(18),
             decoration: AppUI.heroGradient(accentColor),
