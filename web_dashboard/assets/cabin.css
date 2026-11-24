@@ -112,6 +112,7 @@
   padding: 0 6px; border-radius: 6px;
   background: var(--w-wood-deep); color: var(--w-gold);
   font-family: var(--w-pixel); font-size: 12px;
+  white-space: nowrap;
 }
 .cabin-ghost {
   position: absolute; z-index: 12; pointer-events: none;
