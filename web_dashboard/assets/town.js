@@ -8,6 +8,8 @@
   const gameCore = root.NudgeTownGameCore;
   const routes = root.NudgeTownRoutes;
   const avatarCore = root.NudgeTownAvatarCore;
+  const atmosphereCore = root.NudgeTownAtmosphereCore;
+  const atmosphere = root.NudgeTownAtmosphere?.create();
   const doc = root.document;
   if (!core || !gameCore || !routes || !avatarCore || !doc || doc.body?.dataset.page !== 'town') return;
 
@@ -85,6 +87,9 @@
     toastUntil: 0,
     celebrateUntil: 0,
     sceneOpen: false,
+    actorNear: null,
+    actorDialog: false,
+    lastActorId: null,
     static: false,
   };
 
@@ -130,6 +135,22 @@
 
   // ---------- labels and directory ----------
   const labels = new Map();
+  const actorButtons = new Map();
+  if (atmosphere) {
+    for (const actor of atmosphere.actors(0, true)) {
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.className = 'town-actor';
+      button.setAttribute('aria-label', `與${actor.name}交談`);
+      const bubble = doc.createElement('span');
+      bubble.textContent = '…';
+      bubble.setAttribute('aria-hidden', 'true');
+      button.appendChild(bubble);
+      button.addEventListener('click', () => speakActor(actor));
+      els('townActors').appendChild(button);
+      actorButtons.set(actor.id, button);
+    }
+  }
   const directoryButtons = new Map();
   for (const b of BUILDINGS) {
     const el = doc.createElement('div');
@@ -355,9 +376,12 @@
   }
 
   canvas.addEventListener('pointerdown', event => {
-    if (state.tour >= 0 || state.panel || state.sceneOpen || !els('townGame').hidden) return;
+    if (state.tour >= 0 || state.panel || state.sceneOpen || state.actorDialog || !els('townGame').hidden) return;
     const rect = canvas.getBoundingClientRect();
     const p = toMap(event.clientX - rect.left, event.clientY - rect.top);
+    const tappedActor = atmosphere?.actors(performance.now(), reducedMotion).find(actor =>
+      Math.hypot(p.x - actor.x * MAP_W, p.y - actor.y * MAP_H) < 28);
+    if (tappedActor) { speakActor(tappedActor); return; }
     const b = buildingAt(p);
     if (b && reducedMotion) {
       // No walking animation: arrive at the door and open the panel at once.
@@ -391,6 +415,10 @@
       return;
     }
     if (state.sceneOpen) return;
+    if (state.actorDialog) {
+      if (key === 'escape' || key === 'enter') { event.preventDefault(); closeActorDialog(); }
+      return;
+    }
     if (state.panel) {
       if (key === 'escape') { event.preventDefault(); closePanel(); }
       return;
@@ -409,13 +437,39 @@
     }
     if (!els('townGame').hidden) return;
     const onMap = !event.target || event.target === doc.body || event.target === canvas;
-    if (state.near && (key === 'f' || (key === 'enter' && onMap))) enter(state.near);
+    if ((key === 'f' || (key === 'enter' && onMap)) && state.actorNear) speakActor(state.actorNear);
+    else if (state.near && (key === 'f' || (key === 'enter' && onMap))) enter(state.near);
   });
   doc.addEventListener('keyup', event => state.keys.delete(event.key.toLowerCase()));
   root.addEventListener('blur', () => { state.keys.clear(); if (game.running) toggleGamePause(); });
-  doc.addEventListener('visibilitychange', () => { if (doc.hidden && game.running) toggleGamePause(); });
+  doc.addEventListener('visibilitychange', () => {
+    if (doc.hidden && game.running) toggleGamePause();
+    if (!doc.hidden && ctx && !state.static) { last = performance.now(); root.requestAnimationFrame(frame); }
+  });
 
-  els('townPromptEnter').addEventListener('click', () => state.near && enter(state.near));
+  els('townPromptEnter').addEventListener('click', () => {
+    if (state.actorNear) speakActor(state.actorNear);
+    else if (state.near) enter(state.near);
+  });
+
+  function speakActor(actor) {
+    if (state.static || state.panel || state.sceneOpen || state.tour >= 0) return;
+    if (actor.id === 'owl') { startTour(); return; }
+    state.actorDialog = true;
+    state.lastActorId = actor.id;
+    state.keys.clear(); state.target = null;
+    els('townNpcName').textContent = actor.name;
+    els('townNpcLine').textContent = atmosphere.line(actor);
+    els('townNpcDialog').hidden = false;
+    els('townNpcClose').focus({ preventScroll: true });
+  }
+  function closeActorDialog() {
+    if (!state.actorDialog) return;
+    state.actorDialog = false;
+    els('townNpcDialog').hidden = true;
+    actorButtons.get(state.lastActorId)?.focus({ preventScroll: true });
+  }
+  els('townNpcClose').addEventListener('click', closeActorDialog);
   els('townZoomIn').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom + 0.2); });
   els('townZoomOut').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom - 0.2); });
   els('townHelp').addEventListener('click', startTour);
@@ -603,6 +657,7 @@
   let last = performance.now();
   function frame(now) {
     if (state.static || !ctx) return;
+    if (doc.hidden) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     if (!els('townGame').hidden) { if (game.running) tickGame(now); root.requestAnimationFrame(frame); return; }
@@ -610,7 +665,7 @@
     // The plaza fountain sits on the central crossroads: it is a tap target,
     // not a wall, or walking to the tower would stall against it.
     const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect);
-    const dir = state.tour < 0 && !state.panel && !state.sceneOpen ? moveDirection() : null;
+    const dir = state.tour < 0 && !state.panel && !state.sceneOpen && !state.actorDialog ? moveDirection() : null;
     if (dir) {
       const before = state.player;
       state.player = core.step(state.player, dir, dt, SPEED, blockers, BOUNDS, RADIUS);
@@ -643,9 +698,18 @@
       const prefetchDoor = core.nearestDoor(state.player, BUILDINGS, 96);
       if (prefetchDoor) root.NudgeTownWindow?.nearDoor(prefetchDoor.id);
     }
+    const actors = atmosphere?.actors(now, reducedMotion) || [];
+    state.actorNear = actors.reduce((closest, actor) => {
+      const distance = Math.hypot(state.player.x - actor.x * MAP_W, state.player.y - actor.y * MAP_H);
+      return distance < 54 && (!closest || distance < closest.distance) ? { ...actor, distance } : closest;
+    }, null);
     const prompt = els('townPrompt');
-    prompt.hidden = !state.near || Boolean(state.panel) || state.sceneOpen || els('townDirectory').classList.contains('is-open');
-    if (state.near) {
+    prompt.hidden = (!state.near && !state.actorNear) || Boolean(state.panel) || state.sceneOpen || state.actorDialog || els('townDirectory').classList.contains('is-open');
+    if (state.actorNear) {
+      els('townPromptText').textContent = `按 F 與${state.actorNear.name}交談`;
+      els('townPromptEnter').textContent = '交談';
+    } else if (state.near) {
+      els('townPromptEnter').textContent = '進入';
       els('townPromptText').textContent = core.isUnlocked(state.near, state.level)
         ? `按 F 進入${state.near.name}` : `${state.near.name}：Lv ${state.near.minLevel} 開放`;
     }
@@ -660,6 +724,8 @@
       const origin = toScreen({ x: 0, y: 0 });
       ctx.drawImage(mapImage, origin.x, origin.y, MAP_W * s, MAP_H * s);
     }
+    atmosphere?.draw(ctx, { width: w, height: h, mapW: MAP_W, mapH: MAP_H,
+      toScreen, scale: s, reducedMotion, hidden: doc.hidden }, now);
     if (playerImage.complete && playerImage.naturalWidth) {
       const p = toScreen(state.player);
       const pose = avatarCore.pose(state.faceIndex, state.face, state.moving, state.walking);
@@ -691,14 +757,24 @@
       el.style.top = `${Math.max(labelTop, p.y)}px`;
       el.classList.toggle('is-near', state.near === b);
     }
+    for (const actor of actors) {
+      const p = toScreen({ x: actor.x * MAP_W, y: actor.y * MAP_H });
+      const button = actorButtons.get(actor.id);
+      button.style.left = `${p.x}px`;
+      button.style.top = `${p.y - 5 * s}px`;
+      button.classList.toggle('is-near', state.actorNear?.id === actor.id);
+      button.hidden = Boolean(state.panel) || state.sceneOpen || state.actorDialog || state.tour >= 0 || !els('townGame').hidden;
+    }
     if (state.toastUntil && now > state.toastUntil) { els('townToast').hidden = true; state.toastUntil = 0; }
     root.requestAnimationFrame(frame);
   }
 
   // ---------- clock ----------
   function tickClock() {
-    const d = new Date();
-    els('townClock').textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const date = new Date();
+    const { hour, minute } = atmosphereCore?.taipeiParts(date) ||
+      { hour: date.getHours(), minute: date.getMinutes() };
+    els('townClock').textContent = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   }
 
   // ---------- account data (read-only) ----------
