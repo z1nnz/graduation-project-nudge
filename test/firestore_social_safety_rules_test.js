@@ -104,5 +104,11 @@ async function main() {
   assert.equal((await send(peer, "muted")).status, 403);
   assert.equal((await commit("owner", update(mute, { userId: peer.localId, until: new Date(Date.now() - 60000) }))).status, 200);
   assert.equal((await send(peer, "after-mute")).status, 200);
+  assert.equal((await commit("owner",
+    update("users/" + owner.localId + "/friends/" + child.localId, { id: child.localId }),
+    update("users/" + child.localId + "/friends/" + owner.localId, { id: owner.localId }),
+  )).status, 200);
+  const knownFriend = await send(owner, "known-friend-mention", child);
+  assert.equal(knownFriend.status, 200, await knownFriend.text());
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

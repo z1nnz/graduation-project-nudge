@@ -40,9 +40,9 @@ service cloud.firestore {
 
     function mentionAllowed(sender, target) {
       let path = safetyPath(target);
-      return !hidesPeer(sender, target) && (
+      return !hidesPeer(target, sender) && (
         !exists(path) || get(path).data.get('allowStrangerMentions', true) ||
-        areMutualFriends(sender, target)
+        friendDocumentsExist(sender, target)
       );
     }
 
@@ -54,8 +54,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
     function areMutualFriends(userA, userB) {
-      return isAuth() && !hidesPeer(userA, userB)
-        && exists(
+      return isAuth() && !hidesPeer(userA, userB) && friendDocumentsExist(userA, userB);
+    }
+
+    function friendDocumentsExist(userA, userB) {
+      return exists(
           /databases/$(database)/documents/users/$(userA)/friends/$(userB)
         )
         && exists(
@@ -1528,9 +1531,6 @@ service cloud.firestore {
 
       function isApprovedRoomParticipant() {
         return isRoomParticipant()
-          && exists(
-            /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
-          )
           && get(
             /databases/$(database)/documents/rooms/$(roomId)/members/$(request.auth.uid)
           ).data.approvalStatus == 'approved';
@@ -1968,7 +1968,7 @@ service cloud.firestore {
 
         allow read: if isApprovedRoomParticipant() && involvesViewer();
         allow delete: if involvesViewer();
-        allow create: if isApprovedActiveRoomParticipant() && voiceRoomEnabled() && voiceAllowed(request.auth.uid) && canPostRoomMessage()
+        allow create: if isApprovedActiveRoomParticipant() && voiceRoomEnabled() && voiceAllowed(request.auth.uid)
           && request.resource.data.keys().hasOnly(['from', 'to', 'type', 'payload', 'createdAt'])
           && request.resource.data.from == request.auth.uid
           && request.resource.data.to != request.auth.uid
@@ -2047,7 +2047,7 @@ service cloud.firestore {
         function validMention(uid) {
           let member = /databases/$(database)/documents/rooms/$(roomId)/members/$(uid);
           return uid is string && uid != request.auth.uid
-            && isAccountReferenceableAfter(uid)
+            && !existsAfter(/databases/$(database)/documents/account_deletion_fences/$(uid))
             && mentionAllowed(request.auth.uid, uid)
             && roomDocument().data.memberIds.hasAny([uid])
             && get(member).data.approvalStatus == 'approved';
