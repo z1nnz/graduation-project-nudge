@@ -4,6 +4,7 @@
   const host=document.getElementById('achievementContent'),dialog=document.getElementById('achievementDialog');let ctx=null,off=()=>{},current=null,returnId=null,command=0;
   function close(){dialog.close();if(returnId)document.getElementById(returnId)?.focus();returnId=null;}
   dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
+  dialog.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}});
   function clear(){++command;current=null;off();off=()=>{};if(dialog.open)close();host.replaceChildren();}
   document.addEventListener('growth-clear',clear);
   function detail(badge){
