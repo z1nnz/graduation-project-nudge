@@ -4811,7 +4811,7 @@ function initializeFirebaseWeb() {
                 window.frameElement?.id === "townWindowFrame"
               )) {
                 Promise.all([
-                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=4", "Town routes unavailable"),
+                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=5", "Town routes unavailable"),
                   loadWindowModule("NudgePresenceCore", "assets/presence_core.js?v=1", "Presence contract unavailable"),
                   loadWindowModule("NudgeFriendPresence", "assets/presence.js?v=1", "Presence unavailable"),
                 ]).then(([, , presence]) => {
