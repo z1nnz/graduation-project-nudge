@@ -8,6 +8,7 @@
   const gameCore = root.NudgeTownGameCore;
   const routes = root.NudgeTownRoutes;
   const avatarCore = root.NudgeTownAvatarCore;
+  const imageLoader = root.NudgeTownImage;
   const atmosphereCore = root.NudgeTownAtmosphereCore;
   const atmosphere = root.NudgeTownAtmosphere?.create();
   const doc = root.document;
@@ -96,10 +97,12 @@
   };
 
   const mapImage = new Image();
-  mapImage.addEventListener('error', () => enterStatic('小鎮地圖載入失敗'));
-  mapImage.src = 'assets/town/town_map.jpg';
+  imageLoader.load(mapImage, 'assets/town/town_map.jpg', () => enterStatic('小鎮地圖載入失敗'));
   const playerImage = new Image();
-  playerImage.src = 'assets/avatar/characters/character_0.png';
+  imageLoader.load(playerImage, 'assets/avatar/characters/character_0.png');
+  imageLoader.load(els('townAvatar'), 'assets/avatar/characters/character_0.png');
+  const guideImage = doc.querySelector('.town-dialog-portrait');
+  if (guideImage) imageLoader.load(guideImage, 'assets/town/guide.png');
   let walkImages = {};
   function loadWalkImages(faceIndex) {
     walkImages = {};
@@ -107,7 +110,7 @@
       const path = avatarCore.sidePath(faceIndex, frame);
       if (!path) return;
       const image = new Image();
-      image.src = path;
+      imageLoader.load(image, path);
       walkImages[frame] = image;
     }
   }
@@ -509,15 +512,17 @@
   function showTourStep() {
     const step = TOUR[state.tour];
     els('townDialog').hidden = false;
-    els('townDialogText').textContent = step.text;
-    els('townDialogStep').textContent = `${state.tour + 1} / ${TOUR.length}`;
+    if (els('townDialogText').textContent !== step.text) els('townDialogText').textContent = step.text;
+    const count = `${state.tour + 1} / ${TOUR.length}`;
+    if (els('townDialogStep').textContent !== count) els('townDialogStep').textContent = count;
     els('townDialogNext').focus({ preventScroll: true });
   }
-  function startTour() { if (state.static) return; state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
+  function startTour() { if (state.static) return; doc.documentElement?.classList.remove('town-tour-done'); state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
   function nextTour() { if (state.tour + 1 >= TOUR.length) endTour(); else { state.tour += 1; showTourStep(); } }
   function endTour() {
     state.tour = -1;
     els('townDialog').hidden = true;
+    doc.documentElement?.classList.add('town-tour-done');
     store.set('nudge_town_tour_done', '1');
   }
   els('townDialogNext').addEventListener('click', nextTour);
@@ -821,12 +826,14 @@
     const face = Number(data?.avatarProfile?.faceShapeIndex);
     const faceIndex = Number.isInteger(face) && face >= 0 ? face : 0;
     const sprite = `assets/avatar/characters/character_${faceIndex}.png`;
-    if (!playerImage.src.endsWith(sprite)) playerImage.src = sprite;
+    if (!playerImage.src.endsWith(sprite) && !playerImage.src.endsWith(imageLoader.preferred(sprite)))
+      imageLoader.load(playerImage, sprite);
     if (state.faceIndex !== faceIndex) {
       state.faceIndex = faceIndex;
       loadWalkImages(faceIndex);
     }
-    els('townAvatar').src = sprite;
+    if (!els('townAvatar').src.endsWith(sprite) && !els('townAvatar').src.endsWith(imageLoader.preferred(sprite)))
+      imageLoader.load(els('townAvatar'), sprite);
     els('townName').textContent = user ? (data?.nickname || '自律夥伴') : '訪客';
     // Guests see no level, XP or sync status: there is no account data to show.
     els('townLevel').textContent = user ? (data ? `Lv ${state.level}` : '雲端同步中') : '自由探索中';
@@ -888,6 +895,7 @@
   root.setInterval(refreshTicket, 60000);
   // Coming back from a page (?at=…) lands at that door without replaying the tour.
   if (!arrival && store.get('nudge_town_tour_done') !== '1') startTour();
+  else els('townDialog').hidden = true;
   if (arrival) toast(`回到${arrival.name}門口。`, 2200);
   if (ctx) root.requestAnimationFrame(frame);
 })(typeof globalThis !== 'undefined' ? globalThis : this);
