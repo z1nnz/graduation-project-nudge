@@ -22,7 +22,7 @@ StudyMemberData _m(String id, String nick, StudyMemberStatus status) =>
       avatarColor: Colors.purple,
     );
 
-Future<AppState> _open(WidgetTester tester) async {
+Future<AppState> _open(WidgetTester tester, {bool voice = false}) async {
   tester.view.physicalSize = const Size(420, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -31,6 +31,7 @@ Future<AppState> _open(WidgetTester tester) async {
     name: '期末衝刺房',
     description: '',
     accentColor: const Color(0xFF7C6AE6),
+    voiceEnabled: voice,
     members: [
       _m('local_user', '我', StudyMemberStatus.studying),
       _m('amy', '小艾', StudyMemberStatus.resting),
@@ -115,6 +116,16 @@ void main() {
     await tester.tap(find.byKey(const Key('room-voice')));
     await tester.pump();
     expect(find.text('房主開啟語音後，就能一起開麥克風讀書'), findsOneWidget);
+  });
+
+  testWidgets('voice needs a signed-in member even when the room allows it', (
+    tester,
+  ) async {
+    await _open(tester, voice: true);
+    await tester.tap(find.byKey(const Key('room-mic')));
+    await tester.pump();
+    expect(find.text('登入並加入這間房後，才能使用語音'), findsOneWidget);
+    expect(find.byKey(const Key('room-voice-status')), findsNothing);
   });
 
   testWidgets('the main button starts my session and shows the clock', (
