@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/user_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
 
 class ReminderCenterPage extends StatelessWidget {
   const ReminderCenterPage({super.key});
@@ -67,7 +68,7 @@ class ReminderCenterPage extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: AppUI.softCardOf(context, color),
-              child: Icon(_iconForChannel(setting.key), color: color),
+              child: Icon(Icons.alarm_outlined, color: color),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -286,87 +287,59 @@ class ReminderCenterPage extends StatelessWidget {
     UserNotification notification,
   ) {
     final appState = context.read<AppState>();
-    final unread = notification.isUnread == true;
-    return Card(
-      shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: AppUI.softCardOf(
-                context,
-                unread ? AppUI.blue : AppUI.green,
-              ),
-              child: Icon(
-                notification.kind.toString().contains('family')
-                    ? Icons.family_restroom_outlined
-                    : Icons.groups_2_outlined,
-                color: unread ? AppUI.blue : AppUI.green,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          style: AppUI.cardTitleOf(context),
-                        ),
-                      ),
-                      Text(
-                        _formatNotificationTime(notification.createdAt),
-                        style: TextStyle(
-                          color: AppUI.textSecondaryOf(context),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Text(notification.body, style: AppUI.bodyOf(context)),
-                  const SizedBox(height: 10),
-                  if (unread)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () async {
-                          try {
-                            await appState.markUserNotificationRead(
-                              notification.id,
-                            );
-                          } catch (error) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('更新站內通知失敗：$error')),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.done_all_rounded, size: 18),
-                        label: const Text('標示已讀'),
-                      ),
-                    )
-                  else
-                    Text(
-                      notification.isResolved ? '邀請已處理' : '已讀',
-                      style: TextStyle(
-                        color: AppUI.textSecondaryOf(context),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+    final unread = notification.isUnread;
+    final kind = notification.kind;
+    final seal = kind.startsWith('family')
+        ? GamePalette.red
+        : kind.startsWith('group')
+        ? GamePalette.violet
+        : GamePalette.goldDeep;
+    return GamePanel(
+      padding: EdgeInsets.zero,
+      child: ExpansionTile(
+        key: PageStorageKey(notification.id),
+        leading: Icon(
+          kind == 'friend_cabin_letter'
+              ? Icons.inventory_2_outlined
+              : Icons.mail_outline,
+          color: seal,
         ),
+        title: Text(
+          notification.title,
+          style: const TextStyle(fontFamily: 'Cubic11', fontSize: 16),
+        ),
+        subtitle: Text(
+          _formatNotificationTime(notification.createdAt),
+          style: const TextStyle(fontSize: 14),
+        ),
+        expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+        childrenPadding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+        children: [
+          Text(notification.body, style: const TextStyle(fontSize: 14)),
+          if (unread)
+            Align(
+              alignment: Alignment.centerRight,
+              child: GameButton(
+                label: '標示已讀',
+                icon: Icons.done_all_rounded,
+                onPressed: () async {
+                  try {
+                    await appState.markUserNotificationRead(notification.id);
+                  } catch (error) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('更新站內通知失敗：$error')));
+                  }
+                },
+              ),
+            )
+          else
+            Text(
+              notification.isResolved ? '邀請已處理' : '已讀',
+              style: const TextStyle(fontSize: 14),
+            ),
+        ],
       ),
     );
   }
@@ -382,6 +355,19 @@ class ReminderCenterPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
+          Semantics(
+            label: '郵局裡的鬧鐘架',
+            image: true,
+            child: AspectRatio(
+              aspectRatio: 3 / 2,
+              child: Image.asset(
+                'assets/scenes/post_office/post_office.webp',
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.none,
+                excludeFromSemantics: true,
+              ),
+            ),
+          ),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: AppUI.heroGradient(accentColor),
@@ -531,15 +517,34 @@ class ReminderCenterPage extends StatelessWidget {
                 ),
               ),
             )
-          else
+          else ...[
             ...appState.userNotifications
+                .where((letter) => letter.isUnread)
                 .take(20)
                 .map(
-                  (notification) => Padding(
+                  (letter) => Padding(
                     padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-                    child: _buildUserNotificationCard(context, notification),
+                    child: _buildUserNotificationCard(context, letter),
                   ),
                 ),
+            GamePanel(
+              padding: EdgeInsets.zero,
+              child: ExpansionTile(
+                title: const Text(
+                  '已讀信件抽屜',
+                  style: TextStyle(fontFamily: 'Cubic11', fontSize: 16),
+                ),
+                leading: const Icon(Icons.inventory_2_outlined),
+                children: appState.userNotifications
+                    .where((letter) => !letter.isUnread)
+                    .take(20)
+                    .map(
+                      (letter) => _buildUserNotificationCard(context, letter),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
           const SizedBox(height: AppUI.sectionGap),
           Text('即將提醒', style: AppUI.sectionTitleOf(context)),
           const SizedBox(height: 12),
@@ -562,7 +567,7 @@ class ReminderCenterPage extends StatelessWidget {
               ),
             ),
           const SizedBox(height: AppUI.sectionGap),
-          Text('提醒種類', style: AppUI.sectionTitleOf(context)),
+          Text('鬧鐘架', style: AppUI.sectionTitleOf(context)),
           const SizedBox(height: 12),
           ...appState.reminderSettings.map(
             (setting) => Padding(
