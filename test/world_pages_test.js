@@ -27,6 +27,19 @@ const awaitingMigration = new Set([
   'weekly-planner.html',
 ]);
 
+// Reviewed WEB-GAME-09 slices land independently. Register only the pages
+// whose owning slice exists; their complete town chrome is still checked below.
+const package09Migrations = [
+  ['achievements.html', ['achievements.html']],
+  ['personal-share.html', ['personal-share.html', 'personal-trends.html']],
+  ['observatory.html', ['observatory.html']],
+  ['onboarding.html', ['onboarding.html', 'login.html']],
+];
+for (const [entry, pages] of package09Migrations) {
+  if (!fs.existsSync(path.join(root, entry))) continue;
+  for (const page of pages) { migrated.add(page); awaitingMigration.delete(page); }
+}
+
 test('every player page has an explicit migration state', () => {
   const pages = new Set(routes.DESTINATIONS.filter(route => route.audience === 'player')
     .map(route => route.href.split('#')[0].split('?')[0]));
