@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nudge 商城頁面</title>
     <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=2" />
     <style>
       /* The shop styles below were written against --c-* tokens that no page
          defines; map them onto the shared styles.css palette (#82 slice 3). */
@@ -265,37 +266,23 @@
       }
     </style>
   </head>
-  <body data-page="operations">
-    <div class="shell">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>商城頁</small></span></a>
-        <nav class="nav">
-          <a href="dashboard.html">總覽入口</a>
-          <a href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a class="active" href="operations.html">商城頁</a>
-          <a href="research.html">研究中心</a>
-          <a href="friend.html">好友功能</a>
-          <a href="planet.html">自律城市 / 星球</a>
-        
-          <a href="profile.html">個人名片</a>
-        </nav>
-      </aside>
-      <main class="main" style="position: relative;">
-        <a class="button town-return-link" data-town-return href="town.html">← 返回小鎮</a>
+  <body class="w-page world-page" data-page="operations">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>小鎮雜貨店</h1></header>
+    <div class="world-shell">
+
+      <main class="main w-main" style="position: relative;">
         <header class="hero split">
           <div>
-            <span class="eyebrow">Avatar Store Hub</span>
-            <h1>商城頁面：兌換專屬自律夥伴。</h1>
+            <span class="eyebrow">小鎮雜貨店</span>
+            <h1>為旅程挑選新夥伴。</h1>
             <p>
               完成任務累積的自律幣，可以在這裡兌換特殊角色。帶著專屬精靈與夥伴一起專注，讓習慣養成更有趣！
             </p>
           </div>
           <div class="hero-card">
             <span>目前自律幣</span>
-            <strong data-count="0">0</strong>
-            <p>累積足夠的幣值即可隨時兌換！</p>
+            <strong>讀取中</strong>
+            <p>以雲端帳本確認的餘額為準。</p>
           </div>
         </header>
         <section class="page-section">
@@ -337,11 +324,11 @@
         </section>
       </main>
     </div>
-    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/town_routes.js?v=4"></script>
     <script src="assets/town_return.js?v=2"></script>
 
     <script src="assets/reward_shop_core.js?v=1"></script>
     <script src="assets/reward_shop.js?v=1"></script>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/app.js?v=29"></script>
   </body>
 </html>

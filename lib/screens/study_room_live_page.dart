@@ -1,3 +1,10 @@
+import '../models/procrastination_boss.dart';
+import '../widgets/procrastination_boss_card.dart';
+import '../widgets/sync_round_banner.dart';
+import '../services/room_focus_round.dart';
+import '../theme/game_ui.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/room_voice/room_voice_session.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -36,9 +43,74 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   bool _isRunning = false;
   DateTime? _sessionStartTime;
   String? _roomActivitySessionId;
-  // Voice joins the room once the App voice client lands (shared contract).
-  final bool _voiceJoined = false;
-  final bool _micMuted = false;
+  RoomVoiceSession? _voice;
+  RoomFocusRound? _round;
+
+  void _onRoundChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Join the shared round: my own session runs for what is left of it.
+  Future<void> _joinRound(AppState appState, StudyRoomData room) async {
+    final state = _round?.state;
+    if (state == null || state.phase != FocusRoundPhase.focus || _isRunning) {
+      return;
+    }
+    _setDuration(state.remaining.inSeconds);
+    await _startSession(appState, room);
+  }
+
+  bool get _voiceJoined => _voice?.joined ?? false;
+  bool get _micMuted => _voice?.muted ?? true;
+
+  void _onVoiceChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _leaveVoice() async {
+    final voice = _voice;
+    if (voice == null) return;
+    _voice = null;
+    voice.removeListener(_onVoiceChanged);
+    await voice.leave();
+    voice.dispose();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _joinVoice(String uid, void Function(String) say) async {
+    if (_voice != null) return;
+    final voice = RoomVoiceSession(roomId: widget.roomId, uid: uid)
+      ..addListener(_onVoiceChanged);
+    setState(() => _voice = voice);
+    await voice.join();
+    if (!mounted || _voice != voice) return;
+    if (!voice.joined) {
+      final problem = voice.problem;
+      await _leaveVoice();
+      if (problem.isNotEmpty) say(problem);
+    } else {
+      say('已加入語音，麥克風預設靜音。');
+    }
+  }
+
+  /// The new round's start time arrives from the server a moment later.
+  Future<void> _joinRoundSoon(AppState appState, StudyRoomData room) async {
+    for (var i = 0; i < 20 && mounted; i++) {
+      if (_round?.state.phase == FocusRoundPhase.focus) {
+        await _joinRound(appState, room);
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+  }
+
+  Future<void> _setRoomVoice(String roomId, bool enabled) async {
+    await FirebaseFirestore.instance.collection('rooms').doc(roomId).update({
+      'voiceEnabled': enabled,
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+    });
+  }
+
   DateTime? _chatLastRead;
   bool _chatReadLoaded = false;
   final Map<String, String> _reactions = {};
@@ -50,6 +122,12 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
       if (!mounted) return;
       final appState = context.read<AppState>();
       _loadChatRead(appState.currentUser?.id ?? 'local_user');
+      if (appState.currentUser != null && !appState.isGuestMode) {
+        setState(() {
+          _round = RoomFocusRound(roomId: widget.roomId)
+            ..addListener(_onRoundChanged);
+        });
+      }
     });
   }
 
@@ -76,7 +154,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   int _lanternStage(StudyRoomData room, List<StudyMemberData> members) {
     final goal = room.challengeGoalSeconds;
     if (goal <= 0) return 0;
-    final total = members.fold<int>(0, (sum, m) => sum + m.todayFocusSeconds);
+    final total = members.fold<int>(0, (acc, m) => acc + m.todayFocusSeconds);
     final ratio = total / goal;
     if (ratio >= 1) return 2;
     if (ratio >= 0.5) return 1;
@@ -182,10 +260,15 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   void dispose() {
     _timer?.cancel();
     unawaited(_commitSessionAsResting());
-    if (_voiceJoined) {
-      try {
-        context.read<AppState>().leaveVoiceRoom(widget.roomId);
-      } catch (_) {}
+    _round
+      ?..removeListener(_onRoundChanged)
+      ..dispose();
+    _round = null;
+    final voice = _voice;
+    _voice = null;
+    if (voice != null) {
+      voice.removeListener(_onVoiceChanged);
+      voice.dispose();
     }
     super.dispose();
   }
@@ -650,6 +733,33 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
             controller: controller,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
+              if (room.ownerId == currentMemberId &&
+                  appState.currentUser != null) ...[
+                _VoiceOwnerPanel(
+                  enabled: room.voiceEnabled,
+                  onToggle: () async {
+                    try {
+                      await _setRoomVoice(room.id, !room.voiceEnabled);
+                    } catch (_) {
+                      if (sheetContext.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('無法更新語音設定')),
+                        );
+                      }
+                    }
+                  },
+                  onMuteAll: room.voiceEnabled && _voice?.joined == true
+                      ? () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final ok = await _voice!.requestMuteAll();
+                          messenger.showSnackBar(
+                            SnackBar(content: Text(ok ? '已請大家靜音' : '無法送出靜音要求')),
+                          );
+                        }
+                      : null,
+                ),
+                const SizedBox(height: AppUI.sectionGap),
+              ],
               if (_hasInRoomTimer(room))
                 _TimerPanel(
                   accent: accent,
@@ -811,11 +921,26 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
         }
 
         void onVoice() {
+          if (_voice != null) {
+            unawaited(_leaveVoice());
+            return;
+          }
           if (!room.voiceEnabled) {
             say('房主開啟語音後，就能一起開麥克風讀書');
             return;
           }
-          say('App 的語音自習即將開放，現在可以先在 Web 版加入');
+          final user = appState.currentUser;
+          if (user == null || appState.isGuestMode || !hasApprovedMembership) {
+            say('登入並加入這間房後，才能使用語音');
+            return;
+          }
+          unawaited(_joinVoice(user.id, say));
+        }
+
+        void onMic() {
+          final voice = _voice;
+          if (voice == null || !voice.joined) return onVoice();
+          voice.toggleMic();
         }
 
         Future<void> onMain() async {
@@ -913,6 +1038,46 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                   ],
                 ),
               ),
+              if (timerRoom && room.challengeGoalSeconds > 0)
+                Positioned(
+                  right: 12,
+                  top: padding.top + 74,
+                  child: Builder(
+                    builder: (context) {
+                      final boss = ProcrastinationBoss.of(
+                        DateTime.now(),
+                        goalSeconds: room.challengeGoalSeconds,
+                        doneSeconds: approvedMembers.fold<int>(
+                          0,
+                          (acc, m) => acc + m.todayFocusSeconds,
+                        ),
+                      );
+                      return ProcrastinationBossCard(
+                        key: const Key('room-boss'),
+                        boss: boss,
+                        onTap: () => showDialog<void>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(boss.species.name),
+                            content: Text(
+                              '「${boss.line}」\n\n'
+                              '房間裡每個人今天專注的時間，都會變成對牠的傷害。'
+                              '大家一起累積到 '
+                              '${ProcrastinationBoss.clock(boss.goalSeconds)}'
+                              '，就能打倒牠。每週一會換一隻新的。',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('一起加油'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               if (timerRoom && hasSession)
                 Positioned(
                   left: 0,
@@ -929,6 +1094,54 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                     ),
                   ),
                 ),
+              if (_round != null && timerRoom && hasApprovedMembership)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: padding.bottom + (_voice != null ? 204 : 150),
+                  child: Center(
+                    child: SyncRoundBanner(
+                      key: const Key('room-sync-round'),
+                      state: _round!.state,
+                      busy: _round!.busy,
+                      problem: _round!.problem,
+                      joined: _isRunning,
+                      onStart: () async {
+                        final user = appState.currentUser;
+                        if (user == null) return;
+                        final ok = await _round!.start(user.id);
+                        if (ok && mounted) await _joinRoundSoon(appState, room);
+                      },
+                      onJoin: () => _joinRound(appState, room),
+                    ),
+                  ),
+                ),
+              if (_voice != null)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: padding.bottom + 150,
+                  child: Center(
+                    child: _VoiceStatusPill(
+                      key: const Key('room-voice-status'),
+                      text: _voice!.status(enabled: room.voiceEnabled),
+                      hands: [
+                        for (final id in _voice!.raisedHands)
+                          approvedMembers
+                                  .where((m) => m.memberId == id)
+                                  .map(
+                                    (m) => m.roomNickname.isEmpty
+                                        ? m.name
+                                        : m.roomNickname,
+                                  )
+                                  .firstOrNull ??
+                              '夥伴',
+                      ],
+                      handRaised: _voice!.handRaised,
+                      onHand: _voice!.joined ? _voice!.toggleHand : null,
+                    ),
+                  ),
+                ),
               Positioned(
                 left: 8,
                 right: 8,
@@ -940,7 +1153,7 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                   mainIcon: mainIcon,
                   mainGlow: !_isRunning,
                   unread: unread,
-                  onMic: onVoice,
+                  onMic: onMic,
                   onVoice: onVoice,
                   onMain: onMain,
                   onChat: () => _openChat(currentMemberId),
@@ -1881,4 +2094,106 @@ class _EverySecondState extends State<_EverySecond> {
 
   @override
   Widget build(BuildContext context) => widget.builder(context);
+}
+
+class _VoiceStatusPill extends StatelessWidget {
+  const _VoiceStatusPill({
+    super.key,
+    required this.text,
+    required this.hands,
+    required this.handRaised,
+    required this.onHand,
+  });
+
+  final String text;
+  final List<String> hands;
+  final bool handRaised;
+  final VoidCallback? onHand;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: const Color(0xE6201008),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFC9934F), width: 2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.graphic_eq_rounded, color: Color(0xFF3CCF7A)),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              hands.isEmpty ? text : '$text · 舉手：${hands.join('、')}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          TextButton(
+            key: const Key('room-voice-hand'),
+            onPressed: onHand,
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFFE6A3),
+            ),
+            child: Text(handRaised ? '放下手' : '舉手'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VoiceOwnerPanel extends StatelessWidget {
+  const _VoiceOwnerPanel({
+    required this.enabled,
+    required this.onToggle,
+    required this.onMuteAll,
+  });
+
+  final bool enabled;
+  final VoidCallback onToggle;
+  final VoidCallback? onMuteAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return GamePanel(
+      title: '語音自習室（房主）',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(enabled ? '已開啟：成員可以加入語音，麥克風預設靜音。' : '開啟後，同房成員就能一起開麥克風讀書。'),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              GameButton(
+                key: const Key('room-voice-setting'),
+                label: enabled ? '關閉語音' : '開啟語音',
+                icon: enabled
+                    ? Icons.headset_off_rounded
+                    : Icons.headset_rounded,
+                primary: !enabled,
+                onPressed: onToggle,
+              ),
+              GameButton(
+                key: const Key('room-voice-mute-all'),
+                label: '請大家靜音',
+                icon: Icons.volume_off_rounded,
+                primary: false,
+                onPressed: onMuteAll,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

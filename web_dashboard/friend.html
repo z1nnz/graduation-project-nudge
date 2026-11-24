@@ -600,6 +600,8 @@
         background: rgba(255,255,255,0.16);
       }
     </style>
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/presence.css?v=1" />
   </head>
   <body data-page="friend" data-social-facility="plaza">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -625,6 +627,13 @@
 
         <!-- LIST VIEW -->
         <section id="friendListView" class="">
+          <section class="w-parchment friend-presence" data-friend-presence aria-labelledby="friendPresenceTitle">
+            <h2 id="friendPresenceTitle">好友動態</h2>
+            <label><input type="checkbox" data-presence-sharing disabled /> 讓好友看到我在哪棟建築</label>
+            <p>只在小鎮設施窗口分享建築名稱。</p>
+            <p data-presence-status role="status">正在確認分享設定…</p>
+            <ul data-presence-list></ul>
+          </section>
           <div class="friend-tabs">
             <button class="friend-tab active" onclick="switchFriendTab('列表', this)">好友列表</button>
             <button class="friend-tab" onclick="switchFriendTab('申請', this)">好友申請 <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 4px; display: none;" id="reqBadge">0</span></button>
@@ -1989,9 +1998,9 @@
         bootFriendPage();
       }
     </script>
-    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/town_routes.js?v=4"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/app.js?v=29"></script>
   </body>
 </html>

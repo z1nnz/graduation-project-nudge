@@ -93,7 +93,7 @@
   document.addEventListener('firebase-ready',start);
   if (isDemo) show({uid:'museum-demo'});
   else {
-    const script=node('script',null,{src:'assets/app.js?v=27&surface=growth-museum-2'});
+    const script=node('script',null,{src:'assets/app.js?v=29&surface=growth-museum-2'});
     script.onerror=() => {message('無法連線。請重試；沒有載入個人資料。');};
     document.head.append(script);
     start();

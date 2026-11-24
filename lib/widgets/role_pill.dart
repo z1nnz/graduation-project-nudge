@@ -30,7 +30,9 @@ class RolePill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? accentColor.withValues(alpha: 0.12) : AppUI.surfaceVariantOf(context),
+            color: selected
+                ? accentColor.withValues(alpha: 0.12)
+                : AppUI.surfaceVariantOf(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected ? accentColor : Theme.of(context).dividerColor,

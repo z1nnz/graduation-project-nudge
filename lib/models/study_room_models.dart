@@ -153,6 +153,12 @@ class StudyRoomMessage {
   final StudyRoomMessageType type;
   final DateTime createdAt;
 
+  /// Id of the message this one replies to.
+  final String? replyTo;
+
+  /// Roommate this message @mentions.
+  final String? mentionUid;
+
   const StudyRoomMessage({
     required this.id,
     required this.senderId,
@@ -160,6 +166,8 @@ class StudyRoomMessage {
     required this.text,
     required this.type,
     required this.createdAt,
+    this.replyTo,
+    this.mentionUid,
   });
 
   Map<String, dynamic> toJson() {
@@ -170,6 +178,8 @@ class StudyRoomMessage {
       'text': text,
       'type': type.name,
       'createdAt': createdAt.toIso8601String(),
+      if (replyTo != null) 'replyTo': replyTo,
+      if (mentionUid != null) 'mentionUid': mentionUid,
     };
   }
 
@@ -187,6 +197,8 @@ class StudyRoomMessage {
       text: json['text'] as String? ?? '',
       type: type,
       createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
+      replyTo: json['replyTo'] as String?,
+      mentionUid: json['mentionUid'] as String?,
     );
   }
 }

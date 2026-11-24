@@ -115,7 +115,7 @@ async function readSingleDocument(firestore, collection, documentId) {
   return snapshot.exists ? [exportDocument(snapshot)] : [];
 }
 
-export async function collectQueryDocuments(query) {
+export async function collectQueryDocuments(query, includePath = false) {
   const documents = [];
   let cursor = null;
 
@@ -125,7 +125,10 @@ export async function collectQueryDocuments(query) {
       .limit(COLLECTION_EXPORT_LIMIT);
     if (cursor) pageQuery = pageQuery.startAfter(cursor);
     const snapshot = await pageQuery.get();
-    documents.push(...snapshot.docs.map(exportDocument));
+    documents.push(...snapshot.docs.map(document => ({
+      ...exportDocument(document),
+      ...(includePath ? { path: document.ref.path } : {}),
+    })));
     if (snapshot.size < COLLECTION_EXPORT_LIMIT) break;
     cursor = snapshot.docs.at(-1);
   }
@@ -179,6 +182,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     publicProfile,
     consent,
     notificationPreferences,
+    webPushPreferences,
     disciplineIdentitySnapshot,
     deviceAssignments,
     pushDeliveryState,
@@ -194,6 +198,9 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     roomContributions,
     roomResonancePreferences,
     roomReadMarkers,
+    chatData,
+    focusRounds,
+    roomVoice,
     roomResonanceSignals,
     authoredRoomResonanceAcknowledgements,
     receivedRoomResonanceAcknowledgements,
@@ -201,7 +208,10 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     notifications,
     sentFriendRequests,
     receivedFriendRequests,
+    gardenData,
     friendVisitSettings,
+    presenceSettings,
+    presence,
     hostedFriendVisits,
     madeFriendVisits,
     auditEvents,
@@ -211,6 +221,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readSingleDocument(firestore, "public_profiles", userId),
     readSingleDocument(firestore, "privacy_consents", userId),
     readSingleDocument(firestore, "notification_preferences", userId),
+    readSingleDocument(firestore, "web_push_preferences", userId),
     readSingleDocument(firestore, "discipline_identity_snapshots", userId),
     readQuery(
       firestore,
@@ -250,6 +261,24 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "room_contributions", "actorUserId", "==", userId),
     readQuery(firestore, "room_resonance_preferences", "userId", "==", userId),
     readQuery(firestore, "room_read_markers", "userId", "==", userId),
+    Promise.all([
+      ["messages", "senderId"], ["chat_throttles", "userId"],
+      ["chat_pin", "userId"], ["chat_reactors", "userId"],
+      ["chat_hidden_messages", "userId"], ["chat_reports", "userId"],
+    ].map(async ([collection, field]) => [
+      collection,
+      await collectQueryDocuments(
+        firestore.collectionGroup(collection).where(field, "==", userId),
+        true,
+      ),
+    ])),
+    collectQueryDocuments(firestore.collectionGroup("focus_rounds").where("startedBy", "==", userId)),
+    Promise.all([
+      ["voice_participants", "uid"], ["voice_signals_sent", "from", "voice_signals"],
+      ["voice_signals_received", "to", "voice_signals"], ["voice_mute", "requestedBy"],
+    ].map(async ([key, field, collection = key]) => [key, await collectQueryDocuments(
+      firestore.collectionGroup(collection).where(field, "==", userId), true,
+    )])),
     readQuery(
       firestore,
       "room_resonance_signals",
@@ -281,13 +310,57 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     ),
     readQuery(firestore, "friend_requests", "senderId", "==", userId),
     readQuery(firestore, "friend_requests", "receiverId", "==", userId),
+    Promise.all([
+      readQuery(firestore, "family_weekly_notes", "authorId", "==", userId),
+      readQuery(firestore, "family_scheduled_letters", "guardianId", "==", userId),
+      readQuery(firestore, "family_scheduled_letters", "childId", "==", userId),
+      readQuery(firestore, "family_letter_preferences", "userId", "==", userId),
+    ]),
     readSingleDocument(firestore, "friend_visit_settings", userId),
+    readSingleDocument(firestore, "presence_settings", userId),
+    readSingleDocument(firestore, "presence", userId),
     readQuery(firestore, "friend_visits", "hostId", "==", userId),
     readQuery(firestore, "friend_visits", "visitorId", "==", userId),
     readQuery(firestore, "audit_events", "actorUserId", "==", userId),
     readQuery(firestore, "privacy_data_requests", "userId", "==", userId),
   ]);
 
+  const [lobbyAnswers, lobbyCodes] = await Promise.all([
+    readQuery(firestore, "room_lobby_answers", "memberId", "==", userId),
+    readQuery(firestore, "room_lobby_codes", "ownerId", "==", userId),
+  ]);
+  const guildCollections = [
+    ["guild_events", "authorId"], ["guild_event_attendance", "userId"],
+    ["guild_notices", "authorId"], ["guild_notice_reads", "userId"],
+  ];
+  const guildCalendar = await Promise.all(guildCollections.map(async ([name, field]) =>
+    [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
+  const [safetyDocuments, safetyReports, moderationActions] = await Promise.all([
+    readSingleDocument(firestore, "social_safety", userId),
+    readQuery(firestore, "safety_reports", "userId", "==", userId),
+    readQuery(firestore, "audit_events", "safetyTargetId", "==", userId),
+  ]);
+  const safetySettings = safetyDocuments[0]?.data;
+  const buddyPairs = await readQuery(firestore, "buddy_pairs", "participantIds", "array-contains", userId);
+  const buddySettings = await readSingleDocument(firestore, "buddy_settings", userId);
+  const [sentThanks, receivedThanks, thanksUsage] = await Promise.all([
+    readQuery(firestore, "thanks_cards", "senderId", "==", userId),
+    readQuery(firestore, "thanks_cards", "recipientId", "==", userId),
+    readQuery(firestore, "thanks_card_budgets", "userId", "==", userId),
+  ]);
+  const journalBooks = await readQuery(firestore, "exchange_journals", "participantIds", "array-contains", userId);
+  const exchangeJournals = await Promise.all(journalBooks.documents
+    .filter(book => book.data.status !== "deleted" && (!book.data.expiresAt || book.data.expiresAt > new Date().toISOString()))
+    .map(async book => {
+      const entries = await collectQueryDocuments(firestore.collection("exchange_journals").doc(book.id)
+        .collection("entries").where("authorId", "==", userId));
+      return { ...book, entries };
+    }));
+  const clubData = await Promise.all([
+    ["clubs", "ownerId"], ["club_members", "userId"], ["club_posts", "authorId"],
+    ["club_reactions", "userId"], ["club_challenge_members", "userId"],
+  ].map(async ([name, field]) => [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
+  const townEventPreferences = await readSingleDocument(firestore, "town_event_preferences", userId);
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -302,6 +375,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       public_profiles: publicProfile,
       privacy_consents: consent,
       notification_preferences: notificationPreferences,
+      web_push_preferences: webPushPreferences,
       discipline_identity_snapshots: disciplineIdentitySnapshot,
       device_assignments: deviceAssignments.documents,
       push_delivery_state: pushDeliveryState,
@@ -321,18 +395,49 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       room_contributions: roomContributions.documents,
       room_resonance_preferences: roomResonancePreferences.documents,
       room_read_markers: roomReadMarkers.documents,
+      ...Object.fromEntries(chatData),
+      focus_rounds: focusRounds,
+      ...Object.fromEntries(roomVoice),
       room_resonance_signals: roomResonanceSignals.documents,
       room_resonance_acknowledgements: mergeDocuments(
         authoredRoomResonanceAcknowledgements.documents,
         receivedRoomResonanceAcknowledgements.documents,
       ),
       rooms: rooms.documents,
+      room_lobby_answers: lobbyAnswers.documents,
+      room_lobby_codes: lobbyCodes.documents.map(({ data }) => ({ roomId: data.roomId, expiresAt: data.expiresAt })),
+      ...Object.fromEntries(guildCalendar),
+      social_safety: safetySettings ? {
+        blocked: safetySettings.blocked || [],
+        allowVoice: safetySettings.allowVoice,
+        allowStrangerMentions: safetySettings.allowStrangerMentions,
+      } : null,
+      safety_reports: safetyReports.documents,
+      buddy_pairs: buddyPairs.documents,
+      buddy_settings: buddySettings,
+      sent_thanks_cards: sentThanks.documents,
+      received_thanks_cards: receivedThanks.documents,
+      thanks_card_usage: thanksUsage.documents,
+      exchange_journals: exchangeJournals,
+      ...Object.fromEntries(clubData),
+      town_event_preferences: townEventPreferences,
+      safety_actions: moderationActions.documents.map(({ data }) => ({
+        action: data.action, reason: data.reason, createdAt: data.createdAt,
+      })),
       user_notifications: notifications.documents,
       friend_requests: mergeDocuments(
         sentFriendRequests.documents,
         receivedFriendRequests.documents,
       ),
+      family_weekly_notes: gardenData[0].documents,
+      family_scheduled_letters: mergeDocuments(
+        gardenData[1].documents,
+        gardenData[2].documents.filter(entry => entry.data.status === "sent"),
+      ),
+      family_letter_preferences: gardenData[3].documents,
       friend_visit_settings: friendVisitSettings,
+      presence_settings: presenceSettings,
+      presence,
       friend_visits: mergeDocuments(
         hostedFriendVisits.documents,
         madeFriendVisits.documents,

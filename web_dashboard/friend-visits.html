@@ -8,25 +8,27 @@
     <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
     <link rel="stylesheet" href="assets/plaza_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/friend_cabin.css?v=1" />
+    <link rel="stylesheet" href="assets/safety.css?v=1" />
   </head>
-  <body data-page="friend-visits" data-social-facility="plaza">
+  <body class="w-page" data-page="friend-visits" data-social-facility="plaza">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
-    <header class="scene-topbar">
+    <header class="w-hud">
       <a data-town-return href="town.html">← 回小鎮</a>
-      <span class="scene-place" data-scene-place>小鎮廣場</span>
+      <h1>好友小屋</h1>
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
-    <main class="main scene-main" id="sceneMain" tabindex="-1">
+    <main class="main w-main" id="sceneMain" tabindex="-1">
         <header class="hero scene-hero">
           <div>
-            <span class="eyebrow">Friend Visits</span>
             <h1>到好友公開的場景走走</h1>
-            <p>只有互相接受的正式好友能拜訪，而且只能看到對方選擇公開的場景。拜訪只會留下一個固定鼓勵，不會看到對方的活動、健康或專注數值，也不會產生任何獎勵。</p>
+            <p>查看好友公開的小屋擺設與角色。每位好友每天可留一則鼓勵和貼圖。</p>
           </div>
           <div class="hero-card">
             <span>今天來訪的好友</span>
             <strong data-visit-today-count>0</strong>
-            <p>依真實拜訪紀錄計算。</p>
+
           </div>
         </header>
 
@@ -35,6 +37,7 @@
           <h2 id="visitSettingsTitle">我的拜訪設定</h2>
           <div class="visit-setting-row">
             <label class="visit-toggle"><input type="checkbox" data-visit-allow /><span>開放好友拜訪</span></label>
+            <label class="visit-toggle"><input type="checkbox" data-visit-cabin /><span>公開小屋擺設與角色給好友</span></label>
             <label class="visit-scene-select"><span>公開場景</span>
               <select data-visit-scene>
                 <option value="cabin">我的小屋</option>
@@ -48,7 +51,7 @@
 
         <section class="scene-panel" aria-labelledby="visitFriendsTitle">
           <span class="eyebrow">Visit a friend</span>
-          <h2 id="visitFriendsTitle">拜訪好友</h2>
+          <h2 id="visitFriendsTitle" tabindex="-1">拜訪好友</h2>
           <div class="visit-friend-grid" data-visit-friends><p class="visit-empty">正在載入正式好友…</p></div>
         </section>
 
@@ -65,10 +68,27 @@
           </article>
         </section>
       </main>
-    <script src="assets/friend_visits.js?v=1"></script>
-    <script src="assets/town_routes.js?v=2"></script>
+    <dialog class="w-parchment" role="dialog" aria-labelledby="friendCabinTitle" data-friend-cabin-dialog>
+      <div class="friend-cabin-header">
+        <h2 id="friendCabinTitle">好友的小屋</h2>
+        <form method="dialog"><button type="submit" class="w-btn" autofocus>關閉</button></form>
+      </div>
+      <p data-friend-cabin-status role="status"></p>
+      <a class="w-btn" data-thanks-cabin hidden>送感謝卡</a>
+      <div class="friend-cabin-stage" data-friend-cabin-stage hidden></div>
+      <form data-friend-cabin-letter hidden>
+        <h3>留言簿</h3>
+        <label>選一句鼓勵 <select name="note" required></select></label>
+        <fieldset class="friend-cabin-stickers"><legend>選一張貼圖</legend></fieldset>
+        <button type="submit" class="w-btn is-gold">送出留言</button>
+      </form>
+    </dialog>
+    <script src="assets/cabin_core.js?v=1"></script>
+    <script src="assets/friend_visits.js?v=3"></script>
+    <script src="assets/town_routes.js?v=4"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/safety_ui.js?v=1"></script>
+    <script src="assets/app.js?v=29"></script>
   </body>
 </html>

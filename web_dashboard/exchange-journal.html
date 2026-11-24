@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>交換日記</title>
+  <link rel="stylesheet" href="assets/world_ui.css?v=2">
+  <link rel="stylesheet" href="assets/social_scene.css?v=1">
+  <link rel="stylesheet" href="assets/exchange_journal.css?v=1">
+</head>
+<body class="w-page world-page" data-page="exchange-journal" data-social-facility="plaza">
+  <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>交換日記</h1></header>
+  <nav class="scene-nav" data-scene-nav></nav>
+  <main class="w-main journal">
+    <p id="journalStatus" role="status">登入後可與好友或家人交換日記。</p>
+    <section class="w-panel">
+      <h2>選擇一本日記</h2>
+      <label>日記 <select id="journalBooks"></select></label>
+      <button class="w-btn" id="journalRefresh" type="button">同步日記</button>
+      <form id="journalOpen" inert>
+        <label>好友或家人 <select name="peer" required></select></label>
+        <button class="w-btn" type="submit" disabled>邀請一起寫日記</button>
+      </form>
+    </section>
+    <section class="w-parchment journal-book" id="journalBook" hidden>
+      <h2 id="journalTitle">交換日記</h2>
+      <p id="journalState"></p>
+      <div class="journal-page" aria-live="polite">
+        <p id="journalEntryPrompt"></p><p id="journalText"></p>
+        <img id="journalSticker" width="48" height="48" alt="日記貼圖" hidden>
+      </div>
+      <div class="journal-controls">
+        <button class="w-btn" id="journalOlder" type="button">上一頁</button>
+        <span id="journalPage"></span>
+        <button class="w-btn" id="journalNewer" type="button">下一頁</button>
+      </div>
+      <button class="w-btn" id="journalAccept" type="button" hidden>接受日記邀請</button>
+      <form id="journalWrite" hidden>
+        <p id="journalPrompt"></p>
+        <label>這一頁（最多 500 字） <textarea name="text" maxlength="500" required></textarea></label>
+        <label>一張貼圖（選填） <select name="sticker"></select></label>
+        <button class="w-btn is-gold" type="submit">寫完交給對方</button>
+      </form>
+      <div class="journal-controls">
+        <button class="w-btn" id="journalEnd" type="button">結束日記</button>
+        <button class="w-btn" id="journalDelete" type="button">立即刪除</button>
+      </div>
+    </section>
+  </main>
+  <dialog role="dialog" aria-labelledby="journalConfirmTitle" class="w-parchment" id="journalConfirm">
+    <form method="dialog"><h2 id="journalConfirmTitle"></h2><p id="journalConfirmCopy"></p>
+      <button class="w-btn" value="cancel" autofocus>取消</button>
+      <button class="w-btn" value="yes">確認</button>
+    </form>
+  </dialog>
+  <script src="assets/town_routes.js?v=4"></script>
+  <script src="assets/town_return.js?v=2"></script>
+  <script src="assets/social_scene.js?v=1"></script>
+  <script src="assets/exchange_journal.js?v=1"></script>
+  <script src="assets/app.js?v=29"></script>
+</body>
+</html>

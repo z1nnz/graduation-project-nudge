@@ -31,24 +31,23 @@
     heart: "💛",
   });
 
+  const taipeiDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", dateStyle: "short" });
   function dateKey(now = new Date()) {
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return taipeiDate.format(now);
   }
 
   function visitId(hostId, visitorId, key) {
     return `${hostId}--${visitorId}--${key}`;
   }
 
-  function buildSettings({ userId, allowVisits, sceneKey, now = new Date() }) {
+  function buildSettings({ userId, allowVisits, sceneKey, shareCabin, now = new Date() }) {
     if (!userId) throw new Error("請先登入");
     if (!scenes[sceneKey]) throw new Error("請選擇可公開的場景");
     return {
       schemaVersion: 1,
       userId,
       allowVisits: allowVisits === true,
+      ...(shareCabin === undefined ? {} : { shareCabin: shareCabin === true }),
       sceneKey,
       updatedAt: now.toISOString(),
     };
@@ -104,6 +103,21 @@
   const subs = [];
   let started = false;
   let userId = null;
+  const notes = {
+    cheer: "今天也替你加油！", step: "慢慢來，每一步都算數。",
+    steady: "照自己的節奏就好。", rest: "休息一下也很重要。",
+    proud: "為你今天的努力感到開心！", hello: "路過小屋，來打聲招呼。",
+    focus: "祝你今天專注又順利。", brave: "開始就是值得鼓勵的一步。",
+    together: "下次再一起努力！", progress: "一點一滴都在進步。",
+    tomorrow: "明天也是新的開始。", thanks: "謝謝你一直這麼努力。",
+  };
+  const stickers = {
+    cheer: "歡呼", study: "讀書", sleep: "睡覺", "thumbs-up": "讚",
+    "happy-tears": "喜極而泣", flex: "加油", coffee: "喝咖啡", heart: "愛心",
+    okay: "沒問題", wave: "招呼", think: "思考", fire: "火力全開",
+  };
+  let activeCabin = null;
+  let requestedCabin = new URLSearchParams(location.search).get("friend");
   let settings = null;
   let friends = [];
   let friendSettings = {};
@@ -126,6 +140,7 @@
     userId = null;
     settings = null;
     friends = [];
+    if (activeCabin) $("[data-friend-cabin-dialog]").close();
     friendSettings = {};
     names = {};
     visits = { incoming: [], outgoing: [] };
@@ -154,6 +169,9 @@
     if (!toggle || !scene) return;
     toggle.checked = settings?.allowVisits === true;
     toggle.disabled = !userId || pending;
+    const cabin = $("[data-visit-cabin]");
+    cabin.checked = settings?.shareCabin === true;
+    cabin.disabled = !userId || pending || !settings?.allowVisits;
     scene.value = settings?.sceneKey || "cabin";
     scene.disabled = !userId || pending;
     if (status) {
@@ -181,7 +199,9 @@
       const open = friendSettings[friendId];
       const visited = visits.outgoing.some(v => v.hostId === friendId && v.dateKey === today);
       const scene = open ? contract.scenes[open.sceneKey] : null;
-      const actions = !open
+      const actions = open?.shareCabin
+        ? `<button type="button" class="w-btn" data-visit-cabin-open="${esc(friendId)}">進入小屋</button>`
+        : !open
         ? `<p class="visit-closed">對方目前沒有開放拜訪。</p>`
         : visited
           ? `<p class="visit-done">今天已拜訪過，明天可以再來。</p>`
@@ -201,18 +221,25 @@
     const list = $(selector);
     if (!list) return;
     const items = visits[kind]
-      .slice()
+      .filter(visit => !visit.removed)
       .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
       .slice(0, 30)
-      .map(visit => contract.presentVisit(visit, userId, names));
+      .map(visit => ({
+        ...contract.presentVisit(visit, userId, names),
+        cabinLetter: visit.schemaVersion === 2,
+        note: notes[visit.noteKey], sticker: Object.hasOwn(stickers, visit.stickerKey) ? visit.stickerKey : null,
+      }));
     if (!items.length) {
       list.innerHTML = `<li class="visit-empty">${kind === "incoming" ? "還沒有好友來訪。" : "你還沒有拜訪好友。"}</li>`;
       return;
     }
     list.innerHTML = items.map(item => `<li>
       <strong>${esc(item.incoming ? `${item.otherName} 拜訪了你的${item.sceneLabel}` : `你拜訪了 ${item.otherName} 的${item.sceneLabel}`)}</strong>
-      <span>${esc(item.reaction)}${item.response ? ` · 回應：${esc(item.response)}` : ""} · ${esc(item.dateKey)}</span>
-      ${item.canRespond ? `<div class="visit-reactions" role="group" aria-label="回應 ${esc(item.otherName)}">${
+      ${item.cabinLetter ? `<span>${esc(item.note)} · ${esc(item.dateKey)}</span>
+        ${item.sticker ? `<img class="friend-cabin-sticker" src="assets/chat_stickers/${esc(item.sticker)}.png" alt="${esc(stickers[item.sticker])}" width="96" height="96" />` : ""}
+        ${item.incoming ? `<button type="button" class="w-btn" data-visit-cabin-remove="${esc(item.id)}">刪除留言</button><button type="button" class="w-btn" data-safety-report-visit="${esc(item.id)}">檢舉留言</button>` : ""}`
+      : `<span>${esc(item.reaction)}${item.response ? ` · 回應：${esc(item.response)}` : ""} · ${esc(item.dateKey)}</span>`}
+      ${!item.cabinLetter && item.canRespond ? `<div class="visit-reactions" role="group" aria-label="回應 ${esc(item.otherName)}">${
         Object.entries(contract.responses).map(([key, label]) =>
           `<button type="button" data-visit-respond="${esc(item.id)}" data-visit-response="${esc(key)}" ${pending ? "disabled" : ""}>${esc(label)}</button>`,
         ).join("")}</div>` : ""}
@@ -222,6 +249,18 @@
   function render() {
     renderSettings();
     renderFriends();
+    if (requestedCabin && friends.includes(requestedCabin) && friendSettings[requestedCabin]?.shareCabin && !activeCabin) {
+      const hostId = requestedCabin;
+      const opener = [...document.querySelectorAll("[data-visit-cabin-open]")].find(button =>
+        button.dataset.visitCabinOpen === hostId);
+      if (opener) {
+        requestedCabin = null;
+        const url = new URL(location.href);
+        url.searchParams.delete("friend");
+        history.replaceState(null, "", url);
+        void openCabin(hostId, opener);
+      }
+    }
     renderVisits("incoming", "[data-visit-incoming]");
     renderVisits("outgoing", "[data-visit-outgoing]");
     const count = $("[data-visit-today-count]");
@@ -231,15 +270,18 @@
     }
   }
 
-  async function saveSettings() {
-    const store = firestore();
+  function saveSettings() {
+    if (!userId) return;
     const doc = contract.buildSettings({
       userId,
       allowVisits: $("[data-visit-allow]").checked,
       sceneKey: $("[data-visit-scene]").value,
+      shareCabin: $("[data-visit-cabin]").checked,
     });
-    await store.collection("friend_visit_settings").doc(userId).set(doc);
-    say(doc.allowVisits ? "已開放好友拜訪" : "已撤回拜訪權限");
+    return run(async () => {
+      await firestore().collection("friend_visit_settings").doc(doc.userId).set(doc);
+      say(doc.allowVisits ? "已開放好友拜訪" : "已撤回拜訪權限");
+    }, "拜訪設定失敗");
   }
 
   async function visit(hostId, reactionKey) {
@@ -263,9 +305,16 @@
       snap => {
         const data = snap.exists ? snap.data() : null;
         friendSettings[friendId] = data?.allowVisits ? data : null;
+        if (activeCabin?.hostId === friendId && !friendSettings[friendId]?.shareCabin) {
+          $("[data-friend-cabin-dialog]").close();
+        }
         render();
       },
-      () => { friendSettings[friendId] = null; render(); },
+      () => {
+        friendSettings[friendId] = null;
+        if (activeCabin?.hostId === friendId) $("[data-friend-cabin-dialog]").close();
+        render();
+      },
     ));
     firestore().collection("public_profiles").doc(friendId).get()
       .then(snap => { names[friendId] = snap.exists ? (snap.data().nickname || "好友") : "好友"; render(); })
@@ -285,6 +334,7 @@
       const next = snapshot.docs.map(doc => doc.id).filter(id => id !== uid);
       for (const id of next) if (!(id in friendSettings)) { friendSettings[id] = null; watchFriendSettings(id); }
       friends = next;
+      if (activeCabin && !next.includes(activeCabin.hostId)) $("[data-friend-cabin-dialog]").close();
       render();
     }, error => console.warn("Friend list sync failed:", error)));
     for (const [field, kind] of [["hostId", "incoming"], ["visitorId", "outgoing"]]) {
@@ -305,10 +355,111 @@
     render();
   }
 
+  function callCabin(data) {
+    return functions.httpsCallable("manageFriendCabinVisit")(data).then(result => result.data);
+  }
+
+  function drawCabin(stage, layout, cabin) {
+    const core = window.NudgeCabinCore;
+    function picture(src, rect, z) {
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = "";
+      const [x, y, w, h] = rect;
+      Object.assign(img.style, {
+        left: x * 100 + "%", top: y * 100 + "%", width: w * 100 + "%",
+        height: h * 100 + "%", zIndex: String(z),
+      });
+      return img;
+    }
+    stage.style.aspectRatio = String(layout.aspect);
+    stage.replaceChildren(picture(layout.baseImage, [0, 0, 1, 1], 0));
+    for (const layer of core.decorLayers(layout, cabin.homeDecor)) {
+      stage.append(picture(layer.src, layer.rect, layer.z));
+    }
+    stage.append(picture(core.characterSprite(cabin), layout.character.rect, layout.character.z || 10));
+    stage.hidden = false;
+  }
+
+  async function openCabin(hostId, opener) {
+    const dialog = $("[data-friend-cabin-dialog]");
+    const status = $("[data-friend-cabin-status]");
+    const stage = $("[data-friend-cabin-stage]");
+    const form = $("[data-friend-cabin-letter]");
+    const visit = activeCabin = { hostId, opener };
+    const thanks = $("[data-thanks-cabin]");
+    if (thanks) thanks.hidden = true;
+    stage.hidden = form.hidden = true;
+    stage.replaceChildren();
+    form.reset();
+    $("#friendCabinTitle").textContent = (names[hostId] || "好友") + "的小屋";
+    status.textContent = "正在確認拜訪權限…";
+    dialog.showModal();
+    try {
+      const [{ cabin, alreadyLeft }, layout] = await Promise.all([
+        callCabin({ action: "open", hostId }),
+        fetch("assets/home/cabin_layout.json").then(response => {
+          if (!response.ok) throw new Error("Cabin layout unavailable");
+          return response.json();
+        }),
+      ]);
+      if (activeCabin !== visit) return;
+      drawCabin(stage, layout, cabin);
+      if (thanks) {
+        thanks.href = "thanks-cards.html?to=" + encodeURIComponent(hostId);
+        thanks.hidden = false;
+      }
+      form.hidden = alreadyLeft;
+      status.textContent = alreadyLeft ? "今天已經留下鼓勵。" : "小屋擺設由好友公開。";
+    } catch {
+      if (activeCabin === visit) status.textContent = "無法開啟小屋，對方可能已關閉拜訪。";
+    }
+  }
+
   function bind() {
-    $("[data-visit-allow]")?.addEventListener("change", () => run(saveSettings, "拜訪設定失敗"));
-    $("[data-visit-scene]")?.addEventListener("change", () => run(saveSettings, "拜訪設定失敗"));
+    const dialog = $("[data-friend-cabin-dialog]");
+    const guestbook = $("[data-friend-cabin-letter]");
+    for (const [value, text] of Object.entries(notes)) guestbook.elements.note.add(new Option(text, value));
+    for (const [value, text] of Object.entries(stickers)) {
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="radio" name="sticker" value="${value}" required />
+        <img src="assets/chat_stickers/${value}.png" width="96" height="96" alt="${text}" />`;
+      guestbook.querySelector("fieldset").append(label);
+    }
+    dialog.addEventListener("close", () => {
+      const opener = activeCabin?.opener;
+      $("[data-friend-cabin-stage]").replaceChildren();
+      activeCabin = null;
+      if (opener?.isConnected) opener.focus();
+      else $("#visitFriendsTitle")?.focus();
+    });
+    guestbook.addEventListener("submit", async event => {
+      event.preventDefault();
+      const visit = activeCabin;
+      const submit = guestbook.querySelector("button[type=submit]");
+      if (!visit || submit.disabled) return;
+      const data = new FormData(guestbook);
+      submit.disabled = true;
+      try {
+        await callCabin({ action: "leave", hostId: visit.hostId, noteKey: data.get("note"), stickerKey: data.get("sticker") });
+        if (activeCabin !== visit) return;
+        guestbook.hidden = true;
+        $("[data-friend-cabin-status]").textContent = "鼓勵與貼圖已送到好友的郵箱。";
+      } catch (error) {
+        if (activeCabin === visit) $("[data-friend-cabin-status]").textContent =
+          error.code === "functions/already-exists" ? "今天已經留下鼓勵。" : "留言尚未確認，請稍後重試。";
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    $("[data-visit-cabin]")?.addEventListener("change", saveSettings);
+    $("[data-visit-allow]")?.addEventListener("change", saveSettings);
+    $("[data-visit-scene]")?.addEventListener("change", saveSettings);
     document.addEventListener("click", event => {
+      const open = event.target.closest("[data-visit-cabin-open]");
+      if (open) openCabin(open.dataset.visitCabinOpen, open);
+      const remove = event.target.closest("[data-visit-cabin-remove]");
+      if (remove) run(() => callCabin({ action: "remove", visitId: remove.dataset.visitCabinRemove }), "刪除留言失敗");
       const react = event.target.closest("[data-visit-reaction]");
       if (react) run(() => visit(react.dataset.visitHost, react.dataset.visitReaction), "拜訪失敗");
       const answer = event.target.closest("[data-visit-response]");

@@ -1,28 +1,190 @@
-/* Starlight garden: reuses the town palette from town.css. */
-body[data-page="garden"] { overflow: auto; }
-.garden { max-width: 960px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 16px 32px; }
-.garden-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.garden-top h1 { margin: 0; font-size: 24px; color: var(--town-gold); flex: 1; }
-.garden-back { display: inline-flex; align-items: center; text-decoration: none; }
-.garden-level { background: var(--town-panel); border: 1px solid var(--town-border); border-radius: 999px; padding: 4px 12px; font-weight: 800; }
-.garden-status { margin: 12px 0; opacity: 0.9; }
-.garden-card { background: var(--town-panel); border: 2px solid var(--town-gold); border-radius: 18px; padding: 16px; }
-.garden-card h2 { margin: 0 0 8px; }
-.garden-card .town-gold { display: inline-flex; align-items: center; text-decoration: none; margin-top: 8px; }
+/* Starlight garden 2.0: world_ui.css tokens only (--w-*). */
+.g-level { font-family: var(--w-pixel); }
+.g-main { padding-top: 12px; }
+.g-status { margin: 0 0 12px; color: var(--w-parchment); }
+.g-scene { display: grid; gap: 12px; }
+.g-scene[hidden], [hidden] { display: none !important; }
 
-/* The garden corner of the town map (x 74.5–100%, y 72–100%) is the stage. */
-.garden-stage { position: relative; width: 100%; aspect-ratio: 426 / 263; border-radius: 18px; overflow: hidden;
-  border: 2px solid var(--town-border); background-color: #2a3a1c;
-  background-image: url("town/town_map.jpg"); background-repeat: no-repeat;
-  background-size: 392% auto; background-position: 100% 100%; image-rendering: pixelated; }
-.garden-beds { position: absolute; inset: 30% 6% 8% 22%; margin: 0; padding: 0; list-style: none;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4%; }
-.garden-bed { position: relative; border-radius: 12px; background: rgba(60, 34, 18, 0.55); border: 2px solid rgba(255, 220, 170, 0.35); }
-.garden-bed::after { content: "·"; position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); font-size: 28px; color: #c9a46b; }
-.garden-summary { margin: 10px 0; }
-.garden-bed-list { margin: 0; padding-left: 20px; line-height: 1.8; }
+.g-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.g-scene-title { flex: 1 1 auto; margin: 0; font-family: var(--w-pixel); font-weight: 400; font-size: 20px; color: var(--w-gold); }
+.g-toolbar .w-btn.g-reload { width: auto; }
 
-@media (max-width: 560px) {
-  .garden-top h1 { font-size: 20px; }
-  .garden-beds { inset: 26% 4% 6% 12%; grid-template-columns: repeat(2, 1fr); }
+/* ---------- pixel sprites: 48x64 frames, integer scale only ---------- */
+.g-sprite {
+  --g-scale: 1;
+  display: block;
+  width: calc(48px * var(--g-scale));
+  height: calc(64px * var(--g-scale));
+  background-repeat: no-repeat;
+  background-size: calc(240px * var(--g-scale)) calc(64px * var(--g-scale));
+  background-position: calc(var(--g-frame, 0) * -48px * var(--g-scale)) 0;
+  image-rendering: pixelated;
+}
+/* Bare soil: only the mound at the bottom of the first frame. */
+.g-sprite[data-stage="0"] {
+  height: calc(7px * var(--g-scale));
+  background-position: 0 100%;
+  opacity: 0.85;
+}
+.g-sprite-icon { --g-scale: 1; flex: none; }
+
+/* ---------- the garden stage ---------- */
+.g-stage {
+  position: relative;
+  overflow: hidden;
+  height: 360px;
+  border: 3px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  box-shadow: var(--w-shadow);
+  background: var(--w-green) url("garden/garden_plot_bg.png") center top / 640px 360px no-repeat;
+  image-rendering: pixelated;
+}
+.g-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+.g-stage[data-season="spring"]::after { background: color-mix(in srgb, var(--w-parchment-hi) 30%, transparent); }
+.g-stage[data-season="summer"]::after { background: color-mix(in srgb, var(--w-gold) 35%, transparent); }
+.g-stage[data-season="autumn"]::after { background: color-mix(in srgb, var(--w-gold-deep) 45%, transparent); }
+.g-stage[data-season="winter"]::after { background: color-mix(in srgb, var(--w-violet-deep) 55%, transparent); }
+
+.g-grid {
+  --g-cell: 48px;
+  --g-scale: 1;
+  position: absolute;
+  z-index: 1;
+  /* The first plant row starts on the painted soil (native y 38 x2). */
+  top: 52px;
+  left: 0;
+  right: 0;
+  display: grid;
+  justify-content: center;
+  grid-template-columns: 20px repeat(var(--g-weeks, 6), var(--g-cell));
+  grid-template-rows: 22px;
+  grid-auto-rows: calc(64px * var(--g-scale));
+  gap: 2px 2px;
+  align-items: end;
+}
+.g-week, .g-row-label {
+  font-family: var(--w-pixel);
+  font-size: 12px;
+  color: var(--w-ink);
+  text-shadow: 0 2px 0 var(--w-wood-deep);
+  text-align: center;
+  white-space: nowrap;
+}
+.g-row-label { align-self: center; }
+.g-plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: var(--g-cell);
+  min-height: max(44px, calc(64px * var(--g-scale)));
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease-out, transform 0.15s ease-out;
+}
+.g-plot .g-sprite { --g-scale: inherit; }
+.g-plot:hover:not(:disabled) { background: color-mix(in srgb, var(--w-gold) 22%, transparent); transform: translateY(-2px); }
+.g-plot:focus-visible { outline: 3px solid var(--w-gold); outline-offset: 0; background: color-mix(in srgb, var(--w-gold) 22%, transparent); }
+.g-plot:disabled { cursor: progress; }
+
+.g-help { margin: 0; color: var(--w-parchment); font-size: 14px; }
+
+.g-legend h3 { font-size: 18px; }
+.g-legend-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.g-legend-list li { display: flex; align-items: center; gap: 10px; }
+.g-legend details { margin-top: 4px; }
+.g-legend summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; }
+
+/* ---------- plant dialog ---------- */
+.g-dialog-open { overflow: hidden; }
+.g-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: color-mix(in srgb, var(--w-night) 72%, transparent);
+}
+.g-dialog-backdrop[hidden] { display: none; }
+.g-dialog {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.g-dialog h2 { font-size: 22px; }
+.g-dialog-stage { margin: 0 0 6px; font-family: var(--w-pixel); color: var(--w-violet-deep); }
+.g-dialog-art {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  padding: 8px;
+  border: 3px solid var(--w-wood);
+  border-radius: var(--w-radius);
+  background: color-mix(in srgb, var(--w-green) 30%, var(--w-parchment-hi));
+}
+.g-sprite-big { --g-scale: 3; }
+.g-sprite-big[data-stage="0"] { margin-top: calc(57px * 3); }
+.g-sessions { margin: 0 0 8px; padding-left: 20px; font-size: 14px; line-height: 1.7; }
+.g-water-note { min-height: 1.4em; margin: 0 0 8px; color: var(--w-violet-deep); font-weight: 700; }
+.g-dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.g-dialog-actions .w-btn { width: auto; }
+
+/* Watering: drops fall and the plant sways. Purely decorative. */
+.g-drops { position: absolute; inset: 8px; pointer-events: none; }
+.g-drops i {
+  position: absolute;
+  top: 10%;
+  width: 6px;
+  height: 9px;
+  background: var(--w-violet);
+  box-shadow: 0 0 0 2px var(--w-violet-deep);
+  opacity: 0;
+}
+.g-drops i:nth-child(1) { left: 22%; }
+.g-drops i:nth-child(2) { left: 42%; top: 4%; }
+.g-drops i:nth-child(3) { left: 62%; }
+.g-drops i:nth-child(4) { left: 80%; top: 6%; }
+.is-watering .g-drops i { animation: g-drop 0.26s ease-in both; }
+.is-watering .g-drops i:nth-child(2) { animation-delay: 0.12s; }
+.is-watering .g-drops i:nth-child(3) { animation-delay: 0.24s; }
+.is-watering .g-drops i:nth-child(4) { animation-delay: 0.36s; }
+.is-watering .g-sprite-big { animation: g-sway 0.24s ease-in-out 0.5s 2 alternate; transform-origin: 50% 100%; }
+@keyframes g-drop { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(96px); } }
+@keyframes g-sway { from { transform: rotate(0deg); } to { transform: rotate(-3deg); } }
+
+/* ---------- wider screens: 2x plants on the full-size garden ---------- */
+@media (min-width: 900px) {
+  .g-stage { height: 720px; background-size: 1280px 720px; }
+  .g-grid { --g-cell: 96px; --g-scale: 2; top: 118px; grid-template-columns: 32px repeat(var(--g-weeks, 6), var(--g-cell)); grid-template-rows: 26px; gap: 4px 6px; }
+  .g-week, .g-row-label { font-size: 16px; }
+}
+
+/* ---------- small screens ---------- */
+@media (max-width: 520px) {
+  .g-dialog { grid-template-columns: 1fr; }
+  .g-dialog-art { justify-self: center; }
+  .g-sprite-big { --g-scale: 2; }
+  .g-sprite-big[data-stage="0"] { margin-top: calc(57px * 2); }
+}
+
+/* ---------- reduced motion: no movement, still drops instead ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .g-plot { transition: none; }
+  .g-plot:hover:not(:disabled) { transform: none; }
+  .is-watering .g-drops i { animation: none; opacity: 1; transform: translateY(40px); }
+  .is-watering .g-sprite-big { animation: none; }
 }

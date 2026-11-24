@@ -213,12 +213,93 @@ function event(roomId, actorId, eventId, now) {
   };
 }
 
+async function verifyVoiceRoom() {
+  const participants = await Promise.all(Array.from({ length: 9 }, (_, index) => signUp("voice-" + index)));
+  const [host, listener, third] = participants;
+  const pending = await signUp("voice-pending");
+  const outsider = await signUp("voice-outsider");
+  const roomId = "voice-room-" + Date.now();
+  const path = `rooms/${roomId}`;
+  const now = new Date().toISOString();
+  const memberIds = [...participants, pending].map(user => user.localId);
+  let response = await commit([
+    createWrite(path, { ...room(roomId, host.localId, now), memberIds, memberLimit: 12 }),
+    ...participants.map((user, index) => createWrite(`${path}/members/${user.localId}`,
+      member(roomId, user.localId, now, index ? "member" : "owner"))),
+    createWrite(`${path}/members/${pending.localId}`, {
+      ...member(roomId, pending.localId, now), approvalStatus: "pending",
+    }),
+    ...participants.map(user => createWrite(`users/${user.localId}`, { nickname: "測試成員" })),
+  ], "owner");
+  assert.equal(response.status, 200, await response.clone().text());
+
+  async function join(user, previous) {
+    const presence = createWrite(`${path}/voice_participants/${user.localId}`, {
+      uid: user.localId, joinedAt: now, muted: true, handRaised: false,
+    });
+    presence.updateTransforms = [{ fieldPath: "updatedAt", setToServerValue: "REQUEST_TIME" }];
+    const capacity = createWrite(`${path}/voice_state/capacity`, { uids: [...previous, user.localId] });
+    delete capacity.currentDocument;
+    return commit([presence, capacity], user.idToken);
+  }
+
+  response = await join(host, []);
+  assert.equal(response.status, 403, "Voice is disabled by default");
+  response = await commit([updateWrite(path, { voiceEnabled: true })], listener.idToken);
+  assert.equal(response.status, 403, "Only the owner can enable voice");
+  response = await commit([updateWrite(path, { voiceEnabled: true })], host.idToken);
+  assert.equal(response.status, 200, await response.clone().text());
+  response = await join(outsider, []);
+  assert.equal(response.status, 403, "A nonmember cannot join voice");
+  response = await join(pending, []);
+  assert.equal(response.status, 403, "A pending member cannot join voice");
+
+  const reserved = [];
+  for (const user of participants.slice(0, 8)) {
+    response = await join(user, reserved);
+    assert.equal(response.status, 200, await response.clone().text());
+    reserved.push(user.localId);
+  }
+  response = await join(participants[8], reserved);
+  assert.equal(response.status, 403, "The ninth reservation fails");
+
+  const signalPath = `${path}/voice_signals/first`;
+  function signal(from, to) {
+    const write = createWrite(signalPath, { from, to, type: "offer", payload: "{}" });
+    write.updateTransforms = [{ fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" }];
+    return write;
+  }
+  response = await commit([signal(participants[8].localId, listener.localId)], participants[8].idToken);
+  assert.equal(response.status, 403, "An approved spectator without a voice reservation cannot signal");
+  response = await commit([signal(host.localId, listener.localId)], third.idToken);
+  assert.equal(response.status, 403, "A member cannot forge the sender");
+  response = await commit([signal(host.localId, listener.localId)], host.idToken);
+  assert.equal(response.status, 200, await response.clone().text());
+  response = await request(signalPath, third.idToken);
+  assert.equal(response.status, 403, "Uninvolved approved members cannot read a signal");
+  response = await request(signalPath, listener.idToken);
+  assert.equal(response.status, 200, "The recipient can read the signal");
+  response = await commit([updateWrite(signalPath, { payload: "changed" })], listener.idToken);
+  assert.equal(response.status, 403, "Signals are immutable");
+  response = await commit([deleteWrite(signalPath)], listener.idToken);
+  assert.equal(response.status, 200, "The recipient can consume the signal");
+
+  response = await commit([
+    updateWrite(`${path}/voice_state/capacity`, { uids: reserved.slice(1) }),
+    deleteWrite(`${path}/voice_participants/${host.localId}`),
+  ], host.idToken);
+  assert.equal(response.status, 200, await response.clone().text());
+  response = await join(participants[8], reserved.slice(1));
+  assert.equal(response.status, 200, "Leaving frees a seat atomically");
+}
+
 async function run() {
+  await verifyVoiceRoom();
   const owner = await signUp("room-owner");
   const alice = await signUp("room-alice");
   const stranger = await signUp("room-stranger");
   const bob = await signUp("room-bob");
-  const roomId = "room-member-controlled";
+  const roomId = `room-member-controlled-${Date.now()}`;
   const roomPath = `rooms/${roomId}`;
   const ownerMemberPath = `${roomPath}/members/${owner.localId}`;
   const aliceMemberPath = `${roomPath}/members/${alice.localId}`;
@@ -444,42 +525,92 @@ async function run() {
     "A stranger cannot read room activity sessions",
   );
 
+  const focusRound = `${roomPath}/focus_rounds/current`;
+  function roundWrite(path, startedBy, durationMin = 25) {
+    const write = createWrite(path, { startedBy, durationMin, breakMin: 5 });
+    delete write.currentDocument;
+    write.updateTransforms = [{ fieldPath: "startAt", setToServerValue: "REQUEST_TIME" }];
+    return write;
+  }
+  response = await commit([roundWrite(focusRound, stranger.localId)], stranger.idToken);
+  assert.equal(response.status, 403, "Outsiders cannot start the shared timer");
+  response = await commit([roundWrite(focusRound, owner.localId)], alice.idToken);
+  assert.equal(response.status, 403, "Members cannot forge the initiator");
+  response = await commit([roundWrite(focusRound, alice.localId, 1)], alice.idToken);
+  assert.equal(response.status, 403, "Clients cannot shorten the round");
+  const contests = await Promise.all([
+    commit([roundWrite(focusRound, alice.localId)], alice.idToken),
+    commit([roundWrite(focusRound, owner.localId)], owner.idToken),
+  ]);
+  assert.deepEqual(contests.map(result => result.status).sort(), [200, 403],
+    "Simultaneous starts result in exactly one shared round");
+  response = await commit([roundWrite(`${roomPath}/focus_rounds/another`, alice.localId)], alice.idToken);
+  assert.equal(response.status, 403, "An alternate document cannot bypass the single active round");
+  response = await request(focusRound, stranger.idToken);
+  assert.equal(response.status, 403, "Outsiders cannot read the timer");
+  response = await request(focusRound, alice.idToken);
+  assert.equal(response.status, 200, "Approved members share the timer");
+  const advanceClock = updateWrite(focusRound, { startAt: "" });
+  advanceClock.update.fields.startAt = { timestampValue: now };
+  response = await commit([advanceClock], "owner");
+  assert.equal(response.status, 200, "Seed a past round with the emulator admin");
+  response = await commit([roundWrite(focusRound, alice.localId)], alice.idToken);
+  assert.equal(response.status, 200, "After the break an approved member can replace the round");
+
   const aliceMessagePath = `${roomPath}/messages/message-alice`;
-  response = await createDoc(
-    aliceMessagePath,
-    message(roomId, alice.localId, "message-alice", now),
-    alice.idToken,
-  );
-  assert.equal(
-    response.status,
-    200,
-    "An approved member can create their own room message",
-  );
+  async function sendMessage(actor, id, data, previous = {}) {
+    const path = `${roomPath}/chat_throttles/${actor.localId}`;
+    const throttle = {
+      userId: actor.localId,
+      messageId: id,
+      t0: previous.t1 ?? null,
+      t1: previous.t2 ?? null,
+      t2: previous.t3 ?? null,
+      t3: previous.t4 ?? null,
+    };
+    const write = createWrite(path, throttle);
+    delete write.currentDocument;
+    for (const [field, value] of Object.entries(throttle)) {
+      if (field.startsWith("t") && value) write.update.fields[field] = { timestampValue: value };
+    }
+    write.updateTransforms = [{ fieldPath: "t4", setToServerValue: "REQUEST_TIME" }];
+    const response = await commit([
+      createWrite(`${roomPath}/messages/${id}`, data),
+      write,
+    ], actor.idToken);
+    if (response.ok) {
+      const stored = await request(path, actor.idToken);
+      assert.equal(stored.status, 200);
+      Object.assign(previous, (await stored.json()).fields);
+      // Keep typed Firestore timestamps for subsequent shifted writes.
+      for (const field of ["t0", "t1", "t2", "t3", "t4"]) {
+        previous[field] = previous[field]?.timestampValue ?? null;
+      }
+    }
+    return response;
+  }
 
+  const history = {};
   response = await createDoc(
-    `${roomPath}/messages/owner-forges-alice`,
-    message(roomId, alice.localId, "owner-forges-alice", now),
-    owner.idToken,
+    aliceMessagePath, message(roomId, alice.localId, "message-alice", now), alice.idToken,
   );
-  assert.equal(
-    response.status,
-    403,
-    "A room owner cannot impersonate another message sender",
-  );
-
-  response = await createDoc(
-    `${roomPath}/messages/alice-forges-name`,
-    {
-      ...message(roomId, alice.localId, "alice-forges-name", now),
-      senderName: "房主",
-    },
-    alice.idToken,
-  );
-  assert.equal(
-    response.status,
-    403,
-    "A member cannot forge the displayed message sender name",
-  );
+  assert.equal(response.status, 403, "A message requires a throttle write");
+  for (let index = 0; index < 5; index++) {
+    const id = index === 0 ? "message-alice" : `alice-message-${index}`;
+    response = await sendMessage(alice, id, message(roomId, alice.localId, id, now), history);
+    assert.equal(response.status, 200, `Approved member message ${index + 1}`);
+  }
+  response = await sendMessage(alice, "alice-sixth", message(roomId, alice.localId, "alice-sixth", now), history);
+  assert.equal(response.status, 403, "The sixth message in ten seconds is denied");
+  const forgery = message(roomId, alice.localId, "owner-forges-alice", now);
+  response = await sendMessage(owner, forgery.id, forgery);
+  assert.equal(response.status, 403, "A room owner cannot impersonate another message sender");
+  const wrongName = { ...message(roomId, owner.localId, "wrong-name", now), senderName: "偽造" };
+  response = await sendMessage(owner, wrongName.id, wrongName);
+  assert.equal(response.status, 403, "A member cannot forge the displayed message sender name");
+  const long = { ...message(roomId, owner.localId, "too-long", now), text: "a".repeat(501) };
+  response = await sendMessage(owner, long.id, long);
+  assert.equal(response.status, 403, "A 501-character message is denied");
 
   response = await request(aliceMessagePath, stranger.idToken);
   assert.equal(
@@ -764,7 +895,7 @@ async function run() {
     "Clients cannot orphan room subcollections by deleting the parent",
   );
 
-  const closedWithoutProjectionId = "closed-without-member-projection";
+  const closedWithoutProjectionId = "closed-without-member-projection-" + Date.now();
   const closedWithoutProjectionPath = `rooms/${closedWithoutProjectionId}`;
   response = await createDoc(
     closedWithoutProjectionPath,

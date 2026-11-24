@@ -1,0 +1,87 @@
+body[data-page="rooms"].w-page { background: var(--w-night); }
+body[data-page="rooms"] .w-main { width: min(1120px, 100% - 32px); margin: auto; }
+body[data-page="rooms"] :is(h1, h2, strong, button) { font-family: var(--w-pixel); }
+body[data-page="rooms"] :is(.w-hud a, button) { min-height: 44px; }
+body[data-page="rooms"] .w-hud a { align-content: center; }
+body[data-page="rooms"] .room-stage-panel {
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+}
+body[data-page="rooms"] .room-stage-detail { color: var(--w-ink-dark) !important; }
+body[data-page="rooms"] .room-stage-count { background: var(--w-wood-dark); color: var(--w-gold); }
+.room-stage.is-study-hall {
+  display: block;
+  position: relative;
+  isolation: isolate;
+  padding: 0;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  background: var(--w-wood-deep);
+  border: 2px solid var(--w-frame);
+  overflow: hidden;
+}
+.is-study-hall::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("study_hall/hall.png") center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+  filter: brightness(var(--hall-light, .68));
+  transition: filter 240ms ease-out;
+}
+.study-hall-chandelier {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  object-fit: contain;
+  width: 128px;
+  height: 96px;
+  pointer-events: none;
+}
+.study-hall-seat {
+  position: absolute;
+  left: var(--seat-x);
+  top: var(--seat-y);
+  transform: translate(-50%, -50%);
+  height: 54px;
+  min-width: 44px;
+  max-width: 16%;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  align-content: end;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--w-ink);
+}
+.study-hall-seat:focus-visible,
+.study-hall-seat[aria-pressed="true"] { outline: 3px solid var(--w-gold); }
+.study-hall-seat strong {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--w-wood-deep);
+  padding: 0 3px;
+  font-size: 12px;
+  line-height: 14px;
+  z-index: 1;
+}
+.study-hall-viewer strong { background: var(--w-gold); color: var(--w-wood-deep); }
+.study-hall-desk-lamp { position: absolute; top: 0; left: 66%; }
+.study-hall-avatar { width: 32px; height: 50px; object-fit: contain; }
+.study-hall-seat:has(.study-hall-avatar) strong { position: absolute; bottom: 0; }
+@media (max-width: 480px) {
+  .study-hall-seat { height: 44px; }
+  .study-hall-chandelier { width: 64px; height: 48px; }
+  .study-hall-desk-lamp { top: 4px; left: 52%; width: 16px; height: 16px; }
+  .study-hall-avatar { height: 38px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-study-hall::before { transition: none; }
+}

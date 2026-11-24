@@ -57,6 +57,12 @@ const cabinMenuItems = [
   ),
   CabinMenuItem('letter', '時光信', 'assets/ui/icons/icon_letter.png', Icons.mail),
   CabinMenuItem(
+    'collection',
+    '圖鑑',
+    'assets/ui/icons/icon_collection.png',
+    Icons.auto_stories,
+  ),
+  CabinMenuItem(
     'settings',
     '設定',
     'assets/ui/icons/icon_settings.png',
