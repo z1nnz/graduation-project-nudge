@@ -111,16 +111,6 @@ flutter:
     - assets/rooms/
     - assets/ui/icons/
     - assets/audio/ambient/
-    - assets/characters/
-    - assets/characters/companion/
-    - assets/characters/chestnut/
-    - assets/characters/scroll/
-    - assets/characters/bounce/
-    - assets/characters/sprout/
-    - assets/characters/inky/
-    - assets/characters/bell/
-    - assets/characters/letty/
-    - assets/characters/stella/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
