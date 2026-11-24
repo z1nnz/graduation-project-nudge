@@ -27,118 +27,89 @@ class GuardianCenterPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('家庭連結與隱私')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          const CommunitySceneHeader(
-            family: true,
-            greeting: '庭院的桌上放著家庭連結與分享設定。',
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: AppUI.heroGradient(accentColor),
-            child: const Row(
-              children: [
-                Icon(Icons.shield_outlined, color: Colors.white, size: 36),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '你的資料，由你決定',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        '家長可以陪伴與提議，但不能替你接受目標或開啟資料權限。',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          const RelationshipContextSwitcher(scope: RelationshipScope.family),
-          if (familyMembership != null) ...[
-            const SizedBox(height: AppUI.sectionGap),
-            RelationshipRoleSurfaceCard(role: familyMembership.role),
-            const SizedBox(height: AppUI.sectionGap),
-          ],
-          if (link != null)
-            _buildActiveLinkCard(context, appState, isChild, accentColor)
-          else
-            _buildEmptyLinkCard(context),
-          if (link != null) ...[
-            const SizedBox(height: AppUI.sectionGap),
-            _buildFamilyTreeCard(context, appState, accentColor),
-          ],
-          if (activeGoal != null && isChild) ...[
-            const SizedBox(height: AppUI.sectionGap),
-            Text(
-              '共同目標',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryText,
-              ),
-            ),
-            const SizedBox(height: AppUI.cardGap),
-            _buildGoalCard(context, activeGoal, appState, accentColor),
-          ],
-          const SizedBox(height: AppUI.sectionGap),
-          Row(
+      body: CommunitySceneSections(
+        family: true,
+        greeting: '在庭院看家庭樹，或打開留言桌整理家庭連結和分享設定。',
+        leading: const RelationshipContextSwitcher(
+          scope: RelationshipScope.family,
+        ),
+        sections: [
+          CommunitySceneSection(
+            label: '家庭留言桌',
+            icon: Icons.event_note_outlined,
             children: [
-              Text(
-                '家庭鼓勵卡',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryText,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Chip(label: Text('${encouragements.length}')),
+              if (familyMembership != null) ...[
+                const SizedBox(height: AppUI.sectionGap),
+                RelationshipRoleSurfaceCard(role: familyMembership.role),
+                const SizedBox(height: AppUI.sectionGap),
+              ],
+              if (link != null)
+                _buildActiveLinkCard(context, appState, isChild, accentColor)
+              else
+                _buildEmptyLinkCard(context),
             ],
           ),
-          const SizedBox(height: AppUI.cardGap),
-          if (encouragements.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前沒有鼓勵卡。建立家庭連結後，家長傳送的內容會同步到這裡。',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: secondaryText, height: 1.4),
-                ),
-              ),
-            )
-          else
-            ...encouragements.map(
-              (card) => Padding(
-                padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-                child: _buildEncouragementCard(
-                  context,
-                  card,
-                  appState,
-                  accentColor,
-                  isChild,
-                ),
-              ),
+          if (link != null)
+            CommunitySceneSection(
+              label: '庭院家庭樹',
+              icon: Icons.park_outlined,
+              children: [_buildFamilyTreeCard(context, appState, accentColor)],
             ),
-          const SizedBox(height: 48),
+          if (activeGoal != null && isChild)
+            CommunitySceneSection(
+              label: '共同目標木牌',
+              icon: Icons.flag_outlined,
+              children: [
+                _buildGoalCard(context, activeGoal, appState, accentColor),
+              ],
+            ),
+          CommunitySceneSection(
+            label: '庭院信箱',
+            icon: Icons.mail_outline,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '家庭鼓勵卡',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryText,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(label: Text('${encouragements.length}')),
+                ],
+              ),
+              const SizedBox(height: AppUI.cardGap),
+              if (encouragements.isEmpty)
+                Card(
+                  shape: AppUI.cardShape(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppUI.innerPadding),
+                    child: Text(
+                      '目前沒有鼓勵卡。建立家庭連結後，家長傳送的內容會同步到這裡。',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: secondaryText, height: 1.4),
+                    ),
+                  ),
+                )
+              else
+                ...encouragements.map(
+                  (card) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                    child: _buildEncouragementCard(
+                      context,
+                      card,
+                      appState,
+                      accentColor,
+                      isChild,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 48),
+            ],
+          ),
         ],
       ),
     );

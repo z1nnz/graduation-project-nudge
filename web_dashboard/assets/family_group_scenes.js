@@ -76,6 +76,15 @@
     };
   }
 
+  function guildMuralProgress(challenge, participants) {
+    if (challenge?.status !== "active" || !challenge.challengeId ||
+        !Number.isInteger(challenge.days) || challenge.days <= 0) return { done: 0, target: 0 };
+    const current = participants.filter(row => row.challengeId === challenge.challengeId &&
+      ["joined", "completed"].includes(row.status) && Number.isInteger(row.completedDays));
+    const done = current.reduce((sum, member) => sum + Math.max(0, Math.min(challenge.days, member.completedDays)), 0);
+    return { done, target: current.length * challenge.days };
+  }
+
   function nextParticipation({ current, challenge, memberId, groupId, now = new Date() }) {
     const at = now.toISOString();
     if (!current || current.challengeId !== challenge.challengeId) {
@@ -99,7 +108,7 @@
 
   return Object.freeze({
     consentKeys, consentLabels, encouragementTemplates, consentedReport, hasAnyConsent,
-    summaryAfterConsent, nextConsentScopes, bondEventId, groupResultDigest, nextParticipation,
+    summaryAfterConsent, nextConsentScopes, bondEventId, groupResultDigest, guildMuralProgress, nextParticipation,
   });
 });
 
@@ -208,7 +217,15 @@
         return data;
       });
       listen(group.collection("challenges").doc("current"), "challenge");
-      listen(group.collection("challenges").doc("current").collection("participants").doc(state.userId), "participation");
+      const challengeMembers = group.collection("challenges").doc("current").collection("participants");
+      listen(challengeMembers.doc(state.userId), "participation");
+      scopeSubs.push(challengeMembers.onSnapshot({ includeMetadataChanges: true }, snapshot => {
+        state.data.muralRows = snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites ? null : docs(snapshot);
+        render();
+      }, () => {
+        state.data.muralRows = null;
+        render();
+      }));
       listen(group.collection("study_schedules"), "schedules", docs);
       listen(group.collection("templates"), "templates", docs);
       listen(group.collection("member_summaries"), "summaries", docs);
@@ -354,17 +371,21 @@
     const joinedCurrent = mine && challenge && mine.challengeId === challenge.challengeId;
     const mural = $("[data-community-mural]");
     if (mural) {
-      const done = joinedCurrent ? Number(mine.completedDays) : 0;
-      const target = joinedCurrent ? Number(mine.totalDays) : 0;
-      const quarters = target > 0 ? Math.min(12, Math.round(12 * done / target)) : 0;
+      const rows = state.data.muralRows;
+      const { done, target } = api.guildMuralProgress(challenge, rows ?? []);
+      const quarters = target > 0 ? Math.floor(12 * done / target) : 0;
       mural.replaceChildren(...Array.from({ length: 12 }, (_, index) => {
         const piece = document.createElement("span");
         piece.classList.toggle("is-painted", index < quarters);
         return piece;
       }));
-      $("[data-community-mural-status]").textContent = target > 0
-        ? "我的挑戰進度：" + done + "／" + target + " 天"
-        : "參加挑戰後，壁畫會顯示自己的挑戰進度。";
+      $("[data-community-mural-status]").textContent = challenge?.status !== "active"
+        ? "目前沒有進行中的團體挑戰。"
+        : rows == null
+          ? "雲端確認中"
+          : target > 0
+            ? "團體挑戰進度：" + done + "／" + target + " 天"
+            : "目前還沒有人參加這次團體挑戰。";
     }
     const digest = api.groupResultDigest(state.data.summaries || []);
     const mySummary = (state.data.summaries || []).find(item => item.memberId === state.userId);
