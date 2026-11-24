@@ -101,7 +101,7 @@
       watching = true;
       try {
         const core = await loadWindowModule(
-          "NudgeWebPushCore", "assets/web_push_core.js?v=1", "推播路由載入失敗",
+          "NudgeWebPushCore", "assets/web_push_core.js?v=2", "推播路由載入失敗",
         );
         if (disposed) return;
         subscriptions.push(service.onMessage(async payload => {
