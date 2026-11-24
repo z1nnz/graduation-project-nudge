@@ -22,6 +22,12 @@ class GamePalette {
   final Color inkMuted;
   final Color wood;
 
+  static const inkDark = Color(0xFF3A1D0C);
+  static const inkLight = Color(0xFFFBEFE2);
+  static const parchment = Color(0xFFFBEFD9);
+  static const woodDeep = Color(0xFF2A1A14);
+  static const woodDark = Color(0xFF5A3826);
+  static const inkSoft = Color(0xFF7A5532);
   static const gold = Color(0xFFFFC54D);
   static const goldDeep = Color(0xFFC4710B);
   static const violet = Color(0xFF7C6AE6);
@@ -96,7 +102,11 @@ class GameTheme {
       TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: dark ? const Color(0xFFFFE6A3) : _wood,
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(
+            fontFamily: 'Cubic11',
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       );
 
@@ -165,7 +175,11 @@ class GameTheme {
       foregroundColor: const Color(0xFF2A1600),
       disabledBackgroundColor: const Color(0x66C9934F),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-      textStyle: const TextStyle(fontWeight: FontWeight.w900),
+      textStyle: const TextStyle(
+        fontFamily: 'Cubic11',
+        fontSize: 15,
+        fontWeight: FontWeight.w900,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Color(0xFF8A4A10), width: 2),

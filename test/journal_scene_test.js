@@ -1,0 +1,8 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+test('journal prop animation stops hidden and after pagehide, including reset, with a complete reduced frame',()=>{
+ const frames=new Map(),events={},media={matches:true,addEventListener(k,fn){events.media=fn;},removeEventListener(){}};let id=0,intersection,draws=0;
+ const g=new Proxy({},{get:()=>()=>{draws++;}}),stage={append(){},getBoundingClientRect:()=>({width:360,height:680})},doc={hidden:false,documentElement:{},createElement:()=>({className:'',setAttribute(){},getContext:()=>g}),addEventListener(k,fn){events[k]=fn;},removeEventListener(){}};
+ const root={document:doc,getComputedStyle:()=>({getPropertyValue:()=>''}),matchMedia:()=>media,requestAnimationFrame(fn){frames.set(++id,fn);return id;},cancelAnimationFrame(n){frames.delete(n);},addEventListener(k,fn){events[k]=fn;},removeEventListener(){},IntersectionObserver:class{constructor(fn){intersection=fn;}observe(){}disconnect(){}}};
+ vm.runInNewContext(fs.readFileSync('web_dashboard/assets/journal_life.js','utf8'),root);const life=root.NudgeJournalLife.mount(stage);function step(t){for(const [n,fn]of [...frames]){frames.delete(n);fn(t);}}
+ life.setReady(true);life.stamp();step(0);assert.ok(draws>0);assert.equal(frames.size,0);media.matches=false;events.media();step(100);assert.equal(frames.size,1);doc.hidden=true;events.visibilitychange();assert.equal(frames.size,0);doc.hidden=false;events.visibilitychange();assert.equal(frames.size,1);events.pagehide();life.reset();assert.equal(frames.size,0);events.pageshow();assert.equal(frames.size,1);intersection([{isIntersecting:false}]);assert.equal(frames.size,0);life.destroy();
+});
