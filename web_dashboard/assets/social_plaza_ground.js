@@ -28,9 +28,21 @@
   }).observe(stage);
   motion.addEventListener("change", sync);
   document.addEventListener("visibilitychange", sync);
+  const openers = new WeakMap();
+  const friendPanel = document.getElementById("plaza-friends");
+  friendPanel.querySelector("[data-plaza-bench]").addEventListener("plaza-friend-open", event => {
+    openers.set(friendPanel, event.detail);
+    if (!friendPanel.open) friendPanel.showModal();
+  });
   for (const button of stage.querySelectorAll("[data-plaza-panel]")) {
     const panel = document.getElementById("plaza-" + button.dataset.plazaPanel);
-    button.addEventListener("click", () => panel.showModal());
-    panel.addEventListener("close", () => button.focus());
+    button.addEventListener("click", () => {
+      openers.set(panel, button);
+      panel.showModal();
+    });
+    panel.addEventListener("close", () => {
+      const opener = openers.get(panel);
+      (opener?.isConnected ? opener : button).focus();
+    });
   }
 })();

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="assets/social_scene.css?v=1">
   <link rel="stylesheet" href="assets/town_events.css?v=1">
   <link rel="stylesheet" href="assets/presence.css?v=1">
-  <link rel="stylesheet" href="assets/social_plaza_ground.css?v=1">
+  <link rel="stylesheet" href="assets/social_plaza_ground.css?v=2">
 </head>
 <body class="w-page world-page" data-page="town-goals" data-social-facility="plaza">
   <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>小鎮廣場</h1></header>
@@ -19,6 +19,7 @@
       <button class="w-btn plaza-object" type="button" data-plaza-panel="goal" style="--w-plaza-x:50%;--w-plaza-y:53%" aria-label="噴水池與全鎮共同目標" aria-haspopup="dialog">噴水池</button>
       <button class="w-btn plaza-object" type="button" data-plaza-panel="board" style="--w-plaza-x:20%;--w-plaza-y:35%" aria-label="社團和活動公告欄" aria-haspopup="dialog">公告欄</button>
       <button class="w-btn plaza-object" type="button" data-plaza-panel="post" style="--w-plaza-x:82%;--w-plaza-y:36%" aria-label="郵差小信" aria-haspopup="dialog">小信</button>
+      <div class="plaza-residents" data-plaza-residents role="group" aria-label="在場好友"></div>
       <button class="w-btn plaza-object" type="button" data-plaza-panel="friends" style="--w-plaza-x:77%;--w-plaza-y:82%" aria-label="好友長椅" aria-haspopup="dialog">好友長椅</button>
     </section>
     <dialog class="w-parchment plaza-dialog" id="plaza-board" aria-label="廣場公告欄"><h2>廣場公告欄</h2><a class="w-btn" href="clubs.html">興趣社團</a> <a class="w-btn" href="group-hall.html">團體活動</a><form method="dialog"><button class="w-btn">關閉</button></form></dialog>
@@ -48,7 +49,8 @@
   <script src="assets/town_return.js?v=2"></script>
   <script src="assets/social_scene.js?v=1"></script>
   <script src="assets/town_events.js?v=2"></script>
+  <script src="assets/presence.js?v=2"></script>
   <script src="assets/app.js?v=29"></script>
-  <script src="assets/social_plaza_ground.js?v=1"></script>
+  <script src="assets/social_plaza_ground.js?v=2"></script>
 </body>
 </html>

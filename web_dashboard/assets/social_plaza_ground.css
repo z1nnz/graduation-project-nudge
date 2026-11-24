@@ -10,6 +10,33 @@
   padding: .65rem;
   border-bottom: 7px solid var(--w-wood-dark);
 }
+.plaza-residents {
+  position: absolute;
+  inset: auto auto 11% 4%;
+  display: flex;
+  gap: 3px;
+  max-width: 49%;
+}
+.plaza-resident {
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 2px 4px;
+  border: 2px solid var(--w-frame);
+  color: var(--w-ink);
+  background: var(--w-wood-deep);
+  cursor: pointer;
+}
+.plaza-resident strong {
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: .875rem var(--w-pixel);
+}
+.plaza-resident:focus-visible { outline: 3px solid var(--w-gold); }
 .plaza-friend-figure { width: 20px; height: 26px; border: 2px solid var(--w-frame); background: var(--w-wood-deep); }
 .w-btn.plaza-object:active { transform: translate(-50%, -50%); }
 .plaza-object { touch-action: manipulation; }
