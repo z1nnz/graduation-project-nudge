@@ -1,0 +1,24 @@
+.focus-round {
+  margin-block: 16px;
+}
+.focus-round p { color: var(--w-ink); }
+.focus-round time {
+  display: block;
+  font: 2.2rem var(--w-pixel);
+  color: var(--w-gold);
+}
+.focus-round [hidden] {
+  display: none;
+}
+.focus-round-fireworks {
+  color: var(--w-gold);
+  font: 1.4rem var(--w-pixel);
+  animation: focus-round-fireworks 240ms ease-out both;
+}
+@keyframes focus-round-fireworks {
+  from { opacity: 0; transform: scale(.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-round-fireworks { animation: none; }
+}
