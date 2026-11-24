@@ -5,6 +5,7 @@ import '../models/user_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../theme/game_ui.dart';
+import '../widgets/cabin_mail_art.dart';
 
 enum _PostOfficeObject { mailbox, alarms }
 
@@ -314,11 +315,13 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
             ? AnimationStyle.noAnimation
             : const AnimationStyle(duration: Duration(milliseconds: 250)),
         key: PageStorageKey(notification.id),
-        leading: Icon(
-          kind == 'friend_cabin_letter'
-              ? Icons.inventory_2_outlined
-              : Icons.mail_outline,
-          color: seal,
+        leading: ExcludeSemantics(
+          child: CustomPaint(
+            size: const Size.square(40),
+            painter: kind == 'friend_cabin_letter'
+                ? const CabinMailPainter()
+                : CabinMailPainter(parcel: false, seal: seal),
+          ),
         ),
         title: Text(
           notification.title,
