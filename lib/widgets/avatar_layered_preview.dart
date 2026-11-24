@@ -27,7 +27,9 @@ class AvatarLayeredPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final characterPath = AvatarCatalog.characterAssetForIndex(profile.faceShapeIndex);
+    final characterPath = AvatarCatalog.characterAssetForIndex(
+      profile.faceShapeIndex,
+    );
     if (characterPath.startsWith('http://') ||
         characterPath.startsWith('https://') ||
         characterPath.startsWith('data:image') ||
