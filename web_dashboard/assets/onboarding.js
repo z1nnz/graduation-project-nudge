@@ -31,7 +31,17 @@
       const final=confirmed(await ref.get({source:'server'}));if(!scope.alive()||own!==version)return;const data=final.data();if(data?.nickname!==pending.name||data.avatarProfile?.faceShapeIndex!==pending.index||(pending.createTask&&!data.tasks?.some(t=>t.id===pending.taskId&&t.title===pending.taskTitle)))throw Error('尚未完整同步，請重試確認。');
       try{sessionStorage.removeItem(key(scope.user.uid));}catch(_){}say('角色與暱稱已由雲端確認；'+(pending.createTask?'任務已建立。':'未建立任何任務。'));
       host.replaceChildren(el('h2','準備好進入小鎮了'),el('img',null,{src:'assets/avatar/characters/character_'+pending.index+'.png',alt:pending.name+'的夥伴走進小鎮',class:'onboarding-walk',width:96,height:160}));
-      const enter=()=>{if(!scope.alive()||own!==version)return;root.parent.NudgeTownWindow?.close();root.parent.document.getElementById('townHelp')?.click();};
+      const enter=()=>{
+        if(!scope.alive()||own!==version)return;
+        const town=root.parent,box=town.document.getElementById('townWindow'),uid=scope.user.uid;
+        // The shared window restores background focus after its close animation.
+        // Start the tour only after that restoration, including reduced motion.
+        const guide=()=>{if(town.firebase?.auth().currentUser?.uid===uid)town.document.getElementById('townHelp')?.click();};
+        if(!box){guide();return;}
+        let expiry;const observer=new town.MutationObserver(()=>{if(box.hidden){observer.disconnect();town.clearTimeout(expiry);guide();}});
+        observer.observe(box,{attributes:true,attributeFilter:['hidden']});expiry=town.setTimeout(()=>observer.disconnect(),3000);
+        town.NudgeTownWindow?.close();
+      };
       if(root.matchMedia('(prefers-reduced-motion: reduce)').matches)enter();else setTimeout(enter,240);
     }catch(error){if(!scope.alive()||own!==version)return;lock(false);say('尚未全部完成：'+(error.code?'連線或網站驗證尚未就緒，請重試。':error.message||'請重試。')+' 已送出的確認不會重複建立任務；按確認可接續。');}
   }

@@ -8390,6 +8390,19 @@ function listenToUser(userId) {
 
     // An empty task list is a valid account state. Tasks are created only
     // after the player explicitly confirms a draft (including onboarding).
+    if (document.body.dataset.page === 'town' &&
+        !(Number.isInteger(data.avatarProfile?.faceShapeIndex) && data.avatarProfile.faceShapeIndex >= 0)) {
+      loadWindowModule('NudgeOnboardingEntry', 'assets/onboarding_entry.js?v=1', 'Onboarding unavailable')
+        .then(entry => {
+          window.nudgeOnboardingEntry ||= entry.create({
+            auth: firebase.auth(), db,
+            isInTown: () => document.body.dataset.page === 'town',
+            isShowing: () => document.getElementById('townWindowFrame')?.getAttribute('src')?.split('?')[0] === 'onboarding.html',
+            open: path => window.NudgeTownWindow?.open(path),
+          });
+          window.nudgeOnboardingEntry.consider(userId);
+        }).catch(() => {});
+    }
 
     // 📡 網頁端自動偵測任務在手機端達成！
     if (previousTasksState !== null) {
