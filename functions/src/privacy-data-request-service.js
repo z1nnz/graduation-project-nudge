@@ -333,6 +333,12 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
   ];
   const guildCalendar = await Promise.all(guildCollections.map(async ([name, field]) =>
     [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
+  const [safetyDocuments, safetyReports, moderationActions] = await Promise.all([
+    readSingleDocument(firestore, "social_safety", userId),
+    readQuery(firestore, "safety_reports", "userId", "==", userId),
+    readQuery(firestore, "audit_events", "safetyTargetId", "==", userId),
+  ]);
+  const safetySettings = safetyDocuments[0]?.data;
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -378,6 +384,15 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       room_lobby_answers: lobbyAnswers.documents,
       room_lobby_codes: lobbyCodes.documents.map(({ data }) => ({ roomId: data.roomId, expiresAt: data.expiresAt })),
       ...Object.fromEntries(guildCalendar),
+      social_safety: safetySettings ? {
+        blocked: safetySettings.blocked || [],
+        allowVoice: safetySettings.allowVoice,
+        allowStrangerMentions: safetySettings.allowStrangerMentions,
+      } : null,
+      safety_reports: safetyReports.documents,
+      safety_actions: moderationActions.documents.map(({ data }) => ({
+        action: data.action, reason: data.reason, createdAt: data.createdAt,
+      })),
       user_notifications: notifications.documents,
       friend_requests: mergeDocuments(
         sentFriendRequests.documents,

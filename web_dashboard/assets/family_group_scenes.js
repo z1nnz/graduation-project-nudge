@@ -137,6 +137,8 @@
     state.selected = null;
     window.NudgeFamilyGarden?.select(null);
     window.NudgeGuildCalendar?.select(null);
+    window.NudgeSafety?.setFamily(null);
+    window.NudgeSafety?.setGroup(null, false);
     render();
   }
 
@@ -174,6 +176,8 @@
     resetScope();
     state.selected = membership;
     window.NudgeGuildCalendar?.select(membership?.scopeId || null);
+    window.NudgeSafety?.setFamily(null);
+    window.NudgeSafety?.setGroup(null, false);
     if (!membership) {
       window.NudgeFamilyGarden?.select(null);
       render();
@@ -187,7 +191,11 @@
         window.NudgeFamilyGarden.select(id);
         scopeSubs.push(link.onSnapshot(snapshot => window.NudgeFamilyGarden.refresh(snapshot.data())));
       }
-      listen(link, "link");
+      listen(link, "link", snapshot => {
+        const data = snapshot.data();
+        void window.NudgeSafety?.setFamily(data?.status === "active" ? id : null);
+        return data;
+      });
       listen(link.collection("encouragements").orderBy("createdAt", "desc").limit(20), "encouragements", docs);
       listen(link.collection("goals").orderBy("createdAt", "desc").limit(20), "goals", docs);
       listen(link.collection("summaries").doc("current"), "summary");
@@ -196,6 +204,7 @@
       listen(group, "group", snapshot => {
         const data = snapshot.data();
         window.NudgeGuildCalendar?.select(data?.status === "active" && data.memberIds.includes(state.userId) ? id : null);
+        window.NudgeSafety?.setGroup(data?.status === "active" ? id : null, data?.ownerId === state.userId);
         return data;
       });
       listen(group.collection("challenges").doc("current"), "challenge");

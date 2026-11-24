@@ -111,6 +111,14 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "chat_reports", "fieldPath": "status",
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
+    },
+    {
+      "collectionGroup": "safety_mutes", "fieldPath": "userId",
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
+    },
+    {
       "collectionGroup": "messages",
       "fieldPath": "senderId",
       "indexes": [

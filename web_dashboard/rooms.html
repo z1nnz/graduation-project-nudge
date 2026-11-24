@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="assets/study_hall.css?v=1" />
     <link rel="stylesheet" href="assets/voice_room.css?v=1" />
     <link rel="stylesheet" href="assets/room_lobby.css?v=1" />
+    <link rel="stylesheet" href="assets/safety.css?v=1" />
   </head>
   <body class="w-page" data-page="rooms" data-social-facility="tower">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -189,6 +190,8 @@
           <aside class="scene-panel">
             <span class="eyebrow">Room Governance</span>
             <h2>成員與房主</h2>
+            <button type="button" class="w-btn" data-safety-room-manage hidden>管理</button>
+            <button type="button" class="w-btn" data-safety-room-name>檢舉房名</button>
             <button type="button" class="w-btn" data-voice-setting hidden aria-pressed="false">開啟語音自習室</button>
             <p>房主可管理資格或明確移交；活動紀錄仍由成員本人控制。</p>
             <div class="room-member-list" data-room-member-list>
@@ -235,6 +238,7 @@
     <script src="assets/study_hall.js?v=1"></script>
     <script src="assets/voice_room_core.js?v=1"></script>
     <script src="assets/voice_room.js?v=1"></script>
+    <script src="assets/safety_ui.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
     <script src="assets/room_lobby/qrcode.js?v=2.0.4"></script>
     <script src="assets/room_lobby_core.js?v=1"></script>

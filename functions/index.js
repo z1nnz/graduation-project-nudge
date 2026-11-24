@@ -1,5 +1,6 @@
 import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
 import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
+import { createSocialSafetyHandler } from "./src/social-safety-service.js";
 import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
@@ -861,3 +862,7 @@ export const processGuildEvents = onSchedule(
   { region: "asia-east1", schedule: "* * * * *" },
   createGuildEventSchedule(getFirestore()),
 );
+
+const socialSafety = createSocialSafetyHandler(getFirestore());
+export const manageSocialSafety = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => socialSafety(request)));

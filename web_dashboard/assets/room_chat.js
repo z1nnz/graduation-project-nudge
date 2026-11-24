@@ -28,7 +28,7 @@
   const replyPanel = element("[data-chat-reply]");
   const hiddenPanel = element("[data-chat-hidden]");
   const composer = element("[data-room-message-input]");
-  const reportDialog = element("[data-chat-report-dialog]");
+
   const stickerPicker = element("[data-chat-stickers]");
 
   function sticker(id) {
@@ -101,7 +101,7 @@
         }
       };
       if (quoted) apply(quoted);
-      else state.room.collection("messages").doc(message.replyTo).get()
+      else state.room.collection("messages").doc(message.replyTo).get({ source: "server" })
         .then(snapshot => {
           if (snapshot.exists) apply({ ...snapshot.data(), id: snapshot.id });
         }).catch(() => {});
@@ -125,24 +125,13 @@
       userId: state.userId, messageId: message.id,
     })));
     if (message.senderId !== state.userId) {
-      const report = button("檢舉", () => {
-        reportDialog.returnValue = "cancel";
-        reportDialog.addEventListener("close", () => {
-          if (report.isConnected) report.focus();
-          if (reportDialog.returnValue !== "report" || session !== state) return;
-          roleAction(state, report, async () => {
-            await state.room.collection("messages").doc(message.id)
-              .collection("chat_reports").doc(state.userId).set({
-                userId: state.userId, senderId: message.senderId,
-                text: message.text, type: message.type, status: "pending",
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              });
-            state.notify("已送出檢舉");
-          })();
-        }, { once: true });
-        reportDialog.showModal();
-      });
-      actions.append(report);
+      const report = button("檢舉", () => window.NudgeSafety.report(report, "roomMessage", message.id, state.room.id));
+      const block = button("封鎖", () => window.NudgeSafety.block(block, message.senderId));
+      actions.append(report, block);
+    }
+    if (state.isOwner() && !message.moderated) {
+      const remove = button("移除訊息", () => window.NudgeSafety.removeContent(remove, state.room.id, message.id));
+      actions.append(remove);
     }
     if (state.isOwner()) {
       actions.append(actionButton(state, "釘選", () => state.room.collection("chat_pin").doc("current").set({
@@ -245,7 +234,7 @@
     for (const unsubscribe of session.listeners) unsubscribe();
     for (const close of session.reactionStops) close();
     session = null;
-    if (reportDialog.open) reportDialog.close("cancel");
+
     stickerPicker.replaceChildren();
     mention.disabled = true;
     mention.replaceChildren(new Option("不提及", ""));
