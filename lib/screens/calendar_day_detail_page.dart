@@ -1,16 +1,22 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
+
 import '../models/daily_summary.dart';
 import '../theme/app_ui.dart';
 import '../widgets/daily_score_breakdown.dart';
 
 class CalendarDayDetailPage extends StatelessWidget {
   final DateTime date;
+  final bool openedFromCalendar;
   final DailySummary? summary;
   final List<Map<String, dynamic>> dueTasks;
 
   const CalendarDayDetailPage({
     super.key,
     required this.date,
+    this.openedFromCalendar = false,
     required this.summary,
     required this.dueTasks,
   });
@@ -23,29 +29,29 @@ class CalendarDayDetailPage extends StatelessWidget {
   }
 
   Color _scoreColor(int score) {
-    if (score >= 80) return const Color(0xFF10B981);
-    if (score >= 60) return const Color(0xFF4F8CFF);
-    if (score >= 40) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
+    if (score >= 80) return GamePalette.green;
+    if (score >= 60) return GamePalette.violet;
+    if (score >= 40) return GamePalette.goldDeep;
+    return GamePalette.red;
   }
 
   Color _categoryColor(String category) {
     switch (category) {
       case '讀書':
-        return const Color(0xFF4F8CFF);
+        return GamePalette.violet;
       case '運動':
-        return const Color(0xFF10B981);
+        return GamePalette.green;
       case '睡眠':
-        return const Color(0xFF8B5CF6);
+        return GamePalette.violet;
       case '健康':
-        return const Color(0xFFEC4899);
+        return GamePalette.red;
       case '共讀':
       case '自律房':
-        return const Color(0xFFF59E0B);
+        return GamePalette.goldDeep;
       case '自定義':
-        return const Color(0xFFF59E0B);
+        return GamePalette.goldDeep;
       default:
-        return Colors.grey;
+        return GamePalette.inkSoft;
     }
   }
 
@@ -77,16 +83,118 @@ class CalendarDayDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateText = _dateKey(date);
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
     final isDark = AppUI.isDark(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('單日詳情')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Card(
+    final document = ListView(
+      padding: const EdgeInsets.all(AppUI.pagePadding),
+      children: [
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateText,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: primaryText,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (summary == null)
+                  Text(
+                    '這一天目前沒有紀錄。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryText,
+                      height: 1.5,
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _scoreColor(summary!.disciplineScore)
+                          .withValues(alpha: isDark ? 0.18 : 0.10),
+                      borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                    ),
+                    child: Text(
+                      '當日自律分數：${summary!.disciplineScore} 分',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: _scoreColor(summary!.disciplineScore),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        if (summary == null)
+          GameArtifact(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Text(
+                '目前沒有可顯示的任務或輔助資料。',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: secondaryText,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          )
+        else ...[
+          Row(
+            children: [
+              Expanded(
+                child: _DetailMetricCard(
+                  title: '加權任務',
+                  value: '${summary!.completedTasks}/${summary!.totalTasks}',
+                  icon: Icons.check_circle_outline,
+                  color: GamePalette.goldDeep,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _DetailMetricCard(
+                  title: '完成率',
+                  value: '${_completionRate()}%',
+                  icon: Icons.pie_chart_outline,
+                  color: GamePalette.violet,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _DetailMetricWideCard(
+            title: '自律分數',
+            value: '${summary!.disciplineScore} 分',
+            icon: Icons.insights_outlined,
+            color: GamePalette.green,
+          ),
+          const SizedBox(height: 12),
+          _DetailMetricWideCard(
+            title: '自律幣',
+            value: '+${summary!.coinsEarned} 枚',
+            icon: Icons.monetization_on_outlined,
+            color: GamePalette.goldDeep,
+          ),
+          const SizedBox(height: 12),
+          DailyScoreBreakdownCard(summary: summary!),
+          const SizedBox(height: 12),
+          GameArtifact(
             shape: AppUI.cardShape(),
             child: Padding(
               padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -94,370 +202,276 @@ class CalendarDayDetailPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    dateText,
+                    '自動追蹤來源',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: primaryText,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  if (summary == null)
-                    Text(
-                      '這一天目前沒有紀錄。',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: secondaryText,
-                        height: 1.5,
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _scoreColor(
-                          summary!.disciplineScore,
-                        ).withValues(alpha: isDark ? 0.18 : 0.10),
-                        borderRadius: BorderRadius.circular(AppUI.radiusPill),
-                      ),
-                      child: Text(
-                        '當日自律分數：${summary!.disciplineScore} 分',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: _scoreColor(summary!.disciplineScore),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '自動任務',
+                          value:
+                              '${summary!.autoTrackedCompleted}/${summary!.autoTrackedTotal}',
+                          icon: Icons.sync_outlined,
+                          color: GamePalette.violet,
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '健康任務',
+                          value:
+                              '${summary!.healthCompleted}/${summary!.healthTotal}',
+                          icon: Icons.favorite_border,
+                          color: GamePalette.violet,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '自律房',
+                          value:
+                              '${summary!.roomCompleted}/${summary!.roomTotal}',
+                          icon: Icons.groups_2_outlined,
+                          color: GamePalette.green,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '專注任務',
+                          value:
+                              '${summary!.focusCompleted}/${summary!.focusTotal}',
+                          icon: Icons.timer_outlined,
+                          color: GamePalette.goldDeep,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '來源：${summary!.sourceSummary}。健康、專注與自律房資料會同步到任務，再依權重換算成自律分數與自律幣門檻。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryText,
+                      height: 1.5,
                     ),
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: AppUI.sectionGap),
-          if (summary == null)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前沒有可顯示的任務或輔助資料。',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: secondaryText,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            )
-          else ...[
-            Row(
-              children: [
-                Expanded(
-                  child: _DetailMetricCard(
-                    title: '加權任務',
-                    value: '${summary!.completedTasks}/${summary!.totalTasks}',
-                    icon: Icons.check_circle_outline,
-                    color: AppUI.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _DetailMetricCard(
-                    title: '完成率',
-                    value: '${_completionRate()}%',
-                    icon: Icons.pie_chart_outline,
-                    color: AppUI.blue,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _DetailMetricWideCard(
-              title: '自律分數',
-              value: '${summary!.disciplineScore} 分',
-              icon: Icons.insights_outlined,
-              color: AppUI.green,
-            ),
-            const SizedBox(height: 12),
-            _DetailMetricWideCard(
-              title: '自律幣',
-              value: '+${summary!.coinsEarned} 枚',
-              icon: Icons.monetization_on_outlined,
-              color: AppUI.orange,
-            ),
-            const SizedBox(height: 12),
-            DailyScoreBreakdownCard(summary: summary!),
-            const SizedBox(height: 12),
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '自動追蹤來源',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: primaryText,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '自動任務',
-                            value:
-                                '${summary!.autoTrackedCompleted}/${summary!.autoTrackedTotal}',
-                            icon: Icons.sync_outlined,
-                            color: AppUI.blue,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '健康任務',
-                            value:
-                                '${summary!.healthCompleted}/${summary!.healthTotal}',
-                            icon: Icons.favorite_border,
-                            color: AppUI.purple,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '自律房',
-                            value:
-                                '${summary!.roomCompleted}/${summary!.roomTotal}',
-                            icon: Icons.groups_2_outlined,
-                            color: AppUI.green,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '專注任務',
-                            value:
-                                '${summary!.focusCompleted}/${summary!.focusTotal}',
-                            icon: Icons.timer_outlined,
-                            color: AppUI.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '來源：${summary!.sourceSummary}。健康、專注與自律房資料會同步到任務，再依權重換算成自律分數與自律幣門檻。',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: secondaryText,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '原始同步資料',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: primaryText,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '專注',
-                            value: '${summary!.focusMinutes} 分',
-                            icon: Icons.timer_outlined,
-                            color: AppUI.blue,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '睡眠',
-                            value:
-                                '${summary!.sleepHours.toStringAsFixed(1)} 小時',
-                            icon: Icons.bedtime_outlined,
-                            color: AppUI.purple,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '步數',
-                            value: '${summary!.steps} 步',
-                            icon: Icons.directions_walk,
-                            color: AppUI.green,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DetailMetricCard(
-                            title: '運動',
-                            value: '${summary!.exerciseMinutes} 分',
-                            icon: Icons.fitness_center,
-                            color: AppUI.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
+          const SizedBox(height: 12),
+          GameArtifact(
             shape: AppUI.cardShape(),
             child: Padding(
               padding: const EdgeInsets.all(AppUI.innerPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    '原始同步資料',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.assignment_turned_in_outlined,
-                        color: AppUI.primary,
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '專注',
+                          value: '${summary!.focusMinutes} 分',
+                          icon: Icons.timer_outlined,
+                          color: GamePalette.violet,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '當日截止任務',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryText,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '睡眠',
+                          value: '${summary!.sleepHours.toStringAsFixed(1)} 小時',
+                          icon: Icons.bedtime_outlined,
+                          color: GamePalette.violet,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (dueTasks.isEmpty)
-                    Text(
-                      '這一天沒有設定截止的任務。',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: secondaryText,
-                        height: 1.5,
-                      ),
-                    )
-                  else
-                    ...dueTasks.map((task) {
-                      final title = (task['title'] ?? '') as String;
-                      final category = (task['category'] ?? '自定義') as String;
-                      final categoryLabel = category == '共讀' ? '自律房' : category;
-                      final done = (task['done'] ?? false) as bool;
-                      final categoryColor = _categoryColor(category);
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: categoryColor.withValues(alpha: 0.18),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: categoryColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(
-                                  _categoryIcon(category),
-                                  color: categoryColor,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      title,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: done
-                                            ? secondaryText
-                                            : primaryText,
-                                        decoration: done
-                                            ? TextDecoration.lineThrough
-                                            : null,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: [
-                                        _TaskTag(
-                                          text: categoryLabel,
-                                          bgColor: categoryColor.withValues(
-                                            alpha: 0.12,
-                                          ),
-                                          textColor: categoryColor,
-                                        ),
-                                        _TaskTag(
-                                          text: done ? '已完成' : '未完成',
-                                          bgColor: done
-                                              ? const Color(0xFFE8F7EC)
-                                              : (isDark
-                                                    ? const Color(0xFF242A36)
-                                                    : const Color(0xFFF3F4F6)),
-                                          textColor: done
-                                              ? const Color(0xFF16A34A)
-                                              : secondaryText,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '步數',
+                          value: '${summary!.steps} 步',
+                          icon: Icons.directions_walk,
+                          color: GamePalette.green,
                         ),
-                      );
-                    }),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _DetailMetricCard(
+                          title: '運動',
+                          value: '${summary!.exerciseMinutes} 分',
+                          icon: Icons.fitness_center,
+                          color: GamePalette.goldDeep,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
         ],
-      ),
+        const SizedBox(height: AppUI.sectionGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.assignment_turned_in_outlined,
+                      color: GamePalette.goldDeep,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '當日截止任務',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (dueTasks.isEmpty)
+                  Text(
+                    '這一天沒有設定截止的任務。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryText,
+                      height: 1.5,
+                    ),
+                  )
+                else
+                  ...dueTasks.map((task) {
+                    final title = (task['title'] ?? '') as String;
+                    final category = (task['category'] ?? '自定義') as String;
+                    final categoryLabel = category == '共讀' ? '自律房' : category;
+                    final done = (task['done'] ?? false) as bool;
+                    final categoryColor = _categoryColor(category);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: categoryColor.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: categoryColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                _categoryIcon(category),
+                                color: categoryColor,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: done ? secondaryText : primaryText,
+                                      decoration: done
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _TaskTag(
+                                        text: categoryLabel,
+                                        bgColor: categoryColor.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        textColor: categoryColor,
+                                      ),
+                                      _TaskTag(
+                                        text: done ? '已完成' : '未完成',
+                                        bgColor: done
+                                            ? GamePalette.parchment
+                                            : (isDark
+                                                  ? GamePalette.woodDeep
+                                                  : const Color(0xFFF3F4F6)),
+                                        textColor: done
+                                            ? GamePalette.green
+                                            : secondaryText,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('單日詳情')),
+      body: openedFromCalendar
+          ? GameBackground(child: GamePanel(child: Expanded(child: document)))
+          : GameFacilityScene(
+              title: '冒險手札・單日',
+              background: 'assets/scenes/journal/journal_room.webp',
+              guide: 'inky',
+              guideLine: '這一頁保留原來的任務與實際數字，留白也沒關係。',
+              objectLabel: '翻開這一天',
+              objectIcon: Icons.auto_stories_outlined,
+              child: document,
+            ),
     );
   }
 }
@@ -477,18 +491,18 @@ class _DetailMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color),
           const SizedBox(height: 10),
-          Text(title, style: TextStyle(fontSize: 13, color: secondaryText)),
+          Text(title, style: TextStyle(fontSize: 14, color: secondaryText)),
           const SizedBox(height: 4),
           Text(
             value,
@@ -519,11 +533,11 @@ class _DetailMetricWideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
@@ -571,7 +585,7 @@ class _TaskTag extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
           color: textColor,
         ),

@@ -99,6 +99,8 @@ flutter:
     - assets/characters/stella/
     - assets/scenes/library/
     - assets/scenes/observatory/
+    - assets/scenes/journal/
+    - assets/scenes/
     - assets/branding/
     - assets/avatar/
     - assets/avatar/characters/
