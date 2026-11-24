@@ -868,9 +868,14 @@ class _FocusPageState extends State<FocusPage> {
                           child: Wrap(
                             spacing: 8,
                             children: [
-                              for (final (f, r) in const [(25, 5), (50, 10)])
+                              for (final (f, r) in const [
+                                (2, 1),
+                                (25, 5),
+                                (50, 10),
+                              ])
                                 ChoiceChip(
-                                  label: Text('$f + $r'),
+                                  // Too tired to start? Two minutes is enough to begin.
+                                  label: Text(f == 2 ? '先 2 分鐘' : '$f + $r'),
                                   selected:
                                       selectedFocusMinutes == f &&
                                       selectedRestMinutes == r,

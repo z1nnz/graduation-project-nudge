@@ -824,6 +824,16 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                 ),
               ),
             ),
+            if (_pokeCount > 0 && !_still)
+              Positioned(
+                left: feet.dx - charHeight / 2,
+                top: feet.dy - charHeight * 0.95,
+                width: charHeight,
+                height: charHeight * 0.6,
+                child: IgnorePointer(
+                  child: _HeartBurst(key: ValueKey(_pokeCount)),
+                ),
+              ),
             Positioned(
               left: 12,
               right: 12,
@@ -1326,6 +1336,68 @@ class _HotbarSlot extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A few pixel hearts float up when you pat the companion, then vanish.
+class _HeartBurst extends StatefulWidget {
+  const _HeartBurst({super.key});
+
+  @override
+  State<_HeartBurst> createState() => _HeartBurstState();
+}
+
+class _HeartBurstState extends State<_HeartBurst>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        if (_c.isCompleted) return const SizedBox.shrink();
+        final t = Curves.easeOut.transform(_c.value);
+        return Stack(
+          key: const Key('companion-hearts'),
+          children: [
+            for (final (dx, delay, size) in const [
+              (0.30, 0.0, 22.0),
+              (0.52, 0.12, 28.0),
+              (0.70, 0.22, 20.0),
+            ])
+              Align(
+                alignment: Alignment(
+                  dx * 2 - 1,
+                  1 - 2 * ((t - delay).clamp(0.0, 1.0)),
+                ),
+                child: Opacity(
+                  opacity: (1 - t).clamp(0.0, 1.0),
+                  child: Text(
+                    '♥',
+                    style: TextStyle(
+                      fontSize: size,
+                      color: const Color(0xFFFF6B8A),
+                      shadows: const [
+                        Shadow(color: Color(0xFF7A1F35), offset: Offset(1, 2)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
