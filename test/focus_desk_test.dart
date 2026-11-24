@@ -38,6 +38,13 @@ void main() {
       expect(find.text('25:00'), findsOneWidget);
       expect(find.byType(Card), findsNothing);
       expect(find.byKey(const Key('pose-effect-read')), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('desk-sound')),
+          matching: find.text('聲音'),
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('開始專注'));
       await tester.runAsync(
