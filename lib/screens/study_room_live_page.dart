@@ -1,3 +1,5 @@
+import '../models/procrastination_boss.dart';
+import '../widgets/procrastination_boss_card.dart';
 import '../widgets/sync_round_banner.dart';
 import '../services/room_focus_round.dart';
 import '../theme/game_ui.dart';
@@ -1036,6 +1038,46 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                   ],
                 ),
               ),
+              if (timerRoom && room.challengeGoalSeconds > 0)
+                Positioned(
+                  right: 12,
+                  top: padding.top + 74,
+                  child: Builder(
+                    builder: (context) {
+                      final boss = ProcrastinationBoss.of(
+                        DateTime.now(),
+                        goalSeconds: room.challengeGoalSeconds,
+                        doneSeconds: approvedMembers.fold<int>(
+                          0,
+                          (acc, m) => acc + m.todayFocusSeconds,
+                        ),
+                      );
+                      return ProcrastinationBossCard(
+                        key: const Key('room-boss'),
+                        boss: boss,
+                        onTap: () => showDialog<void>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(boss.species.name),
+                            content: Text(
+                              '「${boss.line}」\n\n'
+                              '房間裡每個人今天專注的時間，都會變成對牠的傷害。'
+                              '大家一起累積到 '
+                              '${ProcrastinationBoss.clock(boss.goalSeconds)}'
+                              '，就能打倒牠。每週一會換一隻新的。',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('一起加油'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               if (timerRoom && hasSession)
                 Positioned(
                   left: 0,
