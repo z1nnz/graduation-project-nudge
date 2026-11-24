@@ -8,9 +8,57 @@ import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../widgets/study_hall_scene.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
 import '../widgets/avatar_preview.dart';
 import 'health_page.dart';
 import 'study_room_live_page.dart';
+
+class StudyRoomNoticeBoard extends StatelessWidget {
+  const StudyRoomNoticeBoard({
+    super.key,
+    required this.onSeats,
+    required this.onSettings,
+  });
+
+  final VoidCallback onSeats;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/scenes/study_hall/hall.webp',
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.none,
+            excludeFromSemantics: true,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 118, 12, 12),
+          child: Center(
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Semantics(
+                  label: '座位上的房間成員',
+                  child: GameButton(label: '查看座位', onPressed: onSeats),
+                ),
+                Semantics(
+                  label: '牆上的房務告示',
+                  child: GameButton(label: '房間設定', onPressed: onSettings),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class StudyRoomDetailPage extends StatelessWidget {
   final String roomId;
@@ -945,6 +993,14 @@ class StudyRoomDetailPage extends StatelessWidget {
                 ListView(
                   padding: const EdgeInsets.all(AppUI.pagePadding),
                   children: [
+                    Builder(
+                      builder: (sceneContext) => StudyRoomNoticeBoard(
+                        onSeats: () =>
+                            DefaultTabController.of(sceneContext).animateTo(1),
+                        onSettings: () =>
+                            DefaultTabController.of(sceneContext).animateTo(3),
+                      ),
+                    ),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: AppUI.heroGradient(accent),

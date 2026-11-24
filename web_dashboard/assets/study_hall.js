@@ -8,9 +8,69 @@
   ];
   const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", dateStyle: "short" });
   let state;
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  const focusPanel = document.querySelector("[data-focus-round]");
+  const roundTime = focusPanel.querySelector("time");
+  const roster = ["slime", "ghost", "goblin", "snail"];
+  let previousDamage;
+  let clockButton;
+  const syncClock = () => {
+    if (!clockButton) return;
+    const digits = roundTime.hidden ? "" : roundTime.textContent;
+    clockButton.textContent = digits || "◷";
+    const seconds = digits ? Number(digits.split(":").at(-1)) : 0;
+    clockButton.style.setProperty("--w-clock-angle", (motion.matches ? 0 : 360 - seconds * 6) + "deg");
+  };
+  new MutationObserver(syncClock).observe(roundTime, { childList: true, attributes: true, attributeFilter: ["hidden"] });
+  motion.addEventListener("change", syncClock);
+
+  function roomClock() {
+    if (clockButton) return clockButton;
+    clockButton = document.createElement("button");
+    clockButton.type = "button";
+    clockButton.className = "study-room-wall-clock";
+    clockButton.setAttribute("aria-label", "牆上的同步番茄鐘");
+    clockButton.addEventListener("click", () => {
+      if (!focusPanel.hidden) focusPanel.querySelector("h2").focus();
+    });
+    syncClock();
+    return clockButton;
+  }
+
+  function roomBoss(target, damage) {
+    const defeated = damage >= target;
+    const struck = previousDamage != null && damage > previousDamage;
+    previousDamage = damage;
+    const week = Math.floor((Date.now() - Date.UTC(2024, 0, 1)) / 604800000);
+    const name = roster[week % roster.length];
+    const monster = document.createElement("div");
+    monster.className = "study-room-corner-monster";
+    const meter = document.createElement("meter");
+    meter.max = target;
+    meter.value = Math.max(0, target - damage);
+    meter.setAttribute("aria-label", "拖延怪剩餘血量：" + Math.ceil(meter.value) + " 分鐘");
+    const prefix = "assets/scenes/study_hall/" + name + "_";
+    const hit = !defeated && struck && !motion.matches && !document.hidden;
+    const visual = image(prefix + (defeated ? "down" : hit ? "hit" : "idle") + ".webp", 64, 64, "");
+    monster.append(meter, visual);
+    if (hit) {
+      monster.classList.add("is-hit");
+      monster.addEventListener("animationend", () => { visual.src = prefix + "idle.webp"; }, { once: true });
+    }
+    if (defeated) {
+      const stars = document.createElement("strong");
+      stars.textContent = "✦ 已打倒";
+      monster.append(stars);
+    }
+    return monster;
+  }
+
 
   function stop() {
     state?.unsubscribe();
+    clockButton?.remove();
+    clockButton = undefined;
+    previousDamage = undefined;
     state = null;
   }
 
@@ -54,6 +114,10 @@
     stage.style.setProperty("--hall-light", String(.68 + Math.min(online, 8) * .065));
     stage.replaceChildren(image(art + "chandelier-" + chandelier + ".png", 128, 96, "study-hall-chandelier"));
 
+    stage.append(roomClock());
+    if (state.available && room.roomType === "study" && Math.min(goal, scene.approvedCount) > 0) {
+      stage.append(roomBoss(goal * scene.approvedCount, [...minutes.values()].reduce((sum, value) => sum + value, 0)));
+    }
     const count = Math.min(8, scene.approvedCount + scene.emptySeats);
     seats.slice(0, count).forEach(([left, top], index) => {
       const seat = scene.seats[index];

@@ -97,6 +97,7 @@ flutter:
     - assets/home/window/
     - assets/avatar/poses/
     - assets/rooms/
+    - assets/scenes/study_hall/
     - assets/ui/icons/
     - assets/audio/ambient/
   #   - images/a_dot_burr.jpeg
