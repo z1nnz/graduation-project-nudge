@@ -1,0 +1,16 @@
+.yearbook-shelf { text-align:center; padding:24px; background:var(--w-wood-dark); border-bottom:8px solid var(--w-frame); }
+.yearbook-cover { display:block; width:160px; margin:0 auto 16px; }
+.yearbook-book { position:relative; padding:76px 64px; color:var(--w-ink-dark); background:var(--w-parchment) url('growth/yearbook-spread.png') center/1200px 760px no-repeat; border:6px solid var(--w-wood); border-radius:12px; perspective:1200px; touch-action:pan-y; }
+.yearbook-book h2 { font-family:var(--w-pixel); margin:0 0 16px; }
+.yearbook-pages { display:grid; grid-template-columns:1fr 1fr; gap:48px; }
+.yearbook-leaf { min-width:0; padding:16px; background:var(--w-parchment); }
+.yearbook-days { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.yearbook-days li { border-bottom:1px solid var(--w-wood); padding:8px 0; }
+.yearbook-days time,.yearbook-metrics { font-family:var(--w-pixel); }
+.yearbook-metrics { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.yearbook-empty { min-height:200px; display:grid; align-content:center; text-align:center; }
+.yearbook-turn { animation:yearbook-turn 240ms ease-out; transform-origin:left center; }
+@keyframes yearbook-turn { from{transform:rotateY(-18deg);opacity:.6}to{transform:rotateY(0);opacity:1} }
+.yearbook-pager { justify-content:space-between; align-items:center; }
+.yearbook-book a { color:var(--w-violet-deep); }
+@media(max-width:600px){.yearbook-book{padding:28px 18px;background-image:none}.yearbook-pages{grid-template-columns:1fr;gap:12px}.yearbook-empty{min-height:120px}}
