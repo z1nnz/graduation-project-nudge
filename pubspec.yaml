@@ -90,6 +90,7 @@ flutter:
     - assets/branding/
     - assets/avatar/
     - assets/avatar/characters/
+    - assets/scenes/study_hall/
     - assets/avatar/icons/
     - assets/avatar/simple_outfits/
     - assets/avatar/accessories/
@@ -97,7 +98,6 @@ flutter:
     - assets/home/window/
     - assets/avatar/poses/
     - assets/rooms/
-    - assets/scenes/study_hall/
     - assets/ui/icons/
     - assets/audio/ambient/
   #   - images/a_dot_burr.jpeg

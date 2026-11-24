@@ -41,7 +41,8 @@
     const defeated = damage >= target;
     const struck = previousDamage != null && damage > previousDamage;
     previousDamage = damage;
-    const week = Math.floor((Date.now() - Date.UTC(2024, 0, 1)) / 604800000);
+    const taipeiDay = Date.now() + 8 * 3_600_000;
+    const week = Math.floor((taipeiDay - Date.UTC(2024, 0, 1)) / 604800000);
     const name = roster[week % roster.length];
     const monster = document.createElement("div");
     monster.className = "study-room-corner-monster";
@@ -100,6 +101,7 @@
     if (!state) return;
     const { stage, detail, scene, room, records, selectedId } = state;
     const previousFocus = document.activeElement?.dataset.roomStageMember;
+    const focusedClock = clockButton != null && document.activeElement === clockButton;
     const minutes = sessionMinutes(records);
     const online = scene.seats.filter(seat => seat.postureKey !== "away").length;
     const goal = room.dailyGoalValue *
@@ -115,6 +117,7 @@
     stage.replaceChildren(image(art + "chandelier-" + chandelier + ".png", 128, 96, "study-hall-chandelier"));
 
     stage.append(roomClock());
+    if (focusedClock) clockButton.focus({ preventScroll: true });
     if (state.available && room.roomType === "study" && Math.min(goal, scene.approvedCount) > 0) {
       stage.append(roomBoss(goal * scene.approvedCount, [...minutes.values()].reduce((sum, value) => sum + value, 0)));
     }
