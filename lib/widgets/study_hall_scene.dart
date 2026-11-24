@@ -60,7 +60,9 @@ class StudyHallScene extends StatelessWidget {
                 // Dim the room when few members are active.
                 IgnorePointer(
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 600),
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 600),
                     color: Colors.black.withValues(
                       alpha: 0.38 * (1 - seating.brightness),
                     ),
@@ -111,13 +113,16 @@ class StudyHallScene extends StatelessWidget {
     final pose = CompanionPose.forMember(member.status, roomType);
     final size = seat.height * h;
     final mine = member.memberId == myId;
+    final tapWidth = size < 44 ? 44.0 : size;
     return Positioned(
-      left: seat.centerX * w - size / 2,
+      left: seat.centerX * w - tapWidth / 2,
       top: (seat.bottom - seat.height) * h - 18,
-      width: size,
+      width: tapWidth,
       height: size + 42,
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 450),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 450),
         transitionBuilder: (child, animation) => FadeTransition(
           opacity: animation,
           child: ScaleTransition(scale: animation, child: child),
@@ -188,7 +193,7 @@ class _Banner extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: 12.5,
+          fontSize: 14,
         ),
       ),
     );
@@ -216,7 +221,7 @@ class _NameTag extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: mine ? const Color(0xFF3A1D00) : Colors.white,
-          fontSize: 10.5,
+          fontSize: 14,
           fontWeight: FontWeight.w800,
         ),
       ),

@@ -13,12 +13,14 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: StudyRoomNoticeBoard(
+            seats: const SizedBox(key: ValueKey('seating-scene'), height: 110),
             onSeats: () => seats++,
             onSettings: () => settings++,
           ),
         ),
       ),
     );
+    expect(find.byKey(const ValueKey('seating-scene')), findsOneWidget);
     expect(find.bySemanticsLabel('座位上的房間成員'), findsOneWidget);
     expect(find.bySemanticsLabel('牆上的房務告示'), findsOneWidget);
     await tester.tap(find.text('查看座位'));
