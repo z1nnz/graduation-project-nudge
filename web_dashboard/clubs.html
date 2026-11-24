@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>社團佈告欄</title>
+  <link rel="stylesheet" href="assets/world_ui.css?v=2">
+  <link rel="stylesheet" href="assets/social_scene.css?v=1">
+  <link rel="stylesheet" href="assets/clubs.css?v=1">
+</head>
+<body class="w-page world-page" data-page="clubs" data-social-facility="guild">
+  <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>社團佈告欄</h1></header>
+  <nav class="scene-nav" data-scene-nav></nav>
+  <main class="w-main clubs">
+    <p id="clubStatus" role="status">登入後可加入社團或送出申請。</p>
+    <section class="w-panel">
+      <h2>公開社團</h2>
+      <div id="clubDirectory"></div>
+    </section>
+    <section class="w-parchment">
+      <h2>申請成立社團</h2>
+      <form id="clubApply" inert>
+        <label>社團名稱 <input name="label" maxlength="60" required></label>
+        <label>社團介紹 <textarea name="introduction" maxlength="400" required></textarea></label>
+        <label>社徽 <select name="emblem"></select></label>
+        <button type="submit" class="w-btn" disabled>送交營運審核</button>
+      </form>
+      <ul id="clubRequests"></ul>
+    </section>
+    <section class="w-parchment" id="clubReview" hidden><h2>待營運審核</h2><div id="clubQueue"></div></section>
+    <section class="w-panel" id="clubDetail" hidden>
+      <h2 id="clubName" tabindex="-1"></h2><p id="clubIntroduction"></p>
+      <button class="w-btn" id="clubJoin" hidden>加入社團</button>
+      <div id="clubInterior" hidden>
+        <section class="w-parchment">
+          <h3>每週社團挑戰</h3><p id="clubChallenge"></p>
+          <button class="w-btn" id="clubChallengeJoin">參與挑戰</button>
+        </section>
+        <section class="w-parchment">
+          <h3>社團自律房</h3>
+          <label id="clubVoiceOption"><input type="checkbox" id="clubVoice"> 開房時開放語音</label>
+          <button class="w-btn" id="clubRoom">進入社團自律房</button>
+        </section>
+        <section class="w-parchment">
+          <h3>公開名單</h3>
+          <label><input type="checkbox" id="clubVisible"> 讓成員在公開名單看到我</label>
+          <ul id="clubMembers"></ul>
+          <div id="clubManagement" hidden></div>
+          <button class="w-btn" id="clubLeave">離開社團</button>
+        </section>
+        <section class="w-parchment" aria-labelledby="clubWallTitle">
+          <h3 id="clubWallTitle">貼文牆</h3><div id="clubPosts"></div>
+          <form id="clubPost">
+            <p id="clubReply" hidden></p><button type="button" class="w-btn" id="clubCancelReply" hidden>取消留言</button>
+            <label>文字（最多 300 字） <textarea name="body" maxlength="300" required></textarea></label>
+            <label>貼圖（選填） <select name="sticker"></select></label>
+            <button type="submit" class="w-btn is-gold">發佈</button>
+          </form>
+        </section>
+      </div>
+    </section>
+  </main>
+  <dialog class="w-parchment" id="clubDialog" role="dialog" aria-labelledby="clubDialogTitle">
+    <form id="clubAction">
+      <h2 id="clubDialogTitle"></h2>
+      <label id="clubReasonLabel">原因 <select name="reason"><option value="harassment">騷擾</option><option value="hate">仇恨言論</option><option value="spam">垃圾訊息</option><option value="privacy">涉及隱私</option><option value="other">其他</option></select></label>
+      <label id="clubDurationLabel">禁言多久 <select name="minutes"><option value="10">10 分鐘</option><option value="60">1 小時</option><option value="1440">1 天</option></select></label>
+      <label id="clubDetailsLabel">補充說明 <textarea name="details" maxlength="300"></textarea></label>
+      <p id="clubDialogStatus" role="status"></p>
+      <button type="button" class="w-btn" id="clubCancel">取消</button><button class="w-btn is-gold">確認</button>
+    </form>
+  </dialog>
+  <script src="assets/town_routes.js?v=3"></script>
+  <script src="assets/town_return.js?v=2"></script>
+  <script src="assets/social_scene.js?v=1"></script>
+  <script src="assets/clubs.js?v=1"></script>
+  <script src="assets/app.js?v=28"></script>
+</body>
+</html>

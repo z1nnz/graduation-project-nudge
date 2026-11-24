@@ -341,6 +341,10 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "audit_events", "safetyTargetId", "==", userId),
   ]);
   const safetySettings = safetyDocuments[0]?.data;
+  const clubData = await Promise.all([
+    ["clubs", "ownerId"], ["club_members", "userId"], ["club_posts", "authorId"],
+    ["club_reactions", "userId"], ["club_challenge_members", "userId"],
+  ].map(async ([name, field]) => [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -393,6 +397,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         allowStrangerMentions: safetySettings.allowStrangerMentions,
       } : null,
       safety_reports: safetyReports.documents,
+      ...Object.fromEntries(clubData),
       safety_actions: moderationActions.documents.map(({ data }) => ({
         action: data.action, reason: data.reason, createdAt: data.createdAt,
       })),

@@ -1,0 +1,20 @@
+.clubs, .clubs form, #clubInterior { display: grid; gap: .8rem; }
+.clubs [hidden], #clubDialog [hidden] { display: none; }
+.clubs h2, .clubs h3, .clubs button { font-family: var(--w-pixel); }
+.clubs button, .clubs select, .clubs input:not([type=checkbox]), #clubDialog button, #clubDialog select { min-height: 44px; }
+.clubs label, #clubDialog label { display: grid; gap: .35rem; }
+.clubs input:not([type=checkbox]), .clubs textarea, .clubs select, #clubDialog textarea, #clubDialog select {
+  box-sizing: border-box; width: 100%; color: var(--w-ink-dark); background: var(--w-parchment-hi);
+  border: 2px solid var(--w-frame);
+}
+.clubs [type=checkbox] { width: 24px; height: 24px; }
+#clubDirectory { display: flex; flex-wrap: wrap; gap: .7rem; align-items: start; padding: .7rem; min-height: 170px;
+  background: var(--w-wood-dark) url(clubs/board.png) center / 640px 360px; image-rendering: pixelated; }
+.club-card img, .club-sticker { image-rendering: pixelated; }
+.club-card { padding: .65rem; overflow-wrap: anywhere; }
+.club-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.club-post { border: 2px solid var(--w-frame); padding: .6rem; margin-block: .45rem; overflow-wrap: anywhere; }
+.club-post p { white-space: pre-wrap; }
+#clubIntroduction, #clubStatus { color: var(--w-ink); }
+#clubDialog { width: min(30rem, calc(100% - 2rem)); box-sizing: border-box; }
+#clubDialog::backdrop { background: var(--w-night); opacity: .65; }

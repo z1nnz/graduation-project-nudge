@@ -64,6 +64,7 @@
     d('groups-study-schedule', 'groups-study-schedule.html', 'guild', '讀書時段管理', 'player', 'login', 'groupManager', 'cloud', '#83'),
     d('groups-templates', 'groups-templates.html', 'guild', '考試倒數模板', 'player', 'login', 'groupManager', 'cloud', '#83'),
     d('group-hall', 'group-hall.html', 'guild', '團體會館場景', 'player', 'login', 'group', 'cloud', '#83'),
+    d('clubs', 'clubs.html', 'guild', '社團佈告欄', 'player', 'login', null, 'cloud', '#83'),
     d('museum', 'personal.html', 'library', '成長紀錄館', 'player', 'login', null, 'cloud', '#84'),
     d('identity', 'personal-identity.html', 'library', '自律身分書', 'player', 'login', null, 'cloud', '#84'),
     d('trends', 'personal-trends.html', 'library', '成長年鑑翻頁書', 'player', 'login', null, 'cloud', '#124'),

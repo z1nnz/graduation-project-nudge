@@ -1,3 +1,4 @@
+import { createClubHandler } from "./src/club-service.js";
 import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
 import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
 import { createSocialSafetyHandler } from "./src/social-safety-service.js";
@@ -891,3 +892,7 @@ export const processGuildEvents = onSchedule(
 const socialSafety = createSocialSafetyHandler(getFirestore());
 export const manageSocialSafety = onCall({ region: "asia-east1" }, request =>
   withAccountOperation(request, () => socialSafety(request)));
+
+const manageClubsHandler=createClubHandler(getFirestore());
+export const manageClubs=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageClubsHandler(request)));

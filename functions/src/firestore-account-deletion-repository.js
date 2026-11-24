@@ -496,6 +496,7 @@ export class FirestoreAccountDeletionRepository {
       ["chat_reports", "userId"],
       ["chat_reports", "senderId"],
       ["safety_mutes", "userId"],
+      ["removed", "userId"],
       ["voice_signals", "from"],
       ["voice_signals", "to"],
       ["voice_mute", "requestedBy"],
@@ -749,6 +750,11 @@ export class FirestoreAccountDeletionRepository {
     }
 
     const querySpecs = [
+      ["club_members", "userId"],
+      ["club_posts", "authorId"],
+      ["club_reactions", "userId"],
+      ["club_post_quota", "userId"],
+      ["club_challenge_members", "userId"],
       ["activity_events", "actorUserId"],
       ["activity_receipts", "actorUserId"],
       ["reward_ledger_entries", "actorUserId"],
@@ -813,6 +819,16 @@ export class FirestoreAccountDeletionRepository {
     );
     for (const outcome of relationshipOutcomes) {
       await this.firestore.recursiveDelete(outcome.ref);
+      deletedDocuments += 1;
+    }
+
+    const ownedClubs = await querySnapshots(this.firestore.collection("clubs").where("ownerId", "==", userId));
+    for (const club of ownedClubs) {
+      await this.firestore.collection("club_public").doc(club.id).delete();
+      for (const name of ["club_members", "club_posts", "club_reactions", "club_challenge_members"]) {
+        deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection(name).where("clubId", "==", club.id));
+      }
+      await this.firestore.recursiveDelete(club.ref);
       deletedDocuments += 1;
     }
 
