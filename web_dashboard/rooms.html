@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="assets/focus_round.css?v=1" />
     <link rel="stylesheet" href="assets/study_hall.css?v=1" />
     <link rel="stylesheet" href="assets/voice_room.css?v=1" />
+    <link rel="stylesheet" href="assets/room_lobby.css?v=1" />
   </head>
   <body class="w-page" data-page="rooms" data-social-facility="tower">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -32,6 +33,72 @@
             <p>App 與 Web 使用同一筆活動 session，任何人都不能代替另一位成員變更紀錄。</p>
           </div>
         </header>
+
+        <section class="w-panel room-lobby" data-room-lobby aria-labelledby="roomLobbyTitle">
+          <div class="room-lobby-header">
+            <h2 id="roomLobbyTitle">自律房大廳</h2>
+            <button type="button" class="w-btn is-gold" data-lobby-new disabled>建立房間</button>
+          </div>
+          <form class="room-lobby-filters" data-lobby-filters role="search">
+            <label>搜尋房名 <input type="search" name="search" maxlength="80" /></label>
+            <label>房型 <select name="type"><option value="">全部</option><option value="study">讀書</option><option value="sleep">睡眠</option><option value="exercise">運動</option><option value="steps">步數</option><option value="custom">自訂</option></select></label>
+            <label>人數 <select name="occupancy"><option value="">全部</option><option value="available">尚有空位</option><option value="full">已滿</option></select></label>
+            <label>審核 <select name="approval"><option value="">全部</option><option value="review">須審核</option><option value="instant">開放加入</option></select></label>
+            <label>標籤 <input type="search" name="tag" maxlength="20" /></label>
+          </form>
+          <h3>推薦給你</h3>
+          <p data-lobby-status role="status"></p>
+          <div class="room-lobby-doors" data-lobby-doors></div>
+          <dialog class="room-lobby-dialog" role="dialog" aria-labelledby="roomLobbyDialogTitle">
+            <div class="room-lobby-header">
+              <h2 id="roomLobbyDialogTitle" data-lobby-dialog-title tabindex="-1"></h2>
+              <button type="button" class="w-btn" data-lobby-close>關閉</button>
+            </div>
+            <form data-lobby-wizard hidden>
+              <fieldset><legend>選擇房型</legend>
+                <label>房型 <select name="roomType"><option value="study">讀書</option><option value="sleep">睡眠</option><option value="exercise">運動</option><option value="steps">步數</option><option value="custom">自訂</option></select></label>
+              </fieldset>
+              <fieldset hidden disabled><legend>選擇主題外觀</legend>
+                <label>主題 <select name="theme"><option value="library">圖書館</option><option value="attic">星空閣樓</option><option value="forest">森林小屋</option><option value="seaside">海邊書房</option></select></label>
+                <img class="room-lobby-theme" data-lobby-theme width="160" height="100" alt="房間外觀預覽" />
+              </fieldset>
+              <fieldset hidden disabled><legend>設定房規</legend>
+                <label>房名 <input name="name" maxlength="80" required /></label>
+                <label>簡介 <textarea name="description" maxlength="500"></textarea></label>
+                <label>標籤（最多五個，以逗號分隔） <input name="tags" maxlength="104" /></label>
+                <label>每日目標 <input type="number" name="dailyGoalValue" min="0.1" max="100000" step="0.1" value="25" required /></label>
+                <label>最多人數 <input type="number" name="memberLimit" min="2" max="8" value="8" required /></label>
+                <label>公開方式 <select name="visibility"><option value="public">列在大廳</option><option value="private">僅邀請連結</option></select></label>
+                <label class="lobby-check"><input type="checkbox" name="approval" /> 需審核</label>
+                <label>入房問題 <input name="question" maxlength="140" /></label>
+                <label class="lobby-check"><input type="checkbox" name="voiceEnabled" /> 開放語音</label>
+              </fieldset>
+              <fieldset hidden disabled><legend>預覽</legend><p data-lobby-preview></p></fieldset>
+              <div class="room-lobby-actions">
+                <button type="button" class="w-btn" data-lobby-back>上一步</button>
+                <button type="submit" class="w-btn is-gold" data-lobby-next>下一步</button>
+              </div>
+            </form>
+            <form data-lobby-detail hidden>
+              <img class="room-lobby-theme" data-lobby-room-theme width="160" height="100" alt="房間外觀" />
+              <p data-lobby-room-description></p>
+              <label data-lobby-question><span data-lobby-question-text></span><textarea data-lobby-answer maxlength="200"></textarea></label>
+              <button type="submit" class="w-btn is-gold" data-lobby-enter>加入房間</button>
+              <div data-lobby-invite-actions hidden>
+                <ul data-lobby-applicants aria-label="待核准成員的入房回答"></ul>
+                <div class="room-lobby-actions">
+                  <button type="button" class="w-btn" data-lobby-invite>產生七天邀請</button>
+                  <button type="button" class="w-btn" data-lobby-revoke>撤銷邀請</button>
+                </div>
+                <div data-lobby-linkbox hidden>
+                  <label>邀請連結 <input data-lobby-url readonly /></label>
+                  <img data-lobby-qr class="room-lobby-qr" alt="邀請連結 QR 碼" />
+                </div>
+              </div>
+            </form>
+            <p data-lobby-modal-status role="status"></p>
+          </dialog>
+        </section>
 
         <section class="room-workspace">
           <aside class="scene-panel room-list-panel">
@@ -169,5 +236,8 @@
     <script src="assets/voice_room_core.js?v=1"></script>
     <script src="assets/voice_room.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
+    <script src="assets/room_lobby/qrcode.js?v=2.0.4"></script>
+    <script src="assets/room_lobby_core.js?v=1"></script>
+    <script src="assets/room_lobby.js?v=1"></script>
   </body>
 </html>

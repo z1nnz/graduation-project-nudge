@@ -316,6 +316,10 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "privacy_data_requests", "userId", "==", userId),
   ]);
 
+  const [lobbyAnswers, lobbyCodes] = await Promise.all([
+    readQuery(firestore, "room_lobby_answers", "memberId", "==", userId),
+    readQuery(firestore, "room_lobby_codes", "ownerId", "==", userId),
+  ]);
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -358,6 +362,8 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         receivedRoomResonanceAcknowledgements.documents,
       ),
       rooms: rooms.documents,
+      room_lobby_answers: lobbyAnswers.documents,
+      room_lobby_codes: lobbyCodes.documents.map(({ data }) => ({ roomId: data.roomId, expiresAt: data.expiresAt })),
       user_notifications: notifications.documents,
       friend_requests: mergeDocuments(
         sentFriendRequests.documents,
