@@ -74,6 +74,7 @@
     d('shop', 'operations.html', 'store', '角色商城', 'player', 'login', null, 'cloud', '#82'),
     d('break-game', 'town.html#park', 'park', '接星星（休息券）', 'player', 'login', null, 'cloud', '#82'),
     d('planet', 'planet.html', 'observatory', '自律星球', 'player', 'login', null, 'mixed', '#82'),
+    d('virtual-devices', 'observatory.html', 'observatory', 'Orbit／Station 虛擬裝置', 'player', 'login', null, 'mixed', '#124'),
     d('garden-scene', 'garden.html', 'garden', '星光花園', 'player', 'login', 'level10', 'cloud', '#82'),
     d('mailbox', 'mailbox.html', 'plaza', '小鎮郵箱', 'player', 'login', null, 'cloud', '#83'),
     d('notifications', 'notifications.html', 'plaza', '通知與邀請', 'player', 'login', null, 'cloud', '#83'),
