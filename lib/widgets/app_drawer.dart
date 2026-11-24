@@ -247,7 +247,8 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     icon: Icons.analytics_outlined,
                     title: '個人進階分析',
-                    onTap: () => _openPage(context, const PersonalAnalysisPage()),
+                    onTap: () =>
+                        _openPage(context, const PersonalAnalysisPage()),
                     accentColor: accentColor,
                   ),
                   _drawerItem(

@@ -5,6 +5,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../models/cabin_sky.dart';
 import '../models/avatar_profile.dart';
 import '../models/cabin_companion_brain.dart';
 import '../models/cabin_layout.dart';
@@ -15,6 +16,7 @@ import 'companion_sprite.dart';
 import 'cabin_tour.dart';
 import '../models/companion_celebration.dart';
 import 'celebration_overlay.dart';
+import 'cabin_weather_sheet.dart';
 
 /// Pixel font for in-world text (HUD, signs, bubbles).
 const pixelFont = 'Cubic11';
@@ -564,6 +566,22 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   void initState() {
     super.initState();
     _brain.setActivity(_wantedActivity);
+    CabinSkyController.instance.addListener(_onSky);
+  }
+
+  void _onSky() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openWeather() async {
+    final sky = CabinSkyController.instance;
+    final picked = await showModalBottomSheet<Object>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CabinWeatherSheet(current: sky.city),
+    );
+    if (picked == null) return;
+    await sky.chooseCity(picked is CabinCity ? picked : null);
   }
 
   @override
@@ -631,6 +649,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
 
   @override
   void dispose() {
+    CabinSkyController.instance.removeListener(_onSky);
     _ticker.dispose();
     _pulse.dispose();
     super.dispose();
@@ -706,13 +725,16 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
           Offset toScreen(Offset p) =>
               Offset(box.left + p.dx * box.width, box.top + p.dy * box.height);
           final feet = toScreen(_brain.position);
-          final bubble =
+          final rainLine = CabinSky.companionLine(
+            CabinSkyController.instance.weather,
+          );
+          final String bubble =
               _pokeLine ??
               (widget.presentation.globeGlowing
                   ? _deviceLine
                   : _brain.activity == CompanionActivity.rest
                   ? '呼……晚安'
-                  : widget.presentation.bubbleText);
+                  : rainLine ?? widget.presentation.bubbleText);
           return [
             Positioned.fill(
               child: GestureDetector(
@@ -734,6 +756,18 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
               'cabin-desk',
               '書桌・專注',
               widget.onOpenDesk,
+            ),
+            _hotspot(
+              box,
+              CabinRect(
+                CabinSky.windowRect.left,
+                CabinSky.windowRect.top,
+                CabinSky.windowRect.width,
+                CabinSky.windowRect.height,
+              ),
+              'cabin-window',
+              '窗外的天氣',
+              _openWeather,
             ),
             _hotspot(
               box,

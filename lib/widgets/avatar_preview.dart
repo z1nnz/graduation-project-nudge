@@ -7,7 +7,12 @@ import 'package:flutter/services.dart';
 import '../models/avatar_catalog.dart';
 import '../models/avatar_profile.dart';
 
-Widget buildAvatarImage(String path, {double? width, double? height, BoxFit fit = BoxFit.contain}) {
+Widget buildAvatarImage(
+  String path, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.contain,
+}) {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return Image.network(path, width: width, height: height, fit: fit);
   } else if (path.startsWith('data:image') || path.contains(';base64,')) {
@@ -49,7 +54,9 @@ class AvatarPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final characterPath = AvatarCatalog.characterAssetForIndex(profile.faceShapeIndex);
+    final characterPath = AvatarCatalog.characterAssetForIndex(
+      profile.faceShapeIndex,
+    );
     if (characterPath.startsWith('http://') ||
         characterPath.startsWith('https://') ||
         characterPath.startsWith('data:image') ||
