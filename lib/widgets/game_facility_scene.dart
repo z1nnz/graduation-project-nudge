@@ -354,7 +354,7 @@ class GameArtifact extends StatelessWidget {
         padding: EdgeInsets.zero,
         child: Semantics(
           container: semanticContainer,
-          child: ColoredBox(
+          child: Material(
             color: p.backgroundTop,
             child: DefaultTextStyle.merge(
               style: TextStyle(color: p.ink, fontSize: 14),
