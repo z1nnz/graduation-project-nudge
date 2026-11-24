@@ -86,6 +86,33 @@
           const actions = node("div", "");
           actions.className = "presence-actions";
           actions.append(cheer);
+          if (root.hasAttribute("data-plaza-bench")) {
+            row.classList.add("plaza-friend");
+            const badge = node("span", "");
+            badge.className = "plaza-friend-figure";
+            badge.setAttribute("aria-hidden", "true");
+            row.append(badge);
+            const thanks = node("a", "送感謝卡");
+            thanks.className = "w-btn";
+            thanks.href = "thanks-cards.html?to=" + encodeURIComponent(item.uid);
+            const hug = node("button", "送擁抱");
+            hug.type = "button";
+            hug.className = "w-btn";
+            hug.addEventListener("click", async () => {
+              if (!friends.has(item.uid)) return;
+              hug.disabled = true;
+              try {
+                await functions.httpsCallable("sendDeviceHug")({ toUserId: item.uid });
+                error = "擁抱已送出。";
+              } catch {
+                error = "擁抱未送出，請稍後再試。";
+              } finally {
+                hug.disabled = false;
+                render();
+              }
+            });
+            actions.append(hug, thanks);
+          }
           if (item.openCabin) {
             const cabin = node("a", "拜訪小屋");
             cabin.className = "w-btn";

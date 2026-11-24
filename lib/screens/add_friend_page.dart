@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/social_plaza_stage.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -9,6 +11,7 @@ import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
 import '../widgets/avatar_preview.dart';
 import 'friend_public_profile_page.dart';
 
@@ -23,6 +26,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
   final TextEditingController _idController = TextEditingController();
   SocialFriendProfile? _candidate;
   bool _searched = false;
+  int _postedInvitations = 0;
 
   @override
   void dispose() {
@@ -60,6 +64,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
     if (candidate == null) return;
     await appState.sendFriendRequest(candidate);
     if (!mounted) return;
+    setState(() => _postedInvitations++);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('已送出好友邀請給 ${candidate.name}')));
@@ -83,6 +88,28 @@ class _AddFriendPageState extends State<AddFriendPage> {
           28,
         ),
         children: [
+          SocialPlazaStage(
+            title: '好友邀請郵筒',
+            objects: [
+              if (_postedInvitations > 0)
+                TweenAnimationBuilder<double>(
+                  key: ValueKey(_postedInvitations),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 400),
+                  builder: (context, progress, child) => Transform.translate(
+                    offset: Offset(-70 * (1 - progress), -22 * (1 - progress)),
+                    child: Opacity(opacity: progress, child: child),
+                  ),
+                  child: const Semantics(
+                    label: '邀請卡已投入郵筒',
+                    child: GameChip(label: '已寄出', tone: GameTone.gold),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppUI.sectionGap),
           _MyFriendCodeCard(
             nudgeId: appState.myNudgeId,
             accentColor: accentColor,
@@ -108,7 +135,8 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     body: MobileScanner(
                       onDetect: (capture) {
                         final List<Barcode> barcodes = capture.barcodes;
-                        if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+                        if (barcodes.isNotEmpty &&
+                            barcodes.first.rawValue != null) {
                           final String code = barcodes.first.rawValue!;
                           Navigator.pop(context, code);
                         }
@@ -118,7 +146,9 @@ class _AddFriendPageState extends State<AddFriendPage> {
                 ),
               ).then((result) async {
                 if (result != null && result is String) {
-                  final candidate = await appState.searchFriendFromInvite(result);
+                  final candidate = await appState.searchFriendFromInvite(
+                    result,
+                  );
                   if (candidate != null) {
                     setState(() {
                       _searched = true;
@@ -346,7 +376,10 @@ class _SearchByIdCard extends StatelessWidget {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.person_search_rounded),
                   label: Text(searching ? '搜尋中...' : '搜尋 ID'),
@@ -392,13 +425,21 @@ class _CandidateCard extends StatelessWidget {
     final secondaryText = AppUI.textSecondaryOf(context);
 
     final isFriend = appState.socialFriends.any((f) => f.id == candidate.id);
-    final incoming = appState.incomingFriendRequests.where(
-      (req) => req.id.contains(candidate.id) || req.nudgeId.toUpperCase() == candidate.nudgeId.toUpperCase()
-    ).toList();
+    final incoming = appState.incomingFriendRequests
+        .where(
+          (req) =>
+              req.id.contains(candidate.id) ||
+              req.nudgeId.toUpperCase() == candidate.nudgeId.toUpperCase(),
+        )
+        .toList();
     final hasIncoming = incoming.isNotEmpty;
-    final outgoing = appState.outgoingFriendRequests.where(
-      (req) => req.id.contains(candidate.id) || req.nudgeId.toUpperCase() == candidate.nudgeId.toUpperCase()
-    ).toList();
+    final outgoing = appState.outgoingFriendRequests
+        .where(
+          (req) =>
+              req.id.contains(candidate.id) ||
+              req.nudgeId.toUpperCase() == candidate.nudgeId.toUpperCase(),
+        )
+        .toList();
     final hasOutgoing = outgoing.isNotEmpty;
 
     Widget actionWidget;
@@ -423,9 +464,7 @@ class _CandidateCard extends StatelessWidget {
     } else if (hasIncoming) {
       actionWidget = FilledButton(
         onPressed: () => appState.acceptFriendRequest(incoming.first.id),
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.green,
-        ),
+        style: FilledButton.styleFrom(backgroundColor: Colors.green),
         child: const Text('接受'),
       );
     } else {
@@ -448,7 +487,9 @@ class _CandidateCard extends StatelessWidget {
                 name: candidate.name,
                 signature: candidate.signature,
                 todayFocusSeconds: candidate.todayFocusSeconds,
-                score: (35 + (candidate.todayFocusSeconds / 60 / 2)).clamp(0, 100).round(),
+                score: (35 + (candidate.todayFocusSeconds / 60 / 2))
+                    .clamp(0, 100)
+                    .round(),
                 isStudying: candidate.isStudying,
                 avatarColor: candidate.avatarColor,
                 avatarProfile: candidate.avatarProfile,

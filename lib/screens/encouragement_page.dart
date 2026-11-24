@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/social_plaza_stage.dart';
 import 'package:provider/provider.dart';
 import '../models/social_encouragement_record.dart';
 import '../state/app_state.dart';
@@ -91,6 +93,8 @@ class EncouragementPage extends StatelessWidget {
             ListView(
               padding: const EdgeInsets.all(AppUI.pagePadding),
               children: [
+                const SocialPlazaStage(title: '鼓勵郵筒'),
+                const SizedBox(height: AppUI.sectionGap),
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: AppUI.heroGradient(accentColor),

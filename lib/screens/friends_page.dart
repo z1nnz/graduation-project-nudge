@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/social_plaza_stage.dart';
 import 'package:provider/provider.dart';
 
 import '../models/avatar_profile.dart';
@@ -6,6 +8,7 @@ import '../models/social_friend_profile.dart';
 import '../models/study_room_models.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
 import '../widgets/avatar_preview.dart';
 import 'add_friend_page.dart';
 import 'friend_public_profile_page.dart';
@@ -28,12 +31,6 @@ class _FriendsPageState extends State<FriendsPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  String _formatMMSS(int totalSeconds) {
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   List<FriendListItemData> _buildManualFriends(
@@ -101,17 +98,6 @@ class _FriendsPageState extends State<FriendsPage> {
         return '離線';
       case SocialFriendFilter.activeToday:
         return '今日活躍';
-    }
-  }
-
-  Color _statusColor(StudyMemberStatus status) {
-    switch (status) {
-      case StudyMemberStatus.studying:
-        return const Color(0xFF10B981);
-      case StudyMemberStatus.resting:
-        return const Color(0xFFF59E0B);
-      case StudyMemberStatus.offline:
-        return const Color(0xFF64748B);
     }
   }
 
@@ -199,6 +185,8 @@ class _FriendsPageState extends State<FriendsPage> {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
+          const SocialPlazaStage(title: '好友長椅'),
+          const SizedBox(height: AppUI.sectionGap),
           Card(
             shape: AppUI.cardShape(),
             child: Padding(
@@ -315,113 +303,90 @@ class _FriendsPageState extends State<FriendsPage> {
               ),
             )
           else
-            ...filteredFriends.map((friend) {
-              final statusColor = _statusColor(friend.memberStatus);
-              final avatarProfile =
-                  friend.avatarProfile ??
-                  appState.avatarVariantForSeed(friend.id.hashCode);
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  shape: AppUI.cardShape(),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppUI.radiusCard),
-                    onTap: () => _openPublicProfile(
-                      context,
-                      friendId: friend.id,
-                      name: friend.name,
-                      signature: friend.signature,
-                      todayFocusSeconds: friend.todayFocusSeconds,
-                      score: friend.score,
-                      isStudying:
-                          friend.memberStatus == StudyMemberStatus.studying,
-                      avatarColor: friend.avatarColor,
-                      roomId: friend.roomId,
-                      roomName: friend.roomName,
-                      roomNickname: friend.roomNickname,
-                      memberStatus: friend.memberStatus,
-                      avatarProfile: avatarProfile,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppUI.innerPadding),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 66,
-                            height: 66,
-                            decoration: BoxDecoration(
-                              color: avatarProfile.backgroundColor,
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                            child: AvatarPreview(
-                              profile: avatarProfile,
-                              size: 66,
-                              showBackgroundRing: false,
-                            ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final palette = GamePalette.of(context);
+                final columns = constraints.maxWidth >= 540 ? 3 : 2;
+                final width =
+                    (constraints.maxWidth - (columns - 1) * 8) / columns;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 12,
+                  children: filteredFriends.map((friend) {
+                    final avatar =
+                        friend.avatarProfile ??
+                        appState.avatarVariantForSeed(friend.id.hashCode);
+                    return SizedBox(
+                      width: width,
+                      child: Semantics(
+                        button: true,
+                        label:
+                            '${friend.name}，${_statusText(friend.memberStatus)}',
+                        child: InkWell(
+                          onTap: () => _openPublicProfile(
+                            context,
+                            friendId: friend.id,
+                            name: friend.name,
+                            signature: friend.signature,
+                            todayFocusSeconds: friend.todayFocusSeconds,
+                            score: friend.score,
+                            isStudying:
+                                friend.memberStatus ==
+                                StudyMemberStatus.studying,
+                            avatarColor: friend.avatarColor,
+                            roomId: friend.roomId,
+                            roomName: friend.roomName,
+                            roomNickname: friend.roomNickname,
+                            memberStatus: friend.memberStatus,
+                            avatarProfile: avatar,
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  friend.name,
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: primaryText,
+                          child: Column(
+                            children: [
+                              AvatarPreview(
+                                profile: avatar,
+                                size: 64,
+                                showBackgroundRing: false,
+                              ),
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: palette.wood,
+                                  border: Border.all(
+                                    color: palette.panelBorder,
+                                    width: 2,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  friend.signature,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: secondaryText,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 5,
+                                  ),
+                                  child: Text(
+                                    friend.name,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: GamePalette.dark.ink,
+                                      fontFamily: 'Cubic11',
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 6,
-                                  children: [
-                                    _SmallTag(
-                                      text: _statusText(friend.memberStatus),
-                                      color: statusColor,
-                                    ),
-                                    if (friend.roomName != null &&
-                                        friend.roomName!.isNotEmpty)
-                                      _SmallTag(
-                                        text: friend.roomName!,
-                                        color: const Color(0xFF4F8CFF),
-                                      ),
-                                    _SmallTag(
-                                      text:
-                                          '今日 ${_formatMMSS(friend.todayFocusSeconds)}',
-                                      color: const Color(0xFF7C6AE6),
-                                    ),
-                                    _SmallTag(
-                                      text: '${friend.score} 分',
-                                      color: const Color(0xFFF59E0B),
-                                    ),
-                                  ],
+                              ),
+                              Text(
+                                _statusText(friend.memberStatus),
+                                style: TextStyle(
+                                  color: palette.ink,
+                                  fontSize: 14,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Icon(Icons.chevron_right, color: secondaryText),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              );
-            }),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
 
           const SizedBox(height: 84),
         ],
@@ -456,27 +421,4 @@ class FriendListItemData {
     required this.roomNickname,
     required this.memberStatus,
   });
-}
-
-class _SmallTag extends StatelessWidget {
-  final String text;
-  final Color color;
-
-  const _SmallTag({required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: AppUI.softCardOf(context, color),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
-      ),
-    );
-  }
 }
