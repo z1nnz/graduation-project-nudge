@@ -749,6 +749,11 @@ export class FirestoreAccountDeletionRepository {
     }
 
     const querySpecs = [
+      ["thanks_cards", "senderId"],
+      ["thanks_cards", "recipientId"],
+      ["thanks_card_receipts", "senderId"],
+      ["thanks_card_receipts", "recipientId"],
+      ["thanks_card_budgets", "userId"],
       ["activity_events", "actorUserId"],
       ["activity_receipts", "actorUserId"],
       ["reward_ledger_entries", "actorUserId"],

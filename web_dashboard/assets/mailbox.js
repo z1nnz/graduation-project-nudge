@@ -33,6 +33,7 @@
       typeof letter.roomId === "string" && letter.roomId.length > 0;
     const route = routes[letter.route] || null;
     const scopeType = mention ? "room" : String(letter.sourceType || "").startsWith("family") ? "family" : "group";
+    const thanksCard = letter.kind === "thanks_card" && typeof letter.sourceId === "string";
     const cabinLetter = letter.kind === "friend_cabin_letter";
     const pendingInvitation = /_invitation$/.test(String(letter.kind || "")) && (requestStatus || "pending") === "pending";
     const resolved = requestStatus && requestStatus !== "pending";
@@ -46,8 +47,8 @@
       sticker: cabinLetter && /^(cheer|study|sleep|thumbs-up|happy-tears|flex|coffee|heart|okay|wave|think|fire)$/.test(letter.stickerKey)
         ? letter.stickerKey : null,
       requestStatusLabel: requestStatus ? (requestStatusLabels[requestStatus] || "") : "",
-      actionLabel: mention ? "開啟聊天室" : cabinLetter ? "查看小屋留言" : !route ? "" : pendingInvitation ? `前往${route.label}中心回覆` : `前往${route.label}${scopeType === "family" ? "庭院" : "會館"}`,
-      href: cabinLetter ? "friend-visits.html" : href,
+      actionLabel: thanksCard ? "打開感謝卡" : mention ? "開啟聊天室" : cabinLetter ? "查看小屋留言" : !route ? "" : pendingInvitation ? `前往${route.label}中心回覆` : `前往${route.label}${scopeType === "family" ? "庭院" : "會館"}`,
+      href: thanksCard ? "thanks-cards.html?card=" + encodeURIComponent(letter.sourceId) : cabinLetter ? "friend-visits.html" : href,
       resolved: Boolean(resolved),
     });
   }
