@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'theme/app_text_scale.dart';
+import 'models/cabin_sky.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -30,6 +32,8 @@ Future<void> main() async {
       'Please ensure google-services.json and GoogleService-Info.plist are correctly configured.',
     );
   }
+  // Window weather: only fetched if the user picked a city.
+  unawaited(CabinSkyController.instance.refresh());
   runApp(const NudgeApp());
 }
 

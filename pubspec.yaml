@@ -53,6 +53,7 @@ dependencies:
   url_launcher: ^6.3.2
   audioplayers: ^6.7.1
   flutter_webrtc: ^1.6.3
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
@@ -92,6 +93,7 @@ flutter:
     - assets/avatar/simple_outfits/
     - assets/avatar/accessories/
     - assets/home/
+    - assets/home/window/
     - assets/avatar/poses/
     - assets/rooms/
     - assets/ui/icons/

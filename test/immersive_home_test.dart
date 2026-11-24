@@ -153,6 +153,18 @@ void main() {
     expect(opened['parcel'], 1);
   });
 
+  testWidgets('tapping the window opens the weather city picker', (
+    tester,
+  ) async {
+    await tester.runAsync(() => _pump(tester));
+    final r = tester.getRect(find.byKey(const Key('cabin-window')));
+    await tester.tapAt(r.topCenter + const Offset(0, 8));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('窗外的天氣'), findsWidgets);
+    expect(find.byKey(const Key('weather-city-台北')), findsOneWidget);
+  });
+
   testWidgets('reduced motion keeps the cabin still', (tester) async {
     await tester.runAsync(() => _pump(tester, still: true));
     await tester.pump(const Duration(milliseconds: 300));
