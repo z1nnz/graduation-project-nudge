@@ -1,3 +1,4 @@
+import 'theme/app_text_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -61,17 +62,14 @@ class _AppRoot extends StatelessWidget {
         final mediaQuery = MediaQuery.of(context);
         final width = mediaQuery.size.width;
         final height = mediaQuery.size.height;
-        final compactScale = width <= 400 || height <= 760
-            ? 0.90
-            : width <= 430
-            ? 0.96
-            : 1.0;
-        final systemTextScale = mediaQuery.textScaler
-            .scale(1)
-            .clamp(0.85, 1.12)
-            .toDouble();
         final adjustedMediaQuery = mediaQuery.copyWith(
-          textScaler: TextScaler.linear(systemTextScale * compactScale),
+          textScaler: TextScaler.linear(
+            appTextScale(
+              width: width,
+              height: height,
+              system: mediaQuery.textScaler.scale(1),
+            ),
+          ),
         );
 
         final iconScale = width <= 400 || height <= 760
