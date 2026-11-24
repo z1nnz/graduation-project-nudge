@@ -68,7 +68,7 @@
     d('museum', 'personal.html', 'library', '成長紀錄館', 'player', 'login', null, 'cloud', '#84'),
     d('onboarding', 'onboarding.html', 'library', '新手角色建立', 'player', 'login', null, 'cloud', '#124'),
     d('identity', 'personal-identity.html', 'library', '自律身分書', 'player', 'login', null, 'cloud', '#84'),
-    d('trends', 'personal-trends.html', 'library', '成長年鑑翻頁書', 'player', 'login', null, 'cloud', '#124'),
+    d('trends', 'personal-trends.html', 'observatory', '成長年鑑翻頁書', 'player', 'login', null, 'cloud', '#124'),
     d('skill-tree', 'personal-skill-tree.html', 'library', '技能書籤', 'player', 'login', null, 'cloud', '#84'),
     d('weather', 'personal-weather.html', 'library', '生活天氣回顧', 'player', 'login', null, 'cloud', '#84'),
     d('pressure', 'personal-pressure.html', 'library', '溫柔整理', 'player', 'login', null, 'cloud', '#84'),
@@ -76,7 +76,7 @@
     d('future-letter', 'personal-letter.html', 'library', '未來的信', 'player', 'login', null, 'cloud', '#84'),
     d('share-card', 'personal-share.html', 'library', '成長分享卡', 'player', 'login', null, 'cloud', '#124'),
     d('time-capsule', 'personal-time-capsule.html', 'library', '自律時間膠囊', 'player', 'login', null, 'cloud', '#84'),
-    d('achievements', 'achievements.html', 'library', '成就大廳（二樓）', 'player', 'login', null, 'cloud', '#124'),
+    d('achievements', 'achievements.html', 'observatory', '成就星圖室', 'player', 'login', null, 'cloud', '#124'),
     d('shop', 'operations.html', 'store', '角色商城', 'player', 'login', null, 'cloud', '#82'),
     // Arcade hall: catch-the-stars plus three break games, all on break tickets.
     d('arcade', 'arcade.html', 'park', '遊戲機台大廳（休息券）', 'player', 'login', null, 'cloud', '#82'),
