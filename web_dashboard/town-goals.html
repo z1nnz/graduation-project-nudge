@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>全鎮共同目標</title>
+  <link rel="stylesheet" href="assets/world_ui.css?v=2">
+  <link rel="stylesheet" href="assets/social_scene.css?v=1">
+  <link rel="stylesheet" href="assets/town_events.css?v=1">
+</head>
+<body class="w-page world-page" data-page="town-goals" data-social-facility="plaza">
+  <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>全鎮共同目標</h1></header>
+  <nav class="scene-nav" data-scene-nav></nav>
+  <main class="w-main town_events">
+    <section class="w-panel town-goal-scene" aria-labelledby="townGoalTitle">
+      <img id="townLighthouse" src="assets/town_events/light-0.png" width="128" height="256" alt="廣場燈塔">
+      <div>
+        <h2 id="townGoalTitle">正在讀取這週的共同目標</h2>
+        <progress id="townProgress" aria-label="全鎮共同目標進度" max="1" value="0"></progress>
+        <p id="townTotal"></p>
+        <p id="townRemaining"></p>
+        <div class="town-mayor"><img src="assets/town_events/mayor.png" width="64" height="64" alt="鎮長"><p id="townMayor">大家各自的一小步，會讓鎮上更亮一點。</p></div>
+      </div>
+    </section>
+    <form class="w-parchment" id="townOptOut">
+      <label><input type="checkbox" name="excluded" disabled> 不把我的活動算進全鎮目標</label>
+      <button class="w-btn" disabled>儲存設定</button>
+    </form>
+    <p id="townGoalStatus" role="status"></p>
+  </main>
+
+  <script src="assets/town_routes.js?v=4"></script>
+  <script src="assets/town_return.js?v=2"></script>
+  <script src="assets/social_scene.js?v=1"></script>
+  <script src="assets/town_events.js?v=1"></script>
+  <script src="assets/app.js?v=29"></script>
+</body>
+</html>

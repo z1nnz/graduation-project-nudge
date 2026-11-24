@@ -1,34 +1,54 @@
 (function (root) {
   'use strict';
-  // Web companion cabin (#82 slice 3). Login is enforced by app.js (this page
-  // is not public). The account's own users/{uid} document is the only read;
-  // the only write is the existing arrangeHomeDecor callable, which re-checks
-  // ownership in Cloud. Nothing here grants coins, XP or items.
+  // Web companion cabin 2.0: the same pixel room as the App, a companion that
+  // follows the App's cabin behaviour, and a decorate mode.
+  //
+  // Login is enforced by app.js (this page is not public). The account's own
+  // users/{uid} document is the only read; the only write is the existing
+  // arrangeHomeDecor callable, called once when the player presses 「儲存」.
+  // The callable re-checks ownership in Cloud. Nothing here grants coins, XP
+  // or items.
   const core = root.NudgeCabinCore;
+  const layoutCore = root.NudgeCabinLayoutCore;
+  const pal = root.NudgeCabinCompanionCore;
   const doc = root.document;
-  if (!core || !doc || doc.body?.dataset.page !== 'cabin') return;
+  if (!core || !layoutCore || !pal || !doc || doc.body?.dataset.page !== 'cabin') return;
   const els = id => doc.getElementById(id);
+
+  const DESK_KEY = 'nudge_town_desk_session_v1_';
+  const DRAG_START_PX = 6;
 
   const state = {
     catalog: null,
     layout: null,
+    spots: [],
+    grid: null,
     uid: null,
-    owned: new Map(),
-    saved: null,      // what Cloud has (normalized, owned-only)
-    draft: null,      // what the player is arranging
     data: null,
+    owned: new Map(),
+    saved: null,        // what Cloud has (normalized, owned-only)
+    history: null,      // undo / redo stack; history.present is the draft
+    decorating: false,
     saving: false,
-    pending: null,    // { id, key } reused when a save's outcome was unknown
+    pending: null,      // { id, key } reused when a save's outcome was unknown
     generation: 0,
+    remoteChangedWhileEditing: false,
   };
   let unsubscribeUser = null;
   let started = false;
+
+  const draft = () => state.history?.present || state.saved;
+  const dirty = () => Boolean(state.saved && state.history && core.isDirty(state.history.present, state.saved));
 
   function setStatus(text) { els('cabinStatus').textContent = text; }
   function setSaveStatus(text, tone = '') {
     const el = els('cabinSaveStatus');
     el.textContent = text;
     el.dataset.tone = tone;
+  }
+
+  function reducedMotion() {
+    try { return Boolean(root.matchMedia?.('(prefers-reduced-motion: reduce)').matches); } catch { return false; }
   }
 
   // ---------- assets ----------
@@ -40,11 +60,15 @@
   const assetsReady = Promise.all([
     loadJson('assets/home/home_decor_catalog.json'),
     loadJson('assets/home/cabin_layout.json'),
-  ]).then(([catalog, layout]) => { state.catalog = catalog; state.layout = layout; })
-    .catch(() => {
-      setStatus('家具目錄載入失敗，請確認網路後重新整理。你的擺設仍保存在雲端。');
-      return Promise.reject(new Error('assets'));
-    });
+  ]).then(([catalog, layout]) => {
+    state.catalog = catalog;
+    state.layout = layout;
+    state.spots = layoutCore.spots(layout, catalog);
+    state.grid = layoutCore.grid(layout.aspect);
+  }).catch(() => {
+    setStatus('家具目錄載入失敗，請確認網路後重新整理。你的擺設仍保存在雲端。');
+    return Promise.reject(new Error('assets'));
+  });
 
   // ---------- stage ----------
   const stage = els('cabinStage');
@@ -54,116 +78,377 @@
     els('cabinSummary').dataset.fallback = 'true';
   });
 
-  function place(img, rect) {
+  function place(node, rect) {
     const [x, y, w, h] = rect;
-    img.style.left = `${x * 100}%`;
-    img.style.top = `${y * 100}%`;
-    img.style.width = `${w * 100}%`;
-    img.style.height = `${h * 100}%`;
+    node.style.left = `${x * 100}%`;
+    node.style.top = `${y * 100}%`;
+    node.style.width = `${w * 100}%`;
+    node.style.height = `${h * 100}%`;
   }
 
-  function variantName(slot, index) {
-    return slot.variants.find(v => v.index === index)?.name || '';
-  }
+  function slotDef(slot) { return core.slots(state.catalog).find(s => s.slot === slot); }
+  function variantName(slot, index) { return slotDef(slot)?.variants.find(v => v.index === index)?.name || ''; }
+  function imageFor(slot, index) { return state.layout?.layers?.[slot]?.images?.[index] || ''; }
 
   function renderStage() {
-    const { layout, catalog, draft } = state;
+    const { layout, catalog } = state;
+    const arrangement = draft();
     if (!stage.style.aspectRatio && layout?.aspect) stage.style.aspectRatio = `${layout.aspect} / 1`;
     if (els('cabinBase').getAttribute('src') !== layout.baseImage) els('cabinBase').setAttribute('src', layout.baseImage);
     const holder = els('cabinLayers');
     holder.textContent = '';
-    for (const layer of core.decorLayers(layout, draft)) {
+    for (const layer of core.decorLayers(layout, arrangement)) {
       const img = doc.createElement('img');
       img.className = 'cabin-layer';
       img.alt = '';
+      img.draggable = false;
       img.src = layer.src;
+      img.dataset.slot = layer.slot;
       img.style.zIndex = String(layer.z);
       place(img, layer.rect);
       img.addEventListener('error', () => { img.hidden = true; });
       holder.appendChild(img);
     }
-    const character = els('cabinCharacter');
-    const sprite = core.characterSprite(state.data);
-    if (character.getAttribute('src') !== sprite) character.setAttribute('src', sprite);
-    if (layout.character?.rect) place(character, layout.character.rect);
-    const parts = core.slots(catalog).map(slot => `${slot.label}：${variantName(slot, draft[slot.slot])}`);
+    const parts = core.slots(catalog).map(slot => `${slot.label}：${variantName(slot.slot, arrangement[slot.slot])}`);
     els('cabinSummary').textContent = `夥伴在小屋裡。${parts.join('、')}。`;
+    renderSpots();
   }
 
-  // ---------- controls ----------
-  function renderSlots() {
+  // Decorate-mode hit areas, one per slot, on the slot's allowed spot.
+  function renderSpots() {
+    const holder = els('cabinSpots');
+    holder.hidden = !state.decorating;
+    els('cabinGrid').hidden = !state.decorating;
+    holder.textContent = '';
+    if (!state.decorating) return;
+    const arrangement = draft();
+    for (const spot of state.spots) {
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.className = 'cabin-spot';
+      button.dataset.slot = spot.slot;
+      button.disabled = state.saving;
+      const count = [...(state.owned.get(spot.slot) || [])].length;
+      button.setAttribute('aria-label', `${spot.label}：${variantName(spot.slot, arrangement[spot.slot])}。` +
+        (count > 1 ? '點一下或按 ← → 換款式' : '目前只有這一款'));
+      place(button, spot.rect);
+      const tag = doc.createElement('span');
+      tag.className = 'cabin-spot-tag';
+      tag.textContent = spot.label;
+      button.appendChild(tag);
+      button.addEventListener('click', () => {
+        if (consumeClick()) return;
+        cycle(spot.slot, 1);
+      });
+      button.addEventListener('keydown', event => {
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') { event.preventDefault(); cycle(spot.slot, 1); }
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') { event.preventDefault(); cycle(spot.slot, -1); }
+      });
+      button.addEventListener('pointerdown', event => beginPress(event, spot.slot, arrangement[spot.slot], button));
+      holder.appendChild(button);
+    }
+  }
+
+  function spotButtons() { return [...(els('cabinSpots').children || [])]; }
+
+  // ---------- tray ----------
+  function renderTray() {
+    els('cabinTray').hidden = !state.decorating;
     const holder = els('cabinSlots');
     holder.textContent = '';
+    if (!state.decorating) return;
+    const arrangement = draft();
     core.slots(state.catalog).forEach((slot, order) => {
       const set = doc.createElement('fieldset');
       set.className = 'cabin-slot';
       const legend = doc.createElement('legend');
       legend.textContent = slot.label;
       set.appendChild(legend);
+      const row = doc.createElement('div');
+      row.className = 'cabin-tiles';
       for (const variant of slot.variants) {
         const owned = core.canPlace(state.owned, slot.slot, variant.index);
-        const label = doc.createElement('label');
-        label.className = `cabin-choice${owned ? '' : ' is-locked'}`;
-        const input = doc.createElement('input');
-        input.type = 'radio';
-        input.name = `decor-${slot.slot}`;
-        input.value = String(variant.index);
-        input.checked = state.draft[slot.slot] === variant.index;
-        input.disabled = !owned || state.saving;
-        input.addEventListener('change', () => {
-          state.draft = core.choose(state.draft, state.owned, slot.slot, variant.index);
-          setSaveStatus('');
-          render();
-        });
+        const current = arrangement[slot.slot] === variant.index;
+        const tile = doc.createElement('button');
+        tile.type = 'button';
+        tile.className = `cabin-tile${owned ? '' : ' is-locked'}${current ? ' is-current' : ''}`;
+        tile.name = `decor-${slot.slot}`;
+        tile.value = String(variant.index);
+        tile.disabled = !owned || state.saving;
+        tile.setAttribute('aria-pressed', current ? 'true' : 'false');
+        tile.dataset.itemKey = core.itemKey(order, variant.index);
+        const pic = doc.createElement('img');
+        pic.alt = '';
+        pic.draggable = false;
+        pic.src = imageFor(slot.slot, variant.index);
         const name = doc.createElement('span');
+        name.className = 'cabin-tile-name';
         name.textContent = variant.name;
         const note = doc.createElement('small');
-        note.textContent = owned
-          ? (variant.index === 0 ? '免費' : '已擁有')
-          : `未擁有・${variant.price} 自律幣`;
-        label.append(input, name, note);
-        label.dataset.itemKey = core.itemKey(order, variant.index);
-        set.appendChild(label);
+        note.textContent = owned ? (current ? '擺放中' : (variant.index === 0 ? '免費' : '已擁有')) : `未擁有・${variant.price} 自律幣`;
+        tile.append(pic, name, note);
+        if (owned) {
+          tile.addEventListener('click', () => {
+            if (consumeClick()) return;
+            apply(slot.slot, variant.index, `${slot.label}換成「${variant.name}」。`);
+          });
+          tile.addEventListener('pointerdown', event => beginPress(event, slot.slot, variant.index, tile));
+        }
+        row.appendChild(tile);
       }
+      set.appendChild(row);
       holder.appendChild(set);
     });
   }
 
-  function render() {
-    if (!state.catalog || !state.layout || !state.draft) return;
-    renderStage();
-    renderSlots();
-    const dirty = core.isDirty(state.draft, state.saved);
-    els('cabinSave').disabled = !dirty || state.saving;
-    els('cabinRevert').disabled = !dirty || state.saving;
-    els('cabinSave').textContent = state.saving ? '保存中…' : '保存擺設';
-    els('cabinScene').hidden = false;
+  function renderTools() {
+    const editing = state.decorating;
+    els('cabinViewTools').hidden = editing;
+    els('cabinEditTools').hidden = !editing;
+    els('cabinDecorate').disabled = state.saving || !state.saved;
+    const h = state.history;
+    els('cabinUndo').disabled = !h || !layoutCore.canUndo(h) || state.saving;
+    els('cabinRedo').disabled = !h || !layoutCore.canRedo(h) || state.saving;
+    els('cabinReset').disabled = state.saving || !h ||
+      layoutCore.same(h.present, layoutCore.defaultArrangement(state.catalog));
+    els('cabinCancel').disabled = state.saving;
+    els('cabinSave').disabled = !dirty() || state.saving;
+    els('cabinSave').textContent = state.saving ? '雲端確認中…' : '儲存';
+    stage.classList.toggle('is-decorating', editing);
+    if (state.grid) {
+      stage.style.setProperty('--cabin-cell-w', `${state.grid.cellW * 100}%`);
+      stage.style.setProperty('--cabin-cell-h', `${state.grid.cellH * 100}%`);
+    }
   }
 
-  // ---------- save / revert ----------
-  els('cabinRevert').addEventListener('click', () => {
-    if (state.saving || !state.saved) return;
-    state.draft = { ...state.saved };
-    setSaveStatus('已復原成雲端目前的擺設。');
-    render();
-  });
+  function setLocked(locked) {
+    els('cabinLock').hidden = !locked;
+    const main = els('cabinMain');
+    main.inert = locked;
+    main.setAttribute('aria-busy', locked ? 'true' : 'false');
+  }
 
-  els('cabinForm').addEventListener('submit', async event => {
-    event.preventDefault();
-    if (state.saving || !state.uid || !core.isDirty(state.draft, state.saved)) return;
-    const fb = root.firebase;
-    if (!fb?.apps?.length || typeof fb.app().functions !== 'function') {
-      setSaveStatus('雲端服務尚未載入，請稍後再試。沒有保存任何變更。', 'bad');
+  function render() {
+    if (!state.catalog || !state.layout || !state.saved) return;
+    // Spots and tiles are rebuilt; keep keyboard focus on the same control.
+    const active = doc.activeElement;
+    const keep = active?.dataset?.itemKey ? { tile: active.dataset.itemKey }
+      : active?.classList?.contains?.('cabin-spot') ? { spot: active.dataset.slot } : null;
+    renderStage();
+    renderTray();
+    renderTools();
+    renderCompanion();
+    els('cabinScene').hidden = false;
+    if (keep?.spot) spotButtons().find(c => c.dataset.slot === keep.spot)?.focus?.({ preventScroll: true });
+    if (keep?.tile) {
+      const tiles = [...(els('cabinSlots').querySelectorAll?.('.cabin-tile') || [])];
+      tiles.find(c => c.dataset.itemKey === keep.tile)?.focus?.({ preventScroll: true });
+    }
+  }
+
+  // ---------- editing ----------
+  function apply(slot, index, message) {
+    if (!state.decorating || state.saving) return;
+    const next = core.choose(state.history.present, state.owned, slot, index);
+    const before = state.history;
+    state.history = layoutCore.record(state.history, next);
+    if (state.history !== before) setSaveStatus(`${message || ''}按「儲存」才會寫到雲端。`.trim());
+    render();
+  }
+
+  function cycle(slot, dir) {
+    const current = state.history.present[slot];
+    const next = layoutCore.cycleVariant(state.catalog, state.owned, slot, current, dir);
+    if (next === current) {
+      setSaveStatus(`${slotDef(slot)?.label || ''}目前只有這一款，可以到雜貨店買更多款式。`);
       return;
     }
-    const sent = core.normalizeArrangement(state.draft, state.catalog);
+    apply(slot, next, `${slotDef(slot)?.label}換成「${variantName(slot, next)}」。`);
+  }
+
+  function enterDecorate() {
+    if (state.saving || !state.saved) return;
+    state.decorating = true;
+    state.history = layoutCore.createHistory(state.saved);
+    state.remoteChangedWhileEditing = false;
+    setSaveStatus('布置模式：拖曳或點選家具，完成後按「儲存」。');
+    render();
+    els('cabinUndo').focus?.({ preventScroll: true });
+  }
+
+  function leaveDecorate(message = '') {
+    state.decorating = false;
+    state.history = layoutCore.createHistory(state.saved);
+    setSaveStatus(message);
+    render();
+    els('cabinDecorate').focus?.({ preventScroll: true });
+  }
+
+  function undoStep() {
+    if (state.saving || !layoutCore.canUndo(state.history)) return;
+    state.history = layoutCore.undo(state.history);
+    setSaveStatus('已復原上一步。');
+    render();
+  }
+  function redoStep() {
+    if (state.saving || !layoutCore.canRedo(state.history)) return;
+    state.history = layoutCore.redo(state.history);
+    setSaveStatus('已重做。');
+    render();
+  }
+  function resetToDefault() {
+    if (state.saving) return;
+    state.history = layoutCore.record(state.history, layoutCore.defaultArrangement(state.catalog));
+    setSaveStatus('已換回預設家具。按「儲存」才會寫到雲端，按「復原」可以拿回剛才的布置。');
+    render();
+  }
+  function cancelDecorate() {
+    if (state.saving) return;
+    if (dirty()) openDialog(els('cabinCancel'));
+    else leaveDecorate();
+  }
+
+  els('cabinDecorate').addEventListener('click', enterDecorate);
+  els('cabinUndo').addEventListener('click', undoStep);
+  els('cabinRedo').addEventListener('click', redoStep);
+  els('cabinReset').addEventListener('click', resetToDefault);
+  els('cabinCancel').addEventListener('click', cancelDecorate);
+  els('cabinSave').addEventListener('click', save);
+
+  doc.addEventListener('keydown', event => {
+    if (!state.decorating || state.saving || !els('cabinDialog').hidden) return;
+    const mod = event.ctrlKey || event.metaKey;
+    const key = String(event.key || '').toLowerCase();
+    if (mod && key === 'z' && !event.shiftKey) { event.preventDefault(); undoStep(); }
+    else if (mod && (key === 'y' || (key === 'z' && event.shiftKey))) { event.preventDefault(); redoStep(); }
+    else if (key === 'escape' && !drag) { event.preventDefault(); cancelDecorate(); }
+  });
+
+  // ---------- dialog ----------
+  let dialogReturn = null;
+  function openDialog(opener) {
+    dialogReturn = opener || doc.activeElement;
+    els('cabinDialog').hidden = false;
+    els('cabinDialogStay').focus?.();
+  }
+  function closeDialog() {
+    els('cabinDialog').hidden = true;
+    const back = dialogReturn;
+    dialogReturn = null;
+    if (back && !back.hidden && !back.disabled && doc.contains?.(back) !== false) back.focus?.();
+    else els('cabinDecorate').focus?.();
+  }
+  els('cabinDialogStay').addEventListener('click', closeDialog);
+  els('cabinDialogLeave').addEventListener('click', () => {
+    els('cabinDialog').hidden = true;
+    dialogReturn = null;
+    leaveDecorate('已放棄變更，小屋維持雲端的擺設。');
+  });
+  els('cabinDialog').addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); closeDialog(); }
+    if (event.key === 'Tab') {
+      // Keep focus inside the two dialog buttons.
+      const stay = els('cabinDialogStay');
+      const leave = els('cabinDialogLeave');
+      if (event.shiftKey && doc.activeElement === stay) { event.preventDefault(); leave.focus(); }
+      else if (!event.shiftKey && doc.activeElement === leave) { event.preventDefault(); stay.focus(); }
+    }
+  });
+
+  // ---------- drag ----------
+  let press = null;   // pointer down, not yet a drag
+  let drag = null;    // { slot, index, size, pointerId }
+  let swallowClick = false;
+  function consumeClick() {
+    if (!swallowClick) return false;
+    swallowClick = false;
+    return true;
+  }
+
+  function stagePoint(event) {
+    const box = stage.getBoundingClientRect();
+    return { x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height, box };
+  }
+
+  function beginPress(event, slot, index, node) {
+    if (!state.decorating || state.saving || (event.button !== undefined && event.button !== 0)) return;
+    press = { slot, index, x: event.clientX, y: event.clientY, pointerId: event.pointerId, node };
+  }
+
+  function startDrag(event) {
+    const spot = state.spots.find(s => s.slot === press.slot);
+    if (!spot) { press = null; return; }
+    drag = { slot: press.slot, index: press.index, size: [spot.rect[2], spot.rect[3]], pointerId: press.pointerId, target: null };
+    try { press.node?.setPointerCapture?.(press.pointerId); } catch { /* ignore */ }
+    press = null;
+    const ghost = els('cabinGhost');
+    const img = ghost.querySelector?.('img') || ghost.children?.[0];
+    if (img) img.src = imageFor(drag.slot, drag.index);
+    ghost.hidden = false;
+    stage.classList.add('is-dragging');
+    spotButtons().forEach(b => {
+      b.classList.toggle('is-goal', b.dataset.slot === drag.slot);
+    });
+    moveDrag(event);
+  }
+
+  function moveDrag(event) {
+    const point = stagePoint(event);
+    const rect = layoutCore.rectAt(point, drag.size, state.grid);
+    drag.target = layoutCore.dropTarget(state.spots, drag.slot, rect);
+    const ghost = els('cabinGhost');
+    place(ghost, rect);
+    ghost.dataset.ok = drag.target.ok ? 'true' : 'false';
+  }
+
+  function endDrag(cancelled) {
+    const done = drag;
+    drag = null;
+    els('cabinGhost').hidden = true;
+    stage.classList.remove('is-dragging');
+    spotButtons().forEach(b => b.classList.remove('is-goal'));
+    if (!done || cancelled) return;
+    const label = slotDef(done.slot)?.label || '';
+    const name = variantName(done.slot, done.index);
+    const t = done.target;
+    if (t?.ok) apply(done.slot, done.index, `${label}換成「${name}」。`);
+    else if (t?.reason === 'occupied') setSaveStatus(`那裡是${t.byLabel}的位置，放不下${label}。${label}只能放在發光的格子。`, 'bad');
+    else setSaveStatus(`${label}只能放在房間裡發光的位置，已放回原處。`, 'bad');
+  }
+
+  root.addEventListener('pointermove', event => {
+    if (press && event.pointerId === press.pointerId &&
+      Math.hypot(event.clientX - press.x, event.clientY - press.y) >= DRAG_START_PX) startDrag(event);
+    else if (drag && event.pointerId === drag.pointerId) moveDrag(event);
+  });
+  root.addEventListener('pointerup', event => {
+    if (press && event.pointerId === press.pointerId) press = null;
+    if (drag && event.pointerId === drag.pointerId) {
+      // The click that follows this pointerup belongs to the drag, not a pick.
+      swallowClick = true;
+      root.setTimeout?.(() => { swallowClick = false; }, 0);
+      endDrag(false);
+    }
+  });
+  root.addEventListener('pointercancel', () => { press = null; if (drag) endDrag(true); });
+
+  // ---------- save ----------
+  async function save() {
+    if (state.saving || !state.uid || !dirty()) return;
+    const fb = root.firebase;
+    if (!fb?.apps?.length || typeof fb.app().functions !== 'function') {
+      setSaveStatus('雲端服務尚未載入，請稍後再試。沒有儲存任何變更。', 'bad');
+      return;
+    }
+    const sent = core.normalizeArrangement(state.history.present, state.catalog);
     const key = JSON.stringify(sent);
     // Same arrangement after an unknown outcome: reuse the id so Cloud replays it.
     const id = state.pending?.key === key ? state.pending.id : core.newRequestId(Date.now());
     state.pending = { id, key };
     state.saving = true;
     const own = state.generation;
-    setSaveStatus('保存中…');
+    setSaveStatus('雲端確認中…');
+    setLocked(true);
     render();
     try {
       const call = fb.app().functions('asia-east1').httpsCallable('arrangeHomeDecor');
@@ -172,38 +457,164 @@
       if (!core.validArrangeResult(response?.data, sent)) throw Object.assign(new Error('mismatch'), { code: 'unknown' });
       state.pending = null;
       state.saved = { ...sent };
-      setSaveStatus(response.data.replayed ? '這個擺設已經保存過了。' : '已保存到雲端，其他裝置也會看到。', 'ok');
+      state.saving = false;
+      setLocked(false);
+      leaveDecorate(response.data.replayed ? '這個擺設已經儲存過了。' : '已儲存到雲端，其他裝置也會看到一樣的擺設。');
+      els('cabinSaveStatus').dataset.tone = 'ok';
     } catch (error) {
       if (own !== state.generation) return;
       const failure = core.arrangeError(error);
       if (failure.saved === 'no') state.pending = null;
-      setSaveStatus(failure.message, 'bad');
-    } finally {
-      if (own === state.generation) {
-        state.saving = false;
-        render();
-      }
+      state.saving = false;
+      setLocked(false);
+      // Show what Cloud has; the attempt stays one 「復原」 away for a retry.
+      state.history = layoutCore.record(state.history, state.saved);
+      setSaveStatus(`${failure.message} 小屋已還原成雲端的擺設，按「復原」可以拿回剛才的布置。`, 'bad');
+      render();
     }
+  }
+
+  // ---------- companion ----------
+  const brain = pal.createBrain();
+  let lastFrame = 0;
+  let frameHandle = 0;
+  let bubbleTimer = 0;
+  let night = false;
+
+  function face() {
+    const f = Number(state.data?.avatarProfile?.faceShapeIndex);
+    return Number.isInteger(f) && f >= 0 ? f : 0;
+  }
+
+  function focusing() {
+    if (!state.uid) return false;
+    try { return pal.deskFocusing(root.localStorage?.getItem(`${DESK_KEY}${state.uid}`)); } catch { return false; }
+  }
+
+  function updateActivity() {
+    const hour = new Date().getHours();
+    const wanted = pal.wantedActivity({ focusing: focusing(), hour });
+    night = wanted === 'rest' || hour >= 22 || hour < 6;
+    brain.setActivity(wanted);
+    if (reducedMotion()) brain.settle();
+    els('cabinNight').hidden = !night;
+  }
+
+  function renderCompanion() {
+    if (!state.layout) return;
+    const button = els('cabinCompanion');
+    const img = els('cabinCharacter');
+    const p = brain.position;
+    const height = state.layout.character?.rect?.[3] || 0.245;
+    const pose = brain.pose;
+    const sprite = pal.spriteFor(face(), pose, brain.stepPhase);
+    if (img.getAttribute('src') !== sprite.src) img.setAttribute('src', sprite.src);
+    button.style.left = `${p.x * 100}%`;
+    button.style.top = `${p.y * 100}%`;
+    button.style.height = `${height * 100}%`;
+    button.dataset.pose = pose;
+    button.dataset.flip = brain.facingLeft && sprite.kind === 'walk' ? 'true' : 'false';
+    button.style.zIndex = String(p.y > 0.7 ? 7 : 6);
+    button.tabIndex = state.decorating ? -1 : 0;
+    els('cabinGlyph').textContent = pose === 'sleep' ? 'Z z' : pose === 'read' ? '✦' : pose === 'cheer' ? '★ ★' : '';
+    const bubble = els('cabinBubble');
+    if (!bubble.hidden) {
+      bubble.style.left = `${Math.min(0.78, Math.max(0.22, p.x)) * 100}%`;
+      bubble.style.top = `${Math.max(0.05, p.y - height - 0.02) * 100}%`;
+    }
+  }
+
+  function loop(now) {
+    frameHandle = 0;
+    const dt = lastFrame ? (now - lastFrame) / 1000 : 0;
+    lastFrame = now;
+    brain.tick(dt);
+    renderCompanion();
+    schedule();
+  }
+
+  function schedule() {
+    if (frameHandle || reducedMotion() || doc.hidden || typeof root.requestAnimationFrame !== 'function') return;
+    frameHandle = root.requestAnimationFrame(loop);
+  }
+
+  function stopLoop() {
+    if (frameHandle && typeof root.cancelAnimationFrame === 'function') root.cancelAnimationFrame(frameHandle);
+    frameHandle = 0;
+    lastFrame = 0;
+  }
+
+  function say(text) {
+    const bubble = els('cabinBubble');
+    bubble.textContent = text;
+    bubble.hidden = false;
+    renderCompanion();
+    if (bubbleTimer) root.clearTimeout?.(bubbleTimer);
+    bubbleTimer = root.setTimeout?.(() => { bubble.hidden = true; bubbleTimer = 0; }, 2600) || 0;
+  }
+
+  els('cabinCompanion').addEventListener('click', event => {
+    event.stopPropagation?.();
+    if (state.decorating) return;
+    brain.poke();
+    const button = els('cabinCompanion');
+    if (!reducedMotion()) {
+      button.classList.remove('is-jump');
+      void button.offsetWidth; // restart the hop
+      button.classList.add('is-jump');
+    }
+    say(pal.lineFor(brain.activity));
+    renderCompanion();
+    schedule();
   });
+  els('cabinCompanion').addEventListener('animationend', () => els('cabinCompanion').classList.remove('is-jump'));
+
+  stage.addEventListener('click', event => {
+    if (state.decorating || event.target !== stage && !String(event.target?.className || '').includes('cabin-layer')) return;
+    const point = stagePoint(event);
+    if (reducedMotion()) return;
+    if (brain.walkTo(point)) schedule();
+  });
+
+  doc.addEventListener('visibilitychange', () => {
+    if (doc.hidden) stopLoop();
+    else { updateActivity(); schedule(); }
+  });
+  root.addEventListener('storage', event => {
+    if (state.uid && event.key === `${DESK_KEY}${state.uid}`) { updateActivity(); renderCompanion(); schedule(); }
+  });
+  try {
+    root.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener?.('change', () => {
+      if (reducedMotion()) { stopLoop(); brain.settle(); renderCompanion(); } else schedule();
+    });
+  } catch { /* old browsers */ }
+  root.setInterval?.(() => { updateActivity(); renderCompanion(); schedule(); }, 60 * 1000);
 
   // ---------- account ----------
   function applyUser(data) {
     state.data = data || {};
     state.owned = core.ownedVariants(state.catalog, state.data.unlockedAvatarItems);
     const remote = core.visibleArrangement(state.data.homeDecor, state.catalog, state.owned);
-    const hadDraft = state.draft && state.saved && core.isDirty(state.draft, state.saved);
     const remoteChanged = state.saved && core.isDirty(remote, state.saved);
     state.saved = remote;
-    if (!hadDraft) state.draft = { ...remote };
-    else if (remoteChanged && !state.saving) {
-      setSaveStatus('另一台裝置更新了擺設。按「復原成雲端版本」可以改看雲端的擺設。');
+    if (!state.decorating || !state.history) {
+      state.history = layoutCore.createHistory(remote);
+    } else {
+      // Never keep a variant that stopped being owned (e.g. a refund).
+      const kept = core.visibleArrangement(state.history.present, state.catalog, state.owned);
+      if (!layoutCore.same(kept, state.history.present)) state.history = layoutCore.record(state.history, kept);
+      if (remoteChanged && !state.saving) {
+        setSaveStatus('另一台裝置更新了擺設。按「離開布置」放棄變更，就會看到雲端的擺設。');
+      }
     }
-    // A variant can stop being owned (e.g. a refund); never keep it in the draft.
-    state.draft = core.visibleArrangement(state.draft, state.catalog, state.owned);
     const coins = Number(state.data.disciplineCoins);
-    els('cabinCoins').textContent = Number.isSafeInteger(coins) ? `自律幣 ${coins}` : '自律幣 —';
+    const chip = els('cabinCoins');
+    chip.textContent = Number.isSafeInteger(coins) ? `自律幣 ${coins}` : '自律幣 —';
+    chip.className = 'w-chip is-ok';
     setStatus('這是你的小屋。家具和擺設都來自雲端帳本。');
+    updateActivity();
     render();
+    schedule();
   }
 
   function start() {
@@ -214,7 +625,11 @@
         const own = ++state.generation;
         unsubscribeUser?.();
         unsubscribeUser = null;
-        Object.assign(state, { uid: user?.uid || null, saved: null, draft: null, data: null, saving: false, pending: null });
+        Object.assign(state, {
+          uid: user?.uid || null, saved: null, history: null, data: null,
+          saving: false, pending: null, decorating: false,
+        });
+        setLocked(false);
         els('cabinScene').hidden = true;
         if (!user) {
           setStatus('請先登入，小屋只顯示你自己的夥伴和家具。');
@@ -234,6 +649,6 @@
   }
 
   doc.addEventListener('firebase-ready', start);
-  root.addEventListener('pagehide', () => { ++state.generation; unsubscribeUser?.(); unsubscribeUser = null; });
+  root.addEventListener('pagehide', () => { ++state.generation; stopLoop(); unsubscribeUser?.(); unsubscribeUser = null; });
   start();
 })(typeof globalThis !== 'undefined' ? globalThis : this);

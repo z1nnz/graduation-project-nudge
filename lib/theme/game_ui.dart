@@ -100,6 +100,64 @@ class GameTheme {
         ),
       );
 
+  /// Wooden title bar with the pixel font, on every page.
+  static AppBarTheme appBar() => const AppBarTheme(
+    backgroundColor: Color(0xFF5A3826),
+    foregroundColor: Color(0xFFFFE6A3),
+    surfaceTintColor: Colors.transparent,
+    centerTitle: false,
+    elevation: 0,
+    scrolledUnderElevation: 2,
+    titleTextStyle: TextStyle(
+      fontFamily: 'Cubic11',
+      fontSize: 22,
+      color: Color(0xFFFFE6A3),
+    ),
+  );
+
+  static TabBarThemeData tabBar() => const TabBarThemeData(
+    labelColor: Color(0xFFFFE6A3),
+    unselectedLabelColor: Color(0xFFD8BFA8),
+    indicatorColor: GamePalette.gold,
+    labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+  );
+
+  static ChipThemeData chips({required bool dark}) {
+    final p = dark ? GamePalette.dark : GamePalette.light;
+    return ChipThemeData(
+      backgroundColor: p.panel,
+      selectedColor: GamePalette.gold,
+      side: BorderSide(color: p.panelBorder, width: 1.5),
+      labelStyle: TextStyle(color: p.ink, fontWeight: FontWeight.w800),
+      shape: const StadiumBorder(),
+    );
+  }
+
+  static InputDecorationTheme inputs({required bool dark}) {
+    final p = dark ? GamePalette.dark : GamePalette.light;
+    OutlineInputBorder border(Color color, [double width = 1.5]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: color, width: width),
+        );
+    return InputDecorationTheme(
+      filled: true,
+      fillColor: dark ? const Color(0xFF2A1A12) : const Color(0xFFFFFBF2),
+      hintStyle: TextStyle(color: p.inkMuted.withValues(alpha: 0.8)),
+      labelStyle: TextStyle(color: p.inkMuted),
+      border: border(p.panelBorder),
+      enabledBorder: border(p.panelBorder),
+      focusedBorder: border(GamePalette.goldDeep, 2.5),
+    );
+  }
+
+  static PageTransitionsTheme pageTransitions() => PageTransitionsTheme(
+    builders: {
+      for (final platform in TargetPlatform.values)
+        platform: const GameDoorTransitionsBuilder(),
+    },
+  );
+
   /// Gold primary buttons, like the HUD and result screens.
   static ElevatedButtonThemeData primaryButton() => ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
@@ -312,6 +370,37 @@ class GameChip extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w800,
         ),
+      ),
+    );
+  }
+}
+
+/// Pages settle in softly (fade + a slight grow), like stepping through a
+/// door, instead of the stock slide. Shared by every route in the app.
+class GameDoorTransitionsBuilder extends PageTransitionsBuilder {
+  const GameDoorTransitionsBuilder();
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 260);
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+        child: child,
       ),
     );
   }

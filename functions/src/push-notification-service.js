@@ -7,7 +7,10 @@ import {
   NOTIFICATION_PREFERENCE_SCHEMA_VERSION,
 } from "./notification-preference-service.js";
 
-const PUSH_PLATFORM_KEYS = new Set(["android", "ios"]);
+import { webPushAllowed } from "./web-push-preferences.js";
+
+const WEB_EXPIRY_MS = 45 * 24 * 60 * 60 * 1000;
+const PUSH_PLATFORM_KEYS = new Set(["android", "ios", "web"]);
 const INVALID_TOKEN_CODES = new Set([
   "messaging/invalid-argument",
   "messaging/invalid-registration-token",
@@ -98,7 +101,7 @@ export function normalizePushInstallationRequest(data) {
   };
 }
 
-export function createUpdatePushInstallationHandler({ firestore, clock }) {
+export function createUpdatePushInstallationHandler({ firestore, clock, expireWebOnly = false }) {
   return async request => {
     const userId = request.auth?.uid;
     if (!userId) {
@@ -149,6 +152,11 @@ export function createUpdatePushInstallationHandler({ firestore, clock }) {
           transaction.get(stateRef),
           transaction.get(preferenceRef),
         ]);
+      if (expireWebOnly) {
+        const installation = installationSnapshot.data();
+        if (installation?.platform !== "web" || installation.status !== "active" ||
+            !installation.webExpiresAt || installation.webExpiresAt > timestamp) return null;
+      }
       const activeInstallationIds = new Set(
         normalizeActiveInstallationIds(
           stateSnapshot.exists
@@ -166,11 +174,18 @@ export function createUpdatePushInstallationHandler({ firestore, clock }) {
       let displacedPreferenceRef = null;
       let displacedPreferenceSnapshot = null;
       let tokenHash = "";
+      let previousClaim;
+      let previousClaimRef;
 
       if (input.action === "register") {
         tokenHash = sha256(input.token);
         claimRef = firestore.collection("push_token_claims").doc(tokenHash);
         claimSnapshot = await transaction.get(claimRef);
+        const oldHash = normalizedString(installationSnapshot.data()?.tokenHash);
+        if (oldHash && oldHash !== tokenHash) {
+          previousClaimRef = firestore.collection("push_token_claims").doc(oldHash);
+          previousClaim = (await transaction.get(previousClaimRef)).data();
+        }
         if (claimSnapshot.exists) {
           const claim = claimSnapshot.data();
           const displacedUserId = normalizedString(claim.userId);
@@ -255,12 +270,16 @@ export function createUpdatePushInstallationHandler({ firestore, clock }) {
       }
 
       if (input.action === "register") {
+        if (previousClaim?.userId === userId && previousClaim.installationId === input.installationId) {
+          transaction.delete(previousClaimRef);
+        }
         activeInstallationIds.add(input.installationId);
         transaction.set(installationRef, {
           schemaVersion: 1,
           userId,
           installationId: input.installationId,
           platform: input.platform,
+          ...(input.platform === "web" ? { webExpiresAt: new Date(Date.parse(timestamp) + WEB_EXPIRY_MS).toISOString() } : {}),
           token: input.token,
           tokenHash,
           status: "active",
@@ -287,7 +306,7 @@ export function createUpdatePushInstallationHandler({ firestore, clock }) {
             platform: normalizedString(existing.platform),
             tokenHash: normalizedString(existing.tokenHash),
             status: "revoked",
-            revokedReason: "user_action",
+            revokedReason: expireWebOnly ? "web_expired" : "user_action",
             revokedAt: timestamp,
             updatedAt: timestamp,
           });
@@ -372,6 +391,7 @@ export function buildPushDeliveryJob(notification) {
     title: notification.title,
     body: notification.body,
     route: notification.route,
+    ...(notification.roomId ? { roomId: notification.roomId } : {}),
     status: "pending",
     attemptCount: 0,
     createdAt: notification.createdAt,
@@ -551,9 +571,10 @@ export function createDeliverPushJobHandler({
     const preferenceRef = firestore
       .collection("notification_preferences")
       .doc(recipientUserId);
-    const [stateSnapshot, preferenceSnapshot] = await Promise.all([
+    const [stateSnapshot, preferenceSnapshot, webPreferences] = await Promise.all([
       stateRef.get(),
       preferenceRef.get(),
+      firestore.collection("web_push_preferences").doc(recipientUserId).get(),
     ]);
     const state = stateSnapshot.exists ? stateSnapshot.data() : null;
     const preferences = preferenceSnapshot.exists
@@ -629,7 +650,10 @@ export function createDeliverPushJobHandler({
     ).filter(
       installation =>
         installation.data?.status === "active" &&
-        normalizedString(installation.data?.token),
+        normalizedString(installation.data?.token) &&
+        (installation.data.platform !== "web" ? !job.webOnly :
+          installation.data.webExpiresAt > attemptStartedAt.toISOString() &&
+          webPushAllowed(webPreferences.data(), job.kind, attemptStartedAt)),
     );
 
     const identityIds = [...new Set([
@@ -720,32 +744,42 @@ export function createDeliverPushJobHandler({
 
     let response;
     try {
-      response = await messaging.sendEachForMulticast({
-        tokens: installations.map(installation => installation.data.token),
-        notification: {
-          title: normalizedString(job.title),
-          body: normalizedString(job.body),
-        },
-        data: {
-          notificationId: normalizedString(job.notificationId),
-          category: normalizedString(job.category),
-          kind: normalizedString(job.kind),
-          route: normalizedString(job.route),
-        },
-        android: {
-          priority: "high",
-          notification: {
-            channelId: "nudge_relationship_updates",
-          },
-        },
-        apns: {
-          payload: {
-            aps: {
-              sound: "default",
-            },
-          },
-        },
+      const native = [];
+      const web = [];
+      installations.forEach((installation, index) => {
+        (installation.data.platform === "web" ? web : native).push({ installation, index });
       });
+      const responses = Array(installations.length);
+      const settings = {
+        notificationId: normalizedString(job.notificationId),
+        category: normalizedString(job.category),
+        kind: normalizedString(job.kind),
+        route: normalizedString(job.route),
+      };
+      const send = async (group, payload) => {
+        if (!group.length) return;
+        const result = await messaging.sendEachForMulticast({
+          tokens: group.map(item => item.installation.data.token),
+          ...payload,
+        });
+        result.responses.forEach((entry, directionIndex) => {
+          responses[group[directionIndex].index] = entry;
+        });
+      };
+      await Promise.all([
+        send(native, {
+          notification: { title: normalizedString(job.title), body: normalizedString(job.body) },
+          data: settings,
+          android: { priority: "high", notification: { channelId: "nudge_relationship_updates" } },
+          apns: { payload: { aps: { sound: "default" } } },
+        }),
+        send(web, {
+          data: { ...settings, roomId: normalizedString(job.roomId) },
+          webpush: { headers: { TTL: "300", Urgency: "normal" } },
+        }),
+      ]);
+      const successCount = responses.filter(item => item?.success).length;
+      response = { responses, successCount, failureCount: installations.length - successCount };
     } catch (error) {
       const attemptedAt = clock().toISOString();
       const attemptCount = job.attemptCount;
@@ -928,5 +962,27 @@ export function createDeliverPushJobHandler({
       jobId,
     });
     return result;
+  };
+}
+
+export function createCleanupWebPushHandler({ firestore, clock }) {
+  const revoke = createUpdatePushInstallationHandler({ firestore, clock, expireWebOnly: true });
+  return async () => {
+    const cutoff = clock().toISOString();
+    for (;;) {
+      const batch = await firestore.collection("push_installations")
+        .where("webExpiresAt", "<=", cutoff).limit(100).get();
+      if (batch.empty) break;
+      for (const entry of batch.docs) {
+        const data = entry.data();
+        await revoke({
+          auth: { uid: data.userId },
+          data: {
+            action: "revoke", installationId: data.installationId,
+            clientRequestId: "web-expire-" + sha256(entry.id + data.webExpiresAt).slice(0, 30),
+          },
+        });
+      }
+    }
   };
 }

@@ -217,3 +217,298 @@
   .w-main { width: calc(100% - 24px); }
   .w-btn { width: 100%; }
 }
+
+/* Legacy player pages keep their existing data bindings while the town takes
+ * over navigation. Scope these rules so workbenches awaiting conversion keep
+ * working with styles.css. */
+body.world-page {
+  --bg: var(--w-night);
+  --bg-2: var(--w-wood-deep);
+  --surface: var(--w-wood-deep);
+  --surface-strong: var(--w-wood-dark);
+  --surface-soft: var(--w-parchment);
+  --line: var(--w-frame);
+  --text: var(--w-ink);
+  --muted: var(--w-parchment);
+  --faint: var(--w-ink-soft);
+  --accent: var(--w-gold);
+  --accent-2: var(--w-violet);
+  --blue: var(--w-violet);
+  --green: var(--w-green);
+  --orange: var(--w-gold-deep);
+  --pink: var(--w-violet);
+  --red: var(--w-red);
+  --shadow: var(--w-shadow);
+  --page-accent: var(--w-gold);
+  --page-accent-2: var(--w-violet);
+  --page-wash: var(--w-wood-dark);
+  background: linear-gradient(var(--w-dusk-top), var(--w-night)) fixed;
+  color: var(--w-ink);
+  font-family: var(--w-text);
+}
+body.world-page::before { display: none; }
+body.world-page .w-hud { position: relative; z-index: 10; min-height: 58px; }
+body.world-page .w-hud a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  text-decoration: none;
+}
+body.world-page .w-hud a:focus-visible,
+body.world-page a:focus-visible,
+body.world-page button:focus-visible,
+body.world-page select:focus-visible,
+body.world-page textarea:focus-visible {
+  outline: 3px solid var(--w-gold);
+  outline-offset: 2px;
+}
+body.world-page .world-shell { min-height: calc(100vh - 58px); position: relative; }
+body.world-page .main.w-main {
+  width: min(1120px, calc(100% - 32px));
+  max-width: none;
+  margin: 0 auto;
+  padding: 28px 0 64px;
+  position: relative;
+  z-index: 1;
+}
+body.world-page h1,
+body.world-page h2,
+body.world-page h3,
+body.world-page .eyebrow,
+body.world-page .button,
+body.world-page .hero-card strong { font-family: var(--w-pixel); }
+body.world-page h1 { color: var(--w-gold); }
+body.world-page .eyebrow { color: var(--w-gold); letter-spacing: .04em; }
+body.world-page .hero,
+body.world-page .panel,
+body.world-page .tool-panel,
+body.world-page .hero-card,
+body.world-page .generated-card,
+body.world-page .focus-timer-container,
+body.world-page .fb-cover-card,
+body.world-page .insight-strip {
+  color: var(--w-ink);
+  background: linear-gradient(160deg, var(--w-wood-dark), var(--w-wood-deep));
+  border: 3px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  box-shadow: var(--w-shadow);
+  backdrop-filter: none;
+}
+body.world-page .hero::before,
+body.world-page .hero::after,
+body.world-page .panel::after { display: none; }
+body.world-page .hero { padding: clamp(20px, 4vw, 40px); }
+body.world-page .hero > div { min-width: 0; }
+body.world-page .hero h1 { overflow-wrap: anywhere; }
+body.world-page .hero-card,
+body.world-page .generated-card {
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  border-color: var(--w-wood);
+}
+body.world-page .hero-card strong {
+  color: var(--w-ink-dark);
+  font-size: clamp(24px, 5vw, 48px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+body.world-page .hero-card p,
+body.world-page .generated-card p { color: var(--w-ink-soft); }
+body.world-page .button,
+body.world-page .shop-tab-btn,
+body.world-page .subnav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 2px solid var(--w-wood-deep);
+  border-radius: var(--w-radius);
+  background: var(--w-wood);
+  color: var(--w-ink);
+  box-shadow: var(--w-shadow);
+  text-decoration: none;
+  text-shadow: none;
+  transition: transform .16s ease-out, filter .16s ease-out;
+}
+body.world-page .button:hover,
+body.world-page .shop-tab-btn:hover,
+body.world-page .subnav a:hover { filter: brightness(1.12); }
+body.world-page .button.primary,
+body.world-page .shop-tab-btn.active,
+body.world-page .subnav a.active {
+  background: var(--w-gold);
+  color: var(--w-ink-dark);
+}
+body.world-page button:disabled { opacity: .55; cursor: not-allowed; }
+body.world-page input,
+body.world-page select,
+body.world-page textarea {
+  min-height: 44px;
+  background: var(--w-parchment-hi);
+  color: var(--w-ink-dark);
+  border: 2px solid var(--w-wood);
+  border-radius: var(--w-radius);
+}
+body.world-page .page-section { margin-block: 16px; }
+body.world-page .subnav { gap: 8px; }
+body.world-page .town-entry { color: var(--w-ink); }
+body.world-page .town-entry { flex-wrap: wrap; }
+body.world-page .town-entry span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+body.world-page .town-entry img { flex: none; }
+body.world-page[data-page="home"] #dailyActionTitle { color: var(--w-ink-dark); }
+body.world-page[data-page="home"] #dailyActionStatus,
+body.world-page[data-page="home"] #dailyActivityFeedback { color: var(--w-ink-soft); }
+body.world-page[data-page="home"] [aria-labelledby="dailyActionTitle"] {
+  max-width: 760px;
+  margin-inline: auto;
+  padding: clamp(22px, 4vw, 42px);
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  border: 12px solid var(--w-wood);
+  outline: 3px solid var(--w-frame);
+  text-align: center;
+  transform: rotate(-.35deg);
+}
+body.world-page[data-page="home"] .hero-orbit { display: none; }
+body.world-page .quest-slip-grid,
+body.world-page .town-service-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 14px;
+}
+body.world-page .quest-slip {
+  display: grid;
+  gap: 8px;
+  min-height: 120px;
+  padding: 20px;
+  border: 3px solid var(--w-wood);
+  border-radius: var(--w-radius);
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  text-decoration: none;
+  box-shadow: var(--w-shadow);
+  transform: rotate(.25deg);
+  transition: transform .18s ease-out;
+}
+body.world-page .quest-slip:nth-child(even) { transform: rotate(-.35deg); }
+body.world-page .quest-slip:hover { transform: translateY(-3px); }
+body.world-page .quest-slip strong { font: 400 22px var(--w-pixel); }
+body.world-page .town-service-links a {
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 2px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  color: var(--w-ink);
+  text-decoration: none;
+}
+body.world-page[data-page="personal"] .focus-timer-section {
+  min-height: 380px;
+  padding: 24px;
+  background: url("home/room_base.png") center / cover no-repeat;
+  border: 3px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  image-rendering: pixelated;
+}
+body.world-page[data-page="personal"] .focus-timer-container {
+  width: min(100%, 560px);
+  padding: clamp(20px, 4vw, 44px);
+  background: var(--w-wood-deep);
+}
+body.world-page[data-page="personal"] .timer-display {
+  font: 400 clamp(54px, 12vw, 100px) / 1 var(--w-pixel);
+  color: var(--w-gold);
+  text-shadow: 0 4px var(--w-wood-deep);
+}
+body.world-page[data-page="personal"] .timer-controls { flex-wrap: wrap; gap: 12px; }
+body.world-page[data-page="personal"] .focus-presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+body.world-page[data-page="personal"] .focus-presets [aria-pressed="true"] {
+  background: var(--w-gold);
+  color: var(--w-ink-dark);
+}
+body.world-page[data-page="personal"] .focus-settlement {
+  margin: 20px auto 0;
+  padding: 14px;
+  border: 2px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+}
+body.world-page .focus-ambient { display: none; }
+body.world-page[data-page="planet"] .planet-hero {
+  background: linear-gradient(var(--w-wood-dark), var(--w-wood-deep));
+}
+body.world-page[data-page="planet"] .planet-stage {
+  border: 12px solid var(--w-wood);
+  outline: 3px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  overflow: hidden;
+  box-shadow: var(--w-shadow);
+}
+body.world-page[data-page="planet"] .starfield { opacity: .28; }
+body.world-page[data-page="operations"] .shop-grid { gap: 16px; }
+body.world-page[data-page="operations"] .shop-grid > * {
+  border-color: var(--w-frame);
+  border-radius: var(--w-radius);
+}
+body.world-page[data-page="profile"] .fb-cover-banner {
+  background: linear-gradient(120deg, var(--w-dusk-top), var(--w-wood));
+  border-bottom: 3px solid var(--w-frame);
+}
+body.world-page[data-page="profile"] .glowing-orb { display: none; }
+body.world-page[data-page="profile"] .fb-avatar {
+  border: 5px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  background: var(--w-wood-dark);
+  image-rendering: pixelated;
+}
+body.world-page[data-page="profile"] .fb-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+body.world-page[data-page="profile"] .fb-profile-actions .button {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+body.world-page[data-page="profile"] .fb-card,
+body.world-page[data-page="profile"] .fb-create-post-card {
+  border: 3px solid var(--w-frame);
+  border-radius: var(--w-radius);
+  background: var(--w-wood-deep);
+  color: var(--w-ink);
+  box-shadow: var(--w-shadow);
+}
+body.world-page[data-page="privacy"] [data-privacy-request-deletion],
+body.world-page[data-page="privacy"] [data-privacy-revoke] {
+  border-color: var(--w-red);
+}
+@media (max-width: 600px) {
+  body.world-page .main.w-main { width: calc(100% - 24px); padding-top: 16px; }
+  body.world-page .hero { padding: 18px; }
+  body.world-page .button { width: auto; }
+  body.world-page .timer-controls .button { width: 100%; }
+  body.world-page .w-hud h1 { font-size: 18px; }
+  body.world-page[data-page="profile"] .fb-profile-actions { justify-content: center; padding: 8px; }
+  body.world-page[data-page="profile"] .fb-profile-actions .button { width: 100%; }
+  body.world-page[data-page="profile"] .fb-profile-header-bar { gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.world-page .button,
+  body.world-page .shop-tab-btn,
+  body.world-page .subnav a,
+  body.world-page .quest-slip { transition: none; }
+}

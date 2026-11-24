@@ -51,6 +51,33 @@ class _NudgeDevicePageState extends State<NudgeDevicePage> {
 
   void _onDeviceChanged() {
     if (mounted) setState(() {});
+    unawaited(_deliverHugs());
+  }
+
+  bool _deliveringHugs = false;
+
+  /// Hugs friends sent while the device was away are played one by one
+  /// once it is connected, then marked as read.
+  Future<void> _deliverHugs() async {
+    final coordinator = _coordinator;
+    if (_deliveringHugs || coordinator == null || !mounted) return;
+    _deliveringHugs = true;
+    try {
+      final appState = context.read<AppState>();
+      final pending = appState.userNotifications
+          .where((n) => n.kind == 'device_hug' && n.isUnread)
+          .toList();
+      for (final hug in pending) {
+        if (!await coordinator.sendHug()) break;
+        await appState.markUserNotificationRead(hug.id);
+        await Future<void>.delayed(const Duration(milliseconds: 3200));
+        if (!mounted) break;
+      }
+    } catch (error) {
+      debugPrint('Hug delivery deferred: $error');
+    } finally {
+      _deliveringHugs = false;
+    }
   }
 
   Future<void> _refreshPendingCloudEvents() async {

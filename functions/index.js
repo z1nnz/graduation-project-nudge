@@ -1,3 +1,11 @@
+import { createBuddyHandler, createBuddyReminder } from "./src/buddy-service.js";
+import { createThanksCardHandler } from "./src/thanks-card-service.js";
+import { createJournalHandler, createJournalCleanup } from "./src/exchange-journal-service.js";
+import { createClubHandler } from "./src/club-service.js";
+import { createTownEventPreferences, createTownEventSchedule } from "./src/town-event-service.js";
+import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
+import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
+import { createSocialSafetyHandler } from "./src/social-safety-service.js";
 import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
@@ -12,16 +20,25 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import {
   onDocumentCreatedWithAuthContext,
   onDocumentUpdatedWithAuthContext,
+  onDocumentUpdated,
+  onDocumentWritten,
   onDocumentCreated,
 } from "firebase-functions/v2/firestore";
 
+import { createRoomChatMentionHandler } from "./src/room-chat-mention.js";
 import { ActivityLedgerService } from "./src/activity-ledger-service.js";
+import {
+  createFamilyGardenHandler, createDueFamilyLettersHandler, createCompletedGoalLetterHandler,
+} from "./src/family-garden-service.js";
+import { createUpdateWebPushPreferencesHandler } from "./src/web-push-preferences.js";
+import { createQueueWebSocialPushHandler, createFocusRoundWebPushHandler } from "./src/web-push-events.js";
 import { createManageGrowthDocumentHandler } from "./src/growth-document-service.js";
 import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
 import { createIngestHealthSnapshotsHandler } from "./src/ingest-health-snapshots-handler.js";
 import { createRecordActivityHandler } from "./src/record-activity-handler.js";
 import { createRefreshRelationshipOutcomeHandler } from "./src/relationship-outcome-service.js";
+import { createCleanupRoomVoiceHandler, createLeaveRoomVoiceHandler } from "./src/room-voice-service.js";
 import { createManageRoomResonanceHandler } from "./src/room-resonance-service.js";
 import {
   createRefreshDisciplineIdentityHandler,
@@ -31,6 +48,7 @@ import {
   createHealthConsentChecker,
   createRecordPrivacyConsentHandler,
 } from "./src/privacy-consent-service.js";
+import { createManageFriendPresenceHandler } from "./src/friend-presence-service.js";
 import { createUpdateNotificationPreferencesHandler } from "./src/notification-preference-service.js";
 import {
   createMarkNotificationReadHandler,
@@ -41,9 +59,12 @@ import { createManageCatalogItemHandler } from "./src/catalog-management-service
 import { createManageDeviceAssignmentHandler } from "./src/device-assignment-service.js";
 import { createPurchaseRewardItemHandler } from "./src/reward-purchase-service.js";
 import { createEquipRewardAvatarHandler } from "./src/reward-avatar-service.js";
+import { createFriendCabinVisitHandler } from "./src/friend-cabin-visit.js";
+import { createDeviceHugHandler } from "./src/device-hug.js";
 import { createArrangeHomeDecorHandler } from "./src/home-decor-service.js";
 import {
   createDeliverPushJobHandler,
+  createCleanupWebPushHandler,
   createUpdatePushInstallationHandler,
 } from "./src/push-notification-service.js";
 import {
@@ -768,6 +789,81 @@ export const notifyGroupRequestUpdated =
     handleGroupRequestUpdated,
   );
 
+export const manageFriendPresence = onCall(
+  { timeoutSeconds: 10, memory: "256MiB" },
+  createManageFriendPresenceHandler(getFirestore()),
+);
+
+export const notifyRoomChatMention = onDocumentCreated(
+  { document: "rooms/{roomId}/messages/{messageId}", retry: true },
+  createRoomChatMentionHandler(getFirestore()),
+);
+
+export const getFocusRoundServerTime = onCall(
+  { timeoutSeconds: 5, memory: "256MiB" },
+  request => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Sign-in is required.");
+    return { serverMillis: Date.now() };
+  },
+);
+
+export const manageFriendCabinVisit = onCall(
+  { timeoutSeconds: 15, memory: "256MiB" },
+  createFriendCabinVisitHandler(getFirestore()),
+);
+
+export const sendDeviceHug = onCall(
+  { timeoutSeconds: 10, memory: "256MiB" },
+  createDeviceHugHandler(getFirestore()),
+);
+
+export const leaveRoomVoice = onCall(
+  { timeoutSeconds: 10, memory: "256MiB" },
+  createLeaveRoomVoiceHandler(getFirestore()),
+);
+
+export const cleanupRoomVoice = onSchedule(
+  { schedule: "every 10 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120, memory: "256MiB" },
+  createCleanupRoomVoiceHandler(getFirestore()),
+);
+
+const familyGarden = createFamilyGardenHandler(getFirestore());
+export const manageFamilyGarden = onCall(
+  { timeoutSeconds: 15, memory: "256MiB" },
+  request => withAccountOperation(request, () => familyGarden(request)),
+);
+
+export const sendDatedFamilyLetters = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120 },
+  createDueFamilyLettersHandler(getFirestore()),
+);
+
+export const sendCompletedGoalLetters = onDocumentUpdated(
+  { document: "family_links/{linkId}/goals/{goalId}", retry: true },
+  createCompletedGoalLetterHandler(getFirestore()),
+);
+
+const updateWebPreferences = createUpdateWebPushPreferencesHandler(getFirestore());
+export const updateWebPushPreferences = onCall(
+  { enforceAppCheck: true, timeoutSeconds: 10, memory: "256MiB" },
+  request => withAccountOperation(request, () => updateWebPreferences(request)),
+);
+
+export const queueWebSocialPush = onDocumentCreated(
+  { document: "user_notifications/{notificationId}", retry: true },
+  createQueueWebSocialPushHandler(getFirestore()),
+);
+
+export const queueFocusRoundWebPush = onDocumentWritten(
+  { document: "rooms/{roomId}/focus_rounds/current", retry: true },
+  createFocusRoundWebPushHandler(getFirestore()),
+);
+
+export const cleanupWebPushInstallations = onSchedule(
+  { schedule: "every day 03:40", timeZone: "Asia/Taipei", timeoutSeconds: 120 },
+  createCleanupWebPushHandler({ firestore: getFirestore(), clock: () => new Date() }),
+);
+
 export const deliverPushNotification = onDocumentCreated(
   {
     document: "push_delivery_jobs/{jobId}",
@@ -790,3 +886,47 @@ export const manageGrowthDocument = onCall(
     }
   },
 );
+
+const manageRoomLobbyRequest = createRoomLobbyHandler(getFirestore());
+export const manageRoomLobby = onCall({ region: 'asia-east1' }, request =>
+  withAccountOperation(request, () => manageRoomLobbyRequest(request)));
+
+const guildCalendar = createGuildCalendarHandler(getFirestore());
+export const manageGuildCalendar = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => guildCalendar(request)));
+export const processGuildEvents = onSchedule(
+  { region: "asia-east1", schedule: "* * * * *" },
+  createGuildEventSchedule(getFirestore()),
+);
+
+const socialSafety = createSocialSafetyHandler(getFirestore());
+export const manageSocialSafety = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => socialSafety(request)));
+
+const manageBuddiesHandler=createBuddyHandler(getFirestore());
+export const manageBuddies=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageBuddiesHandler(request)));
+export const sendBuddyReminders=onSchedule({ region: "asia-east1", schedule: "every 5 minutes" },
+  createBuddyReminder(getFirestore()),);
+
+const manageThanksCardsHandler=createThanksCardHandler(getFirestore());
+export const manageThanksCards=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageThanksCardsHandler(request)));
+
+const exchangeJournal = createJournalHandler(getFirestore());
+export const manageExchangeJournal = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => exchangeJournal(request)));
+export const cleanupExchangeJournals = onSchedule(
+  { region: "asia-east1", schedule: "every 60 minutes" },
+  createJournalCleanup(getFirestore()),
+);
+
+const manageClubsHandler=createClubHandler(getFirestore());
+export const manageClubs=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageClubsHandler(request)));
+
+const manageTownEventPreferencesHandler=createTownEventPreferences(getFirestore());
+export const manageTownEventPreferences=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageTownEventPreferencesHandler(request)));
+export const processTownEvents=onSchedule({ region: "asia-east1", schedule: "every 15 minutes" },
+  createTownEventSchedule(getFirestore()),);

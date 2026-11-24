@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { FieldPath, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { removeVoiceParticipant } from "./room-voice-service.js";
+
 const PAGE_SIZE = 400;
 const EXECUTION_LEASE_MS = 15 * 60 * 1000;
 const EVIDENCE_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
@@ -487,6 +489,17 @@ export class FirestoreAccountDeletionRepository {
 
     for (const [collection, field] of [
       ["messages", "senderId"],
+      ["chat_throttles", "userId"],
+      ["chat_pin", "userId"],
+      ["chat_reactors", "userId"],
+      ["chat_hidden_messages", "userId"],
+      ["chat_reports", "userId"],
+      ["chat_reports", "senderId"],
+      ["safety_mutes", "userId"],
+      ["removed", "userId"],
+      ["voice_signals", "from"],
+      ["voice_signals", "to"],
+      ["voice_mute", "requestedBy"],
       ["events", "actorId"],
       ["activity_sessions", "actorId"],
     ]) {
@@ -494,6 +507,32 @@ export class FirestoreAccountDeletionRepository {
         this.firestore,
         this.firestore.collectionGroup(collection).where(field, "==", userId),
       );
+    }
+
+    const mentions = await querySnapshots(
+      this.firestore.collectionGroup("messages").where("mentionUid", "==", userId),
+    );
+    for (const mention of mentions) {
+      await mention.ref.update({ mentionUid: FieldValue.delete() });
+    }
+
+    const startedRounds = await querySnapshots(
+      this.firestore.collectionGroup("focus_rounds").where("startedBy", "==", userId),
+    );
+    for (const round of startedRounds) {
+      await this.firestore.runTransaction(async transaction => {
+        const current = await transaction.get(round.ref);
+        if (current.data()?.startedBy === userId) {
+          transaction.update(round.ref, { startedBy: null });
+        }
+      });
+    }
+
+    const voiceParticipants = await querySnapshots(
+      this.firestore.collectionGroup("voice_participants").where("uid", "==", userId),
+    );
+    for (const presence of voiceParticipants) {
+      if (await removeVoiceParticipant(this.firestore, presence.ref)) deletedDocuments++;
     }
 
     for (const groupId of plan.operations.leaveGroupIds) {
@@ -711,6 +750,16 @@ export class FirestoreAccountDeletionRepository {
     }
 
     const querySpecs = [
+      ["thanks_cards", "senderId"],
+      ["thanks_cards", "recipientId"],
+      ["thanks_card_receipts", "senderId"],
+      ["thanks_card_receipts", "recipientId"],
+      ["thanks_card_budgets", "userId"],
+      ["club_members", "userId"],
+      ["club_posts", "authorId"],
+      ["club_reactions", "userId"],
+      ["club_post_quota", "userId"],
+      ["club_challenge_members", "userId"],
       ["activity_events", "actorUserId"],
       ["activity_receipts", "actorUserId"],
       ["reward_ledger_entries", "actorUserId"],
@@ -719,6 +768,16 @@ export class FirestoreAccountDeletionRepository {
       ["room_contributions", "actorUserId"],
       ["room_resonance_preferences", "userId"],
       ["room_read_markers", "userId"],
+      ["room_lobby_answers", "memberId"],
+      ["room_lobby_codes", "ownerId"],
+      ["room_lobby_active_codes", "ownerId"],
+      ["guild_events", "authorId"],
+      ["guild_event_attendance", "userId"],
+      ["guild_notices", "authorId"],
+      ["guild_notice_reads", "userId"],
+      ["safety_reports", "userId"],
+      ["safety_reports", "senderId"],
+      ["audit_events", "safetyTargetId"],
       ["room_resonance_signals", "ownerUserId"],
       ["room_resonance_acknowledgements", "actorUserId"],
       ["room_resonance_acknowledgements", "signalOwnerUserId"],
@@ -732,6 +791,11 @@ export class FirestoreAccountDeletionRepository {
       ["push_delivery_jobs", "recipientUserId"],
       ["push_delivery_jobs", "actorUserId"],
       ["push_delivery_jobs", "actorPrincipalId"],
+      ["family_weekly_notes", "authorId"],
+      ["family_weekly_notes", "recipientId"],
+      ["family_scheduled_letters", "guardianId"],
+      ["family_scheduled_letters", "childId"],
+      ["family_letter_preferences", "userId"],
       ["friend_visits", "hostId"],
       ["friend_visits", "visitorId"],
       ["friend_messages", "senderId"],
@@ -763,12 +827,49 @@ export class FirestoreAccountDeletionRepository {
       deletedDocuments += 1;
     }
 
+    deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection("buddy_pairs")
+      .where("participantIds", "array-contains", userId));
+    const journals = await querySnapshots(this.firestore.collection("exchange_journals")
+      .where("participantIds", "array-contains", userId));
+    for (const journal of journals) {
+      await this.firestore.recursiveDelete(journal.ref);
+      deletedDocuments += 1;
+    }
+    deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection("exchange_journal_pairs")
+      .where("participantIds", "array-contains", userId));
+    const ownedClubs = await querySnapshots(this.firestore.collection("clubs").where("ownerId", "==", userId));
+    for (const club of ownedClubs) {
+      await this.firestore.collection("club_public").doc(club.id).delete();
+      for (const name of ["club_members", "club_posts", "club_reactions", "club_challenge_members"]) {
+        deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection(name).where("clubId", "==", club.id));
+      }
+      await this.firestore.recursiveDelete(club.ref);
+      deletedDocuments += 1;
+    }
+
+    const safety = this.firestore.collection("social_safety");
+    for (const field of ["blocked", "blockedBy"]) {
+      const peers = await querySnapshots(safety.where(field, "array-contains", userId));
+      for (const peer of peers) {
+        await this.firestore.runTransaction(async transaction => {
+          if (!(await transaction.get(peer.ref)).exists) return;
+          transaction.update(peer.ref, { [field]: FieldValue.arrayRemove(userId) });
+        });
+      }
+    }
+
     const directCollections = [
+      "buddy_settings",
+      "town_event_preferences",
+      "social_safety",
       "public_profiles",
       "privacy_consents",
       "notification_preferences",
+      "web_push_preferences",
       "discipline_identity_snapshots",
       "friend_visit_settings",
+      "presence_settings",
+      "presence",
       "push_delivery_state",
       "account_operation_leases",
       "push_delivery_leases",

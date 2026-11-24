@@ -3,36 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nudge 專注躍遷模式</title>
+    <title>Nudge 專注書桌</title>
     <link rel="stylesheet" href="assets/styles.css" />
-  <link rel="stylesheet" href="assets/town_chrome.css?v=1">
-<script defer src="assets/town_routes.js?v=2"></script>
-<script defer src="assets/town_return.js?v=2"></script>
-</head>
-  <body data-page="personal">
-    <a class="town-page-return" data-town-return href="town.html">← 回小鎮</a>
-    <div class="shell hyperdrive-mode">
-      <aside class="sidebar">
-        <a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>個人分析</small></span></a>
-        <nav class="nav">
-          <a href="dashboard.html">總覽入口</a>
-          <a class="active" href="personal.html">個人進階分析</a>
-          <a href="guardian.html">家長陪伴中心</a>
-          <a href="groups.html">團體 / 教育管理</a>
-          <a href="operations.html">商城頁</a>
-          <a href="research.html">研究中心</a>
-          <a href="friend.html">好友功能</a>
-          <a href="planet.html">自律城市 / 星球</a>
-          <a href="presentation.html">專題發表流程</a>
-          <a href="profile.html">個人名片</a>
-        </nav>
-      </aside>
-      <main class="main" style="position: relative; z-index: 10;">
-        <header class="hero split" style="background: rgba(7, 10, 20, 0.4); backdrop-filter: blur(12px);">
+    <link rel="stylesheet" href="assets/town_chrome.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=2" />
+    <script defer src="assets/town_routes.js?v=4"></script>
+    <script defer src="assets/town_return.js?v=2"></script>
+  </head>
+  <body class="w-page world-page" data-page="personal">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>專注書桌</h1></header>
+    <div class="world-shell">
+
+      <main class="main w-main" style="position: relative; z-index: 10;">
+        <header class="hero split">
           <div>
-            <span class="eyebrow">Focus Hyperdrive</span>
-            <h1>專注躍遷模式</h1>
-            <p>啟動躍遷引擎，進入無干擾的深度學習狀態。專注時間越長，躍遷速度越快。</p>
+            <span class="eyebrow">小屋書桌</span>
+            <h1>和夥伴一起讀書</h1>
+            <p>選一段時間，專心完成眼前的一件事。活動先送入 Cloud Ledger，獎勵由雲端確認。</p>
             <div class="subnav" style="margin-bottom: 24px;">
               <a href="personal.html">中心總覽</a>
               <a href="personal-trends.html">趨勢</a>
@@ -47,42 +34,59 @@
 
         <section class="focus-timer-section page-section">
           <div class="focus-timer-container">
-            <div class="timer-display" id="focusTimerDisplay">25:00</div>
-            <p class="timer-status" id="focusTimerStatus">等待啟動躍遷...</p>
-            <div class="timer-controls">
-              <button class="button primary" id="btnStartFocus">啟動引擎 (Start)</button>
-              <button class="button secondary" id="btnPauseFocus" style="display: none;">穩定航線 (Pause)</button>
-              <button class="button ghost" id="btnStopFocus" style="display: none;">中斷躍遷 (Stop)</button>
+            <div class="focus-presets" role="group" aria-label="專注與休息時間">
+              <button class="button primary" type="button" data-focus-mins="25" aria-pressed="true">專注 25 分鐘 · 休息 5 分鐘</button>
+              <button class="button ghost" type="button" data-focus-mins="50" aria-pressed="false">專注 50 分鐘 · 休息 10 分鐘</button>
             </div>
+            <div class="timer-display" id="focusTimerDisplay">25:00</div>
+            <p class="timer-status" id="focusTimerStatus">坐下來，準備好就開始。</p>
+            <div class="timer-controls">
+              <button class="button primary" id="btnStartFocus">開始專注</button>
+              <button class="button secondary" id="btnPauseFocus" style="display: none;">暫停</button>
+              <button class="button ghost" id="btnStopFocus" style="display: none;">結束這一輪</button>
+            </div>
+            <p id="focusSettlement" class="focus-settlement" role="status" hidden></p>
           </div>
         </section>
       </main>
-      
-      <!-- Hyperdrive Background Layers -->
-      <div class="hyperdrive-bg" id="hyperdriveBg">
-        <div class="stars layer1"></div>
-        <div class="stars layer2"></div>
-        <div class="stars layer3"></div>
-      </div>
+
+      <div class="focus-ambient" id="hyperdriveBg" aria-hidden="true"></div>
     </div>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/app.js?v=29"></script>
+    <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const urlParams = new URLSearchParams(window.location.search);
-        const focusMins = parseInt(urlParams.get('focus')) || 25;
+        let focusMins = parseInt(urlParams.get('focus'), 10) || 25;
         const autoStart = urlParams.get('start') === 'true';
 
-        const totalSeconds = focusMins * 60;
+        let totalSeconds = focusMins * 60;
         let timeLeft = totalSeconds;
         let timerId = null;
         let sessionId = null;
         let timerState = 'idle';
+        let unsubscribeReceipt = null;
         const display = document.getElementById('focusTimerDisplay');
         const status = document.getElementById('focusTimerStatus');
         const btnStart = document.getElementById('btnStartFocus');
         const btnPause = document.getElementById('btnPauseFocus');
         const btnStop = document.getElementById('btnStopFocus');
         const hyperdriveBg = document.getElementById('hyperdriveBg');
+        const settlement = document.getElementById('focusSettlement');
+        const presets = [...document.querySelectorAll('[data-focus-mins]')];
+        const setPresetAvailability = enabled => presets.forEach(button => { button.disabled = !enabled; });
+        presets.forEach(button => {
+          button.setAttribute('aria-pressed', String(Number(button.dataset.focusMins) === focusMins));
+          button.addEventListener('click', () => {
+            if (timerState !== 'idle') return;
+            focusMins = Number(button.dataset.focusMins);
+            totalSeconds = focusMins * 60;
+            timeLeft = totalSeconds;
+            presets.forEach(choice => choice.setAttribute('aria-pressed', String(choice === button)));
+            settlement.hidden = true;
+            updateDisplay();
+          });
+        });
 
         const updateDisplay = () => {
           const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
@@ -90,6 +94,27 @@
           display.textContent = `${m}:${s}`;
         };
         updateDisplay();
+
+        const watchCompletedReceipt = completedSessionId => {
+          unsubscribeReceipt?.();
+          const userId = window.firebase?.auth()?.currentUser?.uid;
+          if (!userId) return;
+          unsubscribeReceipt = window.firebase.firestore().collection('activity_receipts')
+            .where('actorUserId', '==', userId)
+            .where('activitySessionId', '==', completedSessionId)
+            .limit(5)
+            .onSnapshot({ includeMetadataChanges: true }, snapshot => {
+              if (window.firebase.auth().currentUser?.uid !== userId || snapshot.metadata.hasPendingWrites) return;
+              const confirmed = snapshot.docs.some(doc =>
+                window.NudgeConfirmedActivityFeedback?.parse(doc.id, doc.data(), userId));
+              if (!confirmed) return;
+              settlement.textContent = '✓ 活動紀錄已由雲端確認；獎勵仍以雲端獎勵帳本為準。';
+              unsubscribeReceipt?.();
+              unsubscribeReceipt = null;
+            }, () => {
+              settlement.textContent = '暫時無法讀取雲端確認，連線恢復後再查看。';
+            });
+        };
 
         const queueLedger = async (eventType) => {
           if (typeof window.queueWebStandaloneFocusLedgerEvent !== 'function') {
@@ -121,21 +146,25 @@
           }
           btnStart.disabled = false;
           timerState = 'active';
+          unsubscribeReceipt?.();
+          unsubscribeReceipt = null;
+          settlement.hidden = true;
+          setPresetAvailability(false);
           hyperdriveBg.classList.add('active');
           btnStart.style.display = 'none';
           btnPause.style.display = 'inline-flex';
           btnStop.style.display = 'inline-flex';
-          status.textContent = '躍遷進行中... 保持專注！';
-          status.style.color = '#00f0ff';
-          
+          status.textContent = '專注中，夥伴陪你讀書。';
+          status.style.color = 'var(--w-gold)';
+
           timerId = setInterval(() => {
             timeLeft--;
             updateDisplay();
             if (timeLeft <= 0) {
               finishTimer(
                 'completed',
-                '躍遷完成！活動已送入 Cloud Ledger。',
-                '#00ff88',
+                '專注完成！活動已送入 Cloud Ledger。',
+                'var(--w-green)',
               );
             }
           }, 1000);
@@ -155,9 +184,9 @@
           hyperdriveBg.classList.remove('active');
           btnStart.style.display = 'inline-flex';
           btnPause.style.display = 'none';
-          btnStart.textContent = '繼續躍遷 (Resume)';
-          status.textContent = '航線已暫停。';
-          status.style.color = '#ff9900';
+          btnStart.textContent = '繼續專注';
+          status.textContent = '已暫停，準備好再繼續。';
+          status.style.color = 'var(--w-gold)';
         };
 
         const finishTimer = async (eventType, message, color) => {
@@ -165,19 +194,26 @@
           timerId = null;
           try {
             await queueLedger(eventType);
+            if (eventType === 'completed') {
+              settlement.textContent = '專注完成！活動已送出，獎勵由雲端確認中。';
+              settlement.hidden = false;
+              watchCompletedReceipt(sessionId);
+            }
           } catch (error) {
             message = error.message || '活動已停止，但 Ledger 尚未保存。';
-            color = '#ff3333';
+            color = 'var(--w-red)';
+            settlement.hidden = true;
           }
           timerState = 'idle';
           sessionId = null;
           timeLeft = totalSeconds;
           updateDisplay();
           hyperdriveBg.classList.remove('active');
+          setPresetAvailability(true);
           btnStart.style.display = 'inline-flex';
           btnPause.style.display = 'none';
           btnStop.style.display = 'none';
-          btnStart.textContent = '啟動引擎 (Start)';
+          btnStart.textContent = '開始專注';
           status.textContent = message;
           status.style.color = color;
         };
@@ -185,12 +221,13 @@
         btnStart.addEventListener('click', startTimer);
         btnPause.addEventListener('click', pauseTimer);
         btnStop.addEventListener('click', () => {
-          finishTimer('discarded', '躍遷已中斷，本輪不會發放獎勵。', '#ff3333');
+          finishTimer('discarded', '這一輪已結束，不會送出完成獎勵。', 'var(--w-red)');
         });
 
         if (autoStart) {
           document.addEventListener('firebase-ready', startTimer, { once: true });
         }
+        window.addEventListener('pagehide', () => unsubscribeReceipt?.(), { once: true });
       });
     </script>
   </body>

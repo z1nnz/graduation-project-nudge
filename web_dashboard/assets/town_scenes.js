@@ -55,6 +55,9 @@
     id: 'townScene', class: 'town-scene', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'townSceneTitle',
   });
   shell.hidden = true;
+  doc.addEventListener('nudge-town-open-scene', event => {
+    if (['board', 'desk', 'cabin'].includes(event.detail?.kind)) open(event.detail.kind);
+  });
   const title = h('h2', { id: 'townSceneTitle' });
   const closeButton = h('button', { type: 'button', class: 'town-ghost', 'aria-label': '關閉，回到小鎮', onclick: () => close() }, '✕ ', h('kbd', { text: 'Esc' }));
   const body = h('div', { class: 'town-scene-body' });

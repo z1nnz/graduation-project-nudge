@@ -1,0 +1,162 @@
+/* 委託冊 (quests.html). Colours come only from world_ui.css tokens. */
+html { background: var(--w-night); }
+.qb-hero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.qb-book {
+  width: 480px; /* 2x the 240x150 pixel grid */
+  height: auto;
+  image-rendering: pixelated;
+  border-radius: 8px;
+  box-shadow: var(--w-shadow);
+}
+.qb-status { margin: 0 0 12px; }
+.qb-section { margin-top: 24px; }
+.qb-heading {
+  font-family: var(--w-pixel);
+  font-weight: 400;
+  color: var(--w-gold);
+  font-size: 22px;
+  margin: 0 0 6px;
+  text-shadow: 0 2px 0 var(--w-wood-deep);
+}
+.qb-heading:focus { outline: none; }
+.qb-note { margin: 0 0 12px; color: var(--w-parchment); opacity: 0.9; }
+
+/* ---------- townsfolk request ---------- */
+.qb-request:focus-visible { outline: 3px solid var(--w-gold); outline-offset: 2px; }
+.qb-request h2 { color: var(--w-gold); }
+.qb-day { color: var(--w-parchment); font-size: 16px; }
+.qb-request-body { display: flex; gap: 16px; align-items: flex-start; }
+.qb-portrait {
+  flex: none;
+  margin: 0;
+  width: 112px;
+  height: 132px;
+  display: grid;
+  place-items: end center;
+  background: var(--w-wood-dark);
+  border: 3px solid var(--w-frame);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.qb-portrait img { image-rendering: pixelated; }
+.qb-portrait.is-character { width: 128px; height: 140px; place-items: start center; }
+.qb-npc { margin: 0 0 4px; font-family: var(--w-pixel); color: var(--w-gold); }
+.qb-npc span { color: var(--w-parchment); font-family: var(--w-text); font-size: 14px; }
+.qb-line {
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  border: 2px solid var(--w-wood);
+  border-radius: 10px;
+  line-height: 1.6;
+}
+
+/* ---------- chains ---------- */
+.qb-chains { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.qb-chain-head { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.qb-chain-head h3 { margin: 0; }
+.qb-chain[data-status="completed"] { border-color: var(--w-gold-deep); }
+.qb-stamps {
+  list-style: none;
+  margin: 12px 0;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--w-parchment-hi);
+  border: 2px dashed var(--w-wood);
+  border-radius: 10px;
+}
+.qb-slot {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--w-ink-soft);
+  border-radius: 50%;
+}
+.qb-slot.is-stamped { border-style: solid; border-color: transparent; }
+.qb-slot img { image-rendering: pixelated; }
+.qb-slot-num { font-family: var(--w-pixel); color: var(--w-ink-soft); }
+.qb-chain-info { margin: 0 0 10px; font-size: 14px; }
+.qb-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@keyframes qb-stamp {
+  0% { transform: scale(1.8) rotate(-12deg); opacity: 0; }
+  70% { transform: scale(0.92) rotate(2deg); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+.qb-slot.is-new img { animation: qb-stamp 0.26s ease-out both; }
+
+/* ---------- templates ---------- */
+.qb-template { display: flex; flex-direction: column; gap: 6px; }
+.qb-template h3 { color: var(--w-gold); }
+.qb-template p { margin: 0; }
+.qb-template .w-btn { margin-top: auto; }
+.qb-template-stamp { image-rendering: pixelated; }
+.qb-template-meta { font-family: var(--w-pixel); color: var(--w-parchment); font-size: 14px; }
+
+/* ---------- certificates ---------- */
+.qb-certs { display: flex; flex-wrap: wrap; gap: 12px; }
+.qb-certs .w-empty { color: var(--w-parchment); }
+.qb-cert-card {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 140px;
+  min-height: 44px;
+  padding: 12px;
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  border: 3px solid var(--w-wood);
+  border-radius: var(--w-radius);
+  box-shadow: var(--w-shadow);
+  font: inherit;
+  cursor: pointer;
+}
+.qb-cert-card strong { font-family: var(--w-pixel); font-weight: 400; }
+.qb-cert-card:focus-visible { outline: 3px solid var(--w-gold); outline-offset: 2px; }
+
+.qb-dialog {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: min(420px, calc(100% - 24px));
+}
+.qb-dialog::backdrop { background: color-mix(in srgb, var(--w-night) 72%, transparent); }
+.qb-cert { text-align: center; border-color: var(--w-gold-deep); border-width: 4px; }
+.qb-cert-kicker { margin: 0; font-family: var(--w-pixel); color: var(--w-ink-soft); }
+.qb-cert h2 { font-size: 26px; color: var(--w-ink-dark); }
+.qb-cert-stamp { width: 96px; height: auto; image-rendering: pixelated; }
+@keyframes qb-seal {
+  0% { transform: translateY(-40px) scale(1.6); opacity: 0; }
+  60% { transform: translateY(0) scale(0.9); opacity: 1; }
+  100% { transform: none; }
+}
+.qb-dialog.is-celebrate .qb-cert-stamp { animation: qb-seal 0.3s ease-out both; }
+.qb-dialog[open] .qb-cert { animation: w-pop 0.22s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-slot.is-new img, .qb-dialog.is-celebrate .qb-cert-stamp, .qb-dialog[open] .qb-cert { animation: none; }
+}
+
+/* ---------- small screens ---------- */
+@media (max-width: 760px) {
+  .qb-hero { grid-template-columns: 1fr; }
+  .qb-book { width: 240px; justify-self: center; } /* 1x */
+  .qb-chains { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .qb-request-body { flex-direction: column; align-items: center; }
+  .qb-slot { width: 52px; height: 52px; }
+  .qb-stamps { gap: 6px; padding: 8px; }
+}
+.w-main .w-btn { box-sizing: border-box; }
+.qb-request-body > div { min-width: 0; flex: 1; }

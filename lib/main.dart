@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'theme/app_text_scale.dart';
+import 'models/cabin_sky.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -29,6 +32,8 @@ Future<void> main() async {
       'Please ensure google-services.json and GoogleService-Info.plist are correctly configured.',
     );
   }
+  // Window weather: only fetched if the user picked a city.
+  unawaited(CabinSkyController.instance.refresh());
   runApp(const NudgeApp());
 }
 
@@ -61,17 +66,14 @@ class _AppRoot extends StatelessWidget {
         final mediaQuery = MediaQuery.of(context);
         final width = mediaQuery.size.width;
         final height = mediaQuery.size.height;
-        final compactScale = width <= 400 || height <= 760
-            ? 0.90
-            : width <= 430
-            ? 0.96
-            : 1.0;
-        final systemTextScale = mediaQuery.textScaler
-            .scale(1)
-            .clamp(0.85, 1.12)
-            .toDouble();
         final adjustedMediaQuery = mediaQuery.copyWith(
-          textScaler: TextScaler.linear(systemTextScale * compactScale),
+          textScaler: TextScaler.linear(
+            appTextScale(
+              width: width,
+              height: height,
+              system: mediaQuery.textScaler.scale(1),
+            ),
+          ),
         );
 
         final iconScale = width <= 400 || height <= 760
@@ -127,13 +129,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Color(0xFF2D2A32),
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
+        appBarTheme: GameTheme.appBar(),
+        tabBarTheme: GameTheme.tabBar(),
+        pageTransitionsTheme: GameTheme.pageTransitions(),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
@@ -161,22 +159,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: seedColor, width: 1.4),
-          ),
-        ),
+        inputDecorationTheme: GameTheme.inputs(dark: false),
         dialogTheme: GameTheme.dialog(dark: false),
+        chipTheme: GameTheme.chips(dark: false),
         textButtonTheme: GameTheme.secondaryButton(dark: false),
       ),
       darkTheme: ThemeData(
@@ -215,13 +200,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Color(0xFFF3F4F6),
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
+        appBarTheme: GameTheme.appBar(),
+        tabBarTheme: GameTheme.tabBar(),
+        pageTransitionsTheme: GameTheme.pageTransitions(),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: const Color(0xFF161A21),
           surfaceTintColor: Colors.transparent,
@@ -249,22 +230,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1A1D24),
-          hintStyle: const TextStyle(color: Color(0xFF8B93A1)),
-          labelStyle: const TextStyle(color: Color(0xFFB6BDC9)),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFF2A2F3A)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: seedColor, width: 1.4),
-          ),
-        ),
+        inputDecorationTheme: GameTheme.inputs(dark: true),
         dialogTheme: GameTheme.dialog(dark: true),
+        chipTheme: GameTheme.chips(dark: true),
         textButtonTheme: GameTheme.secondaryButton(dark: true),
       ),
       // App always goes directly to main shell — sign in/register via Account tab
