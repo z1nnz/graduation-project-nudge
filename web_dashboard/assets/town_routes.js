@@ -74,6 +74,7 @@
     d('task-template', 'personal-template.html', 'library', '下一步工坊', 'player', 'login', null, 'cloud', '#84'),
     d('future-letter', 'personal-letter.html', 'library', '未來的信', 'player', 'login', null, 'cloud', '#84'),
     d('time-capsule', 'personal-time-capsule.html', 'library', '自律時間膠囊', 'player', 'login', null, 'cloud', '#84'),
+    d('achievements', 'achievements.html', 'library', '成就大廳（二樓）', 'player', 'login', null, 'cloud', '#124'),
     d('shop', 'operations.html', 'store', '角色商城', 'player', 'login', null, 'cloud', '#82'),
     // Arcade hall: catch-the-stars plus three break games, all on break tickets.
     d('arcade', 'arcade.html', 'park', '遊戲機台大廳（休息券）', 'player', 'login', null, 'cloud', '#82'),
