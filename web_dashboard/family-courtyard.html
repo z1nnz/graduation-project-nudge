@@ -7,15 +7,18 @@
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/family_garden.css?v=1" />
+    <link rel="stylesheet" href="assets/safety.css?v=1" />
   </head>
-  <body data-page="family-courtyard" data-social-facility="family">
+  <body class="w-page" data-page="family-courtyard" data-social-facility="family">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
-    <header class="scene-topbar">
+    <header class="w-hud">
       <a data-town-return href="town.html">← 回小鎮</a>
-      <span class="scene-place" data-scene-place>家庭庭院</span>
+      <h1>家庭庭院</h1>
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
-    <main class="main scene-main" id="sceneMain" tabindex="-1">
+    <main class="main w-main" id="sceneMain" tabindex="-1">
         <header class="hero scene-hero">
           <div>
             <span class="eyebrow">Family Courtyard</span>
@@ -29,14 +32,58 @@
             <p>家長只能提議與鼓勵，無法代替孩子同意或開始活動。</p>
           </div>
         </header>
+        <div data-family-garden hidden>
+          <section class="w-parchment family-garden">
+            <h2>共同花圃</h2>
+            <div class="family-garden-plot" data-garden-plot aria-label="共同花圃"></div>
+            <p data-garden-status role="status"></p>
+          </section>
+          <section class="w-parchment family-garden">
+            <h2>每週家庭回顧</h2>
+            <img class="family-review-cover" src="assets/family_garden/reflection.png" alt="" width="960" height="600" loading="lazy" />
+            <p data-garden-week></p>
+            <div data-garden-reviews></div>
+            <form data-garden-review>
+              <label>套用固定句型 <select name="template"><option value="">選擇句型</option></select></label>
+              <label>這週我做到了 <textarea name="achievement" maxlength="100" required></textarea></label>
+              <label>給家人的一句感謝 <textarea name="gratitude" maxlength="100" required></textarea></label>
+              <button class="w-btn is-gold" type="submit">儲存回顧</button>
+              <button class="w-btn" data-garden-remove type="button" hidden>刪除我的內容</button>
+            </form>
+          </section>
+          <section class="w-parchment family-garden">
+            <h2>排程鼓勵信</h2>
+            <label data-garden-optout hidden><input type="checkbox" /> 不接收排程鼓勵信</label>
+            <form data-garden-letter hidden>
+              <label>鼓勵信 <textarea name="body" maxlength="280" required></textarea></label>
+              <label>送達時機 <select name="kind"><option value="date">指定日期（臺灣時間 09:00）</option><option value="goal">共同目標完成後</option></select></label>
+              <label data-garden-date>日期 <input name="date" type="date" /></label>
+              <label data-garden-goal hidden>共同目標 <select name="goalId"></select></label>
+              <button class="w-btn is-gold" type="submit">安排鼓勵信</button>
+            </form>
+          </section>
+        </div>
+        <section class="w-panel safety-panel" data-safety-family hidden>
+          <h2>未成年保護</h2>
+          <p data-safety-family-result role="status"></p>
+          <form hidden>
+            <label><span>允許加入語音</span><input type="checkbox" name="voice" /></label>
+            <label><span>允許陌生人在聊天室提及我</span><input type="checkbox" name="mentions" /></label>
+            <label><span>我已確認要使用以上設定</span><input type="checkbox" name="confirm" required /></label>
+            <button class="w-btn" type="submit">確認保護設定</button>
+          </form>
+        </section>
+
         <div data-social-scene aria-live="polite"><p class="visit-empty">載入中…</p></div>
       </main>
     <script src="assets/relationship_membership_contract.js?v=1"></script>
     <script src="assets/family_link_contract.js?v=1"></script>
-    <script src="assets/family_group_scenes.js?v=1"></script>
-    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/family_garden.js?v=1"></script>
+    <script src="assets/family_group_scenes.js?v=3"></script>
+    <script src="assets/town_routes.js?v=4"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/safety_ui.js?v=1"></script>
+    <script src="assets/app.js?v=29"></script>
   </body>
 </html>

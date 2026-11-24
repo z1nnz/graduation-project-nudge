@@ -4,10 +4,7 @@ import '../models/relationship_membership.dart';
 import '../theme/app_ui.dart';
 
 class RelationshipRoleSurfaceCard extends StatelessWidget {
-  const RelationshipRoleSurfaceCard({
-    super.key,
-    required this.role,
-  });
+  const RelationshipRoleSurfaceCard({super.key, required this.role});
 
   final RelationshipRole role;
 

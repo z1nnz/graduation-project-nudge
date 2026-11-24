@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,10 +8,23 @@ import '../models/avatar_profile.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_preview.dart';
+import '../models/companion_pose.dart';
+import '../theme/game_ui.dart';
+import '../widgets/companion_sprite.dart';
 import 'privacy_data_page.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
+
+  /// What the companion says on each step.
+  static const guideLines = [
+    '嗨！我是你的夥伴。先告訴我，你是用什麼身分來的？',
+    '你最想先養成哪個習慣呢？我陪你一起。',
+    '我先幫你準備三個小委託，做完就能收到金幣喔。',
+    '換上你喜歡的樣子吧，之後還能在商城買新衣服。',
+    '要不要讓我在重要的時候輕輕提醒你？',
+    '最後一步！確認一下資料怎麼用，我們就出發。',
+  ];
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -141,200 +156,236 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
+    // Gold matches the cabin; the old per-theme accent read as purple.
+    const accentColor = GamePalette.goldDeep;
     final canFinish = _privacyChecked || appState.hasAcceptedPrivacyPolicy;
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppUI.pagePadding,
-                14,
-                AppUI.pagePadding,
-                8,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '開始使用 Nudge',
-                          style: AppUI.sectionTitleOf(context),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '用 5 個步驟建立你的第一天自律節奏。',
-                          style: AppUI.bodyOf(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => _skip(appState),
-                    child: const Text('略過'),
-                  ),
-                ],
+      backgroundColor: const Color(0xFF3B2418),
+      body: Stack(
+        children: [
+          // The cabin, softly blurred, behind the whole welcome.
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: ColorFiltered(
+                colorFilter: const ColorFilter.mode(
+                  Color(0x66000000),
+                  BlendMode.darken,
+                ),
+                child: Image.asset(
+                  'assets/home/room_base.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
               ),
             ),
-            _StepDots(current: _step, accentColor: accentColor),
-            Expanded(
-              child: PageView(
-                controller: _controller,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                   _OnboardingStep(
-                    title: '選擇您的自律身份',
-                    subtitle: 'Nudge 會依據您的身份載入不同的功能與數據端。',
-                    child: _RoleGrid(
-                      selectedRole: _roleSetting,
-                      accentColor: accentColor,
-                      onSelected: (value) => setState(() => _roleSetting = value),
-                    ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.pagePadding,
+                    10,
+                    AppUI.pagePadding,
+                    4,
                   ),
-                  _OnboardingStep(
-                    title: '你現在最想養成什麼？',
-                    subtitle: 'Nudge 會依目標先建立第一批任務。',
-                    child: _GoalGrid(
-                      goals: _goals,
-                      selectedGoal: _goal,
-                      accentColor: accentColor,
-                      onSelected: (value) => setState(() => _goal = value),
-                    ),
-                  ),
-                  _OnboardingStep(
-                    title: '先放進 3 個起步任務',
-                    subtitle: '這些不是壓力，是讓系統開始陪跑的第一批目標。',
-                    child: Column(
-                      children: _templates
-                          .map(
-                            (template) => Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _TemplateCard(
-                                template: template,
-                                accentColor: accentColor,
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          '歡迎來到夥伴小屋',
+                          style: TextStyle(
+                            fontFamily: 'Cubic11',
+                            fontSize: 26,
+                            color: Color(0xFFFFE6A3),
+                            shadows: [
+                              Shadow(
+                                color: Color(0xFF3B2418),
+                                offset: Offset(0, 3),
                               ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                  _OnboardingStep(
-                    title: '選一個今天的角色',
-                    subtitle: '之後可以在商城購買更多完整角色。',
-                    child: _AvatarPicker(
-                      selectedIndex: _avatarIndex,
-                      accentColor: accentColor,
-                      onSelected: (index) =>
-                          setState(() => _avatarIndex = index),
-                    ),
-                  ),
-                  _OnboardingStep(
-                    title: '打開重要提醒',
-                    subtitle: '提醒是必做功能，先決定哪些事情要被 Nudge 輕推一下。',
-                    child: Column(
-                      children: [
-                        _ReminderSwitch(
-                          title: '任務提醒',
-                          subtitle: '每天提醒還沒完成的今日任務',
-                          icon: Icons.checklist_rounded,
-                          value: _taskReminder,
-                          color: AppUI.blue,
-                          onChanged: (value) =>
-                              setState(() => _taskReminder = value),
-                        ),
-                        _ReminderSwitch(
-                          title: '睡眠提醒',
-                          subtitle: '睡前提醒，讓健康任務更穩',
-                          icon: Icons.nights_stay_outlined,
-                          value: _sleepReminder,
-                          color: AppUI.purple,
-                          onChanged: (value) =>
-                              setState(() => _sleepReminder = value),
-                        ),
-                        _ReminderSwitch(
-                          title: '自律房提醒',
-                          subtitle: '朋友開始時提醒你回到房間',
-                          icon: Icons.groups_2_outlined,
-                          value: _roomReminder,
-                          color: AppUI.green,
-                          onChanged: (value) =>
-                              setState(() => _roomReminder = value),
-                        ),
-                        _ReminderSwitch(
-                          title: '截止日提醒',
-                          subtitle: '到期前提醒驗收與拆解任務',
-                          icon: Icons.flag_outlined,
-                          value: _deadlineReminder,
-                          color: AppUI.orange,
-                          onChanged: (value) =>
-                              setState(() => _deadlineReminder = value),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _OnboardingStep(
-                    title: '資料與隱私確認',
-                    subtitle: '健康、睡眠與步數都屬於敏感資料，使用前要先讓使用者清楚知道用途。',
-                    child: _PrivacyConsentCard(
-                      checked:
-                          _privacyChecked || appState.hasAcceptedPrivacyPolicy,
-                      locked: appState.hasAcceptedPrivacyPolicy,
-                      accentColor: accentColor,
-                      onChanged: (value) =>
-                          setState(() => _privacyChecked = value ?? false),
-                      onOpenPrivacy: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PrivacyDataPage(),
+                            ],
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppUI.pagePadding,
-                8,
-                AppUI.pagePadding,
-                AppUI.pagePadding,
-              ),
-              child: Row(
-                children: [
-                  if (_step > 0)
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _go(_step - 1),
-                        child: const Text('上一步'),
+                        ),
                       ),
-                    )
-                  else
-                    const Spacer(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accentColor,
-                        foregroundColor: Colors.white,
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFF3D9B0),
+                        ),
+                        onPressed: () => _skip(appState),
+                        child: const Text('略過'),
                       ),
-                      onPressed: _step == 5
-                          ? (canFinish ? () => _finish(appState) : null)
-                          : () => _go(_step + 1),
-                      child: Text(_step == 5 ? '進入首頁' : '下一步'),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                _Guide(
+                  key: const Key('onboarding-guide'),
+                  profile: appState.avatarProfile,
+                  line: OnboardingPage.guideLines[_step.clamp(0, 5)],
+                ),
+                const SizedBox(height: 6),
+                _StepDots(current: _step, accentColor: accentColor),
+                Expanded(
+                  child: PageView(
+                    controller: _controller,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _OnboardingStep(
+                        title: '選擇您的自律身份',
+                        subtitle: 'Nudge 會依據您的身份載入不同的功能與數據端。',
+                        child: _RoleGrid(
+                          selectedRole: _roleSetting,
+                          accentColor: accentColor,
+                          onSelected: (value) =>
+                              setState(() => _roleSetting = value),
+                        ),
+                      ),
+                      _OnboardingStep(
+                        title: '你現在最想養成什麼？',
+                        subtitle: 'Nudge 會依目標先建立第一批任務。',
+                        child: _GoalGrid(
+                          goals: _goals,
+                          selectedGoal: _goal,
+                          accentColor: accentColor,
+                          onSelected: (value) => setState(() => _goal = value),
+                        ),
+                      ),
+                      _OnboardingStep(
+                        title: '先放進 3 個起步任務',
+                        subtitle: '這些不是壓力，是讓系統開始陪跑的第一批目標。',
+                        child: Column(
+                          children: _templates
+                              .map(
+                                (template) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _TemplateCard(
+                                    template: template,
+                                    accentColor: accentColor,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      _OnboardingStep(
+                        title: '選一個今天的角色',
+                        subtitle: '之後可以在商城購買更多完整角色。',
+                        child: _AvatarPicker(
+                          selectedIndex: _avatarIndex,
+                          accentColor: accentColor,
+                          onSelected: (index) =>
+                              setState(() => _avatarIndex = index),
+                        ),
+                      ),
+                      _OnboardingStep(
+                        title: '打開重要提醒',
+                        subtitle: '提醒是必做功能，先決定哪些事情要被 Nudge 輕推一下。',
+                        child: Column(
+                          children: [
+                            _ReminderSwitch(
+                              title: '任務提醒',
+                              subtitle: '每天提醒還沒完成的今日任務',
+                              icon: Icons.checklist_rounded,
+                              value: _taskReminder,
+                              color: AppUI.blue,
+                              onChanged: (value) =>
+                                  setState(() => _taskReminder = value),
+                            ),
+                            _ReminderSwitch(
+                              title: '睡眠提醒',
+                              subtitle: '睡前提醒，讓健康任務更穩',
+                              icon: Icons.nights_stay_outlined,
+                              value: _sleepReminder,
+                              color: AppUI.purple,
+                              onChanged: (value) =>
+                                  setState(() => _sleepReminder = value),
+                            ),
+                            _ReminderSwitch(
+                              title: '自律房提醒',
+                              subtitle: '朋友開始時提醒你回到房間',
+                              icon: Icons.groups_2_outlined,
+                              value: _roomReminder,
+                              color: AppUI.green,
+                              onChanged: (value) =>
+                                  setState(() => _roomReminder = value),
+                            ),
+                            _ReminderSwitch(
+                              title: '截止日提醒',
+                              subtitle: '到期前提醒驗收與拆解任務',
+                              icon: Icons.flag_outlined,
+                              value: _deadlineReminder,
+                              color: AppUI.orange,
+                              onChanged: (value) =>
+                                  setState(() => _deadlineReminder = value),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _OnboardingStep(
+                        title: '資料與隱私確認',
+                        subtitle: '健康、睡眠與步數都屬於敏感資料，使用前要先讓使用者清楚知道用途。',
+                        child: _PrivacyConsentCard(
+                          checked:
+                              _privacyChecked ||
+                              appState.hasAcceptedPrivacyPolicy,
+                          locked: appState.hasAcceptedPrivacyPolicy,
+                          accentColor: accentColor,
+                          onChanged: (value) =>
+                              setState(() => _privacyChecked = value ?? false),
+                          onOpenPrivacy: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PrivacyDataPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.pagePadding,
+                    8,
+                    AppUI.pagePadding,
+                    AppUI.pagePadding,
+                  ),
+                  child: Row(
+                    children: [
+                      if (_step > 0)
+                        Expanded(
+                          child: GameButton(
+                            label: '上一步',
+                            primary: false,
+                            expand: true,
+                            onPressed: () => _go(_step - 1),
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GameButton(
+                          label: _step == 5 ? '走進小屋' : '下一步',
+                          icon: _step == 5
+                              ? Icons.door_front_door_rounded
+                              : Icons.arrow_forward_rounded,
+                          expand: true,
+                          onPressed: _step == 5
+                              ? (canFinish ? () => _finish(appState) : null)
+                              : () => _go(_step + 1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -379,17 +430,19 @@ class _OnboardingStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppUI.pagePadding),
       children: [
-        Container(
+        GamePanel(
           padding: const EdgeInsets.all(AppUI.innerPadding),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(AppUI.radiusCard),
-            border: Border.all(color: Theme.of(context).dividerColor),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: AppUI.sectionTitleOf(context)),
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Cubic11',
+                  fontSize: 22,
+                  color: GamePalette.of(context).ink,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(subtitle, style: AppUI.bodyOf(context)),
               const SizedBox(height: 18),
@@ -413,17 +466,19 @@ class _StepDots extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(6, (index) {
-        final selected = current == index;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: selected ? 28 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: selected
-                ? accentColor
-                : AppUI.textSecondaryOf(context).withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(AppUI.radiusPill),
+        final lit = index <= current;
+        final state = lit ? 'on' : 'off';
+        return AnimatedScale(
+          key: Key('onboarding-star-$index-$state'),
+          duration: const Duration(milliseconds: 200),
+          scale: index == current ? 1.25 : 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Icon(
+              lit ? Icons.star_rounded : Icons.star_outline_rounded,
+              size: 22,
+              color: lit ? GamePalette.gold : const Color(0x99F3D9B0),
+            ),
           ),
         );
       }),
@@ -469,12 +524,14 @@ class _GoalGrid extends StatelessWidget {
                       ? accentColor.withValues(
                           alpha: AppUI.isDark(context) ? 0.22 : 0.12,
                         )
-                      : AppUI.surfaceVariantOf(context),
+                      : GamePalette.of(context).wood.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: selected
                         ? accentColor
-                        : Theme.of(context).dividerColor,
+                        : GamePalette.of(
+                            context,
+                          ).panelBorder.withValues(alpha: 0.6),
                     width: selected ? 1.6 : 1,
                   ),
                 ),
@@ -525,7 +582,7 @@ class _TemplateCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppUI.surfaceVariantOf(context),
+        color: GamePalette.of(context).wood.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
@@ -586,7 +643,9 @@ class _AvatarPicker extends StatelessWidget {
       itemBuilder: (context, index) {
         final actualIndex = starterIndexes[index];
         final selected = selectedIndex == actualIndex;
-        final profile = AvatarProfile.initial().copyWith(faceShapeIndex: actualIndex);
+        final profile = AvatarProfile.initial().copyWith(
+          faceShapeIndex: actualIndex,
+        );
         return InkWell(
           borderRadius: BorderRadius.circular(22),
           onTap: () => onSelected(actualIndex),
@@ -598,10 +657,14 @@ class _AvatarPicker extends StatelessWidget {
                   ? accentColor.withValues(
                       alpha: AppUI.isDark(context) ? 0.22 : 0.12,
                     )
-                  : AppUI.surfaceVariantOf(context),
+                  : GamePalette.of(context).wood.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: selected ? accentColor : Theme.of(context).dividerColor,
+                color: selected
+                    ? accentColor
+                    : GamePalette.of(
+                        context,
+                      ).panelBorder.withValues(alpha: 0.6),
                 width: selected ? 1.6 : 1,
               ),
             ),
@@ -658,7 +721,7 @@ class _ReminderSwitch extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppUI.surfaceVariantOf(context),
+        color: GamePalette.of(context).wood.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
@@ -822,10 +885,14 @@ class _RoleGrid extends StatelessWidget {
                       ? accentColor.withValues(
                           alpha: AppUI.isDark(context) ? 0.22 : 0.12,
                         )
-                      : AppUI.surfaceVariantOf(context),
+                      : GamePalette.of(context).wood.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: selected ? accentColor : Theme.of(context).dividerColor,
+                    color: selected
+                        ? accentColor
+                        : GamePalette.of(
+                            context,
+                          ).panelBorder.withValues(alpha: 0.6),
                     width: selected ? 1.6 : 1,
                   ),
                 ),
@@ -861,6 +928,59 @@ class _RoleGrid extends StatelessWidget {
           }).toList(),
         );
       },
+    );
+  }
+}
+
+/// The companion standing on the welcome screen, talking you through it.
+class _Guide extends StatelessWidget {
+  const _Guide({super.key, required this.profile, required this.line});
+
+  final AvatarProfile profile;
+  final String line;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppUI.pagePadding),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          SizedBox(
+            width: 92,
+            height: 92,
+            child: CompanionSprite(
+              profile: profile,
+              pose: CompanionPose.idle,
+              size: 92,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: Container(
+                key: ValueKey(line),
+                margin: const EdgeInsets.only(bottom: 26),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFAF0),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFA8743F), width: 3),
+                ),
+                child: Text(
+                  line,
+                  style: const TextStyle(
+                    color: Color(0xFF3A1D0C),
+                    fontWeight: FontWeight.w800,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

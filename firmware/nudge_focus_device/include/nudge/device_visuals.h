@@ -29,6 +29,26 @@ LightFrame light_frame(DeviceVisualState state, std::uint32_t elapsed_seconds,
                        std::size_t pixel_count);
 const char* visual_state_name(DeviceVisualState state);
 
-enum class DeviceCue { none, start, pause, resume, complete, room_changed, error };
+enum class DeviceCue {
+  none,
+  start,
+  pause,
+  resume,
+  complete,
+  room_changed,
+  error,
+  hug
+};
+
+/// A friend's hug from the app: the ring breathes pink for three seconds.
+constexpr std::uint32_t kHugDurationMs = 3000;
+
+struct HugFrame {
+  bool active;
+  RgbColor color;
+  std::size_t lit_pixels;
+};
+
+HugFrame hug_frame(std::uint32_t since_hug_ms, std::size_t pixel_count);
 
 }  // namespace nudge

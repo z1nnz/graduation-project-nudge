@@ -49,10 +49,7 @@ class AvatarIconPreview extends StatelessWidget {
       child: ClipOval(
         child: Transform.scale(
           scale: 1.18,
-          child: buildAvatarImage(
-            asset,
-            fit: BoxFit.cover,
-          ),
+          child: buildAvatarImage(asset, fit: BoxFit.cover),
         ),
       ),
     );

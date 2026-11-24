@@ -51,6 +51,10 @@ dependencies:
   firebase_app_check: ^0.4.5+2
   firebase_messaging: ^16.4.3
   url_launcher: ^6.3.2
+  audioplayers: ^6.7.1
+  flutter_webrtc: ^1.6.3
+  http: ^1.6.0
+  share_plus: ^13.3.1
 
 dev_dependencies:
   flutter_test:
@@ -90,9 +94,11 @@ flutter:
     - assets/avatar/simple_outfits/
     - assets/avatar/accessories/
     - assets/home/
+    - assets/home/window/
     - assets/avatar/poses/
     - assets/rooms/
     - assets/ui/icons/
+    - assets/audio/ambient/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

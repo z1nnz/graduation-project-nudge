@@ -167,6 +167,17 @@ async function expectStatus(promise, status, reason) {
   assert.equal(response.status, status, `${reason}: ${await response.clone().text()}`);
 }
 
+function sendRoomMessage(roomPath, roomId, uid, id, token) {
+  const throttle = createWrite(`${roomPath}/chat_throttles/${uid}`, {
+    userId: uid, messageId: id, t0: null, t1: null, t2: null, t3: null,
+  });
+  throttle.updateTransforms = [{ fieldPath: "t4", setToServerValue: "REQUEST_TIME" }];
+  return commit([
+    createWrite(`${roomPath}/messages/${id}`, message(roomId, uid, id)),
+    throttle,
+  ], token);
+}
+
 async function run() {
   const owner = await signUp("scene-owner");
   const alice = await signUp("scene-alice");
@@ -180,9 +191,7 @@ async function run() {
     createWrite(roomPath, room(roomId, owner.localId)),
     createWrite(ownerPath, member(roomId, owner.localId, "owner", "approved")),
   ], owner.idToken), 200, "owner creates an approval room");
-  await expectStatus(commit([
-    createWrite(`${roomPath}/messages/m-owner`, message(roomId, owner.localId, "m-owner")),
-  ], owner.idToken), 200, "owner posts the first message");
+  await expectStatus(sendRoomMessage(roomPath, roomId, owner.localId, "m-owner", owner.idToken), 200, "owner posts the first message");
 
   // Alice requests admission: she becomes a pending participant.
   await expectStatus(commit([
@@ -194,9 +203,7 @@ async function run() {
     "a pending member cannot read room messages");
   await expectStatus(list(`${roomPath}/events`, alice.idToken), 403,
     "a pending member cannot read room events");
-  await expectStatus(commit([
-    createWrite(`${roomPath}/messages/m-alice-pending`, message(roomId, alice.localId, "m-alice-pending")),
-  ], alice.idToken), 403, "a pending member cannot post a message");
+  await expectStatus(sendRoomMessage(roomPath, roomId, alice.localId, "m-alice-pending", alice.idToken), 403, "a pending member cannot post a message");
   await expectStatus(commit([
     updateWrite(alicePath, { approvalStatus: "approved", updatedAt: now }),
   ], alice.idToken), 403, "a pending member cannot approve themself");
@@ -251,9 +258,7 @@ async function run() {
     "a former member cannot read a remembered message id");
   await expectStatus(list(`${roomPath}/members`, alice.idToken), 403,
     "a former member cannot read room memberships");
-  await expectStatus(commit([
-    createWrite(`${roomPath}/messages/m-alice-after`, message(roomId, alice.localId, "m-alice-after")),
-  ], alice.idToken), 403, "a former member cannot post a message");
+  await expectStatus(sendRoomMessage(roomPath, roomId, alice.localId, "m-alice-after", alice.idToken), 403, "a former member cannot post a message");
 
   // Last member closes instead of deleting, preserving the audit trail.
   await expectStatus(commit([

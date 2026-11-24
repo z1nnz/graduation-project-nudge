@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>加入自律房語音時，讓同房夥伴聽到你的聲音。預設靜音，按下麥克風才會開啟。</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>我們會在你同意後讀取睡眠、步數與運動時間，用於自律分析與健康儀表板。我們會在你同意後讀取睡眠、步數與運動時間，用於自律分析與健康儀表板。</string>
 	<key>NSHealthUpdateUsageDescription</key>

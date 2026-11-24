@@ -1,17 +1,15 @@
 <!doctype html>
 <html lang="zh-Hant">
   <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 自律城市 / 自律星球</title><link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=2" />
     <!-- Firebase Compat SDK for real-time Firestore sync -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   </head>
-  <body data-page="planet">
-    <div class="shell"><aside class="sidebar"><a class="brand" href="dashboard.html"><span class="brand-mark">N</span><span><strong>Nudge</strong><small>自律星球</small></span></a><nav class="nav"><a href="dashboard.html">總覽入口</a><a href="personal.html">個人進階分析</a><a href="guardian.html">家長陪伴中心</a><a href="groups.html">團體 / 教育管理</a><a href="operations.html">商城頁</a><a href="research.html">研究中心</a><a href="friend.html">好友功能</a>
-          <a class="active" href="planet.html">自律星球</a>
-          <a href="profile.html">個人名片</a>
-        </nav><section class="side-panel"><span class="eyebrow">視覺模式切換</span><div class="view-toggle"><button data-view="solar-system" class="active">🪐 太陽系視角</button></div><p style="margin-top: 15px;">切換不同視角來觀看你的自律成果。</p></section></aside>
-      <main class="main">
-        <a class="button town-return-link" data-town-return href="town.html">← 返回小鎮</a>
+  <body class="w-page world-page" data-page="planet">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>星球天文台</h1></header>
+    <div class="world-shell">
+      <main class="main w-main">
         <header class="hero split planet-hero cinematic"><div><span class="eyebrow">Discipline Planet Hub</span><h1>自律星球把每天的努力變成可視化成果。</h1><p>任務、健康與專注資料會累積成你的個人星系。</p></div><div class="hero-card"><span>已解鎖星球</span><strong id="planetCount">讀取中</strong><p id="planetNote" role="status" aria-live="polite">只顯示你自己帳號的星球成果。</p></div></header>
         <section class="planet-stage page-section immersive-stage" data-tilt>
           
@@ -171,9 +169,9 @@
         });
       });
     </script>
-    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/town_routes.js?v=4"></script>
     <script src="assets/town_return.js?v=2"></script>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/app.js?v=29"></script>
   
     <script src="assets/planet_core.js?v=1"></script>
     <script>

@@ -61,6 +61,20 @@ LightFrame light_frame(DeviceVisualState state, std::uint32_t elapsed_seconds,
   return LightFrame{state, active, {2, 2, 3}, lit};
 }
 
+HugFrame hug_frame(std::uint32_t since_hug_ms, std::size_t pixel_count) {
+  if (since_hug_ms >= kHugDurationMs) return HugFrame{false, {0, 0, 0}, 0};
+  // Two slow breaths: a triangle wave over 1.5 s, from 100% down to 30%.
+  constexpr std::uint32_t kBreathMs = 1500;
+  const std::uint32_t phase = since_hug_ms % kBreathMs;
+  const std::uint32_t half = kBreathMs / 2;
+  const std::uint32_t distance = phase < half ? phase : kBreathMs - phase;
+  const std::uint32_t level = 100 - (70 * distance) / half;  // 100..30
+  const RgbColor pink{static_cast<std::uint8_t>(220 * level / 100),
+                      static_cast<std::uint8_t>(40 * level / 100),
+                      static_cast<std::uint8_t>(90 * level / 100)};
+  return HugFrame{true, pink, pixel_count};
+}
+
 const char* visual_state_name(DeviceVisualState state) {
   switch (state) {
     case DeviceVisualState::offline:
