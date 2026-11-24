@@ -341,6 +341,26 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "audit_events", "safetyTargetId", "==", userId),
   ]);
   const safetySettings = safetyDocuments[0]?.data;
+  const buddyPairs = await readQuery(firestore, "buddy_pairs", "participantIds", "array-contains", userId);
+  const buddySettings = await readSingleDocument(firestore, "buddy_settings", userId);
+  const [sentThanks, receivedThanks, thanksUsage] = await Promise.all([
+    readQuery(firestore, "thanks_cards", "senderId", "==", userId),
+    readQuery(firestore, "thanks_cards", "recipientId", "==", userId),
+    readQuery(firestore, "thanks_card_budgets", "userId", "==", userId),
+  ]);
+  const journalBooks = await readQuery(firestore, "exchange_journals", "participantIds", "array-contains", userId);
+  const exchangeJournals = await Promise.all(journalBooks.documents
+    .filter(book => book.data.status !== "deleted" && (!book.data.expiresAt || book.data.expiresAt > new Date().toISOString()))
+    .map(async book => {
+      const entries = await collectQueryDocuments(firestore.collection("exchange_journals").doc(book.id)
+        .collection("entries").where("authorId", "==", userId));
+      return { ...book, entries };
+    }));
+  const clubData = await Promise.all([
+    ["clubs", "ownerId"], ["club_members", "userId"], ["club_posts", "authorId"],
+    ["club_reactions", "userId"], ["club_challenge_members", "userId"],
+  ].map(async ([name, field]) => [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
+  const townEventPreferences = await readSingleDocument(firestore, "town_event_preferences", userId);
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -393,6 +413,14 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         allowStrangerMentions: safetySettings.allowStrangerMentions,
       } : null,
       safety_reports: safetyReports.documents,
+      buddy_pairs: buddyPairs.documents,
+      buddy_settings: buddySettings,
+      sent_thanks_cards: sentThanks.documents,
+      received_thanks_cards: receivedThanks.documents,
+      thanks_card_usage: thanksUsage.documents,
+      exchange_journals: exchangeJournals,
+      ...Object.fromEntries(clubData),
+      town_event_preferences: townEventPreferences,
       safety_actions: moderationActions.documents.map(({ data }) => ({
         action: data.action, reason: data.reason, createdAt: data.createdAt,
       })),

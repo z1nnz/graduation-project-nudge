@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "club_posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clubId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "guild_events",
       "queryScope": "COLLECTION",
       "fields": [
@@ -110,6 +118,11 @@
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "removed",
+      "fieldPath": "userId",
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
+    },
     {
       "collectionGroup": "chat_reports", "fieldPath": "status",
       "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]

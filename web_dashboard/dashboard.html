@@ -10,60 +10,86 @@
     <link rel="stylesheet" href="assets/styles.css?v=17" />
     <link rel="stylesheet" href="assets/world_ui.css?v=2" />
     <link rel="stylesheet" href="assets/companion_install.css?v=1" />
+    <link rel="stylesheet" href="assets/quest_board.css?v=1" />
   </head>
   <body class="w-page world-page" data-page="home">
     <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>委託告示板</h1></header>
     <div class="world-shell">
-
-
-      <main class="main w-main">
-        <section class="panel page-section" aria-labelledby="dailyActionTitle" aria-live="polite">
-          <span class="eyebrow">我的下一步 · 個人行動</span>
-          <h2 id="dailyActionTitle">讓今天從一件小事開始</h2>
+      <main class="w-main quest-board">
+        <header class="quest-board-heading">
+          <div><span class="quest-board-kicker">THE DAILY QUEST</span><h2>今天，先完成一小步</h2></div>
+          <img class="quest-board-guide" src="assets/town/guide.png" alt="" width="54" height="69" />
+        </header>
+        <section class="quest-board-feature" aria-labelledby="dailyActionTitle" aria-live="polite">
+          <span class="quest-board-pin" aria-hidden="true"></span>
+          <div class="quest-board-feature-head"><span>✦ 今日主線</span><span>只選一件</span></div>
+          <h3 id="dailyActionTitle">讓今天從一件小事開始</h3>
           <p id="dailyActionDetail">登入後，夥伴會從你自己的清單整理一個可行動的起點。</p>
-          <a id="dailyActionLink" class="button primary" href="login.html">登入帳號</a>
-          <p id="dailyActionStatus">尚未讀取個人資料</p>
-          <p id="dailyActivityFeedback">登入後查看雲端活動確認</p>
+          <div class="quest-board-action-row">
+            <a id="dailyActionLink" class="button primary" href="login.html">登入帳號</a>
+            <span id="dailyActionStatus" role="status">尚未讀取個人資料</span>
+          </div>
+          <details class="quest-board-receipt"><summary>查看雲端確認狀態</summary><p id="dailyActivityFeedback">登入後查看雲端活動確認</p></details>
         </section>
-        <a class="panel page-section town-entry" href="town.html" style="display:flex;align-items:center;gap:16px;text-decoration:none;color:inherit;">
-          <img src="assets/town/guide.png" alt="" width="64" height="64" style="image-rendering:pixelated;" />
-          <span><strong style="display:block;font-size:18px;">進入 Nudge 夥伴小鎮</strong>走進小鎮，用建築開啟每一個功能；完成專注還能拿休息券到遊樂園玩。</span>
-        </a>
-        <section class="panel page-section" aria-labelledby="companionInstallTitle">
-          <h2 id="companionInstallTitle">把日常夥伴放在桌面</h2>
-          <p>快速回到今日行動。可否安裝由瀏覽器決定，本版尚不提供完整離線操作。</p>
-          <button id="companionInstallButton" class="button ghost" type="button" aria-controls="companionInstallHelp">加入桌面／查看方式</button>
-          <p id="companionInstallStatus" role="status">安裝方式依瀏覽器而異，也可以直接使用網頁</p>
-          <p id="companionNetworkStatus" role="status">尚未取得瀏覽器連線提示</p>
-          <div id="companionInstallHelp" hidden>
-            <p>若瀏覽器提供「安裝」或「加入主畫面」，可從網址列、分享或選單操作；若沒有這些選項，請加入書籤繼續使用網頁。</p>
-            <p>安裝不會自動開啟通知，也不代表資料已同步。本版不快取個人任務、健康與家庭資料供離線瀏覽。</p>
+        <section class="quest-board-paths" aria-labelledby="questLinksTitle">
+          <div class="quest-board-section-head"><span>下一站</span><h3 id="questLinksTitle">想從哪裡開始？</h3></div>
+          <div class="quest-board-slips">
+            <a href="planet.html"><span class="quest-board-slip-icon" aria-hidden="true">✦</span><span><strong>今日任務</strong><small>打開任務簿</small></span><span aria-hidden="true">↗</span></a>
+            <a href="weekly-planner.html"><span class="quest-board-slip-icon" aria-hidden="true">▦</span><span><strong>七日規劃</strong><small>安排接下來的小步驟</small></span><span aria-hidden="true">↗</span></a>
+            <a href="personal-focus.html"><span class="quest-board-slip-icon" aria-hidden="true">◷</span><span><strong>書桌專注</strong><small>開始一段專注</small></span><span aria-hidden="true">↗</span></a>
+            <a href="rooms.html"><span class="quest-board-slip-icon" aria-hidden="true">♜</span><span><strong>專注塔</strong><small>和夥伴一起學習</small></span><span aria-hidden="true">↗</span></a>
           </div>
         </section>
-        <section class="quest-board-links page-section" aria-labelledby="questLinksTitle">
-          <div class="section-head"><div><span class="eyebrow">小鎮委託</span><h2 id="questLinksTitle">接下來要去哪裡？</h2></div><p>選一張委託，回到小鎮再進入對應設施。</p></div>
-          <div class="quest-slip-grid">
-            <a class="quest-slip" href="planet.html"><strong>今日任務</strong><span>查看自己的任務清單與雲端同步狀態</span></a>
-            <a class="quest-slip" href="weekly-planner.html"><strong>七日規劃</strong><span>替下一週安排可以做到的小步驟</span></a>
-            <a class="quest-slip" href="personal-focus.html"><strong>坐到書桌</strong><span>開始一段專注，紀錄以 Cloud Ledger 為準</span></a>
-            <a class="quest-slip" href="rooms.html"><strong>到專注塔</strong><span>與房內夥伴一起學習</span></a>
+        <details class="quest-board-more">
+          <summary>其他去處與使用說明</summary>
+          <div class="quest-board-more-inner">
+            <nav aria-label="小鎮其他去處">
+              <h3>其他去處</h3>
+              <div class="quest-board-more-links">
+                <a href="profile.html">夥伴名片</a><a href="operations.html">雜貨店</a><a href="planet.html">天文台</a>
+                <a href="friend.html">好友</a><a href="guardian.html">家庭庭院</a><a href="groups.html">團體會館</a>
+                <a href="personal.html">紀錄館</a><a href="privacy.html">鎮公所</a>
+              </div>
+            </nav>
+            <section aria-labelledby="companionInstallTitle">
+              <h3 id="companionInstallTitle">加入桌面</h3>
+              <p>可將小鎮加到主畫面，方便下次開啟。本版仍需連線使用個人功能。</p>
+              <button id="companionInstallButton" class="button ghost" type="button" aria-controls="companionInstallHelp">查看安裝方式</button>
+              <p id="companionInstallStatus" role="status">安裝方式依瀏覽器而異</p>
+              <p id="companionNetworkStatus" role="status">尚未取得瀏覽器連線提示</p>
+              <div id="companionInstallHelp" hidden>
+                <p>若瀏覽器提供「安裝」或「加入主畫面」，可從網址列、分享或選單操作；也可以將網頁加入書籤。</p>
+                <p>安裝不會自動開啟通知，也不代表資料已同步。本版不快取個人任務、健康與家庭資料供離線瀏覽。</p>
+              </div>
+            </section>
+            <section aria-label="智慧助理"><h3>需要協助？</h3><div id="questBoardAssistant"></div></section>
           </div>
-        </section>
-        <section class="w-panel page-section town-services" aria-labelledby="townServicesTitle">
-          <h2 id="townServicesTitle">小鎮其他去處</h2>
-          <div class="town-service-links">
-            <a href="profile.html">夥伴名片</a><a href="operations.html">雜貨店</a><a href="planet.html">天文台</a>
-            <a href="friend.html">好友</a><a href="guardian.html">家庭庭院</a><a href="groups.html">團體會館</a>
-            <a href="personal.html">紀錄館</a><a href="privacy.html">鎮公所</a>
-          </div>
-        </section>
+        </details>
       </main>
     </div>
     <script src="assets/companion_install.js?v=1"></script>
     <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script src="assets/daily_next_action.js?v=2"></script>
-    <script src="assets/town_routes.js?v=3"></script>
+    <script src="assets/town_routes.js?v=4"></script>
     <script src="assets/town_return.js?v=2"></script>
-    <script src="assets/app.js?v=28"></script>
+    <script src="assets/app.js?v=29"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        const assistant = document.querySelector('.ai-navigator');
+        const slot = document.getElementById('questBoardAssistant');
+        if (assistant && slot) slot.appendChild(assistant);
+        const orb = document.getElementById('aiOrb');
+        if (!orb) return;
+        orb.setAttribute('role', 'button');
+        orb.setAttribute('tabindex', '0');
+        orb.setAttribute('aria-label', '開啟智慧助理');
+        orb.addEventListener('keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            orb.click();
+          }
+        });
+      });
+    </script>
   </body>
 </html>

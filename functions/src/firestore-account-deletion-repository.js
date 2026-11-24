@@ -496,6 +496,7 @@ export class FirestoreAccountDeletionRepository {
       ["chat_reports", "userId"],
       ["chat_reports", "senderId"],
       ["safety_mutes", "userId"],
+      ["removed", "userId"],
       ["voice_signals", "from"],
       ["voice_signals", "to"],
       ["voice_mute", "requestedBy"],
@@ -749,6 +750,16 @@ export class FirestoreAccountDeletionRepository {
     }
 
     const querySpecs = [
+      ["thanks_cards", "senderId"],
+      ["thanks_cards", "recipientId"],
+      ["thanks_card_receipts", "senderId"],
+      ["thanks_card_receipts", "recipientId"],
+      ["thanks_card_budgets", "userId"],
+      ["club_members", "userId"],
+      ["club_posts", "authorId"],
+      ["club_reactions", "userId"],
+      ["club_post_quota", "userId"],
+      ["club_challenge_members", "userId"],
       ["activity_events", "actorUserId"],
       ["activity_receipts", "actorUserId"],
       ["reward_ledger_entries", "actorUserId"],
@@ -816,6 +827,26 @@ export class FirestoreAccountDeletionRepository {
       deletedDocuments += 1;
     }
 
+    deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection("buddy_pairs")
+      .where("participantIds", "array-contains", userId));
+    const journals = await querySnapshots(this.firestore.collection("exchange_journals")
+      .where("participantIds", "array-contains", userId));
+    for (const journal of journals) {
+      await this.firestore.recursiveDelete(journal.ref);
+      deletedDocuments += 1;
+    }
+    deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection("exchange_journal_pairs")
+      .where("participantIds", "array-contains", userId));
+    const ownedClubs = await querySnapshots(this.firestore.collection("clubs").where("ownerId", "==", userId));
+    for (const club of ownedClubs) {
+      await this.firestore.collection("club_public").doc(club.id).delete();
+      for (const name of ["club_members", "club_posts", "club_reactions", "club_challenge_members"]) {
+        deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection(name).where("clubId", "==", club.id));
+      }
+      await this.firestore.recursiveDelete(club.ref);
+      deletedDocuments += 1;
+    }
+
     const safety = this.firestore.collection("social_safety");
     for (const field of ["blocked", "blockedBy"]) {
       const peers = await querySnapshots(safety.where(field, "array-contains", userId));
@@ -828,6 +859,8 @@ export class FirestoreAccountDeletionRepository {
     }
 
     const directCollections = [
+      "buddy_settings",
+      "town_event_preferences",
       "social_safety",
       "public_profiles",
       "privacy_consents",

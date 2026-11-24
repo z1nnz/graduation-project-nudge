@@ -1,0 +1,14 @@
+.thanks_cards, .thanks_cards form { display: grid; gap: .8rem; }
+.thanks_cards [hidden] { display: none; }
+.thanks_cards h2, .thanks_cards h3, .thanks_cards button { font-family: var(--w-pixel); }
+.thanks_cards button, .thanks_cards select, #thanksDelete button { min-height: 44px; }
+.thanks_cards label { display: grid; gap: .25rem; }
+.thanks_cards select, .thanks_cards textarea { box-sizing: border-box; width: 100%; color: var(--w-ink-dark);
+  background: var(--w-parchment-hi); border: 2px solid var(--w-frame); }
+.thanks_cards img { image-rendering: pixelated; object-fit: contain; max-width: 100%; }
+.thanks-entry { display: grid; gap: .45rem; margin-block: .6rem; overflow-wrap: anywhere; }
+.thanks-entry p { white-space: pre-wrap; }
+.thanks-entry p, .thanks-entry h3 { color: var(--w-ink-dark); }
+.thanks-controls { display: flex; flex-wrap: wrap; gap: .5rem; }
+#thanksDelete { width: min(28rem, calc(100% - 2rem)); box-sizing: border-box; }
+#thanksDelete::backdrop { background: var(--w-night); opacity: .7; }

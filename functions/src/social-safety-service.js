@@ -3,7 +3,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 const reasons = new Set(["harassment", "hate", "spam", "privacy", "other"]);
-const types = new Set(["roomMessage", "guestbook", "roomName", "nickname"]);
+const types = new Set(["roomMessage", "guestbook", "roomName", "nickname", "clubPost"]);
 const muteMinutes = new Set([10, 60, 1440]);
 const staffRoles = new Set(["developer", "operator", "admin"]);
 const hash = (...parts) => createHash("sha256").update(JSON.stringify(parts)).digest("hex");
@@ -54,6 +54,13 @@ async function moderationSnapshot(db, tx, uid, input) {
       senderId: entry.senderId, evidence: entry.text, messageType: entry.type,
       legacy: message.collection("chat_reports").doc(uid),
     };
+  }
+  if (input.type === "clubPost") {
+    const post = (await tx.get(db.collection("club_posts").doc(target))).data();
+    if (!post || !(await tx.get(db.collection("club_members").doc(hash(post.clubId, uid)))).exists) {
+      fail("permission-denied", "Post is unavailable.");
+    }
+    return { senderId: post.authorId, evidence: post.body };
   }
   if (input.type === "guestbook") {
     const entry = (await tx.get(db.collection("friend_visits").doc(target))).data();

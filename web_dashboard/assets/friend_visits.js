@@ -387,6 +387,8 @@
     const stage = $("[data-friend-cabin-stage]");
     const form = $("[data-friend-cabin-letter]");
     const visit = activeCabin = { hostId, opener };
+    const thanks = $("[data-thanks-cabin]");
+    if (thanks) thanks.hidden = true;
     stage.hidden = form.hidden = true;
     stage.replaceChildren();
     form.reset();
@@ -403,6 +405,10 @@
       ]);
       if (activeCabin !== visit) return;
       drawCabin(stage, layout, cabin);
+      if (thanks) {
+        thanks.href = "thanks-cards.html?to=" + encodeURIComponent(hostId);
+        thanks.hidden = false;
+      }
       form.hidden = alreadyLeft;
       status.textContent = alreadyLeft ? "今天已經留下鼓勵。" : "小屋擺設由好友公開。";
     } catch {

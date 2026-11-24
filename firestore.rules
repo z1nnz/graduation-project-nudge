@@ -46,6 +46,77 @@ service cloud.firestore {
       );
     }
 
+    match /buddy_pairs/{pair} {
+      allow read, write: if false;
+    }
+
+    match /buddy_settings/{uid} {
+      allow read, write: if false;
+    }
+
+    match /thanks_cards/{card} {
+      allow read, write: if false;
+    }
+
+    match /thanks_card_receipts/{receipt} {
+      allow read, write: if false;
+    }
+
+    match /thanks_card_budgets/{budget} {
+      allow read, write: if false;
+    }
+
+    match /exchange_journals/{journalId}/{path=**} {
+      allow read, write: if false;
+    }
+
+    match /exchange_journal_pairs/{pair} {
+      allow read, write: if false;
+    }
+
+    match /clubs/{clubId}/{path=**} {
+      allow read, write: if false;
+    }
+
+    match /club_public/{clubId} {
+      allow read: if resource.data.status == 'approved';
+      allow write: if false;
+    }
+
+    match /club_members/{doc} {
+      allow read, write: if false;
+    }
+
+    match /club_posts/{doc} {
+      allow read, write: if false;
+    }
+
+    match /club_reactions/{doc} {
+      allow read, write: if false;
+    }
+
+    match /club_post_quota/{doc} {
+      allow read, write: if false;
+    }
+
+    match /club_challenge_members/{doc} {
+      allow read, write: if false;
+    }
+
+    match /town_events/{eventId} {
+      allow get: if eventId == 'current';
+      allow list, write: if false;
+    }
+
+    match /town_event_jobs/{week} {
+      allow read, write: if false;
+    }
+
+    match /town_event_preferences/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+
     match /social_safety/{uid} {
       allow read, write: if false;
     }
@@ -1659,6 +1730,7 @@ service cloud.firestore {
               resource.data.get('joinQuestion', '') == ''
               && (!resource.data.get('lobbyManaged', false) || resource.data.visibility == 'public')
               && !('guildGroupId' in resource.data)
+              && !('clubScopeId' in resource.data)
               && addedMembers.hasOnly([request.auth.uid])
               && removedMembers.size() == 0
               && afterMembers.size() <= resource.data.memberLimit
@@ -1740,7 +1812,7 @@ service cloud.firestore {
       allow create: if isAuth()
         && validRoomMetadata()
         && request.resource.data.ownerId == request.auth.uid
-        && !request.resource.data.keys().hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme', 'guildGroupId', 'guildClosesAt', 'guildClosePendingAt'])
+        && !request.resource.data.keys().hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme', 'clubScopeId', 'guildGroupId', 'guildClosesAt', 'guildClosePendingAt'])
         && request.resource.data.get('voiceEnabled', false) == false
         && request.resource.data.memberIds.hasOnly([request.auth.uid])
         && request.resource.data.status == 'active';
@@ -1750,7 +1822,11 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme'])
         && (!resource.data.get('lobbyManaged', false) || request.resource.data.memberLimit <= 8)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['guildGroupId', 'guildClosesAt', 'guildClosePendingAt'])
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubScopeId', 'guildGroupId', 'guildClosesAt', 'guildClosePendingAt'])
+        && (!('clubScopeId' in resource.data) || (
+          request.resource.data.visibility == 'private' &&
+          request.resource.data.ownerId == resource.data.ownerId
+        ))
         && eligibleForGuildRoom(resource.data, request.auth.uid)
         && (
           ownerUpdatesOrClosesActiveRoom()

@@ -1,3 +1,8 @@
+import { createBuddyHandler, createBuddyReminder } from "./src/buddy-service.js";
+import { createThanksCardHandler } from "./src/thanks-card-service.js";
+import { createJournalHandler, createJournalCleanup } from "./src/exchange-journal-service.js";
+import { createClubHandler } from "./src/club-service.js";
+import { createTownEventPreferences, createTownEventSchedule } from "./src/town-event-service.js";
 import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
 import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
 import { createSocialSafetyHandler } from "./src/social-safety-service.js";
@@ -897,3 +902,31 @@ export const processGuildEvents = onSchedule(
 const socialSafety = createSocialSafetyHandler(getFirestore());
 export const manageSocialSafety = onCall({ region: "asia-east1" }, request =>
   withAccountOperation(request, () => socialSafety(request)));
+
+const manageBuddiesHandler=createBuddyHandler(getFirestore());
+export const manageBuddies=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageBuddiesHandler(request)));
+export const sendBuddyReminders=onSchedule({ region: "asia-east1", schedule: "every 5 minutes" },
+  createBuddyReminder(getFirestore()),);
+
+const manageThanksCardsHandler=createThanksCardHandler(getFirestore());
+export const manageThanksCards=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageThanksCardsHandler(request)));
+
+const exchangeJournal = createJournalHandler(getFirestore());
+export const manageExchangeJournal = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => exchangeJournal(request)));
+export const cleanupExchangeJournals = onSchedule(
+  { region: "asia-east1", schedule: "every 60 minutes" },
+  createJournalCleanup(getFirestore()),
+);
+
+const manageClubsHandler=createClubHandler(getFirestore());
+export const manageClubs=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageClubsHandler(request)));
+
+const manageTownEventPreferencesHandler=createTownEventPreferences(getFirestore());
+export const manageTownEventPreferences=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageTownEventPreferencesHandler(request)));
+export const processTownEvents=onSchedule({ region: "asia-east1", schedule: "every 15 minutes" },
+  createTownEventSchedule(getFirestore()),);

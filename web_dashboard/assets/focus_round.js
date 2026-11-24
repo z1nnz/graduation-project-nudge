@@ -5,6 +5,7 @@
   const panel = document.querySelector("[data-focus-round]");
   const status = panel.querySelector("[data-focus-round-status]");
   const timer = panel.querySelector("time");
+  const thanks = panel.querySelector("[data-thanks-focus]");
   const celebration = panel.querySelector("[data-focus-round-celebration]");
   const start = panel.querySelector("[data-focus-round-start]");
   const join = panel.querySelector("[data-focus-round-join]");
@@ -36,6 +37,7 @@
     } else if (phase !== "break") {
       celebration.hidden = true;
     }
+    if (thanks) thanks.hidden = phase !== "break";
     current.phase = phase;
     const label = { idle: "可以發起新一輪", focus: "一起專注中", break: "完成這一輪，休息 5 分鐘" }[phase];
     const nextStatus = failure || label;
@@ -106,6 +108,7 @@
     panel.hidden = false;
     timer.hidden = true;
     celebration.hidden = true;
+    if (thanks) thanks.hidden = true;
     start.hidden = false;
     render();
     const syncClock = () => calibrate(options.getServerTime).then(() => {

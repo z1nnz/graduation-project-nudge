@@ -3,6 +3,8 @@
   const labels = Object.freeze({
     room_chat_mention: "有人在自律房提及你",
     friend_invitation: "你收到好友邀請",
+    buddy_invitation: "你收到自律夥伴邀請",
+    buddy_reminder: "夥伴在等你",
     family_invitation: "你收到家庭邀請",
     group_invitation: "你收到團體邀請",
     room_focus_round: "自律房開始了一輪專注",
@@ -17,6 +19,7 @@
       const page = data.kind === "room_chat_mention" ? "room-chat.html" : "rooms.html";
       return page + "?room=" + encodeURIComponent(data.roomId);
     }
+    if (data.kind.startsWith("buddy_")) return "buddies.html";
     if (data.kind.endsWith("_invitation")) return "notifications.html";
     return "mailbox.html";
   }
@@ -33,7 +36,7 @@
 
   function townUrl(scope, page) {
     // The destination is rebuilt from a set of local paths before navigation.
-    const allowed = ["mailbox.html", "notifications.html", "room-chat.html", "rooms.html"];
+    const allowed = ["mailbox.html", "notifications.html", "room-chat.html", "rooms.html", "buddies.html"];
     const [stem, query = ""] = String(page || "").split("?", 2);
     const room = new URLSearchParams(query).get("room");
     const path = allowed.includes(stem)

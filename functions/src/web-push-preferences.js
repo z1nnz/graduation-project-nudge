@@ -4,6 +4,8 @@ const categories = ["mentions", "invitations", "focusRounds", "guildEvents", "fa
 const webKinds = Object.freeze({
   room_chat_mention: "mentions",
   friend_invitation: "invitations",
+  buddy_invitation: "invitations",
+  buddy_reminder: "invitations",
   family_invitation: "invitations",
   group_invitation: "invitations",
   room_focus_round: "focusRounds",
