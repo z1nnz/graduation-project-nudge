@@ -33,5 +33,5 @@ test('every declared Web walk frame exists and town loads the selector first', (
     }
   }
   const html = fs.readFileSync(path.join(webRoot, 'town.html'), 'utf8');
-  assert.ok(html.indexOf('town_avatar_core.js') < html.indexOf('town.js?v=5'));
+  assert.ok(html.indexOf('town_avatar_core.js') < html.indexOf('town.js'));
 });

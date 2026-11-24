@@ -12,6 +12,7 @@
     <main class="town" aria-label="Nudge 夥伴小鎮">
       <canvas id="townCanvas" class="town-canvas" aria-hidden="true"></canvas>
       <div id="townLabels" class="town-labels" aria-hidden="true"></div>
+      <div id="townActors" class="town-actors" aria-label="小鎮居民"></div>
 
       <header class="town-hud town-hud-identity">
         <img id="townAvatar" class="town-avatar" alt="" src="assets/avatar/characters/character_0.png" />
@@ -46,6 +47,11 @@
       </div>
 
       <div id="townToast" class="town-toast" role="status" aria-live="polite" hidden></div>
+
+      <section id="townNpcDialog" class="town-npc-dialog" aria-labelledby="townNpcName" hidden>
+        <div><strong id="townNpcName"></strong><p id="townNpcLine"></p></div>
+        <button id="townNpcClose" class="town-ghost" type="button" aria-label="結束交談">✕</button>
+      </section>
 
       <section id="townDialog" class="town-dialog" hidden aria-live="polite">
         <img src="assets/town/guide.png" alt="" class="town-dialog-portrait" />
@@ -109,13 +115,15 @@
     <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script src="assets/town_core.js?v=1"></script>
     <script src="assets/town_avatar_core.js?v=1"></script>
+    <script src="assets/town_atmosphere_core.js?v=1"></script>
+    <script src="assets/town_atmosphere.js?v=1"></script>
     <script src="assets/town_game_core.js?v=1"></script>
     <script src="assets/town_routes.js?v=2"></script>
     <script src="assets/daily_next_action.js?v=2"></script>
     <script src="assets/town_desk_core.js?v=1"></script>
     <script src="assets/town_scenes.js?v=1"></script>
     <script src="assets/town_window_core.js?v=1"></script>
-    <script src="assets/town.js?v=5"></script>
+    <script src="assets/town.js?v=6"></script>
     <script src="assets/town_window.js?v=1"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
