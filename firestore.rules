@@ -1521,7 +1521,30 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /guild_events/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /guild_event_attendance/{attendanceId} {
+      allow read, write: if false;
+    }
+
+    match /guild_notices/{noticeId} {
+      allow read, write: if false;
+    }
+
+    match /guild_notice_reads/{readId} {
+      allow read, write: if false;
+    }
+
     match /rooms/{roomId} {
+      function eligibleForGuildRoom(room, uid) {
+        return !('guildGroupId' in room) || (
+          request.time < room.guildClosesAt &&
+          get(/databases/$(database)/documents/groups/$(room.guildGroupId)).data.status == 'active' &&
+          uid in get(/databases/$(database)/documents/groups/$(room.guildGroupId)).data.memberIds
+        );
+      }
       function roomDocument() {
         return get(
           /databases/$(database)/documents/rooms/$(roomId)
@@ -1536,7 +1559,8 @@ service cloud.firestore {
 
       function isRoomParticipant() {
         return isAuth()
-          && roomDocument().data.memberIds.hasAny([request.auth.uid]);
+          && roomDocument().data.memberIds.hasAny([request.auth.uid])
+          && eligibleForGuildRoom(roomDocument().data, request.auth.uid);
       }
 
       function isApprovedRoomParticipant() {
@@ -1602,6 +1626,7 @@ service cloud.firestore {
             (
               resource.data.get('joinQuestion', '') == ''
               && (!resource.data.get('lobbyManaged', false) || resource.data.visibility == 'public')
+              && !('guildGroupId' in resource.data)
               && addedMembers.hasOnly([request.auth.uid])
               && removedMembers.size() == 0
               && afterMembers.size() <= resource.data.memberLimit
@@ -1683,7 +1708,7 @@ service cloud.firestore {
       allow create: if isAuth()
         && validRoomMetadata()
         && request.resource.data.ownerId == request.auth.uid
-        && !request.resource.data.keys().hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme'])
+        && !request.resource.data.keys().hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme', 'guildGroupId', 'guildClosesAt', 'guildClosePendingAt'])
         && request.resource.data.get('voiceEnabled', false) == false
         && request.resource.data.memberIds.hasOnly([request.auth.uid])
         && request.resource.data.status == 'active';
@@ -1693,6 +1718,8 @@ service cloud.firestore {
         && !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme'])
         && (!resource.data.get('lobbyManaged', false) || request.resource.data.memberLimit <= 8)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['guildGroupId', 'guildClosesAt', 'guildClosePendingAt'])
+        && eligibleForGuildRoom(resource.data, request.auth.uid)
         && (
           ownerUpdatesOrClosesActiveRoom()
           || changesOnlyOwnRoomMembership()
@@ -1995,6 +2022,7 @@ service cloud.firestore {
           && exists(voiceParticipantPath(request.resource.data.to))
           && isAccountReferenceableAfter(request.resource.data.to)
           && roomDocument().data.memberIds.hasAny([request.resource.data.to])
+          && eligibleForGuildRoom(roomDocument().data, request.resource.data.to)
           && get(/databases/$(database)/documents/rooms/$(roomId)/members/$(request.resource.data.to)).data.approvalStatus == 'approved'
           && request.resource.data.type in ['offer', 'answer', 'ice']
           && request.resource.data.payload is string

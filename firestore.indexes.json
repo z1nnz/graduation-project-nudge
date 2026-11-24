@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "activity_receipts",
       "queryScope": "COLLECTION",
       "fields": [
@@ -106,6 +114,14 @@
       "collectionGroup": "messages",
       "fieldPath": "senderId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -116,6 +132,14 @@
       "collectionGroup": "events",
       "fieldPath": "actorId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -126,6 +150,14 @@
       "collectionGroup": "activity_sessions",
       "fieldPath": "actorId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -136,6 +168,14 @@
       "collectionGroup": "messages",
       "fieldPath": "mentionUid",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -146,6 +186,14 @@
       "collectionGroup": "chat_throttles",
       "fieldPath": "userId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -156,6 +204,14 @@
       "collectionGroup": "chat_pin",
       "fieldPath": "userId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -166,6 +222,14 @@
       "collectionGroup": "chat_reactors",
       "fieldPath": "userId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -176,6 +240,14 @@
       "collectionGroup": "chat_hidden_messages",
       "fieldPath": "userId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -186,6 +258,14 @@
       "collectionGroup": "chat_reports",
       "fieldPath": "userId",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -196,6 +276,14 @@
       "collectionGroup": "focus_rounds",
       "fieldPath": "startedBy",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -206,6 +294,14 @@
       "collectionGroup": "voice_signals",
       "fieldPath": "createdAt",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -216,6 +312,14 @@
       "collectionGroup": "voice_signals",
       "fieldPath": "from",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -230,6 +334,14 @@
       "collectionGroup": "voice_signals",
       "fieldPath": "to",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -244,6 +356,14 @@
       "collectionGroup": "voice_participants",
       "fieldPath": "updatedAt",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -254,6 +374,14 @@
       "collectionGroup": "voice_participants",
       "fieldPath": "uid",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
@@ -264,6 +392,14 @@
       "collectionGroup": "voice_mute",
       "fieldPath": "requestedBy",
       "indexes": [
+    {
+      "collectionGroup": "guild_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt", "order": "ASCENDING" }
+      ]
+    },
         {
           "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
