@@ -1,0 +1,40 @@
+.room-lobby { display: grid; gap: 1rem; }
+.room-lobby [hidden] { display: none; }
+.room-lobby h2, .room-lobby h3, .room-lobby strong, .room-lobby button { font-family: var(--w-pixel); }
+.room-lobby button, .room-lobby input, .room-lobby select { min-height: 44px; }
+.room-lobby label { display: grid; gap: .25rem; }
+.room-lobby input:not([type="checkbox"]), .room-lobby select, .room-lobby textarea {
+  width: 100%; min-width: 0; box-sizing: border-box;
+  color: var(--w-ink-dark); background: var(--w-parchment); border: 2px solid var(--w-frame);
+}
+.room-lobby input[type="checkbox"] { margin: 0; min-width: 24px; }
+.room-lobby .lobby-check { display: flex; align-items: center; }
+.room-lobby-header, .room-lobby-filters, .room-lobby-actions { display: flex; flex-wrap: wrap; gap: .65rem; align-items: end; }
+.room-lobby-header { justify-content: space-between; }
+.room-lobby-filters > label { flex: 1 1 135px; }
+.room-lobby-doors {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(103px, 1fr)); gap: .75rem;
+  padding: .75rem; background: var(--w-wood-dark) url(room_lobby/lobby.png) center bottom / 1280px 720px repeat-x;
+  image-rendering: pixelated;
+}
+.room-lobby-door { display: grid; justify-items: center; gap: .25rem; min-width: 0; overflow-wrap: anywhere; }
+.room-lobby-door img, .room-lobby-theme, .room-lobby-qr { image-rendering: pixelated; }
+.room-lobby-door img { display: block; width: 96px; height: 160px; max-width: none; }
+.room-lobby-door small { font-size: .875rem; }
+.room-lobby-door[aria-current="true"] { outline: 3px solid var(--w-gold); }
+.room-lobby-dialog {
+  box-sizing: border-box; width: min(100% - 1rem, 36rem); max-height: 90vh; overflow: auto;
+  color: var(--w-ink-dark); background: var(--w-parchment); border: 4px solid var(--w-wood-dark);
+}
+.room-lobby-dialog::backdrop { background: var(--w-ink); opacity: .65; }
+.room-lobby-dialog form, .room-lobby-dialog fieldset { display: grid; gap: .65rem; min-width: 0; }
+.room-lobby-dialog fieldset { margin: 0; padding: .75rem; }
+.room-lobby-theme { width: 160px; height: 100px; }
+.room-lobby-qr { display: block; max-width: 100%; height: auto; margin: .5rem auto; }
+.room-lobby-dialog p, .room-lobby-dialog li { overflow-wrap: anywhere; }
+@media (max-width: 360px) {
+  .room-lobby-dialog { padding: .625rem; }
+}
+.room-lobby-lights { display: flex; gap: 3px; }
+.room-lobby-lights i { width: 7px; height: 7px; background: var(--w-wood-dark); border: 1px solid var(--w-frame); }
+.room-lobby-lights .lit { background: var(--w-gold); }

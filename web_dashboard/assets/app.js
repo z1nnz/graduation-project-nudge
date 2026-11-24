@@ -3611,7 +3611,7 @@ function listenToWebRooms(userId) {
         list.innerHTML = `
           <div class="room-empty-state">
             <span>目前沒有活動房</span>
-            <strong>先從 App 探索或建立房間</strong>
+            <strong>從專注塔大廳探索或建立房間</strong>
             <p>加入後，這裡會顯示相同的成員資格與活動紀錄。</p>
           </div>`;
         resetWebRoomState();

@@ -1,3 +1,4 @@
+import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
 import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
@@ -821,3 +822,7 @@ export const manageGrowthDocument = onCall(
     }
   },
 );
+
+const manageRoomLobbyRequest = createRoomLobbyHandler(getFirestore());
+export const manageRoomLobby = onCall({ region: 'asia-east1' }, request =>
+  withAccountOperation(request, () => manageRoomLobbyRequest(request)));

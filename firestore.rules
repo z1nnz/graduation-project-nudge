@@ -1476,6 +1476,22 @@ service cloud.firestore {
       allow list: if isStaff();
     }
 
+    match /room_lobby_answers/{answerId} {
+      allow get: if isAuth() && (
+        request.auth.uid == resource.data.memberId
+        || get(/databases/$(database)/documents/rooms/$(resource.data.roomId)).data.ownerId == request.auth.uid
+      );
+      allow list, write: if false;
+    }
+
+    match /room_lobby_codes/{codeId} {
+      allow read, write: if false;
+    }
+
+    match /room_lobby_active_codes/{roomId} {
+      allow read, write: if false;
+    }
+
     match /rooms/{roomId} {
       function roomDocument() {
         return get(
@@ -1555,7 +1571,9 @@ service cloud.firestore {
           && request.resource.data.ownerId in request.resource.data.memberIds
           && (
             (
-              addedMembers.hasOnly([request.auth.uid])
+              resource.data.get('joinQuestion', '') == ''
+              && (!resource.data.get('lobbyManaged', false) || resource.data.visibility == 'public')
+              && addedMembers.hasOnly([request.auth.uid])
               && removedMembers.size() == 0
               && afterMembers.size() <= resource.data.memberLimit
               && existsAfter(
@@ -1636,12 +1654,16 @@ service cloud.firestore {
       allow create: if isAuth()
         && validRoomMetadata()
         && request.resource.data.ownerId == request.auth.uid
+        && !request.resource.data.keys().hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme'])
         && request.resource.data.get('voiceEnabled', false) == false
         && request.resource.data.memberIds.hasOnly([request.auth.uid])
         && request.resource.data.status == 'active';
 
       allow update: if isAuth()
         && validRoomMetadata()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['lobbyManaged', 'joinQuestion', 'tags', 'theme'])
+        && (!resource.data.get('lobbyManaged', false) || request.resource.data.memberLimit <= 8)
         && (
           ownerUpdatesOrClosesActiveRoom()
           || changesOnlyOwnRoomMembership()
