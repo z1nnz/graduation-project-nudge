@@ -46,6 +46,14 @@ service cloud.firestore {
       );
     }
 
+    match /buddy_pairs/{pair} {
+      allow read, write: if false;
+    }
+
+    match /buddy_settings/{uid} {
+      allow read, write: if false;
+    }
+
     match /social_safety/{uid} {
       allow read, write: if false;
     }

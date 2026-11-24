@@ -1,0 +1,15 @@
+.buddies, .buddies form, #buddyPairs { display: grid; gap: .75rem; }
+.buddies button, .buddies select, .buddies input, #buddyRemove button { min-height: 44px; }
+.buddies h2, .buddies button, #buddyRemove button { font-family: var(--w-pixel); }
+.buddies label { display: grid; gap: .25rem; }
+.buddies select, .buddies input { box-sizing: border-box; max-width: 100%; color: var(--w-ink-dark);
+  background: var(--w-parchment-hi); border: 2px solid var(--w-frame); }
+.buddy-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
+.buddy-frame { width: 240px; height: 120px; max-width: 100%; box-sizing: border-box;
+  background: url(buddies/frame.png) no-repeat center / 240px 120px; image-rendering: pixelated;
+  display: flex; align-items: center; justify-content: space-evenly; }
+.buddy-frame img { width: 40px; height: 40px; object-fit: contain; }
+.buddy-lights { position: relative; width: 240px; height: 72px; max-width: 100%; }
+.buddy-lights img { position: absolute; inset: 0; width: 240px; height: 72px; }
+#buddyRemove { width: min(28rem, calc(100% - 2rem)); box-sizing: border-box; }
+#buddyRemove::backdrop { background: var(--w-night); opacity: .7; }
