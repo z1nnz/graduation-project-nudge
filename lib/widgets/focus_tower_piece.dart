@@ -69,7 +69,8 @@ class _FocusTowerGateState extends State<FocusTowerGate>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _enabled =
-        TickerMode.of(context) && !MediaQuery.disableAnimationsOf(context);
+        TickerMode.valuesOf(context).enabled &&
+        !MediaQuery.disableAnimationsOf(context);
     _updateAnimation();
   }
 
