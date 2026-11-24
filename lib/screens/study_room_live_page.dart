@@ -1,3 +1,5 @@
+import '../widgets/sync_round_banner.dart';
+import '../services/room_focus_round.dart';
 import '../theme/game_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/room_voice/room_voice_session.dart';
@@ -40,6 +42,21 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   DateTime? _sessionStartTime;
   String? _roomActivitySessionId;
   RoomVoiceSession? _voice;
+  RoomFocusRound? _round;
+
+  void _onRoundChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Join the shared round: my own session runs for what is left of it.
+  Future<void> _joinRound(AppState appState, StudyRoomData room) async {
+    final state = _round?.state;
+    if (state == null || state.phase != FocusRoundPhase.focus || _isRunning) {
+      return;
+    }
+    _setDuration(state.remaining.inSeconds);
+    await _startSession(appState, room);
+  }
 
   bool get _voiceJoined => _voice?.joined ?? false;
   bool get _micMuted => _voice?.muted ?? true;
@@ -74,6 +91,17 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
     }
   }
 
+  /// The new round's start time arrives from the server a moment later.
+  Future<void> _joinRoundSoon(AppState appState, StudyRoomData room) async {
+    for (var i = 0; i < 20 && mounted; i++) {
+      if (_round?.state.phase == FocusRoundPhase.focus) {
+        await _joinRound(appState, room);
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+  }
+
   Future<void> _setRoomVoice(String roomId, bool enabled) async {
     await FirebaseFirestore.instance.collection('rooms').doc(roomId).update({
       'voiceEnabled': enabled,
@@ -92,6 +120,12 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
       if (!mounted) return;
       final appState = context.read<AppState>();
       _loadChatRead(appState.currentUser?.id ?? 'local_user');
+      if (appState.currentUser != null && !appState.isGuestMode) {
+        setState(() {
+          _round = RoomFocusRound(roomId: widget.roomId)
+            ..addListener(_onRoundChanged);
+        });
+      }
     });
   }
 
@@ -224,6 +258,10 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
   void dispose() {
     _timer?.cancel();
     unawaited(_commitSessionAsResting());
+    _round
+      ?..removeListener(_onRoundChanged)
+      ..dispose();
+    _round = null;
     final voice = _voice;
     _voice = null;
     if (voice != null) {
@@ -1011,6 +1049,28 @@ class _StudyRoomLivePageState extends State<StudyRoomLivePage> {
                       progress: _durationSeconds <= 0
                           ? 0
                           : 1 - (_remainingSeconds / _durationSeconds),
+                    ),
+                  ),
+                ),
+              if (_round != null && timerRoom && hasApprovedMembership)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: padding.bottom + (_voice != null ? 204 : 150),
+                  child: Center(
+                    child: SyncRoundBanner(
+                      key: const Key('room-sync-round'),
+                      state: _round!.state,
+                      busy: _round!.busy,
+                      problem: _round!.problem,
+                      joined: _isRunning,
+                      onStart: () async {
+                        final user = appState.currentUser;
+                        if (user == null) return;
+                        final ok = await _round!.start(user.id);
+                        if (ok && mounted) await _joinRoundSoon(appState, room);
+                      },
+                      onJoin: () => _joinRound(appState, room),
                     ),
                   ),
                 ),
