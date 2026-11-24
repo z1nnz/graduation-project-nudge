@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Nudge 夥伴小鎮</title>
     <meta name="theme-color" content="#2a1a14" />
-    <link rel="stylesheet" href="assets/town.css?v=4" />
+    <link rel="stylesheet" href="assets/town.css?v=5" />
+    <script>try { if (localStorage.getItem('nudge_town_tour_done') === '1' || new URLSearchParams(location.search).has('at')) document.documentElement.classList.add('town-tour-done'); } catch (_) {}</script>
   </head>
   <body data-page="town">
     <a class="town-skip" href="#townDirectory">跳到建築列表</a>
     <main class="town" aria-label="Nudge 夥伴小鎮">
       <canvas id="townCanvas" class="town-canvas" aria-hidden="true"></canvas>
       <div id="townLabels" class="town-labels" aria-hidden="true"></div>
-      <div id="townActors" class="town-actors" aria-label="小鎮居民"></div>
+      <div id="townActors" class="town-actors" role="group" aria-label="小鎮居民"></div>
 
       <header class="town-hud town-hud-identity">
-        <span id="townXpRing" class="town-xp-ring"><img id="townAvatar" class="town-avatar" alt="" src="assets/avatar/characters/character_0.png" /></span>
+        <span id="townXpRing" class="town-xp-ring"><img id="townAvatar" class="town-avatar" alt="" src="assets/avatar/characters/character_0.webp" /></span>
         <div class="town-identity-copy">
           <strong id="townName">訪客</strong>
           <span id="townLevel">自由探索中</span>
@@ -88,14 +89,14 @@
         <button id="townNpcClose" class="town-ghost" type="button" aria-label="結束交談">✕</button>
       </section>
 
-      <section id="townDialog" class="town-dialog" hidden aria-live="polite">
-        <img src="assets/town/guide.png" alt="" class="town-dialog-portrait" />
+      <section id="townDialog" class="town-dialog" aria-live="polite">
+        <img src="assets/town/guide.webp" alt="" class="town-dialog-portrait" />
         <div class="town-dialog-body">
           <span class="town-dialog-name">貓頭鷹館長・歐莉</span>
-          <p id="townDialogText"></p>
+          <p id="townDialogText">歡迎來到 Nudge 夥伴小鎮！我是館長歐莉。用 WASD 或方向鍵走路，也可以直接點地面；走到建築旁按 F，或直接點建築就能進去。</p>
           <div class="town-dialog-actions">
             <button id="townDialogSkip" type="button" class="town-ghost">略過導覽 <kbd>Esc</kbd></button>
-            <span id="townDialogStep"></span>
+            <span id="townDialogStep">1 / 9</span>
             <button id="townDialogNext" type="button" class="town-gold">繼續 <kbd>Space</kbd></button>
           </div>
         </div>
@@ -157,23 +158,24 @@
       </section>
     </main>
 
-    <script src="assets/confirmed_activity_feedback.js?v=1"></script>
-    <script src="assets/town_core.js?v=1"></script>
-    <script src="assets/town_avatar_core.js?v=1"></script>
-    <script src="assets/town_atmosphere_core.js?v=1"></script>
-    <script src="assets/town_atmosphere.js?v=1"></script>
-    <script src="assets/town_hud_core.js?v=1"></script>
-    <script src="assets/town_hud.js?v=1"></script>
-    <script src="assets/town_audio_core.js?v=1"></script>
-    <script src="assets/town_audio.js?v=1"></script>
-    <script src="assets/town_game_core.js?v=1"></script>
-    <script src="assets/town_routes.js?v=2"></script>
-    <script src="assets/daily_next_action.js?v=2"></script>
-    <script src="assets/town_desk_core.js?v=1"></script>
-    <script src="assets/town_scenes.js?v=1"></script>
-    <script src="assets/town_window_core.js?v=2"></script>
-    <script src="assets/town.js?v=7"></script>
-    <script src="assets/town_window.js?v=2"></script>
-    <script src="assets/app.js?v=27"></script>
+    <script defer src="assets/confirmed_activity_feedback.js?v=1"></script>
+    <script defer src="assets/town_core.js?v=1"></script>
+    <script defer src="assets/town_avatar_core.js?v=1"></script>
+    <script defer src="assets/town_image.js?v=1"></script>
+    <script defer src="assets/town_atmosphere_core.js?v=1"></script>
+    <script defer src="assets/town_atmosphere.js?v=2"></script>
+    <script defer src="assets/town_hud_core.js?v=1"></script>
+    <script defer src="assets/town_hud.js?v=1"></script>
+    <script defer src="assets/town_audio_core.js?v=1"></script>
+    <script defer src="assets/town_audio.js?v=1"></script>
+    <script defer src="assets/town_game_core.js?v=1"></script>
+    <script defer src="assets/town_routes.js?v=2"></script>
+    <script defer src="assets/daily_next_action.js?v=2"></script>
+    <script defer src="assets/town_desk_core.js?v=1"></script>
+    <script defer src="assets/town_scenes.js?v=1"></script>
+    <script defer src="assets/town_window_core.js?v=2"></script>
+    <script defer src="assets/town.js?v=8"></script>
+    <script defer src="assets/town_window.js?v=2"></script>
+    <script defer src="assets/app.js?v=27"></script>
   </body>
 </html>

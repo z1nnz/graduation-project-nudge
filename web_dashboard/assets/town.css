@@ -13,6 +13,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html.town-tour-done #townDialog { display: none !important; }
 html, body { height: 100%; margin: 0; background: #1b1530; color: var(--town-ink);
   font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; }
 body { overflow: hidden; font-size: calc(16px * var(--town-text-scale, 1)); }
@@ -91,6 +92,7 @@ body { overflow: hidden; font-size: calc(16px * var(--town-text-scale, 1)); }
   border-radius: 13px; border: 2px solid var(--town-gold); background: var(--town-panel); }
 .town-minimap-art { position: relative; height: 100px; border-radius: 6px; overflow: hidden;
   background: center / 100% 100% url('town/town_map.jpg'); }
+.town-minimap-art { background-image: image-set(url('town/town_map.webp') type('image/webp'), url('town/town_map.jpg') type('image/jpeg')); }
 .town-minimap-art button { position: absolute; width: 20px; height: 20px; transform: translate(-50%, -50%);
   border: 2px solid #fff1bd; border-radius: 50%; background: #7549a8; color: white; font-size: 10px; cursor: pointer; }
 .town-mini-player { position: absolute; width: 10px; height: 10px; transform: translate(-50%, -50%);
@@ -213,6 +215,8 @@ body[style*="--town-text-scale"] :is(.town-panel, .town-directory, .town-dialog,
   .town-minimap { bottom: calc(194px + env(safe-area-inset-bottom)); }
   .town-prompt { bottom: calc(160px + env(safe-area-inset-bottom)); }
   .town-npc-dialog { bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .town-dialog { bottom: calc(78px + env(safe-area-inset-bottom));
+    max-height: calc(100vh - 150px - env(safe-area-inset-bottom)); overflow: auto; }
   .town-emote-wheel { bottom: calc(82px + env(safe-area-inset-bottom)); }
   .town-hud-clock { font-size: 20px; }
   .town-dialog-portrait { width: 64px; height: 64px; }

@@ -1,6 +1,7 @@
 (function(root) {
   'use strict';
   const core = root.NudgeTownAtmosphereCore;
+  const imageLoader = root.NudgeTownImage;
   if (!core) return;
 
   const TINT = {
@@ -42,7 +43,7 @@
         if (right > left) item.crop = { x: left, y: top, w: right - left + 2, h: bottom - top + 2 };
       } catch { /* Cross-origin images retain their full bounds. */ }
     });
-    image.src = PORTRAITS[actor.id];
+    imageLoader.load(image, PORTRAITS[actor.id]);
     return item;
   }
 
