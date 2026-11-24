@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>自律夥伴</title>
+  <link rel="stylesheet" href="assets/world_ui.css?v=2">
+  <link rel="stylesheet" href="assets/social_scene.css?v=1">
+  <link rel="stylesheet" href="assets/buddies.css?v=1">
+</head>
+<body class="w-page world-page" data-page="buddies" data-social-facility="plaza">
+  <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>自律夥伴</h1></header>
+  <nav class="scene-nav" data-scene-nav></nav>
+  <main class="w-main buddies">
+    <p id="buddyStatus" role="status">登入後可邀請好友搭檔。</p>
+    <section class="w-parchment">
+      <h2>邀請搭檔</h2>
+      <form id="buddyInvite">
+        <label>好友 <select name="peer" required></select></label>
+        <label>每天約定時間（臺灣時間） <input type="time" name="time" value="20:00" required></label>
+        <button class="w-btn is-gold" disabled>送出邀請</button>
+      </form>
+    </section>
+    <section class="w-parchment">
+      <h2>輕推接收設定</h2>
+      <form id="buddyLimit">
+        <label>一天最多收幾次 <select name="limit"><option>0</option><option>1</option><option>2</option><option selected>3</option></select></label>
+        <button class="w-btn" disabled>儲存接收上限</button>
+      </form>
+    </section>
+    <section aria-labelledby="buddyPairsTitle"><h2 id="buddyPairsTitle">我的夥伴</h2><button class="w-btn" id="buddyRefresh" type="button">重新整理</button><div id="buddyPairs"></div></section>
+  </main>
+  <dialog class="w-parchment" role="dialog" id="buddyRemove" aria-labelledby="buddyRemoveTitle">
+    <form method="dialog"><h2 id="buddyRemoveTitle">解除搭檔</h2><p>雙方將失去這段搭檔的約定和提醒紀錄。</p>
+      <button class="w-btn" value="cancel" autofocus>取消</button><button class="w-btn" value="yes">解除搭檔</button>
+    </form>
+  </dialog>
+  <script src="assets/town_routes.js?v=3"></script>
+  <script src="assets/town_return.js?v=2"></script>
+  <script src="assets/social_scene.js?v=1"></script>
+  <script src="assets/buddies.js?v=1"></script>
+  <script src="assets/app.js?v=28"></script>
+</body>
+</html>

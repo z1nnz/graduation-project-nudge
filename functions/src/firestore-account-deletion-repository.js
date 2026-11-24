@@ -816,6 +816,9 @@ export class FirestoreAccountDeletionRepository {
       deletedDocuments += 1;
     }
 
+    deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection("buddy_pairs")
+      .where("participantIds", "array-contains", userId));
+
     const safety = this.firestore.collection("social_safety");
     for (const field of ["blocked", "blockedBy"]) {
       const peers = await querySnapshots(safety.where(field, "array-contains", userId));
@@ -828,6 +831,7 @@ export class FirestoreAccountDeletionRepository {
     }
 
     const directCollections = [
+      "buddy_settings",
       "social_safety",
       "public_profiles",
       "privacy_consents",

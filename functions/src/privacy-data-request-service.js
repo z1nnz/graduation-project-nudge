@@ -341,6 +341,8 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "audit_events", "safetyTargetId", "==", userId),
   ]);
   const safetySettings = safetyDocuments[0]?.data;
+  const buddyPairs = await readQuery(firestore, "buddy_pairs", "participantIds", "array-contains", userId);
+  const buddySettings = await readSingleDocument(firestore, "buddy_settings", userId);
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -393,6 +395,8 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         allowStrangerMentions: safetySettings.allowStrangerMentions,
       } : null,
       safety_reports: safetyReports.documents,
+      buddy_pairs: buddyPairs.documents,
+      buddy_settings: buddySettings,
       safety_actions: moderationActions.documents.map(({ data }) => ({
         action: data.action, reason: data.reason, createdAt: data.createdAt,
       })),
