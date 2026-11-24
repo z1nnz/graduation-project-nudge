@@ -340,3 +340,10 @@ body[style*="--town-text-scale"] :is(.town-panel, .town-directory, .town-dialog,
   .town-window-box { border-width: 0; border-radius: 0; }
   .town-window-close kbd { display: none; }
 }
+
+/* Environmental controls and the hovered wooden sign. */
+#townWeatherCity { min-height:44px; max-width:100%; color:var(--w-ink); background:var(--w-wood-deep); font-size:16px; }
+#townWeatherStatus { font-size:14px; max-width:32ch; line-height:1.5; }
+.town-label strong,.town-label span { font-size:14px; }
+.town-label.is-hovered { border-color:var(--w-gold); transform:translate(-50%,-100%) scale(1.03); }
+@media(prefers-reduced-motion:reduce){.town-label.is-hovered{transform:translate(-50%,-100%)}}
