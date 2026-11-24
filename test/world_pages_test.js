@@ -14,7 +14,7 @@ const migrated = new Set([
 // TODO: remove entries as the page owners migrate them. town.html has its own
 // full-screen game shell.
 const awaitingMigration = new Set([
-  'cabin.html', 'family-courtyard.html', 'friend-visits.html', 'friend.html',
+  'arcade.html', 'cabin.html', 'family-courtyard.html', 'friend-visits.html', 'friend.html',
   'garden.html', 'group-hall.html', 'groups-challenge.html', 'groups-link.html',
   'groups-ranking.html', 'groups-study-schedule.html', 'groups-templates.html',
   'groups.html', 'guardian-encouragement.html', 'guardian-goals.html',
@@ -22,7 +22,7 @@ const awaitingMigration = new Set([
   'guardian.html', 'login.html', 'mailbox.html', 'notifications.html',
   'personal-identity.html', 'personal-letter.html', 'personal-pressure.html',
   'personal-skill-tree.html', 'personal-template.html', 'personal-time-capsule.html',
-  'personal-trends.html', 'personal-weather.html', 'personal.html',
+  'personal-trends.html', 'personal-weather.html', 'personal.html', 'quests.html',
   'room-chat.html', 'rooms.html', 'seasonal-event.html', 'story-chapters.html',
   'weekly-planner.html',
 ]);

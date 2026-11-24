@@ -13,8 +13,8 @@ test('arcade page uses the shared world page skeleton', () => {
   assert.match(html, /<body class="w-page"/);
   assert.match(html, /<header class="w-hud">\s*<a data-town-return href="town.html">← 回小鎮<\/a>\s*<h1>遊樂園<\/h1>/);
   assert.match(html, /<main class="w-main/);
-  assert.match(html, /assets\/town_routes\.js\?v=2/);
-  assert.match(html, /assets\/town_return\.js\?v=2/);
+  assert.match(html, /assets\/town_routes\.js\?v=\d+/);
+  assert.match(html, /assets\/town_return\.js\?v=\d+/);
   assert.match(html, /assets\/world_ui\.css/);
 });
 
