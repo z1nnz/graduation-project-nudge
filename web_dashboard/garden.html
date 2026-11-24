@@ -5,40 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Nudge 星光花園</title>
     <meta name="theme-color" content="#2a1a14" />
-    <link rel="stylesheet" href="assets/town.css?v=2" />
-    <link rel="stylesheet" href="assets/garden.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/garden.css?v=2" />
   </head>
-  <body data-page="garden">
-    <main class="garden" aria-labelledby="gardenTitle">
-      <header class="garden-top">
-        <a class="town-ghost garden-back" data-town-return="garden" href="town.html">← 返回小鎮</a>
-        <h1 id="gardenTitle">星光花園</h1>
-        <span id="gardenLevel" class="garden-level">讀取中</span>
-      </header>
+  <body class="w-page" data-page="garden">
+    <header class="w-hud">
+      <a data-town-return="garden" href="town.html">← 回小鎮</a>
+      <h1 id="gardenTitle">星光花園</h1>
+      <span id="gardenLevel" class="w-chip g-level">讀取中</span>
+    </header>
 
-      <p id="gardenStatus" class="garden-status" role="status" aria-live="polite">正在確認你的角色等級…</p>
+    <main class="w-main g-main" aria-labelledby="gardenTitle">
+      <p id="gardenStatus" class="g-status" role="status" aria-live="polite">正在確認你的角色等級…</p>
 
-      <section id="gardenLocked" class="garden-card" hidden>
+      <section id="gardenLocked" class="w-parchment" hidden>
         <h2>花園還沒開門</h2>
         <p id="gardenLockedText">角色 Lv 10 才能進入星光花園。</p>
-        <p>等級只會因為雲端確認的真實行動上升；小鎮不會替你加經驗值。</p>
-        <a class="town-gold" data-town-return="board" href="town.html">去告示板找今天的一步</a>
+        <p class="w-muted">等級只會因為雲端確認的真實行動上升；小鎮不會替你加經驗值。</p>
+        <a class="w-btn is-gold" data-town-return="board" href="town.html">去告示板找今天的一步</a>
       </section>
 
-      <section id="gardenScene" class="garden-scene" hidden aria-label="花園景物">
-        <div class="garden-stage" role="img" aria-labelledby="gardenSceneSummary">
-          <ol id="gardenBeds" class="garden-beds"></ol>
+      <section id="gardenScene" class="g-scene" hidden aria-labelledby="gardenSceneTitle">
+        <div class="g-toolbar">
+          <h2 id="gardenSceneTitle" class="g-scene-title">你的花圃</h2>
+          <span id="gardenSeason" class="w-chip">季節</span>
+          <span id="gardenSync" class="w-chip is-wait">雲端確認中…</span>
+          <button id="gardenReload" class="w-btn g-reload" type="button">重新讀取</button>
         </div>
-        <p id="gardenSceneSummary" class="garden-summary"></p>
-        <ul id="gardenBedList" class="garden-bed-list" aria-label="花圃清單"></ul>
+
+        <div id="gardenStage" class="g-stage" aria-describedby="gardenStageHelp">
+          <div id="gardenGrid" class="g-grid" role="group" aria-label="花圃：每一列是一種植物，每一欄是一週"></div>
+        </div>
+        <p id="gardenStageHelp" class="g-help">每一列是一種植物，每一欄是一週（最右邊是本週）。點植物可以看它是哪一週、哪個行動長出來的；方向鍵可以在花圃間移動。</p>
+
+        <div class="g-legend w-parchment">
+          <h3>植物怎麼長</h3>
+          <ul id="gardenLegend" class="g-legend-list"></ul>
+          <p class="w-muted">花園只讀你本人雲端確認完成的活動；不發放經驗值、自律幣或徽章。澆水只是互動動畫，不會改變任何紀錄。</p>
+          <details>
+            <summary>資料來源</summary>
+            <p id="gardenSource" class="w-muted">雲端確認中…</p>
+          </details>
+        </div>
       </section>
     </main>
+
+    <div id="gardenDialog" class="g-dialog-backdrop" hidden>
+      <div class="g-dialog w-parchment w-pop" role="dialog" aria-modal="true" aria-labelledby="gardenDialogTitle" aria-describedby="gardenDialogStory">
+        <div class="g-dialog-art">
+          <div id="gardenDialogSprite" class="g-sprite g-sprite-big" aria-hidden="true"></div>
+          <div id="gardenDrops" class="g-drops" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="g-dialog-text">
+          <h2 id="gardenDialogTitle">植物</h2>
+          <p id="gardenDialogStage" class="g-dialog-stage"></p>
+          <p id="gardenDialogStory"></p>
+          <p id="gardenDialogNext" class="w-muted"></p>
+          <ol id="gardenDialogSessions" class="g-sessions" aria-label="長出這株植物的紀錄"></ol>
+          <p id="gardenWaterNote" class="g-water-note" role="status" aria-live="polite"></p>
+          <div class="g-dialog-actions">
+            <button id="gardenWater" class="w-btn is-violet" type="button">澆水</button>
+            <button id="gardenDialogClose" class="w-btn" type="button">關閉</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script src="assets/town_routes.js?v=2"></script>
     <script src="assets/town_return.js?v=2"></script>
-    <script src="assets/garden_core.js?v=1"></script>
-    <script src="assets/garden.js?v=1"></script>
+    <script src="assets/garden_core.js?v=2"></script>
+    <script src="assets/garden.js?v=2"></script>
     <script src="assets/app.js?v=27"></script>
   </body>
 </html>
