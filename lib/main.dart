@@ -129,13 +129,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Color(0xFF2D2A32),
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
+        appBarTheme: GameTheme.appBar(),
+        tabBarTheme: GameTheme.tabBar(),
+        pageTransitionsTheme: GameTheme.pageTransitions(),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
@@ -163,22 +159,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: seedColor, width: 1.4),
-          ),
-        ),
+        inputDecorationTheme: GameTheme.inputs(dark: false),
         dialogTheme: GameTheme.dialog(dark: false),
+        chipTheme: GameTheme.chips(dark: false),
         textButtonTheme: GameTheme.secondaryButton(dark: false),
       ),
       darkTheme: ThemeData(
@@ -217,13 +200,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Color(0xFFF3F4F6),
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
+        appBarTheme: GameTheme.appBar(),
+        tabBarTheme: GameTheme.tabBar(),
+        pageTransitionsTheme: GameTheme.pageTransitions(),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: const Color(0xFF161A21),
           surfaceTintColor: Colors.transparent,
@@ -251,22 +230,9 @@ class _AppRoot extends StatelessWidget {
             ),
           ),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1A1D24),
-          hintStyle: const TextStyle(color: Color(0xFF8B93A1)),
-          labelStyle: const TextStyle(color: Color(0xFFB6BDC9)),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFF2A2F3A)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: seedColor, width: 1.4),
-          ),
-        ),
+        inputDecorationTheme: GameTheme.inputs(dark: true),
         dialogTheme: GameTheme.dialog(dark: true),
+        chipTheme: GameTheme.chips(dark: true),
         textButtonTheme: GameTheme.secondaryButton(dark: true),
       ),
       // App always goes directly to main shell — sign in/register via Account tab
