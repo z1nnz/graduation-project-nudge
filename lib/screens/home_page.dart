@@ -1,3 +1,4 @@
+import '../models/cabin_parcels.dart';
 import 'collection_book_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -140,6 +141,8 @@ class HomePage extends StatelessWidget {
             onOpenDecor: () => showHomeDecorSheet(context),
             onOpenShop: () => push(const AvatarShopPage()),
             socialUnread: appState.unreadUserNotificationCount,
+            parcelCount: CabinParcels.from(appState.userNotifications).length,
+            onOpenParcel: () => _openParcel(context, appState),
             onOpenDevice: () => push(const NudgeDevicePage()),
             showTour: !tourSeen,
             accountKey: appState.currentUser?.id,
@@ -169,6 +172,44 @@ class HomePage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  /// Open the newest parcel at the door: show the letter, then mark it read.
+  Future<void> _openParcel(BuildContext context, AppState appState) async {
+    final parcels = CabinParcels.from(appState.userNotifications);
+    if (parcels.isEmpty) return;
+    final parcel = parcels.first;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('📦 ${CabinParcels.labelFor(parcel.kind)}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                parcel.title,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              Text(parcel.body),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              parcels.length > 1 ? '收下，還有 ${parcels.length - 1} 份' : '收下',
+            ),
+          ),
+        ],
+      ),
+    );
+    try {
+      await appState.markUserNotificationRead(parcel.id);
+    } catch (_) {}
   }
 
   @override

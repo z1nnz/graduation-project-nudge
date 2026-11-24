@@ -27,6 +27,7 @@ Future<Map<String, int>> _pump(
   int level = 7,
   String account = 'me',
   int socialUnread = 0,
+  int parcels = 0,
 }) async {
   tester.view.physicalSize = const Size(412, 915);
   tester.view.devicePixelRatio = 1;
@@ -48,6 +49,8 @@ Future<Map<String, int>> _pump(
           level: level,
           accountKey: account,
           socialUnread: socialUnread,
+          parcelCount: parcels,
+          onOpenParcel: () => hit('parcel'),
           coins: 128,
           streak: 6,
           now: DateTime(2026, 11, 23, 12),
@@ -135,6 +138,19 @@ void main() {
     expect(find.byKey(const Key('companion-hearts')), findsNothing);
     await tester.longPress(find.byKey(const Key('cabin-companion')));
     expect(opened['character'], 1);
+  });
+
+  testWidgets('a parcel waits by the door only when one arrived', (
+    tester,
+  ) async {
+    late Map<String, int> opened;
+    await tester.runAsync(() async => opened = await _pump(tester));
+    expect(find.byKey(const Key('cabin-parcel')), findsNothing);
+    await tester.runAsync(() async => opened = await _pump(tester, parcels: 2));
+    expect(find.byKey(const Key('cabin-parcel')), findsOneWidget);
+    expect(find.text('2'), findsWidgets);
+    await tester.tap(find.byKey(const Key('cabin-parcel')));
+    expect(opened['parcel'], 1);
   });
 
   testWidgets('tapping the window opens the weather city picker', (
