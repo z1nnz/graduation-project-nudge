@@ -55,6 +55,7 @@ import { createManageDeviceAssignmentHandler } from "./src/device-assignment-ser
 import { createPurchaseRewardItemHandler } from "./src/reward-purchase-service.js";
 import { createEquipRewardAvatarHandler } from "./src/reward-avatar-service.js";
 import { createFriendCabinVisitHandler } from "./src/friend-cabin-visit.js";
+import { createDeviceHugHandler } from "./src/device-hug.js";
 import { createArrangeHomeDecorHandler } from "./src/home-decor-service.js";
 import {
   createDeliverPushJobHandler,
@@ -804,6 +805,11 @@ export const getFocusRoundServerTime = onCall(
 export const manageFriendCabinVisit = onCall(
   { timeoutSeconds: 15, memory: "256MiB" },
   createFriendCabinVisitHandler(getFirestore()),
+);
+
+export const sendDeviceHug = onCall(
+  { timeoutSeconds: 10, memory: "256MiB" },
+  createDeviceHugHandler(getFirestore()),
 );
 
 export const leaveRoomVoice = onCall(
