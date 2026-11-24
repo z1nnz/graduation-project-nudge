@@ -191,19 +191,57 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); out
 .town-window { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
   padding: 3vh 3vw; background: rgba(15, 8, 4, 0.55); }
 .town-window[hidden] { display: none !important; }
-.town-window-box { width: min(1180px, 100%); height: 100%; display: flex; flex-direction: column; overflow: hidden;
+.town-window-box { width: min(1180px, 100%); height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative;
   background: #1b1530; border: 4px solid #c9934f; border-radius: 16px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-  animation: townWindowIn 0.22s ease-out; }
+  transform-origin: var(--town-door-x, 50%) var(--town-door-y, 50%); }
 .town-window-bar { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px;
-  background: linear-gradient(180deg, #8a5a34, #5a3826); border-bottom: 3px solid #3a2216; color: #ffe6a3; }
+  background: linear-gradient(180deg, #8a5a34, #5a3826); border-bottom: 3px solid #3a2216; color: #ffe6a3; touch-action: none; }
 .town-window-bar h2 { flex: 1; margin: 0; font-size: 18px; font-weight: 900; letter-spacing: 0.04em; }
 .town-window-sign { color: var(--town-gold); }
 .town-window-close { min-height: 40px; padding: 6px 14px; border-radius: 999px; border: 2px solid #3a2216; cursor: pointer;
   background: var(--town-gold); color: #2a1600; font: inherit; font-weight: 900; }
 .town-window-close:focus-visible { outline: 3px solid #fff3d6; outline-offset: 2px; }
+.town-window-back { min-height: 44px; padding: 6px 12px; border: 2px solid #3a2216; border-radius: 10px;
+  background: #f6e7c8; color: #3a1d0c; font: inherit; font-weight: 800; cursor: pointer; }
+.town-window-back[hidden] { display: none; }
+.town-window-back:focus-visible { outline: 3px solid #fff3d6; outline-offset: 2px; }
 .town-window-frame { flex: 1; width: 100%; border: 0; background: #1b1530; }
-@keyframes townWindowIn { from { transform: scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .town-window-box { animation: none; } }
+.town-window-loading { position: absolute; inset: 58px 0 0; z-index: 3; display: grid; align-content: center; justify-items: center;
+  gap: 12px; padding: 24px; background: #3a2216; color: #f6e7c8; font-weight: 800; text-align: center; }
+.town-window-loading[hidden], .town-window-loading [hidden] { display: none; }
+.town-window-loading img { image-rendering: pixelated; width: 80px; height: 80px; object-fit: contain; }
+.town-window-loading p { margin: 0; }
+.town-window-loading > div { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.town-window-transition { position: absolute; inset: 0; z-index: 5; pointer-events: none; display: none; overflow: hidden; }
+.town-window-box.is-opening .town-window-transition,
+.town-window-box.is-closing .town-window-transition { display: block; }
+.town-window-box[data-transition="door"] .town-window-transition::before,
+.town-window-box[data-transition="door"] .town-window-transition::after { content: ""; position: absolute; top: 0; bottom: 0; width: 50%;
+  background: repeating-linear-gradient(90deg, #5a3826 0 18px, #8a5a34 18px 22px); border: 4px solid #c9934f; }
+.town-window-box[data-transition="door"] .town-window-transition::before { left: 0; animation: townDoorLeft .42s ease-out both; }
+.town-window-box[data-transition="door"] .town-window-transition::after { right: 0; animation: townDoorRight .42s ease-out both; }
+.town-window-box[data-transition="curtain"] .town-window-transition::before { content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, #5a3826 0 36px, #8b6cf0 36px 72px, #c9934f 72px 78px);
+  animation: townCurtain .42s ease-out both; }
+.town-window-box[data-transition="portal"].is-opening { animation: townPortal .42s ease-out both; }
+.town-window-box[data-transition="portal"].is-closing { animation: townPortal .42s ease-out reverse both; }
+.town-window-box.is-opening:not([data-transition="portal"]) { animation: townWindowOrigin .42s ease-out both; }
+.town-window-box.is-closing:not([data-transition="portal"]) { animation: townWindowOrigin .42s ease-out reverse both; }
+.town-window-box.is-closing .town-window-transition::before,
+.town-window-box.is-closing .town-window-transition::after { animation-direction: reverse; }
+.town-window-box.is-bouncing { animation: townBounce .24s ease-out; }
+@keyframes townDoorLeft { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes townDoorRight { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes townCurtain { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+@keyframes townPortal { from { clip-path: circle(0 at var(--town-door-x, 50%) var(--town-door-y, 50%)); }
+  to { clip-path: circle(150% at var(--town-door-x, 50%) var(--town-door-y, 50%)); } }
+@keyframes townWindowOrigin { from { transform: scale(.3); opacity: .25; } to { transform: none; opacity: 1; } }
+@keyframes townBounce { 50% { transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) {
+  .town-window-box.is-opening, .town-window-box.is-closing, .town-window-box.is-bouncing,
+  .town-window-transition::before, .town-window-transition::after { animation: none !important; }
+  .town-window-transition { display: none !important; }
+}
 @media (max-width: 640px) {
   .town-window { padding: 0; }
   .town-window-box { border-width: 0; border-radius: 0; }
