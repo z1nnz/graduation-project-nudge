@@ -1,0 +1,100 @@
+[
+  [
+    "focus-minutes",
+    "全鎮一起專注 10,000 分鐘",
+    10000,
+    "分鐘",
+    "focus",
+    "sum"
+  ],
+  [
+    "exercise-days",
+    "全鎮一起運動 250 人次",
+    250,
+    "人次",
+    "exercise",
+    "daily"
+  ],
+  [
+    "task-count",
+    "全鎮完成 500 件委託",
+    500,
+    "件",
+    "task",
+    "count"
+  ],
+  [
+    "sleep-early",
+    "全鎮累積 150 次早睡",
+    150,
+    "人次",
+    "earlySleep",
+    "daily"
+  ],
+  [
+    "focus-count",
+    "全鎮完成 300 輪專注",
+    300,
+    "輪",
+    "focus",
+    "count"
+  ],
+  [
+    "exercise-minutes",
+    "全鎮一起運動 5,000 分鐘",
+    5000,
+    "分鐘",
+    "exercise",
+    "sum"
+  ],
+  [
+    "steps-total",
+    "全鎮合走 1,000,000 步",
+    1000000,
+    "步",
+    "steps",
+    "sum"
+  ],
+  [
+    "focus-long",
+    "全鎮完成 150 輪 25 分鐘專注",
+    150,
+    "輪",
+    "focus",
+    "count",
+    25
+  ],
+  [
+    "sleep-hours",
+    "全鎮累積 1,000 小時睡眠",
+    1000,
+    "小時",
+    "sleep",
+    "sum"
+  ],
+  [
+    "exercise-long",
+    "全鎮完成 150 次 15 分鐘運動",
+    150,
+    "次",
+    "exercise",
+    "count",
+    15
+  ],
+  [
+    "steps-days",
+    "全鎮累積 180 個步行日",
+    180,
+    "人次",
+    "steps",
+    "daily"
+  ],
+  [
+    "sleep-days",
+    "全鎮累積 200 個睡好覺的夜晚",
+    200,
+    "人次",
+    "sleep",
+    "daily"
+  ]
+]

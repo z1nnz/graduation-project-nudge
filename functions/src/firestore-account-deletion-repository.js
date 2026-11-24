@@ -828,6 +828,7 @@ export class FirestoreAccountDeletionRepository {
     }
 
     const directCollections = [
+      "town_event_preferences",
       "social_safety",
       "public_profiles",
       "privacy_consents",

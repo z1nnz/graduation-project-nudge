@@ -46,6 +46,20 @@ service cloud.firestore {
       );
     }
 
+    match /town_events/{eventId} {
+      allow get: if eventId == 'current';
+      allow list, write: if false;
+    }
+
+    match /town_event_jobs/{week} {
+      allow read, write: if false;
+    }
+
+    match /town_event_preferences/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+
     match /social_safety/{uid} {
       allow read, write: if false;
     }
