@@ -15,7 +15,7 @@
 [hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; background: #1b1530; color: var(--town-ink);
   font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; }
-body { overflow: hidden; }
+body { overflow: hidden; font-size: calc(16px * var(--town-text-scale, 1)); }
 
 .town { position: fixed; inset: 0; }
 .town-canvas { position: absolute; inset: 0; width: 100%; height: 100%;
@@ -49,16 +49,68 @@ body { overflow: hidden; }
   border: 1px solid var(--town-border); border-radius: 999px; backdrop-filter: blur(6px); }
 .town-hud-identity { left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top));
   display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; }
+.town-xp-ring { --xp-progress: 0%; width: 48px; height: 48px; padding: 3px; border-radius: 50%;
+  display: grid; place-items: center; flex: none;
+  background: conic-gradient(var(--town-gold) var(--xp-progress), #5b3d39 var(--xp-progress)); }
 .town-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; object-position: top;
   background: #4a2d22; image-rendering: pixelated; }
 .town-hud-identity strong { display: block; font-size: 14px; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .town-hud-identity span { display: block; font-size: 12px; opacity: 0.85; }
+.town-hud-identity .town-xp-ring { display: grid; opacity: 1; }
+.town-identity-stats { display: flex; gap: 8px; border-left: 1px solid var(--town-border); padding-left: 10px; }
+.town-identity-stats span { color: #ffdc82; min-width: 42px; white-space: nowrap; }
+.town-identity-stats b { display: inline-block; font-variant-numeric: tabular-nums; }
+.town-identity-stats b.is-changing { animation: town-number-pop .35s ease-out; }
+@keyframes town-number-pop { 0% { transform: translateY(8px); opacity: .35; } 100% { transform: translateY(0); opacity: 1; } }
+.town-quest-tracker { position: absolute; z-index: 5; left: max(14px, env(safe-area-inset-left)); top: calc(max(14px, env(safe-area-inset-top)) + 66px);
+  width: min(290px, 38vw); border: 1px solid var(--town-border); border-radius: 14px;
+  background: var(--town-panel); backdrop-filter: blur(6px); box-shadow: 0 4px 0 #2d1a16a8; }
+.town-quest-tracker > button { width: 100%; min-height: 44px; padding: 7px 12px; border: 0; background: transparent;
+  color: var(--town-gold); text-align: left; font: inherit; font-weight: 800; cursor: pointer; }
+.town-quest-tracker > button span { float: right; }
+.town-quest-tracker > button[aria-expanded="false"] span { transform: rotate(-90deg); }
+#townQuestBody { padding: 0 12px 10px; }
+#townQuestBody p { margin: 2px 0 8px; font-size: 11px; opacity: .78; }
+#townQuestNext, #townQuestList button { width: 100%; padding: 6px; border: 0; background: transparent;
+  color: var(--town-ink); text-align: left; font: inherit; cursor: pointer; }
+#townQuestNext { border-left: 3px solid var(--town-gold); font-weight: 800; }
+#townQuestList { margin: 5px 0 0; padding: 0; list-style: none; }
+#townQuestList li { border-top: 1px solid var(--town-border); font-size: 12px; }
+#townQuestNext:hover, #townQuestList button:hover { color: var(--town-gold); }
 .town-hud-tools { right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top));
   display: flex; gap: 2px; padding: 4px; }
 .town-hud-tools a, .town-hud-tools button, .town-hud-zoom button {
   width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%;
   background: transparent; color: var(--town-ink); font-size: 18px; text-decoration: none; cursor: pointer; }
 .town-hud-tools a:hover, .town-hud-tools button:hover, .town-hud-zoom button:hover { background: rgba(255,255,255,0.12); }
+.w-badge { position: absolute; top: 0; right: 0; min-width: 20px; min-height: 20px; padding: 1px 4px;
+  border-radius: 99px; background: #c5503f; color: white; font: 700 11px/18px system-ui; }
+.town-hud-tools button { position: relative; }
+.town-minimap { position: absolute; z-index: 7; right: max(14px, env(safe-area-inset-right));
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 108px); width: 190px; padding: 8px;
+  border-radius: 13px; border: 2px solid var(--town-gold); background: var(--town-panel); }
+.town-minimap-art { position: relative; height: 100px; border-radius: 6px; overflow: hidden;
+  background: center / 100% 100% url('town/town_map.jpg'); }
+.town-minimap-art button { position: absolute; width: 20px; height: 20px; transform: translate(-50%, -50%);
+  border: 2px solid #fff1bd; border-radius: 50%; background: #7549a8; color: white; font-size: 10px; cursor: pointer; }
+.town-mini-player { position: absolute; width: 10px; height: 10px; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2px solid #4b2c18; background: #ffe27a; pointer-events: none; z-index: 2; }
+.town-minimap p { margin: 5px 0 0; text-align: center; font-size: 11px; }
+.town-settings { position: absolute; z-index: 22; top: 80px; right: max(14px, env(safe-area-inset-right));
+  width: min(320px, calc(100vw - 28px)); padding: 14px; border: 2px solid var(--town-gold);
+  border-radius: 16px; background: rgba(32,18,12,.97); box-shadow: 0 12px 24px #100b19aa; }
+.town-settings h2 { margin: 0; font-size: 18px; }
+.town-settings label { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 48px; border-top: 1px solid var(--town-border); }
+.town-settings select { min-height: 40px; color: #2a1600; background: #fff2d7; border-radius: 8px; }
+.town-emote-wheel { position: absolute; z-index: 8; left: 50%; bottom: max(100px, calc(env(safe-area-inset-bottom) + 90px));
+  transform: translateX(-50%); width: min(360px, calc(100vw - 24px)); padding: 12px;
+  border: 2px solid var(--town-gold); border-radius: 16px; background: var(--town-panel); text-align: center; }
+.town-emote-wheel p { margin: 0 0 8px; font-size: 12px; }
+.town-emote-wheel div { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.town-emote-wheel button { min-height: 44px; border-radius: 9px; border: 1px solid var(--town-border);
+  color: var(--town-ink); background: #624143; cursor: pointer; }
+.town-hotbar { display: none; }
 .town-hud-clock { left: max(14px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom));
   padding: 4px 14px; font-size: 26px; font-weight: 800; letter-spacing: 1px; border-radius: 14px; }
 .town-hud-ticket { left: max(14px, env(safe-area-inset-left)); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 56px);
@@ -139,8 +191,29 @@ kbd { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: rgba(25
 .town-skip:focus { left: 8px; }
 
 button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); outline-offset: 2px; }
+body[style*="--town-text-scale"] .town-label strong { font-size: calc(13px * var(--town-text-scale)); }
+body[style*="--town-text-scale"] .town-hud-identity strong { font-size: calc(14px * var(--town-text-scale)); }
+body[style*="--town-text-scale"] :is(.town-panel, .town-directory, .town-dialog, .town-scene, .town-window, .town-quest-tracker, .town-npc-dialog) { font-size: calc(16px * var(--town-text-scale)); }
 
 @media (max-width: 560px) {
+  .town-identity-copy { display: none; }
+  .town-identity-stats { padding-left: 4px; gap: 4px; }
+  .town-quest-tracker { display: none; }
+  .town-hotbar { position: absolute; display: flex; align-items: stretch; justify-content: space-around;
+    z-index: 10; left: 0; right: 0; bottom: 0; height: calc(66px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom); border-top: 2px solid var(--town-gold);
+    background: rgba(36, 20, 22, .96); }
+  .town-hotbar button { flex: 1; border: 0; color: #f7e6c8; background: transparent;
+    font-size: 22px; cursor: pointer; }
+  .town-hotbar button span { display: block; font-size: 11px; }
+  .town-hotbar .town-hotbar-focus { flex: 1.2; margin-top: -17px; height: 73px; border: 3px solid #fff0b4;
+    border-radius: 50%; background: linear-gradient(#ffe184, #d79a29); color: #39230b;
+    box-shadow: 0 4px 0 #8b5816; }
+  .town-hud-zoom { bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .town-minimap { bottom: calc(194px + env(safe-area-inset-bottom)); }
+  .town-prompt { bottom: calc(160px + env(safe-area-inset-bottom)); }
+  .town-npc-dialog { bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .town-emote-wheel { bottom: calc(82px + env(safe-area-inset-bottom)); }
   .town-hud-clock { font-size: 20px; }
   .town-dialog-portrait { width: 64px; height: 64px; }
   .town-dialog p { font-size: 15px; }
@@ -161,6 +234,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--town-gold); out
   .town-hud-clock { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.town-reduced-motion * { transition: none !important; animation: none !important; }
 
 /* ---------- in-town scenes: quest board, focus desk, cabin feedback ---------- */
 .town-scene { position: absolute; z-index: 21; left: 50%; top: 50%; transform: translate(-50%, -50%);

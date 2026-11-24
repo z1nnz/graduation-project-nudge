@@ -58,7 +58,7 @@
   const canvas = els('townCanvas');
   let ctx = null;
   try { ctx = canvas.getContext ? canvas.getContext('2d') : null; } catch { ctx = null; }
-  const reducedMotion = root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  let reducedMotion = root.NudgeTownHud?.reducedMotion || root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const store = {
     get(key) { try { return root.localStorage.getItem(key); } catch { return null; } },
     set(key, value) { try { root.localStorage.setItem(key, value); } catch { /* private mode */ } },
@@ -90,6 +90,8 @@
     actorNear: null,
     actorDialog: false,
     lastActorId: null,
+    emoteType: null,
+    emoteUntil: 0,
     static: false,
   };
 
@@ -135,6 +137,7 @@
 
   // ---------- labels and directory ----------
   const labels = new Map();
+  root.NudgeTownHud?.setBuildings(BUILDINGS);
   const actorButtons = new Map();
   if (atmosphere) {
     for (const actor of atmosphere.actors(0, true)) {
@@ -375,10 +378,20 @@
     return BUILDINGS.find(b => p.x >= b.rect.x && p.x <= b.rect.x + b.rect.w && p.y >= b.rect.y && p.y <= b.rect.y + b.rect.h) || null;
   }
 
+  let longPressTimer = null;
+  const clearLongPress = () => { if (longPressTimer) root.clearTimeout(longPressTimer); longPressTimer = null; };
+  canvas.addEventListener('pointerup', clearLongPress);
+  canvas.addEventListener('pointercancel', clearLongPress);
   canvas.addEventListener('pointerdown', event => {
-    if (state.tour >= 0 || state.panel || state.sceneOpen || state.actorDialog || !els('townGame').hidden) return;
+    if (state.tour >= 0 || state.panel || state.sceneOpen || state.actorDialog ||
+      !els('townSettings').hidden || !els('townEmoteWheel').hidden || !els('townGame').hidden) return;
     const rect = canvas.getBoundingClientRect();
     const p = toMap(event.clientX - rect.left, event.clientY - rect.top);
+    if (Math.hypot(p.x - state.player.x, p.y - state.player.y) < 26) {
+      clearLongPress();
+      longPressTimer = root.setTimeout(() => root.NudgeTownHud?.toggleEmote(true), 500);
+      return;
+    }
     const tappedActor = atmosphere?.actors(performance.now(), reducedMotion).find(actor =>
       Math.hypot(p.x - actor.x * MAP_W, p.y - actor.y * MAP_H) < 28);
     if (tappedActor) { speakActor(tappedActor); return; }
@@ -398,8 +411,10 @@
   });
 
   doc.addEventListener('keydown', event => {
+    if (event.defaultPrevented) return;
     if (event.target?.closest?.('input, textarea')) return;
     const key = event.key.toLowerCase();
+    if (!els('townSettings').hidden || !els('townEmoteWheel').hidden) return;
     if (state.static && !state.panel) return;
     if (state.tour >= 0) {
       if (key === ' ' || key === 'enter') { event.preventDefault(); nextTour(); }
@@ -429,6 +444,9 @@
       return;
     }
     if (event.target?.closest?.('#townDirectory')) return;
+    if (key === 'e' && !state.sceneOpen && !state.panel) {
+      event.preventDefault(); root.NudgeTownHud?.toggleEmote(true); return;
+    }
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
       event.preventDefault();
       state.keys.add(key);
@@ -445,6 +463,22 @@
   doc.addEventListener('visibilitychange', () => {
     if (doc.hidden && game.running) toggleGamePause();
     if (!doc.hidden && ctx && !state.static) { last = performance.now(); root.requestAnimationFrame(frame); }
+  });
+  doc.addEventListener('nudge-town-preference', event => {
+    reducedMotion = Boolean(event.detail?.reducedMotion);
+  });
+  doc.addEventListener('nudge-town-travel', event => {
+    const building = byId(event.detail?.buildingId);
+    if (!building || state.static || state.sceneOpen || state.panel) return;
+    state.keys.clear(); state.target = { ...building.door }; state.pendingBuilding = null;
+    toast(`走向${building.name}門口…`, 1600);
+  });
+  doc.addEventListener('nudge-town-emote', event => {
+    if (!['wave', 'cheer', 'sit', 'sleep'].includes(event.detail?.type)) return;
+    state.emoteType = event.detail.type;
+    state.emoteUntil = performance.now() + 4000;
+    state.keys.clear(); state.target = null;
+    toast({ wave: '打招呼', cheer: '歡呼', sit: '坐下', sleep: '休息一下' }[state.emoteType], 1200);
   });
 
   els('townPromptEnter').addEventListener('click', () => {
@@ -665,7 +699,8 @@
     // The plaza fountain sits on the central crossroads: it is a tap target,
     // not a wall, or walking to the tower would stall against it.
     const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect);
-    const dir = state.tour < 0 && !state.panel && !state.sceneOpen && !state.actorDialog ? moveDirection() : null;
+    const dir = state.tour < 0 && !state.panel && !state.sceneOpen && !state.actorDialog &&
+      els('townSettings').hidden && els('townEmoteWheel').hidden ? moveDirection() : null;
     if (dir) {
       const before = state.player;
       state.player = core.step(state.player, dir, dt, SPEED, blockers, BOUNDS, RADIUS);
@@ -673,6 +708,7 @@
       const dy = state.player.y - before.y;
       state.moving = Math.hypot(dx, dy) > 0.01;
       if (state.moving) {
+        state.emoteType = null;
         state.face = avatarCore.facing(dx, dy, state.face);
         state.walking += dt;
       } else {
@@ -704,7 +740,8 @@
       return distance < 54 && (!closest || distance < closest.distance) ? { ...actor, distance } : closest;
     }, null);
     const prompt = els('townPrompt');
-    prompt.hidden = (!state.near && !state.actorNear) || Boolean(state.panel) || state.sceneOpen || state.actorDialog || els('townDirectory').classList.contains('is-open');
+    prompt.hidden = (!state.near && !state.actorNear) || Boolean(state.panel) || state.sceneOpen || state.actorDialog ||
+      !els('townSettings').hidden || !els('townEmoteWheel').hidden || els('townDirectory').classList.contains('is-open');
     if (state.actorNear) {
       els('townPromptText').textContent = `按 F 與${state.actorNear.name}交談`;
       els('townPromptEnter').textContent = '交談';
@@ -749,7 +786,14 @@
       if (pose.flip) ctx.scale(-1, 1);
       ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, -pw / 2, -ph, pw, ph);
       ctx.restore();
+      if (state.emoteType && now < state.emoteUntil) {
+        const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤' }[state.emoteType];
+        ctx.font = `${Math.max(18, Math.round(20 * s))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(icon, p.x, p.y - ph - 7 * s);
+      } else if (now >= state.emoteUntil) state.emoteType = null;
     }
+    root.NudgeTownHud?.setPlayer(state.player, now);
     for (const b of BUILDINGS) {
       const p = toScreen(b.label);
       const el = labels.get(b.id);
@@ -778,7 +822,7 @@
   }
 
   // ---------- account data (read-only) ----------
-  function applyUser(user, data) {
+  function applyUser(user, data, confirmed = false) {
     state.uid = user?.uid || null;
     state.level = Math.max(1, Number(data?.avatarLevel) || 1);
     const face = Number(data?.avatarProfile?.faceShapeIndex);
@@ -792,7 +836,8 @@
     els('townAvatar').src = sprite;
     els('townName').textContent = user ? (data?.nickname || '自律夥伴') : '訪客';
     // Guests see no level, XP or sync status: there is no account data to show.
-    els('townLevel').textContent = user ? `Lv ${state.level}` : '自由探索中';
+    els('townLevel').textContent = user ? (data ? `Lv ${state.level}` : '雲端同步中') : '自由探索中';
+    root.NudgeTownHud?.updateUser(user, data, confirmed);
     refreshLabels();
     refreshTicket();
   }
@@ -804,16 +849,24 @@
     fb.auth().onAuthStateChanged(user => {
       unsubUser?.();
       unsubReceipts?.();
+      let confirmedData = null;
       state.receipts = [];
       applyUser(user, null);
       if (!user) return;
       unsubUser = fb.firestore().collection('users').doc(user.uid)
-        .onSnapshot(snap => applyUser(user, snap.exists ? snap.data() : null), () => {});
+        .onSnapshot({ includeMetadataChanges: true }, snap => {
+          if (!snap.metadata.fromCache && !snap.metadata.hasPendingWrites)
+            confirmedData = snap.exists ? snap.data() : null;
+          applyUser(user, confirmedData, Boolean(confirmedData));
+        }, () => {});
       unsubReceipts = fb.firestore().collection('activity_receipts')
-        .where('actorUserId', '==', user.uid).orderBy('verifiedAt', 'desc').limit(10)
-        .onSnapshot(snap => {
-          state.receipts = snap.docs.map(d => ({ receiptId: d.id, ...d.data() }))
+        .where('actorUserId', '==', user.uid).orderBy('verifiedAt', 'desc').limit(90)
+        .onSnapshot({ includeMetadataChanges: true }, snap => {
+          if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
+          const receipts = snap.docs.map(d => ({ receiptId: d.id, ...d.data() }));
+          state.receipts = receipts.slice(0, 10)
             .filter(d => root.NudgeConfirmedActivityFeedback?.parse(d.receiptId, d, user.uid));
+          root.NudgeTownHud?.updateReceipts(receipts, true, snap.size === 90);
           refreshTicket();
         }, () => {});
     });
