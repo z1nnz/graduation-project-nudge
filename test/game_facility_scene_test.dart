@@ -27,6 +27,14 @@ void main() {
                 title: '紀錄館',
                 background: 'assets/scenes/library/library_room.webp',
                 guideLine: '這是你自己的紀錄。',
+                foreground: Positioned(
+                  top: 120,
+                  right: 12,
+                  child: TextButton(
+                    onPressed: () => clicks += 10,
+                    child: const Text('場景物件'),
+                  ),
+                ),
                 child: ListView(
                   children: [
                     GameArtifact(
@@ -43,13 +51,15 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 100));
         expect(find.text('保留的功能'), findsNothing);
+        await tester.tap(find.text('場景物件'));
+        expect(clicks, 10);
         expect(find.bySemanticsLabel('翻開紀錄簿'), findsWidgets);
         expect(find.bySemanticsLabel('與墨墨交談'), findsWidgets);
         await tester.tap(find.text('翻開紀錄簿'));
         await tester.pump();
         expect(find.text('保留的功能'), findsOneWidget);
         await tester.tap(find.text('保留的功能'));
-        expect(clicks, 1);
+        expect(clicks, 11);
         await tester.tap(find.text('闔上，回到場景'));
         await tester.pump();
         await tester.tap(find.bySemanticsLabel('與墨墨交談').first);

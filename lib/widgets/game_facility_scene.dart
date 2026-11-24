@@ -18,8 +18,10 @@ class GameFacilityScene extends StatefulWidget {
     this.objectIcon = Icons.auto_stories,
     this.guide = 'inky',
     this.guideLine = '每一筆真實的紀錄，都有自己的位置。點開桌上的物件看看吧。',
+    this.foreground,
   });
   final Widget child;
+  final Widget? foreground;
   final String title, background, objectLabel, guide, guideLine;
   final IconData objectIcon;
   @override
@@ -128,6 +130,11 @@ class _GameFacilitySceneState extends State<GameFacilityScene>
                       ),
                     ),
                   ),
+                  if (widget.foreground != null)
+                    TickerMode(
+                      enabled: _foreground && !_open,
+                      child: widget.foreground!,
+                    ),
                   Positioned(
                     top: 16,
                     left: 16,
