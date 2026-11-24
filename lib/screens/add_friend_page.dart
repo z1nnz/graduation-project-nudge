@@ -102,9 +102,9 @@ class _AddFriendPageState extends State<AddFriendPage> {
                     offset: Offset(-70 * (1 - progress), -22 * (1 - progress)),
                     child: Opacity(opacity: progress, child: child),
                   ),
-                  child: const Semantics(
+                  child: Semantics(
                     label: '邀請卡已投入郵筒',
-                    child: GameChip(label: '已寄出', tone: GameTone.gold),
+                    child: const GameChip(label: '已寄出', tone: GameTone.gold),
                   ),
                 ),
             ],
