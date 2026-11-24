@@ -22,6 +22,8 @@
 .guild-calendar-day button { width: 100%; margin-bottom: .25rem; overflow-wrap: anywhere; }
 .guild-calendar-list { display: none; }
 .guild-calendar-card { border: 2px solid var(--w-frame); padding: .75rem; margin-top: .5rem; overflow-wrap: anywhere; }
+.guild-calendar .guild-calendar-card p,
+.guild-calendar [data-guild-status] { color: var(--w-ink); }
 .guild-calendar-room { display: inline-flex; align-items: center; gap: .65rem; max-width: 100%; }
 .guild-calendar-room img { width: 120px; height: 160px; image-rendering: pixelated; }
 .guild-calendar-notices { list-style: none; padding: 0; }
