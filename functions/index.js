@@ -13,11 +13,15 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import {
   onDocumentCreatedWithAuthContext,
   onDocumentUpdatedWithAuthContext,
+  onDocumentUpdated,
   onDocumentCreated,
 } from "firebase-functions/v2/firestore";
 
 import { createRoomChatMentionHandler } from "./src/room-chat-mention.js";
 import { ActivityLedgerService } from "./src/activity-ledger-service.js";
+import {
+  createFamilyGardenHandler, createDueFamilyLettersHandler, createCompletedGoalLetterHandler,
+} from "./src/family-garden-service.js";
 import { createManageGrowthDocumentHandler } from "./src/growth-document-service.js";
 import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
@@ -804,6 +808,22 @@ export const leaveRoomVoice = onCall(
 export const cleanupRoomVoice = onSchedule(
   { schedule: "every 10 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120, memory: "256MiB" },
   createCleanupRoomVoiceHandler(getFirestore()),
+);
+
+const familyGarden = createFamilyGardenHandler(getFirestore());
+export const manageFamilyGarden = onCall(
+  { timeoutSeconds: 15, memory: "256MiB" },
+  request => withAccountOperation(request, () => familyGarden(request)),
+);
+
+export const sendDatedFamilyLetters = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120 },
+  createDueFamilyLettersHandler(getFirestore()),
+);
+
+export const sendCompletedGoalLetters = onDocumentUpdated(
+  { document: "family_links/{linkId}/goals/{goalId}", retry: true },
+  createCompletedGoalLetterHandler(getFirestore()),
 );
 
 export const deliverPushNotification = onDocumentCreated(
