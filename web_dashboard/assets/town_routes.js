@@ -80,6 +80,7 @@
     // Arcade hall: catch-the-stars plus three break games, all on break tickets.
     d('arcade', 'arcade.html', 'park', '遊戲機台大廳（休息券）', 'player', 'login', null, 'cloud', '#82'),
     d('planet', 'planet.html', 'observatory', '自律星球', 'player', 'login', null, 'mixed', '#82'),
+    d('virtual-devices', 'observatory.html', 'observatory', 'Orbit／Station 虛擬裝置', 'player', 'login', null, 'mixed', '#124'),
     d('planet-builder', 'planet-builder.html', 'observatory', '星球建築規劃器（示範）', 'player', 'login', null, 'demo', 'core'),
     d('garden-scene', 'garden.html', 'garden', '星光花園', 'player', 'login', 'level10', 'cloud', '#82'),
     d('mailbox', 'mailbox.html', 'plaza', '小鎮郵箱', 'player', 'login', null, 'cloud', '#83'),
