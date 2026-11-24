@@ -98,6 +98,7 @@ flutter:
     - assets/characters/letty/
     - assets/characters/stella/
     - assets/scenes/library/
+    - assets/scenes/observatory/
     - assets/branding/
     - assets/avatar/
     - assets/avatar/characters/
