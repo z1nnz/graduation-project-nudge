@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/widgets/game_facility_scene.dart';
 
 void main() {
+  testWidgets('parchment supports ListTile ink and its original action', (tester) async { var taps=0; await tester.pumpWidget(MaterialApp(home: Scaffold(body: GameArtifact(child: ListTile(title: const Text('record'), onTap: () => taps++))))); await tester.tap(find.text('record')); await tester.pump(); expect(taps,1); expect(tester.takeException(),isNull); });
+
   testWidgets(
     'library objects, guide dialogue and parchment preserve feature actions at 360px and 1.15 text',
     (tester) async {
