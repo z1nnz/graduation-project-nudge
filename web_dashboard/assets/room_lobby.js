@@ -3,6 +3,14 @@
   const root = document.querySelector("[data-room-lobby]");
   const get = selector => root.querySelector(selector);
   const doors = get("[data-lobby-doors]");
+  const tower = get("[data-tower-scroll]");
+  const gate = get("[data-lobby-gate]");
+  const porter = get("[data-lobby-porter]");
+  const redeem = get("[data-lobby-redeem]");
+  const themeChoices = [...root.querySelectorAll("[data-tower-theme]")];
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  const dialogue = "沿著塔往上走就能找房間。有邀請碼的話，交給我看看。";
+  let greetingStart;
   const filters = get("[data-lobby-filters]");
   const modal = get("dialog");
   const form = get("[data-lobby-wizard]");
@@ -22,6 +30,72 @@
   let userId;
   const call = async (action, payload = {}) => (await functions.httpsCallable("manageRoomLobby")({ action, ...payload })).data;
 
+  const bird = root.querySelector(".tower-bird");
+  const portrait = root.querySelector(".tower-porter-portrait");
+  const greeting = get("[data-lobby-greeting]");
+  let frame;
+  let towerVisible = false;
+  let lastTick = -1;
+  function animate(timestamp) {
+    frame = undefined;
+    if (motion.matches || document.hidden || !towerVisible) return;
+    const tick = Math.floor(timestamp / 100);
+    if (tick !== lastTick) {
+      lastTick = tick;
+      root.style.setProperty("--tower-flame", String([0.4, 0.65, 0.8, 0.6][tick % 4]));
+      bird.style.transform = "translate(" + (tick % 65) + "vw," + [0, -2, -4, -2][tick % 4] + "px)";
+      portrait.style.transform = "translateY(" + [0, -1, -2, -1][tick % 4] + "px)";
+      if (greetingStart != null && modal.open && !gate.hidden) {
+        greeting.textContent = dialogue.slice(0, Math.floor((timestamp - greetingStart) / 36) + 1);
+      }
+    }
+    frame = requestAnimationFrame(animate);
+  }
+  function updateMotion() {
+    if (frame != null) cancelAnimationFrame(frame);
+    frame = undefined;
+    if (motion.matches) {
+      root.style.removeProperty("--tower-flame");
+      bird.style.removeProperty("transform");
+      portrait.style.removeProperty("transform");
+      greeting.textContent = dialogue;
+    } else if (!document.hidden && towerVisible) {
+      frame = requestAnimationFrame(animate);
+    }
+  }
+  motion.addEventListener("change", updateMotion);
+  document.addEventListener("visibilitychange", updateMotion);
+  new IntersectionObserver(entries => {
+    towerVisible = entries[0].isIntersecting;
+    updateMotion();
+  }).observe(tower);
+
+  function reachFloor() {
+    const floor = doors.lastElementChild ?? get(".tower-roof").querySelector("button");
+    floor.scrollIntoView({ block: "center", behavior: motion.matches ? "instant" : "smooth" });
+    if (!floor.disabled) floor.focus({ preventScroll: true });
+  }
+  get("[data-tower-climb]").addEventListener("click", reachFloor);
+  addEventListener("resize", () => {
+    if (!tower.scrollTop || tower.scrollHeight - tower.clientHeight - tower.scrollTop < 10) {
+      tower.scrollTop = tower.scrollHeight;
+    }
+  });
+
+  const activeFloors = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting || !db) continue;
+      const floor = entry.target;
+      activeFloors.unobserve(floor);
+      db.collection("rooms").doc(floor.dataset.roomId).collection("members")
+        .where("presenceStatus", "==", "studying").limit(8).get().then(snapshot => {
+          if (floor.isConnected && !snapshot.empty) floor.dataset.towerActive = "true";
+        }).catch(() => {
+          // A pending or former member has no access to room presence.
+        });
+    }
+  }, { root: tower });
+
   function seekRoom(id) {
     const url = new URL(location.href);
     url.searchParams.delete("invite");
@@ -30,15 +104,48 @@
   }
 
   function showOpener(element) {
-    returnFocus = element;
+    if (!modal.open) {
+      returnFocus = element;
+      modal.showModal();
+    }
     modalStatus.textContent = "";
-    modal.showModal();
+    get("[data-lobby-dialog-title]").focus();
   }
   modal.addEventListener("close", () => {
     if (returnFocus?.isConnected) returnFocus.focus();
     selection = null;
   });
   get("[data-lobby-close]").addEventListener("click", () => modal.close());
+  porter.addEventListener("click", () => {
+    detail.hidden = form.hidden = true;
+    gate.hidden = false;
+    redeem.elements.inviteCode.disabled = !userId;
+    redeem.querySelector("button").disabled = !userId;
+    get("[data-lobby-dialog-title]").textContent = "鐘鐘的守門台";
+    greeting.textContent = motion.matches ? dialogue : "";
+    greetingStart = performance.now();
+    updateMotion();
+    showOpener(porter);
+  });
+  get("[data-lobby-recommend]").addEventListener("click", () => {
+    modal.close();
+    requestAnimationFrame(reachFloor);
+  });
+  redeem.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!userId || busy) return;
+    busy = true;
+    const code = redeem.elements.inviteCode.value.trim();
+    try {
+      const room = await call("preview", { token: code });
+      if (modal.open && !gate.hidden) await showRoom(room, porter, code);
+    } catch {
+      if (modal.open) modalStatus.textContent = "邀請無效或已過期。";
+    } finally {
+      busy = false;
+    }
+  });
+
   function optionSummary(room) {
     return (roomTypes[room.roomType] || room.roomType) + " · " + room.count + "/" + room.limit +
       " 人 · " + (room.approval ? "須審核" : "開放加入") + " · " + (room.voice ? "語音開放" : "語音關閉");
@@ -52,14 +159,21 @@
         (!selected.approval || room.approval === (selected.approval === "review")) &&
         (!selected.tag || room.tags.some(tag => contains(tag, selected.tag.trim()))) &&
         (!selected.search || contains(room.name, selected.search.trim())));
+    activeFloors.disconnect();
+    const atGate = tower.scrollHeight - tower.clientHeight - tower.scrollTop < 24;
     doors.replaceChildren();
-    for (const room of list) {
+    for (const [index, room] of list.entries()) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "w-btn room-lobby-door";
-      const image = new Image(96, 160);
-      image.alt = "";
-      image.src = asset("door-" + (room.count === 0 ? 0 : room.count / room.limit < .75 ? 1 : 2));
+      button.className = "room-lobby-door";
+      button.setAttribute("aria-label", room.name + "：" + optionSummary(room));
+      button.dataset.roomId = room.id;
+      const plaque = document.createElement("span");
+      plaque.className = "tower-plaque";
+      const level = document.createElement("span");
+      level.className = "tower-level";
+      level.textContent = (index + 1) + "F";
+      level.setAttribute("aria-hidden", "true");
       const title = document.createElement("strong");
       title.textContent = room.name;
       const summary = document.createElement("small");
@@ -75,16 +189,22 @@
         if (index < lit) pane.className = "lit";
         lights.append(pane);
       }
-      button.append(image, lights, title, summary);
+      const reader = document.createElement("span");
+      reader.className = "tower-reader";
+      reader.setAttribute("aria-hidden", "true");
+      plaque.append(title, summary, lights);
+      button.append(level, reader, plaque);
       button.addEventListener("click", () => void showRoom(room, button));
-      doors.append(button);
+      doors.prepend(button);
+      if (room.joined) activeFloors.observe(button);
     }
-    status.textContent = list.length ? list.length + " 間房" : "沒有符合條件的房間。";
+    if (atGate) tower.scrollTop = tower.scrollHeight;
+    status.textContent = list.length ? list.length + " 間房 · 從塔底向上探索" : "沒有符合條件的房間。";
   }
 
   async function showRoom(room, opener, code) {
     selection = { room, code };
-    form.hidden = true;
+    form.hidden = gate.hidden = true;
     detail.hidden = false;
     get("[data-lobby-dialog-title]").textContent = room.name;
     get("[data-lobby-room-theme]").src = asset(room.theme);
@@ -168,6 +288,7 @@
     get("[data-lobby-next]").textContent = index === 3 ? "建立房間" : "下一步";
     modalStatus.textContent = "";
     if (index === 3) {
+      get("[data-lobby-theme]").src = asset(form.elements.theme.value);
       get("[data-lobby-preview]").textContent = form.elements.name.value + " · " +
         roomTypes[form.elements.roomType.value] + " · " + form.elements.memberLimit.value + " 人 · " +
         (form.elements.approval.checked ? "須審核" : "開放加入") + " · 每日目標 " + form.elements.dailyGoalValue.value;
@@ -177,14 +298,23 @@
   const start = get("[data-lobby-new]");
   start.addEventListener("click", () => {
     form.reset();
-    get("[data-lobby-theme]").src = asset(form.elements.theme.value);
+    syncTheme();
     form.hidden = false;
-    detail.hidden = true;
+    detail.hidden = gate.hidden = true;
     showStep(0);
     showOpener(start);
   });
   get("[data-lobby-back]").addEventListener("click", () => showStep(step - 1));
-  form.elements.theme.addEventListener("change", () => { get("[data-lobby-theme]").src = asset(form.elements.theme.value); });
+  function syncTheme() {
+    for (const choice of themeChoices) {
+      choice.setAttribute("aria-pressed", String(choice.dataset.towerTheme === form.elements.theme.value));
+    }
+  }
+  form.elements.theme.addEventListener("change", syncTheme);
+  for (const choice of themeChoices) choice.addEventListener("click", () => {
+    form.elements.theme.value = choice.dataset.towerTheme;
+    syncTheme();
+  });
   form.addEventListener("submit", async event => {
     event.preventDefault();
     if (busy) return;
@@ -217,7 +347,9 @@
     userId = user?.uid;
     start.disabled = !userId;
     model = { rooms: [], activity: [] };
+    activeFloors.disconnect();
     doors.replaceChildren();
+    tower.scrollTop = tower.scrollHeight;
     if (modal.open) modal.close();
     status.textContent = userId ? "正在載入自律房…" : "登入後探索自律房。";
     if (!userId) return;

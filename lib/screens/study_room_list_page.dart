@@ -1,5 +1,5 @@
 import '../theme/game_ui.dart';
-import '../widgets/room_door_card.dart';
+import '../widgets/focus_tower_piece.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -32,6 +32,7 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
   String _searchQuery = '';
   _RoomSortType _sortType = _RoomSortType.activeFirst;
   String? _joiningRoomId;
+  bool _showTowerSearch = false;
 
   @override
   void dispose() {
@@ -500,6 +501,25 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
     }
   }
 
+  Widget _buildTowerRoof(BuildContext context) {
+    return FocusTowerPiece(
+      piece: 'roof',
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(36, 92, 36, 12),
+        child: Center(
+          child: Semantics(
+            label: '施工鷹架',
+            child: GameButton(
+              label: '蓋一間自律房',
+              icon: Icons.add_home_outlined,
+              onPressed: () => _openCreateRoomPage(context),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRoomList({
     required BuildContext context,
     required List<StudyRoomData> rooms,
@@ -547,10 +567,9 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
       children: rooms
           .map(
             (room) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 1),
               child: _StudyRoomCard(
                 room: room,
-                trackedValue: _roomTrackedValue(room),
                 trackedValueText: _formatRoomValue(
                   room,
                   _roomTrackedValue(room),
@@ -564,7 +583,6 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
                         room,
                         _memberTrackedValue(room, _topMember(room)!),
                       ),
-                nearFull: _isNearFull(room),
                 tags: _displayTags(room),
                 roomTypeIcon: _roomTypeIcon(room.roomType),
                 roomTypeLabel: _roomTypeLabel(room.roomType),
@@ -628,116 +646,106 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          heroTag: null,
-          onPressed: () => _openCreateRoomPage(context),
-          backgroundColor: GamePalette.gold,
-          foregroundColor: const Color(0xFF2A1600),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: const BorderSide(color: Color(0xFF8A4A10), width: 3),
-          ),
-          icon: const Icon(Icons.add_home_rounded),
-          label: const Text(
-            '蓋一間自律房',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-          ),
-        ),
         body: GameBackground(
           child: TabBarView(
             children: [
               ListView(
                 padding: const EdgeInsets.all(AppUI.pagePadding),
                 children: [
-                  _SectionHeader(
-                    title: '探索公開房間',
-                    subtitle: '搜尋房間名稱或 ID，也可以加入系統推薦的免密碼、需審核或密碼房。',
+                  _buildTowerRoof(context),
+                  FocusTowerGate(
+                    onExplore: () =>
+                        setState(() => _showTowerSearch = !_showTowerSearch),
                   ),
-                  const SizedBox(height: AppUI.cardGap),
-                  GamePanel(
-                    child: Padding(
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: _searchController,
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.search_rounded),
-                              hintText: '搜尋房間名稱、ID、標籤',
-                              suffixIcon: _searchQuery.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _searchQuery = '';
-                                          _searchController.clear();
-                                        });
-                                      },
-                                      icon: const Icon(Icons.close_rounded),
-                                    ),
+                  if (_showTowerSearch)
+                    GamePanel(
+                      child: Padding(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            const Text(
+                              '往上走就能找房間。你也可以交給我房名或房間 ID。',
+                              style: TextStyle(fontSize: 14),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _RoomFilterPill(
-                                  label: '進行中',
-                                  selected: _onlyActive,
-                                  onTap: () {
-                                    setState(() {
-                                      _onlyActive = !_onlyActive;
-                                    });
-                                  },
-                                ),
+                            TextField(
+                              controller: _searchController,
+                              onChanged: (value) {
+                                setState(() {
+                                  _searchQuery = value;
+                                });
+                              },
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.search_rounded),
+                                hintText: '搜尋房間名稱、ID、標籤',
+                                suffixIcon: _searchQuery.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _searchQuery = '';
+                                            _searchController.clear();
+                                          });
+                                        },
+                                        icon: const Icon(Icons.close_rounded),
+                                      ),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _RoomFilterPill(
-                                  label: '快滿房',
-                                  selected: _onlyNearFull,
-                                  onTap: () {
-                                    setState(() {
-                                      _onlyNearFull = !_onlyNearFull;
-                                    });
-                                  },
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _RoomFilterPill(
+                                    label: '進行中',
+                                    selected: _onlyActive,
+                                    onTap: () {
+                                      setState(() {
+                                        _onlyActive = !_onlyActive;
+                                      });
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _RoomFilterPill(
-                                  label: '我建立的',
-                                  selected: _onlyMine,
-                                  onTap: () {
-                                    setState(() {
-                                      _onlyMine = !_onlyMine;
-                                    });
-                                  },
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _RoomFilterPill(
+                                    label: '快滿房',
+                                    selected: _onlyNearFull,
+                                    onTap: () {
+                                      setState(() {
+                                        _onlyNearFull = !_onlyNearFull;
+                                      });
+                                    },
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _resetFilters,
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  label: const Text('重設'),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _RoomFilterPill(
+                                    label: '我建立的',
+                                    selected: _onlyMine,
+                                    onTap: () {
+                                      setState(() {
+                                        _onlyMine = !_onlyMine;
+                                      });
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _resetFilters,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                    label: const Text('重設'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: AppUI.sectionGap),
                   Row(
                     children: [
@@ -775,6 +783,7 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
               ListView(
                 padding: const EdgeInsets.all(AppUI.pagePadding),
                 children: [
+                  _buildTowerRoof(context),
                   _SectionHeader(
                     title: '正在進行中的自律房',
                     subtitle: '目前有人正在自律的房間會優先顯示。',
@@ -792,6 +801,7 @@ class _StudyRoomListPageState extends State<StudyRoomListPage> {
               ListView(
                 padding: const EdgeInsets.all(AppUI.pagePadding),
                 children: [
+                  _buildTowerRoof(context),
                   _SectionHeader(
                     title: '我已加入的自律房',
                     subtitle: '這裡只放你已經加入或建立的房間。',
@@ -2577,13 +2587,11 @@ class _RoomFilterPill extends StatelessWidget {
 
 class _StudyRoomCard extends StatelessWidget {
   final StudyRoomData room;
-  final double trackedValue;
   final String trackedValueText;
   final int activeCount;
   final double progress;
   final StudyMemberData? topMember;
   final String topMemberValueText;
-  final bool nearFull;
   final List<String> tags;
   final IconData roomTypeIcon;
   final String roomTypeLabel;
@@ -2592,13 +2600,11 @@ class _StudyRoomCard extends StatelessWidget {
 
   const _StudyRoomCard({
     required this.room,
-    required this.trackedValue,
     required this.trackedValueText,
     required this.activeCount,
     required this.progress,
     required this.topMember,
     required this.topMemberValueText,
-    required this.nearFull,
     required this.tags,
     required this.roomTypeIcon,
     required this.roomTypeLabel,
@@ -2613,28 +2619,99 @@ class _StudyRoomCard extends StatelessWidget {
         .length;
     final pendingCount = room.members.length - approvedCount;
     final leader = topMember;
-    return RoomDoorCard(
-      name: room.name,
-      subtitle: room.description.isEmpty
-          ? '一起完成今天的$roomTypeLabel目標。'
-          : room.description,
-      accent: room.accentColor,
-      typeLabel: roomTypeLabel,
-      typeIcon: roomTypeIcon,
-      approvedCount: approvedCount,
-      memberLimit: room.memberLimit,
-      activeCount: activeCount,
-      progress: progress,
-      trackedValueText: trackedValueText,
-      leaderLine: leader == null
-          ? null
-          : '今日領先：${leader.roomNickname.isNotEmpty ? leader.roomNickname : leader.name}（$topMemberValueText）',
-      locked: room.password.isNotEmpty,
-      needsApproval: room.joinMode == StudyRoomJoinMode.approval,
-      nearFull: nearFull,
-      hasPending: pendingCount > 0,
-      isJoining: isJoining,
-      onTap: onTap,
+    final palette = GamePalette.of(context);
+    final capacity = '$approvedCount/${room.memberLimit} 人';
+    final voice = room.voiceEnabled ? '語音開放' : '語音關閉';
+    final occupancy = approvedCount >= room.memberLimit
+        ? '已滿'
+        : approvedCount == room.memberLimit - 1
+        ? '快滿'
+        : '';
+    return Semantics(
+      button: true,
+      label: '${room.name}，$capacity，$voice',
+      child: FocusTowerPiece(
+        piece: 'floor',
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: isJoining ? null : onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(36, 36, 36, 12),
+              child: GamePanel(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      children: [
+                        Icon(roomTypeIcon, size: 18, color: palette.ink),
+                        Text(
+                          room.name,
+                          style: const TextStyle(
+                            fontFamily: 'Cubic11',
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      [
+                        roomTypeLabel,
+                        capacity,
+                        voice,
+                        if (occupancy.isNotEmpty) occupancy,
+                      ].join(' · '),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    if (isJoining)
+                      const LinearProgressIndicator(semanticsLabel: '正在加入自律房'),
+                    if (room.description.isNotEmpty)
+                      Text(
+                        room.description,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    if (room.password.isNotEmpty ||
+                        room.joinMode == StudyRoomJoinMode.approval ||
+                        pendingCount > 0)
+                      Text(
+                        [
+                          if (room.password.isNotEmpty) '密碼房',
+                          if (room.joinMode == StudyRoomJoinMode.approval)
+                            '需審核',
+                          if (pendingCount > 0) '有待審核的成員',
+                        ].join(' · '),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    if (tags.isNotEmpty)
+                      Text(
+                        tags.join(' · '),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: progress,
+                      color: activeCount > 0 ? GamePalette.gold : palette.wood,
+                      semanticsLabel: '今日共同目標',
+                    ),
+                    Text(
+                      '${activeCount > 0 ? '$activeCount 人正在活動 · ' : ''}$trackedValueText',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    if (leader != null)
+                      Text(
+                        '今日領先：${leader.roomNickname.isNotEmpty ? leader.roomNickname : leader.name}（$topMemberValueText）',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
