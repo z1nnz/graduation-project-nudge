@@ -297,6 +297,9 @@ class ReminderCenterPage extends StatelessWidget {
     return GamePanel(
       padding: EdgeInsets.zero,
       child: ExpansionTile(
+        expansionAnimationStyle: MediaQuery.disableAnimationsOf(context)
+            ? AnimationStyle.noAnimation
+            : const AnimationStyle(duration: Duration(milliseconds: 250)),
         key: PageStorageKey(notification.id),
         leading: Icon(
           kind == 'friend_cabin_letter'
@@ -530,6 +533,11 @@ class ReminderCenterPage extends StatelessWidget {
             GamePanel(
               padding: EdgeInsets.zero,
               child: ExpansionTile(
+                expansionAnimationStyle: MediaQuery.disableAnimationsOf(context)
+                    ? AnimationStyle.noAnimation
+                    : const AnimationStyle(
+                        duration: Duration(milliseconds: 250),
+                      ),
                 title: const Text(
                   '已讀信件抽屜',
                   style: TextStyle(fontFamily: 'Cubic11', fontSize: 16),
