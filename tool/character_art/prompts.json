@@ -1,0 +1,447 @@
+{
+ "style": "16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark",
+ "key": "on a flat pure magenta #FF00FF background, no shadow on the background",
+ "jobs": [
+  {
+   "out": "companion/reference.png",
+   "attach": [
+    "assets/avatar/characters/character_0.png",
+    "assets/avatar/poses/walk_0_a.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/idle.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/walk_down.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/walk_left.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/walk_up.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/happy.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 6 frames happy jump animation facing the viewer: crouch, jump up with both arms raised and a big smile, peak, fall, land, settle of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 6 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/wave.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames waving hello facing the viewer: one hand raised waving side to side, smiling of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/think.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames thinking animation facing the viewer: hand on chin, eyes looking up, head tilting slightly of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "companion/sleep.png",
+   "attach": [
+    "companion/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames sleeping curled up lying on the floor, eyes closed, gentle breathing, body rising and falling slightly of the same character: the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "chestnut/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a cheerful shopkeeper girl named Chestnut, chestnut-brown bob hair, round glasses, brown apron over a cream blouse, rolled sleeves, a small coin pouch at the waist, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "chestnut/idle.png",
+   "attach": [
+    "chestnut/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a cheerful shopkeeper girl named Chestnut, chestnut-brown bob hair, round glasses, brown apron over a cream blouse, rolled sleeves, a small coin pouch at the waist. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "chestnut/talk.png",
+   "attach": [
+    "chestnut/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a cheerful shopkeeper girl named Chestnut, chestnut-brown bob hair, round glasses, brown apron over a cream blouse, rolled sleeves, a small coin pouch at the waist. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "chestnut/walk_down.png",
+   "attach": [
+    "chestnut/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a cheerful shopkeeper girl named Chestnut, chestnut-brown bob hair, round glasses, brown apron over a cream blouse, rolled sleeves, a small coin pouch at the waist. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "chestnut/walk_left.png",
+   "attach": [
+    "chestnut/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a cheerful shopkeeper girl named Chestnut, chestnut-brown bob hair, round glasses, brown apron over a cream blouse, rolled sleeves, a small coin pouch at the waist. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "chestnut/walk_up.png",
+   "attach": [
+    "chestnut/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a cheerful shopkeeper girl named Chestnut, chestnut-brown bob hair, round glasses, brown apron over a cream blouse, rolled sleeves, a small coin pouch at the waist. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "scroll/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a friendly notice-board clerk boy named Scroll, messy sandy hair, ink-stained green vest, a big rolled parchment scroll carried on his back with a strap, a quill behind one ear, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "scroll/idle.png",
+   "attach": [
+    "scroll/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a friendly notice-board clerk boy named Scroll, messy sandy hair, ink-stained green vest, a big rolled parchment scroll carried on his back with a strap, a quill behind one ear. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "scroll/talk.png",
+   "attach": [
+    "scroll/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a friendly notice-board clerk boy named Scroll, messy sandy hair, ink-stained green vest, a big rolled parchment scroll carried on his back with a strap, a quill behind one ear. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "scroll/walk_down.png",
+   "attach": [
+    "scroll/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a friendly notice-board clerk boy named Scroll, messy sandy hair, ink-stained green vest, a big rolled parchment scroll carried on his back with a strap, a quill behind one ear. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "scroll/walk_left.png",
+   "attach": [
+    "scroll/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a friendly notice-board clerk boy named Scroll, messy sandy hair, ink-stained green vest, a big rolled parchment scroll carried on his back with a strap, a quill behind one ear. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "scroll/walk_up.png",
+   "attach": [
+    "scroll/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a friendly notice-board clerk boy named Scroll, messy sandy hair, ink-stained green vest, a big rolled parchment scroll carried on his back with a strap, a quill behind one ear. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bounce/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a lively amusement-park keeper named Bounce, small striped red and yellow clown hat with a pom-pom, rosy cheeks, big grin, colourful patchwork waistcoat, puffy sleeves, bouncy energetic posture, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bounce/idle.png",
+   "attach": [
+    "bounce/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a lively amusement-park keeper named Bounce, small striped red and yellow clown hat with a pom-pom, rosy cheeks, big grin, colourful patchwork waistcoat, puffy sleeves, bouncy energetic posture. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bounce/talk.png",
+   "attach": [
+    "bounce/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a lively amusement-park keeper named Bounce, small striped red and yellow clown hat with a pom-pom, rosy cheeks, big grin, colourful patchwork waistcoat, puffy sleeves, bouncy energetic posture. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bounce/walk_down.png",
+   "attach": [
+    "bounce/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a lively amusement-park keeper named Bounce, small striped red and yellow clown hat with a pom-pom, rosy cheeks, big grin, colourful patchwork waistcoat, puffy sleeves, bouncy energetic posture. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bounce/walk_left.png",
+   "attach": [
+    "bounce/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a lively amusement-park keeper named Bounce, small striped red and yellow clown hat with a pom-pom, rosy cheeks, big grin, colourful patchwork waistcoat, puffy sleeves, bouncy energetic posture. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bounce/walk_up.png",
+   "attach": [
+    "bounce/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a lively amusement-park keeper named Bounce, small striped red and yellow clown hat with a pom-pom, rosy cheeks, big grin, colourful patchwork waistcoat, puffy sleeves, bouncy energetic posture. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "sprout/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a gentle garden keeper girl named Sprout, wide straw hat with a green ribbon, light green overalls, rubber boots, holding a small copper watering can, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "sprout/idle.png",
+   "attach": [
+    "sprout/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a gentle garden keeper girl named Sprout, wide straw hat with a green ribbon, light green overalls, rubber boots, holding a small copper watering can. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "sprout/talk.png",
+   "attach": [
+    "sprout/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a gentle garden keeper girl named Sprout, wide straw hat with a green ribbon, light green overalls, rubber boots, holding a small copper watering can. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "sprout/walk_down.png",
+   "attach": [
+    "sprout/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a gentle garden keeper girl named Sprout, wide straw hat with a green ribbon, light green overalls, rubber boots, holding a small copper watering can. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "sprout/walk_left.png",
+   "attach": [
+    "sprout/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a gentle garden keeper girl named Sprout, wide straw hat with a green ribbon, light green overalls, rubber boots, holding a small copper watering can. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "sprout/walk_up.png",
+   "attach": [
+    "sprout/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a gentle garden keeper girl named Sprout, wide straw hat with a green ribbon, light green overalls, rubber boots, holding a small copper watering can. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "inky/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a calm librarian named Inky, neat dark purple hair, a single round monocle on a gold chain, long deep-blue coat with book buttons, holding a thick leather book, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "inky/idle.png",
+   "attach": [
+    "inky/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a calm librarian named Inky, neat dark purple hair, a single round monocle on a gold chain, long deep-blue coat with book buttons, holding a thick leather book. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "inky/talk.png",
+   "attach": [
+    "inky/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a calm librarian named Inky, neat dark purple hair, a single round monocle on a gold chain, long deep-blue coat with book buttons, holding a thick leather book. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "inky/walk_down.png",
+   "attach": [
+    "inky/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a calm librarian named Inky, neat dark purple hair, a single round monocle on a gold chain, long deep-blue coat with book buttons, holding a thick leather book. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "inky/walk_left.png",
+   "attach": [
+    "inky/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a calm librarian named Inky, neat dark purple hair, a single round monocle on a gold chain, long deep-blue coat with book buttons, holding a thick leather book. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "inky/walk_up.png",
+   "attach": [
+    "inky/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a calm librarian named Inky, neat dark purple hair, a single round monocle on a gold chain, long deep-blue coat with book buttons, holding a thick leather book. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bell/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a sturdy tower gatekeeper named Bell, short grey beard, warm brown hooded cloak over leather armour, holding a glowing brass lantern on a short pole, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bell/idle.png",
+   "attach": [
+    "bell/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a sturdy tower gatekeeper named Bell, short grey beard, warm brown hooded cloak over leather armour, holding a glowing brass lantern on a short pole. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bell/talk.png",
+   "attach": [
+    "bell/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a sturdy tower gatekeeper named Bell, short grey beard, warm brown hooded cloak over leather armour, holding a glowing brass lantern on a short pole. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bell/walk_down.png",
+   "attach": [
+    "bell/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a sturdy tower gatekeeper named Bell, short grey beard, warm brown hooded cloak over leather armour, holding a glowing brass lantern on a short pole. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bell/walk_left.png",
+   "attach": [
+    "bell/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a sturdy tower gatekeeper named Bell, short grey beard, warm brown hooded cloak over leather armour, holding a glowing brass lantern on a short pole. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "bell/walk_up.png",
+   "attach": [
+    "bell/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a sturdy tower gatekeeper named Bell, short grey beard, warm brown hooded cloak over leather armour, holding a glowing brass lantern on a short pole. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "letty/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "letty/idle.png",
+   "attach": [
+    "letty/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "letty/talk.png",
+   "attach": [
+    "letty/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "letty/walk_down.png",
+   "attach": [
+    "letty/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "letty/walk_left.png",
+   "attach": [
+    "letty/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "letty/walk_up.png",
+   "attach": [
+    "letty/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "stella/reference.png",
+   "attach": [],
+   "size": "1536x1024",
+   "prompt": "character reference sheet of a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "stella/idle.png",
+   "attach": [
+    "stella/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames idle breathing and blinking animation: chest rises and falls slightly, eyes closed in frame 3, facing the viewer of the same character: a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "stella/talk.png",
+   "attach": [
+    "stella/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames talking animation facing the viewer: mouth opening and closing, small friendly hand gesture of the same character: a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "stella/walk_down.png",
+   "attach": [
+    "stella/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking toward the viewer, alternating legs, contact-passing-contact-passing walk cycle of the same character: a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "stella/walk_left.png",
+   "attach": [
+    "stella/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking to the left in side view, alternating legs, contact-passing-contact-passing walk cycle of the same character: a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  },
+  {
+   "out": "stella/walk_up.png",
+   "attach": [
+    "stella/reference.png"
+   ],
+   "size": "1536x1024",
+   "prompt": "sprite sheet, 4 frames walking away from the viewer seen from behind, alternating legs, contact-passing-contact-passing walk cycle of the same character: a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope. 4 frames in one horizontal row, evenly spaced with wide magenta gaps between frames, each frame a full-body chibi character about 2.5 heads tall that fits a 128x128 cell, feet on the same baseline in every frame, identical design, outfit and colours to the attached reference sheet, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+  }
+ ]
+}
