@@ -103,6 +103,9 @@ std::uint32_t button_down_at = 0;
 std::uint32_t last_render_at = 0;
 std::uint32_t last_ambient_sample_at = 0;
 std::uint32_t completed_at = 0;
+// millis() of the last hug from a friend; 0 means none yet.
+std::uint32_t hug_at = 0;
+bool hug_seen = false;
 std::int32_t encoder_position = 0;
 std::uint64_t epoch_anchor_ms = 0;
 std::uint32_t monotonic_anchor_ms = 0;
@@ -195,6 +198,10 @@ void play_cue(nudge::DeviceCue cue) {
     case nudge::DeviceCue::room_changed:
       frequency = 1400;
       duration = 45;
+      break;
+    case nudge::DeviceCue::hug:
+      frequency = 1900;
+      duration = 160;
       break;
     case nudge::DeviceCue::error:
       frequency = 520;
@@ -400,6 +407,10 @@ void handle_command(const String& payload) {
     apply_transition(
         [now, epoch](auto& session) { return session.complete(now, epoch); },
         nudge::DeviceCue::complete);
+  } else if (strcmp(type, "hug") == 0) {
+    hug_at = millis();
+    hug_seen = true;
+    play_cue(nudge::DeviceCue::hug);
   } else if (strcmp(type, "ack") == 0) {
     acknowledge_event(command["eventId"] | "");
   }
@@ -467,6 +478,18 @@ void render_leds(const nudge::FocusSnapshot& snapshot) {
                                        frame.background_color.green,
                                        frame.background_color.blue);
   pixels.setBrightness(brightness.led_level);
+  const auto hug = hug_seen ? nudge::hug_frame(millis() - hug_at,
+                                                pixels.numPixels())
+                            : nudge::HugFrame{false, {0, 0, 0}, 0};
+  if (hug.active) {
+    const auto pink = pixels.Color(hug.color.red, hug.color.green,
+                                   hug.color.blue);
+    for (std::uint16_t index = 0; index < pixels.numPixels(); ++index) {
+      pixels.setPixelColor(index, index < hug.lit_pixels ? pink : background);
+    }
+    pixels.show();
+    return;
+  }
   for (std::uint16_t index = 0; index < pixels.numPixels(); ++index) {
     pixels.setPixelColor(index, index < frame.lit_pixels ? color : background);
   }

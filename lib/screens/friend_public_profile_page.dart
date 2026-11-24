@@ -1,3 +1,4 @@
+import '../services/device_hug_gateway.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -461,6 +462,28 @@ class FriendPublicProfilePage extends StatelessWidget {
                   ),
                 )
               else if (isFriend) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    key: const Key('friend-send-hug'),
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final problem = await DeviceHugGateway.firebase().send(
+                        friendId,
+                      );
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            problem ?? '已送出擁抱！$currentName 桌上的夥伴會亮起粉紅色的光。',
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.favorite_rounded),
+                    label: const Text('送一個擁抱'),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
