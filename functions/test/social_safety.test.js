@@ -83,5 +83,16 @@ test("Cloud gating, family confirmation, report status and moderation audit", {
     assert.equal((await room.collection("members").doc(guest).get()).exists, false);
     assert.equal((await room.collection("activity_sessions").get()).size, 0);
     assert.equal((await invoke(guest, "reports")).actions.length, 3);
+
+    const group = db.collection("groups").doc("safety-" + suffix);
+    const membership = db.collection("relationship_memberships").doc("group--" + group.id + "--" + guest);
+    await group.set({ ownerId: owner, status: "active", memberIds: [owner, child, guest] });
+    await membership.set({ status: "active" });
+    const removal = { scope: "group", scopeId: group.id, operation: "remove", targetId: guest, reason: "Repeated links" };
+    await assert.rejects(invoke(child, "moderate", removal), { code: "permission-denied" });
+    await invoke(owner, "moderate", removal);
+    assert.equal((await membership.get()).data().status, "ended");
+    assert.equal((await group.get()).data().lastMembershipChange.memberId, guest);
+    assert.equal((await invoke(guest, "reports")).actions.length, 4);
   } finally { await deleteApp(app); }
 });

@@ -7587,6 +7587,10 @@ function renderCanonicalWebGroupMembers() {
       button.addEventListener("click", async () => {
         const memberId = button.dataset.memberId;
         const action = button.dataset.groupMemberAction;
+        if (action === "remove" && window.NudgeSafety) {
+          window.NudgeSafety.removeContent(button, group.id, memberId, "remove", "group");
+          return;
+        }
         const prompt = action === "transfer"
           ? `確定將團體管理權轉移給 ${memberId}？`
           : `確定移除 ${memberId}？成果摘要也會一併撤除。`;

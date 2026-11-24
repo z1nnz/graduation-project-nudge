@@ -222,7 +222,10 @@ export function createSocialSafetyHandler(db, clock = () => new Date()) {
             tx.delete(scope.collection("member_summaries").doc(targetId));
             tx.delete(scope.collection("challenges").doc("current").collection("participants").doc(targetId));
           }
-          tx.update(scope, { memberIds: FieldValue.arrayRemove(targetId), updatedAt: now });
+          tx.update(scope, {
+            memberIds: FieldValue.arrayRemove(targetId), updatedAt: now,
+            ...(!roomScope ? { lastMembershipChange: { type: "member_removed", memberId: targetId, by: uid, at: now } } : {}),
+          });
         }
       }
       tx.create(audit.doc(), {

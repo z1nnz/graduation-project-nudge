@@ -172,12 +172,12 @@
     } catch { notice("只有目前的房主或管理者可以執行。"); }
   }
 
-  function removeContent(opener, scopeId, targetId, operation = "deleteMessage") {
+  function removeContent(opener, scopeId, targetId, operation = "deleteMessage", scope = "room") {
     const reason = make("textarea");
     reason.required = true;
     reason.maxLength = 300;
     showDialog(opener, operation === "remove" ? "移出成員" : "移除訊息", [field("成員可見的原因", reason)], () => invoke("moderate", {
-      scope: "room", scopeId, targetId, operation, reason: reason.value,
+      scope, scopeId, targetId, operation, reason: reason.value,
     }), "確認移除");
   }
 
