@@ -46,6 +46,14 @@ service cloud.firestore {
       );
     }
 
+    match /exchange_journals/{journalId}/{path=**} {
+      allow read, write: if false;
+    }
+
+    match /exchange_journal_pairs/{pair} {
+      allow read, write: if false;
+    }
+
     match /social_safety/{uid} {
       allow read, write: if false;
     }

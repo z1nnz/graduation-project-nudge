@@ -1,3 +1,4 @@
+import { createJournalHandler, createJournalCleanup } from "./src/exchange-journal-service.js";
 import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
 import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
 import { createSocialSafetyHandler } from "./src/social-safety-service.js";
@@ -891,3 +892,11 @@ export const processGuildEvents = onSchedule(
 const socialSafety = createSocialSafetyHandler(getFirestore());
 export const manageSocialSafety = onCall({ region: "asia-east1" }, request =>
   withAccountOperation(request, () => socialSafety(request)));
+
+const exchangeJournal = createJournalHandler(getFirestore());
+export const manageExchangeJournal = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => exchangeJournal(request)));
+export const cleanupExchangeJournals = onSchedule(
+  { region: "asia-east1", schedule: "every 60 minutes" },
+  createJournalCleanup(getFirestore()),
+);

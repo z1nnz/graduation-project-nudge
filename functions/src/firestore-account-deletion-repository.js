@@ -816,6 +816,15 @@ export class FirestoreAccountDeletionRepository {
       deletedDocuments += 1;
     }
 
+    const journals = await querySnapshots(this.firestore.collection("exchange_journals")
+      .where("participantIds", "array-contains", userId));
+    for (const journal of journals) {
+      await this.firestore.recursiveDelete(journal.ref);
+      deletedDocuments += 1;
+    }
+    deletedDocuments += await deleteQuery(this.firestore, this.firestore.collection("exchange_journal_pairs")
+      .where("participantIds", "array-contains", userId));
+
     const safety = this.firestore.collection("social_safety");
     for (const field of ["blocked", "blockedBy"]) {
       const peers = await querySnapshots(safety.where(field, "array-contains", userId));

@@ -341,6 +341,14 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readQuery(firestore, "audit_events", "safetyTargetId", "==", userId),
   ]);
   const safetySettings = safetyDocuments[0]?.data;
+  const journalBooks = await readQuery(firestore, "exchange_journals", "participantIds", "array-contains", userId);
+  const exchangeJournals = await Promise.all(journalBooks.documents
+    .filter(book => book.data.status !== "deleted" && (!book.data.expiresAt || book.data.expiresAt > new Date().toISOString()))
+    .map(async book => {
+      const entries = await collectQueryDocuments(firestore.collection("exchange_journals").doc(book.id)
+        .collection("entries").where("authorId", "==", userId));
+      return { ...book, entries };
+    }));
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -393,6 +401,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         allowStrangerMentions: safetySettings.allowStrangerMentions,
       } : null,
       safety_reports: safetyReports.documents,
+      exchange_journals: exchangeJournals,
       safety_actions: moderationActions.documents.map(({ data }) => ({
         action: data.action, reason: data.reason, createdAt: data.createdAt,
       })),
