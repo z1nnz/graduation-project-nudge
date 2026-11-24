@@ -13,7 +13,7 @@ test('real personal pages no longer contain the old fabricated figures or unseal
     assert.match(html,/data-museum-demo="false"/);assert.match(html,/role="status"/);assert.match(html,/id="museumWorld" data-town-return href="town.html"/);
     if(r.id==='trends'){
       assert.match(html,/yearbook_core\.js/);assert.match(html,/yearbook\.js/);assert.match(html,/world_ui\.css/);
-    }else assert.match(html,/growth_museum\.js/);
+    }else if(r.id==='home'){assert.match(html,/library_scene_core\.js/);assert.match(html,/library_scene\.js/);}else assert.match(html,/growth_museum\.js/);
   }
 });
 test('sample data has an explicit separate read-only page',()=>{
