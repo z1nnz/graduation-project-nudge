@@ -30,7 +30,7 @@ test('ids are unique and every row uses known enums', () => {
     assert.ok(['player', 'tool'].includes(dest.audience), dest.id);
     assert.ok(['public', 'login'].includes(dest.auth), dest.id);
     assert.ok(['cloud', 'mixed', 'demo', 'static'].includes(dest.source), dest.id);
-    assert.ok(['#82', '#83', '#84', 'core'].includes(dest.owner), dest.id);
+    assert.ok(['#82', '#83', '#84', '#124', 'core'].includes(dest.owner), dest.id);
     if (dest.building) assert.ok(routes.isBuilding(dest.building), dest.id);
     if (dest.audience === 'tool') assert.equal(dest.building, null, `${dest.id}: tools stay out of the world`);
   }
