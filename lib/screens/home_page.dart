@@ -1,3 +1,4 @@
+import 'collection_book_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
@@ -159,6 +160,7 @@ class HomePage extends StatelessWidget {
                 ),
                 'reminders' => const ReminderCenterPage(),
                 'letter' => const FutureLetterPage(),
+                'collection' => const CollectionBookPage(),
                 'settings' => const SettingsPage(),
                 _ => const AccountPage(),
               }),
