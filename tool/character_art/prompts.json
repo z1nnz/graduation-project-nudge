@@ -9,7 +9,8 @@
     "assets/avatar/poses/walk_0_a.png"
    ],
    "size": "1536x1024",
-   "prompt": "character reference sheet of the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+   "prompt": "character reference sheet of the cheerful young adventurer from the attached picture: spiky navy-blue hair with a gold star hair clip, brown eyes, white scarf, navy jacket with gold trim, white shirt, brown belt and pouches, cream shorts, fur-trimmed brown boots, navy backpack with gold stars, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background",
+   "retry_suffix": "the three views only, isolated, no scenery, no buildings, no props, no board or frame, the whole background is one flat pure magenta #FF00FF"
   },
   {
    "out": "companion/idle.png",
@@ -355,7 +356,8 @@
    "out": "letty/reference.png",
    "attach": [],
    "size": "1536x1024",
-   "prompt": "character reference sheet of a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+   "prompt": "character reference sheet of a quick young letter carrier named Letty, red cap with a gold envelope badge, short orange hair, blue postal jacket, a big brown messenger bag across the body stuffed with letters, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background",
+   "retry_suffix": "the views only, isolated, no scenery, no buildings, no props, no board or frame, the whole background is one flat pure magenta #FF00FF"
   },
   {
    "out": "letty/idle.png",
@@ -401,7 +403,8 @@
    "out": "stella/reference.png",
    "attach": [],
    "size": "1536x1024",
-   "prompt": "character reference sheet of a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background"
+   "prompt": "character reference sheet of a kind old astronomer woman named Stella, long silver hair in a bun, small round spectacles, a deep violet cloak covered in tiny gold stars, holding a small brass telescope, front side back views standing in a row, full body, 16-bit pixel art chibi proportions, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, consistent top-down 3/4 view, no text, no logo, no watermark, on a flat pure magenta #FF00FF background, no shadow on the background",
+   "retry_suffix": "the views only, isolated, no scenery, no buildings, no props, no board or frame, the whole background is one flat pure magenta #FF00FF"
   },
   {
    "out": "stella/idle.png",

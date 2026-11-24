@@ -4,8 +4,7 @@
 
 <gen_dir>/<id>/<animation>.png are strips generated from prompts.json on
 flat magenta. For each character this keys out the magenta, finds the
-frames along the strip, scales every frame of the character by one factor,
-stands them on one baseline, centres them on the head, mirrors walk_left
+frames along the strip, brings every strip to one standing height, stands them on one baseline, centres them on the head, mirrors walk_left
 into walk_right and writes assets/characters/<id>/sheet.webp plus the same
 file under web_dashboard/. reference.png is kept, keyed, in
 tool/character_art/reference/ for the next round of generation.
@@ -91,6 +90,16 @@ def scaled(im: Image.Image, factor: float) -> Image.Image:
     return Image.fromarray(a, "RGBA")
 
 
+def strip_factor(name: str, frames: list[Image.Image]) -> float:
+    """One scale per strip: each strip was generated at its own size, so the
+    character is brought to the same standing height in every animation."""
+    if name == "sleep":  # lying down: body length about a standing height
+        return STAND_HEIGHT * 0.85 / float(np.median([f.width for f in frames]))
+    if name == "happy":  # the last frame stands again after landing
+        return STAND_HEIGHT / frames[-1].height
+    return STAND_HEIGHT / float(np.median([f.height for f in frames]))
+
+
 def place(frame: Image.Image, factor: float, centre_on_head: bool) -> Image.Image:
     f = scaled(frame, factor)
     if f.width > CELL - 2 or f.height > BASELINE:
@@ -119,11 +128,11 @@ def build(gen: Path, catalog: dict, preview: Path | None) -> None:
             strips[name] = split_frames(keyed(src), row["frames"])
         strips["walk_right"] = [f.transpose(Image.FLIP_LEFT_RIGHT) for f in strips["walk_left"]]
 
-        standing = [f.height for n, fs in strips.items() if n != "sleep" for f in fs]
-        factor = STAND_HEIGHT / max(standing)
         sheet = Image.new("RGBA", (columns * CELL, len(rows) * CELL), (0, 0, 0, 0))
         for r, row in enumerate(rows):
-            for c, frame in enumerate(strips[row["name"]]):
+            frames = strips[row["name"]]
+            factor = strip_factor(row["name"], frames)
+            for c, frame in enumerate(frames):
                 sheet.alpha_composite(place(frame, factor, row["name"].startswith("walk")), (c * CELL, r * CELL))
 
         for base in (ROOT / "assets/characters", ROOT / "web_dashboard/assets/characters"):

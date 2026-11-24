@@ -5,6 +5,8 @@
 Each job is one generated image: a character reference sheet first, then
 one strip per animation with that reference attached, so every frame of a
 character looks the same. walk_right is mirrored from walk_left.
+Generated with Codex CLI's image_generation tool, one `codex exec -i <attach>`
+per job; then build_sheets.py.
 """
 import json
 from pathlib import Path
@@ -55,6 +57,15 @@ COMPANION_ANIMS = {
 COMPANION_ANIMS.pop("talk")
 
 
+# Reference sheets that came back with scenery or no file on the first try
+# were generated once more with this phrase appended.
+RETRY_SUFFIX = {
+    "companion": "the three views only, isolated, no scenery, no buildings, no props, no board or frame, the whole background is one flat pure magenta #FF00FF",
+    "letty": "the views only, isolated, no scenery, no buildings, no props, no board or frame, the whole background is one flat pure magenta #FF00FF",
+    "stella": "the views only, isolated, no scenery, no buildings, no props, no board or frame, the whole background is one flat pure magenta #FF00FF",
+}
+
+
 def main():
     jobs = []
     for cid, desc in CHARACTERS.items():
@@ -65,6 +76,7 @@ def main():
             "size": "1536x1024",
             "prompt": (f"character reference sheet of {desc}, front side back views standing in a row, full body, "
                        f"16-bit pixel art chibi proportions, {STYLE}, {KEY}"),
+            **({"retry_suffix": RETRY_SUFFIX[cid]} if cid in RETRY_SUFFIX else {}),
         })
         anims = COMPANION_ANIMS if cid == "companion" else NPC_ANIMS
         for name, (n, motion) in anims.items():
