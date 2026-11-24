@@ -236,7 +236,7 @@
       <strong>${esc(item.incoming ? `${item.otherName} 拜訪了你的${item.sceneLabel}` : `你拜訪了 ${item.otherName} 的${item.sceneLabel}`)}</strong>
       ${item.cabinLetter ? `<span>${esc(item.note)} · ${esc(item.dateKey)}</span>
         ${item.sticker ? `<img class="friend-cabin-sticker" src="assets/chat_stickers/${esc(item.sticker)}.png" alt="${esc(stickers[item.sticker])}" width="96" height="96" />` : ""}
-        ${item.incoming ? `<button type="button" class="w-btn" data-visit-cabin-remove="${esc(item.id)}">刪除留言</button>` : ""}`
+        ${item.incoming ? `<button type="button" class="w-btn" data-visit-cabin-remove="${esc(item.id)}">刪除留言</button><button type="button" class="w-btn" data-safety-report-visit="${esc(item.id)}">檢舉留言</button>` : ""}`
       : `<span>${esc(item.reaction)}${item.response ? ` · 回應：${esc(item.response)}` : ""} · ${esc(item.dateKey)}</span>`}
       ${!item.cabinLetter && item.canRespond ? `<div class="visit-reactions" role="group" aria-label="回應 ${esc(item.otherName)}">${
         Object.entries(contract.responses).map(([key, label]) =>

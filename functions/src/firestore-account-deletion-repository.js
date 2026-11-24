@@ -495,6 +495,7 @@ export class FirestoreAccountDeletionRepository {
       ["chat_hidden_messages", "userId"],
       ["chat_reports", "userId"],
       ["chat_reports", "senderId"],
+      ["safety_mutes", "userId"],
       ["voice_signals", "from"],
       ["voice_signals", "to"],
       ["voice_mute", "requestedBy"],
@@ -756,6 +757,9 @@ export class FirestoreAccountDeletionRepository {
       ["room_contributions", "actorUserId"],
       ["room_resonance_preferences", "userId"],
       ["room_read_markers", "userId"],
+      ["safety_reports", "userId"],
+      ["safety_reports", "senderId"],
+      ["audit_events", "safetyTargetId"],
       ["room_resonance_signals", "ownerUserId"],
       ["room_resonance_acknowledgements", "actorUserId"],
       ["room_resonance_acknowledgements", "signalOwnerUserId"],
@@ -800,7 +804,19 @@ export class FirestoreAccountDeletionRepository {
       deletedDocuments += 1;
     }
 
+    const safety = this.firestore.collection("social_safety");
+    for (const field of ["blocked", "blockedBy"]) {
+      const peers = await querySnapshots(safety.where(field, "array-contains", userId));
+      for (const peer of peers) {
+        await this.firestore.runTransaction(async transaction => {
+          if (!(await transaction.get(peer.ref)).exists) return;
+          transaction.update(peer.ref, { [field]: FieldValue.arrayRemove(userId) });
+        });
+      }
+    }
+
     const directCollections = [
+      "social_safety",
       "public_profiles",
       "privacy_consents",
       "notification_preferences",

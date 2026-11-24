@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>安全與管理中心</title>
+    <link rel="stylesheet" href="assets/world_ui.css?v=2" />
+    <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/safety.css?v=1" />
+  </head>
+  <body class="w-page world-page" data-page="safety-center" data-social-facility="plaza">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>安全與管理中心</h1></header>
+    <nav class="scene-nav" data-scene-nav></nav>
+    <main class="w-main safety-panel">
+      <p data-safety-status role="status">登入後查看你的安全設定。</p>
+      <section class="w-panel" aria-labelledby="safetyBlockTitle">
+        <h2 id="safetyBlockTitle">你的封鎖名單</h2>
+        <form data-safety-block-form>
+          <label>成員識別碼 <input name="uid" maxlength="180" required /></label>
+          <button class="w-btn" type="submit" disabled>封鎖成員</button>
+        </form>
+        <ul data-safety-blocked></ul>
+      </section>
+      <section class="w-panel" aria-labelledby="safetyReportTitle">
+        <h2 id="safetyReportTitle">我的檢舉</h2>
+        <ul data-safety-reports></ul>
+      </section>
+      <section class="w-panel" aria-labelledby="safetyActionsTitle">
+        <h2 id="safetyActionsTitle">與我相關的處理</h2>
+        <ul data-safety-actions></ul>
+      </section>
+      <section class="w-panel" data-safety-staff hidden aria-labelledby="safetyReviewTitle">
+        <h2 id="safetyReviewTitle">檢舉審核</h2>
+        <ul data-safety-queue></ul>
+      </section>
+    </main>
+    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/town_return.js?v=2"></script>
+    <script src="assets/social_scene.js?v=1"></script>
+    <script src="assets/safety_ui.js?v=1"></script>
+    <script src="assets/safety_center.js?v=1"></script>
+    <script src="assets/app.js?v=27"></script>
+  </body>
+</html>

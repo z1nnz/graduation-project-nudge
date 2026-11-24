@@ -21,8 +21,40 @@ service cloud.firestore {
         );
     }
 
+    function safetyPath(uid) {
+      return /databases/$(database)/documents/social_safety/$(uid);
+    }
+
+    function hidesPeer(uid, other) {
+      let path = safetyPath(uid);
+      return exists(path) && (
+        other in get(path).data.get('blocked', []) ||
+        other in get(path).data.get('blockedBy', [])
+      );
+    }
+
+    function voiceAllowed(uid) {
+      let path = safetyPath(uid);
+      return !exists(path) || get(path).data.get('allowVoice', true);
+    }
+
+    function mentionAllowed(sender, target) {
+      let path = safetyPath(target);
+      return !hidesPeer(sender, target) && (
+        !exists(path) || get(path).data.get('allowStrangerMentions', true) ||
+        areMutualFriends(sender, target)
+      );
+    }
+
+    match /social_safety/{uid} {
+      allow read, write: if false;
+    }
+
+    match /safety_reports/{reportId} {
+      allow read, write: if false;
+    }
     function areMutualFriends(userA, userB) {
-      return isAuth()
+      return isAuth() && !hidesPeer(userA, userB)
         && exists(
           /databases/$(database)/documents/users/$(userA)/friends/$(userB)
         )
@@ -1828,12 +1860,12 @@ service cloud.firestore {
       }
 
       match /chat_reactions/{messageId}/chat_reactors/{uid} {
-        allow read: if isApprovedRoomParticipant() && exists(roomChatMessage(messageId));
+        allow read: if isApprovedRoomParticipant() && canReadRoomMessage(messageId);
         allow create, update: if isOwner(uid) && isApprovedActiveRoomParticipant()
           && request.resource.data.keys().hasOnly(['userId', 'emoji'])
           && request.resource.data.userId == uid
           && request.resource.data.emoji in ['👍', '🔥', '💪', '📚', '😴', '🎉']
-          && exists(roomChatMessage(messageId));
+          && canReadRoomMessage(messageId);
         allow delete: if isOwner(uid) && isApprovedRoomParticipant();
       }
 
@@ -1843,7 +1875,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['userId', 'messageId'])
           && request.resource.data.userId == uid
           && request.resource.data.messageId == messageId
-          && exists(roomChatMessage(messageId));
+          && canReadRoomMessage(messageId);
       }
 
       match /focus_rounds/{roundId} {
@@ -1882,7 +1914,7 @@ service cloud.firestore {
 
         function addOwnVoiceReservation(previous) {
           let address = voiceParticipantPath(request.auth.uid);
-          return isApprovedActiveRoomParticipant() && voiceRoomEnabled()
+          return isApprovedActiveRoomParticipant() && voiceRoomEnabled() && voiceAllowed(request.auth.uid) && canPostRoomMessage()
             && !(request.auth.uid in previous)
             && request.resource.data.uids == previous.concat([request.auth.uid])
             && !exists(address) && existsAfter(address);
@@ -1918,12 +1950,12 @@ service cloud.firestore {
         allow get: if isOwner(uid) || isApprovedRoomParticipant();
         allow list: if isApprovedRoomParticipant();
         allow create: if isOwner(uid) && isApprovedActiveRoomParticipant()
-          && voiceRoomEnabled() && validVoiceParticipant()
+          && voiceRoomEnabled() && voiceAllowed(request.auth.uid) && canPostRoomMessage() && validVoiceParticipant()
           && request.resource.data.muted == true && request.resource.data.handRaised == false
           && uid in getAfter(voiceCapacityPath()).data.uids
           && (!exists(voiceCapacityPath()) || !(uid in get(voiceCapacityPath()).data.uids));
         allow update: if isOwner(uid) && isApprovedActiveRoomParticipant()
-          && voiceRoomEnabled() && validVoiceParticipant()
+          && voiceRoomEnabled() && voiceAllowed(request.auth.uid) && canPostRoomMessage() && validVoiceParticipant()
           && request.resource.data.joinedAt == resource.data.joinedAt;
         allow delete: if isOwner(uid)
           && !(uid in getAfter(voiceCapacityPath()).data.uids);
@@ -1936,10 +1968,11 @@ service cloud.firestore {
 
         allow read: if isApprovedRoomParticipant() && involvesViewer();
         allow delete: if involvesViewer();
-        allow create: if isApprovedActiveRoomParticipant() && voiceRoomEnabled()
+        allow create: if isApprovedActiveRoomParticipant() && voiceRoomEnabled() && voiceAllowed(request.auth.uid) && canPostRoomMessage()
           && request.resource.data.keys().hasOnly(['from', 'to', 'type', 'payload', 'createdAt'])
           && request.resource.data.from == request.auth.uid
           && request.resource.data.to != request.auth.uid
+          && voiceAllowed(request.resource.data.to)
           && exists(voiceParticipantPath(request.auth.uid))
           && exists(voiceParticipantPath(request.resource.data.to))
           && isAccountReferenceableAfter(request.resource.data.to)
@@ -1953,13 +1986,31 @@ service cloud.firestore {
 
       match /voice_mute/current {
         allow read: if isApprovedRoomParticipant();
-        allow create, update: if isApprovedActiveRoomParticipant() && voiceRoomEnabled()
+        allow create, update: if isApprovedActiveRoomParticipant() && voiceRoomEnabled() && voiceAllowed(request.auth.uid) && canPostRoomMessage()
           && roomDocument().data.ownerId == request.auth.uid
           && request.resource.data.keys().hasOnly(['requestedBy', 'createdAt'])
           && request.resource.data.requestedBy == request.auth.uid
           && request.resource.data.createdAt == request.time;
       }
 
+
+      function canReadRoomMessage(messageId) {
+        return exists(roomChatMessage(messageId))
+          && !hidesPeer(request.auth.uid, get(roomChatMessage(messageId)).data.senderId);
+      }
+
+      function useDirectChatStream() {
+        let path = safetyPath(request.auth.uid);
+        return !exists(path) || (
+          get(path).data.get('blocked', []).size() == 0 &&
+          get(path).data.get('blockedBy', []).size() == 0
+        );
+      }
+
+      function canPostRoomMessage() {
+        let path = /databases/$(database)/documents/rooms/$(roomId)/safety_mutes/$(request.auth.uid);
+        return !exists(path) || get(path).data.until <= request.time;
+      }
 
       match /messages/{messageId} {
         function validRoomMessage() {
@@ -1988,7 +2039,7 @@ service cloud.firestore {
             && request.resource.data.createdAt.size() <= 40
             && (!('replyTo' in request.resource.data)
               || (request.resource.data.replyTo is string
-                && exists(roomChatMessage(request.resource.data.replyTo))))
+                && canReadRoomMessage(request.resource.data.replyTo)))
             && (!('mentionUid' in request.resource.data)
               || validMention(request.resource.data.mentionUid));
         }
@@ -1997,6 +2048,7 @@ service cloud.firestore {
           let member = /databases/$(database)/documents/rooms/$(roomId)/members/$(uid);
           return uid is string && uid != request.auth.uid
             && isAccountReferenceableAfter(uid)
+            && mentionAllowed(request.auth.uid, uid)
             && roomDocument().data.memberIds.hasAny([uid])
             && get(member).data.approvalStatus == 'approved';
         }
@@ -2007,8 +2059,9 @@ service cloud.firestore {
             && throttle.t4 == request.time;
         }
 
-        allow read: if isApprovedRoomParticipant();
-        allow create: if isApprovedActiveRoomParticipant()
+        allow get: if isApprovedRoomParticipant() && !hidesPeer(request.auth.uid, resource.data.senderId);
+        allow list: if isApprovedRoomParticipant() && useDirectChatStream();
+        allow create: if isApprovedActiveRoomParticipant() && canPostRoomMessage()
           && validRoomMessage() && hasChatThrottleWrite();
         allow update, delete: if false;
         match /chat_reports/{uid} {
@@ -2019,6 +2072,7 @@ service cloud.firestore {
             && request.resource.data.userId == uid
             && request.resource.data.senderId != uid
             && isAccountReferenceableAfter(request.resource.data.senderId)
+            && canReadRoomMessage(messageId)
             && request.resource.data.senderId == get(roomChatMessage(messageId)).data.senderId
             && request.resource.data.text == get(roomChatMessage(messageId)).data.text
             && request.resource.data.type == get(roomChatMessage(messageId)).data.type
@@ -2064,8 +2118,10 @@ service cloud.firestore {
             && request.resource.data.createdAt.size() <= 40;
         }
 
-        allow read: if isApprovedRoomParticipant();
+        allow get: if isApprovedRoomParticipant() && !hidesPeer(request.auth.uid, resource.data.actorId);
+        allow list: if isApprovedRoomParticipant() && useDirectChatStream();
         allow create: if isApprovedActiveRoomParticipant()
+          && (!request.resource.data.type.matches('^(message|sticker)$') || canPostRoomMessage())
           && validRoomEvent();
         allow update, delete: if false;
       }

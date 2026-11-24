@@ -1,3 +1,4 @@
+import { createSocialSafetyHandler } from "./src/social-safety-service.js";
 import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
@@ -821,3 +822,7 @@ export const manageGrowthDocument = onCall(
     }
   },
 );
+
+const socialSafety = createSocialSafetyHandler(getFirestore());
+export const manageSocialSafety = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => socialSafety(request)));

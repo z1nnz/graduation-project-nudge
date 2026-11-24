@@ -359,6 +359,10 @@
         state.context = new AudioContext();
         await state.context.resume();
       }
+      if (window.NudgeSafety && !(await window.NudgeSafety.voiceAllowed())) {
+        throw new Error("你的語音保護設定目前關閉麥克風。");
+      }
+      if (session !== state) return;
       const stream = state.stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       if (session !== state) {
         stream.getTracks().forEach(track => track.stop());

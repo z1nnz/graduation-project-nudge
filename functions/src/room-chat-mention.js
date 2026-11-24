@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { hiddenBySafety, safetyDocument } from "./social-safety-service.js";
+
 export function createRoomChatMentionHandler(firestore) {
   return async event => {
     const messageRef = event.data?.ref;
@@ -10,13 +12,15 @@ export function createRoomChatMentionHandler(firestore) {
     const ref = firestore.collection("user_notifications").doc(id);
 
     await firestore.runTransaction(async transaction => {
-      const [notification, message, roomSnapshot, sender, recipient, senderFence, recipientFence] =
+      const [notification, message, roomSnapshot, sender, recipient, senderFence, recipientFence, senderSafety, recipientSafety] =
         await transaction.getAll(
           ref, messageRef, room,
           room.collection("members").doc(initial.senderId),
           room.collection("members").doc(initial.mentionUid),
           firestore.collection("account_deletion_fences").doc(initial.senderId),
           firestore.collection("account_deletion_fences").doc(initial.mentionUid),
+          safetyDocument(firestore, initial.senderId),
+          safetyDocument(firestore, initial.mentionUid),
         );
       const data = message.data();
       const roomData = roomSnapshot.data();
@@ -26,6 +30,15 @@ export function createRoomChatMentionHandler(firestore) {
           sender.data()?.approvalStatus !== "approved" ||
           recipient.data()?.approvalStatus !== "approved") return;
 
+      if (hiddenBySafety(senderSafety.data(), data.mentionUid)) return;
+      if (recipientSafety.data()?.allowStrangerMentions === false) {
+        const users = firestore.collection("users");
+        const friendship = await transaction.getAll(
+          users.doc(data.senderId).collection("friends").doc(data.mentionUid),
+          users.doc(data.mentionUid).collection("friends").doc(data.senderId),
+        );
+        if (friendship.some(doc => !doc.exists)) return;
+      }
       const now = new Date().toISOString();
       transaction.create(ref, {
         schemaVersion: 1,

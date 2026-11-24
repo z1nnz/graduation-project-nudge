@@ -3172,6 +3172,8 @@ function renderWebRoomMembers() {
   }
   const userId = firebase.auth().currentUser?.uid;
   const isOwner = activeWebRoom?.ownerId === userId;
+  const safetyManage = $("[data-safety-room-manage]");
+  if (safetyManage) safetyManage.hidden = !isOwner;
   list.innerHTML = activeWebRoomMembers.map(member => {
     const displayName = escapeHtml(member.displayName || "自律夥伴");
     const role = member.role === "owner" ? "房主" : "成員";
@@ -3191,6 +3193,10 @@ function renderWebRoomMembers() {
       : "";
     return `<article class="room-member-row">
       <div><strong>${displayName}</strong><span>${role} · ${approval} · ${presence}</span></div>
+      ${member.memberId !== userId && window.NudgeSafety ? `<div class="room-member-actions">
+        <button type="button" data-safety-block="${escapeHtml(member.memberId)}">封鎖</button>
+        <button type="button" data-safety-report-profile="${escapeHtml(member.memberId)}">檢舉暱稱</button>
+      </div>` : ""}
       ${actions}
     </article>`;
   }).join("");
@@ -3202,6 +3208,10 @@ function renderWebRoomMembers() {
   });
   $$("[data-room-remove-member]", list).forEach(button => {
     button.addEventListener("click", () => {
+      if (window.NudgeSafety) {
+        window.NudgeSafety.removeContent(button, activeWebRoom.id, button.dataset.roomRemoveMember, "remove");
+        return;
+      }
       removeWebRoomMember(button.dataset.roomRemoveMember)
         .catch(error => toast(error.message || "移除成員失敗"));
     });
@@ -3246,12 +3256,9 @@ function listenToWebRoomInteractions(roomId) {
         if (list) list.textContent = "無法確認隱藏設定，暫時不顯示預覽。";
       });
   }
-  webRoomMessagesSub = db.collection("rooms").doc(roomId)
-    .collection("messages")
-    .orderBy("createdAt", "desc")
-    .limit(60)
-    .onSnapshot(snapshot => {
-      const messages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  const roomMessageQuery = db.collection("rooms").doc(roomId)
+    .collection("messages").orderBy("createdAt", "desc").limit(60);
+  function showMessages(messages) {
       activeWebRoomMessages = messages;
       const list = $("[data-room-message-list]");
       if (isWebRoomChatPage() && window.NudgeChat) {
@@ -3268,11 +3275,19 @@ function listenToWebRoomInteractions(roomId) {
       webRoomLastAnnouncedMessageId = newest?.id || null;
       renderWebRoomUnread();
       markWebRoomMessagesRead();
-    }, error => {
-      console.warn("Room message sync failed:", error);
-      const list = $("[data-room-message-list]");
-      if (list) list.innerHTML = `<p class="room-inline-empty">訊息暫時無法同步，請檢查連線後重試。</p>`;
-    });
+  }
+  function messageError(error) {
+    console.warn("Room message sync failed:", error);
+    showMessages([]);
+    const list = $("[data-room-message-list]");
+    if (list) list.innerHTML = `<p class="room-inline-empty">訊息暫時無法同步，請檢查連線後重試。</p>`;
+  }
+  if (window.NudgeSafety) {
+    webRoomMessagesSub = window.NudgeSafety.watchMessages(roomMessageQuery, roomId, showMessages, messageError);
+  } else {
+    webRoomMessagesSub = roomMessageQuery.onSnapshot(snapshot => showMessages(
+      snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }))), messageError);
+  }
 
   webRoomReadMarkerSub = db.collection("room_read_markers")
     .doc(window.NudgeRoomReadState.markerId(roomId, userId))
@@ -3284,14 +3299,11 @@ function listenToWebRoomInteractions(roomId) {
       if (!activeWebRoomReadMarker) markWebRoomMessagesRead();
     }, error => console.warn("Room read marker sync failed:", error));
 
-  webRoomEventsSub = db.collection("rooms").doc(roomId)
-    .collection("events")
-    .orderBy("createdAt", "desc")
-    .limit(40)
-    .onSnapshot(snapshot => {
+  const eventsQuery = db.collection("rooms").doc(roomId)
+    .collection("events").orderBy("createdAt", "desc").limit(40);
+  function showRoomEvents(events) {
       const list = $("[data-room-event-list]");
       if (!list) return;
-      const events = snapshot.docs.map(doc => doc.data());
       list.innerHTML = events.length
         ? events.map(event => `
           <article class="room-event-row">
@@ -3299,7 +3311,11 @@ function listenToWebRoomInteractions(roomId) {
             <p>${escapeHtml(event.text || "")}</p>
           </article>`).join("")
         : `<p class="room-inline-empty">活動歷程會在這裡同步顯示。</p>`;
-    }, error => console.warn("Room event sync failed:", error));
+  }
+  const eventError = error => console.warn("Room event sync failed:", error);
+  webRoomEventsSub = window.NudgeSafety
+    ? window.NudgeSafety.watchMessages(eventsQuery, roomId, showRoomEvents, eventError, "roomEvents")
+    : eventsQuery.onSnapshot(snapshot => showRoomEvents(snapshot.docs.map(doc => doc.data())), eventError);
 }
 
 function buildWebRoomEvent(type, text) {

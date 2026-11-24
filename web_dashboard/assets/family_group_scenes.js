@@ -135,6 +135,8 @@
     state.userId = null;
     state.memberships = [];
     state.selected = null;
+    window.NudgeSafety?.setFamily(null);
+    window.NudgeSafety?.setGroup(null, false);
     render();
   }
 
@@ -171,18 +173,28 @@
   function selectScope(membership) {
     resetScope();
     state.selected = membership;
+    window.NudgeSafety?.setFamily(null);
+    window.NudgeSafety?.setGroup(null, false);
     if (!membership) { render(); return; }
     const id = membership.scopeId;
     const fs = store();
     if (scopeType === "family") {
       const link = fs.collection("family_links").doc(id);
-      listen(link, "link");
+      listen(link, "link", snapshot => {
+        const data = snapshot.data();
+        void window.NudgeSafety?.setFamily(data?.status === "active" ? id : null);
+        return data;
+      });
       listen(link.collection("encouragements").orderBy("createdAt", "desc").limit(20), "encouragements", docs);
       listen(link.collection("goals").orderBy("createdAt", "desc").limit(20), "goals", docs);
       listen(link.collection("summaries").doc("current"), "summary");
     } else {
       const group = fs.collection("groups").doc(id);
-      listen(group, "group");
+      listen(group, "group", snapshot => {
+        const data = snapshot.data();
+        window.NudgeSafety?.setGroup(data?.status === "active" ? id : null, data?.ownerId === state.userId);
+        return data;
+      });
       listen(group.collection("challenges").doc("current"), "challenge");
       listen(group.collection("challenges").doc("current").collection("participants").doc(state.userId), "participation");
       listen(group.collection("study_schedules"), "schedules", docs);
