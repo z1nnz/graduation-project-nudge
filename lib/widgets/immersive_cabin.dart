@@ -466,6 +466,8 @@ class ImmersiveHome extends StatefulWidget {
     this.showTour = false,
     this.accountKey,
     this.socialUnread = 0,
+    this.parcelCount = 0,
+    this.onOpenParcel,
     this.onTourDone,
     this.levelProgress = 0,
     this.confirmedActivityLabel,
@@ -501,6 +503,10 @@ class ImmersiveHome extends StatefulWidget {
 
   /// Unread notifications (invites, encouragement); lights the social slot.
   final int socialUnread;
+
+  /// Unopened letters waiting at the door (see `CabinParcels`).
+  final int parcelCount;
+  final VoidCallback? onOpenParcel;
   final VoidCallback? onTourDone;
   final String? confirmedActivityLabel;
   final DateTime? now;
@@ -735,6 +741,19 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
               '書桌・專注',
               widget.onOpenDesk,
             ),
+            if (widget.parcelCount > 0 && widget.onOpenParcel != null)
+              Positioned(
+                left: box.left + box.width * 0.1,
+                top: box.top + box.height * 0.6,
+                width: box.width * 0.13,
+                height: box.width * 0.13,
+                child: _Parcel(
+                  key: const Key('cabin-parcel'),
+                  count: widget.parcelCount,
+                  still: _still,
+                  onTap: widget.onOpenParcel!,
+                ),
+              ),
             _hotspot(
               box,
               const CabinRect(0.11, 0.28, 0.24, 0.29),
@@ -1400,4 +1419,118 @@ class _HeartBurstState extends State<_HeartBurst>
       },
     );
   }
+}
+
+/// A little wrapped parcel by the door that bobs until you open it.
+class _Parcel extends StatefulWidget {
+  const _Parcel({
+    super.key,
+    required this.count,
+    required this.still,
+    required this.onTap,
+  });
+
+  final int count;
+  final bool still;
+  final VoidCallback onTap;
+
+  @override
+  State<_Parcel> createState() => _ParcelState();
+}
+
+class _ParcelState extends State<_Parcel> with SingleTickerProviderStateMixin {
+  late final AnimationController _bob = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.still) _bob.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '門口有 ${widget.count} 份包裹，點一下拆開',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _bob,
+          builder: (context, child) => Transform.translate(
+            offset: Offset(0, -4 * Curves.easeInOut.transform(_bob.value)),
+            child: child,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Positioned.fill(
+                child: CustomPaint(painter: _ParcelPainter()),
+              ),
+              Positioned(
+                right: -6,
+                top: -6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD6455D),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Text(
+                    '${widget.count}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ParcelPainter extends CustomPainter {
+  const _ParcelPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.width / 10;
+    void px(int x, int y, int w, int h, Color color) => canvas.drawRect(
+      Rect.fromLTWH(x * c, y * c, w * c + 0.5, h * c + 0.5),
+      Paint()..color = color,
+    );
+    const outline = Color(0xFF3A1D0C);
+    const box = Color(0xFFC98B4F);
+    const shade = Color(0xFFA06A35);
+    const ribbon = Color(0xFFD6455D);
+    px(1, 3, 8, 6, outline);
+    px(2, 4, 6, 4, box);
+    px(2, 7, 6, 1, shade);
+    px(0, 2, 10, 2, outline);
+    px(1, 2, 8, 1, box);
+    px(4, 2, 2, 7, ribbon);
+    px(2, 0, 2, 2, ribbon);
+    px(6, 0, 2, 2, ribbon);
+  }
+
+  @override
+  bool shouldRepaint(_ParcelPainter old) => false;
 }
