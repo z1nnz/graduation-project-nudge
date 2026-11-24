@@ -1,4 +1,5 @@
 import { createBuddyHandler, createBuddyReminder } from "./src/buddy-service.js";
+import { createThanksCardHandler } from "./src/thanks-card-service.js";
 import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
 import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
 import { createSocialSafetyHandler } from "./src/social-safety-service.js";
@@ -904,3 +905,7 @@ export const manageBuddies=onCall({ region: "asia-east1" }, request =>
   withAccountOperation(request, () => manageBuddiesHandler(request)));
 export const sendBuddyReminders=onSchedule({ region: "asia-east1", schedule: "every 5 minutes" },
   createBuddyReminder(getFirestore()),);
+
+const manageThanksCardsHandler=createThanksCardHandler(getFirestore());
+export const manageThanksCards=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageThanksCardsHandler(request)));

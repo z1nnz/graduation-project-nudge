@@ -54,6 +54,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /thanks_cards/{card} {
+      allow read, write: if false;
+    }
+
+    match /thanks_card_receipts/{receipt} {
+      allow read, write: if false;
+    }
+
+    match /thanks_card_budgets/{budget} {
+      allow read, write: if false;
+    }
+
     match /social_safety/{uid} {
       allow read, write: if false;
     }

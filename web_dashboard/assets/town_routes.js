@@ -83,6 +83,7 @@
     d('notifications', 'notifications.html', 'plaza', '通知與邀請', 'player', 'login', null, 'cloud', '#83'),
     d('safety-center', 'safety-center.html', 'plaza', '安全與管理中心', 'player', 'login', null, 'cloud', '#83'),
     d('buddies', 'buddies.html', 'plaza', '自律夥伴', 'player', 'login', null, 'cloud', '#83'),
+    d('thanks-cards', 'thanks-cards.html', 'plaza', '感謝卡冊', 'player', 'login', null, 'cloud', '#83'),
     d('friends', 'friend.html', 'plaza', '好友', 'player', 'login', null, 'cloud', '#83'),
     d('friend-visits', 'friend-visits.html', 'plaza', '好友拜訪紀錄', 'player', 'login', null, 'cloud', '#83'),
     d('privacy', 'privacy.html', 'plaza', '隱私與資料', 'player', 'login', null, 'cloud', 'core'),

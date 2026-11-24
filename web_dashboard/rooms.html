@@ -130,6 +130,7 @@
           <p data-focus-round-celebration hidden aria-hidden="true">✦ ✺ ✦</p>
           <button type="button" class="w-btn" data-focus-round-start disabled>發起 25 分鐘專注</button>
           <button type="button" class="w-btn is-gold" data-focus-round-join hidden>加入這一輪</button>
+          <a class="w-btn" data-thanks-focus href="#roomThanksMembers" hidden>選擇夥伴送感謝卡</a>
         </section>
 
         <section class="scene-panel room-stage-panel" aria-labelledby="roomStageTitle">
@@ -194,7 +195,7 @@
             <button type="button" class="w-btn" data-safety-room-name>檢舉房名</button>
             <button type="button" class="w-btn" data-voice-setting hidden aria-pressed="false">開啟語音自習室</button>
             <p>房主可管理資格或明確移交；活動紀錄仍由成員本人控制。</p>
-            <div class="room-member-list" data-room-member-list>
+            <div class="room-member-list" id="roomThanksMembers" data-room-member-list tabindex="-1">
               <p class="room-inline-empty">選擇房間後載入成員。</p>
             </div>
           </aside>

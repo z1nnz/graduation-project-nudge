@@ -3201,6 +3201,7 @@ function renderWebRoomMembers() {
       ${member.memberId !== userId && window.NudgeSafety ? `<div class="room-member-actions">
         <button type="button" data-safety-block="${escapeHtml(member.memberId)}">封鎖</button>
         <button type="button" data-safety-report-profile="${escapeHtml(member.memberId)}">檢舉暱稱</button>
+        ${member.approvalStatus === "approved" ? `<a class="w-btn" href="thanks-cards.html?to=${encodeURIComponent(member.memberId)}&amp;room=${encodeURIComponent(activeWebRoom.id)}">送感謝卡</a>` : ""}
       </div>` : ""}
       ${actions}
     </article>`;
