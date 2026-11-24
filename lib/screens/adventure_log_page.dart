@@ -1,4 +1,9 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/adventure_log.dart';
 import '../models/avatar_profile.dart';
@@ -26,11 +31,34 @@ class AdventureLogPage extends StatelessWidget {
     required this.log,
     required this.profile,
     required this.onOpenStatistics,
+    this.onShareImage = shareAdventureImage,
   });
 
   final AdventureLog log;
   final AvatarProfile profile;
   final VoidCallback onOpenStatistics;
+
+  /// Receives the journal page as a PNG (system share sheet by default).
+  final Future<void> Function(Uint8List png) onShareImage;
+
+  /// The journal card (the nearest repaint boundary above [context]) as PNG.
+  static Future<Uint8List?> capturePng(BuildContext context) async {
+    final boundary = context
+        .findAncestorRenderObjectOfType<RenderRepaintBoundary>();
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 3);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return data?.buffer.asUint8List();
+  }
+
+  static Future<void> _share(
+    BuildContext context,
+    Future<void> Function(Uint8List png) onShare,
+  ) async {
+    final png = await capturePng(context);
+    if (png != null) await onShare(png);
+  }
 
   static String _minutes(int m) {
     if (m < 60) return '$m 分鐘';
@@ -64,157 +92,175 @@ class AdventureLogPage extends StatelessWidget {
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF6E7C8),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _soft, width: 4),
-              boxShadow: const [
-                BoxShadow(color: Color(0x99000000), offset: Offset(0, 6)),
-              ],
-            ),
-            child: Column(
-              children: [
-                const Text(
-                  '冒險日誌',
-                  style: TextStyle(
-                    fontFamily: _font,
-                    fontSize: 28,
-                    color: _ink,
+          child: RepaintBoundary(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6E7C8),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _soft, width: 4),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x99000000), offset: Offset(0, 6)),
+                ],
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    '冒險日誌',
+                    style: TextStyle(
+                      fontFamily: _font,
+                      fontSize: 28,
+                      color: _ink,
+                    ),
                   ),
-                ),
-                Text(
-                  '${_short(log.days.first.date)} – ${_short(log.days.last.date)}',
-                  style: const TextStyle(
-                    fontFamily: _font,
-                    fontSize: 14,
-                    color: _soft,
+                  Text(
+                    '${_short(log.days.first.date)} – ${_short(log.days.last.date)}',
+                    style: const TextStyle(
+                      fontFamily: _font,
+                      fontSize: 14,
+                      color: _soft,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 150,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      for (var i = 0; i < log.days.length; i++)
-                        Expanded(
-                          child: _DayColumn(
-                            index: i,
-                            day: log.days[i],
-                            label: _weekday(log.days[i].date),
-                            books: log.days[i].focusMinutes == 0
-                                ? 0
-                                : (1 + 7 * log.days[i].focusMinutes / maxFocus)
-                                      .floor()
-                                      .clamp(1, 8),
-                            today: i == log.days.length - 1,
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 150,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        for (var i = 0; i < log.days.length; i++)
+                          Expanded(
+                            child: _DayColumn(
+                              index: i,
+                              day: log.days[i],
+                              label: _weekday(log.days[i].date),
+                              books: log.days[i].focusMinutes == 0
+                                  ? 0
+                                  : (1 +
+                                            7 *
+                                                log.days[i].focusMinutes /
+                                                maxFocus)
+                                        .floor()
+                                        .clamp(1, 8),
+                              today: i == log.days.length - 1,
+                            ),
                           ),
-                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: _soft, thickness: 2, height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Total('專注', _minutes(log.totalFocusMinutes)),
+                      ),
+                      Expanded(child: _Total('完成委託', '${log.questsDone} 件')),
+                      Expanded(child: _Total('出發', '${log.activeDays} 天')),
                     ],
                   ),
-                ),
-                const Divider(color: _soft, thickness: 2, height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Total('專注', _minutes(log.totalFocusMinutes)),
-                    ),
-                    Expanded(child: _Total('完成委託', '${log.questsDone} 件')),
-                    Expanded(child: _Total('出發', '${log.activeDays} 天')),
-                  ],
-                ),
-                if (best != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFD76A), Color(0xFFFF8F3A)],
+                  if (best != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0xFF8A4A10),
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      '最棒的一天：週${_weekday(best.date)} ${best.focusMinutes} 分鐘',
-                      style: const TextStyle(
-                        fontFamily: _font,
-                        fontSize: 15,
-                        color: _ink,
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 86,
-                      height: 86,
-                      child: CompanionSprite(
-                        profile: profile,
-                        pose: log.activeDays >= 5
-                            ? CompanionPose.cheer
-                            : CompanionPose.idle,
-                        size: 86,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFAF0),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _soft, width: 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFD76A), Color(0xFFFF8F3A)],
                         ),
-                        child: Text(
-                          log.companionLine,
-                          style: const TextStyle(
-                            fontFamily: _font,
-                            fontSize: 14,
-                            height: 1.4,
-                            color: _ink,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF8A4A10),
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        '最棒的一天：週${_weekday(best.date)} ${best.focusMinutes} 分鐘',
+                        style: const TextStyle(
+                          fontFamily: _font,
+                          fontSize: 15,
+                          color: _ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 86,
+                        height: 86,
+                        child: CompanionSprite(
+                          profile: profile,
+                          pose: log.activeDays >= 5
+                              ? CompanionPose.cheer
+                              : CompanionPose.idle,
+                          size: 86,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFFAF0),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _soft, width: 2),
+                          ),
+                          child: Text(
+                            log.companionLine,
+                            style: const TextStyle(
+                              fontFamily: _font,
+                              fontSize: 14,
+                              height: 1.4,
+                              color: _ink,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        '截圖就能分享你的冒險',
-                        style: TextStyle(
-                          fontFamily: _font,
-                          fontSize: 12,
-                          color: _soft,
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Builder(
+                          builder: (context) => Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              key: const Key('log-share'),
+                              onPressed: () => _share(context, onShareImage),
+                              icon: const Icon(
+                                Icons.ios_share_rounded,
+                                color: _soft,
+                              ),
+                              label: const Text(
+                                '分享這一頁',
+                                style: TextStyle(
+                                  fontFamily: _font,
+                                  fontSize: 15,
+                                  color: _soft,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: onOpenStatistics,
-                      child: const Text(
-                        '詳細統計',
-                        style: TextStyle(
-                          fontFamily: _font,
-                          fontSize: 15,
-                          color: _soft,
+                      TextButton(
+                        onPressed: onOpenStatistics,
+                        child: const Text(
+                          '詳細統計',
+                          style: TextStyle(
+                            fontFamily: _font,
+                            fontSize: 15,
+                            color: _soft,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -316,4 +362,16 @@ class _Total extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Hands the journal PNG to the system share sheet (LINE, IG, save image…).
+Future<void> shareAdventureImage(Uint8List png) async {
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [
+        XFile.fromData(png, mimeType: 'image/png', name: 'nudge-adventure.png'),
+      ],
+      text: '我這週在 Nudge 的冒險日誌',
+    ),
+  );
 }
