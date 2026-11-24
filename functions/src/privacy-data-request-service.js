@@ -356,6 +356,10 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         .collection("entries").where("authorId", "==", userId));
       return { ...book, entries };
     }));
+  const clubData = await Promise.all([
+    ["clubs", "ownerId"], ["club_members", "userId"], ["club_posts", "authorId"],
+    ["club_reactions", "userId"], ["club_challenge_members", "userId"],
+  ].map(async ([name, field]) => [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -414,6 +418,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       received_thanks_cards: receivedThanks.documents,
       thanks_card_usage: thanksUsage.documents,
       exchange_journals: exchangeJournals,
+      ...Object.fromEntries(clubData),
       safety_actions: moderationActions.documents.map(({ data }) => ({
         action: data.action, reason: data.reason, createdAt: data.createdAt,
       })),

@@ -1,6 +1,7 @@
 import { createBuddyHandler, createBuddyReminder } from "./src/buddy-service.js";
 import { createThanksCardHandler } from "./src/thanks-card-service.js";
 import { createJournalHandler, createJournalCleanup } from "./src/exchange-journal-service.js";
+import { createClubHandler } from "./src/club-service.js";
 import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
 import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
 import { createSocialSafetyHandler } from "./src/social-safety-service.js";
@@ -918,3 +919,7 @@ export const cleanupExchangeJournals = onSchedule(
   { region: "asia-east1", schedule: "every 60 minutes" },
   createJournalCleanup(getFirestore()),
 );
+
+const manageClubsHandler=createClubHandler(getFirestore());
+export const manageClubs=onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => manageClubsHandler(request)));

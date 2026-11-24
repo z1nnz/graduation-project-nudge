@@ -5,7 +5,7 @@
   const status = get("[data-safety-status]");
   const settings = NudgeSafety.invoke;
   const reportStates = { pending: "待審核", reviewed: "已處理", dismissed: "未採納" };
-  const reportTypes = { roomMessage: "房間訊息", guestbook: "小屋留言", roomName: "房名", nickname: "暱稱" };
+  const reportTypes = { clubPost: "社團貼文", roomMessage: "房間訊息", guestbook: "小屋留言", roomName: "房名", nickname: "暱稱" };
   const actionName = { "safety.mute": "禁言", "safety.remove": "移出", "safety.deleteMessage": "內容已移除" };
   const lists = ["[data-safety-blocked]", "[data-safety-reports]", "[data-safety-actions]", "[data-safety-queue]"];
   let version = 0;
