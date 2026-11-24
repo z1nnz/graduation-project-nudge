@@ -4811,7 +4811,7 @@ function initializeFirebaseWeb() {
                 window.frameElement?.id === "townWindowFrame"
               )) {
                 Promise.all([
-                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=4", "Town routes unavailable"),
+                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=5", "Town routes unavailable"),
                   loadWindowModule("NudgePresenceCore", "assets/presence_core.js?v=1", "Presence contract unavailable"),
                   loadWindowModule("NudgeFriendPresence", "assets/presence.js?v=1", "Presence unavailable"),
                 ]).then(([, , presence]) => {
@@ -8388,10 +8388,20 @@ function listenToUser(userId) {
       console.error("Failed to update lit planets from count:", e);
     }
 
-    // 如果任務為空，自動在 Firestore 初始化預設自律任務，以達成雙端靜態任務同步
-    if (tasks.length === 0) {
-      initializeDefaultTasksInFirestore(userId);
-      return;
+    // An empty task list is a valid account state. Tasks are created only
+    // after the player explicitly confirms a draft (including onboarding).
+    if (document.body.dataset.page === 'town' &&
+        !(Number.isInteger(data.avatarProfile?.faceShapeIndex) && data.avatarProfile.faceShapeIndex >= 0)) {
+      loadWindowModule('NudgeOnboardingEntry', 'assets/onboarding_entry.js?v=1', 'Onboarding unavailable')
+        .then(entry => {
+          window.nudgeOnboardingEntry ||= entry.create({
+            auth: firebase.auth(), db,
+            isInTown: () => document.body.dataset.page === 'town',
+            isShowing: () => document.getElementById('townWindowFrame')?.getAttribute('src')?.split('?')[0] === 'onboarding.html',
+            open: path => window.NudgeTownWindow?.open(path),
+          });
+          window.nudgeOnboardingEntry.consider(userId);
+        }).catch(() => {});
     }
 
     // 📡 網頁端自動偵測任務在手機端達成！
@@ -8759,90 +8769,6 @@ function completeFirestoreTask(taskId) {
         });
       } else {
         toast(`📡 星艦警告：找不到與「${taskId}」匹配的任務。`);
-      }
-    }
-  });
-}
-
-const defaultFirestoreTasks = [
-  {
-    id: "task_default_1",
-    userId: "",
-    title: "完成 2 小時讀書",
-    category: "讀書",
-    taskType: "fixed",
-    priority: "high",
-    isDone: false,
-    isSystemTask: false,
-    isAutoTracked: false,
-    sourceType: "manual"
-  },
-  {
-    id: "task_default_2",
-    userId: "",
-    title: "步行超過 6000 步",
-    category: "運動",
-    taskType: "fixed",
-    priority: "medium",
-    isDone: false,
-    isSystemTask: false,
-    isAutoTracked: false,
-    sourceType: "manual"
-  },
-  {
-    id: "task_default_3",
-    userId: "",
-    title: "運動 30 分鐘",
-    category: "運動",
-    taskType: "fixed",
-    priority: "medium",
-    isDone: false,
-    isSystemTask: false,
-    isAutoTracked: false,
-    sourceType: "manual"
-  },
-  {
-    id: "task_default_4",
-    userId: "",
-    title: "晚上 11:30 前睡覺",
-    category: "睡眠",
-    taskType: "fixed",
-    priority: "high",
-    isDone: false,
-    isSystemTask: false,
-    isAutoTracked: false,
-    sourceType: "manual"
-  },
-  {
-    id: "task_default_5",
-    userId: "",
-    title: "準備期中報告",
-    category: "讀書",
-    taskType: "deadline",
-    priority: "high",
-    isDone: false,
-    isSystemTask: false,
-    isAutoTracked: false,
-    sourceType: "manual"
-  }
-];
-
-function initializeDefaultTasksInFirestore(userId) {
-  if (!db) return;
-  const docRef = db.collection("users").doc(userId);
-  docRef.get().then((docSnap) => {
-    if (docSnap.exists) {
-      const data = docSnap.data();
-      if (!data.tasks || data.tasks.length === 0) {
-        const initializedTasks = defaultFirestoreTasks.map(t => ({
-          ...t,
-          userId: userId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }));
-        docRef.update({ tasks: initializedTasks }).then(() => {
-          console.log("Initialized default static tasks in Firestore for user: " + userId);
-        });
       }
     }
   });
