@@ -1,0 +1,125 @@
+.library-shelf {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 25%;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(44px, 1fr));
+  gap: 6px 0;
+}
+.library-book {
+  min-width: 44px;
+  height: 132px;
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--w-ink);
+}
+.library-book > span {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--book-thickness, 18px);
+  height: 124px;
+  writing-mode: vertical-rl;
+  display: grid;
+  place-items: center;
+  background: var(--w-violet-deep);
+  border: 3px solid var(--w-frame);
+  box-shadow: 3px 2px var(--w-wood-deep);
+  padding: 4px 0;
+  font: 14px var(--w-pixel);
+}
+.library-book:nth-child(3n) > span {
+  background: var(--w-wood-dark);
+}
+.library-book:nth-child(3n + 1) > span {
+  background: var(--w-gold);
+  color: var(--w-ink-dark);
+}
+.library-book:hover > span,
+.library-book:focus-visible > span {
+  border-color: var(--w-gold);
+}
+.library-spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  gap: 24px;
+}
+.library-leaf {
+  padding: 16px;
+  border: 2px solid var(--w-frame);
+  background: var(--w-parchment-hi);
+}
+.library-leaf h3 {
+  font-family: var(--w-pixel);
+}
+.library-days {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.library-day {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 64px;
+  font-size: 14px;
+}
+.library-stack {
+  height: 128px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: start;
+  gap: 3px;
+}
+.library-stack i {
+  display: block;
+  width: 42px;
+  height: 12px;
+  border-left: 4px solid var(--w-gold);
+  background: var(--w-violet-deep);
+}
+.library-metric {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0;
+  font-size: 16px;
+}
+.library-metric-icon {
+  display: block;
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  flex: none;
+}
+.library-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+@media (max-width: 650px) {
+  .library-spread {
+    grid-template-columns: 1fr;
+  }
+  .library-shelf {
+    left: 3%;
+    right: 3%;
+    gap: 4px 0;
+  }
+  .library-book > span {
+    width: max(22px, var(--book-thickness));
+    font-size: 14px;
+  }
+}
+
+.library-stack.is-empty {
+  height: 24px;
+}

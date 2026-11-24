@@ -1,5 +1,9 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/daily_summary.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
@@ -199,9 +203,9 @@ class WeeklyReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final accentColor = GamePalette.goldDeep;
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     final summaries = _recent7Days(appState.dailySummaries);
 
@@ -218,299 +222,312 @@ class WeeklyReportPage extends StatelessWidget {
     final nextGoal = _nextWeekGoal(summaries);
 
     final listBody = ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.20),
-                    shape: BoxShape.circle,
+      padding: const EdgeInsets.all(AppUI.pagePadding),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: GameRecordStyle.hero(accentColor),
+          child: Row(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: GamePalette.inkLight.withValues(alpha: 0.20),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.calendar_month_outlined,
+                  color: GamePalette.inkLight,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '本週總覽',
+                      style: TextStyle(
+                        color: GamePalette.inkLight,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      summaries.isEmpty
+                          ? '目前資料不足'
+                          : '平均 $avgScore 分 / 完成率 $avgCompletion%',
+                      style: const TextStyle(
+                        fontFamily: 'Cubic11',
+                        color: GamePalette.inkLight,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: GameMetricGauge(
+                        value: (avgScore / 100).clamp(0.0, 1.0),
+                        minHeight: 8,
+                        backgroundColor: GamePalette.inkLight,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          GamePalette.inkLight,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        _WeeklyScoreDigestCard(
+          summaryText: weeklySummary,
+          summary: lowestDay,
+          onOpenDetail: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => _WeeklyScoreDetailPage(
+                  summaryText: weeklySummary,
+                  summary: lowestDay,
+                  averageScore: avgScore,
+                  averageCompletion: avgCompletion,
+                  weakestArea: weakestArea,
+                  nextGoal: nextGoal,
+                  accentColor: accentColor,
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 380;
+
+            if (isCompact) {
+              return Column(
+                children: [
+                  _ReportStatCard(
+                    title: '本週完成任務',
+                    value: '$totalCompletedTasks',
+                    icon: Icons.task_alt_outlined,
+                    color: GamePalette.green,
                   ),
-                  child: const Icon(
-                    Icons.calendar_month_outlined,
-                    color: Colors.white,
-                    size: 30,
+                  const SizedBox(height: 12),
+                  _ReportStatCard(
+                    title: '本週自律幣',
+                    value: '+$totalCoins 枚',
+                    icon: Icons.monetization_on_outlined,
+                    color: GamePalette.goldDeep,
+                  ),
+                  const SizedBox(height: 12),
+                  _ReportStatCard(
+                    title: '平均自律分數',
+                    value: '$avgScore 分',
+                    icon: Icons.insights_outlined,
+                    color: GamePalette.violet,
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(
+                  child: _ReportStatCard(
+                    title: '本週完成任務',
+                    value: '$totalCompletedTasks',
+                    icon: Icons.task_alt_outlined,
+                    color: GamePalette.green,
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '本週總覽',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        summaries.isEmpty
-                            ? '目前資料不足'
-                            : '平均 $avgScore 分 / 完成率 $avgCompletion%',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: (avgScore / 100).clamp(0.0, 1.0),
-                          minHeight: 8,
-                          backgroundColor: Colors.white24,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: _ReportStatCard(
+                    title: '本週自律幣',
+                    value: '+$totalCoins 枚',
+                    icon: Icons.monetization_on_outlined,
+                    color: GamePalette.goldDeep,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ReportStatCard(
+                    title: '平均自律分數',
+                    value: '$avgScore 分',
+                    icon: Icons.insights_outlined,
+                    color: GamePalette.violet,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        _WeeklySignalsCard(
+          bestDay: bestDay,
+          lowestDay: lowestDay,
+          weakestArea: weakestArea,
+          shortDate: _shortDate,
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '這週怎麼判讀',
+                  style: TextStyle(
+                    fontFamily: 'Cubic11',
+                    color: primaryText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _ReportGuideRow(
+                  icon: Icons.auto_graph_outlined,
+                  title: '平均分數',
+                  subtitle: '看整週自律是否穩定，不被單日表現綁架。',
+                  color: accentColor,
+                ),
+                const SizedBox(height: 10),
+                _ReportGuideRow(
+                  icon: Icons.warning_amber_outlined,
+                  title: '需補強項目',
+                  subtitle: '找出這週最拖累分數的來源。',
+                  color: GamePalette.goldDeep,
+                ),
+                const SizedBox(height: 10),
+                _ReportGuideRow(
+                  icon: Icons.flag_outlined,
+                  title: '下一個目標',
+                  subtitle: '把報告轉成下週可以直接做的行動。',
+                  color: GamePalette.green,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '自動追蹤與原始資料',
+                  style: TextStyle(
+                    fontFamily: 'Cubic11',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryText,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _InfoChip(
+                      label: '專注',
+                      value: '${_totalFocus(summaries)} 分',
+                    ),
+                    _InfoChip(
+                      label: '自動追蹤',
+                      value: '$totalAutoCompleted/$totalAutoTasks',
+                    ),
+                    _InfoChip(
+                      label: '睡眠',
+                      value: '${_avgSleep(summaries).toStringAsFixed(1)} 小時',
+                    ),
+                    _InfoChip(label: '步數', value: '${_avgSteps(summaries)} 步'),
+                    _InfoChip(
+                      label: '運動',
+                      value: '${_avgExercise(summaries)} 分',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '健康、專注與自律房會先同步成任務，再依權重計入加權自律分數與自律幣門檻。',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: secondaryText,
+                    height: 1.5,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppUI.sectionGap),
-          _WeeklyScoreDigestCard(
-            summaryText: weeklySummary,
-            summary: lowestDay,
-            onOpenDetail: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => _WeeklyScoreDetailPage(
-                    summaryText: weeklySummary,
-                    summary: lowestDay,
-                    averageScore: avgScore,
-                    averageCompletion: avgCompletion,
-                    weakestArea: weakestArea,
-                    nextGoal: nextGoal,
-                    accentColor: accentColor,
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '下週建議',
+                  style: TextStyle(
+                    fontFamily: 'Cubic11',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryText,
                   ),
                 ),
-              );
-            },
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: GameRecordStyle.inset(context, accentColor),
+                  child: Text(
+                    nextGoal,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: primaryText,
+                      height: 1.55,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppUI.cardGap),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 380;
+        ),
+      ],
+    );
 
-              if (isCompact) {
-                return Column(
-                  children: [
-                    _ReportStatCard(
-                      title: '本週完成任務',
-                      value: '$totalCompletedTasks',
-                      icon: Icons.task_alt_outlined,
-                      color: AppUI.green,
-                    ),
-                    const SizedBox(height: 12),
-                    _ReportStatCard(
-                      title: '本週自律幣',
-                      value: '+$totalCoins 枚',
-                      icon: Icons.monetization_on_outlined,
-                      color: AppUI.orange,
-                    ),
-                    const SizedBox(height: 12),
-                    _ReportStatCard(
-                      title: '平均自律分數',
-                      value: '$avgScore 分',
-                      icon: Icons.insights_outlined,
-                      color: AppUI.primary,
-                    ),
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(
-                    child: _ReportStatCard(
-                      title: '本週完成任務',
-                      value: '$totalCompletedTasks',
-                      icon: Icons.task_alt_outlined,
-                      color: AppUI.green,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _ReportStatCard(
-                      title: '本週自律幣',
-                      value: '+$totalCoins 枚',
-                      icon: Icons.monetization_on_outlined,
-                      color: AppUI.orange,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _ReportStatCard(
-                      title: '平均自律分數',
-                      value: '$avgScore 分',
-                      icon: Icons.insights_outlined,
-                      color: AppUI.primary,
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          _WeeklySignalsCard(
-            bestDay: bestDay,
-            lowestDay: lowestDay,
-            weakestArea: weakestArea,
-            shortDate: _shortDate,
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '這週怎麼判讀',
-                    style: TextStyle(
-                      color: primaryText,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _ReportGuideRow(
-                    icon: Icons.auto_graph_outlined,
-                    title: '平均分數',
-                    subtitle: '看整週自律是否穩定，不被單日表現綁架。',
-                    color: accentColor,
-                  ),
-                  const SizedBox(height: 10),
-                  _ReportGuideRow(
-                    icon: Icons.warning_amber_outlined,
-                    title: '需補強項目',
-                    subtitle: '找出這週最拖累分數的來源。',
-                    color: AppUI.orange,
-                  ),
-                  const SizedBox(height: 10),
-                  _ReportGuideRow(
-                    icon: Icons.flag_outlined,
-                    title: '下一個目標',
-                    subtitle: '把報告轉成下週可以直接做的行動。',
-                    color: AppUI.green,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '自動追蹤與原始資料',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: primaryText,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _InfoChip(
-                        label: '專注',
-                        value: '${_totalFocus(summaries)} 分',
-                      ),
-                      _InfoChip(
-                        label: '自動追蹤',
-                        value: '$totalAutoCompleted/$totalAutoTasks',
-                      ),
-                      _InfoChip(
-                        label: '睡眠',
-                        value: '${_avgSleep(summaries).toStringAsFixed(1)} 小時',
-                      ),
-                      _InfoChip(
-                        label: '步數',
-                        value: '${_avgSteps(summaries)} 步',
-                      ),
-                      _InfoChip(
-                        label: '運動',
-                        value: '${_avgExercise(summaries)} 分',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '健康、專注與自律房會先同步成任務，再依權重計入加權自律分數與自律幣門檻。',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: secondaryText,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '下週建議',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: primaryText,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: AppUI.softCardOf(context, accentColor),
-                    child: Text(
-                       nextGoal,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: primaryText,
-                        height: 1.55,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+    if (!showAppBar) {
+      return GameFacilityScene(
+        title: '本週冒險書架',
+        objectLabel: '翻開每週報告',
+        background: 'assets/scenes/library/library_room.webp',
+        child: listBody,
       );
-
-    if (!showAppBar) return listBody;
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('每週報告')),
-      body: listBody,
+      body: GameFacilityScene(
+        title: '本週冒險書架',
+        objectLabel: '翻開每週報告',
+        background: 'assets/scenes/library/library_room.webp',
+        child: listBody,
+      ),
     );
   }
 }
@@ -548,10 +565,10 @@ class _WeeklyScoreDigestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -560,12 +577,17 @@ class _WeeklyScoreDigestCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.manage_search, color: AppUI.primary, size: 20),
+                const Icon(
+                  Icons.manage_search,
+                  color: GamePalette.violet,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '分數重點',
                     style: TextStyle(
+                      fontFamily: 'Cubic11',
                       color: primaryText,
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
@@ -576,8 +598,9 @@ class _WeeklyScoreDigestCard extends StatelessWidget {
                   Text(
                     '${summary!.disciplineScore} 分',
                     style: TextStyle(
+                      fontFamily: 'Cubic11',
                       color: secondaryText,
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -589,6 +612,7 @@ class _WeeklyScoreDigestCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 color: primaryText,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
@@ -600,8 +624,9 @@ class _WeeklyScoreDigestCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 color: secondaryText,
-                fontSize: 12,
+                fontSize: 14,
                 height: 1.45,
                 fontWeight: FontWeight.w600,
               ),
@@ -614,7 +639,9 @@ class _WeeklyScoreDigestCard extends StatelessWidget {
                     child: _DigestMiniMetric(
                       label: '完成率',
                       value: '$_completionRate%',
-                      color: _completionRate >= 70 ? AppUI.green : AppUI.orange,
+                      color: _completionRate >= 70
+                          ? GamePalette.green
+                          : GamePalette.goldDeep,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -623,14 +650,14 @@ class _WeeklyScoreDigestCard extends StatelessWidget {
                       label: '自動追蹤',
                       value:
                           '${summary!.autoTrackedCompleted}/${summary!.autoTrackedTotal}',
-                      color: AppUI.blue,
+                      color: GamePalette.violet,
                     ),
                   ),
                 ] else
                   Expanded(
                     child: Text(
                       '完成任務後會產生分數重點。',
-                      style: TextStyle(color: secondaryText, fontSize: 13),
+                      style: TextStyle(color: secondaryText, fontSize: 14),
                     ),
                   ),
               ],
@@ -664,20 +691,21 @@ class _DigestMiniMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: TextStyle(
+              fontFamily: 'Cubic11',
               color: secondaryText,
-              fontSize: 11,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -687,6 +715,7 @@ class _DigestMiniMetric extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
+              fontFamily: 'Cubic11',
               color: primaryText,
               fontSize: 16,
               fontWeight: FontWeight.w900,
@@ -725,162 +754,172 @@ class _WeeklyScoreDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Scaffold(
       appBar: AppBar(title: const Text('分數詳情')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.manage_search,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '本週分數重點',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        '平均 $averageScore 分 / 完成率 $averageCompletion%',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: GameFacilityScene(
+        title: '本週冒險書架',
+        objectLabel: '翻開每週報告',
+        background: 'assets/scenes/library/library_room.webp',
+        child: ListView(
+          padding: const EdgeInsets.all(AppUI.pagePadding),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: GameRecordStyle.hero(accentColor),
+              child: Row(
                 children: [
-                  Text(
-                    '系統判讀',
-                    style: TextStyle(
-                      color: primaryText,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: GamePalette.inkLight.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.manage_search,
+                      color: GamePalette.inkLight,
+                      size: 28,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    summaryText,
-                    style: TextStyle(
-                      color: secondaryText,
-                      fontSize: 14,
-                      height: 1.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _NextGoalBox(
-                    text: nextGoal,
-                    color: accentColor,
-                    primaryText: primaryText,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '拆解指標',
-                    style: TextStyle(
-                      color: primaryText,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _DigestChip(
-                        label: '需補強',
-                        value: weakestArea,
-                        color: AppUI.orange,
-                      ),
-                      _DigestChip(
-                        label: '本週平均',
-                        value: '$averageScore 分',
-                        color: AppUI.primary,
-                      ),
-                      if (summary != null) ...[
-                        _DigestChip(
-                          label: '最低日完成率',
-                          value:
-                              '${summary!.completedTasks}/${summary!.totalTasks} ($_completionRate%)',
-                          color: _completionRate >= 70
-                              ? AppUI.green
-                              : AppUI.orange,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '本週分數重點',
+                          style: TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        _DigestChip(
-                          label: '自動追蹤',
-                          value:
-                              '${summary!.autoTrackedCompleted}/${summary!.autoTrackedTotal}',
-                          color: AppUI.blue,
-                        ),
-                        _DigestChip(
-                          label: '健康',
-                          value:
-                              '${summary!.healthCompleted}/${summary!.healthTotal}',
-                          color: AppUI.purple,
-                        ),
-                        _DigestChip(
-                          label: '自律房',
-                          value:
-                              '${summary!.roomCompleted}/${summary!.roomTotal}',
-                          color: const Color(0xFF14B8A6),
+                        const SizedBox(height: 5),
+                        Text(
+                          '平均 $averageScore 分 / 完成率 $averageCompletion%',
+                          style: const TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppUI.sectionGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '系統判讀',
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        color: primaryText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      summaryText,
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        color: secondaryText,
+                        fontSize: 14,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _NextGoalBox(
+                      text: nextGoal,
+                      color: accentColor,
+                      primaryText: primaryText,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '拆解指標',
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        color: primaryText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _DigestChip(
+                          label: '需補強',
+                          value: weakestArea,
+                          color: GamePalette.goldDeep,
+                        ),
+                        _DigestChip(
+                          label: '本週平均',
+                          value: '$averageScore 分',
+                          color: GamePalette.violet,
+                        ),
+                        if (summary != null) ...[
+                          _DigestChip(
+                            label: '最低日完成率',
+                            value:
+                                '${summary!.completedTasks}/${summary!.totalTasks} ($_completionRate%)',
+                            color: _completionRate >= 70
+                                ? GamePalette.green
+                                : GamePalette.goldDeep,
+                          ),
+                          _DigestChip(
+                            label: '自動追蹤',
+                            value:
+                                '${summary!.autoTrackedCompleted}/${summary!.autoTrackedTotal}',
+                            color: GamePalette.violet,
+                          ),
+                          _DigestChip(
+                            label: '健康',
+                            value:
+                                '${summary!.healthCompleted}/${summary!.healthTotal}',
+                            color: GamePalette.violet,
+                          ),
+                          _DigestChip(
+                            label: '自律房',
+                            value:
+                                '${summary!.roomCompleted}/${summary!.roomTotal}',
+                            color: GamePalette.green,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -901,14 +940,15 @@ class _DigestChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Text(
         '$label $value',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
+          fontFamily: 'Cubic11',
           color: color,
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -931,8 +971,8 @@ class _ReportGuideRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -940,7 +980,7 @@ class _ReportGuideRow extends StatelessWidget {
         Container(
           width: 34,
           height: 34,
-          decoration: AppUI.softCardOf(context, color),
+          decoration: GameRecordStyle.inset(context, color),
           child: Icon(icon, color: color, size: 18),
         ),
         const SizedBox(width: 10),
@@ -951,6 +991,7 @@ class _ReportGuideRow extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
+                  fontFamily: 'Cubic11',
                   color: primaryText,
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
@@ -961,7 +1002,7 @@ class _ReportGuideRow extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   color: secondaryText,
-                  fontSize: 12,
+                  fontSize: 14,
                   height: 1.35,
                 ),
               ),
@@ -989,7 +1030,7 @@ class _NextGoalBox extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(13),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -999,8 +1040,9 @@ class _NextGoalBox extends StatelessWidget {
             child: Text(
               text,
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 color: primaryText,
-                fontSize: 13,
+                fontSize: 14,
                 height: 1.45,
                 fontWeight: FontWeight.w800,
               ),
@@ -1027,10 +1069,10 @@ class _ReportStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -1043,7 +1085,7 @@ class _ReportStatCard extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, color: secondaryText),
+              style: TextStyle(fontSize: 14, color: secondaryText),
             ),
             const SizedBox(height: 4),
             Text(
@@ -1051,6 +1093,7 @@ class _ReportStatCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: primaryText,
@@ -1078,9 +1121,9 @@ class _WeeklySignalsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
 
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -1090,6 +1133,7 @@ class _WeeklySignalsCard extends StatelessWidget {
             Text(
               '本週訊號',
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: primaryText,
@@ -1130,15 +1174,15 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 180),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppUI.isDark(context)
-            ? const Color(0xFF242A36)
-            : const Color(0xFFF3F4F6),
+            ? GamePalette.woodDeep
+            : GamePalette.inkLight,
         borderRadius: BorderRadius.circular(AppUI.radiusPill),
       ),
       child: Text(
@@ -1146,7 +1190,8 @@ class _InfoChip extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          fontSize: 12,
+          fontFamily: 'Cubic11',
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           color: primaryText,
         ),
