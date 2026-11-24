@@ -89,6 +89,7 @@ void main() {
       'room-main-action',
       'room-chat',
       'room-more',
+      'room-boss',
     ]) {
       expect(find.byKey(Key(key)), findsOneWidget, reason: key);
     }
