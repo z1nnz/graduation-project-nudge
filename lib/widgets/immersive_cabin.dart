@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -18,17 +19,28 @@ import 'celebration_overlay.dart';
 /// Pixel font for in-world text (HUD, signs, bubbles).
 const pixelFont = 'Cubic11';
 
-/// Where the 9:16 cabin sits on a taller phone screen: full width,
-/// vertically centred; wood tones extend above and below.
+/// Most the room may be cropped on each side to fill a tall phone; more would
+/// hide the side doors.
+const cabinMaxSideCrop = 0.03;
+
+/// Where the 9:16 cabin sits on screen. Taller phones scale it up to cover
+/// the screen, cropping at most [cabinMaxSideCrop] per side; any strip left
+/// over is filled by a blurred extension of the room (see [CabinStage]).
 Rect cabinBoxFor(Size screen, double aspect) {
-  final width = screen.width;
-  final height = width / aspect;
-  if (height <= screen.height) {
-    return Rect.fromLTWH(0, (screen.height - height) / 2, width, height);
+  if (screen.width / screen.height > aspect) {
+    final h = screen.height;
+    final w = h * aspect;
+    return Rect.fromLTWH((screen.width - w) / 2, 0, w, h);
   }
-  final h = screen.height;
-  final w = h * aspect;
-  return Rect.fromLTWH((screen.width - w) / 2, 0, w, h);
+  final coverWidth = screen.height * aspect;
+  final width = math.min(coverWidth, screen.width / (1 - 2 * cabinMaxSideCrop));
+  final height = width / aspect;
+  return Rect.fromLTWH(
+    (screen.width - width) / 2,
+    (screen.height - height) / 2,
+    width,
+    height,
+  );
 }
 
 Rect _inBox(Rect box, CabinRect r) => Rect.fromLTWH(
@@ -58,16 +70,32 @@ class CabinStage extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final box = cabinBoxFor(constraints.biggest, layout.aspect);
-        return DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF3B2418), Color(0xFF4A2D22), Color(0xFF6D4527)],
-            ),
-          ),
+        return ColoredBox(
+          color: const Color(0xFF3B2418),
           child: Stack(
             children: [
+              // Blurred, slightly darker copy of the room fills any strip the
+              // room itself cannot cover, so the screen never shows bare bands.
+              Positioned.fill(
+                key: const Key('cabin-fill'),
+                child: ExcludeSemantics(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: ColorFiltered(
+                      colorFilter: const ColorFilter.mode(
+                        Color(0x33000000),
+                        BlendMode.darken,
+                      ),
+                      child: Image.asset(
+                        layout.baseImage,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.low,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Positioned.fromRect(
                 rect: box,
                 child: CabinRoom(layout: layout, presentation: presentation),
@@ -641,8 +669,19 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     VoidCallback onTap, {
     GlobalKey? tourKey,
   }) {
+    // The stage is centred on the box, so the screen spans 0..2*centre.
+    // Keep cropped edge objects (the side doors) tappable on screen.
+    final full = _inBox(box, rect);
+    final screenWidth = box.center.dx * 2;
+    const minTap = 40.0;
+    var left = math.max(full.left, 0.0);
+    var right = math.min(full.right, screenWidth);
+    if (right - left < minTap) {
+      if (full.left < 0) right = math.min(left + minTap, full.right);
+      if (full.right > screenWidth) left = math.max(right - minTap, full.left);
+    }
     return Positioned.fromRect(
-      rect: _inBox(box, rect),
+      rect: Rect.fromLTRB(left, full.top, right, full.bottom),
       child: KeyedSubtree(
         key: tourKey,
         child: CabinHotspot(
