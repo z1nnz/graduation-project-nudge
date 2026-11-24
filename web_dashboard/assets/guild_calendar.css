@@ -1,0 +1,32 @@
+.guild-calendar { display: grid; gap: 1rem; }
+.guild-calendar [hidden] { display: none; }
+.guild-calendar h2, .guild-calendar h3, .guild-calendar button, .guild-calendar time { font-family: var(--w-pixel); }
+.guild-calendar header { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; justify-content: space-between; }
+.guild-calendar button, .guild-calendar input, .guild-calendar select { min-height: 44px; }
+.guild-calendar label { display: grid; gap: .25rem; }
+.guild-calendar form { display: grid; gap: .65rem; max-width: 40rem; }
+.guild-calendar input:not([type="checkbox"]), .guild-calendar select, .guild-calendar textarea {
+  min-width: 0; width: 100%; box-sizing: border-box;
+  background: var(--w-parchment-hi); color: var(--w-ink-dark); border: 2px solid var(--w-frame);
+}
+.guild-calendar .guild-check { display: flex; align-items: center; gap: .5rem; }
+.guild-calendar-tools { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.guild-calendar-grid {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .4rem;
+  padding: .5rem;
+  background: var(--w-wood-dark) url(guild_calendar/board.png) center / 1280px 720px repeat;
+  image-rendering: pixelated;
+}
+.guild-calendar-day { padding: .35rem; min-height: 56px; background: var(--w-parchment); color: var(--w-ink-dark); }
+.guild-calendar-day time { display: block; padding-bottom: .25rem; }
+.guild-calendar-day button { width: 100%; margin-bottom: .25rem; overflow-wrap: anywhere; }
+.guild-calendar-list { display: none; }
+.guild-calendar-card { border: 2px solid var(--w-frame); padding: .75rem; margin-top: .5rem; overflow-wrap: anywhere; }
+.guild-calendar-room { display: inline-flex; align-items: center; gap: .65rem; max-width: 100%; }
+.guild-calendar-room img { width: 120px; height: 160px; image-rendering: pixelated; }
+.guild-calendar-notices { list-style: none; padding: 0; }
+.guild-calendar summary { cursor: pointer; min-height: 44px; padding-top: .75rem; }
+@media (max-width: 700px) {
+  .guild-calendar-grid { display: none; }
+  .guild-calendar-list { display: grid; gap: .5rem; }
+}

@@ -1,3 +1,4 @@
+import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
 import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
@@ -820,4 +821,12 @@ export const manageGrowthDocument = onCall(
       throw new HttpsError("internal","文件操作未完成，請稍後重試。");
     }
   },
+);
+
+const guildCalendar = createGuildCalendarHandler(getFirestore());
+export const manageGuildCalendar = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => guildCalendar(request)));
+export const processGuildEvents = onSchedule(
+  { region: "asia-east1", schedule: "* * * * *" },
+  createGuildEventSchedule(getFirestore()),
 );

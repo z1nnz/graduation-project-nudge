@@ -135,6 +135,7 @@
     state.userId = null;
     state.memberships = [];
     state.selected = null;
+    window.NudgeGuildCalendar?.select(null);
     render();
   }
 
@@ -171,6 +172,7 @@
   function selectScope(membership) {
     resetScope();
     state.selected = membership;
+    window.NudgeGuildCalendar?.select(membership?.scopeId || null);
     if (!membership) { render(); return; }
     const id = membership.scopeId;
     const fs = store();
@@ -182,7 +184,11 @@
       listen(link.collection("summaries").doc("current"), "summary");
     } else {
       const group = fs.collection("groups").doc(id);
-      listen(group, "group");
+      listen(group, "group", snapshot => {
+        const data = snapshot.data();
+        window.NudgeGuildCalendar?.select(data?.status === "active" && data.memberIds.includes(state.userId) ? id : null);
+        return data;
+      });
       listen(group.collection("challenges").doc("current"), "challenge");
       listen(group.collection("challenges").doc("current").collection("participants").doc(state.userId), "participation");
       listen(group.collection("study_schedules"), "schedules", docs);
