@@ -1,0 +1,7 @@
+{
+  "flower_stages.png": { "source": "flower_src.png", "width": 240 },
+  "tree_stages.png": { "source": "tree_src.png", "width": 240 },
+  "moonflower_stages.png": { "source": "moonflower_src.png", "width": 240 },
+  "meadow_stages.png": { "source": "meadow_src.png", "width": 240 },
+  "garden_plot_bg.png": { "source": "garden_plot_bg_src.png", "width": 1280 }
+}

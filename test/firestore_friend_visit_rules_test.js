@@ -135,6 +135,38 @@ async function run() {
   for (const id of [h, f, stranger.localId]) await adminSet(`users/${id}`, { uid: id });
   await adminSet(`users/${h}/friends/${f}`, { id: f });
   await adminSet(`users/${f}/friends/${h}`, { id: h });
+  const presencePath = `presence/${h}`;
+  const preference = `presence_settings/${h}`;
+  const presence = createWrite(presencePath, { uid: h, building: "tower", page: "tower" });
+  const clock = Date.now();
+  presence.update.fields.updatedAt = { timestampValue: new Date(clock).toISOString() };
+  presence.update.fields.expiresAt = { timestampValue: new Date(clock + 300000).toISOString() };
+  await expectStatus(commit([presence], friend.idToken), 403, "a friend cannot publish another account's presence");
+  await expectStatus(commit([presence], host.idToken), 403, "presence mutation must use the authenticated callable");
+  await expectStatus(commit([presence], "owner"), 200, "seed an active presence");
+  await expectStatus(get(presencePath, friend.idToken), 403, "sharing is off by default");
+  await expectStatus(commit([createWrite(preference, { enabled: true })], "owner"), 200, "seed opt-in");
+  await expectStatus(get(presencePath, friend.idToken), 200, "a mutual friend can read presence");
+  await expectStatus(get(presencePath, stranger.idToken), 403, "an outsider cannot read presence");
+  await expectStatus(get(preference, friend.idToken), 403, "sharing preferences are private");
+  await expectStatus(list("presence", friend.idToken), 403, "presence cannot be listed");
+  await expectStatus(commit([deleteWrite(`users/${f}/friends/${h}`)], "owner"), 200, "remove one direction");
+  await expectStatus(get(presencePath, friend.idToken), 403, "a one-way friend cannot read presence");
+  await adminSet(`users/${f}/friends/${h}`, { id: h });
+  await expectStatus(commit([updateWrite(preference, { enabled: false })], "owner"), 200, "withdraw consent");
+  await expectStatus(get(presencePath, friend.idToken), 403, "withdrawal blocks a remaining document immediately");
+  await expectStatus(commit([updateWrite(preference, { enabled: true })], "owner"), 200, "restore consent");
+  const stale = updateWrite(presencePath, { updatedAt: "", expiresAt: "" });
+  stale.update.fields.updatedAt = { timestampValue: new Date(clock - 301000).toISOString() };
+  stale.update.fields.expiresAt = { timestampValue: new Date(clock + 300000).toISOString() };
+  await expectStatus(commit([stale], "owner"), 200, "seed a stale heartbeat");
+  await expectStatus(get(presencePath, friend.idToken), 403, "the old heartbeat is hidden even when expiry is later");
+  const expired = updateWrite(presencePath, { updatedAt: "", expiresAt: "" });
+  expired.update.fields.updatedAt = { timestampValue: new Date(clock).toISOString() };
+  expired.update.fields.expiresAt = { timestampValue: new Date(clock - 1000).toISOString() };
+  await expectStatus(commit([expired], "owner"), 200, "seed expired presence");
+  await expectStatus(get(presencePath, friend.idToken), 403, "expired presence is hidden");
+
   const settingsPath = `friend_visit_settings/${h}`;
   const visitPath = `friend_visits/${h}--${f}--${day}`;
 

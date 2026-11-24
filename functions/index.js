@@ -1,3 +1,6 @@
+import { createRoomLobbyHandler } from "./src/room-lobby-service.js";
+import { createGuildCalendarHandler, createGuildEventSchedule } from "./src/guild-calendar-service.js";
+import { createSocialSafetyHandler } from "./src/social-safety-service.js";
 import { createManageGrowthCapsuleHandler, createNotifyDueGrowthCapsulesHandler } from "./src/growth-capsule-service.js";
 import { randomUUID } from "node:crypto";
 
@@ -12,11 +15,18 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import {
   onDocumentCreatedWithAuthContext,
   onDocumentUpdatedWithAuthContext,
+  onDocumentUpdated,
+  onDocumentWritten,
   onDocumentCreated,
 } from "firebase-functions/v2/firestore";
 
 import { createRoomChatMentionHandler } from "./src/room-chat-mention.js";
 import { ActivityLedgerService } from "./src/activity-ledger-service.js";
+import {
+  createFamilyGardenHandler, createDueFamilyLettersHandler, createCompletedGoalLetterHandler,
+} from "./src/family-garden-service.js";
+import { createUpdateWebPushPreferencesHandler } from "./src/web-push-preferences.js";
+import { createQueueWebSocialPushHandler, createFocusRoundWebPushHandler } from "./src/web-push-events.js";
 import { createManageGrowthDocumentHandler } from "./src/growth-document-service.js";
 import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
@@ -33,6 +43,7 @@ import {
   createHealthConsentChecker,
   createRecordPrivacyConsentHandler,
 } from "./src/privacy-consent-service.js";
+import { createManageFriendPresenceHandler } from "./src/friend-presence-service.js";
 import { createUpdateNotificationPreferencesHandler } from "./src/notification-preference-service.js";
 import {
   createMarkNotificationReadHandler,
@@ -47,6 +58,7 @@ import { createFriendCabinVisitHandler } from "./src/friend-cabin-visit.js";
 import { createArrangeHomeDecorHandler } from "./src/home-decor-service.js";
 import {
   createDeliverPushJobHandler,
+  createCleanupWebPushHandler,
   createUpdatePushInstallationHandler,
 } from "./src/push-notification-service.js";
 import {
@@ -771,6 +783,11 @@ export const notifyGroupRequestUpdated =
     handleGroupRequestUpdated,
   );
 
+export const manageFriendPresence = onCall(
+  { timeoutSeconds: 10, memory: "256MiB" },
+  createManageFriendPresenceHandler(getFirestore()),
+);
+
 export const notifyRoomChatMention = onDocumentCreated(
   { document: "rooms/{roomId}/messages/{messageId}", retry: true },
   createRoomChatMentionHandler(getFirestore()),
@@ -799,6 +816,43 @@ export const cleanupRoomVoice = onSchedule(
   createCleanupRoomVoiceHandler(getFirestore()),
 );
 
+const familyGarden = createFamilyGardenHandler(getFirestore());
+export const manageFamilyGarden = onCall(
+  { timeoutSeconds: 15, memory: "256MiB" },
+  request => withAccountOperation(request, () => familyGarden(request)),
+);
+
+export const sendDatedFamilyLetters = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "Asia/Taipei", timeoutSeconds: 120 },
+  createDueFamilyLettersHandler(getFirestore()),
+);
+
+export const sendCompletedGoalLetters = onDocumentUpdated(
+  { document: "family_links/{linkId}/goals/{goalId}", retry: true },
+  createCompletedGoalLetterHandler(getFirestore()),
+);
+
+const updateWebPreferences = createUpdateWebPushPreferencesHandler(getFirestore());
+export const updateWebPushPreferences = onCall(
+  { enforceAppCheck: true, timeoutSeconds: 10, memory: "256MiB" },
+  request => withAccountOperation(request, () => updateWebPreferences(request)),
+);
+
+export const queueWebSocialPush = onDocumentCreated(
+  { document: "user_notifications/{notificationId}", retry: true },
+  createQueueWebSocialPushHandler(getFirestore()),
+);
+
+export const queueFocusRoundWebPush = onDocumentWritten(
+  { document: "rooms/{roomId}/focus_rounds/current", retry: true },
+  createFocusRoundWebPushHandler(getFirestore()),
+);
+
+export const cleanupWebPushInstallations = onSchedule(
+  { schedule: "every day 03:40", timeZone: "Asia/Taipei", timeoutSeconds: 120 },
+  createCleanupWebPushHandler({ firestore: getFirestore(), clock: () => new Date() }),
+);
+
 export const deliverPushNotification = onDocumentCreated(
   {
     document: "push_delivery_jobs/{jobId}",
@@ -821,3 +875,19 @@ export const manageGrowthDocument = onCall(
     }
   },
 );
+
+const manageRoomLobbyRequest = createRoomLobbyHandler(getFirestore());
+export const manageRoomLobby = onCall({ region: 'asia-east1' }, request =>
+  withAccountOperation(request, () => manageRoomLobbyRequest(request)));
+
+const guildCalendar = createGuildCalendarHandler(getFirestore());
+export const manageGuildCalendar = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => guildCalendar(request)));
+export const processGuildEvents = onSchedule(
+  { region: "asia-east1", schedule: "* * * * *" },
+  createGuildEventSchedule(getFirestore()),
+);
+
+const socialSafety = createSocialSafetyHandler(getFirestore());
+export const manageSocialSafety = onCall({ region: "asia-east1" }, request =>
+  withAccountOperation(request, () => socialSafety(request)));

@@ -1,0 +1,13 @@
+{
+  "hall_bg.png": {"source": "hall_bg.png", "width": 1280},
+  "lake_bg.png": {"source": "lake_bg.png", "width": 1280},
+  "tower_bg.png": {"source": "tower_bg.png", "width": 720},
+  "cabinet_blue.png": {"source": "cabinet_blue.png", "width": 96},
+  "cabinet_violet.png": {"source": "cabinet_violet.png", "width": 96},
+  "cabinet_gold.png": {"source": "cabinet_gold.png", "width": 96},
+  "cabinet_green.png": {"source": "cabinet_green.png", "width": 96},
+  "bobber.png": {"source": "bobber.png", "width": 72},
+  "fish.png": {"source": "fish.png", "width": 480},
+  "gems.png": {"source": "gems.png", "width": 96},
+  "card_back.png": {"source": "card_back.png", "width": 64}
+}

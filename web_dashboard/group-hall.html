@@ -7,15 +7,18 @@
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/guild_calendar.css?v=1" />
+    <link rel="stylesheet" href="assets/safety.css?v=1" />
   </head>
-  <body data-page="group-hall" data-social-facility="guild">
+  <body class="w-page" data-page="group-hall" data-social-facility="guild">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
-    <header class="scene-topbar">
+    <header class="w-hud">
       <a data-town-return href="town.html">← 回小鎮</a>
-      <span class="scene-place" data-scene-place>團體會館</span>
+      <h1>團體會館</h1>
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
-    <main class="main scene-main" id="sceneMain" tabindex="-1">
+    <main class="w-main" id="sceneMain" tabindex="-1">
         <header class="hero scene-hero">
           <div>
             <span class="eyebrow">Group Hall</span>
@@ -29,14 +32,61 @@
             <p>管理者無法替成員打卡或讀取未分享的個人資料。</p>
           </div>
         </header>
+        <section class="guild-calendar w-panel" data-guild-calendar hidden aria-labelledby="guildCalendarTitle">
+          <header>
+            <h2 id="guildCalendarTitle">團體活動行事曆</h2>
+            <div class="guild-calendar-tools">
+              <button type="button" class="w-btn" data-guild-view-month>月檢視</button>
+              <button type="button" class="w-btn" data-guild-view-week>週檢視</button>
+            </div>
+          </header>
+          <div class="guild-calendar-tools">
+            <button type="button" class="w-btn" data-guild-prev>上一期</button>
+            <strong data-guild-range></strong>
+            <button type="button" class="w-btn" data-guild-next>下一期</button>
+          </div>
+          <div class="guild-calendar-grid" data-guild-grid aria-label="活動日期"></div>
+          <div class="guild-calendar-list" data-guild-calendar-list aria-label="活動清單"></div>
+          <div data-guild-event-details tabindex="-1"></div>
+          <p role="status" tabindex="-1" data-guild-status></p>
+          <section aria-labelledby="guildNoticesTitle">
+            <h3 id="guildNoticesTitle">公告板</h3>
+            <ul data-guild-notices class="guild-calendar-notices"></ul>
+          </section>
+          <div data-guild-manager hidden>
+            <details>
+              <summary>安排團體活動</summary>
+              <form data-guild-event-form>
+                <label>活動名稱 <input name="title" maxlength="80" required /></label>
+                <label>活動類型 <select name="kind"><option value="study">共同自習</option><option value="book">讀書會</option><option value="exam">考前衝刺夜</option></select></label>
+                <label>開始（當地時間） <input name="starts" type="datetime-local" required /></label>
+                <label>結束（當地時間） <input name="ends" type="datetime-local" required /></label>
+                <label class="guild-check"><input name="voice" type="checkbox" /> 臨時房開放語音</label>
+                <button type="submit" class="w-btn is-gold">公布活動</button>
+              </form>
+            </details>
+            <details>
+              <summary>新增釘選公告</summary>
+              <form data-guild-notice-form>
+                <label>公告 <textarea name="body" maxlength="300" required></textarea></label>
+                <button type="submit" class="w-btn is-gold">釘選公告</button>
+              </form>
+            </details>
+          </div>
+        </section>
+
+        <button type="button" class="w-btn" data-safety-group-manage hidden>管理</button>
         <div data-social-scene aria-live="polite"><p class="visit-empty">載入中…</p></div>
       </main>
     <script src="assets/relationship_membership_contract.js?v=1"></script>
     <script src="assets/family_link_contract.js?v=1"></script>
-    <script src="assets/family_group_scenes.js?v=1"></script>
-    <script src="assets/town_routes.js?v=2"></script>
+    <script src="assets/guild_calendar_core.js?v=1"></script>
+    <script src="assets/guild_calendar.js?v=1"></script>
+    <script src="assets/family_group_scenes.js?v=3"></script>
+    <script src="assets/town_routes.js?v=3"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
-    <script src="assets/app.js?v=27"></script>
+    <script src="assets/safety_ui.js?v=1"></script>
+    <script src="assets/app.js?v=28"></script>
   </body>
 </html>

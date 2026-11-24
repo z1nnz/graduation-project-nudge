@@ -8,6 +8,9 @@
   const gameCore = root.NudgeTownGameCore;
   const routes = root.NudgeTownRoutes;
   const avatarCore = root.NudgeTownAvatarCore;
+  const imageLoader = root.NudgeTownImage;
+  const atmosphereCore = root.NudgeTownAtmosphereCore;
+  const atmosphere = root.NudgeTownAtmosphere?.create();
   const doc = root.document;
   if (!core || !gameCore || !routes || !avatarCore || !doc || doc.body?.dataset.page !== 'town') return;
 
@@ -56,7 +59,7 @@
   const canvas = els('townCanvas');
   let ctx = null;
   try { ctx = canvas.getContext ? canvas.getContext('2d') : null; } catch { ctx = null; }
-  const reducedMotion = root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  let reducedMotion = root.NudgeTownHud?.reducedMotion || root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const store = {
     get(key) { try { return root.localStorage.getItem(key); } catch { return null; } },
     set(key, value) { try { root.localStorage.setItem(key, value); } catch { /* private mode */ } },
@@ -85,14 +88,21 @@
     toastUntil: 0,
     celebrateUntil: 0,
     sceneOpen: false,
+    actorNear: null,
+    actorDialog: false,
+    lastActorId: null,
+    emoteType: null,
+    emoteUntil: 0,
     static: false,
   };
 
   const mapImage = new Image();
-  mapImage.addEventListener('error', () => enterStatic('小鎮地圖載入失敗'));
-  mapImage.src = 'assets/town/town_map.jpg';
+  imageLoader.load(mapImage, 'assets/town/town_map.jpg', () => enterStatic('小鎮地圖載入失敗'));
   const playerImage = new Image();
-  playerImage.src = 'assets/avatar/characters/character_0.png';
+  imageLoader.load(playerImage, 'assets/avatar/characters/character_0.png');
+  imageLoader.load(els('townAvatar'), 'assets/avatar/characters/character_0.png');
+  const guideImage = doc.querySelector('.town-dialog-portrait');
+  if (guideImage) imageLoader.load(guideImage, 'assets/town/guide.png');
   let walkImages = {};
   function loadWalkImages(faceIndex) {
     walkImages = {};
@@ -100,7 +110,7 @@
       const path = avatarCore.sidePath(faceIndex, frame);
       if (!path) return;
       const image = new Image();
-      image.src = path;
+      imageLoader.load(image, path);
       walkImages[frame] = image;
     }
   }
@@ -130,6 +140,23 @@
 
   // ---------- labels and directory ----------
   const labels = new Map();
+  root.NudgeTownHud?.setBuildings(BUILDINGS);
+  const actorButtons = new Map();
+  if (atmosphere) {
+    for (const actor of atmosphere.actors(0, true)) {
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.className = 'town-actor';
+      button.setAttribute('aria-label', `與${actor.name}交談`);
+      const bubble = doc.createElement('span');
+      bubble.textContent = '…';
+      bubble.setAttribute('aria-hidden', 'true');
+      button.appendChild(bubble);
+      button.addEventListener('click', () => speakActor(actor));
+      els('townActors').appendChild(button);
+      actorButtons.set(actor.id, button);
+    }
+  }
   const directoryButtons = new Map();
   for (const b of BUILDINGS) {
     const el = doc.createElement('div');
@@ -275,6 +302,9 @@
     state.target = null;
     state.pendingBuilding = null;
     renderPanel(b);
+    const door = toScreen(b.door);
+    const canvasRect = canvas.getBoundingClientRect();
+    root.NudgeTownWindow?.setDoor(b.id, { x: canvasRect.left + door.x, y: canvasRect.top + door.y });
     els('townPanel').hidden = false;
     const first = els('townPanel').querySelector('.town-panel-list a, .town-panel-list button') || els('townPanelClose');
     first.focus({ preventScroll: true });
@@ -351,10 +381,23 @@
     return BUILDINGS.find(b => p.x >= b.rect.x && p.x <= b.rect.x + b.rect.w && p.y >= b.rect.y && p.y <= b.rect.y + b.rect.h) || null;
   }
 
+  let longPressTimer = null;
+  const clearLongPress = () => { if (longPressTimer) root.clearTimeout(longPressTimer); longPressTimer = null; };
+  canvas.addEventListener('pointerup', clearLongPress);
+  canvas.addEventListener('pointercancel', clearLongPress);
   canvas.addEventListener('pointerdown', event => {
-    if (state.tour >= 0 || state.panel || state.sceneOpen || !els('townGame').hidden) return;
+    if (state.tour >= 0 || state.panel || state.sceneOpen || state.actorDialog ||
+      !els('townSettings').hidden || !els('townEmoteWheel').hidden || !els('townGame').hidden) return;
     const rect = canvas.getBoundingClientRect();
     const p = toMap(event.clientX - rect.left, event.clientY - rect.top);
+    if (Math.hypot(p.x - state.player.x, p.y - state.player.y) < 26) {
+      clearLongPress();
+      longPressTimer = root.setTimeout(() => root.NudgeTownHud?.toggleEmote(true), 500);
+      return;
+    }
+    const tappedActor = atmosphere?.actors(performance.now(), reducedMotion).find(actor =>
+      Math.hypot(p.x - actor.x * MAP_W, p.y - actor.y * MAP_H) < 28);
+    if (tappedActor) { speakActor(tappedActor); return; }
     const b = buildingAt(p);
     if (b && reducedMotion) {
       // No walking animation: arrive at the door and open the panel at once.
@@ -371,8 +414,10 @@
   });
 
   doc.addEventListener('keydown', event => {
+    if (event.defaultPrevented) return;
     if (event.target?.closest?.('input, textarea')) return;
     const key = event.key.toLowerCase();
+    if (!els('townSettings').hidden || !els('townEmoteWheel').hidden) return;
     if (state.static && !state.panel) return;
     if (state.tour >= 0) {
       if (key === ' ' || key === 'enter') { event.preventDefault(); nextTour(); }
@@ -388,6 +433,10 @@
       return;
     }
     if (state.sceneOpen) return;
+    if (state.actorDialog) {
+      if (key === 'escape' || key === 'enter') { event.preventDefault(); closeActorDialog(); }
+      return;
+    }
     if (state.panel) {
       if (key === 'escape') { event.preventDefault(); closePanel(); }
       return;
@@ -398,6 +447,9 @@
       return;
     }
     if (event.target?.closest?.('#townDirectory')) return;
+    if (key === 'e' && !state.sceneOpen && !state.panel) {
+      event.preventDefault(); root.NudgeTownHud?.toggleEmote(true); return;
+    }
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
       event.preventDefault();
       state.keys.add(key);
@@ -406,13 +458,55 @@
     }
     if (!els('townGame').hidden) return;
     const onMap = !event.target || event.target === doc.body || event.target === canvas;
-    if (state.near && (key === 'f' || (key === 'enter' && onMap))) enter(state.near);
+    if ((key === 'f' || (key === 'enter' && onMap)) && state.actorNear) speakActor(state.actorNear);
+    else if (state.near && (key === 'f' || (key === 'enter' && onMap))) enter(state.near);
   });
   doc.addEventListener('keyup', event => state.keys.delete(event.key.toLowerCase()));
   root.addEventListener('blur', () => { state.keys.clear(); if (game.running) toggleGamePause(); });
-  doc.addEventListener('visibilitychange', () => { if (doc.hidden && game.running) toggleGamePause(); });
+  doc.addEventListener('visibilitychange', () => {
+    if (doc.hidden && game.running) toggleGamePause();
+    if (!doc.hidden && ctx && !state.static) { last = performance.now(); root.requestAnimationFrame(frame); }
+  });
+  doc.addEventListener('nudge-town-preference', event => {
+    reducedMotion = Boolean(event.detail?.reducedMotion);
+  });
+  doc.addEventListener('nudge-town-travel', event => {
+    const building = byId(event.detail?.buildingId);
+    if (!building || state.static || state.sceneOpen || state.panel) return;
+    state.keys.clear(); state.target = { ...building.door }; state.pendingBuilding = null;
+    toast(`走向${building.name}門口…`, 1600);
+  });
+  doc.addEventListener('nudge-town-emote', event => {
+    if (!['wave', 'cheer', 'sit', 'sleep'].includes(event.detail?.type)) return;
+    state.emoteType = event.detail.type;
+    state.emoteUntil = performance.now() + 4000;
+    state.keys.clear(); state.target = null;
+    toast({ wave: '打招呼', cheer: '歡呼', sit: '坐下', sleep: '休息一下' }[state.emoteType], 1200);
+  });
 
-  els('townPromptEnter').addEventListener('click', () => state.near && enter(state.near));
+  els('townPromptEnter').addEventListener('click', () => {
+    if (state.actorNear) speakActor(state.actorNear);
+    else if (state.near) enter(state.near);
+  });
+
+  function speakActor(actor) {
+    if (state.static || state.panel || state.sceneOpen || state.tour >= 0) return;
+    if (actor.id === 'owl') { startTour(); return; }
+    state.actorDialog = true;
+    state.lastActorId = actor.id;
+    state.keys.clear(); state.target = null;
+    els('townNpcName').textContent = actor.name;
+    els('townNpcLine').textContent = atmosphere.line(actor);
+    els('townNpcDialog').hidden = false;
+    els('townNpcClose').focus({ preventScroll: true });
+  }
+  function closeActorDialog() {
+    if (!state.actorDialog) return;
+    state.actorDialog = false;
+    els('townNpcDialog').hidden = true;
+    actorButtons.get(state.lastActorId)?.focus({ preventScroll: true });
+  }
+  els('townNpcClose').addEventListener('click', closeActorDialog);
   els('townZoomIn').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom + 0.2); });
   els('townZoomOut').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom - 0.2); });
   els('townHelp').addEventListener('click', startTour);
@@ -421,15 +515,17 @@
   function showTourStep() {
     const step = TOUR[state.tour];
     els('townDialog').hidden = false;
-    els('townDialogText').textContent = step.text;
-    els('townDialogStep').textContent = `${state.tour + 1} / ${TOUR.length}`;
+    if (els('townDialogText').textContent !== step.text) els('townDialogText').textContent = step.text;
+    const count = `${state.tour + 1} / ${TOUR.length}`;
+    if (els('townDialogStep').textContent !== count) els('townDialogStep').textContent = count;
     els('townDialogNext').focus({ preventScroll: true });
   }
-  function startTour() { if (state.static) return; state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
+  function startTour() { if (state.static) return; doc.documentElement?.classList.remove('town-tour-done'); state.tour = 0; state.keys.clear(); state.target = null; showTourStep(); }
   function nextTour() { if (state.tour + 1 >= TOUR.length) endTour(); else { state.tour += 1; showTourStep(); } }
   function endTour() {
     state.tour = -1;
     els('townDialog').hidden = true;
+    doc.documentElement?.classList.add('town-tour-done');
     store.set('nudge_town_tour_done', '1');
   }
   els('townDialogNext').addEventListener('click', nextTour);
@@ -600,6 +696,7 @@
   let last = performance.now();
   function frame(now) {
     if (state.static || !ctx) return;
+    if (doc.hidden) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     if (!els('townGame').hidden) { if (game.running) tickGame(now); root.requestAnimationFrame(frame); return; }
@@ -607,7 +704,8 @@
     // The plaza fountain sits on the central crossroads: it is a tap target,
     // not a wall, or walking to the tower would stall against it.
     const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect);
-    const dir = state.tour < 0 && !state.panel && !state.sceneOpen ? moveDirection() : null;
+    const dir = state.tour < 0 && !state.panel && !state.sceneOpen && !state.actorDialog &&
+      els('townSettings').hidden && els('townEmoteWheel').hidden ? moveDirection() : null;
     if (dir) {
       const before = state.player;
       state.player = core.step(state.player, dir, dt, SPEED, blockers, BOUNDS, RADIUS);
@@ -615,6 +713,7 @@
       const dy = state.player.y - before.y;
       state.moving = Math.hypot(dx, dy) > 0.01;
       if (state.moving) {
+        state.emoteType = null;
         state.face = avatarCore.facing(dx, dy, state.face);
         state.walking += dt;
       } else {
@@ -636,9 +735,23 @@
     state.camera = { x: state.camera.x + (goal.x - state.camera.x) * ease, y: state.camera.y + (goal.y - state.camera.y) * ease };
 
     state.near = state.tour < 0 ? core.nearestDoor(state.player, BUILDINGS, REACH) : null;
+    if (state.tour < 0) {
+      const prefetchDoor = core.nearestDoor(state.player, BUILDINGS, 96);
+      if (prefetchDoor) root.NudgeTownWindow?.nearDoor(prefetchDoor.id);
+    }
+    const actors = atmosphere?.actors(now, reducedMotion) || [];
+    state.actorNear = actors.reduce((closest, actor) => {
+      const distance = Math.hypot(state.player.x - actor.x * MAP_W, state.player.y - actor.y * MAP_H);
+      return distance < 54 && (!closest || distance < closest.distance) ? { ...actor, distance } : closest;
+    }, null);
     const prompt = els('townPrompt');
-    prompt.hidden = !state.near || Boolean(state.panel) || state.sceneOpen || els('townDirectory').classList.contains('is-open');
-    if (state.near) {
+    prompt.hidden = (!state.near && !state.actorNear) || Boolean(state.panel) || state.sceneOpen || state.actorDialog ||
+      !els('townSettings').hidden || !els('townEmoteWheel').hidden || els('townDirectory').classList.contains('is-open');
+    if (state.actorNear) {
+      els('townPromptText').textContent = `按 F 與${state.actorNear.name}交談`;
+      els('townPromptEnter').textContent = '交談';
+    } else if (state.near) {
+      els('townPromptEnter').textContent = '進入';
       els('townPromptText').textContent = core.isUnlocked(state.near, state.level)
         ? `按 F 進入${state.near.name}` : `${state.near.name}：Lv ${state.near.minLevel} 開放`;
     }
@@ -653,6 +766,8 @@
       const origin = toScreen({ x: 0, y: 0 });
       ctx.drawImage(mapImage, origin.x, origin.y, MAP_W * s, MAP_H * s);
     }
+    atmosphere?.draw(ctx, { width: w, height: h, mapW: MAP_W, mapH: MAP_H,
+      toScreen, scale: s, reducedMotion, hidden: doc.hidden }, now);
     if (playerImage.complete && playerImage.naturalWidth) {
       const p = toScreen(state.player);
       const pose = avatarCore.pose(state.faceIndex, state.face, state.moving, state.walking);
@@ -676,7 +791,14 @@
       if (pose.flip) ctx.scale(-1, 1);
       ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, -pw / 2, -ph, pw, ph);
       ctx.restore();
+      if (state.emoteType && now < state.emoteUntil) {
+        const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤' }[state.emoteType];
+        ctx.font = `${Math.max(18, Math.round(20 * s))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(icon, p.x, p.y - ph - 7 * s);
+      } else if (now >= state.emoteUntil) state.emoteType = null;
     }
+    root.NudgeTownHud?.setPlayer(state.player, now);
     for (const b of BUILDINGS) {
       const p = toScreen(b.label);
       const el = labels.get(b.id);
@@ -684,32 +806,45 @@
       el.style.top = `${Math.max(labelTop, p.y)}px`;
       el.classList.toggle('is-near', state.near === b);
     }
+    for (const actor of actors) {
+      const p = toScreen({ x: actor.x * MAP_W, y: actor.y * MAP_H });
+      const button = actorButtons.get(actor.id);
+      button.style.left = `${p.x}px`;
+      button.style.top = `${p.y - 5 * s}px`;
+      button.classList.toggle('is-near', state.actorNear?.id === actor.id);
+      button.hidden = Boolean(state.panel) || state.sceneOpen || state.actorDialog || state.tour >= 0 || !els('townGame').hidden;
+    }
     if (state.toastUntil && now > state.toastUntil) { els('townToast').hidden = true; state.toastUntil = 0; }
     root.requestAnimationFrame(frame);
   }
 
   // ---------- clock ----------
   function tickClock() {
-    const d = new Date();
-    els('townClock').textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const date = new Date();
+    const { hour, minute } = atmosphereCore?.taipeiParts(date) ||
+      { hour: date.getHours(), minute: date.getMinutes() };
+    els('townClock').textContent = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   }
 
   // ---------- account data (read-only) ----------
-  function applyUser(user, data) {
+  function applyUser(user, data, confirmed = false) {
     state.uid = user?.uid || null;
     state.level = Math.max(1, Number(data?.avatarLevel) || 1);
     const face = Number(data?.avatarProfile?.faceShapeIndex);
     const faceIndex = Number.isInteger(face) && face >= 0 ? face : 0;
     const sprite = `assets/avatar/characters/character_${faceIndex}.png`;
-    if (!playerImage.src.endsWith(sprite)) playerImage.src = sprite;
+    if (!playerImage.src.endsWith(sprite) && !playerImage.src.endsWith(imageLoader.preferred(sprite)))
+      imageLoader.load(playerImage, sprite);
     if (state.faceIndex !== faceIndex) {
       state.faceIndex = faceIndex;
       loadWalkImages(faceIndex);
     }
-    els('townAvatar').src = sprite;
+    if (!els('townAvatar').src.endsWith(sprite) && !els('townAvatar').src.endsWith(imageLoader.preferred(sprite)))
+      imageLoader.load(els('townAvatar'), sprite);
     els('townName').textContent = user ? (data?.nickname || '自律夥伴') : '訪客';
     // Guests see no level, XP or sync status: there is no account data to show.
-    els('townLevel').textContent = user ? `Lv ${state.level}` : '自由探索中';
+    els('townLevel').textContent = user ? (data ? `Lv ${state.level}` : '雲端同步中') : '自由探索中';
+    root.NudgeTownHud?.updateUser(user, data, confirmed);
     refreshLabels();
     refreshTicket();
   }
@@ -721,16 +856,24 @@
     fb.auth().onAuthStateChanged(user => {
       unsubUser?.();
       unsubReceipts?.();
+      let confirmedData = null;
       state.receipts = [];
       applyUser(user, null);
       if (!user) return;
       unsubUser = fb.firestore().collection('users').doc(user.uid)
-        .onSnapshot(snap => applyUser(user, snap.exists ? snap.data() : null), () => {});
+        .onSnapshot({ includeMetadataChanges: true }, snap => {
+          if (!snap.metadata.fromCache && !snap.metadata.hasPendingWrites)
+            confirmedData = snap.exists ? snap.data() : null;
+          applyUser(user, confirmedData, Boolean(confirmedData));
+        }, () => {});
       unsubReceipts = fb.firestore().collection('activity_receipts')
-        .where('actorUserId', '==', user.uid).orderBy('verifiedAt', 'desc').limit(10)
-        .onSnapshot(snap => {
-          state.receipts = snap.docs.map(d => ({ receiptId: d.id, ...d.data() }))
+        .where('actorUserId', '==', user.uid).orderBy('verifiedAt', 'desc').limit(90)
+        .onSnapshot({ includeMetadataChanges: true }, snap => {
+          if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
+          const receipts = snap.docs.map(d => ({ receiptId: d.id, ...d.data() }));
+          state.receipts = receipts.slice(0, 10)
             .filter(d => root.NudgeConfirmedActivityFeedback?.parse(d.receiptId, d, user.uid));
+          root.NudgeTownHud?.updateReceipts(receipts, true, snap.size === 90);
           refreshTicket();
         }, () => {});
     });
@@ -759,6 +902,7 @@
   root.setInterval(refreshTicket, 60000);
   // Coming back from a page (?at=…) lands at that door without replaying the tour.
   if (!arrival && store.get('nudge_town_tour_done') !== '1') startTour();
+  else els('townDialog').hidden = true;
   if (arrival) toast(`回到${arrival.name}門口。`, 2200);
   if (ctx) root.requestAnimationFrame(frame);
 })(typeof globalThis !== 'undefined' ? globalThis : this);

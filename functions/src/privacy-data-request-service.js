@@ -182,6 +182,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     publicProfile,
     consent,
     notificationPreferences,
+    webPushPreferences,
     disciplineIdentitySnapshot,
     deviceAssignments,
     pushDeliveryState,
@@ -207,7 +208,10 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     notifications,
     sentFriendRequests,
     receivedFriendRequests,
+    gardenData,
     friendVisitSettings,
+    presenceSettings,
+    presence,
     hostedFriendVisits,
     madeFriendVisits,
     auditEvents,
@@ -217,6 +221,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readSingleDocument(firestore, "public_profiles", userId),
     readSingleDocument(firestore, "privacy_consents", userId),
     readSingleDocument(firestore, "notification_preferences", userId),
+    readSingleDocument(firestore, "web_push_preferences", userId),
     readSingleDocument(firestore, "discipline_identity_snapshots", userId),
     readQuery(
       firestore,
@@ -305,13 +310,37 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     ),
     readQuery(firestore, "friend_requests", "senderId", "==", userId),
     readQuery(firestore, "friend_requests", "receiverId", "==", userId),
+    Promise.all([
+      readQuery(firestore, "family_weekly_notes", "authorId", "==", userId),
+      readQuery(firestore, "family_scheduled_letters", "guardianId", "==", userId),
+      readQuery(firestore, "family_scheduled_letters", "childId", "==", userId),
+      readQuery(firestore, "family_letter_preferences", "userId", "==", userId),
+    ]),
     readSingleDocument(firestore, "friend_visit_settings", userId),
+    readSingleDocument(firestore, "presence_settings", userId),
+    readSingleDocument(firestore, "presence", userId),
     readQuery(firestore, "friend_visits", "hostId", "==", userId),
     readQuery(firestore, "friend_visits", "visitorId", "==", userId),
     readQuery(firestore, "audit_events", "actorUserId", "==", userId),
     readQuery(firestore, "privacy_data_requests", "userId", "==", userId),
   ]);
 
+  const [lobbyAnswers, lobbyCodes] = await Promise.all([
+    readQuery(firestore, "room_lobby_answers", "memberId", "==", userId),
+    readQuery(firestore, "room_lobby_codes", "ownerId", "==", userId),
+  ]);
+  const guildCollections = [
+    ["guild_events", "authorId"], ["guild_event_attendance", "userId"],
+    ["guild_notices", "authorId"], ["guild_notice_reads", "userId"],
+  ];
+  const guildCalendar = await Promise.all(guildCollections.map(async ([name, field]) =>
+    [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
+  const [safetyDocuments, safetyReports, moderationActions] = await Promise.all([
+    readSingleDocument(firestore, "social_safety", userId),
+    readQuery(firestore, "safety_reports", "userId", "==", userId),
+    readQuery(firestore, "audit_events", "safetyTargetId", "==", userId),
+  ]);
+  const safetySettings = safetyDocuments[0]?.data;
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -326,6 +355,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       public_profiles: publicProfile,
       privacy_consents: consent,
       notification_preferences: notificationPreferences,
+      web_push_preferences: webPushPreferences,
       discipline_identity_snapshots: disciplineIdentitySnapshot,
       device_assignments: deviceAssignments.documents,
       push_delivery_state: pushDeliveryState,
@@ -354,12 +384,32 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
         receivedRoomResonanceAcknowledgements.documents,
       ),
       rooms: rooms.documents,
+      room_lobby_answers: lobbyAnswers.documents,
+      room_lobby_codes: lobbyCodes.documents.map(({ data }) => ({ roomId: data.roomId, expiresAt: data.expiresAt })),
+      ...Object.fromEntries(guildCalendar),
+      social_safety: safetySettings ? {
+        blocked: safetySettings.blocked || [],
+        allowVoice: safetySettings.allowVoice,
+        allowStrangerMentions: safetySettings.allowStrangerMentions,
+      } : null,
+      safety_reports: safetyReports.documents,
+      safety_actions: moderationActions.documents.map(({ data }) => ({
+        action: data.action, reason: data.reason, createdAt: data.createdAt,
+      })),
       user_notifications: notifications.documents,
       friend_requests: mergeDocuments(
         sentFriendRequests.documents,
         receivedFriendRequests.documents,
       ),
+      family_weekly_notes: gardenData[0].documents,
+      family_scheduled_letters: mergeDocuments(
+        gardenData[1].documents,
+        gardenData[2].documents.filter(entry => entry.data.status === "sent"),
+      ),
+      family_letter_preferences: gardenData[3].documents,
       friend_visit_settings: friendVisitSettings,
+      presence_settings: presenceSettings,
+      presence,
       friend_visits: mergeDocuments(
         hostedFriendVisits.documents,
         madeFriendVisits.documents,

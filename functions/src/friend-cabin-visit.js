@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { hiddenBySafety, safetyDocument } from "./social-safety-service.js";
+
 const catalog = createRequire(import.meta.url)("./home-decor-catalog.json");
 const notes = Object.freeze({
   cheer: "今天也替你加油！", step: "慢慢來，每一步都算數。",
@@ -81,11 +83,11 @@ export function createFriendCabinVisitHandler(firestore, clock = () => new Date(
     const hostRef = users.doc(host);
     const visitorRef = users.doc(uid);
     return firestore.runTransaction(async transaction => {
-      const [settings, fromFriend, toFriend, hostFence, visitorFence, previous] =
+      const [settings, fromFriend, toFriend, hostFence, visitorFence, previous, safety] =
         await transaction.getAll(scopes.doc(host), visitorRef.collection("friends").doc(host),
-          hostRef.collection("friends").doc(uid), fences.doc(host), fences.doc(uid), visitRef);
+          hostRef.collection("friends").doc(uid), fences.doc(host), fences.doc(uid), visitRef, safetyDocument(firestore, uid));
       if (settings.data()?.allowVisits !== true || settings.data()?.shareCabin !== true ||
-          !fromFriend.exists || !toFriend.exists || hostFence.exists || visitorFence.exists) {
+          !fromFriend.exists || !toFriend.exists || hostFence.exists || visitorFence.exists || hiddenBySafety(safety.data(), host)) {
         throw new HttpsError("permission-denied", "This cabin is unavailable.");
       }
       const prior = previous.data();

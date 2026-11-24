@@ -72,9 +72,13 @@ class FirestoreActivityLedgerTransaction {
     }
     const data = memberSnapshot.data();
     const roomData = roomSnapshot.data();
+    if (roomData.guildGroupId) {
+      const group = await this.transaction.get(this.firestore.collection("groups").doc(roomData.guildGroupId));
+      if (group.data()?.status !== "active" || !group.data().memberIds.includes(userId)) return null;
+    }
     return {
       ...data,
-      roomStatus: roomData.status,
+      roomStatus: roomData.guildClosesAt?.toMillis() <= Date.now() ? "closed" : roomData.status,
       sharingConsentRequired:
         roomData.sharingConsentRequired === true ||
         roomData.sharingPolicy === "required",

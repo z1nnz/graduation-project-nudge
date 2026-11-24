@@ -287,7 +287,12 @@ function injectModuleMenu() {
       localStorage.removeItem("nudgeActiveDemoUserId");
 
       if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().signOut().then(() => {
+        const auth = firebase.auth();
+        const revokeWebPush = localStorage.getItem("nudgeWebPushOwner") === auth.currentUser?.uid
+          ? loadWindowModule("NudgeWebPush", "assets/web_push.js?v=1", "Push module unavailable")
+            .then(push => push.revoke(auth.currentUser, functions)).catch(() => {})
+          : Promise.resolve();
+        revokeWebPush.then(() => auth.signOut()).then(() => {
           window.location.href = "dashboard.html"; // 登出後回到總覽頁面
         }).catch(err => {
           console.error("Firebase sign out failed:", err);
@@ -3172,6 +3177,8 @@ function renderWebRoomMembers() {
   }
   const userId = firebase.auth().currentUser?.uid;
   const isOwner = activeWebRoom?.ownerId === userId;
+  const safetyManage = $("[data-safety-room-manage]");
+  if (safetyManage) safetyManage.hidden = !isOwner;
   list.innerHTML = activeWebRoomMembers.map(member => {
     const displayName = escapeHtml(member.displayName || "自律夥伴");
     const role = member.role === "owner" ? "房主" : "成員";
@@ -3191,6 +3198,10 @@ function renderWebRoomMembers() {
       : "";
     return `<article class="room-member-row">
       <div><strong>${displayName}</strong><span>${role} · ${approval} · ${presence}</span></div>
+      ${member.memberId !== userId && window.NudgeSafety ? `<div class="room-member-actions">
+        <button type="button" data-safety-block="${escapeHtml(member.memberId)}">封鎖</button>
+        <button type="button" data-safety-report-profile="${escapeHtml(member.memberId)}">檢舉暱稱</button>
+      </div>` : ""}
       ${actions}
     </article>`;
   }).join("");
@@ -3202,6 +3213,10 @@ function renderWebRoomMembers() {
   });
   $$("[data-room-remove-member]", list).forEach(button => {
     button.addEventListener("click", () => {
+      if (window.NudgeSafety) {
+        window.NudgeSafety.removeContent(button, activeWebRoom.id, button.dataset.roomRemoveMember, "remove");
+        return;
+      }
       removeWebRoomMember(button.dataset.roomRemoveMember)
         .catch(error => toast(error.message || "移除成員失敗"));
     });
@@ -3246,12 +3261,9 @@ function listenToWebRoomInteractions(roomId) {
         if (list) list.textContent = "無法確認隱藏設定，暫時不顯示預覽。";
       });
   }
-  webRoomMessagesSub = db.collection("rooms").doc(roomId)
-    .collection("messages")
-    .orderBy("createdAt", "desc")
-    .limit(60)
-    .onSnapshot(snapshot => {
-      const messages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  const roomMessageQuery = db.collection("rooms").doc(roomId)
+    .collection("messages").orderBy("createdAt", "desc").limit(60);
+  function showMessages(messages) {
       activeWebRoomMessages = messages;
       const list = $("[data-room-message-list]");
       if (isWebRoomChatPage() && window.NudgeChat) {
@@ -3268,11 +3280,19 @@ function listenToWebRoomInteractions(roomId) {
       webRoomLastAnnouncedMessageId = newest?.id || null;
       renderWebRoomUnread();
       markWebRoomMessagesRead();
-    }, error => {
-      console.warn("Room message sync failed:", error);
-      const list = $("[data-room-message-list]");
-      if (list) list.innerHTML = `<p class="room-inline-empty">訊息暫時無法同步，請檢查連線後重試。</p>`;
-    });
+  }
+  function messageError(error) {
+    console.warn("Room message sync failed:", error);
+    showMessages([]);
+    const list = $("[data-room-message-list]");
+    if (list) list.innerHTML = `<p class="room-inline-empty">訊息暫時無法同步，請檢查連線後重試。</p>`;
+  }
+  if (window.NudgeSafety) {
+    webRoomMessagesSub = window.NudgeSafety.watchMessages(roomMessageQuery, roomId, showMessages, messageError);
+  } else {
+    webRoomMessagesSub = roomMessageQuery.onSnapshot(snapshot => showMessages(
+      snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }))), messageError);
+  }
 
   webRoomReadMarkerSub = db.collection("room_read_markers")
     .doc(window.NudgeRoomReadState.markerId(roomId, userId))
@@ -3284,14 +3304,11 @@ function listenToWebRoomInteractions(roomId) {
       if (!activeWebRoomReadMarker) markWebRoomMessagesRead();
     }, error => console.warn("Room read marker sync failed:", error));
 
-  webRoomEventsSub = db.collection("rooms").doc(roomId)
-    .collection("events")
-    .orderBy("createdAt", "desc")
-    .limit(40)
-    .onSnapshot(snapshot => {
+  const eventsQuery = db.collection("rooms").doc(roomId)
+    .collection("events").orderBy("createdAt", "desc").limit(40);
+  function showRoomEvents(events) {
       const list = $("[data-room-event-list]");
       if (!list) return;
-      const events = snapshot.docs.map(doc => doc.data());
       list.innerHTML = events.length
         ? events.map(event => `
           <article class="room-event-row">
@@ -3299,7 +3316,11 @@ function listenToWebRoomInteractions(roomId) {
             <p>${escapeHtml(event.text || "")}</p>
           </article>`).join("")
         : `<p class="room-inline-empty">活動歷程會在這裡同步顯示。</p>`;
-    }, error => console.warn("Room event sync failed:", error));
+  }
+  const eventError = error => console.warn("Room event sync failed:", error);
+  webRoomEventsSub = window.NudgeSafety
+    ? window.NudgeSafety.watchMessages(eventsQuery, roomId, showRoomEvents, eventError, "roomEvents")
+    : eventsQuery.onSnapshot(snapshot => showRoomEvents(snapshot.docs.map(doc => doc.data())), eventError);
 }
 
 function buildWebRoomEvent(type, text) {
@@ -3611,7 +3632,7 @@ function listenToWebRooms(userId) {
         list.innerHTML = `
           <div class="room-empty-state">
             <span>目前沒有活動房</span>
-            <strong>先從 App 探索或建立房間</strong>
+            <strong>從專注塔大廳探索或建立房間</strong>
             <p>加入後，這裡會顯示相同的成員資格與活動紀錄。</p>
           </div>`;
         resetWebRoomState();
@@ -4783,6 +4804,26 @@ function initializeFirebaseWeb() {
                 localStorage.removeItem("nudgePreviewRole");
                 localStorage.setItem("nudgeWebLoggedIn", "true");
                 localStorage.setItem("nudgeActiveDemoUserId", user.uid);
+              }
+              if (!user.isAnonymous && functions && (
+                document.querySelector("[data-friend-presence]") ||
+                window.frameElement?.id === "townWindowFrame"
+              )) {
+                Promise.all([
+                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=3", "Town routes unavailable"),
+                  loadWindowModule("NudgePresenceCore", "assets/presence_core.js?v=1", "Presence contract unavailable"),
+                  loadWindowModule("NudgeFriendPresence", "assets/presence.js?v=1", "Presence unavailable"),
+                ]).then(([, , presence]) => {
+                  if (auth.currentUser?.uid === user.uid) presence.start({ auth, db, functions, user });
+                }).catch(error => console.warn("Friend presence initialization failed:", error.message));
+              }
+              if (!user.isAnonymous && functions && (
+                document.querySelector("[data-web-push]") || localStorage.getItem("nudgeWebPushOwner") === user.uid
+              )) {
+                loadWindowModule("NudgeWebPush", "assets/web_push.js?v=1", "Push module unavailable")
+                  .then(push => {
+                    if (auth.currentUser?.uid === user.uid) push.start({ auth, db, cloud: functions, user });
+                  }).catch(() => {});
               }
               startListeningToFirestoreData();
               if (!document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) ensureWebActivityLedgerOutbox()
@@ -7571,6 +7612,10 @@ function renderCanonicalWebGroupMembers() {
       button.addEventListener("click", async () => {
         const memberId = button.dataset.memberId;
         const action = button.dataset.groupMemberAction;
+        if (action === "remove" && window.NudgeSafety) {
+          window.NudgeSafety.removeContent(button, group.id, memberId, "remove", "group");
+          return;
+        }
         const prompt = action === "transfer"
           ? `確定將團體管理權轉移給 ${memberId}？`
           : `確定移除 ${memberId}？成果摘要也會一併撤除。`;

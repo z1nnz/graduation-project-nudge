@@ -41,3 +41,27 @@ test('a page knows it is inside the town window', () => {
   const foreign = { get parent() { return { get document() { throw new Error('cross-origin'); } }; } };
   assert.equal(win.isTownEmbed(foreign), false);
 });
+
+test('door, curtain and portal transitions follow the building', () => {
+  assert.equal(win.transitionForBuilding('cabin'), 'door');
+  assert.equal(win.transitionForBuilding('store'), 'curtain');
+  assert.equal(win.transitionForBuilding('tower'), 'portal');
+  assert.equal(win.transitionForBuilding('observatory'), 'portal');
+});
+
+test('swipe and loading thresholds are exact and ignore invalid measurements', () => {
+  assert.equal(win.swipeShouldClose(199, 800), false);
+  assert.equal(win.swipeShouldClose(200, 800), true);
+  assert.equal(win.swipeShouldClose(-1, 800), false);
+  assert.equal(win.loadingTimedOut(100, 8099), false);
+  assert.equal(win.loadingTimedOut(100, 8100), true);
+});
+
+test('a nearby door prefetches one existing player page', () => {
+  const destinations = [
+    { building: 'tower', audience: 'tool', status: 'available', href: 'admin.html' },
+    { building: 'tower', audience: 'player', status: 'available', href: 'rooms.html?tab=all' },
+  ];
+  assert.equal(win.prefetchPath(destinations, 'tower'), 'rooms.html?tab=all');
+  assert.equal(win.prefetchPath(destinations, 'cabin'), null);
+});
