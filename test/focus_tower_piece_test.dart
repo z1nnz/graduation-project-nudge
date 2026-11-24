@@ -4,6 +4,33 @@ import 'package:nudge/widgets/focus_tower_piece.dart';
 import 'package:nudge/theme/game_ui.dart';
 
 void main() {
+  testWidgets('a room preview selects the existing template', (tester) async {
+    final semantics = tester.ensureSemantics();
+    var selected = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 160,
+            child: FocusTowerRoomPreview(
+              art: 'library',
+              label: '考試衝刺',
+              description: '一起讀書',
+              selected: false,
+              onTap: () => selected = true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('考試衝刺，一起讀書'), findsOneWidget);
+    await tester.tap(find.text('考試衝刺'));
+    expect(selected, isTrue);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
+
   testWidgets('the tower gate is accessible and opens search at 360px', (
     tester,
   ) async {

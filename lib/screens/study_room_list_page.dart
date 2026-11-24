@@ -1353,11 +1353,7 @@ class _CreateRoomFlowPageState extends State<_CreateRoomFlowPage> {
       setState(() {
         _stepIndex++;
       });
-      _pageController.animateToPage(
-        _stepIndex,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOut,
-      );
+      _moveToStep();
     } else {
       _submit();
     }
@@ -1372,11 +1368,19 @@ class _CreateRoomFlowPageState extends State<_CreateRoomFlowPage> {
     setState(() {
       _stepIndex--;
     });
-    _pageController.animateToPage(
-      _stepIndex,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOut,
-    );
+    _moveToStep();
+  }
+
+  void _moveToStep() {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pageController.jumpToPage(_stepIndex);
+    } else {
+      _pageController.animateToPage(
+        _stepIndex,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _submit() {
@@ -1414,6 +1418,8 @@ class _CreateRoomFlowPageState extends State<_CreateRoomFlowPage> {
   Widget build(BuildContext context) {
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
+    const stages = ['鷹架藍圖', '刻下房名', '裝上房門', '掛上標籤', '房務告示'];
+    const scenes = ['roof', 'floor', 'gate', 'floor', 'roof'];
 
     return Scaffold(
       appBar: AppBar(
@@ -1426,6 +1432,16 @@ class _CreateRoomFlowPageState extends State<_CreateRoomFlowPage> {
       body: SafeArea(
         child: Column(
           children: [
+            if (MediaQuery.viewInsetsOf(context).bottom == 0)
+              FocusTowerPiece(
+                piece: scenes[_stepIndex],
+                minimumHeight: 85,
+                child: const SizedBox(height: 85),
+              ),
+            Text(
+              stages[_stepIndex],
+              style: const TextStyle(fontFamily: 'Cubic11', fontSize: 18),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppUI.pagePadding,
@@ -1753,7 +1769,7 @@ class _CreateStepPositioning extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 118,
+          height: 160,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemBuilder: (context, index) {
@@ -1947,79 +1963,31 @@ class _GoalPicker extends StatelessWidget {
 }
 
 class _RoomTemplateCard extends StatelessWidget {
-  final _RoomTemplate template;
-  final bool selected;
-  final VoidCallback onTap;
-
   const _RoomTemplateCard({
     required this.template,
     required this.selected,
     required this.onTap,
   });
 
+  final _RoomTemplate template;
+  final bool selected;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-    final color = template.accentColor;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppUI.radiusLarge),
+    final art = switch (template.roomType) {
+      StudyRoomType.study => 'library',
+      StudyRoomType.sleep => 'attic',
+      StudyRoomType.exercise => 'forest',
+      StudyRoomType.steps => 'seaside',
+      StudyRoomType.custom => 'library',
+    };
+    return FocusTowerRoomPreview(
+      art: art,
+      label: template.title,
+      description: template.description,
+      selected: selected,
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: 210,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: AppUI.isDark(context) ? 0.22 : 0.12)
-              : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(AppUI.radiusLarge),
-          border: Border.all(
-            color: selected ? color : Theme.of(context).dividerColor,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.dashboard_customize_outlined,
-                  color: color,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    template.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: primaryText,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              template.description,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: secondaryText,
-                fontSize: 12,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

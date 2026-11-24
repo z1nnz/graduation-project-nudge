@@ -2,6 +2,86 @@ import 'package:flutter/material.dart';
 
 import '../theme/game_ui.dart';
 
+/// A selectable window into one of the existing room templates.
+class FocusTowerRoomPreview extends StatelessWidget {
+  const FocusTowerRoomPreview({
+    super.key,
+    required this.art,
+    required this.label,
+    required this.description,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String art;
+  final String label;
+  final String description;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$label，$description',
+      button: true,
+      selected: selected,
+      child: SizedBox(
+        width: 210,
+        child: Material(
+          color: GamePalette.dark.backgroundBottom,
+          child: InkWell(
+            onTap: onTap,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: selected
+                      ? GamePalette.gold
+                      : GamePalette.dark.panelBorder,
+                  width: 3,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: Image.asset(
+                        'assets/scenes/focus_tower/$art.webp',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.none,
+                        excludeFromSemantics: true,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 6,
+                    ),
+                    child: ExcludeSemantics(
+                      child: Text(
+                        label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Cubic11',
+                          fontSize: 16,
+                          color: GamePalette.dark.ink,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// A section of the shared Web and App tower artwork.
 class FocusTowerPiece extends StatelessWidget {
   const FocusTowerPiece({
