@@ -1,6 +1,7 @@
 (function(root){
   'use strict';
   const target='town.html';
+  function destinationForProfile(profile){return Number.isInteger(profile?.avatarProfile?.faceShapeIndex)&&profile.avatarProfile.faceShapeIndex>=0?target:'town.html#open=onboarding.html';}
   function initialProfile(user,stamp){
     return {id:user.uid,email:user.email||'',nickname:'自律使用者',myNudgeId:'NDG_'+user.uid.substring(0,6).toUpperCase(),
       username:'NDG_'+user.uid.substring(0,6).toUpperCase(),planetCount:0,weeklyPlanetEarned:false,tasks:[],dailySummaries:[],createdAt:stamp,updatedAt:stamp};
@@ -8,14 +9,15 @@
   async function ensureProfile({db,user,stamp,alive}){
     if(!user?.uid||user.isAnonymous)throw Error('請使用本人帳號登入。');
     const ref=db.collection('users').doc(user.uid);
-    await db.runTransaction(async tx=>{
+    const profile=await db.runTransaction(async tx=>{
       const existing=await tx.get(ref);
       if(!alive())throw Error('帳號已切換，請重新操作。');
-      if(!existing.exists)tx.set(ref,initialProfile(user,stamp()));
+      if(!existing.exists){const data=initialProfile(user,stamp());tx.set(ref,data);return data;}return existing.data();
     });
     if(!alive())throw Error('帳號已切換，舊回應已忽略。');
+    return profile;
   }
-  const api={target,initialProfile,ensureProfile};
+  const api={target,destinationForProfile,initialProfile,ensureProfile};
   if(typeof module==='object'&&module.exports){module.exports=api;return;}
   if(!document.querySelector('[data-town-gate="login"]'))return;
   const $=id=>document.getElementById(id),form=$('loginForm'),submit=$('submitBtn'),error=$('errorMsg'),note=$('gateAuthStatus');
@@ -36,9 +38,9 @@
     const input=$(b.dataset.passwordToggle),visible=input.type==='password';input.type=visible?'text':'password';b.setAttribute('aria-pressed',String(visible));b.textContent=visible?'隱藏密碼':'顯示密碼';
   }));
   async function finish(user,ownEpoch){
-    await ensureProfile({db,user,stamp:()=>root.firebase.firestore.FieldValue.serverTimestamp(),alive:()=>epoch===ownEpoch&&auth.currentUser?.uid===user.uid});
+    const profile=await ensureProfile({db,user,stamp:()=>root.firebase.firestore.FieldValue.serverTimestamp(),alive:()=>epoch===ownEpoch&&auth.currentUser?.uid===user.uid});
     clearPreview();localStorage.setItem('nudgeWebLoggedIn','true');localStorage.setItem('nudgeActiveDemoUserId',user.uid);
-    root.location.assign(target);
+    root.location.assign(destinationForProfile(profile));
   }
   async function perform(signIn,verification=false){
     if(busy||!auth)return;const ownEpoch=epoch;lock(true);sayError('');note.textContent='正在登入並確認帳號資料…';
