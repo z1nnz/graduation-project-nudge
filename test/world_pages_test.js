@@ -9,7 +9,7 @@ const windowCore = require('../web_dashboard/assets/town_window_core.js');
 const root = path.join(__dirname, '..', 'web_dashboard');
 const migrated = new Set([
   'dashboard.html', 'personal-focus.html', 'planet.html', 'planet-builder.html', 'operations.html',
-  'profile.html', 'privacy.html', 'safety-center.html',
+  'profile.html', 'privacy.html', 'safety-center.html', 'quests.html',
 ]);
 // TODO: remove entries as the page owners migrate them. town.html has its own
 // full-screen game shell.
@@ -22,7 +22,7 @@ const awaitingMigration = new Set([
   'guardian.html', 'login.html', 'mailbox.html', 'notifications.html',
   'personal-identity.html', 'personal-letter.html', 'personal-pressure.html',
   'personal-skill-tree.html', 'personal-template.html', 'personal-time-capsule.html',
-  'personal-trends.html', 'personal-weather.html', 'personal.html', 'quests.html',
+  'personal-trends.html', 'personal-weather.html', 'personal.html',
   'room-chat.html', 'rooms.html', 'seasonal-event.html', 'story-chapters.html',
   'weekly-planner.html',
 ]);
