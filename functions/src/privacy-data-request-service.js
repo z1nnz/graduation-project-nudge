@@ -360,6 +360,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     ["clubs", "ownerId"], ["club_members", "userId"], ["club_posts", "authorId"],
     ["club_reactions", "userId"], ["club_challenge_members", "userId"],
   ].map(async ([name, field]) => [name, (await readQuery(firestore, name, field, "==", userId)).documents]));
+  const townEventPreferences = await readSingleDocument(firestore, "town_event_preferences", userId);
   const familyLinks = memberships.documents
     .filter(item => item.data.scopeType === "family")
     .map(buildRelationshipScopeExport);
@@ -419,6 +420,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       thanks_card_usage: thanksUsage.documents,
       exchange_journals: exchangeJournals,
       ...Object.fromEntries(clubData),
+      town_event_preferences: townEventPreferences,
       safety_actions: moderationActions.documents.map(({ data }) => ({
         action: data.action, reason: data.reason, createdAt: data.createdAt,
       })),

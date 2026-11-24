@@ -860,6 +860,7 @@ export class FirestoreAccountDeletionRepository {
 
     const directCollections = [
       "buddy_settings",
+      "town_event_preferences",
       "social_safety",
       "public_profiles",
       "privacy_consents",

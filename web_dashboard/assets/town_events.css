@@ -1,0 +1,11 @@
+.town_events, .town_events form { display: grid; gap: 1rem; }
+.town-goal-scene { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 1rem; align-items: center; }
+.town-goal-scene progress { width: 100%; accent-color: var(--w-gold); }
+.town-goal-scene p, .town_events #townGoalStatus { color: var(--w-ink); }
+.town-goal-scene img { image-rendering: pixelated; }
+.town-goal-scene h2, .town_events button, #townTotal { font-family: var(--w-pixel); }
+.town_events button { min-height: 44px; }
+.town_events label { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
+.town_events input { width: 24px; height: 24px; }
+.town-mayor { display: flex; gap: .5rem; align-items: center; }
+@media (max-width: 480px) { .town-goal-scene { grid-template-columns: 1fr; } .town-goal-scene > img { justify-self: center; } }

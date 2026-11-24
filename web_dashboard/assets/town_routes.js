@@ -86,6 +86,7 @@
     d('buddies', 'buddies.html', 'plaza', '自律夥伴', 'player', 'login', null, 'cloud', '#83'),
     d('thanks-cards', 'thanks-cards.html', 'plaza', '感謝卡冊', 'player', 'login', null, 'cloud', '#83'),
     d('exchange-journal', 'exchange-journal.html', 'plaza', '交換日記', 'player', 'login', null, 'cloud', '#83'),
+    d('town-goals', 'town-goals.html', 'plaza', '全鎮共同目標', 'player', 'login', null, 'cloud', '#83'),
     d('friends', 'friend.html', 'plaza', '好友', 'player', 'login', null, 'cloud', '#83'),
     d('friend-visits', 'friend-visits.html', 'plaza', '好友拜訪紀錄', 'player', 'login', null, 'cloud', '#83'),
     d('privacy', 'privacy.html', 'plaza', '隱私與資料', 'player', 'login', null, 'cloud', 'core'),
