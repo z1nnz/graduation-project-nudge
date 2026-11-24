@@ -73,6 +73,7 @@
     d('pressure', 'personal-pressure.html', 'library', '溫柔整理', 'player', 'login', null, 'cloud', '#84'),
     d('task-template', 'personal-template.html', 'library', '下一步工坊', 'player', 'login', null, 'cloud', '#84'),
     d('future-letter', 'personal-letter.html', 'library', '未來的信', 'player', 'login', null, 'cloud', '#84'),
+    d('share-card', 'personal-share.html', 'library', '成長分享卡', 'player', 'login', null, 'cloud', '#124'),
     d('time-capsule', 'personal-time-capsule.html', 'library', '自律時間膠囊', 'player', 'login', null, 'cloud', '#84'),
     d('achievements', 'achievements.html', 'library', '成就大廳（二樓）', 'player', 'login', null, 'cloud', '#124'),
     d('shop', 'operations.html', 'store', '角色商城', 'player', 'login', null, 'cloud', '#82'),
