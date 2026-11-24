@@ -16,6 +16,7 @@ import {
   onDocumentCreatedWithAuthContext,
   onDocumentUpdatedWithAuthContext,
   onDocumentUpdated,
+  onDocumentWritten,
   onDocumentCreated,
 } from "firebase-functions/v2/firestore";
 
@@ -24,6 +25,8 @@ import { ActivityLedgerService } from "./src/activity-ledger-service.js";
 import {
   createFamilyGardenHandler, createDueFamilyLettersHandler, createCompletedGoalLetterHandler,
 } from "./src/family-garden-service.js";
+import { createUpdateWebPushPreferencesHandler } from "./src/web-push-preferences.js";
+import { createQueueWebSocialPushHandler, createFocusRoundWebPushHandler } from "./src/web-push-events.js";
 import { createManageGrowthDocumentHandler } from "./src/growth-document-service.js";
 import { activityLedgerHttpsError } from "./src/activity-ledger-error-mapping.js";
 import { FirestoreActivityLedgerStore } from "./src/firestore-activity-ledger-store.js";
@@ -55,6 +58,7 @@ import { createFriendCabinVisitHandler } from "./src/friend-cabin-visit.js";
 import { createArrangeHomeDecorHandler } from "./src/home-decor-service.js";
 import {
   createDeliverPushJobHandler,
+  createCleanupWebPushHandler,
   createUpdatePushInstallationHandler,
 } from "./src/push-notification-service.js";
 import {
@@ -826,6 +830,27 @@ export const sendDatedFamilyLetters = onSchedule(
 export const sendCompletedGoalLetters = onDocumentUpdated(
   { document: "family_links/{linkId}/goals/{goalId}", retry: true },
   createCompletedGoalLetterHandler(getFirestore()),
+);
+
+const updateWebPreferences = createUpdateWebPushPreferencesHandler(getFirestore());
+export const updateWebPushPreferences = onCall(
+  { enforceAppCheck: true, timeoutSeconds: 10, memory: "256MiB" },
+  request => withAccountOperation(request, () => updateWebPreferences(request)),
+);
+
+export const queueWebSocialPush = onDocumentCreated(
+  { document: "user_notifications/{notificationId}", retry: true },
+  createQueueWebSocialPushHandler(getFirestore()),
+);
+
+export const queueFocusRoundWebPush = onDocumentWritten(
+  { document: "rooms/{roomId}/focus_rounds/current", retry: true },
+  createFocusRoundWebPushHandler(getFirestore()),
+);
+
+export const cleanupWebPushInstallations = onSchedule(
+  { schedule: "every day 03:40", timeZone: "Asia/Taipei", timeoutSeconds: 120 },
+  createCleanupWebPushHandler({ firestore: getFirestore(), clock: () => new Date() }),
 );
 
 export const deliverPushNotification = onDocumentCreated(
