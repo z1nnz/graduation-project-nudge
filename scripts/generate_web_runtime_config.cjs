@@ -7,6 +7,7 @@ function normalizedString(value) {
 
 function buildWebRuntimeConfig({
   firebaseAppCheckSiteKey,
+  webPushVapidKey,
   environment = "production",
 }) {
   const siteKey = normalizedString(firebaseAppCheckSiteKey);
@@ -23,9 +24,14 @@ function buildWebRuntimeConfig({
   if (!/^[a-z0-9_-]{2,32}$/i.test(deploymentEnvironment)) {
     throw new Error("NUDGE_WEB_ENVIRONMENT is invalid.");
   }
+  const vapid = normalizedString(webPushVapidKey);
+  if (vapid && !/^[A-Za-z0-9_-]{87}={0,1}$/.test(vapid)) {
+    throw new Error("NUDGE_WEB_PUSH_VAPID_PUBLIC_KEY must contain the public Web Push key.");
+  }
   return Object.freeze({
     environment: deploymentEnvironment,
     firebaseAppCheckSiteKey: siteKey,
+    ...(vapid ? { webPushVapidKey: vapid } : {}),
   });
 }
 
@@ -50,6 +56,7 @@ function main() {
     firebaseAppCheckSiteKey:
       process.env.NUDGE_FIREBASE_APP_CHECK_SITE_KEY,
     environment: process.env.NUDGE_WEB_ENVIRONMENT,
+    webPushVapidKey: process.env.NUDGE_WEB_PUSH_VAPID_PUBLIC_KEY,
   });
   const outputPath = parseOutputArgument(process.argv.slice(2));
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });

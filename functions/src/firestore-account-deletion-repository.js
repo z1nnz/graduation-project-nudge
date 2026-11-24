@@ -804,6 +804,7 @@ export class FirestoreAccountDeletionRepository {
       "public_profiles",
       "privacy_consents",
       "notification_preferences",
+      "web_push_preferences",
       "discipline_identity_snapshots",
       "friend_visit_settings",
       "push_delivery_state",

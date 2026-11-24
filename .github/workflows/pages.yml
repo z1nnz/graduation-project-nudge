@@ -35,6 +35,7 @@ jobs:
       - name: Generate public Firebase runtime config
         env:
           NUDGE_FIREBASE_APP_CHECK_SITE_KEY: ${{ vars.NUDGE_FIREBASE_APP_CHECK_SITE_KEY }}
+          NUDGE_WEB_PUSH_VAPID_PUBLIC_KEY: ${{ vars.NUDGE_WEB_PUSH_VAPID_PUBLIC_KEY }}
           NUDGE_WEB_ENVIRONMENT: production
         run: >-
           node scripts/generate_web_runtime_config.cjs

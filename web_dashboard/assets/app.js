@@ -287,7 +287,12 @@ function injectModuleMenu() {
       localStorage.removeItem("nudgeActiveDemoUserId");
 
       if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().signOut().then(() => {
+        const auth = firebase.auth();
+        const revokeWebPush = localStorage.getItem("nudgeWebPushOwner") === auth.currentUser?.uid
+          ? loadWindowModule("NudgeWebPush", "assets/web_push.js?v=1", "Push module unavailable")
+            .then(push => push.revoke(auth.currentUser, functions)).catch(() => {})
+          : Promise.resolve();
+        revokeWebPush.then(() => auth.signOut()).then(() => {
           window.location.href = "dashboard.html"; // 登出後回到總覽頁面
         }).catch(err => {
           console.error("Firebase sign out failed:", err);
@@ -4783,6 +4788,14 @@ function initializeFirebaseWeb() {
                 localStorage.removeItem("nudgePreviewRole");
                 localStorage.setItem("nudgeWebLoggedIn", "true");
                 localStorage.setItem("nudgeActiveDemoUserId", user.uid);
+              }
+              if (!user.isAnonymous && functions && (
+                document.querySelector("[data-web-push]") || localStorage.getItem("nudgeWebPushOwner") === user.uid
+              )) {
+                loadWindowModule("NudgeWebPush", "assets/web_push.js?v=1", "Push module unavailable")
+                  .then(push => {
+                    if (auth.currentUser?.uid === user.uid) push.start({ auth, db, cloud: functions, user });
+                  }).catch(() => {});
               }
               startListeningToFirestoreData();
               if (!document.querySelector("[data-growth-museum], [data-town-gate], [data-town-tool]")) ensureWebActivityLedgerOutbox()

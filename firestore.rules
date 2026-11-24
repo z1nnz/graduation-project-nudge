@@ -2387,6 +2387,11 @@ service cloud.firestore {
 
     // FCM registration tokens never cross the client read boundary. Clients
     // use updatePushInstallation; only the non-secret aggregate is visible.
+    match /web_push_preferences/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+
     match /push_installations/{installationId} {
       allow read, write: if false;
     }

@@ -182,6 +182,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     publicProfile,
     consent,
     notificationPreferences,
+    webPushPreferences,
     disciplineIdentitySnapshot,
     deviceAssignments,
     pushDeliveryState,
@@ -217,6 +218,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
     readSingleDocument(firestore, "public_profiles", userId),
     readSingleDocument(firestore, "privacy_consents", userId),
     readSingleDocument(firestore, "notification_preferences", userId),
+    readSingleDocument(firestore, "web_push_preferences", userId),
     readSingleDocument(firestore, "discipline_identity_snapshots", userId),
     readQuery(
       firestore,
@@ -326,6 +328,7 @@ export async function collectPrivacyExportData({ firestore, userId, now = new Da
       public_profiles: publicProfile,
       privacy_consents: consent,
       notification_preferences: notificationPreferences,
+      web_push_preferences: webPushPreferences,
       discipline_identity_snapshots: disciplineIdentitySnapshot,
       device_assignments: deviceAssignments.documents,
       push_delivery_state: pushDeliveryState,
