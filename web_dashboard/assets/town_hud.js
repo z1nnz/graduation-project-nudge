@@ -13,7 +13,7 @@
   const mediaReduced = root.matchMedia?.('(prefers-reduced-motion: reduce)').matches || false;
   const reduced = () => mediaReduced || preferences.reducedMotion === true;
   const save = () => store.set(prefKey, JSON.stringify(preferences));
-  const state = { uid: null, buildings: [], previous: new Map(), unreadUnsub: null,
+  const state = { uid: null, buildings: [], previous: new Map(), previousLevel: null, unreadUnsub: null,
     authUnsub: null, lastPositionUpdate: 0, settingsReturn: null, emoteReturn: null };
 
   function count(id, value) {
@@ -46,6 +46,7 @@
     if (state.uid !== uid) {
       state.uid = uid;
       state.previous.clear();
+      state.previousLevel = null;
       count('townCoins', '—'); count('townStreak', '—');
       el('townXpRing').style.setProperty('--xp-progress', '0%');
       renderQuests([]);
@@ -57,6 +58,9 @@
     }
     const level = Number(data.avatarLevel), exp = Number(data.avatarExperience);
     const xp = core.progress(level, exp);
+    if (xp && state.previousLevel != null && level > state.previousLevel)
+      doc.dispatchEvent(new CustomEvent('nudge-town-level-up', { detail: { level } }));
+    if (xp) state.previousLevel = level;
     el('townXpRing').style.setProperty('--xp-progress', `${Math.round((xp?.fraction || 0) * 100)}%`);
     el('townXpRing').title = xp ? `Lv ${level}・${exp} EXP，距下一級 ${xp.remaining}` : '經驗值尚未同步';
     const coins = data.disciplineCoins;
