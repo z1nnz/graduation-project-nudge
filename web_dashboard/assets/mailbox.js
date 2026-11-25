@@ -89,7 +89,9 @@
     const list = $("[data-mailbox-letters]");
     const badge = $("[data-mailbox-unread]");
     const note = $("[data-mailbox-status]");
-    if (!list) return;
+    const drawer = $("[data-mailbox-drawer]");
+    if (!list || !drawer) return;
+    const openIds = new Set([...document.querySelectorAll("details[data-letter-id][open]")].map(item => item.dataset.letterId));
     const unread = api.unreadCount(state.letters);
     if (badge) badge.textContent = String(unread);
     if (note) {
@@ -97,17 +99,19 @@
         ? "目前離線：顯示的是最後同步的信件，標示已讀會在連線後再試。"
         : state.error || (unread ? `你有 ${unread} 封未讀信件。` : "所有信件都已讀。");
     }
-    if (!state.userId) { list.innerHTML = `<li class="visit-empty">登入後打開你的信箱。</li>`; return; }
-    if (!state.letters.length) {
-      list.innerHTML = `<li class="visit-empty">信箱是空的。</li>`;
+    if (!state.userId) {
+      list.innerHTML = `<li class="visit-empty">登入後打開你的信箱。</li>`;
+      drawer.replaceChildren();
       return;
     }
-    list.innerHTML = state.letters.slice(0, 50).map(raw => {
+    function present(raw) {
       const letter = api.presentLetter(raw, state.requestStatus[raw.id]);
       const busy = state.pending.has(letter.id) || state.offline ? "disabled" : "";
       return `<li class="mailbox-letter${letter.unread ? " is-unread" : ""}">
+        <details class="mailbox-envelope${letter.unread ? " is-unread" : ""}" data-letter-id="${esc(letter.id)}" data-kind="${esc(raw.kind)}" ${openIds.has(letter.id) ? "open" : ""}>
+        <summary>${raw.kind === "friend_cabin_letter" ? "📦" : "✉"} ${esc(letter.title)}</summary>
+        <div>
         <div class="mailbox-letter-head">
-          <strong>${esc(letter.title)}</strong>
           <span class="social-badge${letter.unread ? "" : " is-muted"}">${letter.unread ? "未讀" : "已讀"}</span>
           ${letter.requestStatusLabel ? `<span class="social-badge is-muted">${esc(letter.requestStatusLabel)}</span>` : ""}
         </div>
@@ -117,8 +121,15 @@
           ${letter.unread ? `<button type="button" data-mailbox-read="${esc(letter.id)}" ${busy}>標示已讀</button>` : ""}
           ${letter.href ? `<a class="secondary-btn" href="${esc(letter.href)}">${esc(letter.actionLabel)}</a>` : ""}
         </div>
+        </div>
+        </details>
       </li>`;
-    }).join("");
+    }
+    const letters = state.letters.slice(0, 50);
+    list.innerHTML = letters.filter(letter => letter.status === "unread").map(present).join("") ||
+      '<li class="visit-empty">沒有未讀信件。</li>';
+    drawer.innerHTML = letters.filter(letter => letter.status === "read").map(present).join("") ||
+      '<li class="visit-empty">抽屜裡還沒有信件。</li>';
   }
 
   async function markRead(id) {

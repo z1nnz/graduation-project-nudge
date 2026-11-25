@@ -17,6 +17,7 @@ import 'cabin_tour.dart';
 import '../models/companion_celebration.dart';
 import 'celebration_overlay.dart';
 import 'cabin_weather_sheet.dart';
+import 'cabin_mail_art.dart';
 
 /// Pixel font for in-world text (HUD, signs, bubbles).
 const pixelFont = 'Cubic11';
@@ -1508,7 +1509,7 @@ class _ParcelState extends State<_Parcel> with SingleTickerProviderStateMixin {
             clipBehavior: Clip.none,
             children: [
               const Positioned.fill(
-                child: CustomPaint(painter: _ParcelPainter()),
+                child: CustomPaint(painter: CabinMailPainter()),
               ),
               Positioned(
                 right: -6,
@@ -1539,32 +1540,4 @@ class _ParcelState extends State<_Parcel> with SingleTickerProviderStateMixin {
       ),
     );
   }
-}
-
-class _ParcelPainter extends CustomPainter {
-  const _ParcelPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.width / 10;
-    void px(int x, int y, int w, int h, Color color) => canvas.drawRect(
-      Rect.fromLTWH(x * c, y * c, w * c + 0.5, h * c + 0.5),
-      Paint()..color = color,
-    );
-    const outline = Color(0xFF3A1D0C);
-    const box = Color(0xFFC98B4F);
-    const shade = Color(0xFFA06A35);
-    const ribbon = Color(0xFFD6455D);
-    px(1, 3, 8, 6, outline);
-    px(2, 4, 6, 4, box);
-    px(2, 7, 6, 1, shade);
-    px(0, 2, 10, 2, outline);
-    px(1, 2, 8, 1, box);
-    px(4, 2, 2, 7, ribbon);
-    px(2, 0, 2, 2, ribbon);
-    px(6, 0, 2, 2, ribbon);
-  }
-
-  @override
-  bool shouldRepaint(_ParcelPainter old) => false;
 }
