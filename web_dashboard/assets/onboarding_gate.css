@@ -1,0 +1,27 @@
+.gate-skip { position:absolute; left:12px; top:-90px; z-index:20; padding:12px; color:var(--w-ink-dark); background:var(--w-parchment); }
+.gate-skip:focus { top:12px; }
+.gate-top { justify-content:space-between; }
+.gate-top a { color:var(--w-ink); }
+.gate-brand { font-family:var(--w-pixel); }
+.gate-intro { text-align:center; margin:24px 0; }
+.gate-intro h2 { font-family:var(--w-pixel); color:var(--w-gold); font-size:32px; }
+.gate-kicker { font-family:var(--w-pixel); color:var(--w-gold); }
+.gate-login { max-width:560px; margin:24px auto; padding:24px; background:var(--w-parchment); color:var(--w-ink-dark); border:4px solid var(--w-frame); }
+.gate-tabs { display:flex; gap:12px; }
+.gate-tabs button { flex:1; }
+.gate-login button { min-height:44px; padding:10px 14px; font-family:var(--w-pixel); font-size:16px; background:var(--w-wood-dark); color:var(--w-ink); border:2px solid var(--w-wood-deep); cursor:pointer; }
+.gate-login button[aria-pressed="true"],.gate-login #submitBtn { background:var(--w-gold); color:var(--w-ink-dark); }
+.gate-login button:disabled { opacity:.6; cursor:wait; }
+.gate-login label { display:block; margin:16px 0 6px; }
+.gate-login input { min-height:44px; width:100%; padding:10px; color:var(--w-ink-dark); background:var(--w-parchment-hi); border:2px solid var(--w-wood); }
+.gate-password { display:flex; gap:8px; }
+.gate-password input { min-width:0; flex:1; }
+.gate-password button { flex:none; }
+.gate-auth-options { display:grid; gap:12px; margin:20px 0; }
+.gate-notice { padding:12px; border-left:4px solid var(--w-gold-deep); background:var(--w-parchment-hi); }
+.gate-error { border-color:var(--w-red); }
+.gate-divider { border-top:2px solid var(--w-frame); padding-top:16px; margin-top:20px; }
+.gate-divider a { color:var(--w-violet-deep); display:inline-block; min-height:44px; padding:10px 0; }
+.gate-footer { display:flex; flex-wrap:wrap; justify-content:center; gap:20px; padding:24px; }
+.gate-footer a { color:var(--w-ink); min-height:44px; padding:12px 0; }
+@media(max-width:600px){.gate-login{padding:16px}.gate-brand{display:none}.gate-tabs{gap:8px}}

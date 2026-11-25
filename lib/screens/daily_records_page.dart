@@ -1,5 +1,9 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/daily_summary.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
@@ -50,8 +54,8 @@ class DailyRecordsPage extends StatelessWidget {
   }
 
   void _showDetailSheet(BuildContext context, DailySummary summary) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     showModalBottomSheet(
       context: context,
@@ -87,6 +91,7 @@ class DailyRecordsPage extends StatelessWidget {
                       child: Text(
                         summary.date,
                         style: TextStyle(
+                          fontFamily: 'Cubic11',
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: primaryText,
@@ -98,10 +103,14 @@ class DailyRecordsPage extends StatelessWidget {
                         horizontal: 12,
                         vertical: 8,
                       ),
-                      decoration: AppUI.softCardOf(context, AppUI.primary),
+                      decoration: GameRecordStyle.inset(
+                        context,
+                        GamePalette.violet,
+                      ),
                       child: Text(
                         '${summary.disciplineScore} 分',
                         style: TextStyle(
+                          fontFamily: 'Cubic11',
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: primaryText,
@@ -180,9 +189,9 @@ class DailyRecordsPage extends StatelessWidget {
     final summaries = _sortedSummaries(
       context.watch<AppState>().dailySummaries,
     );
-    final accentColor = context.watch<AppState>().currentIconColor;
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final accentColor = GamePalette.goldDeep;
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     final monthSummaries = _thisMonthSummaries(summaries);
     final averageScore = _averageScore(monthSummaries);
@@ -191,120 +200,127 @@ class DailyRecordsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('每日紀錄')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.20),
-                    shape: BoxShape.circle,
+      body: GameFacilityScene(
+        title: '每日紀錄藏書',
+        objectLabel: '翻開每日紀錄',
+        background: 'assets/scenes/library/library_room.webp',
+        child: ListView(
+          padding: const EdgeInsets.all(AppUI.pagePadding),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: GameRecordStyle.hero(accentColor),
+              child: Row(
+                children: [
+                  Container(
+                    width: 62,
+                    height: 62,
+                    decoration: BoxDecoration(
+                      color: GamePalette.inkLight.withValues(alpha: 0.20),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.calendar_today_outlined,
+                      color: GamePalette.inkLight,
+                      size: 30,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.calendar_today_outlined,
-                    color: Colors.white,
-                    size: 30,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '每日紀錄總覽',
+                          style: TextStyle(
+                            color: GamePalette.inkLight,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '已累積 ${summaries.length} 天紀錄',
+                          style: const TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUI.sectionGap),
+            Row(
+              children: [
+                Expanded(
+                  child: _SummaryMiniCard(
+                    icon: Icons.insights_outlined,
+                    title: '本月平均',
+                    value: '$averageScore 分',
+                    color: GamePalette.violet,
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '每日紀錄總覽',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '已累積 ${summaries.length} 天紀錄',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  child: _SummaryMiniCard(
+                    icon: Icons.monetization_on_outlined,
+                    title: '本月自律幣',
+                    value: '+$totalCoins 枚',
+                    color: GamePalette.goldDeep,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryMiniCard(
-                  icon: Icons.insights_outlined,
-                  title: '本月平均',
-                  value: '$averageScore 分',
-                  color: AppUI.purple,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _SummaryMiniCard(
-                  icon: Icons.monetization_on_outlined,
-                  title: '本月自律幣',
-                  value: '+$totalCoins 枚',
-                  color: AppUI.orange,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _SummaryMiniCard(
-            icon: Icons.emoji_events_outlined,
-            title: '本月最佳日',
-            value: bestDay == null ? '--' : _shortDate(bestDay.date),
-            color: AppUI.green,
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Text(
-            '紀錄列表',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
+            const SizedBox(height: 12),
+            _SummaryMiniCard(
+              icon: Icons.emoji_events_outlined,
+              title: '本月最佳日',
+              value: bestDay == null ? '--' : _shortDate(bestDay.date),
+              color: GamePalette.green,
             ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          if (summaries.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前還沒有每日紀錄。',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: secondaryText,
-                    height: 1.5,
+            const SizedBox(height: AppUI.sectionGap),
+            Text(
+              '紀錄列表',
+              style: TextStyle(
+                fontFamily: 'Cubic11',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: primaryText,
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            if (summaries.isEmpty)
+              GameArtifact(
+                shape: AppUI.cardShape(),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppUI.innerPadding),
+                  child: Text(
+                    '目前還沒有每日紀錄。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryText,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ...summaries.map(
+                (summary) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                  child: _DailyRecordTile(
+                    summary: summary,
+                    onTap: () => _showDetailSheet(context, summary),
                   ),
                 ),
               ),
-            )
-          else
-            ...summaries.map(
-              (summary) => Padding(
-                padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-                child: _DailyRecordTile(
-                  summary: summary,
-                  onTap: () => _showDetailSheet(context, summary),
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -325,10 +341,10 @@ class _SummaryMiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -338,15 +354,16 @@ class _SummaryMiniCard extends StatelessWidget {
             Container(
               width: 42,
               height: 42,
-              decoration: AppUI.softCardOf(context, color),
+              decoration: GameRecordStyle.inset(context, color),
               child: Icon(icon, color: color),
             ),
             const SizedBox(height: 10),
-            Text(title, style: TextStyle(fontSize: 13, color: secondaryText)),
+            Text(title, style: TextStyle(fontSize: 14, color: secondaryText)),
             const SizedBox(height: 4),
             Text(
               value,
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: primaryText,
@@ -367,11 +384,11 @@ class _DailyRecordTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = context.watch<AppState>().currentIconColor;
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final accentColor = GamePalette.goldDeep;
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppUI.radiusCard),
@@ -383,7 +400,7 @@ class _DailyRecordTile extends StatelessWidget {
               Container(
                 width: 52,
                 height: 52,
-                decoration: AppUI.softCardOf(context, accentColor),
+                decoration: GameRecordStyle.inset(context, accentColor),
                 child: Icon(Icons.calendar_today_outlined, color: accentColor),
               ),
               const SizedBox(width: 12),
@@ -394,6 +411,7 @@ class _DailyRecordTile extends StatelessWidget {
                     Text(
                       summary.date,
                       style: TextStyle(
+                        fontFamily: 'Cubic11',
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: primaryText,
@@ -411,6 +429,7 @@ class _DailyRecordTile extends StatelessWidget {
               Text(
                 '${summary.disciplineScore} 分',
                 style: TextStyle(
+                  fontFamily: 'Cubic11',
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: primaryText,
@@ -434,15 +453,15 @@ class _RecordInfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 170),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppUI.isDark(context)
-            ? const Color(0xFF242A36)
-            : const Color(0xFFF3F4F6),
+            ? GamePalette.woodDeep
+            : GamePalette.inkLight,
         borderRadius: BorderRadius.circular(AppUI.radiusPill),
       ),
       child: Text(
@@ -450,7 +469,8 @@ class _RecordInfoChip extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          fontSize: 12,
+          fontFamily: 'Cubic11',
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           color: primaryText,
         ),

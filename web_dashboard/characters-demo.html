@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Nudge 小鎮居民</title>
+  <meta name="theme-color" content="#1b1530">
+  <link rel="stylesheet" href="assets/world_ui.css?v=3">
+  <link rel="stylesheet" href="assets/characters_demo.css?v=1">
+</head>
+<body class="w-page" data-page="characters-demo">
+  <header class="w-hud">
+    <a data-town-return href="town.html">← 回小鎮</a>
+    <h1>小鎮居民</h1>
+  </header>
+  <main class="w-main">
+    <p class="w-subtitle">開發用展示頁：每位角色的 sprite sheet 與對話框。點角色聽他說話，下方切換動作。</p>
+    <div class="cd-tools" role="group" aria-label="切換動作">
+      <button type="button" class="w-btn" data-anim="idle">待機</button>
+      <button type="button" class="w-btn" data-anim="talk">說話</button>
+      <button type="button" class="w-btn" data-anim="walk_down">往下走</button>
+      <button type="button" class="w-btn" data-anim="walk_left">往左走</button>
+      <button type="button" class="w-btn" data-anim="walk_right">往右走</button>
+      <button type="button" class="w-btn" data-anim="walk_up">往上走</button>
+      <button type="button" class="w-btn is-violet" data-anim="happy">開心跳</button>
+      <button type="button" class="w-btn is-violet" data-anim="wave">揮手</button>
+      <button type="button" class="w-btn is-violet" data-anim="think">思考</button>
+      <button type="button" class="w-btn is-violet" data-anim="sleep">睡覺</button>
+    </div>
+    <ul id="cdStage" class="cd-stage" aria-label="小鎮居民"></ul>
+  </main>
+  <script src="assets/town_routes.js?v=6"></script>
+  <script src="assets/town_return.js?v=2"></script>
+  <script src="assets/sprite_player.js?v=1"></script>
+  <script src="assets/npc_dialog.js?v=1"></script>
+  <script src="assets/characters_demo.js?v=1"></script>
+</body>
+</html>

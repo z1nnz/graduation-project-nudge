@@ -1,3 +1,6 @@
+import '../theme/game_ui.dart';
+import 'game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 
 import '../models/daily_summary.dart';
@@ -23,7 +26,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
         value: '${summary.completedTasks}/${summary.totalTasks}',
         detail: '完成率 $completionRate%，這是每日分數最主要的基礎。',
         icon: Icons.task_alt_outlined,
-        color: completionRate >= 70 ? AppUI.green : AppUI.orange,
+        color: completionRate >= 70 ? GamePalette.green : GamePalette.goldDeep,
         progress: completionRate / 100,
       ),
     );
@@ -34,7 +37,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
         value: '${summary.autoTrackedCompleted}/${summary.autoTrackedTotal}',
         detail: '來源：${summary.sourceSummary}。',
         icon: Icons.sync_outlined,
-        color: AppUI.blue,
+        color: GamePalette.violet,
         progress: summary.autoTrackedTotal == 0
             ? 0
             : summary.autoTrackedCompleted / summary.autoTrackedTotal,
@@ -48,7 +51,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
         detail:
             '睡眠 ${summary.sleepHours.toStringAsFixed(1)} 小時、步數 ${summary.steps}、運動 ${summary.exerciseMinutes} 分。',
         icon: Icons.favorite_border,
-        color: AppUI.purple,
+        color: GamePalette.violet,
         progress: summary.healthTotal == 0
             ? 0
             : summary.healthCompleted / summary.healthTotal,
@@ -62,7 +65,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
         detail:
             '自律房完成 ${summary.roomCompleted}/${summary.roomTotal}，專注 ${summary.focusMinutes} 分鐘。',
         icon: Icons.groups_2_outlined,
-        color: const Color(0xFF14B8A6),
+        color: GamePalette.green,
         progress: summary.roomTotal == 0
             ? 0
             : summary.roomCompleted / summary.roomTotal,
@@ -77,7 +80,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
           detail:
               '目前 ${summary.disciplineScore} 分，還差 ${summary.nextCoinMilestone - summary.disciplineScore} 分到下一檔。',
           icon: Icons.monetization_on_outlined,
-          color: AppUI.orange,
+          color: GamePalette.goldDeep,
           progress: summary.disciplineScore / summary.nextCoinMilestone,
         ),
       );
@@ -88,10 +91,10 @@ class DailyScoreBreakdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -100,7 +103,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.manage_search, color: AppUI.primary),
+                const Icon(Icons.manage_search, color: GamePalette.goldDeep),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -115,8 +118,8 @@ class DailyScoreBreakdownCard extends StatelessWidget {
                 Text(
                   '+${summary.coinsEarned} 枚',
                   style: TextStyle(
-                    color: AppUI.orange,
-                    fontSize: 13,
+                    color: GamePalette.goldDeep,
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -129,14 +132,14 @@ class DailyScoreBreakdownCard extends StatelessWidget {
                   title: '自律分數',
                   value: '${summary.disciplineScore}',
                   unit: '分',
-                  color: AppUI.primary,
+                  color: GamePalette.goldDeep,
                 ),
                 const SizedBox(width: 10),
                 _SummaryMetric(
                   title: '任務',
                   value: '${summary.completedTasks}/${summary.totalTasks}',
                   unit: '',
-                  color: AppUI.green,
+                  color: GamePalette.green,
                 ),
                 const SizedBox(width: 10),
                 _SummaryMetric(
@@ -144,7 +147,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
                   value:
                       '${summary.autoTrackedCompleted}/${summary.autoTrackedTotal}',
                   unit: '',
-                  color: AppUI.blue,
+                  color: GamePalette.violet,
                 ),
               ],
             ),
@@ -153,7 +156,7 @@ class DailyScoreBreakdownCard extends StatelessWidget {
               '這一天主要由任務完成率、自動追蹤、健康資料與自律房表現共同構成。',
               style: TextStyle(
                 color: secondaryText,
-                fontSize: 13,
+                fontSize: 14,
                 height: 1.45,
                 fontWeight: FontWeight.w600,
               ),
@@ -187,13 +190,13 @@ class _SummaryMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: AppUI.softCardOf(context, color),
+        decoration: GameRecordStyle.inset(context, color),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -203,7 +206,7 @@ class _SummaryMetric extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: secondaryText,
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -222,7 +225,7 @@ class _SummaryMetric extends StatelessWidget {
                       text: ' $unit',
                       style: TextStyle(
                         color: secondaryText,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -261,13 +264,17 @@ class _BreakdownReasonTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: Container(
-        decoration: AppUI.softCardOf(context, reason.color),
+      child: Material(
+        color: GamePalette.of(context).backgroundTop,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: GamePalette.of(context).wood, width: 2),
+        ),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -286,14 +293,14 @@ class _BreakdownReasonTile extends StatelessWidget {
             reason.value,
             style: TextStyle(
               color: reason.color,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
           ),
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
+              child: GameMetricGauge(
                 value: reason.progress.clamp(0.0, 1.0),
                 minHeight: 6,
                 backgroundColor: Theme.of(context).dividerColor,
@@ -307,7 +314,7 @@ class _BreakdownReasonTile extends StatelessWidget {
                 reason.detail,
                 style: TextStyle(
                   color: secondaryText,
-                  fontSize: 12,
+                  fontSize: 14,
                   height: 1.4,
                   fontWeight: FontWeight.w600,
                 ),

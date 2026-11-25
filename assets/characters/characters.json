@@ -1,0 +1,35 @@
+{
+  "frameSize": 128,
+  "layouts": {
+    "companion": [
+      { "name": "idle", "frames": 4, "fps": 6, "loop": true },
+      { "name": "walk_down", "frames": 4, "fps": 8, "loop": true },
+      { "name": "walk_left", "frames": 4, "fps": 8, "loop": true },
+      { "name": "walk_right", "frames": 4, "fps": 8, "loop": true },
+      { "name": "walk_up", "frames": 4, "fps": 8, "loop": true },
+      { "name": "happy", "frames": 6, "fps": 10, "loop": false },
+      { "name": "wave", "frames": 4, "fps": 8, "loop": false },
+      { "name": "think", "frames": 4, "fps": 6, "loop": true },
+      { "name": "sleep", "frames": 4, "fps": 4, "loop": true }
+    ],
+    "npc": [
+      { "name": "idle", "frames": 4, "fps": 6, "loop": true },
+      { "name": "talk", "frames": 4, "fps": 8, "loop": true },
+      { "name": "walk_down", "frames": 4, "fps": 8, "loop": true },
+      { "name": "walk_left", "frames": 4, "fps": 8, "loop": true },
+      { "name": "walk_right", "frames": 4, "fps": 8, "loop": true },
+      { "name": "walk_up", "frames": 4, "fps": 8, "loop": true }
+    ]
+  },
+  "characters": [
+    { "id": "companion", "name": "夥伴", "role": "玩家角色", "layout": "companion" },
+    { "id": "chestnut", "name": "栗子", "role": "雜貨店老闆", "layout": "npc" },
+    { "id": "scroll", "name": "阿紙", "role": "委託所告示員", "layout": "npc" },
+    { "id": "bounce", "name": "跳跳", "role": "遊樂園管理員", "layout": "npc" },
+    { "id": "sprout", "name": "苗苗", "role": "花園園丁", "layout": "npc" },
+    { "id": "inky", "name": "墨墨", "role": "圖書館員", "layout": "npc" },
+    { "id": "bell", "name": "鐘鐘", "role": "塔的守門人", "layout": "npc" },
+    { "id": "letty", "name": "小信", "role": "郵差", "layout": "npc" },
+    { "id": "stella", "name": "星婆", "role": "天文學者", "layout": "npc" }
+  ]
+}
