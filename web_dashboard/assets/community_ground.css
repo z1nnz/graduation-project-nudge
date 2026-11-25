@@ -27,6 +27,10 @@
 @media (prefers-reduced-motion: reduce) { .community-stop { transition: none; } }
 .community-stop:focus-visible { outline: 3px solid var(--w-gold); }
 .community-host { --w-x: 49%; --w-y: 87%; }
+@media (max-width: 480px) {
+  .community-ground--courtyard [data-community-open="garden"] { top: 51%; }
+  .community-ground--courtyard [data-community-open="letters"] { top: 69%; }
+}
 .community-actor {
   position: absolute;
   bottom: calc(100% - 4px);
