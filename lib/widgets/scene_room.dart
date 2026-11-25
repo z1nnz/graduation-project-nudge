@@ -942,3 +942,91 @@ class _BurstPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BurstPainter old) => true;
 }
+
+/// Ambient effects alone, painted over any background (e.g. the login gate).
+class SceneLife extends StatefulWidget {
+  const SceneLife({super.key, required this.effects});
+  final List<SceneEffect> effects;
+
+  @override
+  State<SceneLife> createState() => _SceneLifeState();
+}
+
+class _SceneLifeState extends State<SceneLife>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker = createTicker((elapsed) {
+    final f = elapsed.inMilliseconds ~/ 100;
+    if (f != _frame.value) _frame.value = f;
+  });
+  final _frame = ValueNotifier<int>(0);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final run =
+        !MediaQuery.disableAnimationsOf(context) &&
+        TickerMode.valuesOf(context).enabled;
+    if (run && !_ticker.isActive) _ticker.start();
+    if (!run && _ticker.isActive) _ticker.stop();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _frame.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: ValueListenableBuilder<int>(
+      valueListenable: _frame,
+      builder: (_, f, _) => CustomPaint(
+        size: Size.infinite,
+        painter: _LifePainter(widget.effects, f),
+      ),
+    ),
+  );
+}
+
+/// The town gate behind the sign-in and sign-up forms.
+class TownGateBackground extends StatelessWidget {
+  const TownGateBackground({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      ExcludeSemantics(
+        child: Image.asset(
+          'assets/scenes/gate/gate.webp',
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.none,
+          errorBuilder: (_, _, _) => const ColoredBox(color: Color(0xFF1B1530)),
+        ),
+      ),
+      const SceneLife(
+        effects: [
+          SceneEffect.clouds(top: 0.0, band: 0.1, count: 4),
+          SceneEffect.birds(top: 0.08),
+          SceneEffect.flicker([
+            Offset(0.31, 0.27),
+            Offset(0.69, 0.27),
+          ], radius: 0.04),
+          SceneEffect.flutter(count: 10, top: 0.0, band: 0.6),
+        ],
+      ),
+      const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0x00140E22), Color(0x99140E22)],
+          ),
+        ),
+      ),
+      child,
+    ],
+  );
+}
