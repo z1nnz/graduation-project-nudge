@@ -8,6 +8,8 @@ import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../widgets/avatar_icon_preview.dart';
 import '../widgets/avatar_preview.dart';
+import '../theme/game_ui.dart';
+import '../widgets/social_plaza_stage.dart';
 import 'add_friend_page.dart';
 import 'encouragement_page.dart';
 import 'friend_public_profile_page.dart';
@@ -15,7 +17,6 @@ import 'friends_page.dart';
 import 'leaderboard_page.dart';
 import 'my_profile_page.dart';
 import 'study_room_list_page.dart';
-
 
 class SocialPage extends StatelessWidget {
   const SocialPage({super.key});
@@ -95,8 +96,6 @@ class SocialPage extends StatelessWidget {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -164,6 +163,33 @@ class SocialPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
+          SocialPlazaStage(
+            title: '小鎮廣場',
+            objects: [
+              Semantics(
+                label: '長椅，查看好友',
+                child: GameButton(
+                  label: '好友長椅',
+                  onPressed: () => _openFriendsPage(context),
+                ),
+              ),
+              Semantics(
+                label: '公告欄，查看本週努力榜',
+                child: GameButton(
+                  label: '公告欄',
+                  onPressed: () => _openLeaderboard(context),
+                ),
+              ),
+              Semantics(
+                label: '郵筒，查看鼓勵',
+                child: GameButton(
+                  label: '鼓勵郵筒',
+                  onPressed: () => _openEncouragement(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUI.sectionGap),
           Card(
             shape: AppUI.cardShape(),
             child: InkWell(
@@ -265,7 +291,9 @@ class SocialPage extends StatelessWidget {
             const SizedBox(height: 12),
             ...appState.incomingFriendRequests.map((req) {
               return Card(
-                color: accentColor.withValues(alpha: AppUI.isDark(context) ? 0.16 : 0.08),
+                color: accentColor.withValues(
+                  alpha: AppUI.isDark(context) ? 0.16 : 0.08,
+                ),
                 shape: AppUI.cardShape(),
                 elevation: 0,
                 child: InkWell(
@@ -290,7 +318,10 @@ class SocialPage extends StatelessWidget {
                     );
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         CircleAvatar(
@@ -312,7 +343,9 @@ class SocialPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                req.signature.isEmpty ? '想和你一起自律前進' : req.signature,
+                                req.signature.isEmpty
+                                    ? '想和你一起自律前進'
+                                    : req.signature,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -324,13 +357,20 @@ class SocialPage extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => appState.declineFriendRequest(req.id),
-                          icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                          onPressed: () =>
+                              appState.declineFriendRequest(req.id),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.redAccent,
+                          ),
                           tooltip: '拒絕',
                         ),
                         IconButton(
                           onPressed: () => appState.acceptFriendRequest(req.id),
-                          icon: const Icon(Icons.check_rounded, color: Colors.green),
+                          icon: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.green,
+                          ),
                           tooltip: '接受',
                         ),
                       ],
@@ -378,7 +418,6 @@ class SocialPage extends StatelessWidget {
                 color: accentColor,
                 onTap: () => _openEncouragement(context),
               ),
-
             ],
           ),
 
@@ -619,8 +658,6 @@ class _SocialActivityPage extends StatelessWidget {
     );
   }
 
-
-
   void _openPublicProfile(BuildContext context, FriendData data) {
     Navigator.push(
       context,
@@ -768,7 +805,6 @@ class _SocialActivityPage extends StatelessWidget {
                 color: AppUI.purple,
                 onTap: () => _openEncouragement(context),
               ),
-
             ],
           ),
           const SizedBox(height: AppUI.sectionGap),
