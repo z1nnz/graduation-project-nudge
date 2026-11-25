@@ -264,10 +264,11 @@ class _LoginPageState extends State<LoginPage> {
                               _errorMessage = 'Facebook 登入失敗：$e';
                             });
                           } finally {
-                            if (mounted)
+                            if (mounted) {
                               setState(() {
                                 _loading = false;
                               });
+                            }
                           }
                         },
                       ),
