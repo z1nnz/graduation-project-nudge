@@ -63,3 +63,13 @@
   .plaza-scene { animation: plaza-arrive .4s ease-out; }
   @keyframes plaza-arrive { from { opacity: .5; transform: scale(.98); } to { opacity: 1; transform: none; } }
 }
+
+/* Desktop: grow the scene to the window height and centre it; phones fill the width. */
+.plaza-scene {
+  inline-size: min(100vw, calc((100dvh - 64px) * 1.5));
+  max-inline-size: none;
+  position: relative;
+  left: 50%;
+  translate: -50% 0;
+}
+html:has(.plaza-scene), body:has(.plaza-scene) { overflow-x: hidden; }

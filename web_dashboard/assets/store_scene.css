@@ -1,0 +1,148 @@
+/* General store: purse HUD, shelf slots and the cash box ledger. */
+.store-main { padding: 0; }
+.store-hud { display: flex; align-items: center; gap: 12px; }
+body[data-page="operations"] .w-hud .store-purse.hero-card {
+  background: var(--w-parchment);
+  min-height: 0;
+  box-shadow: none;
+  width: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 3px solid var(--w-wood-deep);
+  border-radius: 999px;
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  font: 18px/1 var(--w-pixel);
+}
+.store-purse > span { color: var(--w-gold-deep); }
+.store-purse small { font-size: 14px; color: var(--w-ink-soft); }
+
+.store-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.store-tabs .shop-tab-btn {
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 3px solid var(--w-wood-deep);
+  border-radius: 4px;
+  background: var(--w-wood);
+  color: var(--w-ink);
+  font: 16px var(--w-pixel);
+  cursor: pointer;
+}
+.store-tabs .shop-tab-btn.active { background: var(--w-gold); color: var(--w-ink-dark); }
+.store-tabs .shop-tab-btn[hidden] { display: none; }
+.shop-status { margin: 0 0 10px; color: var(--w-parchment); font-size: 14px; }
+
+/* each plank row holds slots; planks come from the panel background */
+body[data-page="operations"] .store-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 22px 14px;
+}
+.store-slot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 8px 6px 10px;
+  border-bottom: 10px solid #3a2216;
+  text-align: center;
+  color: var(--w-ink);
+}
+.store-lift {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  padding: 0;
+  border: 0;
+  background: radial-gradient(closest-side, rgba(255, 220, 140, 0.25), transparent);
+  cursor: pointer;
+  transition: transform 0.15s steps(3);
+}
+.store-lift img { max-width: 100%; max-height: 100%; image-rendering: pixelated; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.45)); }
+.store-lift:hover { transform: translateY(-6px); }
+.store-lift:focus-visible { outline: 3px dashed var(--w-gold); }
+.store-slot strong { font: 16px/1.2 var(--w-pixel); color: var(--w-parchment-hi); }
+.store-price {
+  padding: 1px 8px;
+  border: 2px solid var(--w-wood-deep);
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  font: 14px var(--w-pixel);
+  rotate: -3deg;
+}
+.store-slot[data-owned] .store-price { background: var(--w-green); color: var(--w-ink); }
+.store-desc { display: none; margin: 4px 0; font-size: 14px; line-height: 1.5; }
+.store-slot .shop-btn { display: none; min-height: 44px; font-size: 15px; }
+.store-slot .shop-btn[data-short] { background: var(--w-wood-dark); color: var(--w-ink); }
+.store-slot .shop-note { margin: 0; font-size: 14px; color: var(--w-parchment); }
+.store-slot .shop-note[data-tone="ok"] { color: #b7f59a; }
+.store-slot .shop-note[data-tone="bad"] { color: #ffb4a0; }
+.store-slot.is-lifted {
+  grid-column: 1 / -1;
+  grid-template-columns: 180px 1fr;
+  justify-items: start;
+  align-items: center;
+  column-gap: 18px;
+  padding: 14px;
+  border: 4px solid var(--w-wood-deep);
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  text-align: left;
+  animation: store-lift 0.25s steps(4);
+}
+.store-slot.is-lifted .store-lift { grid-row: 1 / span 5; width: 168px; height: 168px; transform: none; }
+.store-slot.is-lifted strong { color: var(--w-ink-dark); font-size: 20px; }
+.store-slot.is-lifted .store-desc,
+.store-slot.is-lifted .shop-btn { display: block; }
+body[data-page="operations"] .store-slot.is-lifted .store-desc { color: var(--w-ink-dark); }
+.store-slot.is-lifted .shop-note { color: var(--w-ink-soft); }
+@keyframes store-lift { from { transform: scale(0.9); opacity: 0.4; } }
+@media (max-width: 520px) {
+  .store-slots { grid-template-columns: repeat(2, 1fr); }
+  .store-slot.is-lifted { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .store-slot.is-lifted .store-lift { grid-row: auto; }
+}
+.expires-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2px 6px;
+  background: var(--w-red);
+  color: var(--w-ink);
+  font: 13px var(--w-pixel);
+}
+.shop-empty { grid-column: 1 / -1; padding: 28px; text-align: center; color: var(--w-parchment); }
+
+.store-ledger { display: grid; gap: 12px; justify-items: start; }
+.store-coin-pile { display: flex; align-items: end; gap: 3px; height: 64px; }
+.store-coin-pile span {
+  width: 28px;
+  height: calc(12px + var(--i, 1) * 8px);
+  border: 2px solid var(--w-gold-deep);
+  border-radius: 4px;
+  background: repeating-linear-gradient(var(--w-gold) 0 6px, var(--w-gold-deep) 6px 8px);
+}
+.store-coin-pile span:nth-child(2) { --i: 3; }
+.store-coin-pile span:nth-child(3) { --i: 5; }
+.store-coin-pile span:nth-child(4) { --i: 2; }
+.store-coin-pile span:nth-child(5) { --i: 4; }
+.store-coin-pile span:nth-child(6) { --i: 1; }
+.store-ledger-line { font-size: 18px; margin: 0; }
+.store-ledger-line strong { font: 26px var(--w-pixel); color: var(--w-gold-deep); }
+.store-ledger-rules { margin: 0; padding-left: 20px; line-height: 1.7; }
+.store-shelf[hidden],
+.store-ledger[hidden] { display: none !important; }
+@media (max-width: 520px) {
+  .store-hud h1 { font-size: 18px; white-space: nowrap; }
+  body[data-page="operations"] .w-hud .store-purse.hero-card { font-size: 16px; padding: 3px 10px; }
+}
+body[data-page="operations"] .w-hud .store-purse.hero-card { white-space: nowrap; flex: none; }
+@media (max-width: 520px) {
+  body[data-page="operations"] .w-hud .store-purse.hero-card small { display: none; }
+  .store-hud a[data-town-return] { white-space: nowrap; }
+}

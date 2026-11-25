@@ -24,6 +24,7 @@ void main() {
     for (final label in [
       '角色',
       '商城',
+      '委託所',
       '健康',
       '日曆',
       '分析',

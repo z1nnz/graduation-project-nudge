@@ -278,6 +278,42 @@
             }
           });
         }
+        // Fountain in the plaza: a pixel jet with droplets falling back into
+        // the star basin and a ripple ring. Frozen mid-arc for reduced motion.
+        {
+          const jet = point(0.4775, 0.5), basin = point(0.4775, 0.536);
+          const scale = Math.max(0.6, view.width / 1400);
+          const tick = view.reducedMotion ? 3 : now / 100;
+          paint(ctx, "#dff3ff", 0.85, () => {
+            for (let i = 0; i < 18; i++) {
+              const t = ((tick * 0.9 + i * 1.3) % 10) / 10;
+              const side = i % 2 ? 1 : -1, spread = 8 + (i % 6) * 5;
+              const x = jet.x + side * spread * t * scale;
+              const y = jet.y - (34 * t - 40 * t * t) * scale;
+              ctx.fillRect(Math.round(x), Math.round(y), 3, 4);
+            }
+          });
+          const ring = (tick % 12) / 12;
+          paint(ctx, "#c9e9ff", 0.45 * (1 - ring), () => {
+            const rx = (8 + ring * 26) * scale, ry = rx * 0.35;
+            ctx.fillRect(Math.round(basin.x - rx), Math.round(basin.y - ry), Math.round(rx * 2), 1);
+            ctx.fillRect(Math.round(basin.x - rx), Math.round(basin.y + ry), Math.round(rx * 2), 1);
+          });
+        }
+        // Lamps and house windows breathe all day, brighter after dark.
+        if (!["night", "dusk"].includes(phase.name)) {
+          for (const [i, [x, y]] of [...lamps, ...windows].entries()) {
+            const q = point(x, y);
+            const pulse = view.reducedMotion ? 0.12 : 0.1 + 0.08 * Math.sin(now / 420 + i * 1.3);
+            glow(ctx, q.x, q.y, i < lamps.length ? 9 : 6, p, pulse);
+          }
+        } else if (!view.reducedMotion) {
+          for (const [i, [x, y]] of windows.entries()) {
+            if ((Math.floor(now / 900) + i) % 7 !== 0) continue;
+            const q = point(x, y);
+            glow(ctx, q.x, q.y, 10, p, 0.35);
+          }
+        }
         // Clouds, leaves, water and smoke advance in ten discrete frames/second.
         const drift = view.reducedMotion
           ? view.width * 0.3
@@ -289,6 +325,11 @@
         for (const [x, y] of [
           [0.09, 0.367],
           [0.035, 0.351],
+          [0.44, 0.15],
+          [0.6, 0.17],
+          [0.73, 0.18],
+          [0.88, 0.4],
+          [0.2, 0.71],
         ]) {
           const q = point(x, y);
           for (let i = 0; i < 3; i++) {

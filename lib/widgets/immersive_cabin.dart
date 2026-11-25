@@ -541,6 +541,8 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   String? _pokeLine;
   int _pokeCount = 0;
   bool _still = false;
+  bool _lampOff = false;
+  int _waterings = 0;
   late bool _touring = widget.showTour;
   CompanionCelebration? _celebration;
   final _questKey = GlobalKey();
@@ -680,6 +682,33 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     }
   }
 
+  /// Cabin 2.0: the desk lamp dims the room; nothing is saved.
+  void _toggleLamp() {
+    setState(() {
+      _lampOff = !_lampOff;
+      _brain.poke();
+      _pokeLine = _lampOff ? '關燈了，房間暗下來了。' : '開燈！亮亮的比較好讀書。';
+    });
+  }
+
+  /// Cabin 2.0: the companion walks over and waters the plant.
+  void _waterPlant(CabinRect plant) {
+    final spot = Offset(
+      (plant.left + plant.width / 2 + 0.08).clamp(0.12, 0.88),
+      math.max(0.66, plant.top + plant.height),
+    );
+    _brain.walkTo(spot);
+    if (_still) {
+      for (var i = 0; i < 400 && _brain.pose == CompanionPose.walk; i++) {
+        _brain.tick(0.05);
+      }
+    }
+    setState(() {
+      _waterings++;
+      _pokeLine = _waterings > 2 ? '盆栽今天喝得很飽了～' : '幫盆栽澆點水，它看起來很開心。';
+    });
+  }
+
   void _onPoke() {
     setState(() {
       _brain.poke();
@@ -812,6 +841,31 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                   widget.presentation.globeGlowing ? '裝置・專注中' : '裝置',
                   widget.onOpenDevice,
                 ),
+            if (layout.layers['lamp'] case final lamp?)
+              _hotspot(
+                box,
+                lamp.rect,
+                'cabin-lamp',
+                _lampOff ? '開燈' : '關燈',
+                _toggleLamp,
+              ),
+            if (layout.layers['plant'] case final plant?)
+              _hotspot(
+                box,
+                plant.rect,
+                'cabin-plant',
+                '澆水',
+                () => _waterPlant(plant.rect),
+              ),
+            if (_lampOff)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: ColoredBox(
+                    key: Key('cabin-lamp-off'),
+                    color: Color(0x6B140E22),
+                  ),
+                ),
+              ),
             if (layout.doors['family'] case final r?)
               _hotspot(
                 box,

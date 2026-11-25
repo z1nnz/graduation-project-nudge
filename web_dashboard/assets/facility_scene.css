@@ -143,3 +143,21 @@
     opacity: 1 !important;
   }
 }
+
+/* Full screen: the room fills the window under the HUD on every device. */
+.facility-stage {
+  width: 100vw;
+  max-width: none;
+  min-height: 0;
+  height: calc(100dvh - 60px);
+  aspect-ratio: auto;
+  margin: 0 calc(50% - 50vw);
+  background-size: cover;
+  background-position: center;
+}
+html:has(.facility-stage), body:has(.facility-stage) { overflow-x: hidden; }
+.facility-stage[data-layout="wide"] .facility-npc { left: 22%; top: 62%; }
+.facility-npc .w-sprite { scale: 1.2; transform-origin: 50% 100%; }
+@media (max-width: 480px) {
+  .facility-stage { min-height: 0; height: calc(100dvh - 56px); }
+}

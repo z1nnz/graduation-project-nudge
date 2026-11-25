@@ -1,3 +1,4 @@
+import '../widgets/scene_room.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -113,7 +114,7 @@ class _RegisterPageState extends State<RegisterPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: AppBackground(
+      body: TownGateBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -136,10 +137,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   Text(
                     '同步你的進度並與全球好友一同專注',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: secondaryText,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: secondaryText, fontSize: 14),
                   ),
                   const SizedBox(height: 32),
                   if (_errorMessage != null)
@@ -149,7 +147,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Text(
                         _errorMessage!,
@@ -207,12 +207,17 @@ class _RegisterPageState extends State<RegisterPage> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Text(
                             '註冊並登入',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   ),
                   const SizedBox(height: 24),

@@ -153,3 +153,12 @@ body[data-page="rooms"] .room-stage-count { background: var(--w-wood-dark); colo
 @media (prefers-reduced-motion: reduce) {
   .is-study-hall::before { transition: none; }
 }
+
+/* Desktop: the study hall grows to the window height. */
+.room-stage.is-study-hall {
+  width: min(100vw, calc((100dvh - 64px) * 16 / 9));
+  max-width: none;
+  left: 50%;
+  translate: -50% 0;
+}
+html:has(.is-study-hall), body:has(.is-study-hall) { overflow-x: hidden; }

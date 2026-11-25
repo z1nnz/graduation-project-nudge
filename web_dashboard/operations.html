@@ -3,332 +3,51 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nudge 商城頁面</title>
+    <title>Nudge 小鎮雜貨店</title>
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
-    <style>
-      /* The shop styles below were written against --c-* tokens that no page
-         defines; map them onto the shared styles.css palette (#82 slice 3). */
-      body[data-page="operations"] {
-        --c-panel-bg: var(--surface);
-        --c-border: var(--line);
-        --c-text: var(--text);
-        --c-text-muted: var(--muted);
-        --c-primary: var(--page-accent);
-        --c-primary-hover: var(--page-accent);
-        --c-primary-alpha: var(--page-wash);
-        --c-bg: var(--surface-strong);
-        --c-bg-hover: var(--surface-soft);
-        --shadow-color: rgba(0, 0, 0, 0.6);
-      }
-      .shop-item-card {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 2rem;
-        background: var(--c-panel-bg);
-        border: 1px solid var(--c-border);
-        border-radius: 20px;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        text-decoration: none;
-        color: var(--c-text);
-        position: relative;
-        overflow: hidden;
-      }
-      .shop-item-card:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 16px 32px var(--shadow-color);
-        border-color: var(--c-primary);
-      }
-      .shop-item-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, transparent, var(--c-primary-alpha));
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-      }
-      .shop-item-card:hover::before {
-        opacity: 1;
-      }
-      .shop-item-card img {
-        width: 180px;
-        height: 180px;
-        object-fit: cover;
-        border-radius: 16px;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 8px 16px var(--shadow-color);
-        transition: transform 0.4s ease;
-        z-index: 1;
-      }
-      .shop-item-card:hover img {
-        transform: scale(1.05) translateY(-5px);
-      }
-      .shop-item-card strong {
-        font-size: 1.25rem;
-        margin-bottom: 0.5rem;
-        z-index: 1;
-      }
-      .shop-item-card p {
-        font-size: 0.875rem;
-        color: var(--c-text-muted);
-        margin-bottom: 1.5rem;
-        line-height: 1.5;
-        z-index: 1;
-        flex-grow: 1;
-      }
-      .shop-btn {
-        background: var(--c-primary);
-        color: white;
-        padding: 0.8rem 2rem;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 1rem;
-        margin-top: auto;
-        z-index: 1;
-        transition: background 0.2s ease, transform 0.1s ease;
-        cursor: pointer;
-        border: none;
-        outline: none;
-        display: inline-block;
-      }
-      .shop-btn:hover {
-        background: var(--c-primary-hover, #6650d0);
-        transform: scale(1.05);
-      }
-      .shop-btn:active {
-        transform: scale(0.95);
-      }
-      .shop-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
-      }
-      /* Admin Login Button */
-      .admin-switch-btn {
-        position: absolute;
-        top: 2rem;
-        right: 2rem;
-        background: var(--c-bg);
-        border: 1px solid var(--c-border);
-        color: var(--c-text);
-        padding: 0.6rem 1.2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        z-index: 100;
-      }
-      .admin-switch-btn:hover {
-        border-color: var(--c-primary);
-        color: var(--c-primary);
-      }
-      /* Modal Styles */
-      .login-modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-      }
-      .login-modal-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-      .login-modal {
-        background: var(--c-panel-bg);
-        padding: 2.5rem;
-        border-radius: 20px;
-        width: 100%;
-        max-width: 400px;
-        box-shadow: 0 24px 48px var(--shadow-color);
-        transform: translateY(20px);
-        transition: transform 0.3s ease;
-        border: 1px solid var(--c-border);
-      }
-      .login-modal-overlay.active .login-modal {
-        transform: translateY(0);
-      }
-      .login-modal h2 {
-        margin-top: 0;
-        margin-bottom: 1.5rem;
-        font-size: 1.5rem;
-      }
-      .form-group {
-        margin-bottom: 1.25rem;
-      }
-      .form-group label {
-        display: block;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-        color: var(--c-text-muted);
-      }
-      .form-group input {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        border: 1px solid var(--c-border);
-        background: var(--c-bg);
-        color: var(--c-text);
-        font-family: inherit;
-        transition: border-color 0.2s ease;
-        box-sizing: border-box;
-      }
-      .form-group input:focus {
-        outline: none;
-        border-color: var(--c-primary);
-      }
-      .login-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-        margin-top: 2rem;
-      }
-      .btn-cancel {
-        background: transparent;
-        border: 1px solid var(--c-border);
-        color: var(--c-text);
-        padding: 0.6rem 1.2rem;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-      .btn-cancel:hover {
-        background: var(--c-bg-hover);
-      }
-      .btn-submit {
-        background: var(--c-primary);
-        border: none;
-        color: white;
-        padding: 0.6rem 1.2rem;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-weight: 600;
-      }
-      .btn-submit:hover {
-        background: var(--c-primary-hover, #6650d0);
-      }
-      .error-msg {
-        color: #ef4444;
-        font-size: 0.875rem;
-        margin-top: 0.5rem;
-        display: none;
-      }
-      .shop-status { margin: 0.75rem 0 0; color: var(--c-text-muted); }
-      .shop-empty { grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--c-text-muted); }
-      .shop-item-card img { max-width: 100%; max-height: 160px; object-fit: contain; image-rendering: pixelated; box-shadow: none; }
-      .shop-btn { color: #04121a; }
-      .shop-btn:focus-visible, .shop-tab-btn:focus-visible { outline: 3px solid var(--c-primary); outline-offset: 2px; }
-      .shop-item-card .shop-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-      .shop-note { min-height: 1.2em; margin: 0.5rem 0 0; font-size: 0.875rem; color: var(--c-text-muted); }
-      .shop-note[data-tone="ok"] { color: #16a34a; }
-      .shop-note[data-tone="bad"] { color: #dc2626; }
-      /* Shop Tabs Styles */
-      .shop-tab-btn {
-        background: transparent;
-        border: 1px solid var(--c-border);
-        color: var(--c-text-muted);
-        padding: 0.6rem 1.5rem;
-        border-radius: 20px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.2s ease;
-      }
-      .shop-tab-btn.active {
-        background: var(--c-primary);
-        color: white;
-        border-color: var(--c-primary);
-      }
-      .shop-tab-btn:hover:not(.active) {
-        border-color: var(--c-primary);
-        color: var(--c-primary);
-      }
-      .shop-item-card .expires-badge {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(0,0,0,0.6);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        z-index: 2;
-        border: 1px solid rgba(255,255,255,0.2);
-      }
-    </style>
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/store_scene.css?v=2" />
+    
   </head>
   <body class="w-page world-page" data-page="operations">
-    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>小鎮雜貨店</h1></header>
+    <header class="w-hud store-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>小鎮雜貨店</h1>
+      <div class="hero-card store-purse" aria-label="目前自律幣"><span aria-hidden="true">●</span><strong>讀取中</strong><small>自律幣</small></div>
+    </header>
     <div class="world-shell">
-
-      <main class="main w-main" style="position: relative;">
-        <header class="hero split">
-          <div>
-            <span class="eyebrow">小鎮雜貨店</span>
-            <h1>為旅程挑選新夥伴。</h1>
-            <p>
-              完成任務累積的自律幣，可以在這裡兌換特殊角色。帶著專屬精靈與夥伴一起專注，讓習慣養成更有趣！
-            </p>
+      <main class="main w-main store-main" id="storeMain">
+        <section class="store-shelf" id="storeShelf" data-room-hidden="1" hidden aria-label="貨架">
+          <div class="shop-tabs store-tabs" role="tablist" aria-label="貨架分類">
+            <button class="shop-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="shop-items-container" data-tab="permanent">常駐角色</button>
+            <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="limited">限時角色</button>
+            <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="event_character">活動角色</button>
+            <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="decor">小屋家具</button>
           </div>
-          <div class="hero-card">
-            <span>目前自律幣</span>
-            <strong>讀取中</strong>
-            <p>以雲端帳本確認的餘額為準。</p>
-          </div>
-        </header>
-        <section class="page-section">
-          <div class="section-head" style="margin-bottom: 2rem;">
-            <div>
-              <span class="eyebrow">Featured Characters</span>
-              <h2>商城兌換區</h2>
-              <div class="shop-tabs" role="tablist" aria-label="商城分類" style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-                <button class="shop-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="shop-items-container" data-tab="permanent">常駐商城</button>
-                <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="limited">限時商城</button>
-                <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="event_character">活動商城</button>
-                <button class="shop-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="shop-items-container" data-tab="decor">小屋家具</button>
-              </div>
-              <p id="shopStatus" class="shop-status" role="status" aria-live="polite">正在連線到雲端帳本…</p>
-            </div>
-          </div>
-          <div class="shop-grid" id="shop-items-container" role="tabpanel" aria-live="polite">
-            <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--c-text-muted);">
-              載入中...
-            </div>
+          <p id="shopStatus" class="shop-status" role="status" aria-live="polite">正在連線到雲端帳本…</p>
+          <div class="shop-grid store-slots" id="shop-items-container" role="tabpanel" aria-live="polite">
+            <div class="shop-empty">載入中…</div>
           </div>
         </section>
-        <section class="insight-strip page-section" style="margin-top: 3rem;">
-          <div>
-            <small>扣款方式</small>
-            <strong>雲端帳本</strong>
-            <span>每次兌換都由雲端確認餘額後扣款，網頁不會自行改變自律幣或解鎖商品。</span>
-          </div>
-          <div>
-            <small>重複按下</small>
-            <strong>不會重複扣款</strong>
-            <span>連線中斷時可以再按一次，同一個商品只會兌換一次。</span>
-          </div>
-          <div>
-            <small>獲取管道</small>
-            <strong>真實行動</strong>
-            <span>自律幣只來自雲端確認的任務與專注，商城沒有額外的折扣或活動加成。</span>
-          </div>
+        <section class="store-ledger" id="storeLedger" data-room-hidden="1" hidden aria-label="錢箱">
+          <div class="store-coin-pile" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <p class="store-ledger-line">錢箱裡是你用真實行動換來的自律幣：<strong data-store-coins>—</strong> 枚。</p>
+          <ul class="store-ledger-rules">
+            <li><b>雲端帳本扣款</b>：每次兌換都由雲端確認餘額後扣款，網頁不會自己改變金幣或解鎖商品。</li>
+            <li><b>不會重複扣款</b>：連線中斷時可以再按一次，同一個商品只會兌換一次。</li>
+            <li><b>只來自真實行動</b>：自律幣只來自雲端確認的任務與專注，沒有額外折扣或加成。</li>
+          </ul>
+          <a class="w-btn" href="quests.html">去委託所接任務賺金幣</a>
         </section>
       </main>
     </div>
     <script src="assets/town_routes.js?v=7"></script>
     <script src="assets/town_return.js?v=2"></script>
-
     <script src="assets/reward_shop_core.js?v=1"></script>
-    <script src="assets/reward_shop.js?v=1"></script>
+    <script src="assets/reward_shop.js?v=2"></script>
     <script src="assets/app.js?v=30"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/scene_room.js?v=4"></script>
+    <script src="assets/store_scene.js?v=2"></script>
   </body>
 </html>

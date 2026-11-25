@@ -62,13 +62,55 @@
     loadJson('assets/home/cabin_layout.json'),
   ]).then(([catalog, layout]) => {
     state.catalog = catalog;
-    state.layout = layout;
+    state.tallLayout = layout;
+    state.layout = isWide() ? wideLayout(layout) : layout;
     state.spots = layoutCore.spots(layout, catalog);
     state.grid = layoutCore.grid(layout.aspect);
   }).catch(() => {
     setStatus('家具目錄載入失敗，請確認網路後重新整理。你的擺設仍保存在雲端。');
     return Promise.reject(new Error('assets'));
   });
+
+  // ---------- desktop layout ----------
+  // Desktop shows the landscape cabin; every decor layer, the notice board
+  // and the doors move to their spot on that art. The companion still thinks
+  // in the portrait room's coordinates and is mapped onto the wide floor.
+  const WIDE = Object.freeze({
+    baseImage: 'assets/scenes/workbench/cabin_wide.webp',
+    aspect: 1.5,
+    rects: {
+      rug: [0.3, 0.76, 0.4, 0.13],
+      curtain: [0.385, 0.09, 0.24, 0.27],
+      books: [0.245, 0.4, 0.115, 0.17],
+      badges: [0.635, 0.42, 0.11, 0.05],
+      globe: [0.45, 0.47, 0.05, 0.08],
+      lamp: [0.61, 0.45, 0.05, 0.1],
+      plant: [0.08, 0.6, 0.09, 0.14],
+    },
+    books: [[0.245, 0.4, 0.115, 0.045], [0.245, 0.4, 0.115, 0.1], [0.245, 0.4, 0.115, 0.17]],
+    character: [0.43, 0.55, 0.16, 0.3],
+    questBoard: [0.42, 0.39, 0.17, 0.13],
+    doors: { family: [0.05, 0.29, 0.14, 0.41], group: [0.81, 0.29, 0.14, 0.41] },
+  });
+  function isWide() {
+    const w = Number(root.innerWidth) || 0, h = Number(root.innerHeight) || 1;
+    return w >= 860 && w / h >= 1.05;
+  }
+  function wideLayout(tall) {
+    const layers = {};
+    for (const [slot, layer] of Object.entries(tall.layers || {})) {
+      const rect = WIDE.rects[slot] || layer.rect;
+      layers[slot] = { ...layer, rect, ...(layer.rects ? { rects: slot === 'books' ? WIDE.books : layer.rects.map(() => rect) } : {}) };
+    }
+    return {
+      ...tall, baseImage: WIDE.baseImage, aspect: WIDE.aspect, layers, wide: true,
+      character: { rect: WIDE.character }, questBoard: { rect: WIDE.questBoard },
+      doors: { family: { rect: WIDE.doors.family }, group: { rect: WIDE.doors.group } },
+    };
+  }
+  // portrait floor (x .12-.88, y .6-.86) -> wide floor (x .2-.8, y .7-.95)
+  const toView = p => (state.layout?.wide ? { x: 0.2 + ((p.x - 0.12) / 0.76) * 0.6, y: 0.7 + ((p.y - 0.6) / 0.26) * 0.25 } : p);
+  const toBrain = p => (state.layout?.wide ? { x: 0.12 + ((p.x - 0.2) / 0.6) * 0.76, y: 0.6 + ((p.y - 0.7) / 0.25) * 0.26 } : p);
 
   // ---------- stage ----------
   const stage = els('cabinStage');
@@ -92,8 +134,10 @@
 
   function renderStage() {
     const { layout, catalog } = state;
+    root.setTimeout?.(() => renderTouches?.(), 0);
     const arrangement = draft();
-    if (!stage.style.aspectRatio && layout?.aspect) stage.style.aspectRatio = `${layout.aspect} / 1`;
+    if (layout?.aspect) stage.style.aspectRatio = `${layout.aspect} / 1`;
+    if (stage.dataset) stage.dataset.layout = layout?.wide ? 'wide' : 'tall';
     if (els('cabinBase').getAttribute('src') !== layout.baseImage) els('cabinBase').setAttribute('src', layout.baseImage);
     const holder = els('cabinLayers');
     holder.textContent = '';
@@ -504,7 +548,7 @@
     if (!state.layout) return;
     const button = els('cabinCompanion');
     const img = els('cabinCharacter');
-    const p = brain.position;
+    const p = toView(brain.position);
     const height = state.layout.character?.rect?.[3] || 0.245;
     const pose = brain.pose;
     const sprite = pal.spriteFor(face(), pose, brain.stepPhase);
@@ -573,8 +617,85 @@
     if (state.decorating || event.target !== stage && !String(event.target?.className || '').includes('cabin-layer')) return;
     const point = stagePoint(event);
     if (reducedMotion()) return;
-    if (brain.walkTo(point)) schedule();
+    if (brain.walkTo(toBrain(point))) schedule();
   });
+
+  // Switch between the portrait and landscape room when the window changes.
+  root.addEventListener?.('resize', () => {
+    if (!state.tallLayout || state.decorating) return;
+    const wide = isWide();
+    if (wide === Boolean(state.layout?.wide)) return;
+    state.layout = wide ? wideLayout(state.tallLayout) : state.tallLayout;
+    state.spots = layoutCore.spots(state.layout, state.catalog);
+    state.grid = layoutCore.grid(state.layout.aspect);
+    renderStage();
+    renderCompanion();
+    root.dispatchEvent?.(new root.CustomEvent('nudge-cabin-layout'));
+  });
+
+  // ---------- cabin 2.0: things to touch ----------
+  // Lamp, plant, bookshelf and window answer a tap; none of them writes data.
+  const touches = doc.createElement('div');
+  touches.className = 'cabin-touches';
+  stage.appendChild(touches);
+  let lampOff = false, waterings = 0;
+  function sparkle(rect, glyph, count = 5) {
+    if (reducedMotion()) return;
+    for (let i = 0; i < count; i++) {
+      const s = doc.createElement('span');
+      s.className = 'cabin-sparkle';
+      s.textContent = glyph;
+      s.style.left = `${(rect[0] + rect[2] * (0.2 + 0.6 * Math.random())) * 100}%`;
+      s.style.top = `${(rect[1] + rect[3] * 0.3) * 100}%`;
+      s.style.animationDelay = `${i * 80}ms`;
+      s.addEventListener('animationend', () => s.remove());
+      touches.appendChild(s);
+    }
+  }
+  const TOUCHES = [
+    { slot: 'lamp', label: '檯燈：開關燈', act: rect => {
+      lampOff = !lampOff;
+      stage.classList.toggle('is-lamp-off', lampOff);
+      sparkle(rect, '✦', 3);
+      say(lampOff ? '關燈了，房間暗下來了。' : '開燈！亮亮的比較好讀書。');
+    } },
+    { slot: 'plant', label: '盆栽：澆水', act: rect => {
+      waterings += 1;
+      brain.walkTo(toBrain({ x: rect[0] + rect[2] / 2 + 0.06, y: Math.max(0.7, rect[1] + rect[3]) })) && schedule();
+      sparkle(rect, '💧', 4);
+      root.setTimeout?.(() => sparkle(rect, '✿', 3), 500);
+      say(waterings > 2 ? '盆栽今天喝得很飽了～' : '幫盆栽澆點水，它看起來很開心。');
+    } },
+    { slot: 'books', label: '書架：翻翻紀錄', act: () => {
+      say('書架上收著你的紀錄，帶你去紀錄館看看！');
+      root.setTimeout?.(() => { root.location.href = 'personal.html'; }, 900);
+    } },
+    { slot: 'curtain', label: '窗戶：看看外面', act: rect => {
+      brain.walkTo(toBrain({ x: rect[0] + rect[2] / 2, y: 0.72 })) && schedule();
+      sparkle(rect, '★', 4);
+      say(new Date().getHours() >= 18 || new Date().getHours() < 6 ? '今晚的星星好亮。' : '外面天氣不錯，等等出去走走吧。');
+    } },
+  ];
+  function renderTouches() {
+    touches.textContent = '';
+    if (!state.layout || state.decorating) return;
+    for (const t of TOUCHES) {
+      const rect = state.layout.layers?.[t.slot]?.rect;
+      if (!rect) continue;
+      const b = doc.createElement('button');
+      b.type = 'button';
+      b.className = 'cabin-touch';
+      b.setAttribute('aria-label', t.label);
+      b.title = t.label;
+      b.style.left = `${rect[0] * 100}%`;
+      b.style.top = `${rect[1] * 100}%`;
+      b.style.width = `${rect[2] * 100}%`;
+      b.style.height = `${rect[3] * 100}%`;
+      b.addEventListener('click', event => { event.stopPropagation?.(); t.act(rect); });
+      touches.appendChild(b);
+    }
+  }
+  root.addEventListener?.('nudge-cabin-layout', renderTouches);
 
   doc.addEventListener('visibilitychange', () => {
     if (doc.hidden) stopLoop();

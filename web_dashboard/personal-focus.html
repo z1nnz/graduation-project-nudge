@@ -7,10 +7,12 @@
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/town_chrome.css?v=1" />
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=4" />
+    <link rel="stylesheet" href="assets/page_room.css?v=4" />
     <script defer src="assets/town_routes.js?v=7"></script>
     <script defer src="assets/town_return.js?v=2"></script>
   </head>
-  <body class="w-page world-page" data-page="personal">
+  <body class="w-page world-page" data-page="personal" data-room-key="focus">
     <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>專注書桌</h1></header>
     <div class="world-shell">
 
@@ -230,5 +232,10 @@
         window.addEventListener('pagehide', () => unsubscribeReceipt?.(), { once: true });
       });
     </script>
+      <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/scene_room.js?v=4"></script>
+    <script src="assets/page_rooms.js?v=4"></script>
+    <script src="assets/page_room.js?v=4"></script>
   </body>
 </html>

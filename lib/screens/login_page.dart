@@ -1,3 +1,4 @@
+import '../widgets/scene_room.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -78,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       backgroundColor: AppUI.scaffoldBackgroundOf(context),
-      body: AppBackground(
+      body: TownGateBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -92,7 +93,11 @@ class _LoginPageState extends State<LoginPage> {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: accentColor.withValues(alpha: 0.12),
-                    child: Icon(Icons.auto_awesome_rounded, size: 40, color: accentColor),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 40,
+                      color: accentColor,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -109,10 +114,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     '登入以同步你的自律數據與好友互動',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: secondaryText,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: secondaryText, fontSize: 14),
                   ),
                   const SizedBox(height: 36),
                   if (_errorMessage != null)
@@ -122,7 +124,9 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Text(
                         _errorMessage!,
@@ -169,18 +173,27 @@ class _LoginPageState extends State<LoginPage> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Text(
                             '登入',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
-                      Expanded(child: Divider(color: secondaryText.withValues(alpha: 0.2))),
+                      Expanded(
+                        child: Divider(
+                          color: secondaryText.withValues(alpha: 0.2),
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
@@ -188,7 +201,11 @@ class _LoginPageState extends State<LoginPage> {
                           style: TextStyle(color: secondaryText, fontSize: 12),
                         ),
                       ),
-                      Expanded(child: Divider(color: secondaryText.withValues(alpha: 0.2))),
+                      Expanded(
+                        child: Divider(
+                          color: secondaryText.withValues(alpha: 0.2),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -236,13 +253,22 @@ class _LoginPageState extends State<LoginPage> {
                         icon: Icons.facebook_rounded,
                         color: Colors.blueAccent,
                         onTap: () async {
-                          setState(() { _loading = true; _errorMessage = null; });
+                          setState(() {
+                            _loading = true;
+                            _errorMessage = null;
+                          });
                           try {
                             await context.read<AppState>().signInWithFacebook();
                           } catch (e) {
-                            setState(() { _errorMessage = 'Facebook 登入失敗：$e'; });
+                            setState(() {
+                              _errorMessage = 'Facebook 登入失敗：$e';
+                            });
                           } finally {
-                            if (mounted) setState(() { _loading = false; });
+                            if (mounted) {
+                              setState(() {
+                                _loading = false;
+                              });
+                            }
                           }
                         },
                       ),
@@ -261,7 +287,9 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const RegisterPage()),
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
                           );
                         },
                         child: Text(
@@ -299,7 +327,11 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _showPresentationDialog(BuildContext context, String provider, String details) {
+  void _showPresentationDialog(
+    BuildContext context,
+    String provider,
+    String details,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -312,7 +344,10 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(width: 10),
               Text(
                 '展示環境提示',
-                style: TextStyle(color: primaryText, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: primaryText,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -322,7 +357,11 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Text(
                 '本平台在當前 Demo 展示環境中未配置 $provider 的開發者憑證。',
-                style: TextStyle(color: primaryText, fontSize: 15, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: primaryText,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -332,14 +371,21 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 16),
               Text(
                 '此按鈕僅供 UI 介面展示，請使用「電子郵件」或「Google 帳號」進行登入！',
-                style: TextStyle(color: AppUI.primary, fontSize: 14, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: AppUI.primary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('我知道了', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                '我知道了',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );
@@ -368,9 +414,13 @@ class _SocialIconButton extends StatelessWidget {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
           border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.1),
           ),
           borderRadius: BorderRadius.circular(16),
         ),
