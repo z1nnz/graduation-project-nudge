@@ -10,6 +10,9 @@
   const WIDE_ART = {
     "assets/scenes/library/library_room.webp": "assets/scenes/library/library_wide.webp",
     "assets/scenes/observatory/observatory_room.webp": "assets/scenes/observatory/observatory_wide.webp",
+    "assets/scenes/journal/journal_room.webp": "assets/scenes/journal/journal_room_wide.webp",
+    "assets/scenes/journal/health_cabin.webp": "assets/scenes/journal/health_cabin_wide.webp",
+    "assets/scenes/journal/letter_garden.webp": "assets/scenes/journal/letter_garden_wide.webp",
   };
   function mount({
     title,
