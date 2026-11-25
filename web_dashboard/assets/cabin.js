@@ -64,8 +64,8 @@
     state.catalog = catalog;
     state.tallLayout = layout;
     state.layout = isWide() ? wideLayout(layout) : layout;
-    state.spots = layoutCore.spots(layout, catalog);
-    state.grid = layoutCore.grid(layout.aspect);
+    state.spots = layoutCore.spots(state.layout, catalog);
+    state.grid = layoutCore.grid(state.layout.aspect);
   }).catch(() => {
     setStatus('家具目錄載入失敗，請確認網路後重新整理。你的擺設仍保存在雲端。');
     return Promise.reject(new Error('assets'));
