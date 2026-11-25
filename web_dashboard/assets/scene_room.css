@@ -203,7 +203,7 @@
 }
 .room-panel::backdrop { background: rgba(27, 21, 48, 0.78); }
 .room-panel.is-entering { animation: room-panel-in 0.3s steps(5) both; }
-@keyframes room-panel-in { from { transform: translateY(24px) scale(0.92); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes room-panel-in { from { transform: translateY(24px) scale(0.92); } to { transform: none; } }
 .room-panel-bar {
   position: sticky;
   top: 0;
