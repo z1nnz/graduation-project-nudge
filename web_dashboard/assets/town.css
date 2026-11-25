@@ -347,3 +347,10 @@ body[style*="--town-text-scale"] :is(.town-panel, .town-directory, .town-dialog,
 .town-label strong,.town-label span { font-size:14px; }
 .town-label.is-hovered { border-color:var(--w-gold); transform:translate(-50%,-100%) scale(1.03); }
 @media(prefers-reduced-motion:reduce){.town-label.is-hovered{transform:translate(-50%,-100%)}}
+
+/* #200 H1: phone (tall) composition: larger HUD targets and labels. */
+body[data-town-layout="tall"] .town-hud-tools a,
+body[data-town-layout="tall"] .town-hud-tools button,
+body[data-town-layout="tall"] .town-hud-zoom button { width: 52px; height: 52px; font-size: 21px; }
+body[data-town-layout="tall"] .town-label strong { font-size: 14px; }
+body[data-town-layout="tall"] .town-prompt button { min-height: 52px; font-size: 16px; }

@@ -146,6 +146,8 @@ test('town.html loads the living world before the town script', () => {
   assert.match(source, /worldView\.drawMid/);
   assert.match(source, /worldView\.drawFront/);
   assert.match(source, /concat\(WORLD_BLOCKERS\)/);
+  assert.match(source, /doc\.body\.dataset\.townLayout = layout\.name/);
+  assert.match(fs.readFileSync('web_dashboard/assets/town.css', 'utf8'), /body\[data-town-layout="tall"\]/);
 });
 
 test('generated art replaces each stand-in layer once the files exist', () => {

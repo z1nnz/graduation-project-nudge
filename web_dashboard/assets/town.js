@@ -282,6 +282,9 @@
     canvas.height = Math.round(canvas.clientHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // Phones start zoomed out so nearby buildings are on screen.
+    // #200 H1: desktop (wide) and phone (tall) compositions.
+    const layout = worldCore?.layoutFor(canvas.clientWidth, canvas.clientHeight);
+    if (layout) doc.body.dataset.townLayout = layout.name;
     if (!zoomTouched) state.zoom = canvas.clientWidth < 560 ? minZoom() : 1;
     else setZoom(state.zoom);
     // On phones the tool bar spans the screen; keep building labels below it.
