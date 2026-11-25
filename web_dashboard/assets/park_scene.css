@@ -1,0 +1,7 @@
+/* Park map in front of the arcade (park_scene.js). The cabinet list stays for
+   screen readers and keyboard users; the rides are the visible entrances. */
+body[data-park-scene] .arcade-hall > h2,
+body[data-park-scene] .arcade-hall > .w-subtitle { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+body[data-park-scene] .arcade-stage { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+body[data-park-scene] .arcade-main { padding-top: 0; }
+body[data-park-scene] .arcade-status { margin: 8px auto 0; max-width: 720px; text-align: center; }

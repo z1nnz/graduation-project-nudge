@@ -93,6 +93,22 @@
         g.fillRect(x | 0, y | 0, 2, 2);
       }
     },
+    // Balloons bobbing on their strings at points.
+    balloons(g, w, h, f, o) {
+      const colors = o.colors || ['#ff7a9c', '#ffc54d', '#8b6cf0', '#7fd3ff'];
+      for (const [i, p] of (o.points || []).entries()) {
+        const x = p[0] * w + Math.sin(f / 9 + i * 1.3) * 3;
+        const y = p[1] * h + Math.sin(f / 7 + i) * 4;
+        const r = (o.radius || 0.018) * w;
+        g.globalAlpha = 1;
+        g.fillStyle = '#3a2216';
+        g.fillRect(x | 0, (y + r) | 0, 1, (r * 2.2) | 0);
+        g.fillStyle = colors[i % colors.length];
+        g.fillRect((x - r) | 0, (y - r) | 0, (r * 2) | 0, (r * 2) | 0);
+        g.fillStyle = 'rgba(255,255,255,0.7)';
+        g.fillRect((x - r * 0.5) | 0, (y - r * 0.6) | 0, 2, 2);
+      }
+    },
     // Rising wisps (chimney smoke, steam from tea).
     steam(g, w, h, f, o) {
       for (const [i, p] of (o.points || []).entries()) {
