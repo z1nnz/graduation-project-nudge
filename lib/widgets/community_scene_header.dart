@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/character_catalog.dart';
 import '../theme/game_ui.dart';
+import 'npc_dialog.dart';
+import 'sprite_animation.dart';
 
 class CommunitySceneHeader extends StatefulWidget {
   const CommunitySceneHeader({
@@ -71,6 +74,7 @@ class _CommunitySceneHeaderState extends State<CommunitySceneHeader>
   @override
   Widget build(BuildContext context) {
     final title = widget.family ? '家庭庭院' : '團體會館';
+    final actor = widget.family ? GameCharacters.sprout : GameCharacters.scroll;
     return Stack(
       children: [
         Positioned.fill(
@@ -120,6 +124,12 @@ class _CommunitySceneHeaderState extends State<CommunitySceneHeader>
             ),
           ),
         ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 54,
+          child: Center(child: CharacterSprite(character: actor, size: 64)),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 130, 12, 12),
           child: Wrap(
@@ -133,21 +143,10 @@ class _CommunitySceneHeaderState extends State<CommunitySceneHeader>
                 child: GameButton(
                   label: '問問嚮導',
                   icon: Icons.chat_bubble_outline,
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      title: Text(
-                        title,
-                        style: const TextStyle(fontFamily: 'Cubic11'),
-                      ),
-                      content: Text(widget.greeting),
-                      actions: [
-                        GameButton(
-                          label: '關閉',
-                          onPressed: () => Navigator.pop(dialogContext),
-                        ),
-                      ],
-                    ),
+                  onPressed: () => NpcDialog.show(
+                    context,
+                    speaker: actor,
+                    lines: [widget.greeting],
                   ),
                 ),
               ),

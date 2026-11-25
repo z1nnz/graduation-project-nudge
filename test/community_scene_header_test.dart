@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/widgets/community_scene_header.dart';
+import 'package:nudge/widgets/npc_dialog.dart';
+import 'package:nudge/widgets/sprite_animation.dart';
 
 Widget host(Widget scene) => MaterialApp(
-  home: MediaQuery(
+  builder: (context, child) => MediaQuery(
     data: const MediaQueryData(
       size: Size(360, 760),
       disableAnimations: true,
       textScaler: TextScaler.linear(1.15),
     ),
-    child: Scaffold(body: scene),
+    child: child!,
   ),
+  home: Scaffold(body: scene),
 );
 
 void main() {
@@ -20,12 +23,16 @@ void main() {
       host(const CommunitySceneHeader(family: true, greeting: '花圃在庭院中央。')),
     );
     expect(find.bySemanticsLabel('家庭庭院的嚮導'), findsOneWidget);
+    expect(
+      tester.widget<CharacterSprite>(find.byType(CharacterSprite)).character.id,
+      'sprout',
+    );
     await tester.tap(find.text('問問嚮導'));
     await tester.pumpAndSettle();
-    expect(find.text('花圃在庭院中央。'), findsOneWidget);
-    await tester.tap(find.text('關閉'));
+    expect(find.bySemanticsLabel('苗苗：花圃在庭院中央。'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(NpcDialog), findsNothing);
     semantics.dispose();
   });
 

@@ -1,14 +1,20 @@
 (() => {
   "use strict";
   const ground = document.querySelector("[data-community-ground]");
-  const guide = document.querySelector(".community-guide-dialog");
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
-  const dialogue = guide.querySelector("p");
+  const isFamily = ground.classList.contains("community-ground--courtyard");
+  const speaker = isFamily ? "sprout" : "scroll";
+  const message = isFamily
+    ? "你可以看看共同花圃、在桌上寫每週回顧，或到信箱安排鼓勵信。"
+    : "翻開日曆就能看團體活動。壁畫和辦公室在另一側。";
+  const actor = NudgeSpritePlayer.characterPlayer(ground.querySelector(".community-actor"), speaker, { size: 64 });
+  addEventListener("pagehide", event => {
+    if (!event.persisted) actor.destroy();
+  });
   const calendar = document.querySelector("[data-guild-calendar]");
   const manager = document.querySelector("[data-guild-manager]");
   const office = ground.querySelector("[data-community-open=office]");
-  const message = dialogue.textContent;
-  let opener, frame, rendered, speakingSince;
+  let opener, frame, rendered;
   let visible = false;
 
   function animate(now) {
@@ -19,7 +25,6 @@
       rendered = tick;
       ground.style.setProperty("--w-ember", (tick % 16) + "px");
       ground.style.setProperty("--w-halo", [.35, .55, .65, .5][tick % 4]);
-      if (guide.open) dialogue.textContent = message.slice(0, Math.floor((now - speakingSince) / 35) + 1);
     }
     frame = requestAnimationFrame(animate);
   }
@@ -27,7 +32,6 @@
     if (frame != null) cancelAnimationFrame(frame);
     frame = undefined;
     if (motion.matches) {
-      dialogue.textContent = message;
       ground.removeAttribute("style");
     } else if (visible && !document.hidden) frame = requestAnimationFrame(animate);
   }
@@ -50,9 +54,12 @@
     opener = stop;
     const destination = stop.dataset.communityOpen;
     if (destination === "guide") {
-      speakingSince = performance.now();
-      dialogue.textContent = motion.matches ? message : "";
-      guide.showModal();
+      NudgeNpcDialog.open({
+        speaker,
+        lines: [message],
+        portraitSize: 64,
+        actions: [{ label: "關閉" }],
+      });
       return;
     }
     const panel = document.querySelector('[data-community-panel="' + destination + '"]');
@@ -65,7 +72,6 @@
     panel.hidden = false;
     panel.focus();
   });
-  guide.addEventListener("close", () => opener?.focus());
   for (const action of document.querySelectorAll("[data-community-return]")) action.addEventListener("click", () => {
     const panel = action.closest("[data-community-panel]");
     panel.hidden = true;

@@ -27,16 +27,11 @@
 @media (prefers-reduced-motion: reduce) { .community-stop { transition: none; } }
 .community-stop:focus-visible { outline: 3px solid var(--w-gold); }
 .community-host { --w-x: 49%; --w-y: 87%; }
-.community-host::before {
+.community-actor {
   position: absolute;
-  content: "";
-  bottom: calc(100% + 2px);
-  left: calc(50% - 12px);
-  width: 24px;
-  height: 28px;
-  border: 2px solid var(--w-gold);
-  background: var(--w-wood-deep);
-  transform: translateY(calc(var(--w-ember, 0px) / 6));
+  bottom: calc(100% - 4px);
+  left: 50%;
+  transform: translateX(-50%);
 }
 .community-light {
   position: absolute;
@@ -54,8 +49,6 @@
   color: var(--w-gold);
   transform: translateY(var(--w-ember, 0px));
 }
-.community-guide-dialog { width: min(30rem, 100% - 1rem); padding: 1rem; }
-.community-guide-dialog::backdrop { background: var(--w-night); opacity: .7; }
 .community-scope { margin-block: 1rem; }
 .community-mural {
   display: grid;

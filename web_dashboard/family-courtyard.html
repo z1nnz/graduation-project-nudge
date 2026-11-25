@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/family_garden.css?v=1" />
     <link rel="stylesheet" href="assets/safety.css?v=1" />
-    <link rel="stylesheet" href="assets/community_ground.css?v=1" />
+    <link rel="stylesheet" href="assets/community_ground.css?v=2" />
   </head>
   <body class="w-page" data-page="family-courtyard" data-social-facility="family">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -25,13 +25,8 @@
           <button class="w-btn community-stop" type="button" data-community-open="garden" style="--w-x:51%;--w-y:57%" aria-label="花圃">花圃</button>
           <button class="w-btn community-stop" type="button" data-community-open="reviews" style="--w-x:22%;--w-y:32%" aria-label="留言桌">留言桌</button>
           <button class="w-btn community-stop" type="button" data-community-open="letters" style="--w-x:79%;--w-y:64%" aria-label="鼓勵信箱">鼓勵信箱</button>
-          <button class="w-btn community-stop community-host" type="button" data-community-open="guide" aria-label="庭院嚮導">庭院嚮導</button>
+          <button class="w-btn community-stop community-host" type="button" data-community-open="guide" aria-label="庭院嚮導" aria-haspopup="dialog"><span class="community-actor" aria-hidden="true"></span>庭院嚮導</button>
         </section>
-        <dialog class="w-parchment community-guide-dialog" aria-labelledby="communityGuideTitle">
-          <h2 id="communityGuideTitle">庭院嚮導</h2>
-          <p>你可以看看共同花圃、在桌上寫每週回顧，或到信箱安排鼓勵信。</p>
-          <form method="dialog"><button class="w-btn">關閉</button></form>
-        </dialog>
         <header class="community-scope">
           <div>
             <span class="eyebrow">Family Courtyard</span>
@@ -95,12 +90,14 @@
     <script src="assets/relationship_membership_contract.js?v=1"></script>
     <script src="assets/family_link_contract.js?v=1"></script>
     <script src="assets/family_garden.js?v=1"></script>
-    <script src="assets/family_group_scenes.js?v=3"></script>
+    <script src="assets/family_group_scenes.js?v=4"></script>
     <script src="assets/town_routes.js?v=6"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/safety_ui.js?v=1"></script>
     <script src="assets/app.js?v=30"></script>
-    <script src="assets/community_ground.js?v=1"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/community_ground.js?v=2"></script>
   </body>
 </html>

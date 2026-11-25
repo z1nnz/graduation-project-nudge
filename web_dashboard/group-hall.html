@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/guild_calendar.css?v=1" />
     <link rel="stylesheet" href="assets/safety.css?v=1" />
-    <link rel="stylesheet" href="assets/community_ground.css?v=1" />
+    <link rel="stylesheet" href="assets/community_ground.css?v=2" />
   </head>
   <body class="w-page" data-page="group-hall" data-social-facility="guild">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -25,13 +25,8 @@
           <button class="w-btn community-stop" type="button" data-community-open="calendar" style="--w-x:23%;--w-y:67%" aria-label="活動日曆">活動日曆</button>
           <button class="w-btn community-stop" type="button" data-community-open="challenge" style="--w-x:68%;--w-y:30%" aria-label="團體挑戰">團體挑戰</button>
           <button class="w-btn community-stop" type="button" data-community-open="office" disabled style="--w-x:81%;--w-y:67%" aria-label="辦公室">辦公室</button>
-          <button class="w-btn community-stop community-host" type="button" data-community-open="guide" aria-label="會館嚮導">會館嚮導</button>
+          <button class="w-btn community-stop community-host" type="button" data-community-open="guide" aria-label="會館嚮導" aria-haspopup="dialog"><span class="community-actor" aria-hidden="true"></span>會館嚮導</button>
         </section>
-        <dialog class="w-parchment community-guide-dialog" aria-labelledby="communityGuideTitle">
-          <h2 id="communityGuideTitle">會館嚮導</h2>
-          <p>翻開日曆就能看團體活動。壁畫和辦公室在另一側。</p>
-          <form method="dialog"><button class="w-btn">關閉</button></form>
-        </dialog>
         <header class="community-scope">
           <div>
             <span class="eyebrow">Group Hall</span>
@@ -118,6 +113,8 @@
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/safety_ui.js?v=1"></script>
     <script src="assets/app.js?v=30"></script>
-    <script src="assets/community_ground.js?v=1"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/community_ground.js?v=2"></script>
   </body>
 </html>
