@@ -1,92 +1,65 @@
 (function (root) {
   'use strict';
-  // Turns the town's building panel into the building's interior: the room
-  // art fills the panel and each destination entry (the same links and
-  // buttons town.js already built, with their login and gate rules) sits on
-  // its object. Entries without a spot hang on the signpost below the art.
+  // Entering a building opens its interior full screen. town.js still builds
+  // the destination entries (links, login prompts, gates); each one becomes
+  // an object on the room art that presses that same entry. Entries without
+  // a spot stay visible as wooden signs at the bottom of the room.
   const doc = root.document;
   const halls = root.NudgeTownHalls;
-  if (!doc || !halls) return;
+  if (!doc || !halls || !root.NudgeSceneRoom) return;
 
-  let stage = null, art = null, npc = null, player = null, home = null;
+  let room = null, host = null;
 
-  function ensureStage(list) {
-    if (stage) return;
-    stage = doc.createElement('div');
-    stage.className = 'town-hall-stage';
-    art = doc.createElement('img');
-    art.className = 'town-hall-art';
-    art.alt = '';
-    art.setAttribute('aria-hidden', 'true');
-    art.decoding = 'async';
-    npc = doc.createElement('button');
-    npc.type = 'button';
-    npc.className = 'town-hall-npc';
-    const body = doc.createElement('span');
-    body.className = 'town-hall-npc-body';
-    body.setAttribute('aria-hidden', 'true');
-    const name = doc.createElement('span');
-    name.className = 'town-hall-sign';
-    npc.append(body, name);
-    stage.append(art, npc);
-    home = { parent: list.parentNode, next: list.nextSibling };
-  }
-
-  function characterName(id) {
-    try { return root.NudgeSpritePlayer.character(id).name; } catch { return ''; }
+  function teardown(panel, list) {
+    room?.destroy();
+    room = null;
+    host?.remove();
+    host = null;
+    panel.classList.remove('is-room');
+    for (const li of list.children) li.classList.remove('is-spot', 'is-signpost');
   }
 
   function decorate(building, panel, list, locked) {
+    teardown(panel, list);
     const hall = halls.hallFor(building.id);
-    const asRoom = Boolean(hall) && !locked;
-    panel.classList.toggle('is-room', asRoom);
-    if (!asRoom) {
-      if (stage && list.parentNode === stage && home) home.parent.insertBefore(list, home.next);
-      stage?.remove();
-      player?.stop?.();
-      for (const li of list.children) { li.removeAttribute('style'); li.classList.remove('is-spot', 'is-signpost'); }
-      return;
-    }
-    ensureStage(list);
-    panel.insertBefore(stage, home.next && home.next.parentNode === panel ? home.next : null);
-    stage.append(list);
-    stage.style.aspectRatio = String(hall.aspect);
-    stage.style.setProperty('--hall-art', `url("${new URL(hall.art, doc.baseURI).href}")`);
-    if (art.getAttribute('src') !== hall.art) art.src = hall.art;
+    const layouts = halls.layoutsFor(building.id);
+    if (!hall || !layouts || locked) return;
+    panel.classList.add('is-room');
 
-    for (const li of list.children) {
-      const spot = halls.spotFor(building.id, li.dataset.dest);
-      li.classList.toggle('is-spot', Boolean(spot));
-      li.classList.toggle('is-signpost', !spot);
-      const control = li.firstElementChild, title = control?.querySelector('strong');
-      if (title) {
-        title.dataset.full ||= title.textContent;
-        // Signs show the short name; screen readers get the full entry.
-        title.textContent = spot ? title.dataset.full.split(/[：（]/)[0] : title.dataset.full;
-        control.setAttribute('aria-label', `${title.dataset.full}${control.querySelector('small')?.textContent ? '，' + control.querySelector('small').textContent : ''}`);
-      }
-      if (spot) {
-        li.style.left = spot.left + '%';
-        li.style.top = spot.top + '%';
-        li.style.width = spot.width + '%';
-        li.style.height = spot.height + '%';
-      } else li.removeAttribute('style');
+    const entries = [...list.children].map(li => ({ li, id: li.dataset.dest, control: li.firstElementChild }));
+    const spotted = new Set(Object.values(layouts).flatMap(l => Object.keys(l.rects || {})));
+    for (const e of entries) {
+      e.li.classList.toggle('is-spot', spotted.has(e.id));
+      e.li.classList.toggle('is-signpost', !spotted.has(e.id));
     }
 
-    const label = characterName(hall.npc);
-    npc.hidden = !label || !root.NudgeSpritePlayer;
-    if (!npc.hidden) {
-      npc.setAttribute('aria-label', `和${label}說話`);
-      npc.querySelector('.town-hall-sign').textContent = label;
-      player?.destroy?.();
-      player = root.NudgeSpritePlayer.characterPlayer(npc.querySelector('.town-hall-npc-body'), hall.npc, { animation: 'idle', size: 96 });
-      npc.onclick = () => {
-        player?.play('talk');
-        try {
-          root.NudgeNpcDialog.open({ speaker: hall.npc, lines: [hall.line], onClose: () => player?.play('idle') });
-        } catch { /* dialog script missing: the sign still names the NPC */ }
-      };
-    }
+    host = doc.createElement('div');
+    host.className = 'town-hall-host';
+    panel.insertBefore(host, list);
+    room = root.NudgeSceneRoom.mount({
+      host,
+      title: building.name,
+      npc: hall.npc,
+      npcSize: 112,
+      greeting: () => [hall.line],
+      tips: [building.desc].filter(Boolean),
+      layouts,
+      objects: entries.filter(e => spotted.has(e.id)).map(e => {
+        const title = e.control?.querySelector('strong')?.textContent || e.id;
+        const note = e.control?.querySelector('small')?.textContent || '';
+        return {
+          id: e.id,
+          label: title.split(/[：（]/)[0],
+          hint: [title.includes('：') ? title.split('：')[1] : '', note].filter(Boolean).join('，') || null,
+          className: `is-${[...(e.control?.classList || [])].find(c => c.startsWith('is-'))?.slice(3) || 'open'}`,
+          onSelect: (event, api) => {
+            // Locked or still-building entries are plain text: the NPC explains.
+            if (!e.control || e.control.tagName === 'SPAN') { api.say([`${title}：${note || '還沒開放'}`]); return; }
+            e.control.click();
+          },
+        };
+      }),
+    });
   }
 
   root.NudgeTownHallView = Object.freeze({ decorate });

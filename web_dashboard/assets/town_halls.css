@@ -1,132 +1,71 @@
-/* Building interiors inside the town panel (town_hall_view.js). */
+/* Building interiors: the town panel becomes a full-screen room. */
 .town-panel.is-room {
-  width: max-content;
-  max-width: 96vw;
-  max-height: 96dvh;
-  padding: 10px 12px 12px;
-  overflow: hidden auto;
-  background: linear-gradient(var(--w-wood, #8a5a34), var(--w-wood-dark, #5a3826));
-  border: 4px solid var(--w-wood-deep, #3a2216);
-  outline: 3px solid var(--w-frame, #c9934f);
-}
-.town-panel.is-room > p { margin: 2px 0 8px; color: var(--w-parchment, #f6e7c8); }
-.town-hall-stage {
-  position: relative;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
   width: auto;
-  height: min(74dvh, 820px);
-  max-width: 100%;
-  margin: 0 auto;
-  border: 3px solid var(--w-wood-deep, #3a2216);
-  background: var(--hall-art) center / cover;
-  image-rendering: pixelated;
-  animation: hall-in 0.4s steps(6) both;
-  container-type: inline-size;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
   overflow: hidden;
+  background: var(--w-night, #1b1530);
 }
-@keyframes hall-in { from { transform: scale(1.1); filter: brightness(1.7); opacity: 0.3; } }
-.town-hall-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; pointer-events: none; }
-@media (max-width: 640px) { .town-hall-stage { width: 100%; height: auto; } }
+.town-panel.is-room .town-panel-head {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 5;
+  padding: 6px 10px;
+  border: 3px solid var(--w-wood-deep, #3a2216);
+  border-radius: 6px;
+  background: linear-gradient(var(--w-wood, #8a5a34), var(--w-wood-dark, #5a3826));
+}
+.town-panel.is-room .town-panel-head h2 { font-family: var(--w-pixel, sans-serif); }
+.town-panel.is-room > p { position: absolute; left: -9999px; }
+.town-hall-host { position: absolute; inset: 0; }
+.town-hall-host .room-stage { height: 100dvh !important; width: 100%; margin: 0; }
 
+/* Spotted entries are pressed through the room's objects; keep them for
+   screen readers only. Unspotted entries hang as signs at the bottom. */
 .town-panel.is-room .town-panel-list {
   position: absolute;
-  inset: 0;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
-  align-content: flex-end;
   justify-content: flex-end;
   gap: 6px;
-  padding: 8px;
   pointer-events: none;
 }
-.town-panel.is-room .town-panel-list > li { pointer-events: auto; }
-.town-panel.is-room .town-panel-list > li.is-spot { position: absolute; }
-.town-panel.is-room li.is-spot > .town-panel-entry {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 30%;
-  background: radial-gradient(closest-side, rgba(255, 214, 120, 0.5), rgba(255, 214, 120, 0));
-  animation: hall-breathe 2.4s steps(8) infinite;
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-}
-.town-panel.is-room li.is-spot:nth-child(2n) > .town-panel-entry { animation-delay: -1.2s; }
-@keyframes hall-breathe { 0%, 100% { background-size: 60% 60%; opacity: 0.35; } 50% { background-size: 100% 100%; opacity: 1; } }
-.town-panel.is-room li.is-spot > .town-panel-entry strong {
+.town-panel.is-room .town-panel-list > li.is-spot {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  padding: 3px 9px 4px;
-  border: 2px solid var(--w-wood-deep, #3a2216);
-  border-radius: 4px;
-  background: linear-gradient(var(--w-wood, #8a5a34), var(--w-wood-dark, #5a3826));
-  box-shadow: 0 3px 0 var(--w-wood-deep, #3a2216);
-  color: var(--w-ink, #fbefe2);
-  font: 14px/1.2 var(--w-pixel, sans-serif);
-  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
-.town-panel.is-room li.is-spot > .town-panel-entry small {
-  position: absolute;
-  left: 50%;
-  top: calc(50% + 16px);
-  translate: -50% 0;
-  display: none;
-  padding: 2px 6px;
-  background: rgba(27, 21, 48, 0.85);
-  color: var(--w-parchment, #f6e7c8);
-  font-size: 13px;
-  white-space: nowrap;
-}
-.town-panel.is-room li.is-spot > .town-panel-entry:is(:hover, :focus-visible) { animation: none; opacity: 1; background: radial-gradient(closest-side, rgba(255, 228, 150, 0.75), rgba(255, 228, 150, 0)); outline: 3px dashed var(--w-gold, #ffc54d); }
-.town-panel.is-room li.is-spot > .town-panel-entry:is(:hover, :focus-visible) strong { border-color: var(--w-gold, #ffc54d); }
-.town-panel.is-room li.is-spot > .town-panel-entry:is(:hover, :focus-visible) small { display: block; }
-.town-panel.is-room li.is-spot > .is-login strong { background: linear-gradient(#6b55c8, #4b2fa8); }
-.town-panel.is-room li.is-spot > :is(.is-locked, .is-planned) { animation: none; opacity: 0.6; filter: grayscale(0.6); }
-
-/* destinations without a spot: wooden signs under the art */
-.town-panel.is-room .town-panel-list > li.is-signpost {
-  position: relative;
-}
+.town-panel.is-room .town-panel-list > li.is-signpost { pointer-events: auto; }
 .town-panel.is-room li.is-signpost > .town-panel-entry {
   display: inline-flex;
   flex-direction: column;
-  padding: 4px 10px;
-  border: 2px solid var(--w-wood-deep, #3a2216);
+  width: auto;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 3px solid var(--w-wood-deep, #3a2216);
+  border-radius: 4px;
   background: var(--w-parchment, #f6e7c8);
   color: var(--w-ink-dark, #3a1d0c);
+  box-shadow: 0 3px 0 var(--w-wood-deep, #3a2216);
+  font-family: var(--w-pixel, sans-serif);
 }
-
-.town-hall-npc {
-  position: absolute;
-  left: 4%;
-  bottom: 2%;
-  display: grid;
-  justify-items: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  z-index: 2;
-}
-.town-hall-npc-body { display: block; width: 96px; height: 96px; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.4)); }
-.town-hall-sign {
-  margin-top: -4px;
-  padding: 2px 8px;
-  border: 2px solid var(--w-wood-deep, #3a2216);
-  background: var(--w-wood-dark, #5a3826);
-  color: var(--w-gold, #ffc54d);
-  font: 14px var(--w-pixel, sans-serif);
-}
-.town-hall-npc:focus-visible { outline: 3px dashed var(--w-gold, #ffc54d); }
-@container (max-width: 480px) { .town-hall-npc-body { width: 72px; height: 72px; } }
-
-@media (prefers-reduced-motion: reduce) {
-  .town-hall-stage, .town-panel.is-room li.is-spot > .town-panel-entry { animation: none !important; }
-}
+.room-object.is-login .room-sign { background: linear-gradient(#6b55c8, #4b2fa8); }
+.room-object:is(.is-locked, .is-planned) { filter: grayscale(0.7); opacity: 0.7; }
