@@ -114,6 +114,7 @@
       size: 128,
     });
     npcButton.addEventListener("click", () => {
+      root.NudgeSfx?.play("page");
       speech = root.NudgeNpcDialog.open({ speaker: npc, lines: [guideLine] });
       const box = doc.querySelector(".w-npc-dialog");
       box?.setAttribute("aria-modal", "true");
@@ -148,7 +149,7 @@
         }),
         el("span", o.label, { class: "facility-name" }),
       );
-      b.addEventListener("click", () => (o.onSelect ? o.onSelect() : open()));
+      b.addEventListener("click", () => { root.NudgeSfx?.play("open"); return o.onSelect ? o.onSelect() : open(); });
       stage.append(b);
       return b;
     });

@@ -35,6 +35,38 @@ class _StoreScenePageState extends State<StoreScenePage> {
     return Scaffold(
       body: SceneRoom(
         art: StoreScenePage.art,
+        wide: const SceneWideLayout(
+          art: 'assets/scenes/store/store_wide.webp',
+          npcAt: Offset(0.17, 0.9),
+          rects: {
+            'clothes': Rect.fromLTWH(0.05, 0.2, 0.24, 0.45),
+            'furniture': Rect.fromLTWH(0.33, 0.2, 0.24, 0.35),
+            'cabinet': Rect.fromLTWH(0.59, 0.17, 0.16, 0.46),
+            'cashbox': Rect.fromLTWH(0.26, 0.5, 0.09, 0.12),
+            'cat': Rect.fromLTWH(0.43, 0.55, 0.1, 0.07),
+            'mirror': Rect.fromLTWH(0.76, 0.33, 0.23, 0.42),
+          },
+          effects: [
+            SceneEffect.flicker([
+              Offset(0.43, 0.13),
+              Offset(0.62, 0.13),
+              Offset(0.59, 0.54),
+            ]),
+            SceneEffect.sparkle([
+              Offset(0.63, 0.3),
+              Offset(0.7, 0.28),
+              Offset(0.65, 0.5),
+            ]),
+            SceneEffect.dust(count: 22),
+          ],
+          walkers: [
+            SceneWalker(GameCharacters.letty, [
+              Offset(0.4, 0.9),
+              Offset(0.62, 0.86),
+              Offset(0.72, 0.95),
+            ]),
+          ],
+        ),
         title: '小鎮雜貨店',
         npc: GameCharacters.chestnut,
         npcAt: const Offset(0.3, 0.88),

@@ -190,12 +190,25 @@
 
 /* ---------- desktop: the landscape cabin fills the window ---------- */
 @media (min-width: 860px) and (min-aspect-ratio: 21/20) {
-  .cabin-scene { grid-template-columns: minmax(0, 1fr) 300px; }
+  .cabin-scene { display: block; position: relative; }
   .cabin-stage[data-layout="wide"] {
-    width: min(calc(100vw - 360px), calc((100dvh - 120px) * 1.5));
+    width: min(calc(100vw - 32px), calc((100dvh - 110px) * 1.5));
     max-width: none;
   }
   .cabin-room .cabin-summary { max-width: none; }
+  /* tools float over the room's top-right corner */
+  .cabin-side {
+    position: absolute;
+    top: 12px;
+    right: max(12px, calc((100% - min(calc(100vw - 32px), calc((100dvh - 110px) * 1.5))) / 2 + 12px));
+    z-index: 10;
+    width: 300px;
+    max-height: calc(100dvh - 140px);
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+  }
+  .cabin-side > .cabin-hint { display: none; }
 }
 .cabin-touches { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .cabin-touch {

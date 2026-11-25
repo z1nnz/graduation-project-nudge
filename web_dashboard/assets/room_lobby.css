@@ -175,3 +175,22 @@
 .room-lobby-lights { display: flex; gap: 3px; }
 .room-lobby-lights i { width: 7px; height: 7px; background: var(--w-wood-dark); border: 1px solid var(--w-frame); }
 .room-lobby-lights .lit { background: var(--w-gold); }
+
+/* Full screen: the tower stands in its night town on every screen; on
+   desktop the cross-section grows to the window height. */
+body[data-page="rooms"] {
+  background: #140e22 url("scenes/focus_tower/tower_tall.webp") center / cover fixed no-repeat !important;
+}
+@media (min-width: 860px) and (min-aspect-ratio: 21/20) {
+  body[data-page="rooms"] { background-image: url("scenes/focus_tower/tower_wide.webp") !important; }
+  body[data-page="rooms"] .room-lobby {
+    max-width: min(960px, 70vw);
+    background: rgba(20, 14, 34, 0.72);
+    backdrop-filter: blur(2px);
+  }
+  body[data-page="rooms"] .tower-scroll { block-size: calc(100dvh - 190px); }
+}
+body[data-page="rooms"] .room-lobby { border: 4px solid var(--w-wood-deep); outline: 3px solid var(--w-frame); }
+@media (max-width: 859px) {
+  body[data-page="rooms"] .tower-scroll { block-size: calc(100dvh - 170px); }
+}

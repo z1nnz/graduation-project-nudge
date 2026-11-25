@@ -344,51 +344,42 @@ class _AppBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final themeColors = AppUI.backgroundThemeColors(themeKey, isDark);
-    final primary = themeColors.length > 1 ? themeColors[1] : AppUI.primary;
-    final blue = themeKey == 'galaxySleep' ? AppUI.purple : AppUI.blue;
-    final green = themeKey == 'sakuraWalk'
-        ? const Color(0xFFEC4899)
-        : AppUI.green;
-
-    void drawSoftCircle(
-      Offset center,
-      double radius,
-      Color color,
-      double alpha,
-    ) {
-      final paint = Paint()..color = color.withValues(alpha: alpha);
-      canvas.drawCircle(center, radius, paint);
+    // Wood-plank wall over the chosen theme colours: plank seams, staggered
+    // joints, a little grain and warm lantern light in two corners.
+    final seam = Paint()
+      ..color = (isDark ? const Color(0xFF000000) : const Color(0xFF5A3826))
+          .withValues(alpha: isDark ? 0.22 : 0.10);
+    final grain = Paint()
+      ..color = (isDark ? const Color(0xFFFFE6A3) : const Color(0xFF8A5A34))
+          .withValues(alpha: isDark ? 0.03 : 0.05);
+    const plank = 28.0;
+    var row = 0;
+    for (double y = 0; y < size.height + plank; y += plank, row++) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 2), seam);
+      final offset = row.isEven ? 0.0 : 90.0;
+      for (double x = offset; x < size.width; x += 180) {
+        canvas.drawRect(Rect.fromLTWH(x, y, 2, plank), seam);
+      }
+      for (double x = (row * 37) % 60.0; x < size.width; x += 60) {
+        canvas.drawRect(Rect.fromLTWH(x, y + 9 + (row % 3) * 4, 22, 1), grain);
+      }
     }
-
-    drawSoftCircle(
-      Offset(size.width * 0.12, size.height * 0.10),
-      size.width * 0.34,
-      primary,
-      isDark ? 0.10 : 0.08,
-    );
-    drawSoftCircle(
-      Offset(size.width * 0.92, size.height * 0.26),
-      size.width * 0.30,
-      blue,
-      isDark ? 0.08 : 0.06,
-    );
-    drawSoftCircle(
-      Offset(size.width * 0.18, size.height * 0.86),
-      size.width * 0.28,
-      green,
-      isDark ? 0.06 : 0.05,
-    );
-
-    final linePaint = Paint()
-      ..color = (isDark ? Colors.white : primary).withValues(
-        alpha: isDark ? 0.025 : 0.035,
-      )
-      ..strokeWidth = 1;
-
-    const gap = 48.0;
-    for (double y = 0; y < size.height + gap; y += gap) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y + 22), linePaint);
+    for (final c in [
+      Offset(size.width * 0.08, size.height * 0.08),
+      Offset(size.width * 0.92, size.height * 0.08),
+    ]) {
+      final r = size.width * 0.45;
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              const Color(0xFFFFC85A).withValues(alpha: isDark ? 0.16 : 0.12),
+              const Color(0x00FFC85A),
+            ],
+          ).createShader(Rect.fromCircle(center: c, radius: r)),
+      );
     }
   }
 

@@ -2623,6 +2623,8 @@ function connectLocalFirebaseEmulators() {
   firebase.auth().useEmulator("http://127.0.0.1:9099");
   db.useEmulator("127.0.0.1", 8180);
   functions?.useEmulator("127.0.0.1", 5001);
+  // Pages also call the regional instance directly; point it at the emulator too.
+  try { firebase.app().functions("asia-east1").useEmulator("127.0.0.1", 5001); } catch (_) { /* already connected */ }
   console.warn("Nudge Web is connected to local Firebase emulators.");
   return true;
 }

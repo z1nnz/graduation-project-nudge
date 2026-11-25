@@ -2,6 +2,7 @@ import 'dart:async';
 import 'theme/app_text_scale.dart';
 import 'models/cabin_sky.dart';
 import 'package:flutter/material.dart';
+import 'services/game_sfx.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -19,6 +20,8 @@ import 'screens/onboarding_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  GameSfx.enabled = true;
+  GameSfx.load();
   await NotificationService.initialize();
   try {
     await Firebase.initializeApp(
@@ -107,8 +110,14 @@ class _AppRoot extends StatelessWidget {
           bodyLarge: TextStyle(color: Color(0xFF3A1D0C)),
           bodyMedium: TextStyle(color: Color(0xFF3A1D0C)),
           bodySmall: TextStyle(color: Color(0xFF7A5532)),
-          titleLarge: TextStyle(color: Color(0xFF3A1D0C), fontFamily: 'Cubic11'),
-          titleMedium: TextStyle(color: Color(0xFF3A1D0C), fontFamily: 'Cubic11'),
+          titleLarge: TextStyle(
+            color: Color(0xFF3A1D0C),
+            fontFamily: 'Cubic11',
+          ),
+          titleMedium: TextStyle(
+            color: Color(0xFF3A1D0C),
+            fontFamily: 'Cubic11',
+          ),
           titleSmall: TextStyle(color: Color(0xFF3A1D0C)),
         ),
         cardTheme: CardThemeData(
@@ -121,9 +130,16 @@ class _AppRoot extends StatelessWidget {
         ),
         listTileTheme: const ListTileThemeData(
           iconColor: Color(0xFF8A5A34),
-          titleTextStyle: TextStyle(color: Color(0xFF3A1D0C), fontSize: 16, fontWeight: FontWeight.w700),
+          titleTextStyle: TextStyle(
+            color: Color(0xFF3A1D0C),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        dividerTheme: const DividerThemeData(color: Color(0x668A5A34), thickness: 2),
+        dividerTheme: const DividerThemeData(
+          color: Color(0x668A5A34),
+          thickness: 2,
+        ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: GamePalette.gold,

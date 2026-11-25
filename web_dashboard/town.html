@@ -8,7 +8,9 @@
     <link rel="stylesheet" href="assets/world_ui.css?v=gameui-r1" />
     <link rel="stylesheet" href="assets/town.css?v=gameui-r1-5" />
     <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
     <link rel="stylesheet" href="assets/town_halls.css?v=2" />
+    <link rel="stylesheet" href="assets/town_crowd.css?v=1" />
     <script>try { if (localStorage.getItem('nudge_town_tour_done') === '1' || new URLSearchParams(location.search).has('at')) document.documentElement.classList.add('town-tour-done'); } catch (_) {}</script>
   </head>
   <body data-page="town">
@@ -60,8 +62,8 @@
       </section>
 
       <section id="townEmoteWheel" class="town-emote-wheel" aria-label="角色表情" hidden>
-        <p>選擇表情（只在自己的畫面顯示）</p>
-        <div><button type="button" data-emote="wave">👋 打招呼</button><button type="button" data-emote="cheer">✨ 歡呼</button><button type="button" data-emote="sit">🪑 坐下</button><button type="button" data-emote="sleep">💤 睡覺</button></div>
+        <p>選擇表情（開啟「在小鎮顯示我」時，好友也看得到）</p>
+        <div><button type="button" data-emote="wave">👋 打招呼</button><button type="button" data-emote="cheer">✨ 歡呼</button><button type="button" data-emote="heart">💗 愛心</button><button type="button" data-emote="study">📖 讀書</button><button type="button" data-emote="sit">🪑 坐下</button><button type="button" data-emote="sleep">💤 睡覺</button></div>
       </section>
 
       <nav class="town-hotbar" aria-label="手機快捷列">
@@ -180,11 +182,13 @@
     <script defer src="assets/town_window_core.js?v=2"></script>
     <script defer src="assets/sprite_player.js?v=1"></script>
     <script defer src="assets/npc_dialog.js?v=1"></script>
-    <script defer src="assets/scene_room.js?v=4"></script>
+    <script defer src="assets/game_sfx.js?v=1"></script>
+    <script defer src="assets/scene_room.js?v=5"></script>
     <script defer src="assets/town_halls.js?v=5"></script>
     <script defer src="assets/town_hall_view.js?v=2"></script>
-    <script defer src="assets/town.js?v=10"></script>
+    <script defer src="assets/town_crowd.js?v=3"></script>
+    <script defer src="assets/town.js?v=11"></script>
     <script defer src="assets/town_window.js?v=2"></script>
-    <script defer src="assets/app.js?v=30"></script>
+    <script defer src="assets/app.js?v=31"></script>
   </body>
 </html>

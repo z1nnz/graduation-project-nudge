@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart';
 
 import '../models/character_catalog.dart';
+import '../services/game_sfx.dart';
 import '../theme/game_ui.dart';
 import 'npc_dialog.dart';
 import 'sprite_animation.dart';
@@ -104,6 +105,24 @@ class SceneEffect {
   final double radius, top, band;
 }
 
+/// The landscape version of a room: its own art, spots, NPC place and life.
+class SceneWideLayout {
+  const SceneWideLayout({
+    required this.art,
+    required this.rects,
+    this.aspect = 1.5,
+    this.npcAt = const Offset(0.2, 0.9),
+    this.effects = const [],
+    this.walkers = const [],
+  });
+  final String art;
+  final double aspect;
+  final Map<String, Rect> rects;
+  final Offset npcAt;
+  final List<SceneEffect> effects;
+  final List<SceneWalker> walkers;
+}
+
 /// A townsperson strolling along [path] (art fractions), looping.
 class SceneWalker {
   const SceneWalker(
@@ -160,6 +179,8 @@ class SceneRoom extends StatefulWidget {
     this.trailing,
     this.footer,
     this.walkers = const [],
+    this.wide,
+    this.overlay,
   });
 
   final String art, title;
@@ -172,6 +193,14 @@ class SceneRoom extends StatefulWidget {
   final List<SceneEffect> effects;
   final Widget? trailing, footer;
   final List<SceneWalker> walkers;
+
+  /// Landscape art and spots used on tablets and landscape screens.
+  final SceneWideLayout? wide;
+
+  /// Extra pieces placed on the art (e.g. garden plants); [art] is the art's
+  /// rectangle on screen and [wide] says which layout is showing.
+  final List<Widget> Function(BuildContext context, Rect art, bool wide)?
+  overlay;
 
   @override
   State<SceneRoom> createState() => SceneRoomState();
@@ -192,13 +221,17 @@ class SceneRoomState extends State<SceneRoom>
   final _frame = ValueNotifier<int>(0);
   final _clock = ValueNotifier<Duration>(Duration.zero);
   final List<_Burst> _bursts = [];
-  late final List<_WalkerState> _walkers = _makeWalkers();
+  late final List<_WalkerState> _tallWalkers = _makeWalkers(widget.walkers);
+  late final List<_WalkerState> _wideWalkers = _makeWalkers(
+    widget.wide?.walkers ?? const [],
+  );
+  bool _isWide = false;
+  List<_WalkerState> get _walkers => _isWide ? _wideWalkers : _tallWalkers;
   Duration _lastTick = Duration.zero;
 
-  List<_WalkerState> _makeWalkers() => [
-    for (var i = 0; i < widget.walkers.length; i++)
-      _WalkerState(widget.walkers[i], (i * 0.37) % 1)
-        ..at = widget.walkers[i].path.first,
+  List<_WalkerState> _makeWalkers(List<SceneWalker> list) => [
+    for (var i = 0; i < list.length; i++)
+      _WalkerState(list[i], (i * 0.37) % 1)..at = list[i].path.first,
   ];
 
   void _stepWalkers(Duration dt) {
@@ -287,7 +320,9 @@ class SceneRoomState extends State<SceneRoom>
 
   Offset _center(String id) {
     final o = widget.objects.where((o) => o.id == id).firstOrNull;
-    final r = o?.rect ?? const Rect.fromLTWH(0.4, 0.4, 0.2, 0.2);
+    final r =
+        (o == null ? null : _rectFor(o)) ??
+        const Rect.fromLTWH(0.4, 0.4, 0.2, 0.2);
     return Offset(
       _artRect.left + r.center.dx * _artRect.width,
       _artRect.top + r.center.dy * _artRect.height,
@@ -302,6 +337,11 @@ class SceneRoomState extends State<SceneRoom>
     int count = 8,
     String? announce,
   }) {
+    GameSfx.play(switch (kind) {
+      BurstKind.coin => 'coin',
+      BurstKind.heart => 'heart',
+      _ => 'sparkle',
+    });
     if (announce != null) {
       SemanticsService.sendAnnouncement(
         View.of(context),
@@ -322,6 +362,7 @@ class SceneRoomState extends State<SceneRoom>
   }) async {
     final npc = widget.npc;
     if (npc == null || lines.isEmpty) return;
+    GameSfx.play('page');
     setState(() => _talking = true);
     await NpcDialog.show(context, speaker: npc, lines: lines, actions: actions);
     if (mounted) setState(() => _talking = false);
@@ -335,14 +376,21 @@ class SceneRoomState extends State<SceneRoom>
     return say(lines.isEmpty ? const ['你好！'] : lines);
   }
 
+  double get _aspect => _isWide ? widget.wide!.aspect : widget.aspect;
+  String get _art => _isWide ? widget.wide!.art : widget.art;
+  Offset get _npcAt => _isWide ? widget.wide!.npcAt : widget.npcAt;
+  List<SceneEffect> get _effects =>
+      _isWide ? widget.wide!.effects : widget.effects;
+  Rect? _rectFor(SceneObject o) => _isWide ? widget.wide!.rects[o.id] : o.rect;
+
   Rect _fit(Size box) {
     // Fit the whole art; leave room for the title bar on top.
     const top = 64.0;
     final avail = Size(box.width, math.max(1, box.height - top));
-    var w = avail.width, h = w / widget.aspect;
+    var w = avail.width, h = w / _aspect;
     if (h > avail.height) {
       h = avail.height;
-      w = h * widget.aspect;
+      w = h * _aspect;
     }
     return Rect.fromLTWH(
       (box.width - w) / 2,
@@ -358,7 +406,12 @@ class SceneRoomState extends State<SceneRoom>
     return GameBackground(
       child: LayoutBuilder(
         builder: (context, box) {
-          _artRect = _fit(box.biggest);
+          final size = box.biggest;
+          _isWide =
+              widget.wide != null &&
+              size.width >= 840 &&
+              size.width / math.max(1, size.height) >= 1.05;
+          _artRect = _fit(size);
           final art = _artRect;
           return Stack(
             children: [
@@ -372,7 +425,7 @@ class SceneRoomState extends State<SceneRoom>
                         BlendMode.srcATop,
                       ),
                       child: Image.asset(
-                        widget.art,
+                        _art,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) =>
                             ColoredBox(color: p.backgroundBottom),
@@ -390,7 +443,7 @@ class SceneRoomState extends State<SceneRoom>
                       border: Border.all(color: GamePalette.woodDeep, width: 3),
                     ),
                     child: Image.asset(
-                      widget.art,
+                      _art,
                       fit: BoxFit.fill,
                       filterQuality: FilterQuality.none,
                       errorBuilder: (_, _, _) =>
@@ -405,24 +458,29 @@ class SceneRoomState extends State<SceneRoom>
                   child: ValueListenableBuilder<int>(
                     valueListenable: _frame,
                     builder: (_, f, _) => CustomPaint(
-                      painter: _LifePainter(widget.effects, _reduced ? 0 : f),
+                      painter: _LifePainter(_effects, _reduced ? 0 : f),
                     ),
                   ),
                 ),
               ),
               for (final o in widget.objects)
-                Positioned(
-                  left: art.left + o.rect.left * art.width,
-                  top: art.top + o.rect.top * art.height,
-                  width: math.max(44, o.rect.width * art.width),
-                  height: math.max(44, o.rect.height * art.height),
-                  child: _ObjectHotspot(
-                    object: o,
-                    frame: _frame,
-                    reduced: _reduced,
-                    onTap: () => o.onTap(context, this),
+                if (_rectFor(o) case final r?)
+                  Positioned(
+                    left: art.left + r.left * art.width,
+                    top: art.top + r.top * art.height,
+                    width: math.max(44, r.width * art.width),
+                    height: math.max(44, r.height * art.height),
+                    child: _ObjectHotspot(
+                      object: o,
+                      frame: _frame,
+                      reduced: _reduced,
+                      onTap: () {
+                        GameSfx.play('tap');
+                        o.onTap(context, this);
+                      },
+                    ),
                   ),
-                ),
+              ...?widget.overlay?.call(context, art, _isWide),
               for (final w in _walkers)
                 ValueListenableBuilder<Duration>(
                   valueListenable: _clock,
@@ -444,8 +502,8 @@ class SceneRoomState extends State<SceneRoom>
                 ),
               if (widget.npc != null)
                 Positioned(
-                  left: art.left + widget.npcAt.dx * art.width - 56,
-                  top: art.top + widget.npcAt.dy * art.height - 132,
+                  left: art.left + _npcAt.dx * art.width - 56,
+                  top: art.top + _npcAt.dy * art.height - 132,
                   child: _Npc(
                     character: widget.npc!,
                     talking: _talking,
@@ -528,6 +586,7 @@ class _TitleBar extends StatelessWidget {
               ),
             ),
           ),
+          const _SfxToggle(),
           ?trailing,
         ],
       ),
@@ -1028,5 +1087,28 @@ class TownGateBackground extends StatelessWidget {
       ),
       child,
     ],
+  );
+}
+
+class _SfxToggle extends StatefulWidget {
+  const _SfxToggle();
+  @override
+  State<_SfxToggle> createState() => _SfxToggleState();
+}
+
+class _SfxToggleState extends State<_SfxToggle> {
+  @override
+  Widget build(BuildContext context) => IconButton(
+    key: const ValueKey('scene-sfx'),
+    tooltip: GameSfx.muted ? '開啟音效' : '關閉音效',
+    onPressed: () async {
+      await GameSfx.setMuted(!GameSfx.muted);
+      if (!GameSfx.muted) GameSfx.play('tap');
+      if (mounted) setState(() {});
+    },
+    icon: Icon(
+      GameSfx.muted ? Icons.volume_off : Icons.volume_up,
+      color: GamePalette.inkLight,
+    ),
   );
 }
