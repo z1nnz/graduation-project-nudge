@@ -141,3 +141,8 @@ body[data-page="operations"] .store-slot.is-lifted .store-desc { color: var(--w-
   .store-hud h1 { font-size: 18px; white-space: nowrap; }
   body[data-page="operations"] .w-hud .store-purse.hero-card { font-size: 16px; padding: 3px 10px; }
 }
+body[data-page="operations"] .w-hud .store-purse.hero-card { white-space: nowrap; flex: none; }
+@media (max-width: 520px) {
+  body[data-page="operations"] .w-hud .store-purse.hero-card small { display: none; }
+  .store-hud a[data-town-return] { white-space: nowrap; }
+}
