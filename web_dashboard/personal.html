@@ -1,34 +1,54 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nudge 紀錄館</title>
-<link rel="stylesheet" href="assets/town.css?v=5">
-<link rel="stylesheet" href="assets/growth_museum.css?v=2">
-<link rel="stylesheet" href="assets/growth_scene.css?v=1">
-<script defer src="assets/growth_museum_core.js?v=2"></script>
-<script defer src="assets/growth_museum.js?v=2"></script>
-<script defer src="assets/town_routes.js?v=4"></script>
-<script defer src="assets/town_return.js?v=2"></script>
-</head>
-<body data-growth-museum="home" data-museum-demo="false">
-<a class="skip-link" href="#museumMain">跳至紀錄內容</a>
-<header class="museum-header">
-<a class="museum-brand" href="personal.html">Nudge · 成長紀錄館</a>
-<a id="museumWorld" data-town-return href="town.html">← 回小鎮</a>
-</header>
-<main id="museumMain" tabindex="-1">
-<p class="museum-kicker">YOUR GROWTH ARCHIVE</p>
-<h1 id="museumTitle">紀錄館</h1>
-<p id="museumDescription">回顧自己的行動，選擇下一步。</p>
-<nav id="museumNav" class="museum-nav" aria-label="紀錄館書籍"></nav>
-<p id="museumStatus" class="museum-status" role="status" aria-live="polite">尚未讀取雲端紀錄；沒有以範例代替個人資料。</p>
-<section id="museumView" class="museum-view" aria-label="紀錄館內容">
-<p class="museum-empty">啟用 JavaScript 並登入後讀取本人資料。<a href="login.html">登入帳號</a></p>
-</section>
-</main>
-<footer class="museum-footer">本人私有紀錄 · 成果與建議分開
-<p><a href="personal-identity.html">自律身分（雲端摘要）</a> · <a href="privacy.html">隱私與資料權利</a> · <a href="research.html">研究中心（原型範例）</a> · <a href="presentation.html">發表展示（範例）</a> · <a href="admin_dashboard.html">後台管理（需管理權限）</a></p>
-<p><a href="museum-demo.html">查看明確標示的虛構展示</a></p>
-</footer>
-</body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Nudge 紀錄館</title>
+    <link rel="stylesheet" href="assets/world_ui.css?v=gameui-r2" />
+    <link rel="stylesheet" href="assets/growth_world.css?v=1" />
+    <link rel="stylesheet" href="assets/facility_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/library_scene.css?v=1" />
+    <script defer src="assets/sprite_player.js?v=1"></script>
+    <script defer src="assets/npc_dialog.js?v=1"></script>
+    <script defer src="assets/facility_scene.js?v=1"></script>
+    <script defer src="assets/growth_review.js?v=1"></script>
+    <script defer src="assets/growth_world.js?v=2"></script>
+    <script defer src="assets/library_scene_core.js?v=1"></script>
+    <script defer src="assets/library_scene.js?v=1"></script>
+  </head>
+  <body
+    class="w-page world-page"
+    data-growth-museum="home"
+    data-museum-demo="false"
+  >
+    <header class="w-hud">
+      <a id="museumWorld" data-town-return href="town.html">← 回小鎮</a>
+      <h1>紀錄館・每週藏書</h1>
+      <a href="login.html">帳號</a>
+    </header>
+    <main id="museumMain" class="w-main">
+      <p id="growthStatus" role="status" aria-live="polite">雲端確認中。</p>
+      <h2>閱讀工具與其他篇章</h2>
+      <nav class="library-tools" aria-label="紀錄館其他篇章">
+        <a href="personal-trends.html">成長年鑑</a
+        ><a href="personal-weather.html">生活天氣</a
+        ><a href="personal-pressure.html">溫柔整理</a
+        ><a href="personal-skill-tree.html">技能書籤</a
+        ><a href="personal-template.html">下一步工坊</a
+        ><a href="personal-letter.html">未來的信</a
+        ><a href="personal-time-capsule.html">時間膠囊</a
+        ><a href="personal-identity.html">冒險者證書</a
+        ><a href="achievements.html">成就大廳</a
+        ><a href="personal-share.html">成長分享卡</a
+        ><a href="privacy.html">正式隱私匯出</a
+        ><a href="research.html">研究中心（原型範例）</a
+        ><a href="presentation.html">發表展示（範例）</a
+        ><a href="admin_dashboard.html">後台管理（需權限）</a
+        ><a href="museum-demo.html">唯讀虛構展示</a>
+      </nav>
+      <p>本人私有紀錄，清晨05:00換日。沒有把家庭、團體成果換算為個人獎勵。</p>
+    </main>
+    <script src="assets/town_routes.js?v=6"></script>
+    <script src="assets/town_return.js?v=2"></script>
+  </body>
+</html>

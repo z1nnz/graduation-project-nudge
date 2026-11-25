@@ -149,16 +149,18 @@
     state.authUnsub = firebase.auth().onAuthStateChanged(user => {
       state.unreadUnsub?.(); state.unreadUnsub = null;
       el('townUnread').hidden = true;
+      doc.dispatchEvent(new CustomEvent('nudge-town-building-content',{detail:{clear:true}}));
       if (!user) return;
       state.unreadUnsub = firebase.firestore().collection('user_notifications')
         .where('recipientUserId', '==', user.uid).orderBy('createdAt', 'desc').limit(100)
         .onSnapshot({ includeMetadataChanges: true }, snap => {
-          if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) return;
+          if (snap.metadata.fromCache || snap.metadata.hasPendingWrites) { doc.dispatchEvent(new CustomEvent('nudge-town-building-content',{detail:{building:'plaza',confirmed:false}})); return; }
           const amount = core.unread(snap.docs.map(d => d.data()));
           el('townUnread').textContent = amount >= 100 ? '99+' : String(amount);
           el('townUnread').hidden = amount === 0;
+          doc.dispatchEvent(new CustomEvent('nudge-town-building-content',{detail:{building:'plaza',confirmed:true,hasContent:amount>0}}));
           el('townMail').setAttribute('aria-label', amount ? `小鎮郵箱，${amount} 封未讀` : '小鎮郵箱');
-        }, () => { el('townUnread').hidden = true; });
+        }, () => { el('townUnread').hidden = true; doc.dispatchEvent(new CustomEvent('nudge-town-building-content',{detail:{building:'plaza',confirmed:false}})); });
     });
   }
 

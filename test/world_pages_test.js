@@ -27,6 +27,19 @@ const awaitingMigration = new Set([
   'weekly-planner.html',
 ]);
 
+// Reviewed WEB-GAME-09 slices land independently. Register only the pages
+// whose owning slice exists; their complete town chrome is still checked below.
+const package09Migrations = [
+  ['achievements.html', ['achievements.html']],
+  ['personal-share.html', ['personal-share.html', 'personal-trends.html']],
+  ['observatory.html', ['observatory.html']],
+  ['onboarding.html', ['onboarding.html', 'login.html']],
+];
+for (const [entry, pages] of package09Migrations) {
+  if (!fs.existsSync(path.join(root, entry))) continue;
+  for (const page of pages) { migrated.add(page); awaitingMigration.delete(page); }
+}
+
 test('every player page has an explicit migration state', () => {
   const pages = new Set(routes.DESTINATIONS.filter(route => route.audience === 'player')
     .map(route => route.href.split('#')[0].split('?')[0]));
@@ -38,7 +51,7 @@ test('migrated player pages use town chrome without old dashboard or star layers
   for (const page of migrated) {
     const html = fs.readFileSync(path.join(root, page), 'utf8');
     assert.match(html, /<body class="w-page world-page"/, page);
-    assert.match(html, /assets\/world_ui\.css\?v=2/, page);
+    assert.match(html, /assets\/world_ui\.css\?v=3/, page);
     assert.match(html, /data-town-return/, page);
     assert.match(html, /assets\/town_routes\.js/, page);
     assert.match(html, /assets\/town_return\.js/, page);
@@ -46,7 +59,7 @@ test('migrated player pages use town chrome without old dashboard or star layers
     assert.doesNotMatch(html, /class="stars(?:\s|\")/, page);
   }
   const builder = fs.readFileSync(path.join(root, 'planet-builder.html'), 'utf8');
-  assert.match(builder, /assets\/world_ui\.css\?v=2/);
+  assert.match(builder, /assets\/world_ui\.css\?v=3/);
   assert.match(builder, /data-town-return/);
   assert.equal(windowCore.windowPath('planet-builder.html', 'https://nudge.example/web/town.html'), 'planet-builder.html');
 });
