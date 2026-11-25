@@ -101,24 +101,29 @@ class _AppRoot extends StatelessWidget {
         ),
         scaffoldBackgroundColor: Colors.transparent,
         cardColor: GamePalette.light.panel,
-        dividerColor: const Color(0xFFE5E7EB),
+        dividerColor: const Color(0x668A5A34),
         shadowColor: Colors.black.withValues(alpha: 0.05),
         textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Color(0xFF2D2A32)),
-          bodyMedium: TextStyle(color: Color(0xFF2D2A32)),
-          bodySmall: TextStyle(color: Color(0xFF6B7280)),
-          titleLarge: TextStyle(color: Color(0xFF2D2A32)),
-          titleMedium: TextStyle(color: Color(0xFF2D2A32)),
-          titleSmall: TextStyle(color: Color(0xFF2D2A32)),
+          bodyLarge: TextStyle(color: Color(0xFF3A1D0C)),
+          bodyMedium: TextStyle(color: Color(0xFF3A1D0C)),
+          bodySmall: TextStyle(color: Color(0xFF7A5532)),
+          titleLarge: TextStyle(color: Color(0xFF3A1D0C), fontFamily: 'Cubic11'),
+          titleMedium: TextStyle(color: Color(0xFF3A1D0C), fontFamily: 'Cubic11'),
+          titleSmall: TextStyle(color: Color(0xFF3A1D0C)),
         ),
         cardTheme: CardThemeData(
           color: GamePalette.light.panel,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: AppUI.cardFrame, width: 2),
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: AppUI.cardFrame, width: 3),
           ),
         ),
+        listTileTheme: const ListTileThemeData(
+          iconColor: Color(0xFF8A5A34),
+          titleTextStyle: TextStyle(color: Color(0xFF3A1D0C), fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        dividerTheme: const DividerThemeData(color: Color(0x668A5A34), thickness: 2),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: GamePalette.gold,
