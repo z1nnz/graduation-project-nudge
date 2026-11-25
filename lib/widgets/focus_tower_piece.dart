@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/character_catalog.dart';
 import '../theme/game_ui.dart';
+import 'sprite_animation.dart';
 
 /// A selectable window into one of the existing room templates.
 class FocusTowerRoomPreview extends StatelessWidget {
@@ -216,6 +218,14 @@ class _FocusTowerGateState extends State<FocusTowerGate>
                   );
                 },
               ),
+            ),
+          ),
+          const Positioned(
+            left: 0,
+            right: 0,
+            top: 42,
+            child: Center(
+              child: CharacterSprite(character: GameCharacters.bell, size: 64),
             ),
           ),
           Center(

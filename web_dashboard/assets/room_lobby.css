@@ -57,13 +57,9 @@
 }
 .tower-porter-portrait {
   position: absolute;
-  inset: auto auto 24% 47%;
-  width: 24px;
-  height: 26px;
-  background: var(--w-wood-deep);
-  border: 2px solid var(--w-frame);
-  box-shadow: 13px 8px 0 -5px var(--w-gold);
-  pointer-events: none;
+  bottom: calc(100% - 4px);
+  left: 50%;
+  transform: translateX(-50%);
 }
 .tower-stars {
   position: absolute;
@@ -143,10 +139,7 @@
   display: none;
   position: absolute;
   inset: auto auto 28% 28%;
-  width: 12px;
-  height: 18px;
-  background: var(--w-wood-deep);
-  box-shadow: 4px 8px var(--w-wood-dark);
+  pointer-events: none;
 }
 .room-lobby-door[data-tower-active="true"] .tower-reader { display: block; }
 .room-lobby-theme, .room-lobby-qr, .tower-theme-pick img { image-rendering: pixelated; }

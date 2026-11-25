@@ -31,7 +31,17 @@
   const call = async (action, payload = {}) => (await functions.httpsCallable("manageRoomLobby")({ action, ...payload })).data;
 
   const bird = root.querySelector(".tower-bird");
-  const portrait = root.querySelector(".tower-porter-portrait");
+  const bell = NudgeSpritePlayer.characterPlayer(get(".tower-porter-portrait"), "bell", { size: 64 });
+  const readers = new Map();
+  function clearReaders() {
+    for (const reader of readers.values()) reader.destroy();
+    readers.clear();
+  }
+  addEventListener("pagehide", event => {
+    if (event.persisted) return;
+    bell.destroy();
+    clearReaders();
+  });
   const greeting = get("[data-lobby-greeting]");
   let frame;
   let towerVisible = false;
@@ -44,9 +54,12 @@
       lastTick = tick;
       root.style.setProperty("--tower-flame", String([0.4, 0.65, 0.8, 0.6][tick % 4]));
       bird.style.transform = "translate(" + (tick % 65) + "vw," + [0, -2, -4, -2][tick % 4] + "px)";
-      portrait.style.transform = "translateY(" + [0, -1, -2, -1][tick % 4] + "px)";
       if (greetingStart != null && modal.open && !gate.hidden) {
         greeting.textContent = dialogue.slice(0, Math.floor((timestamp - greetingStart) / 36) + 1);
+        if (greeting.textContent === dialogue) {
+          greetingStart = null;
+          bell.play("idle");
+        }
       }
     }
     frame = requestAnimationFrame(animate);
@@ -57,7 +70,6 @@
     if (motion.matches) {
       root.style.removeProperty("--tower-flame");
       bird.style.removeProperty("transform");
-      portrait.style.removeProperty("transform");
       greeting.textContent = dialogue;
     } else if (!document.hidden && towerVisible) {
       frame = requestAnimationFrame(animate);
@@ -89,7 +101,12 @@
       activeFloors.unobserve(floor);
       db.collection("rooms").doc(floor.dataset.roomId).collection("members")
         .where("presenceStatus", "==", "studying").limit(8).get().then(snapshot => {
-          if (floor.isConnected && !snapshot.empty) floor.dataset.towerActive = "true";
+          if (floor.isConnected && !snapshot.empty) {
+            floor.dataset.towerActive = "true";
+            readers.set(floor, NudgeSpritePlayer.characterPlayer(
+              floor.querySelector(".tower-reader"), "companion", { animation: "think", size: 32 }
+            ));
+          }
         }).catch(() => {
           // A pending or former member has no access to room presence.
         });
@@ -114,6 +131,8 @@
   modal.addEventListener("close", () => {
     if (returnFocus?.isConnected) returnFocus.focus();
     selection = null;
+    greetingStart = null;
+    bell.play("idle");
   });
   get("[data-lobby-close]").addEventListener("click", () => modal.close());
   porter.addEventListener("click", () => {
@@ -123,7 +142,8 @@
     redeem.querySelector("button").disabled = !userId;
     get("[data-lobby-dialog-title]").textContent = "鐘鐘的守門台";
     greeting.textContent = motion.matches ? dialogue : "";
-    greetingStart = performance.now();
+    greetingStart = motion.matches ? null : performance.now();
+    if (!motion.matches) bell.play("talk");
     updateMotion();
     showOpener(porter);
   });
@@ -160,6 +180,7 @@
         (!selected.tag || room.tags.some(tag => contains(tag, selected.tag.trim()))) &&
         (!selected.search || contains(room.name, selected.search.trim())));
     activeFloors.disconnect();
+    clearReaders();
     const atGate = tower.scrollHeight - tower.clientHeight - tower.scrollTop < 24;
     doors.replaceChildren();
     for (const [index, room] of list.entries()) {
@@ -348,6 +369,7 @@
     start.disabled = !userId;
     model = { rooms: [], activity: [] };
     activeFloors.disconnect();
+    clearReaders();
     doors.replaceChildren();
     tower.scrollTop = tower.scrollHeight;
     if (modal.open) modal.close();
