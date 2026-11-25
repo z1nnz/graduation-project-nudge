@@ -16,6 +16,14 @@
   const HALLS = Object.freeze({
     cabin: {
       npc: 'companion', line: '回家了！要坐到書桌前專注，還是看看我今天的樣子？',
+      wide: W('assets/scenes/workbench/cabin_wide.webp', 1.5, {
+        'focus-desk': [0.41, 0.54, 0.28, 0.18], 'desk-scene': [0.42, 0.39, 0.17, 0.13],
+        'cabin-feedback': [0.39, 0.1, 0.23, 0.26], 'cabin-scene': [0.23, 0.34, 0.14, 0.36], profile: [0.63, 0.39, 0.12, 0.11],
+      }, {
+        npcAt: [0.52, 0.92],
+        effects: [lights([[0.22, 0.24], [0.79, 0.24]], 0.03), { type: 'stars', count: 10, height: 0.3 }, { type: 'dust', count: 18 }],
+        walkers: [{ id: 'letty', path: [[0.15, 0.85], [0.3, 0.82], [0.2, 0.9]], speed: 0.03, pause: 3000 }],
+      }),
       tall: W('assets/home/room_base.png', 720 / 1279, {
         'focus-desk': [0.39, 0.44, 0.45, 0.13], 'desk-scene': [0.39, 0.3, 0.26, 0.12],
         'cabin-feedback': [0.31, 0.08, 0.38, 0.21], 'cabin-scene': [0.12, 0.29, 0.25, 0.27], profile: [0.67, 0.31, 0.2, 0.1],
@@ -53,6 +61,18 @@
     },
     family: {
       npc: 'sprout', line: '這是家人的庭院。中間的花圃是大家一起照顧的共同目標喔。',
+      tall: W('assets/scenes/family_courtyard/courtyard_tall.webp', 2 / 3, {
+        'family-courtyard': [0.27, 0.3, 0.41, 0.2], guardian: [0.27, 0.2, 0.06, 0.1], 'guardian-link': [0.68, 0.2, 0.07, 0.1],
+        'guardian-report': [0.03, 0.17, 0.22, 0.18], 'guardian-goals': [0.45, 0.22, 0.1, 0.07], 'guardian-permissions': [0.56, 0.23, 0.1, 0.05],
+        'guardian-encouragement': [0.89, 0.26, 0.08, 0.1],
+      }, {
+        npcAt: [0.3, 0.78],
+        effects: [lights([[0.33, 0.35], [0.66, 0.35], [0.31, 0.53], [0.68, 0.53], [0.35, 0.18], [0.65, 0.18]], 0.02), { type: 'fireflies', count: 14, top: 0.2, band: 0.6 }, { type: 'flutter', count: 8, color: '#e9c4ff', top: 0.0, fall: 0.5, x: 0.15 }],
+        walkers: [
+          { id: 'letty', path: [[0.8, 0.7], [0.5, 0.75], [0.3, 0.85], [0.6, 0.9]], speed: 0.04, pause: 2500 },
+          { id: 'companion', path: [[0.45, 0.6], [0.55, 0.65], [0.5, 0.95]], speed: 0.03, pause: 3000 },
+        ],
+      }),
       wide: W('assets/scenes/family_courtyard/courtyard.webp', 3 / 2, {
         'family-courtyard': [0.33, 0.43, 0.34, 0.22], guardian: [0.31, 0.22, 0.08, 0.21], 'guardian-link': [0.69, 0.22, 0.08, 0.21],
         'guardian-report': [0.08, 0.38, 0.2, 0.17], 'guardian-goals': [0.48, 0.26, 0.12, 0.12], 'guardian-permissions': [0.6, 0.27, 0.08, 0.1],
@@ -65,6 +85,18 @@
     },
     guild: {
       npc: 'scroll', line: '團體會館到了。牆上的拼圖，每完成一塊就是大家一起努力的成果。',
+      tall: W('assets/scenes/guild_hall/guild_hall_tall.webp', 2 / 3, {
+        groups: [0.57, 0.16, 0.28, 0.31], 'groups-study-schedule': [0.19, 0.34, 0.18, 0.12], clubs: [0.37, 0.34, 0.1, 0.06],
+        'groups-ranking': [0.48, 0.34, 0.08, 0.05], 'group-hall': [0.38, 0.41, 0.17, 0.07], 'groups-link': [0.0, 0.31, 0.07, 0.17],
+        'groups-templates': [0.07, 0.32, 0.12, 0.15], 'groups-challenge': [0.87, 0.31, 0.12, 0.18],
+      }, {
+        npcAt: [0.3, 0.75],
+        effects: [lights([[0.04, 0.22], [0.35, 0.22], [0.54, 0.22], [0.96, 0.22]], 0.02), { type: 'dust', count: 22 }, { type: 'sparkle', points: [[0.71, 0.2], [0.66, 0.3], [0.77, 0.4]] }],
+        walkers: [
+          { id: 'inky', path: [[0.4, 0.65], [0.7, 0.62], [0.55, 0.85]], speed: 0.03, pause: 3000 },
+          { id: 'chestnut', path: [[0.2, 0.9], [0.8, 0.88]], speed: 0.03, pause: 2500 },
+        ],
+      }),
       wide: W('assets/scenes/guild_hall/hall.webp', 3 / 2, {
         groups: [0.58, 0.15, 0.25, 0.42], 'groups-study-schedule': [0.18, 0.33, 0.17, 0.25], clubs: [0.37, 0.36, 0.1, 0.11],
         'groups-ranking': [0.49, 0.36, 0.07, 0.11], 'group-hall': [0.37, 0.48, 0.19, 0.13], 'groups-link': [0.0, 0.3, 0.05, 0.3],
@@ -77,6 +109,15 @@
     },
     library: {
       npc: 'inky', line: '我是館員墨墨。每一本書都是你自己的紀錄，想翻哪一本？',
+      wide: W('assets/scenes/library/library_wide.webp', 1.5, {
+        museum: [0.2, 0.47, 0.12, 0.17], 'task-template': [0.1, 0.42, 0.1, 0.22], identity: [0.2, 0.27, 0.16, 0.24],
+        'skill-tree': [0.4, 0.25, 0.18, 0.27], weather: [0.65, 0.25, 0.15, 0.27], 'time-capsule': [0.79, 0.43, 0.11, 0.2],
+        'future-letter': [0.51, 0.6, 0.31, 0.22], 'share-card': [0.27, 0.19, 0.08, 0.07], onboarding: [0.01, 0.23, 0.11, 0.37], pressure: [0.88, 0.23, 0.11, 0.37],
+      }, {
+        npcAt: [0.38, 0.92],
+        effects: [lights([[0.1, 0.16], [0.9, 0.16], [0.2, 0.12], [0.79, 0.12], [0.56, 0.64], [0.77, 0.64], [0.17, 0.44]], 0.02), { type: 'dust', count: 26 }, { type: 'stars', count: 6, height: 0.2 }],
+        walkers: [{ id: 'companion', path: [[0.25, 0.8], [0.45, 0.72], [0.3, 0.88]], speed: 0.03, pause: 3000 }],
+      }),
       tall: W('assets/scenes/library/library_room.webp', 3 / 4, {
         museum: [0.2, 0.5, 0.2, 0.16], 'task-template': [0.02, 0.44, 0.18, 0.2], identity: [0.15, 0.27, 0.21, 0.22],
         'skill-tree': [0.37, 0.27, 0.26, 0.24], weather: [0.64, 0.27, 0.22, 0.22], 'time-capsule': [0.76, 0.47, 0.2, 0.17],
@@ -102,6 +143,13 @@
     },
     observatory: {
       npc: 'stella', line: '我是星婆。抬頭看看，你的自律星球就在穹頂上轉喔。',
+      wide: W('assets/scenes/observatory/observatory_wide.webp', 1.5, {
+        planet: [0.17, 0.03, 0.68, 0.35], trends: [0.29, 0.45, 0.11, 0.15], 'virtual-devices': [0.57, 0.46, 0.11, 0.21],
+        achievements: [0.06, 0.42, 0.14, 0.26], 'planet-builder': [0.73, 0.62, 0.21, 0.28],
+      }, {
+        npcAt: [0.42, 0.92],
+        effects: [{ type: 'stars', count: 60, height: 0.33 }, { type: 'clouds', top: 0.22, band: 0.08, count: 3, alpha: 0.2 }, lights([[0.1, 0.27], [0.9, 0.27], [0.83, 0.65]], 0.02), { type: 'birds', y: 0.15, count: 3, color: '#ffffff' }],
+      }),
       tall: W('assets/scenes/observatory/observatory_room.webp', 3 / 4, {
         planet: [0.2, 0.05, 0.6, 0.32], trends: [0.3, 0.45, 0.14, 0.15], 'virtual-devices': [0.47, 0.45, 0.16, 0.17],
         achievements: [0.06, 0.43, 0.18, 0.2], 'planet-builder': [0.01, 0.66, 0.32, 0.2],
