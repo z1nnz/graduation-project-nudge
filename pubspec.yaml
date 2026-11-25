@@ -106,6 +106,7 @@ flutter:
     - assets/scenes/family_courtyard/
     - assets/scenes/focus_tower/
     - assets/scenes/post_office/
+    - assets/scenes/store/
     - assets/scenes/
     - assets/branding/
     - assets/avatar/

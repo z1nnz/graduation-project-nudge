@@ -1,4 +1,5 @@
 import '../models/cabin_parcels.dart';
+import 'store_scene_page.dart';
 import 'collection_book_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +12,6 @@ import '../widgets/immersive_cabin.dart';
 import '../widgets/cabin_route.dart';
 import '../widgets/quest_scroll.dart';
 import '../widgets/cabin_menu_sheet.dart';
-import 'avatar_shop_page.dart';
 import 'nudge_device_page.dart';
 import 'health_page.dart';
 import 'calendar_page.dart';
@@ -139,7 +139,7 @@ class HomePage extends StatelessWidget {
             onOpenRooms: () => push(const StudyRoomListPage()),
             onOpenCharacter: () => push(const CharacterPage()),
             onOpenDecor: () => showHomeDecorSheet(context),
-            onOpenShop: () => push(const AvatarShopPage()),
+            onOpenShop: () => push(const StoreScenePage()),
             socialUnread: appState.unreadUserNotificationCount,
             parcelCount: CabinParcels.from(appState.userNotifications).length,
             onOpenParcel: () => _openParcel(context, appState),
@@ -154,7 +154,7 @@ class HomePage extends StatelessWidget {
               context,
               onOpen: (id) => push(switch (id) {
                 'character' => const CharacterPage(),
-                'shop' => const AvatarShopPage(),
+                'shop' => const StoreScenePage(),
                 'health' => const HealthPage(),
                 'calendar' => const CalendarPage(),
                 'stats' => const PersonalAnalysisPage(),
