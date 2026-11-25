@@ -227,6 +227,7 @@
     frame.append(picture, canvas, crowd);
     stage.append(frame, live);
     (host || doc.querySelector('main') || doc.body).prepend(stage);
+    root.NudgeSfx?.mountToggle(doc);
 
     // ---- objects ----
     const buttons = new Map();
@@ -239,7 +240,7 @@
       sign.append(el('span', { class: 'room-sign-text' }, o.label));
       const badge = el('span', { class: 'room-badge', hidden: true });
       b.append(el('span', { class: 'room-glow', 'aria-hidden': 'true' }), sign, badge);
-      b.addEventListener('click', event => { poke(b); o.onSelect?.(event, api); });
+      b.addEventListener('click', event => { poke(b); root.NudgeSfx?.play('tap'); o.onSelect?.(event, api); });
       frame.append(b);
       buttons.set(o.id, b);
     }
@@ -256,6 +257,7 @@
       frame.append(npcButton);
       let tipIndex = 0;
       npcButton.addEventListener('click', () => {
+        root.NudgeSfx?.play('page');
         const lines = [...(typeof greeting === 'function' ? greeting() : greeting)];
         const pool = typeof tips === 'function' ? tips() : tips;
         if (pool.length) lines.push(pool[tipIndex++ % pool.length]);
@@ -398,7 +400,7 @@
         content.hidden = false;
       }
       onPanelClose = onClose || null;
-      if (!dialog.open) dialog.showModal();
+      if (!dialog.open) { dialog.showModal(); root.NudgeSfx?.play('open'); }
       dialog.classList.remove('is-entering');
       void dialog.offsetWidth;
       if (!media.matches) dialog.classList.add('is-entering');
@@ -431,6 +433,7 @@
     const GLYPH = { coin: '●', star: '★', heart: '♥', seal: '✦', note: '♪', leaf: '✿' };
     function burst({ kind = 'star', count = 8, from, to, text } = {}) {
       if (text) announce(text);
+      root.NudgeSfx?.play({ coin: 'coin', heart: 'heart', star: 'sparkle', leaf: 'sparkle', seal: 'sparkle' }[kind] || 'sparkle');
       if (media.matches) return;
       if (!fx.isConnected) doc.body.append(fx);
       const [sx, sy] = centerOf(from);

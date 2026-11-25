@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart';
 
 import '../models/character_catalog.dart';
+import '../services/game_sfx.dart';
 import '../theme/game_ui.dart';
 import 'npc_dialog.dart';
 import 'sprite_animation.dart';
@@ -302,6 +303,11 @@ class SceneRoomState extends State<SceneRoom>
     int count = 8,
     String? announce,
   }) {
+    GameSfx.play(switch (kind) {
+      BurstKind.coin => 'coin',
+      BurstKind.heart => 'heart',
+      _ => 'sparkle',
+    });
     if (announce != null) {
       SemanticsService.sendAnnouncement(
         View.of(context),
@@ -322,6 +328,7 @@ class SceneRoomState extends State<SceneRoom>
   }) async {
     final npc = widget.npc;
     if (npc == null || lines.isEmpty) return;
+    GameSfx.play('page');
     setState(() => _talking = true);
     await NpcDialog.show(context, speaker: npc, lines: lines, actions: actions);
     if (mounted) setState(() => _talking = false);
@@ -420,7 +427,10 @@ class SceneRoomState extends State<SceneRoom>
                     object: o,
                     frame: _frame,
                     reduced: _reduced,
-                    onTap: () => o.onTap(context, this),
+                    onTap: () {
+                      GameSfx.play('tap');
+                      o.onTap(context, this);
+                    },
                   ),
                 ),
               for (final w in _walkers)
@@ -528,6 +538,7 @@ class _TitleBar extends StatelessWidget {
               ),
             ),
           ),
+          const _SfxToggle(),
           ?trailing,
         ],
       ),
@@ -1028,5 +1039,28 @@ class TownGateBackground extends StatelessWidget {
       ),
       child,
     ],
+  );
+}
+
+class _SfxToggle extends StatefulWidget {
+  const _SfxToggle();
+  @override
+  State<_SfxToggle> createState() => _SfxToggleState();
+}
+
+class _SfxToggleState extends State<_SfxToggle> {
+  @override
+  Widget build(BuildContext context) => IconButton(
+    key: const ValueKey('scene-sfx'),
+    tooltip: GameSfx.muted ? '開啟音效' : '關閉音效',
+    onPressed: () async {
+      await GameSfx.setMuted(!GameSfx.muted);
+      if (!GameSfx.muted) GameSfx.play('tap');
+      if (mounted) setState(() {});
+    },
+    icon: Icon(
+      GameSfx.muted ? Icons.volume_off : Icons.volume_up,
+      color: GamePalette.inkLight,
+    ),
   );
 }

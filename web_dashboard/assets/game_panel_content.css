@@ -87,3 +87,4 @@
 /* progress bars: candle-wax gold */
 :is(.room-panel, .facility-panel, .room-float) progress { accent-color: var(--w-gold-deep, #c4710b); height: 12px; }
 :is(.room-panel, .facility-panel) details > summary { cursor: pointer; font-family: var(--w-pixel, sans-serif); color: var(--gp-ink); }
+.sfx-toggle { margin-left: 8px; min-height: 36px; padding: 2px 10px; font: 14px var(--w-pixel, sans-serif); }
