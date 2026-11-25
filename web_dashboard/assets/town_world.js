@@ -14,7 +14,7 @@
   // placed by the engine so art never disagrees with walls and doors.
   const ART = { far: 'far_mountains.webp', grass: 'grass_tile.webp', forest: 'forest_tile.webp',
     cottageA: 'cottage_a.png', cottageB: 'cottage_b.png', treeA: 'tree_oak.png', treeB: 'tree_pine.png',
-    bush: 'bush_flowers.png', windmill: 'windmill.png' };
+    bush: 'bush_flowers.png', windmill: 'windmill.png', path: 'path_tile.webp' };
   const art = {};
   for (const [key, file] of Object.entries(ART)) {
     const image = new Image();
@@ -131,7 +131,8 @@
       if (!visible(view, path)) continue;
       const s = screenRect(view, path);
       px(ctx, s.x, s.y, s.w, s.h, C.pathEdge);
-      px(ctx, s.x + 3 * view.scale, s.y + 3 * view.scale, s.w - 6 * view.scale, s.h - 6 * view.scale, C.path);
+      if (ready('path')) tile(ctx, view, art.path, { x: path.x + 3, y: path.y + 3, w: path.w - 6, h: path.h - 6 });
+      else px(ctx, s.x + 3 * view.scale, s.y + 3 * view.scale, s.w - 6 * view.scale, s.h - 6 * view.scale, C.path);
     }
   }
 
@@ -156,15 +157,18 @@
     const u = Math.max(2, Math.round(3 * view.scale));
     const spriteKey = Number(house.id.slice(1)) % 2 ? 'cottageA' : 'cottageB';
     const sprite = ready(spriteKey) ? art[spriteKey] : null;
+    let spriteTop = 0, spriteH = 0;
     if (sprite) {
-      const h = s.w * sprite.naturalHeight / sprite.naturalWidth;
-      ctx.drawImage(sprite, Math.round(s.x), Math.round(s.y + s.h - h), Math.round(s.w), Math.round(h));
+      spriteH = s.w * sprite.naturalHeight / sprite.naturalWidth;
+      spriteTop = s.y + s.h - spriteH;
+      ctx.drawImage(sprite, Math.round(s.x), Math.round(spriteTop), Math.round(s.w), Math.round(spriteH));
     } else {
       px(ctx, s.x, s.y + s.h * 0.4, s.w, s.h * 0.6, C.wall);
       for (let i = 0; i < 6; i++) px(ctx, s.x - u + i * u, s.y + s.h * 0.4 - i * s.h * 0.066, s.w + 2 * u - i * 2 * u, s.h * 0.07, i % 2 ? C.roofDark : C.roof);
       px(ctx, s.x + s.w * 0.44, s.y + s.h * 0.68, s.w * 0.14, s.h * 0.32, C.woodDark);
     }
-    const chimney = { x: s.x + s.w * house.chimney[0], y: s.y + s.h * 0.08 };
+    // Generated cottages: chimney top-right, windows at 27% / 73% across, 70% down.
+    const chimney = sprite ? { x: s.x + s.w * 0.78, y: spriteTop + spriteH * 0.04 } : { x: s.x + s.w * house.chimney[0], y: s.y + s.h * 0.08 };
     if (!sprite) px(ctx, chimney.x, chimney.y, u * 4, s.h * 0.2, C.woodDark);
     const time = t(now, view.reducedMotion);
     for (let i = 0; i < 3; i++) {
@@ -174,7 +178,9 @@
     }
     ctx.globalAlpha = 1;
     return house.windows.map(([wx, wy], index) => ({
-      id: `${house.id}:${index}`, art: Boolean(sprite), x: s.x + s.w * wx - u * 3, y: s.y + s.h * wy, w: u * 6, h: u * 6,
+      id: `${house.id}:${index}`, art: Boolean(sprite),
+      x: s.x + s.w * (sprite ? (index ? 0.73 : 0.27) : wx) - u * 3,
+      y: sprite ? spriteTop + spriteH * 0.66 : s.y + s.h * wy, w: u * 6, h: u * 6,
     }));
   }
 
@@ -206,6 +212,31 @@
       px(ctx, p.x - u, p.y - 18 * view.scale, u * 2, 18 * view.scale, C.trunk);
       px(ctx, p.x - 14 * view.scale + sway, p.y - 46 * view.scale, 28 * view.scale, 30 * view.scale, C.leaf);
       px(ctx, p.x - 8 * view.scale + sway, p.y - 52 * view.scale, 16 * view.scale, 10 * view.scale, C.leafLight);
+    }
+  }
+
+  // A tree line hides the seam between the painted market and the districts;
+  // gaps are left where the paths cross.
+  const SEAM = (() => {
+    const spots = [];
+    for (let y = 230; y < 941; y += 62) if (y < 580 || y > 690) { spots.push({ x: -18, y }); spots.push({ x: 1690, y }); }
+    for (let x = 20; x < 1672; x += 66) if (x < 730 || x > 870) spots.push({ x, y: 968 });
+    return spots;
+  })();
+  function drawSeam(ctx, view, now) {
+    const time = t(now, view.reducedMotion);
+    for (const [i, spot] of SEAM.entries()) {
+      if (!visible(view, { x: spot.x - 40, y: spot.y - 80, w: 80, h: 90 })) continue;
+      const p = view.toScreen(spot);
+      const sway = Math.round(Math.sin(time * 1.3 + i) * 1.5) * view.scale;
+      const key = i % 3 === 2 ? 'bush' : i % 2 ? 'treeB' : 'treeA';
+      if (ready(key)) {
+        const image = art[key];
+        const h = (key === 'bush' ? 34 : 64) * view.scale, w = h * image.naturalWidth / image.naturalHeight;
+        ctx.drawImage(image, Math.round(p.x - w / 2 + sway), Math.round(p.y - h), Math.round(w), Math.round(h));
+      } else {
+        px(ctx, p.x - 16 * view.scale + sway, p.y - 40 * view.scale, 32 * view.scale, 34 * view.scale, C.leaf);
+      }
     }
   }
 
@@ -308,10 +339,11 @@
         if (!win.art) px(ctx, win.x, win.y, win.w, win.h, C.window);
         continue;
       }
-      ctx.globalAlpha = 0.35;
+      // Generated cottages already paint warm windows: add only a soft halo.
+      ctx.globalAlpha = win.art ? 0.18 : 0.35;
       px(ctx, win.x - win.w * 0.5, win.y - win.h * 0.5, win.w * 2, win.h * 2, C.glow);
       ctx.globalAlpha = 1;
-      px(ctx, win.x, win.y, win.w, win.h, C.glow);
+      if (!win.art) px(ctx, win.x, win.y, win.w, win.h, C.glow);
     }
   }
 
@@ -327,10 +359,12 @@
   function drawMid(ctx, view, now) {
     const windows = world.HOUSES.flatMap(house => drawHouse(ctx, view, house, now));
     drawTrees(ctx, view, now);
+    drawSeam(ctx, view, now);
     if (ready('windmill')) {
       const p = view.toScreen(world.LANDMARKS.windmill);
       const mh = 120 * view.scale, mw = mh * art.windmill.naturalWidth / art.windmill.naturalHeight;
-      ctx.drawImage(art.windmill, Math.round(p.x - mw / 2), Math.round(p.y - mh * 0.15), Math.round(mw), Math.round(mh));
+      // The sails turn around the hub, 27% down the generated tower.
+      ctx.drawImage(art.windmill, Math.round(p.x - mw / 2), Math.round(p.y - mh * 0.27), Math.round(mw), Math.round(mh));
     }
     drawWheel(ctx, view, world.LANDMARKS.windmill, 46, 4, now, 0.8, ['#e9d2a6', '#c9a46b']);
     drawWheel(ctx, view, world.LANDMARKS.waterwheel, 30, 8, now, 1.2, [C.wood, C.woodDark]);

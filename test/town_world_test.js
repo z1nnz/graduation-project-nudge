@@ -154,5 +154,5 @@ test('generated art replaces each stand-in layer once the files exist', () => {
   const images = log.filter(entry => entry[0] === 'drawImage').length;
   assert.ok(images > 20, 'ground tiles, far band, houses, trees and bushes draw from art');
   assert.deepEqual(Object.keys(renderer.ART).sort(),
-    ['bush', 'cottageA', 'cottageB', 'far', 'forest', 'grass', 'treeA', 'treeB', 'windmill']);
+    ['bush', 'cottageA', 'cottageB', 'far', 'forest', 'grass', 'path', 'treeA', 'treeB', 'windmill']);
 });
