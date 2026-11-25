@@ -333,10 +333,13 @@
     for (const dest of routes.destinationsFor(b.id, { includePlanned: true })) {
       list.appendChild(panelEntry(dest));
     }
+    // Interior art and object spots, when the page loaded town_hall_view.js.
+    root.NudgeTownHallView?.decorate(b, els('townPanel'), list, locked);
   }
 
   function panelEntry(dest) {
     const li = doc.createElement('li');
+    li.dataset.dest = dest.id;
     const entry = routes.entryState(dest, viewer());
     let control;
     const opener = dest.scene ? routes.sceneOpener(dest.scene) : null;
