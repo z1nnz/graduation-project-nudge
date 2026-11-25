@@ -1,5 +1,9 @@
 import '../services/device_hug_gateway.dart';
 import 'package:flutter/material.dart';
+
+import '../widgets/social_plaza_stage.dart';
+import '../widgets/friend_plaza_actions.dart';
+import '../theme/game_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -184,6 +188,8 @@ class FriendPublicProfilePage extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(AppUI.pagePadding),
             children: [
+              const SocialPlazaStage(title: '廣場名片'),
+              const SizedBox(height: AppUI.sectionGap),
               _FriendShowcaseHero(
                 name: isCurrentUser ? '$currentName（你）' : currentName,
                 signature: currentSignature,
@@ -481,6 +487,28 @@ class FriendPublicProfilePage extends StatelessWidget {
                     },
                     icon: const Icon(Icons.favorite_rounded),
                     label: const Text('送一個擁抱'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GameButton(
+                  label: '送感謝卡',
+                  icon: Icons.mail_outline,
+                  expand: true,
+                  onPressed: () => openPlazaThankYouCard(
+                    context,
+                    friendId: friendId,
+                    friendName: currentName,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GameButton(
+                  label: '拜訪小屋',
+                  icon: Icons.cottage_outlined,
+                  expand: true,
+                  onPressed: () => openPlazaCabin(
+                    context,
+                    friendId: friendId,
+                    friendName: currentName,
                   ),
                 ),
                 const SizedBox(height: 10),

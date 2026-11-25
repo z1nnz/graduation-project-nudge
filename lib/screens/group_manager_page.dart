@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/community_scene_header.dart';
 import 'package:provider/provider.dart';
 import '../models/relationship_membership.dart';
 import '../state/app_state.dart';
@@ -219,366 +221,342 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('團體與教育管理端')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          // Hero banner
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: AppUI.heroGradient(accentColor),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.business_center_outlined,
-                  color: Colors.white,
-                  size: 36,
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '團體管理中心',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        '在此您可以為班級、學員或團隊成員建立大考自律計畫、自律房時段及團體挑戰。',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
+      body: CommunitySceneSections(
+        family: false,
+        greeting: '到辦公桌發布團體挑戰、安排活動，或確認成員權限。',
+        sections: [
+          CommunitySceneSection(
+            label: '管理員辦公桌',
+            icon: Icons.edit_calendar_outlined,
+            children: [
+              const RelationshipRoleSurfaceCard(role: RelationshipRole.manager),
+              const SizedBox(height: AppUI.sectionGap),
 
-          const RelationshipRoleSurfaceCard(role: RelationshipRole.manager),
-          const SizedBox(height: AppUI.sectionGap),
-
-          Text(
-            '正式成員與分享狀態',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Column(
-              children: appState.canonicalGroup!.memberIds
-                  .map((memberId) {
-                    final isOwner =
-                        memberId == appState.canonicalGroup!.ownerId;
-                    final summaries = appState.groupMemberSummaries.where(
-                      (summary) => summary.memberId == memberId,
-                    );
-                    final summary = summaries.isEmpty ? null : summaries.first;
-                    final challengeParticipations = appState
-                        .groupChallengeParticipations
-                        .where(
-                          (item) =>
-                              item['memberId'] == memberId &&
-                              item['challengeId'] == currentChallengeId,
+              Text(
+                '正式成員與分享狀態',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryText,
+                ),
+              ),
+              const SizedBox(height: AppUI.cardGap),
+              Card(
+                shape: AppUI.cardShape(),
+                child: Column(
+                  children: appState.canonicalGroup!.memberIds
+                      .map((memberId) {
+                        final isOwner =
+                            memberId == appState.canonicalGroup!.ownerId;
+                        final summaries = appState.groupMemberSummaries.where(
+                          (summary) => summary.memberId == memberId,
                         );
-                    final challengeParticipation =
-                        challengeParticipations.isEmpty
-                        ? null
-                        : challengeParticipations.first;
-                    final challengeStatus = challengeParticipation == null
-                        ? '未參與目前挑戰'
-                        : challengeParticipation['status'] == 'completed'
-                        ? '已完成目前挑戰'
-                        : '挑戰進度 ${challengeParticipation['completedDays'] ?? 0}/${challengeParticipation['totalDays'] ?? 0} 天';
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: accentColor.withValues(alpha: 0.15),
-                        child: Icon(
-                          isOwner
-                              ? Icons.admin_panel_settings
-                              : Icons.person_outline,
-                          color: accentColor,
-                        ),
-                      ),
-                      title: Text(
-                        summary?.displayName ?? memberId,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        '${isOwner ? "團體管理者" : "團體成員"}・'
-                        '${summary == null ? "未分享成果" : "已同意成果摘要・${summary.disciplineScore} 分"}'
-                        '・$challengeStatus',
-                      ),
-                      trailing: isOwner
-                          ? const Chip(label: Text('管理者'))
-                          : PopupMenuButton<String>(
-                              onSelected: (action) {
-                                if (action == 'transfer') {
-                                  _transferOwnership(appState, memberId);
-                                } else if (action == 'remove') {
-                                  _removeMember(appState, memberId);
-                                }
-                              },
-                              itemBuilder: (_) => const [
-                                PopupMenuItem(
-                                  value: 'transfer',
-                                  child: Text('轉移管理權'),
-                                ),
-                                PopupMenuItem(
-                                  value: 'remove',
-                                  child: Text('移除成員'),
-                                ),
-                              ],
+                        final summary = summaries.isEmpty
+                            ? null
+                            : summaries.first;
+                        final challengeParticipations = appState
+                            .groupChallengeParticipations
+                            .where(
+                              (item) =>
+                                  item['memberId'] == memberId &&
+                                  item['challengeId'] == currentChallengeId,
+                            );
+                        final challengeParticipation =
+                            challengeParticipations.isEmpty
+                            ? null
+                            : challengeParticipations.first;
+                        final challengeStatus = challengeParticipation == null
+                            ? '未參與目前挑戰'
+                            : challengeParticipation['status'] == 'completed'
+                            ? '已完成目前挑戰'
+                            : '挑戰進度 ${challengeParticipation['completedDays'] ?? 0}/${challengeParticipation['totalDays'] ?? 0} 天';
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: accentColor.withValues(
+                              alpha: 0.15,
                             ),
-                    );
-                  })
-                  .toList(growable: false),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-
-          // ─── Create Challenge Builder ─────────────────────────────────
-          Text(
-            '發佈團體挑戰 (Challenge)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  InputDecorator(
-                    decoration: const InputDecoration(labelText: '發布到團體'),
-                    child: Text(
-                      appState.groupName ?? '尚未連結有效團體',
-                      style: TextStyle(
-                        color: primaryText,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _challengeType,
-                          decoration: const InputDecoration(labelText: '挑戰類型'),
-                          items: _challengeTypes.map((type) {
-                            return DropdownMenuItem(
-                              value: type,
-                              child: Text(type),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _challengeType = val);
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          initialValue: _challengeDays,
-                          decoration: const InputDecoration(labelText: '挑戰天數'),
-                          items: _daysOptions.map((days) {
-                            return DropdownMenuItem(
-                              value: days,
-                              child: Text('$days 天'),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _challengeDays = val);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _rewardCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '完成通關獎勵',
-                      hintText: '例如：自律幣 +50枚、珍奶一杯',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => _publishChallenge(appState),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(Icons.rocket_launch_outlined),
-                    label: const Text('發佈團體自律挑戰'),
-                  ),
-                ],
+                            child: Icon(
+                              isOwner
+                                  ? Icons.admin_panel_settings
+                                  : Icons.person_outline,
+                              color: accentColor,
+                            ),
+                          ),
+                          title: Text(
+                            summary?.displayName ?? memberId,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${isOwner ? "團體管理者" : "團體成員"}・'
+                            '${summary == null ? "未分享成果" : "已同意成果摘要・${summary.disciplineScore} 分"}'
+                            '・$challengeStatus',
+                          ),
+                          trailing: isOwner
+                              ? const Chip(label: Text('管理者'))
+                              : PopupMenuButton<String>(
+                                  onSelected: (action) {
+                                    if (action == 'transfer') {
+                                      _transferOwnership(appState, memberId);
+                                    } else if (action == 'remove') {
+                                      _removeMember(appState, memberId);
+                                    }
+                                  },
+                                  itemBuilder: (_) => const [
+                                    PopupMenuItem(
+                                      value: 'transfer',
+                                      child: Text('轉移管理權'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'remove',
+                                      child: Text('移除成員'),
+                                    ),
+                                  ],
+                                ),
+                        );
+                      })
+                      .toList(growable: false),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
+              const SizedBox(height: AppUI.sectionGap),
 
-          // ─── Schedule Study Rooms ─────────────────────────────────────
-          Text(
-            '安排自律房讀書時段',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: _scheduleTitleCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '自律讀書房名稱',
-                      hintText: '例如：期末考衝刺自習房 A',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _scheduleTimeCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '開放時段說明',
-                      hintText: '例如：每晚 19:30 - 21:30 (共 2 小時)',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => _publishSchedule(appState),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(Icons.meeting_room_outlined),
-                    label: const Text('發佈讀書時段自律房'),
-                  ),
-                ],
+              // ─── Create Challenge Builder ─────────────────────────────────
+              Text(
+                '發佈團體挑戰 (Challenge)',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryText,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-
-          // ─── Exam Template Editor ─────────────────────────────────────
-          Text(
-            '編輯並發佈考試範本 (Exam Template)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
+              const SizedBox(height: AppUI.cardGap),
+              Card(
+                shape: AppUI.cardShape(),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppUI.innerPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _examTypeCtrl,
-                          decoration: const InputDecoration(
-                            labelText: '大考/挑戰類型',
-                            hintText: '例如：期末大考、多益衝刺',
+                      InputDecorator(
+                        decoration: const InputDecoration(labelText: '發布到團體'),
+                        child: Text(
+                          appState.groupName ?? '尚未連結有效團體',
+                          style: TextStyle(
+                            color: primaryText,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          initialValue: _templateDays,
-                          decoration: const InputDecoration(labelText: '衝刺天數'),
-                          items: _daysOptions.map((days) {
-                            return DropdownMenuItem(
-                              value: days,
-                              child: Text('$days 天衝刺'),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _templateDays = val);
-                            }
-                          },
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _challengeType,
+                              decoration: const InputDecoration(
+                                labelText: '挑戰類型',
+                              ),
+                              items: _challengeTypes.map((type) {
+                                return DropdownMenuItem(
+                                  value: type,
+                                  child: Text(type),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _challengeType = val);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _challengeDays,
+                              decoration: const InputDecoration(
+                                labelText: '挑戰天數',
+                              ),
+                              items: _daysOptions.map((days) {
+                                return DropdownMenuItem(
+                                  value: days,
+                                  child: Text('$days 天'),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _challengeDays = val);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _rewardCtrl,
+                        decoration: const InputDecoration(
+                          labelText: '完成通關獎勵',
+                          hintText: '例如：自律幣 +50枚、珍奶一杯',
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _publishChallenge(appState),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.rocket_launch_outlined),
+                        label: const Text('發佈團體自律挑戰'),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _effortCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '核心任務重點',
-                      hintText: '例如：複習 3 本必考單字與模擬試題',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _strategyCtrl,
-                    decoration: const InputDecoration(
-                      labelText: '衝刺準備策略',
-                      hintText: '例如：每日專注 2 小時，交替複習錯題',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => _publishTemplate(appState),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(Icons.note_alt_outlined),
-                    label: const Text('發佈自律大考範本'),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: AppUI.sectionGap),
+
+              // ─── Schedule Study Rooms ─────────────────────────────────────
+              Text(
+                '安排自律房讀書時段',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryText,
+                ),
+              ),
+              const SizedBox(height: AppUI.cardGap),
+              Card(
+                shape: AppUI.cardShape(),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppUI.innerPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _scheduleTitleCtrl,
+                        decoration: const InputDecoration(
+                          labelText: '自律讀書房名稱',
+                          hintText: '例如：期末考衝刺自習房 A',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _scheduleTimeCtrl,
+                        decoration: const InputDecoration(
+                          labelText: '開放時段說明',
+                          hintText: '例如：每晚 19:30 - 21:30 (共 2 小時)',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _publishSchedule(appState),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.meeting_room_outlined),
+                        label: const Text('發佈讀書時段自律房'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppUI.sectionGap),
+
+              // ─── Exam Template Editor ─────────────────────────────────────
+              Text(
+                '編輯並發佈考試範本 (Exam Template)',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: primaryText,
+                ),
+              ),
+              const SizedBox(height: AppUI.cardGap),
+              Card(
+                shape: AppUI.cardShape(),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppUI.innerPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _examTypeCtrl,
+                              decoration: const InputDecoration(
+                                labelText: '大考/挑戰類型',
+                                hintText: '例如：期末大考、多益衝刺',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _templateDays,
+                              decoration: const InputDecoration(
+                                labelText: '衝刺天數',
+                              ),
+                              items: _daysOptions.map((days) {
+                                return DropdownMenuItem(
+                                  value: days,
+                                  child: Text('$days 天衝刺'),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _templateDays = val);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _effortCtrl,
+                        decoration: const InputDecoration(
+                          labelText: '核心任務重點',
+                          hintText: '例如：複習 3 本必考單字與模擬試題',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _strategyCtrl,
+                        decoration: const InputDecoration(
+                          labelText: '衝刺準備策略',
+                          hintText: '例如：每日專注 2 小時，交替複習錯題',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _publishTemplate(appState),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.note_alt_outlined),
+                        label: const Text('發佈自律大考範本'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 48),
+            ],
           ),
-          const SizedBox(height: 48),
         ],
       ),
     );

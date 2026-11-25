@@ -8,9 +8,118 @@
   ];
   const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", dateStyle: "short" });
   let state;
+  const motion = matchMedia("(prefers-reduced-motion: reduce)");
+  const focusPanel = document.querySelector("[data-focus-round]");
+  const roundTime = focusPanel.querySelector("time");
+  const roster = ["slime", "ghost", "goblin", "snail"];
+  let previousDamage;
+  let clockButton;
+  let guideButton;
+  let guideActor;
+  const seatActors = new Map();
+
+  function clearActors() {
+    guideActor?.destroy();
+    guideButton?.remove();
+    guideActor = guideButton = undefined;
+    for (const actor of seatActors.values()) actor.destroy();
+    seatActors.clear();
+  }
+
+  function roomGuide() {
+    if (guideButton) return guideButton;
+    guideButton = document.createElement("button");
+    guideButton.type = "button";
+    guideButton.className = "study-hall-guide";
+    guideButton.setAttribute("aria-label", "問問墨墨");
+    guideButton.setAttribute("aria-haspopup", "dialog");
+    const costume = document.createElement("span");
+    costume.className = "study-hall-guide-sprite";
+    guideButton.append(costume);
+    guideActor = NudgeSpritePlayer.characterPlayer(costume, "inky", { size: 48 });
+    guideButton.addEventListener("click", () => NudgeNpcDialog.open({
+      speaker: "inky",
+      lines: ["看看座位就知道誰在專注，想一起讀書就點牆上的番茄鐘。"],
+      portraitSize: 64,
+    }));
+    return guideButton;
+  }
+
+  function seatActor(memberId, animation) {
+    let actor = seatActors.get(memberId);
+    if (!actor) {
+      const element = document.createElement("span");
+      element.className = "study-hall-avatar";
+      actor = NudgeSpritePlayer.characterPlayer(element, "companion", { animation, size: 32 });
+      seatActors.set(memberId, actor);
+    } else if (actor.el.dataset.animation !== animation) {
+      actor.play(animation);
+    }
+    return actor.el;
+  }
+
+  addEventListener("pagehide", event => {
+    if (!event.persisted) clearActors();
+  });
+  const syncClock = () => {
+    if (!clockButton) return;
+    const digits = roundTime.hidden ? "" : roundTime.textContent;
+    clockButton.textContent = digits || "◷";
+    const seconds = digits ? Number(digits.split(":").at(-1)) : 0;
+    clockButton.style.setProperty("--w-clock-angle", (motion.matches ? 0 : 360 - seconds * 6) + "deg");
+  };
+  new MutationObserver(syncClock).observe(roundTime, { childList: true, attributes: true, attributeFilter: ["hidden"] });
+  motion.addEventListener("change", syncClock);
+
+  function roomClock() {
+    if (clockButton) return clockButton;
+    clockButton = document.createElement("button");
+    clockButton.type = "button";
+    clockButton.className = "study-room-wall-clock";
+    clockButton.setAttribute("aria-label", "牆上的同步番茄鐘");
+    clockButton.addEventListener("click", () => {
+      if (!focusPanel.hidden) focusPanel.querySelector("h2").focus();
+    });
+    syncClock();
+    return clockButton;
+  }
+
+  function roomBoss(target, damage) {
+    const defeated = damage >= target;
+    const struck = previousDamage != null && damage > previousDamage;
+    previousDamage = damage;
+    const taipeiDay = Date.now() + 8 * 3_600_000;
+    const week = Math.floor((taipeiDay - Date.UTC(2024, 0, 1)) / 604800000);
+    const name = roster[week % roster.length];
+    const monster = document.createElement("div");
+    monster.className = "study-room-corner-monster";
+    const meter = document.createElement("meter");
+    meter.max = target;
+    meter.value = Math.max(0, target - damage);
+    meter.setAttribute("aria-label", "拖延怪剩餘血量：" + Math.ceil(meter.value) + " 分鐘");
+    const prefix = "assets/scenes/study_hall/" + name + "_";
+    const hit = !defeated && struck && !motion.matches && !document.hidden;
+    const visual = image(prefix + (defeated ? "down" : hit ? "hit" : "idle") + ".webp", 64, 64, "");
+    monster.append(meter, visual);
+    if (hit) {
+      monster.classList.add("is-hit");
+      monster.addEventListener("animationend", () => { visual.src = prefix + "idle.webp"; }, { once: true });
+    }
+    if (defeated) {
+      const stars = document.createElement("strong");
+      stars.textContent = "✦ 已打倒";
+      monster.append(stars);
+    }
+    return monster;
+  }
+
 
   function stop() {
     state?.unsubscribe();
+    clearActors();
+    clockButton?.remove();
+    clockButton = undefined;
+    previousDamage = undefined;
     state = null;
   }
 
@@ -40,6 +149,7 @@
     if (!state) return;
     const { stage, detail, scene, room, records, selectedId } = state;
     const previousFocus = document.activeElement?.dataset.roomStageMember;
+    const focusedClock = clockButton != null && document.activeElement === clockButton;
     const minutes = sessionMinutes(records);
     const online = scene.seats.filter(seat => seat.postureKey !== "away").length;
     const goal = room.dailyGoalValue *
@@ -52,9 +162,20 @@
     const chandelier = progress >= 1 ? 2 : progress >= .5 ? 1 : 0;
     stage.classList.add("is-study-hall");
     stage.style.setProperty("--hall-light", String(.68 + Math.min(online, 8) * .065));
-    stage.replaceChildren(image(art + "chandelier-" + chandelier + ".png", 128, 96, "study-hall-chandelier"));
-
+    const guide = roomGuide();
+    const clock = roomClock();
+    for (const child of [...stage.children]) {
+      if (child !== guide && child !== clock) child.remove();
+    }
+    stage.prepend(image(art + "chandelier-" + chandelier + ".png", 128, 96, "study-hall-chandelier"));
+    if (guide.parentElement !== stage) stage.append(guide);
+    if (clock.parentElement !== stage) stage.append(clock);
+    if (focusedClock) clockButton.focus({ preventScroll: true });
+    if (state.available && room.roomType === "study" && Math.min(goal, scene.approvedCount) > 0) {
+      stage.append(roomBoss(goal * scene.approvedCount, [...minutes.values()].reduce((sum, value) => sum + value, 0)));
+    }
     const count = Math.min(8, scene.approvedCount + scene.emptySeats);
+    const occupiedActors = new Set();
     seats.slice(0, count).forEach(([left, top], index) => {
       const seat = scene.seats[index];
       const data = document.createElement(seat ? "button" : "span");
@@ -73,12 +194,22 @@
         data.classList.toggle("study-hall-viewer", seat.isViewer);
         const pose = seat.postureKey === "focusing" ? (room.roomType === "exercise" ? "exercise" : "read") : "sleep";
         if (occupied || seat.isViewer) {
-          const face = state.faces.get(seat.memberId) ?? 0;
-          const family = Math.floor(face / 3) * 3;
-          const sprite = seat.postureKey === "away"
-            ? "assets/avatar/characters/character_" + face + ".png"
-            : "assets/avatar/poses/pose_" + family + "_" + pose + ".png";
-          data.append(image(sprite, 32, 50, "study-hall-avatar"));
+          if (pose !== "exercise" || !occupied) {
+            const animation = !occupied ? "walk_up" : pose === "sleep" ? "sleep" : "think";
+            occupiedActors.add(seat.memberId);
+            data.append(seatActor(seat.memberId, animation));
+            if (occupied && pose === "read") {
+              const book = document.createElement("span");
+              book.className = "study-hall-book";
+              book.setAttribute("aria-hidden", "true");
+              data.append(book);
+            }
+          } else {
+            const face = state.faces.get(seat.memberId) ?? 0;
+            const family = Math.floor(face / 3) * 3;
+            const sprite = "assets/avatar/poses/pose_" + family + "_exercise.png";
+            data.append(image(sprite, 32, 50, "study-hall-avatar"));
+          }
         }
         const label = document.createElement("strong");
         label.textContent = name;
@@ -96,6 +227,12 @@
       stage.append(data);
       if (previousFocus && seat?.memberId === previousFocus) data.focus({ preventScroll: true });
     });
+
+    for (const [memberId, actor] of seatActors) {
+      if (occupiedActors.has(memberId)) continue;
+      actor.destroy();
+      seatActors.delete(memberId);
+    }
 
     function showDetails() {
       const seat = scene.seats.find(item => item.memberId === state.selectedId);
@@ -131,7 +268,8 @@
     }
     Object.assign(state, options);
     const active = state;
-    for (const seat of options.scene.seats.slice(0, 8)) {
+    const exerciseSeats = options.room.roomType === "exercise" ? options.scene.seats.slice(0, 8) : [];
+    for (const seat of exerciseSeats) {
       if (active.faces.has(seat.memberId)) continue;
       active.faces.set(seat.memberId, 0);
       options.db.collection("public_profiles").doc(seat.memberId).get().then(snapshot => {

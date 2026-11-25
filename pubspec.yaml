@@ -100,6 +100,12 @@ flutter:
     - assets/scenes/library/
     - assets/scenes/observatory/
     - assets/scenes/journal/
+    - assets/scenes/study_hall/
+    - assets/scenes/town_plaza/
+    - assets/scenes/guild_hall/
+    - assets/scenes/family_courtyard/
+    - assets/scenes/focus_tower/
+    - assets/scenes/post_office/
     - assets/scenes/
     - assets/branding/
     - assets/avatar/

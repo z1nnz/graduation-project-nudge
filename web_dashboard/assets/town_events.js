@@ -3,6 +3,7 @@
   const get = id => document.getElementById(id);
   const form = get("townOptOut");
   const status = get("townGoalStatus");
+  const halo = document.querySelector("[data-plaza-halo]");
   let subscription, prefs, goal, unsubscribe, version = 0;
   function remaining() {
     if (!goal) return;
@@ -17,6 +18,7 @@
       get("townTotal").textContent = "";
       get("townRemaining").textContent = "";
       goal = null;
+      halo?.style.removeProperty("--w-plaza-light");
       return;
     }
     goal = data;
@@ -24,6 +26,7 @@
     progress.max = data.target;
     progress.value = Math.min(data.target, data.total);
     const level = Math.min(4, Math.floor(data.total / data.target * 4));
+    halo?.style.setProperty("--w-plaza-light", String(level / 4));
     get("townLighthouse").src = "assets/town_events/light-" + level + ".png";
     get("townGoalTitle").textContent = data.title;
     get("townTotal").textContent = data.total.toLocaleString("zh-TW") + " / " + data.target.toLocaleString("zh-TW") + " " + data.unit;

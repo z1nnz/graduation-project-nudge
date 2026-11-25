@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/community_scene_header.dart';
 import 'package:provider/provider.dart';
 
 import '../models/relationship_membership.dart';
@@ -91,173 +93,165 @@ class _GuardianParentPageState extends State<GuardianParentPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('家長陪伴')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: AppUI.heroGradient(accentColor),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.family_restroom_outlined,
-                  color: Colors.white,
-                  size: 36,
+      body: CommunitySceneSections(
+        family: true,
+        greeting: '到信箱寫鼓勵卡，或在木牌上提出一個共同目標。',
+        sections: [
+          CommunitySceneSection(
+            label: '家庭留言桌',
+            icon: Icons.event_note_outlined,
+            children: [
+              if (canInteract) ...[
+                const RelationshipRoleSurfaceCard(
+                  role: RelationshipRole.guardian,
                 ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '陪伴，不代替孩子決定',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        '提出共同目標、傳達鼓勵；資料分享範圍由孩子掌握。',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: AppUI.sectionGap),
+              ],
+              _buildRelationshipCard(
+                context,
+                appState,
+                link != null,
+                canInteract,
+                activeGoal,
+                accentColor,
+              ),
+              const SizedBox(height: AppUI.sectionGap),
+            ],
+          ),
+          if (canInteract)
+            CommunitySceneSection(
+              label: '鼓勵信箱',
+              icon: Icons.mail_outline,
+              children: [
+                Text(
+                  '發送鼓勵卡',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryText,
                   ),
                 ),
+                const SizedBox(height: AppUI.cardGap),
+                Card(
+                  shape: AppUI.cardShape(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppUI.innerPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          '選擇一句溫和的提醒',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: secondaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _cardTemplates.map((template) {
+                            return ChoiceChip(
+                              label: Text(template),
+                              selected: _cardTitle == template,
+                              selectedColor: accentColor.withValues(alpha: 0.2),
+                              checkmarkColor: accentColor,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() => _cardTitle = template);
+                                }
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _messageCtrl,
+                          enabled: canInteract,
+                          maxLines: 2,
+                          decoration: const InputDecoration(
+                            labelText: '鼓勵悄悄話（選填）',
+                            hintText: '例如：我有看到你的努力，照自己的節奏就好。',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: canInteract
+                              ? () => _sendCard(appState)
+                              : null,
+                          icon: const Icon(Icons.favorite_rounded),
+                          label: const Text('送出鼓勵卡'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppUI.sectionGap),
               ],
             ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          if (canInteract) ...[
-            const RelationshipRoleSurfaceCard(role: RelationshipRole.guardian),
-            const SizedBox(height: AppUI.sectionGap),
-          ],
-          _buildRelationshipCard(
-            context,
-            appState,
-            link != null,
-            canInteract,
-            activeGoal,
-            accentColor,
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Text(
-            '發送鼓勵卡',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    '選擇一句溫和的提醒',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: secondaryText,
+          if (canInteract)
+            CommunitySceneSection(
+              label: '共同目標木牌',
+              icon: Icons.flag_outlined,
+              children: [
+                Text(
+                  '提出共同目標',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryText,
+                  ),
+                ),
+                const SizedBox(height: AppUI.cardGap),
+                Card(
+                  shape: AppUI.cardShape(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppUI.innerPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          controller: _goalCtrl,
+                          enabled: canInteract,
+                          decoration: const InputDecoration(
+                            labelText: '共同自律目標',
+                            hintText: '例如：這週一起在 23:30 前準備休息',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _goalMsgCtrl,
+                          enabled: canInteract,
+                          maxLines: 2,
+                          decoration: const InputDecoration(
+                            labelText: '為什麼想一起做（選填）',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '孩子可以接受或婉拒；接受後才會匯入孩子的任務。',
+                          style: TextStyle(
+                            color: secondaryText,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: canInteract
+                              ? () => _sendGoal(appState)
+                              : null,
+                          icon: const Icon(Icons.flag_outlined),
+                          label: const Text('送出目標提議'),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _cardTemplates.map((template) {
-                      return ChoiceChip(
-                        label: Text(template),
-                        selected: _cardTitle == template,
-                        selectedColor: accentColor.withValues(alpha: 0.2),
-                        checkmarkColor: accentColor,
-                        onSelected: (selected) {
-                          if (selected) setState(() => _cardTitle = template);
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _messageCtrl,
-                    enabled: canInteract,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: '鼓勵悄悄話（選填）',
-                      hintText: '例如：我有看到你的努力，照自己的節奏就好。',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: canInteract ? () => _sendCard(appState) : null,
-                    icon: const Icon(Icons.favorite_rounded),
-                    label: const Text('送出鼓勵卡'),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 48),
+              ],
             ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Text(
-            '提出共同目標',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: _goalCtrl,
-                    enabled: canInteract,
-                    decoration: const InputDecoration(
-                      labelText: '共同自律目標',
-                      hintText: '例如：這週一起在 23:30 前準備休息',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _goalMsgCtrl,
-                    enabled: canInteract,
-                    maxLines: 2,
-                    decoration: const InputDecoration(labelText: '為什麼想一起做（選填）'),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '孩子可以接受或婉拒；接受後才會匯入孩子的任務。',
-                    style: TextStyle(
-                      color: secondaryText,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: canInteract ? () => _sendGoal(appState) : null,
-                    icon: const Icon(Icons.flag_outlined),
-                    label: const Text('送出目標提議'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 48),
         ],
       ),
     );

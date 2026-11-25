@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../widgets/social_plaza_stage.dart';
 import 'package:provider/provider.dart';
 import '../models/avatar_profile.dart';
 import '../models/social_friend_profile.dart';
@@ -225,7 +227,7 @@ class LeaderboardPage extends StatelessWidget {
       length: LeaderboardType.values.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('排行榜'),
+          title: const Text('本週努力榜'),
           bottom: const TabBar(
             isScrollable: true,
             tabs: [
@@ -252,14 +254,17 @@ class LeaderboardPage extends StatelessWidget {
                 }
               });
 
-            final topThree = sorted.take(3).toList();
-            final rest = sorted.length > 3
-                ? sorted.sublist(3)
-                : <_LeaderboardEntry>[];
+            final featured = sorted
+                .take(sorted.isEmpty ? 0 : sorted.length - 1)
+                .toList();
+            final topThree = featured.take(3).toList();
+            final rest = featured.skip(3);
 
             return ListView(
               padding: const EdgeInsets.all(AppUI.pagePadding),
               children: [
+                const SocialPlazaStage(title: '本週努力榜'),
+                const SizedBox(height: AppUI.sectionGap),
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: AppUI.heroGradient(appState.currentIconColor),
@@ -284,7 +289,9 @@ class LeaderboardPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(
-                          _myRankingSummary(type, sorted),
+                          featured.any((entry) => entry.isCurrentUser)
+                              ? _myRankingSummary(type, sorted)
+                              : '每一點進步都值得記下。',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -322,9 +329,9 @@ class LeaderboardPage extends StatelessWidget {
                 ],
                 if (rest.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  const Text('其他排名', style: AppUI.sectionTitle),
+                  const Text('值得喝采的努力', style: AppUI.sectionTitle),
                   const SizedBox(height: 12),
-                  ...rest.asMap().entries.map((entry) {
+                  ...rest.toList().asMap().entries.map((entry) {
                     final index = entry.key;
                     final item = entry.value;
                     final rank = index + 4;

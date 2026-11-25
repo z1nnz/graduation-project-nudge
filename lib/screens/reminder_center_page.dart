@@ -1,12 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/character_catalog.dart';
 import '../models/user_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
+import '../widgets/cabin_mail_art.dart';
+import '../widgets/npc_dialog.dart';
+import '../widgets/sprite_animation.dart';
 
-class ReminderCenterPage extends StatelessWidget {
+enum _PostOfficeObject { mailbox, alarms }
+
+class ReminderCenterPage extends StatefulWidget {
   const ReminderCenterPage({super.key});
+
+  @override
+  State<ReminderCenterPage> createState() => _ReminderCenterPageState();
+}
+
+class _ReminderCenterPageState extends State<ReminderCenterPage> {
+  _PostOfficeObject? _open;
+
+  void _show(_PostOfficeObject destination) {
+    setState(() => _open = destination);
+  }
 
   static const List<String> _timeOptions = [
     '07:30',
@@ -67,7 +85,7 @@ class ReminderCenterPage extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: AppUI.softCardOf(context, color),
-              child: Icon(_iconForChannel(setting.key), color: color),
+              child: Icon(Icons.alarm_outlined, color: color),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -286,87 +304,64 @@ class ReminderCenterPage extends StatelessWidget {
     UserNotification notification,
   ) {
     final appState = context.read<AppState>();
-    final unread = notification.isUnread == true;
-    return Card(
-      shape: AppUI.cardShape(),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUI.innerPadding),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: AppUI.softCardOf(
-                context,
-                unread ? AppUI.blue : AppUI.green,
-              ),
-              child: Icon(
-                notification.kind.toString().contains('family')
-                    ? Icons.family_restroom_outlined
-                    : Icons.groups_2_outlined,
-                color: unread ? AppUI.blue : AppUI.green,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          style: AppUI.cardTitleOf(context),
-                        ),
-                      ),
-                      Text(
-                        _formatNotificationTime(notification.createdAt),
-                        style: TextStyle(
-                          color: AppUI.textSecondaryOf(context),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Text(notification.body, style: AppUI.bodyOf(context)),
-                  const SizedBox(height: 10),
-                  if (unread)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () async {
-                          try {
-                            await appState.markUserNotificationRead(
-                              notification.id,
-                            );
-                          } catch (error) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('更新站內通知失敗：$error')),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.done_all_rounded, size: 18),
-                        label: const Text('標示已讀'),
-                      ),
-                    )
-                  else
-                    Text(
-                      notification.isResolved ? '邀請已處理' : '已讀',
-                      style: TextStyle(
-                        color: AppUI.textSecondaryOf(context),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+    final unread = notification.isUnread;
+    final kind = notification.kind;
+    final seal = kind.startsWith('family')
+        ? GamePalette.red
+        : kind.startsWith('group')
+        ? GamePalette.violet
+        : GamePalette.goldDeep;
+    return GamePanel(
+      padding: EdgeInsets.zero,
+      child: ExpansionTile(
+        expansionAnimationStyle: MediaQuery.disableAnimationsOf(context)
+            ? AnimationStyle.noAnimation
+            : const AnimationStyle(duration: Duration(milliseconds: 250)),
+        key: PageStorageKey(notification.id),
+        leading: ExcludeSemantics(
+          child: CustomPaint(
+            size: const Size.square(40),
+            painter: kind == 'friend_cabin_letter'
+                ? const CabinMailPainter()
+                : CabinMailPainter(parcel: false, seal: seal),
+          ),
         ),
+        title: Text(
+          notification.title,
+          style: const TextStyle(fontFamily: 'Cubic11', fontSize: 16),
+        ),
+        subtitle: Text(
+          _formatNotificationTime(notification.createdAt),
+          style: const TextStyle(fontSize: 14),
+        ),
+        expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+        childrenPadding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+        children: [
+          Text(notification.body, style: const TextStyle(fontSize: 14)),
+          if (unread)
+            Align(
+              alignment: Alignment.centerRight,
+              child: GameButton(
+                label: '標示已讀',
+                icon: Icons.done_all_rounded,
+                onPressed: () async {
+                  try {
+                    await appState.markUserNotificationRead(notification.id);
+                  } catch (error) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('更新站內通知失敗：$error')));
+                  }
+                },
+              ),
+            )
+          else
+            Text(
+              notification.isResolved ? '邀請已處理' : '已讀',
+              style: const TextStyle(fontSize: 14),
+            ),
+        ],
       ),
     );
   }
@@ -382,194 +377,293 @@ class ReminderCenterPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.20),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.notifications_active_outlined,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '自律提醒排程',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '已開啟 ${appState.enabledReminderCount} 種提醒',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        '任務、睡眠、自律房與截止日會依設定時間排序。',
-                        style: TextStyle(color: Colors.white70, height: 1.45),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _statusChip(
-                            context,
-                            appState.isNotificationPreferenceCloudVerified
-                                ? 'App／Web 已同步'
-                                : appState.isSignedIn
-                                ? '等待 Cloud 同步'
-                                : '訪客：僅此裝置',
-                            appState.isNotificationPreferenceCloudVerified
-                                ? Icons.cloud_done_outlined
-                                : Icons.cloud_sync_outlined,
-                          ),
-                          _statusChip(
-                            context,
-                            appState.isCurrentDevicePushConfigured
-                                ? '此裝置推播已設定'
-                                : appState.isPushNotificationConfigured
-                                ? '帳號其他裝置已設定推播'
-                                : '目前為本機排程／站內通知',
-                            appState.isPushNotificationConfigured
-                                ? Icons.mobile_friendly_outlined
-                                : Icons.phonelink_erase_outlined,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: () => _enableSystemNotifications(context),
-                        icon: const Icon(Icons.notifications_active_outlined),
-                        label: const Text('啟用系統提醒'),
-                      ),
-                      if (appState.isSignedIn &&
-                          appState.isDevicePushSupported &&
-                          appState.isCurrentDevicePushConfigured) ...[
-                        const SizedBox(height: 8),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            try {
-                              await appState.disablePushNotifications();
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('已關閉此裝置的遠端推播；本機提醒排程不受影響'),
-                                ),
-                              );
-                            } catch (error) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('無法關閉遠端推播：$error')),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.notifications_off_outlined),
-                          label: const Text('關閉此裝置遠端推播'),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Row(
+          Stack(
             children: [
-              Expanded(
-                child: Text('站內通知', style: AppUI.sectionTitleOf(context)),
+              AspectRatio(
+                aspectRatio: 3 / 2,
+                child: Image.asset(
+                  'assets/scenes/post_office/post_office.webp',
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.none,
+                  excludeFromSemantics: true,
+                ),
               ),
-              Text(
-                '${appState.unreadUserNotificationCount} 則未讀',
-                style: TextStyle(
-                  color: AppUI.textSecondaryOf(context),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+              Positioned.fill(
+                child: Center(
+                  child: Semantics(
+                    label: '與郵差小信對話',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => NpcDialog.show(
+                        context,
+                        speaker: GameCharacters.letty,
+                        lines: const ['來信請打開信箱，要設定提醒就看看鬧鐘架。'],
+                      ),
+                      child: const CharacterSprite(
+                        character: GameCharacters.letty,
+                        size: 64,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                bottom: 14,
+                child: Semantics(
+                  label: '打開郵局裡的信箱',
+                  selected: _open == _PostOfficeObject.mailbox,
+                  child: GameButton(
+                    label: '打開信箱',
+                    icon: Icons.mail_outline,
+                    onPressed: () => _show(_PostOfficeObject.mailbox),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 12,
+                top: 16,
+                child: Semantics(
+                  label: '查看郵局裡的鬧鐘架',
+                  selected: _open == _PostOfficeObject.alarms,
+                  child: GameButton(
+                    label: '查看鬧鐘架',
+                    icon: Icons.alarm_outlined,
+                    onPressed: () => _show(_PostOfficeObject.alarms),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          if (!appState.isSignedIn)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '登入後可接收家庭與團體邀請的 Cloud 站內通知。',
-                  style: AppUI.bodyOf(context),
-                ),
+          if (_open != null) ...[
+            const SizedBox(height: AppUI.cardGap),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => setState(() => _open = null),
+                child: const Text('收起'),
               ),
-            )
-          else if (appState.userNotifications.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前沒有站內通知。新的家庭／團體邀請與處理結果會由 Cloud 顯示在這裡。',
-                  style: AppUI.bodyOf(context),
-                ),
+            ),
+          ],
+          if (_open == _PostOfficeObject.alarms) ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: AppUI.heroGradient(accentColor),
+              child: Row(
+                children: [
+                  Container(
+                    width: 62,
+                    height: 62,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.20),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active_outlined,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '自律提醒排程',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '已開啟 ${appState.enabledReminderCount} 種提醒',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          '任務、睡眠、自律房與截止日會依設定時間排序。',
+                          style: TextStyle(color: Colors.white70, height: 1.45),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _statusChip(
+                              context,
+                              appState.isNotificationPreferenceCloudVerified
+                                  ? 'App／Web 已同步'
+                                  : appState.isSignedIn
+                                  ? '等待 Cloud 同步'
+                                  : '訪客：僅此裝置',
+                              appState.isNotificationPreferenceCloudVerified
+                                  ? Icons.cloud_done_outlined
+                                  : Icons.cloud_sync_outlined,
+                            ),
+                            _statusChip(
+                              context,
+                              appState.isCurrentDevicePushConfigured
+                                  ? '此裝置推播已設定'
+                                  : appState.isPushNotificationConfigured
+                                  ? '帳號其他裝置已設定推播'
+                                  : '目前為本機排程／站內通知',
+                              appState.isPushNotificationConfigured
+                                  ? Icons.mobile_friendly_outlined
+                                  : Icons.phonelink_erase_outlined,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () => _enableSystemNotifications(context),
+                          icon: const Icon(Icons.notifications_active_outlined),
+                          label: const Text('啟用系統提醒'),
+                        ),
+                        if (appState.isSignedIn &&
+                            appState.isDevicePushSupported &&
+                            appState.isCurrentDevicePushConfigured) ...[
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              try {
+                                await appState.disablePushNotifications();
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('已關閉此裝置的遠端推播；本機提醒排程不受影響'),
+                                  ),
+                                );
+                              } catch (error) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('無法關閉遠端推播：$error')),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.notifications_off_outlined),
+                            label: const Text('關閉此裝置遠端推播'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            )
-          else
-            ...appState.userNotifications
-                .take(20)
-                .map(
-                  (notification) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-                    child: _buildUserNotificationCard(context, notification),
+            ),
+          ],
+          if (_open == _PostOfficeObject.mailbox) ...[
+            const SizedBox(height: AppUI.sectionGap),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('站內通知', style: AppUI.sectionTitleOf(context)),
+                ),
+                Text(
+                  '${appState.unreadUserNotificationCount} 則未讀',
+                  style: TextStyle(
+                    color: AppUI.textSecondaryOf(context),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-          const SizedBox(height: AppUI.sectionGap),
-          Text('即將提醒', style: AppUI.sectionTitleOf(context)),
-          const SizedBox(height: 12),
-          if (previews.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前沒有即將提醒。你可以開啟任務、睡眠、自律房或截止日提醒。',
-                  style: AppUI.bodyOf(context),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (!appState.isSignedIn)
+              Card(
+                shape: AppUI.cardShape(),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppUI.innerPadding),
+                  child: Text(
+                    '登入後可接收家庭與團體邀請的 Cloud 站內通知。',
+                    style: AppUI.bodyOf(context),
+                  ),
+                ),
+              )
+            else if (appState.userNotifications.isEmpty)
+              Card(
+                shape: AppUI.cardShape(),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppUI.innerPadding),
+                  child: Text(
+                    '目前沒有站內通知。新的家庭／團體邀請與處理結果會由 Cloud 顯示在這裡。',
+                    style: AppUI.bodyOf(context),
+                  ),
+                ),
+              )
+            else ...[
+              ...appState.userNotifications
+                  .where((letter) => letter.isUnread)
+                  .take(20)
+                  .map(
+                    (letter) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                      child: _buildUserNotificationCard(context, letter),
+                    ),
+                  ),
+              GamePanel(
+                padding: EdgeInsets.zero,
+                child: ExpansionTile(
+                  expansionAnimationStyle:
+                      MediaQuery.disableAnimationsOf(context)
+                      ? AnimationStyle.noAnimation
+                      : const AnimationStyle(
+                          duration: Duration(milliseconds: 250),
+                        ),
+                  title: const Text(
+                    '已讀信件抽屜',
+                    style: TextStyle(fontFamily: 'Cubic11', fontSize: 16),
+                  ),
+                  leading: const Icon(Icons.inventory_2_outlined),
+                  children: appState.userNotifications
+                      .where((letter) => !letter.isUnread)
+                      .take(20)
+                      .map(
+                        (letter) => _buildUserNotificationCard(context, letter),
+                      )
+                      .toList(),
                 ),
               ),
-            )
-          else
-            ...previews.map(
-              (preview) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _buildPreviewCard(context, preview),
+            ],
+          ],
+          if (_open == _PostOfficeObject.alarms) ...[
+            const SizedBox(height: AppUI.sectionGap),
+            Text('即將提醒', style: AppUI.sectionTitleOf(context)),
+            const SizedBox(height: 12),
+            if (previews.isEmpty)
+              Card(
+                shape: AppUI.cardShape(),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppUI.innerPadding),
+                  child: Text(
+                    '目前沒有即將提醒。你可以開啟任務、睡眠、自律房或截止日提醒。',
+                    style: AppUI.bodyOf(context),
+                  ),
+                ),
+              )
+            else
+              ...previews.map(
+                (preview) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildPreviewCard(context, preview),
+                ),
+              ),
+            const SizedBox(height: AppUI.sectionGap),
+            Text('鬧鐘架', style: AppUI.sectionTitleOf(context)),
+            const SizedBox(height: 12),
+            ...appState.reminderSettings.map(
+              (setting) => Padding(
+                padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                child: _buildReminderChannel(context, setting),
               ),
             ),
-          const SizedBox(height: AppUI.sectionGap),
-          Text('提醒種類', style: AppUI.sectionTitleOf(context)),
-          const SizedBox(height: 12),
-          ...appState.reminderSettings.map(
-            (setting) => Padding(
-              padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-              child: _buildReminderChannel(context, setting),
-            ),
-          ),
+          ],
         ],
       ),
     );

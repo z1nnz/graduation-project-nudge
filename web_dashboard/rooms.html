@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/focus_round.css?v=1" />
-    <link rel="stylesheet" href="assets/study_hall.css?v=1" />
+    <link rel="stylesheet" href="assets/study_hall.css?v=3" />
     <link rel="stylesheet" href="assets/voice_room.css?v=1" />
-    <link rel="stylesheet" href="assets/room_lobby.css?v=1" />
+    <link rel="stylesheet" href="assets/room_lobby.css?v=3" />
     <link rel="stylesheet" href="assets/safety.css?v=1" />
   </head>
   <body class="w-page" data-page="rooms" data-social-facility="tower">
@@ -22,38 +22,46 @@
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
     <main class="main w-main" id="sceneMain" tabindex="-1">
-        <header class="hero room-hero scene-hero">
-          <div>
-            <span class="eyebrow">Member-controlled Activity Rooms</span>
-            <h1>一起前進，但保留每個人的節奏。</h1>
-            <p>專注、運動、步數、睡眠與自訂活動都能形成房間。管理者維護規則與資格，每位成員自行決定何時開始與完成。</p>
+        <section class="room-lobby w-panel" data-room-lobby aria-labelledby="roomLobbyTitle">
+          <div class="tower-heading">
+            <h2 id="roomLobbyTitle">專注塔</h2>
+            <p data-lobby-status role="status"></p>
           </div>
-          <div class="hero-card">
-            <span>同步原則</span>
-            <strong>本人控制</strong>
-            <p>App 與 Web 使用同一筆活動 session，任何人都不能代替另一位成員變更紀錄。</p>
+          <div class="tower-scroll" data-tower-scroll tabindex="0" role="region" aria-label="專注塔樓層。向上捲動探索房間">
+            <div class="tower-roof">
+              <span class="tower-stars" aria-hidden="true">✦</span>
+              <span class="tower-bird" aria-hidden="true">⌁</span>
+              <button type="button" class="w-btn is-gold" data-lobby-new aria-label="施工鷹架：蓋一間自律房" disabled>蓋一間自律房</button>
+            </div>
+            <div class="room-lobby-doors" data-lobby-doors></div>
+            <div class="tower-gate">
+              <span class="tower-lantern" aria-hidden="true"></span>
+              <button type="button" class="w-btn tower-porter" data-lobby-porter aria-label="鐘鐘：搜尋房間、推薦房間與邀請碼"><span class="tower-porter-portrait" aria-hidden="true"></span>鐘鐘 · 守門人</button>
+              <button type="button" class="w-btn tower-climb" data-tower-climb aria-label="上塔查看房間">↑ 上塔</button>
+            </div>
           </div>
-        </header>
-
-        <section class="w-panel room-lobby" data-room-lobby aria-labelledby="roomLobbyTitle">
-          <div class="room-lobby-header">
-            <h2 id="roomLobbyTitle">自律房大廳</h2>
-            <button type="button" class="w-btn is-gold" data-lobby-new disabled>建立房間</button>
-          </div>
-          <form class="room-lobby-filters" data-lobby-filters role="search">
+          <dialog class="room-lobby-dialog w-parchment" role="dialog" aria-labelledby="roomLobbyDialogTitle">
+            <div class="room-lobby-header">
+              <h2 id="roomLobbyDialogTitle" data-lobby-dialog-title tabindex="-1"></h2>
+              <button type="button" class="w-btn" data-lobby-close>關閉</button>
+            </div>
+            <div data-lobby-gate hidden>
+              <p data-lobby-greeting aria-hidden="true"></p>
+              <p class="tower-sr-only">沿著塔往上走就能找房間。有邀請碼的話，交給我看看。</p>
+              <form class="room-lobby-filters" data-lobby-filters role="search">
             <label>搜尋房名 <input type="search" name="search" maxlength="80" /></label>
             <label>房型 <select name="type"><option value="">全部</option><option value="study">讀書</option><option value="sleep">睡眠</option><option value="exercise">運動</option><option value="steps">步數</option><option value="custom">自訂</option></select></label>
             <label>人數 <select name="occupancy"><option value="">全部</option><option value="available">尚有空位</option><option value="full">已滿</option></select></label>
             <label>審核 <select name="approval"><option value="">全部</option><option value="review">須審核</option><option value="instant">開放加入</option></select></label>
             <label>標籤 <input type="search" name="tag" maxlength="20" /></label>
-          </form>
-          <h3>推薦給你</h3>
-          <p data-lobby-status role="status"></p>
-          <div class="room-lobby-doors" data-lobby-doors></div>
-          <dialog class="room-lobby-dialog" role="dialog" aria-labelledby="roomLobbyDialogTitle">
-            <div class="room-lobby-header">
-              <h2 id="roomLobbyDialogTitle" data-lobby-dialog-title tabindex="-1"></h2>
-              <button type="button" class="w-btn" data-lobby-close>關閉</button>
+              </form>
+              <div class="room-lobby-actions">
+                <button class="w-btn" type="button" data-lobby-recommend>前往推薦房間</button>
+              </div>
+              <form data-lobby-redeem>
+                <label>邀請碼 <input name="inviteCode" required maxlength="80" autocomplete="off" /></label>
+                <button class="w-btn" type="submit">查看邀請</button>
+              </form>
             </div>
             <form data-lobby-wizard hidden>
               <fieldset><legend>選擇房型</legend>
@@ -61,7 +69,12 @@
               </fieldset>
               <fieldset hidden disabled><legend>選擇主題外觀</legend>
                 <label>主題 <select name="theme"><option value="library">圖書館</option><option value="attic">星空閣樓</option><option value="forest">森林小屋</option><option value="seaside">海邊書房</option></select></label>
-                <img class="room-lobby-theme" data-lobby-theme width="160" height="100" alt="房間外觀預覽" />
+                <div class="tower-theme-choices" aria-label="四種自律房外觀">
+                  <button class="w-btn tower-theme-pick" type="button" data-tower-theme="library" aria-pressed="false"><img src="assets/room_lobby/library.png" width="160" height="100" alt="" /><span>圖書館</span></button>
+                  <button class="w-btn tower-theme-pick" type="button" data-tower-theme="attic" aria-pressed="false"><img src="assets/room_lobby/attic.png" width="160" height="100" alt="" /><span>星空閣樓</span></button>
+                  <button class="w-btn tower-theme-pick" type="button" data-tower-theme="forest" aria-pressed="false"><img src="assets/room_lobby/forest.png" width="160" height="100" alt="" /><span>森林小屋</span></button>
+                  <button class="w-btn tower-theme-pick" type="button" data-tower-theme="seaside" aria-pressed="false"><img src="assets/room_lobby/seaside.png" width="160" height="100" alt="" /><span>海邊書房</span></button>
+                </div>
               </fieldset>
               <fieldset hidden disabled><legend>設定房規</legend>
                 <label>房名 <input name="name" maxlength="80" required /></label>
@@ -74,7 +87,7 @@
                 <label>入房問題 <input name="question" maxlength="140" /></label>
                 <label class="lobby-check"><input type="checkbox" name="voiceEnabled" /> 開放語音</label>
               </fieldset>
-              <fieldset hidden disabled><legend>預覽</legend><p data-lobby-preview></p></fieldset>
+              <fieldset hidden disabled><legend>掛上門牌</legend><img data-lobby-theme class="room-lobby-theme" width="160" height="100" alt="房間外觀預覽" /><p data-lobby-preview></p></fieldset>
               <div class="room-lobby-actions">
                 <button type="button" class="w-btn" data-lobby-back>上一步</button>
                 <button type="submit" class="w-btn is-gold" data-lobby-next>下一步</button>
@@ -124,7 +137,7 @@
         </section>
 
         <section class="w-panel focus-round" data-focus-round hidden aria-labelledby="focusRoundTitle">
-          <h2 id="focusRoundTitle">一起專注</h2>
+          <h2 id="focusRoundTitle" tabindex="-1">一起專注</h2>
           <p data-focus-round-status role="status">正在同步伺服器時間…</p>
           <time aria-label="專注或休息剩餘時間" hidden>00:00</time>
           <p data-focus-round-celebration hidden aria-hidden="true">✦ ✺ ✦</p>
@@ -229,20 +242,22 @@
       </main>
     <script src="assets/room_activity_session_contract.js?v=2"></script>
     <script src="assets/room_resonance_contract.js?v=1"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
     <script src="assets/room_scene.js?v=1"></script>
     <script src="assets/room_read_state.js?v=1"></script>
-    <script src="assets/town_routes.js?v=6"></script>
+    <script src="assets/town_routes.js?v=7"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/focus_round_core.js?v=1"></script>
     <script src="assets/focus_round.js?v=2"></script>
-    <script src="assets/study_hall.js?v=1"></script>
+    <script src="assets/study_hall.js?v=4"></script>
     <script src="assets/voice_room_core.js?v=1"></script>
     <script src="assets/voice_room.js?v=2"></script>
     <script src="assets/safety_ui.js?v=1"></script>
     <script src="assets/app.js?v=30"></script>
     <script src="assets/room_lobby/qrcode.js?v=2.0.4"></script>
     <script src="assets/room_lobby_core.js?v=1"></script>
-    <script src="assets/room_lobby.js?v=1"></script>
+    <script src="assets/room_lobby.js?v=4"></script>
   </body>
 </html>
