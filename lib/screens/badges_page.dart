@@ -1,5 +1,10 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+import '../widgets/game_star_chart.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/badge_record.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
@@ -145,6 +150,9 @@ class _BadgesPageState extends State<BadgesPage> {
 
   String _remainingLabel(BadgeRecord record) {
     if (record.isUnlocked) return '已達成';
+    if (record.progress >= record.target) {
+      return '進度達標，解鎖仍待雲端確認';
+    }
 
     final remain = (record.target - record.progress).clamp(0, record.target);
 
@@ -252,9 +260,8 @@ class _BadgesPageState extends State<BadgesPage> {
       switch (_sortType) {
         case _BadgeSortType.recommended:
           if (a.isUnlocked != b.isUnlocked) return a.isUnlocked ? -1 : 1;
-          final groupCompare = _groupForBadge(
-            a.badgeKey,
-          ).compareTo(_groupForBadge(b.badgeKey));
+          final groupCompare = _groupForBadge(a.badgeKey)
+              .compareTo(_groupForBadge(b.badgeKey));
           if (groupCompare != 0) return groupCompare;
           return b.progressRatio.compareTo(a.progressRatio);
         case _BadgeSortType.progress:
@@ -288,16 +295,22 @@ class _BadgesPageState extends State<BadgesPage> {
   }) {
     final sourceLabel = _sourceLabel(badge.badgeKey);
     final iconBgColor = badge.isUnlocked
-        ? const Color(0xFFFFF3D6)
-        : const Color(0xFFE5E7EB);
+        ? GamePalette.parchment
+        : GamePalette.inkLight;
     final iconColor = badge.isUnlocked
-        ? const Color(0xFFF59E0B)
-        : const Color(0xFF9CA3AF);
+        ? GamePalette.goldDeep
+        : GamePalette.inkSoft;
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
+          scrollable: true,
+          backgroundColor: GamePalette.of(context).backgroundTop,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: BorderSide(color: GamePalette.of(context).wood, width: 3),
+          ),
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
           contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           title: Row(
@@ -318,7 +331,8 @@ class _BadgesPageState extends State<BadgesPage> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppUI.textPrimaryOf(context),
+                    fontFamily: 'Cubic11',
+                    color: GamePalette.of(context).ink,
                   ),
                 ),
               ),
@@ -328,6 +342,14 @@ class _BadgesPageState extends State<BadgesPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (badge.isUnlocked && badge.unlockedAt != null)
+                Text(
+                  '雲端取得日期：${badge.unlockedAt!.toIso8601String().substring(0, 10)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: GamePalette.of(context).ink,
+                  ),
+                ),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -335,19 +357,19 @@ class _BadgesPageState extends State<BadgesPage> {
                 ),
                 decoration: BoxDecoration(
                   color: badge.isUnlocked
-                      ? const Color(0xFFE8F7EC)
-                      : const Color(0xFFE5E7EB),
+                      ? GamePalette.parchment
+                      : GamePalette.inkLight,
                   borderRadius: BorderRadius.circular(AppUI.radiusPill),
                 ),
                 child: Text(
                   badge.isUnlocked ? '已解鎖' : '尚未解鎖',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: badge.isUnlocked
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFF6B7280),
+                        ? GamePalette.of(context).ink
+                        : GamePalette.of(context).inkMuted,
                   ),
                 ),
               ),
@@ -357,7 +379,7 @@ class _BadgesPageState extends State<BadgesPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: AppUI.textPrimaryOf(context),
+                  color: GamePalette.of(context).ink,
                 ),
               ),
               const SizedBox(height: 8),
@@ -365,7 +387,7 @@ class _BadgesPageState extends State<BadgesPage> {
                 description,
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppUI.textSecondaryOf(context),
+                  color: GamePalette.of(context).inkMuted,
                   height: 1.5,
                 ),
               ),
@@ -375,13 +397,13 @@ class _BadgesPageState extends State<BadgesPage> {
                   horizontal: 12,
                   vertical: 9,
                 ),
-                decoration: AppUI.softCardOf(context, iconColor),
+                decoration: GameRecordStyle.inset(context, iconColor),
                 child: Text(
                   sourceLabel,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: iconColor,
-                    fontSize: 13,
+                    color: GamePalette.of(context).ink,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -392,20 +414,20 @@ class _BadgesPageState extends State<BadgesPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: AppUI.textPrimaryOf(context),
+                  color: GamePalette.of(context).ink,
                 ),
               ),
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
+                child: GameMetricGauge(
                   value: badge.progressRatio,
                   minHeight: 10,
-                  backgroundColor: const Color(0xFFE5E7EB),
+                  backgroundColor: GamePalette.inkLight,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     badge.isUnlocked
-                        ? const Color(0xFFF59E0B)
-                        : const Color(0xFF9CA3AF),
+                        ? GamePalette.goldDeep
+                        : GamePalette.inkSoft,
                   ),
                 ),
               ),
@@ -416,11 +438,11 @@ class _BadgesPageState extends State<BadgesPage> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: badge.isUnlocked
-                      ? const Color(0xFFF59E0B)
-                      : const Color(0xFF6B7280),
+                      ? GamePalette.of(context).ink
+                      : GamePalette.of(context).inkMuted,
                 ),
               ),
               const SizedBox(height: 8),
@@ -430,11 +452,11 @@ class _BadgesPageState extends State<BadgesPage> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: badge.isUnlocked
-                      ? const Color(0xFF16A34A)
-                      : const Color(0xFF6B7280),
+                      ? GamePalette.of(context).ink
+                      : GamePalette.of(context).inkMuted,
                 ),
               ),
             ],
@@ -453,10 +475,11 @@ class _BadgesPageState extends State<BadgesPage> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
-    final badges = appState.badgeRecords;
-    final secondaryText = AppUI.textSecondaryOf(context);
-    final primaryText = AppUI.textPrimaryOf(context);
+    final accentColor = GamePalette.goldDeep;
+    final badges = appState.confirmedBadgeRecords;
+    final confirmed = appState.areBadgeRecordsConfirmed;
+    final secondaryText = GamePalette.of(context).inkMuted;
+    final primaryText = GamePalette.of(context).ink;
 
     final unlockedCount = badges.where((badge) => badge.isUnlocked).length;
     final lockedCount = badges.length - unlockedCount;
@@ -465,243 +488,291 @@ class _BadgesPageState extends State<BadgesPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('成就徽章')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.22),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.emoji_events_outlined,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '成就總覽',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '$unlockedCount / ${badges.length} 已解鎖',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: unlockRatio,
-                          minHeight: 8,
-                          backgroundColor: Colors.white.withValues(alpha: 0.22),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      body: GameFacilityScene(
+        title: '天文台・成就星圖室',
+        background: 'assets/scenes/observatory/observatory_room.webp',
+        guide: 'stella',
+        guideLine: confirmed
+            ? '已點亮 $unlockedCount 顆成就星。每一顆只讀取已確認的徽章紀錄。'
+            : '星光正在等待本人雲端紀錄，確認前不會點亮。',
+        objectLabel: '翻開成就紀錄簿',
+        objectIcon: Icons.map_outlined,
+        foreground: Positioned.fill(
+          child: GameStarChart(
+            records: badges,
+            confirmed: confirmed,
+            onSelect: (badge) => _showBadgeDetailDialog(
+              context,
+              badge: badge,
+              icon: _iconForBadge(badge.badgeKey),
+              description: _descriptionForBadge(badge.badgeKey),
+              progressLabel: _progressLabel(badge),
+              remainingLabel: _remainingLabel(badge),
             ),
           ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        child: confirmed
+            ? ListView(
+                padding: const EdgeInsets.all(AppUI.pagePadding),
                 children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: GameRecordStyle.hero(accentColor),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 62,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            color: GamePalette.inkLight.withValues(alpha: 0.22),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.emoji_events_outlined,
+                            color: GamePalette.inkLight,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '成就總覽',
+                                style: TextStyle(
+                                  color: GamePalette.inkLight,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '$unlockedCount / ${badges.length} 已解鎖',
+                                style: const TextStyle(
+                                  color: GamePalette.inkLight,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(999),
+                                child: GameMetricGauge(
+                                  value: unlockRatio,
+                                  minHeight: 8,
+                                  backgroundColor: GamePalette.inkLight
+                                      .withValues(alpha: 0.22),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        GamePalette.inkLight,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppUI.sectionGap),
+                  GameArtifact(
+                    shape: AppUI.cardShape(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppUI.innerPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.tune_rounded, color: accentColor),
+                              const SizedBox(width: 8),
+                              Text(
+                                '展示方式',
+                                style: TextStyle(
+                                  color: primaryText,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _BadgeStatusFilter.values.map((filter) {
+                              return ChoiceChip(
+                                label: Text(
+                                  _statusFilterLabel(filter),
+                                  style: TextStyle(
+                                    fontFamily: 'Cubic11',
+                                    fontSize: 14,
+                                    color: _statusFilter == filter
+                                        ? GamePalette.inkDark
+                                        : GamePalette.of(context).ink,
+                                  ),
+                                ),
+                                selected: _statusFilter == filter,
+                                onSelected: (_) {
+                                  setState(() {
+                                    _statusFilter = filter;
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _BadgeSeriesFilter.values.map((filter) {
+                              return ChoiceChip(
+                                label: Text(
+                                  _seriesFilterLabel(filter),
+                                  style: TextStyle(
+                                    fontFamily: 'Cubic11',
+                                    fontSize: 14,
+                                    color: _seriesFilter == filter
+                                        ? GamePalette.inkDark
+                                        : GamePalette.of(context).ink,
+                                  ),
+                                ),
+                                selected: _seriesFilter == filter,
+                                onSelected: (_) {
+                                  setState(() {
+                                    _seriesFilter = filter;
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<_BadgeSortType>(
+                            initialValue: _sortType,
+                            decoration: const InputDecoration(
+                              labelText: '排序',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _BadgeSortType.values
+                                .map(
+                                  (type) => DropdownMenuItem(
+                                    value: type,
+                                    child: Text(_sortLabel(type)),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() {
+                                _sortType = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppUI.sectionGap),
                   Row(
                     children: [
-                      Icon(Icons.tune_rounded, color: accentColor),
-                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '徽章收藏',
+                          style: TextStyle(
+                            color: primaryText,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                       Text(
-                        '展示方式',
+                        '${visibleBadges.length} 個',
                         style: TextStyle(
-                          color: primaryText,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                          color: secondaryText,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _BadgeStatusFilter.values.map((filter) {
-                      return ChoiceChip(
-                        label: Text(_statusFilterLabel(filter)),
-                        selected: _statusFilter == filter,
-                        onSelected: (_) {
-                          setState(() {
-                            _statusFilter = filter;
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _BadgeSeriesFilter.values.map((filter) {
-                      return ChoiceChip(
-                        label: Text(_seriesFilterLabel(filter)),
-                        selected: _seriesFilter == filter,
-                        onSelected: (_) {
-                          setState(() {
-                            _seriesFilter = filter;
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<_BadgeSortType>(
-                    initialValue: _sortType,
-                    decoration: const InputDecoration(
-                      labelText: '排序',
-                      isDense: true,
-                      border: OutlineInputBorder(),
+                  if (visibleBadges.isEmpty)
+                    GameArtifact(
+                      shape: AppUI.cardShape(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          '目前沒有符合篩選條件的徽章。',
+                          style: TextStyle(color: secondaryText, fontSize: 14),
+                        ),
+                      ),
+                    )
+                  else
+                    _BadgeGrid(
+                      badges: visibleBadges,
+                      mainAxisExtent: (width) {
+                        return 320;
+                      },
+                      iconForBadge: _iconForBadge,
+                      descriptionForBadge: _descriptionForBadge,
+                      rarityForBadge: _rarityForBadge,
+                      progressLabel: _progressLabel,
+                      remainingLabel: _remainingLabel,
+                      onTap: (badge) {
+                        _showBadgeDetailDialog(
+                          context,
+                          badge: badge,
+                          icon: _iconForBadge(badge.badgeKey),
+                          description: _descriptionForBadge(badge.badgeKey),
+                          progressLabel: _progressLabel(badge),
+                          remainingLabel: _remainingLabel(badge),
+                        );
+                      },
                     ),
-                    items: _BadgeSortType.values
-                        .map(
-                          (type) => DropdownMenuItem(
-                            value: type,
-                            child: Text(_sortLabel(type)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() {
-                        _sortType = value;
-                      });
-                    },
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _BadgeSummaryBox(
+                          title: '已解鎖',
+                          value: '$unlockedCount',
+                          icon: Icons.lock_open_outlined,
+                          color: GamePalette.green,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _BadgeSummaryBox(
+                          title: '未解鎖',
+                          value: '$lockedCount',
+                          icon: Icons.lock_outline,
+                          color: GamePalette.goldDeep,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _BadgeSummaryBox(
+                          title: '完成率',
+                          value: '${(unlockRatio * 100).round()}%',
+                          icon: Icons.insights_outlined,
+                          color: GamePalette.violet,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '目前成就會搭配加權任務、自律幣門檻、健康同步與自律房表現來判定。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryText,
+                      height: 1.5,
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '徽章收藏',
-                  style: TextStyle(
-                    color: primaryText,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Text(
-                '${visibleBadges.length} 個',
-                style: TextStyle(
-                  color: secondaryText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (visibleBadges.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  '目前沒有符合篩選條件的徽章。',
-                  style: TextStyle(color: secondaryText, fontSize: 14),
-                ),
-              ),
-            )
-          else
-            _BadgeGrid(
-              badges: visibleBadges,
-              mainAxisExtent: (width) {
-                if (width < 380) return 238;
-                if (width < 430) return 230;
-                return 224;
-              },
-              iconForBadge: _iconForBadge,
-              descriptionForBadge: _descriptionForBadge,
-              rarityForBadge: _rarityForBadge,
-              progressLabel: _progressLabel,
-              remainingLabel: _remainingLabel,
-              onTap: (badge) {
-                _showBadgeDetailDialog(
-                  context,
-                  badge: badge,
-                  icon: _iconForBadge(badge.badgeKey),
-                  description: _descriptionForBadge(badge.badgeKey),
-                  progressLabel: _progressLabel(badge),
-                  remainingLabel: _remainingLabel(badge),
-                );
-              },
-            ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _BadgeSummaryBox(
-                  title: '已解鎖',
-                  value: '$unlockedCount',
-                  icon: Icons.lock_open_outlined,
-                  color: AppUI.green,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BadgeSummaryBox(
-                  title: '未解鎖',
-                  value: '$lockedCount',
-                  icon: Icons.lock_outline,
-                  color: AppUI.orange,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BadgeSummaryBox(
-                  title: '完成率',
-                  value: '${(unlockRatio * 100).round()}%',
-                  icon: Icons.insights_outlined,
-                  color: AppUI.purple,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            '目前成就會搭配加權任務、自律幣門檻、健康同步與自律房表現來判定。',
-            style: TextStyle(fontSize: 13, color: secondaryText, height: 1.5),
-          ),
-        ],
+              )
+            : const Center(child: Text('雲端確認中；這裡只顯示本人已確認的徽章。')),
       ),
     );
   }
@@ -778,7 +849,7 @@ class _BadgeSummaryBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -789,8 +860,8 @@ class _BadgeSummaryBox extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 13,
-              color: AppUI.textSecondaryOf(context),
+              fontSize: 14,
+              color: GamePalette.of(context).inkMuted,
             ),
           ),
           const SizedBox(height: 4),
@@ -801,7 +872,7 @@ class _BadgeSummaryBox extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppUI.textPrimaryOf(context),
+              color: GamePalette.of(context).ink,
             ),
           ),
         ],
@@ -832,147 +903,151 @@ class _BadgeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppUI.isDark(context);
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     final cardColor = badge.isUnlocked
         ? Theme.of(context).cardColor
-        : (isDark ? const Color(0xFF202532) : const Color(0xFFF6F6FA));
-    final iconColor = badge.isUnlocked ? AppUI.orange : const Color(0xFF9CA3AF);
-    final titleColor = badge.isUnlocked ? primaryText : const Color(0xFF9CA3AF);
-    final descColor = badge.isUnlocked
-        ? secondaryText
-        : const Color(0xFFB0B4BC);
-    final progressColor = badge.isUnlocked
-        ? AppUI.orange
-        : const Color(0xFF9CA3AF);
-    return Card(
+        : (isDark ? GamePalette.woodDark : GamePalette.woodDark);
+    final iconColor = badge.isUnlocked
+        ? GamePalette.goldDeep
+        : GamePalette.inkSoft;
+    final titleColor = primaryText;
+    final descColor = secondaryText;
+    final progressColor = GamePalette.of(context).ink;
+    return GameArtifact(
       color: cardColor,
       shape: AppUI.cardShape(),
       elevation: badge.isUnlocked ? 2 : 0,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppUI.radiusCard),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: badge.isUnlocked
-                          ? const LinearGradient(
-                              colors: [Color(0xFFFFF3D6), Color(0xFFFFE4A8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
-                          : null,
-                      color: badge.isUnlocked
-                          ? null
-                          : (isDark
-                                ? const Color(0xFF2A2F3A)
-                                : const Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(icon, color: iconColor, size: 24),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badge.isUnlocked
-                          ? const Color(0xFFE8F7EC)
-                          : (isDark
-                                ? const Color(0xFF2A2F3A)
-                                : const Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(AppUI.radiusPill),
-                    ),
-                    child: Text(
-                      badge.isUnlocked ? rarity : '未解鎖',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
+      child: SizedBox(
+        height: 292,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppUI.radiusCard),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: badge.isUnlocked
+                            ? const LinearGradient(
+                                colors: [
+                                  GamePalette.parchment,
+                                  GamePalette.woodDark,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
                         color: badge.isUnlocked
-                            ? const Color(0xFF16A34A)
-                            : const Color(0xFF6B7280),
+                            ? null
+                            : (isDark
+                                  ? GamePalette.woodDark
+                                  : GamePalette.inkLight),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      child: Icon(icon, color: iconColor, size: 24),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                badge.badgeName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: titleColor,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11.5, height: 1.3, color: descColor),
-              ),
-              const Spacer(),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: badge.progressRatio,
-                  minHeight: 7,
-                  backgroundColor: isDark
-                      ? const Color(0xFF2A2F3A)
-                      : const Color(0xFFE5E7EB),
-                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      progressLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: progressColor,
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      remainingLabel,
-                      textAlign: TextAlign.right,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10.5,
+                      decoration: BoxDecoration(
                         color: badge.isUnlocked
-                            ? const Color(0xFF16A34A)
-                            : secondaryText,
-                        fontWeight: FontWeight.w700,
+                            ? GamePalette.parchment
+                            : (isDark
+                                  ? GamePalette.woodDark
+                                  : GamePalette.inkLight),
+                        borderRadius: BorderRadius.circular(AppUI.radiusPill),
+                      ),
+                      child: Text(
+                        badge.isUnlocked ? rarity : '未解鎖',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: badge.isUnlocked
+                              ? GamePalette.inkDark
+                              : (isDark
+                                    ? GamePalette.inkLight
+                                    : GamePalette.inkDark),
+                        ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  badge.badgeName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: titleColor,
+                    height: 1.2,
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, height: 1.3, color: descColor),
+                ),
+                const Spacer(),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: GameMetricGauge(
+                    value: badge.progressRatio,
+                    minHeight: 7,
+                    backgroundColor: isDark
+                        ? GamePalette.woodDark
+                        : GamePalette.inkLight,
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        progressLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: progressColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        remainingLabel,
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: primaryText,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,3 +1,6 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -170,10 +173,10 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Color _scoreColor(int score) {
-    if (score >= 80) return const Color(0xFF10B981);
-    if (score >= 60) return const Color(0xFF4F8CFF);
-    if (score >= 40) return const Color(0xFFF59E0B);
-    return const Color(0xFFEF4444);
+    if (score >= 80) return GamePalette.green;
+    if (score >= 60) return GamePalette.violet;
+    if (score >= 40) return GamePalette.goldDeep;
+    return GamePalette.red;
   }
 
   String _bestDayText(DailySummary? summary) {
@@ -186,7 +189,7 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
+    const accentColor = GamePalette.goldDeep;
     final summaries = List<DailySummary>.from(appState.dailySummaries);
     final tasks = List<Map<String, dynamic>>.from(appState.tasks);
     final days = _calendarDays(displayedMonth);
@@ -204,424 +207,445 @@ class _CalendarPageState extends State<CalendarPage> {
     final totalCompletedTasks = _totalMonthCompletedTasks(monthSummaries);
     final totalTasks = _totalMonthTasks(monthSummaries);
 
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
     final isDark = AppUI.isDark(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('行事曆')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppUI.innerPadding,
-                vertical: 14,
-              ),
-              child: Wrap(
-                spacing: 14,
-                runSpacing: 10,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  const _MiniLegend(
-                    color: Color(0xFF10B981),
-                    label: '高分',
-                    isSquare: false,
-                  ),
-                  const _MiniLegend(
-                    color: Color(0xFF4F8CFF),
-                    label: '中高分',
-                    isSquare: false,
-                  ),
-                  const _MiniLegend(
-                    color: Color(0xFFF59E0B),
-                    label: '普通',
-                    isSquare: false,
-                  ),
-                  const _MiniLegend(
-                    color: Color(0xFFEF4444),
-                    label: '低分',
-                    isSquare: false,
-                  ),
-                  const _MiniLegend(
-                    color: Color(0xFF7C6AE6),
-                    label: '任務截止',
-                    isSquare: false,
-                  ),
-                  const _MiniLegend(
-                    color: Color(0xFFF59E0B),
-                    label: '有領自律幣',
-                    isSquare: false,
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: accentColor, width: 1.4),
-                          borderRadius: BorderRadius.circular(3),
+      body: GameFacilityScene(
+        title: '冒險手札',
+        background: 'assets/scenes/journal/journal_room.webp',
+        guide: 'inky',
+        guideLine: '圖章只記錄這一天已有的行動。點日期就能翻到那一頁。',
+        objectLabel: '翻開月份手札',
+        objectIcon: Icons.menu_book_outlined,
+        child: ListView(
+          padding: const EdgeInsets.all(8),
+          children: [
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppUI.innerPadding,
+                  vertical: 14,
+                ),
+                child: Wrap(
+                  spacing: 14,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const _MiniLegend(
+                      color: GamePalette.green,
+                      label: '高分',
+                      isSquare: false,
+                    ),
+                    const _MiniLegend(
+                      color: GamePalette.violet,
+                      label: '中高分',
+                      isSquare: false,
+                    ),
+                    const _MiniLegend(
+                      color: GamePalette.goldDeep,
+                      label: '普通',
+                      isSquare: false,
+                    ),
+                    const _MiniLegend(
+                      color: GamePalette.red,
+                      label: '低分',
+                      isSquare: false,
+                    ),
+                    const _MiniLegend(
+                      color: GamePalette.violet,
+                      label: '任務截止',
+                      isSquare: false,
+                    ),
+                    const _MiniLegend(
+                      color: GamePalette.goldDeep,
+                      label: '有領自律幣',
+                      isSquare: false,
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: accentColor, width: 1.4),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '今天',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: secondaryText,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(width: 6),
+                        Text(
+                          '今天',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: secondaryText,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: _previousMonth,
-                        icon: Icon(Icons.chevron_left, color: primaryText),
-                      ),
-                      Expanded(
-                        child: Text(
-                          _monthTitle(displayedMonth),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: primaryText,
+            const SizedBox(height: AppUI.cardGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _previousMonth,
+                          icon: Icon(Icons.chevron_left, color: primaryText),
+                        ),
+                        Expanded(
+                          child: Text(
+                            _monthTitle(displayedMonth),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: primaryText,
+                            ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _nextMonth,
-                        icon: Icon(Icons.chevron_right, color: primaryText),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(
-                      onPressed: _goToToday,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: accentColor),
-                        foregroundColor: accentColor,
-                      ),
-                      icon: const Icon(Icons.today_outlined, size: 18),
-                      label: const Text('回到今天'),
+                        IconButton(
+                          onPressed: _nextMonth,
+                          icon: Icon(Icons.chevron_right, color: primaryText),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: weekdayLabels
-                        .map(
-                          (label) => Expanded(
-                            child: Center(
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: secondaryText,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 10),
-                  GridView.builder(
-                    itemCount: days.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          childAspectRatio: 0.78,
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: _goToToday,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: accentColor),
+                          foregroundColor: accentColor,
                         ),
-                    itemBuilder: (context, index) {
-                      final date = days[index];
-                      final isCurrentMonth = date.month == displayedMonth.month;
-                      final isToday = _isToday(date);
-                      final summary = _summaryForDate(summaries, date);
-                      final hasRecord = summary != null;
-                      final hasTaskDue = _hasTaskDueOnDate(tasks, date);
-                      final dueTasks = _tasksDueOnDate(tasks, date);
-                      final scoreColor = hasRecord
-                          ? _scoreColor(summary.disciplineScore)
-                          : Colors.transparent;
-
-                      final bgColor = isToday
-                          ? accentColor.withValues(alpha: isDark ? 0.22 : 0.10)
-                          : hasRecord
-                          ? scoreColor.withValues(alpha: isDark ? 0.18 : 0.10)
-                          : (isDark
-                                ? const Color(0xFF1E2330)
-                                : const Color(0xFFF8F8FB));
-
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CalendarDayDetailPage(
-                                date: date,
-                                summary: summary,
-                                dueTasks: dueTasks,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isToday ? accentColor : Colors.transparent,
-                              width: isToday || hasTaskDue ? 1.4 : 1,
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 6,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${date.day}',
+                        icon: const Icon(Icons.today_outlined, size: 18),
+                        label: const Text('回到今天'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: weekdayLabels
+                          .map(
+                            (label) => Expanded(
+                              child: Center(
+                                child: Text(
+                                  label,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: isCurrentMonth
-                                        ? primaryText
-                                        : secondaryText.withValues(alpha: 0.6),
+                                    color: secondaryText,
                                   ),
                                 ),
-                                const Spacer(),
-                                if (hasRecord || hasTaskDue)
-                                  SizedBox(
-                                    height: 14,
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        if (hasRecord) ...[
-                                          Container(
-                                            width: 8,
-                                            height: 8,
-                                            decoration: BoxDecoration(
-                                              color: scoreColor,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 3),
-                                          Flexible(
-                                            child: Text(
-                                              '${summary.disciplineScore}',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.clip,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 10),
+                    GridView.builder(
+                      itemCount: days.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 7,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 2,
+                            mainAxisExtent: 76,
+                          ),
+                      itemBuilder: (context, index) {
+                        final date = days[index];
+                        final isCurrentMonth =
+                            date.month == displayedMonth.month;
+                        final isToday = _isToday(date);
+                        final summary = _summaryForDate(summaries, date);
+                        final hasRecord = summary != null;
+                        final hasTaskDue = _hasTaskDueOnDate(tasks, date);
+                        final dueTasks = _tasksDueOnDate(tasks, date);
+                        final scoreColor = hasRecord
+                            ? _scoreColor(summary.disciplineScore)
+                            : Colors.transparent;
+
+                        final bgColor = isToday
+                            ? accentColor.withValues(
+                                alpha: isDark ? 0.22 : 0.10,
+                              )
+                            : hasRecord
+                            ? scoreColor.withValues(alpha: isDark ? 0.18 : 0.10)
+                            : (isDark
+                                  ? GamePalette.woodDeep
+                                  : GamePalette.parchment);
+
+                        return Semantics(
+                          label:
+                              '${_dateKey(date)}，${hasRecord ? '有冒險紀錄' : '尚無紀錄'}${hasTaskDue ? '，有到期委託' : ''}',
+                          button: true,
+                          child: InkWell(
+                            key: ValueKey('journal-day-${_dateKey(date)}'),
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CalendarDayDetailPage(
+                                    date: date,
+                                    openedFromCalendar: true,
+                                    summary: summary,
+                                    dueTasks: dueTasks,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: bgColor,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isToday
+                                      ? accentColor
+                                      : Colors.transparent,
+                                  width: isToday || hasTaskDue ? 1.4 : 1,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                  vertical: 6,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${date.day}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isCurrentMonth
+                                            ? primaryText
+                                            : secondaryText.withValues(
+                                                alpha: 0.6,
+                                              ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (hasRecord || hasTaskDue)
+                                      Wrap(
+                                        children: [
+                                          if (hasRecord &&
+                                              summary.focusMinutes > 0)
+                                            Tooltip(
+                                              message:
+                                                  '專注 ${summary.focusMinutes} 分鐘',
+                                              child: Icon(
+                                                Icons.menu_book_outlined,
+                                                size: 14,
                                                 color: primaryText,
-                                                height: 1,
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                        if (hasRecord &&
-                                            summary.coinsEarned > 0) ...[
-                                          const SizedBox(width: 3),
-                                          Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: const BoxDecoration(
-                                              color: AppUI.orange,
-                                              shape: BoxShape.circle,
+                                          if (hasRecord &&
+                                              summary.sleepHours > 0)
+                                            Tooltip(
+                                              message:
+                                                  '睡眠 ${summary.sleepHours} 小時',
+                                              child: Icon(
+                                                Icons.bedtime_outlined,
+                                                size: 14,
+                                                color: primaryText,
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                        if (hasTaskDue) ...[
-                                          const SizedBox(width: 3),
-                                          Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: const BoxDecoration(
-                                              color: AppUI.primary,
-                                              shape: BoxShape.circle,
+                                          if (hasRecord && summary.steps > 0)
+                                            Tooltip(
+                                              message: '步數 ${summary.steps} 步',
+                                              child: Icon(
+                                                Icons.directions_walk,
+                                                size: 14,
+                                                color: primaryText,
+                                              ),
                                             ),
-                                          ),
+                                          if (hasRecord &&
+                                              summary.exerciseMinutes > 0)
+                                            Tooltip(
+                                              message:
+                                                  '運動 ${summary.exerciseMinutes} 分鐘',
+                                              child: Icon(
+                                                Icons.fitness_center,
+                                                size: 14,
+                                                color: primaryText,
+                                              ),
+                                            ),
+                                          if (hasTaskDue)
+                                            Tooltip(
+                                              message: '有到期委託',
+                                              child: Icon(
+                                                Icons.flag_outlined,
+                                                size: 14,
+                                                color: primaryText,
+                                              ),
+                                            ),
                                         ],
-                                      ],
-                                    ),
-                                  ),
-                              ],
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 380;
+            const SizedBox(height: AppUI.sectionGap),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 380;
 
-              if (compact) {
+                if (compact) {
+                  return Column(
+                    children: [
+                      _MonthInfoCard(
+                        title: '月平均分數',
+                        value: '$monthAvgScore 分',
+                        icon: Icons.insights_outlined,
+                        color: GamePalette.goldDeep,
+                      ),
+                      const SizedBox(height: 12),
+                      _MonthInfoCard(
+                        title: '月平均完成率',
+                        value: '$monthAvgCompletion%',
+                        icon: Icons.pie_chart_outline,
+                        color: GamePalette.violet,
+                      ),
+                      const SizedBox(height: 12),
+                      _MonthInfoWideCard(
+                        title: '本月完成任務',
+                        value: '$totalCompletedTasks / $totalTasks',
+                        icon: Icons.task_alt_outlined,
+                        color: GamePalette.green,
+                      ),
+                      const SizedBox(height: 12),
+                      _MonthInfoWideCard(
+                        title: '本月最佳日',
+                        value: _bestDayText(monthBestDay),
+                        icon: Icons.emoji_events_outlined,
+                        color: GamePalette.goldDeep,
+                      ),
+                      const SizedBox(height: 12),
+                      _MonthInfoWideCard(
+                        title: '本月專注累積',
+                        value: '$totalMonthFocus 分',
+                        icon: Icons.timer_outlined,
+                        color: GamePalette.violet,
+                      ),
+                      const SizedBox(height: 12),
+                      _MonthInfoWideCard(
+                        title: '本月自律幣',
+                        value: '+$totalMonthCoins 枚',
+                        icon: Icons.monetization_on_outlined,
+                        color: GamePalette.goldDeep,
+                      ),
+                      const SizedBox(height: 12),
+                      _MonthInfoWideCard(
+                        title: '自動追蹤完成',
+                        value: '$totalAutoCompleted / $totalAutoTasks',
+                        icon: Icons.sync_outlined,
+                        color: GamePalette.green,
+                      ),
+                      const SizedBox(height: 12),
+                      _MonthInfoWideCard(
+                        title: '本月截止任務',
+                        value: '$taskDueCount 個',
+                        icon: Icons.event_note_outlined,
+                        color: GamePalette.violet,
+                      ),
+                    ],
+                  );
+                }
+
                 return Column(
                   children: [
-                    _MonthInfoCard(
-                      title: '月平均分數',
-                      value: '$monthAvgScore 分',
-                      icon: Icons.insights_outlined,
-                      color: AppUI.primary,
-                    ),
-                    const SizedBox(height: 12),
-                    _MonthInfoCard(
-                      title: '月平均完成率',
-                      value: '$monthAvgCompletion%',
-                      icon: Icons.pie_chart_outline,
-                      color: AppUI.blue,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MonthInfoCard(
+                            title: '月平均分數',
+                            value: '$monthAvgScore 分',
+                            icon: Icons.insights_outlined,
+                            color: GamePalette.goldDeep,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _MonthInfoCard(
+                            title: '月平均完成率',
+                            value: '$monthAvgCompletion%',
+                            icon: Icons.pie_chart_outline,
+                            color: GamePalette.violet,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     _MonthInfoWideCard(
                       title: '本月完成任務',
                       value: '$totalCompletedTasks / $totalTasks',
                       icon: Icons.task_alt_outlined,
-                      color: AppUI.green,
+                      color: GamePalette.green,
                     ),
                     const SizedBox(height: 12),
                     _MonthInfoWideCard(
                       title: '本月最佳日',
                       value: _bestDayText(monthBestDay),
                       icon: Icons.emoji_events_outlined,
-                      color: AppUI.orange,
+                      color: GamePalette.goldDeep,
                     ),
                     const SizedBox(height: 12),
                     _MonthInfoWideCard(
                       title: '本月專注累積',
                       value: '$totalMonthFocus 分',
                       icon: Icons.timer_outlined,
-                      color: AppUI.blue,
+                      color: GamePalette.violet,
                     ),
                     const SizedBox(height: 12),
                     _MonthInfoWideCard(
                       title: '本月自律幣',
                       value: '+$totalMonthCoins 枚',
                       icon: Icons.monetization_on_outlined,
-                      color: AppUI.orange,
+                      color: GamePalette.goldDeep,
                     ),
                     const SizedBox(height: 12),
                     _MonthInfoWideCard(
                       title: '自動追蹤完成',
                       value: '$totalAutoCompleted / $totalAutoTasks',
                       icon: Icons.sync_outlined,
-                      color: AppUI.green,
+                      color: GamePalette.green,
                     ),
                     const SizedBox(height: 12),
                     _MonthInfoWideCard(
                       title: '本月截止任務',
                       value: '$taskDueCount 個',
                       icon: Icons.event_note_outlined,
-                      color: AppUI.purple,
+                      color: GamePalette.violet,
                     ),
                   ],
                 );
-              }
-
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MonthInfoCard(
-                          title: '月平均分數',
-                          value: '$monthAvgScore 分',
-                          icon: Icons.insights_outlined,
-                          color: AppUI.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MonthInfoCard(
-                          title: '月平均完成率',
-                          value: '$monthAvgCompletion%',
-                          icon: Icons.pie_chart_outline,
-                          color: AppUI.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _MonthInfoWideCard(
-                    title: '本月完成任務',
-                    value: '$totalCompletedTasks / $totalTasks',
-                    icon: Icons.task_alt_outlined,
-                    color: AppUI.green,
-                  ),
-                  const SizedBox(height: 12),
-                  _MonthInfoWideCard(
-                    title: '本月最佳日',
-                    value: _bestDayText(monthBestDay),
-                    icon: Icons.emoji_events_outlined,
-                    color: AppUI.orange,
-                  ),
-                  const SizedBox(height: 12),
-                  _MonthInfoWideCard(
-                    title: '本月專注累積',
-                    value: '$totalMonthFocus 分',
-                    icon: Icons.timer_outlined,
-                    color: AppUI.blue,
-                  ),
-                  const SizedBox(height: 12),
-                  _MonthInfoWideCard(
-                    title: '本月自律幣',
-                    value: '+$totalMonthCoins 枚',
-                    icon: Icons.monetization_on_outlined,
-                    color: AppUI.orange,
-                  ),
-                  const SizedBox(height: 12),
-                  _MonthInfoWideCard(
-                    title: '自動追蹤完成',
-                    value: '$totalAutoCompleted / $totalAutoTasks',
-                    icon: Icons.sync_outlined,
-                    color: AppUI.green,
-                  ),
-                  const SizedBox(height: 12),
-                  _MonthInfoWideCard(
-                    title: '本月截止任務',
-                    value: '$taskDueCount 個',
-                    icon: Icons.event_note_outlined,
-                    color: AppUI.purple,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -640,7 +664,7 @@ class _MiniLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -658,7 +682,7 @@ class _MiniLegend extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 14,
             color: secondaryText,
             fontWeight: FontWeight.w600,
           ),
@@ -683,18 +707,18 @@ class _MonthInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color),
           const SizedBox(height: 10),
-          Text(title, style: TextStyle(fontSize: 13, color: secondaryText)),
+          Text(title, style: TextStyle(fontSize: 14, color: secondaryText)),
           const SizedBox(height: 4),
           Text(
             value,
@@ -725,11 +749,11 @@ class _MonthInfoWideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [

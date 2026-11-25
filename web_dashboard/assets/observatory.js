@@ -20,7 +20,14 @@
   knob.addEventListener('keyup',e=>{if([' ','Enter'].includes(e.key)){e.preventDefault();dispatch('release');}});knob.addEventListener('blur',cancel);
   knob.addEventListener('click',e=>{if(e.detail===0&&state.pressedAt===null)dispatch('start');});
   $('virtual25').addEventListener('click',()=>dispatch('rotate',{delta:-1}));$('virtual50').addEventListener('click',()=>dispatch('rotate',{delta:1}));$('virtualStart').addEventListener('click',()=>dispatch('start'));$('virtualComplete').addEventListener('click',()=>dispatch('complete'));$('virtualReset').addEventListener('click',()=>{cancel();dispatch('reset');});
-  let tick=setInterval(()=>dispatch('tick'),200);root.addEventListener('pageshow',()=>{if(tick===null)tick=setInterval(()=>dispatch('tick'),200);});root.addEventListener('pagehide',()=>{clearInterval(tick);tick=null;cancel();off();++bindingRequest;binding.replaceChildren();});
+  // The demo uses elapsed time, but redraws only while its physical workbench is visible.
+  let tick=null,lastTick=0;
+  function stopTick(){if(tick!==null)root.cancelAnimationFrame(tick);tick=null;}
+  function drawTick(now){tick=null;const panel=knob.closest('dialog');if(document.hidden||(panel&&!panel.open))return;if(now-lastTick>=100){lastTick=now;dispatch('tick');}tick=root.requestAnimationFrame(drawTick);}
+  function resumeTick(){stopTick();if(!document.hidden)tick=root.requestAnimationFrame(drawTick);}
+  document.addEventListener('visibilitychange',resumeTick);
+  document.addEventListener('DOMContentLoaded',()=>{const panel=knob.closest('dialog');if(panel)new MutationObserver(resumeTick).observe(panel,{attributes:true,attributeFilter:['open']});resumeTick();});
+  root.addEventListener('pageshow',resumeTick);root.addEventListener('pagehide',()=>{stopTick();cancel();off();++bindingRequest;binding.replaceChildren();});
   async function loadBindings(){
     off();off=()=>{};binding.replaceChildren();const own=++bindingRequest;
     if(!ctx?.user){signedOut(binding);return;}const scope=ctx;say('裝置綁定狀態雲端確認中；上方始終是唯讀示範。');
