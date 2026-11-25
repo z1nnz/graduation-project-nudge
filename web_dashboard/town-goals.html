@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="assets/social_scene.css?v=1">
   <link rel="stylesheet" href="assets/town_events.css?v=1">
   <link rel="stylesheet" href="assets/presence.css?v=1">
-  <link rel="stylesheet" href="assets/social_plaza_ground.css?v=2">
+  <link rel="stylesheet" href="assets/social_plaza_ground.css?v=3">
 </head>
 <body class="w-page world-page" data-page="town-goals" data-social-facility="plaza">
   <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>小鎮廣場</h1></header>
@@ -18,12 +18,12 @@
       <span class="plaza-tower-halo" data-plaza-halo aria-hidden="true"></span><span class="plaza-water" aria-hidden="true">✧</span><span class="plaza-bird" aria-hidden="true">⌁</span>
       <button class="w-btn plaza-object" type="button" data-plaza-panel="goal" style="--w-plaza-x:50%;--w-plaza-y:53%" aria-label="噴水池與全鎮共同目標" aria-haspopup="dialog">噴水池</button>
       <button class="w-btn plaza-object" type="button" data-plaza-panel="board" style="--w-plaza-x:20%;--w-plaza-y:35%" aria-label="社團和活動公告欄" aria-haspopup="dialog">公告欄</button>
-      <button class="w-btn plaza-object" type="button" data-plaza-panel="post" style="--w-plaza-x:82%;--w-plaza-y:36%" aria-label="郵差小信" aria-haspopup="dialog">小信</button>
+      <button class="w-btn plaza-object" type="button" data-plaza-panel="post" style="--w-plaza-x:82%;--w-plaza-y:36%" aria-label="郵差小信" aria-haspopup="dialog"><span class="plaza-post-sprite" aria-hidden="true"></span>小信</button>
       <div class="plaza-residents" data-plaza-residents role="group" aria-label="在場好友"></div>
       <button class="w-btn plaza-object" type="button" data-plaza-panel="friends" style="--w-plaza-x:77%;--w-plaza-y:82%" aria-label="好友長椅" aria-haspopup="dialog">好友長椅</button>
     </section>
     <dialog class="w-parchment plaza-dialog" id="plaza-board" aria-label="廣場公告欄"><h2>廣場公告欄</h2><a class="w-btn" href="clubs.html">興趣社團</a> <a class="w-btn" href="group-hall.html">團體活動</a><form method="dialog"><button class="w-btn">關閉</button></form></dialog>
-    <dialog class="w-parchment plaza-dialog" id="plaza-post" aria-label="郵差小信"><h2>郵差小信</h2><p>想拆封來信，或把想說的話寫成卡片嗎？郵件都在這裡。</p><a class="w-btn" href="mailbox.html">信箱</a> <a class="w-btn" href="thanks-cards.html">感謝卡冊</a> <a class="w-btn" href="exchange-journal.html">交換日記</a><form method="dialog"><button class="w-btn">關閉</button></form></dialog>
+    <dialog class="w-parchment plaza-dialog" id="plaza-post" aria-label="郵差小信"><h2>郵差小信</h2><span class="plaza-post-portrait" aria-hidden="true"></span><p>想拆封來信，或把想說的話寫成卡片嗎？郵件都在這裡。</p><a class="w-btn" href="mailbox.html">信箱</a> <a class="w-btn" href="thanks-cards.html">感謝卡冊</a> <a class="w-btn" href="exchange-journal.html">交換日記</a><form method="dialog"><button class="w-btn">關閉</button></form></dialog>
     <dialog class="w-parchment plaza-dialog" id="plaza-friends" aria-label="好友長椅"><h2>好友長椅</h2><section class="friend-presence" data-friend-presence data-plaza-bench><label><input type="checkbox" data-presence-sharing disabled> 讓好友看到我在哪棟建築</label><p data-presence-status role="status">正在確認分享設定…</p><ul data-presence-list></ul></section><form method="dialog"><button class="w-btn">關閉</button></form></dialog>
     <dialog class="w-parchment plaza-dialog" id="plaza-goal" aria-label="全鎮共同目標">
     <section class="w-panel town-goal-scene" aria-labelledby="townGoalTitle">
@@ -51,6 +51,8 @@
   <script src="assets/town_events.js?v=2"></script>
   <script src="assets/presence.js?v=2"></script>
   <script src="assets/app.js?v=30"></script>
-  <script src="assets/social_plaza_ground.js?v=2"></script>
+  <script src="assets/sprite_player.js?v=1"></script>
+  <script src="assets/npc_dialog.js?v=1"></script>
+  <script src="assets/social_plaza_ground.js?v=3"></script>
 </body>
 </html>

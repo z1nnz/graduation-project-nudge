@@ -40,6 +40,9 @@
 .plaza-friend-figure { width: 20px; height: 26px; border: 2px solid var(--w-frame); background: var(--w-wood-deep); }
 .w-btn.plaza-object:active { transform: translate(-50%, -50%); }
 .plaza-object { touch-action: manipulation; }
+.plaza-object[data-plaza-panel="post"] { z-index: 1; }
+.plaza-post-sprite { position: absolute; bottom: calc(100% - 5px); left: 50%; transform: translateX(-50%); }
+.plaza-post-portrait { display: block; }
 @media (prefers-reduced-motion: reduce) { .plaza-object { transition: none; } }
 .plaza-object:focus-visible { outline: 3px solid var(--w-gold); }
 .plaza-tower-halo {

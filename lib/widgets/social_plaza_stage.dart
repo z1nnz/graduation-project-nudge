@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/character_catalog.dart';
 import '../theme/game_ui.dart';
+import 'npc_dialog.dart';
+import 'sprite_animation.dart';
 
 class SocialPlazaStage extends StatefulWidget {
   const SocialPlazaStage({
@@ -141,7 +144,26 @@ class _SocialPlazaStageState extends State<SocialPlazaStage>
                   ),
                 ),
               ),
-              const SizedBox(height: 94),
+              SizedBox(
+                height: 94,
+                child: Center(
+                  child: Semantics(
+                    label: '與郵差小信對話',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => NpcDialog.show(
+                        context,
+                        speaker: GameCharacters.letty,
+                        lines: const ['想找好友、看公告或寄鼓勵，都可以從廣場出發。'],
+                      ),
+                      child: const CharacterSprite(
+                        character: GameCharacters.letty,
+                        size: 64,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: 8,
