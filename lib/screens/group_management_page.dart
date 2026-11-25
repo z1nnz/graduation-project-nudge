@@ -1,9 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../widgets/community_scene_header.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
 import '../widgets/relationship_context_switcher.dart';
 import '../widgets/relationship_role_surface_card.dart';
 import '../models/relationship_membership.dart';
@@ -28,333 +31,336 @@ class GroupManagementPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(capabilities.groupSurfaceTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.business_center_outlined,
-                  color: Colors.white,
-                  size: 32,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        capabilities.groupSurfaceTitle,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        capabilities.groupSurfaceDescription,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          const RelationshipContextSwitcher(scope: RelationshipScope.group),
-          if (groupMembership != null) ...[
-            const SizedBox(height: AppUI.sectionGap),
-            RelationshipRoleSurfaceCard(role: groupMembership.role),
-            const SizedBox(height: AppUI.sectionGap),
-          ],
-          if (appState.canonicalGroup != null) ...[
-            _buildGroupPlanetCard(context, appState, accentColor),
-            const SizedBox(height: AppUI.sectionGap),
-          ],
-
-          Card(
-            shape: AppUI.cardShape(),
-            child: Column(
-              children: [
-                SwitchListTile.adaptive(
-                  value: appState.isGroupResultSharingEnabled,
-                  title: const Text(
-                    '分享我的團體成果摘要',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: const Text('只分享分數、任務完成數、專注、步數與睡眠摘要；關閉後會立即退出團體排行。'),
-                  secondary: const Icon(Icons.verified_user_outlined),
-                  onChanged: (enabled) async {
-                    try {
-                      await appState.setGroupResultSharing(enabled);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(enabled ? '已開啟團體成果分享' : '已撤回團體成果分享'),
-                        ),
-                      );
-                    } catch (error) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(error.toString())));
-                    }
-                  },
-                ),
-                if (appState.isGroupResultSharingEnabled) ...[
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '目前摘要：${appState.todayWeightedDisciplineScore} 分・'
-                            '${appState.focusMinutes} 分鐘專注・${appState.steps} 步',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: secondaryText,
-                            ),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () async {
-                            await appState.refreshGroupResultSummary();
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('團體成果摘要已更新')),
-                            );
-                          },
-                          icon: const Icon(Icons.sync, size: 16),
-                          label: const Text('立即更新'),
-                        ),
-                      ],
+      body: CommunitySceneSections(
+        family: false,
+        greeting: '翻開日曆查看共讀，或到壁畫看團體挑戰進度。',
+        leading: const RelationshipContextSwitcher(
+          scope: RelationshipScope.group,
+        ),
+        sections: [
+          CommunitySceneSection(
+            label: '團體挑戰壁畫',
+            icon: Icons.extension_outlined,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.emoji_events_outlined, color: AppUI.orange),
+                  const SizedBox(width: 8),
+                  Text(
+                    '團體自律挑戰',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryText,
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-
-          // ─── 房主控制台入口（僅房主可見）───────────────────────────────
-          if (capabilities.canManageGroup) ...[
-            InkWell(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const GroupManagerPage()),
               ),
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      accentColor.withValues(alpha: 0.25),
-                      accentColor.withValues(alpha: 0.10),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: accentColor.withValues(alpha: 0.4)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.admin_panel_settings_outlined,
-                      color: accentColor,
-                      size: 26,
+              const SizedBox(height: AppUI.cardGap),
+
+              if (challenge == null)
+                Card(
+                  shape: AppUI.cardShape(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppUI.innerPadding),
+                    child: Text(
+                      '目前尚未被指派團體挑戰。請在 Web 平台「挑戰建立器」中派發。',
+                      style: TextStyle(fontSize: 13, color: secondaryText),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '管理者控制台',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: accentColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '發布挑戰、讀書時段與考試模板',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: primaryText.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
+                  ),
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildChallengeMural(
+                      context,
+                      challenge,
+                      appState.groupChallengeParticipations,
+                    ),
+                    const SizedBox(height: AppUI.cardGap),
+                    _buildChallengeCard(context, challenge, accentColor),
+                  ],
+                ),
+
+              const SizedBox(height: AppUI.sectionGap),
+            ],
+          ),
+          CommunitySceneSection(
+            label: '共讀日曆',
+            icon: Icons.calendar_month_outlined,
+            children: [
+              // ─── 補習班/團體讀書時段 ──────────────────────────────────────
+              Row(
+                children: [
+                  const Icon(Icons.timer_outlined, color: AppUI.blue),
+                  const SizedBox(width: 8),
+                  Text(
+                    '團體共讀/讀書時段',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryText,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppUI.blue.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${schedules.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppUI.blue,
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: accentColor.withValues(alpha: 0.7),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppUI.cardGap),
+
+              if (schedules.isEmpty)
+                Card(
+                  shape: AppUI.cardShape(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppUI.innerPadding),
+                    child: Text(
+                      '目前沒有共同自律時段。團體管理者可發布建議時間；成員仍自行開始與完成。',
+                      style: TextStyle(fontSize: 13, color: secondaryText),
                     ),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: schedules.length,
+                  itemBuilder: (context, index) {
+                    final schedule = schedules[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                      child: _buildStudyScheduleCard(
+                        context,
+                        schedule,
+                        accentColor,
+                      ),
+                    );
+                  },
+                ),
+
+              const SizedBox(height: AppUI.sectionGap),
+            ],
+          ),
+          CommunitySceneSection(
+            label: '任務書架',
+            icon: Icons.menu_book_outlined,
+            children: [
+              // ─── 考試/自律任務模板 ────────────────────────────────────────
+              Row(
+                children: [
+                  const Icon(Icons.assignment_outlined, color: AppUI.green),
+                  const SizedBox(width: 8),
+                  Text(
+                    '學業大考任務模板',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppUI.cardGap),
+
+              if (templates.isEmpty)
+                Card(
+                  shape: AppUI.cardShape(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppUI.innerPadding),
+                    child: Text(
+                      '目前尚未發佈考試模板。請在 Web 平台「大考任務模板」中建立。',
+                      style: TextStyle(fontSize: 13, color: secondaryText),
+                    ),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: templates.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppUI.cardGap),
+                      child: _buildTemplateCard(
+                        context,
+                        templates[index],
+                        appState,
+                        accentColor,
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+          CommunitySceneSection(
+            label: '會館名冊',
+            icon: Icons.groups_outlined,
+            children: [
+              if (groupMembership != null) ...[
+                const SizedBox(height: AppUI.sectionGap),
+                RelationshipRoleSurfaceCard(role: groupMembership.role),
+                const SizedBox(height: AppUI.sectionGap),
+              ],
+              if (appState.canonicalGroup != null) ...[
+                _buildGroupPlanetCard(context, appState, accentColor),
+                const SizedBox(height: AppUI.sectionGap),
+              ],
+
+              Card(
+                shape: AppUI.cardShape(),
+                child: Column(
+                  children: [
+                    SwitchListTile.adaptive(
+                      value: appState.isGroupResultSharingEnabled,
+                      title: const Text(
+                        '分享我的團體成果摘要',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text(
+                        '只分享分數、任務完成數、專注、步數與睡眠摘要；關閉後會立即退出團體排行。',
+                      ),
+                      secondary: const Icon(Icons.verified_user_outlined),
+                      onChanged: (enabled) async {
+                        try {
+                          await appState.setGroupResultSharing(enabled);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                enabled ? '已開啟團體成果分享' : '已撤回團體成果分享',
+                              ),
+                            ),
+                          );
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(error.toString())),
+                          );
+                        }
+                      },
+                    ),
+                    if (appState.isGroupResultSharingEnabled) ...[
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '目前摘要：${appState.todayWeightedDisciplineScore} 分・'
+                                '${appState.focusMinutes} 分鐘專注・${appState.steps} 步',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: secondaryText,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () async {
+                                await appState.refreshGroupResultSummary();
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('團體成果摘要已更新')),
+                                );
+                              },
+                              icon: const Icon(Icons.sync, size: 16),
+                              label: const Text('立即更新'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: AppUI.sectionGap),
-          ],
-
-          Row(
-            children: [
-              const Icon(Icons.emoji_events_outlined, color: AppUI.orange),
-              const SizedBox(width: 8),
-              Text(
-                '團體自律挑戰',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryText,
-                ),
-              ),
+              const SizedBox(height: AppUI.sectionGap),
             ],
           ),
-          const SizedBox(height: AppUI.cardGap),
-
-          if (challenge == null)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前尚未被指派團體挑戰。請在 Web 平台「挑戰建立器」中派發。',
-                  style: TextStyle(fontSize: 13, color: secondaryText),
-                ),
+          if (capabilities.canManageGroup)
+            CommunitySceneSection(
+              label: '管理員辦公室',
+              icon: Icons.door_front_door_outlined,
+              onOpen: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GroupManagerPage()),
               ),
-            )
-          else
-            _buildChallengeCard(context, challenge, accentColor),
-
-          const SizedBox(height: AppUI.sectionGap),
-
-          // ─── 補習班/團體讀書時段 ──────────────────────────────────────
-          Row(
-            children: [
-              const Icon(Icons.timer_outlined, color: AppUI.blue),
-              const SizedBox(width: 8),
-              Text(
-                '團體共讀/讀書時段',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryText,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppUI.blue.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${schedules.length}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppUI.blue,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppUI.cardGap),
-
-          if (schedules.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前沒有共同自律時段。團體管理者可發布建議時間；成員仍自行開始與完成。',
-                  style: TextStyle(fontSize: 13, color: secondaryText),
-                ),
-              ),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: schedules.length,
-              itemBuilder: (context, index) {
-                final schedule = schedules[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-                  child: _buildStudyScheduleCard(
-                    context,
-                    schedule,
-                    accentColor,
-                  ),
-                );
-              },
             ),
+        ],
+      ),
+    );
+  }
 
-          const SizedBox(height: AppUI.sectionGap),
-
-          // ─── 考試/自律任務模板 ────────────────────────────────────────
-          Row(
-            children: [
-              const Icon(Icons.assignment_outlined, color: AppUI.green),
-              const SizedBox(width: 8),
-              Text(
-                '學業大考任務模板',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryText,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppUI.cardGap),
-
-          if (templates.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前尚未發佈考試模板。請在 Web 平台「大考任務模板」中建立。',
-                  style: TextStyle(fontSize: 13, color: secondaryText),
-                ),
-              ),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: templates.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUI.cardGap),
-                  child: _buildTemplateCard(
-                    context,
-                    templates[index],
-                    appState,
-                    accentColor,
+  Widget _buildChallengeMural(
+    BuildContext context,
+    Map<String, dynamic> challenge,
+    List<Map<String, dynamic>> participants,
+  ) {
+    final id = challenge['challengeId'];
+    final days = challenge['days'];
+    if (challenge['status'] != 'active' ||
+        id is! String ||
+        days is! int ||
+        days <= 0) {
+      return const SizedBox.shrink();
+    }
+    final joined = participants.where(
+      (row) =>
+          row['challengeId'] == id &&
+          (row['status'] == 'joined' || row['status'] == 'completed') &&
+          row['completedDays'] is int,
+    );
+    var complete = 0;
+    var count = 0;
+    for (final member in joined) {
+      complete += (member['completedDays'] as int).clamp(0, days);
+      count++;
+    }
+    final target = days * count;
+    final lit = target > 0 ? 12 * complete ~/ target : 0;
+    final palette = GamePalette.of(context);
+    return GamePanel(
+      title: '團體挑戰進度',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(
+            child: Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: List.generate(
+                12,
+                (index) => DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: index < lit ? GamePalette.gold : palette.wood,
+                    border: Border.all(color: palette.panelBorder, width: 2),
                   ),
-                );
-              },
+                  child: const SizedBox(width: 24, height: 16),
+                ),
+              ),
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            target > 0 ? '$complete／$target 天' : '目前還沒有人參加這次團體挑戰。',
+            style: const TextStyle(fontSize: 14),
+          ),
         ],
       ),
     );

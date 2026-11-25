@@ -111,6 +111,8 @@ flutter:
     - assets/scenes/town_plaza/
     - assets/home/
     - assets/home/window/
+    - assets/scenes/guild_hall/
+    - assets/scenes/family_courtyard/
     - assets/avatar/poses/
     - assets/rooms/
     - assets/scenes/focus_tower/
