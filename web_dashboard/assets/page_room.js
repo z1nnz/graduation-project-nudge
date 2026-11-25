@@ -4,7 +4,7 @@
   // own sections (same nodes, same listeners, same Cloud calls) in a panel.
   // Config lives in page_rooms.js, keyed by <body data-page>.
   const doc = root.document;
-  const page = doc.body?.dataset.page || doc.body?.dataset.townGate;
+  const page = doc.body?.dataset.roomKey || doc.body?.dataset.page || doc.body?.dataset.townGate;
   const config = root.NudgePageRooms?.[page];
   if (!config || !root.NudgeSceneRoom) return;
 
@@ -44,6 +44,13 @@
     })),
   });
   root.NudgePageRoom = room;
+  // The page's main control floats over the scene, usable at once.
+  for (const sel of config.float || []) {
+    const node = doc.querySelector(sel);
+    if (!node) continue;
+    node.classList.add('room-float', `room-float--${page}`);
+    room.stage.append(node);
+  }
   if (config.openOnArrive) {
     const target = config.objects.find(o => o.id === config.openOnArrive);
     if (target && sections.get(target.id)) {

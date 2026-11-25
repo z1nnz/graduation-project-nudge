@@ -57,3 +57,42 @@ body[data-town-gate="login"] .gate-login::before {
   /* Phones: the gate scene first, the pass right under it. */
   body[data-town-gate="login"] .gate-login { position: relative; top: auto; right: auto; margin: -64px auto 24px; max-height: none; }
 }
+
+/* A page's main control floating over its room. */
+.room-float {
+  position: absolute !important;
+  z-index: 6;
+  margin: 0 !important;
+  overflow: auto;
+  border: 4px solid var(--w-wood-deep) !important;
+  outline: 3px solid var(--w-frame);
+  border-radius: 6px !important;
+  background: rgba(251, 239, 217, 0.96) !important;
+  color: var(--w-ink-dark) !important;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.35) !important;
+  padding: 16px !important;
+}
+.room-float :is(h1, h2, h3, p, span, small, strong, label) { color: var(--w-ink-dark); }
+/* desktop: on the right; phones: over the floor */
+.room-stage[data-layout="wide"] .room-float { top: 24px; right: 3vw; width: min(420px, 34vw); max-height: calc(100% - 48px); }
+.room-stage[data-layout="tall"] .room-float { left: 12px; right: 12px; bottom: 12px; max-height: 46%; }
+.room-stage[data-layout="wide"] .room-float--focus { top: 50%; left: 50%; right: auto; translate: -50% -60%; width: min(460px, 40vw); }
+.room-stage[data-layout="wide"] .room-float--profile { width: min(640px, 48vw); }
+.room-float--focus .timer-display { font-family: var(--w-pixel); color: var(--w-ink-dark); text-shadow: none; }
+.room-float--focus .focus-timer-container { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.room-float--focus .timer-status { color: var(--w-ink-soft) !important; }
+/* Profile card on parchment: old dark tiles become paper notes. */
+.room-float--profile .fb-cover-card,
+.room-float--profile .fb-card,
+.room-float--profile .fb-left-column > *,
+.room-float--profile .fb-right-column > * {
+  background: var(--w-parchment-hi) !important;
+  border: 2px solid var(--w-wood) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 3px 0 rgba(58, 34, 22, 0.3) !important;
+}
+.room-float--profile .fb-cover-banner { background: linear-gradient(135deg, #4a2a5e, #8b6cf0) !important; }
+.room-float--profile :is(h1, h2, h3, h4, p, span, small, strong, label, li, div) { color: var(--w-ink-dark) !important; }
+.room-float--profile .fb-profile-name { font-family: var(--w-pixel); }
+.room-float--profile :is(input, select, textarea) { background: #fffaf0 !important; color: var(--w-ink-dark) !important; border: 2px solid var(--w-wood) !important; }
+.room-float--profile .fb-profile-body { display: grid; grid-template-columns: 1fr; gap: 12px; }

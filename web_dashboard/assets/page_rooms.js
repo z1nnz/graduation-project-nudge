@@ -6,6 +6,75 @@
   const text = (doc, sel, fallback = '') => doc.querySelector(sel)?.textContent?.trim() || fallback;
 
   root.NudgePageRooms = Object.freeze({
+    home: {
+      art: 'assets/scenes/board/study_nook.webp',
+      title: '今日的一步',
+      npc: 'scroll',
+      npcAt: [0.2, 0.95],
+      greeting: doc => [text(doc, '#dailyActionTitle', '今天從一件小事開始吧。'), text(doc, '#dailyActionDetail', '')].filter(Boolean),
+      tips: ['黑板上寫著接下來可以去的地方。', '桌上的書裡有更多去處和使用說明。', '完成一小步，就是很棒的一天。'],
+      float: ['.quest-board-feature'],
+      hide: ['.quest-board-heading'],
+      objects: [
+        { id: 'chalkboard', label: '黑板', hint: '想從哪裡開始', x: 0.5, y: 0.1, w: 0.35, h: 0.22, section: '.quest-board-paths', panelTitle: '黑板：下一站' },
+        { id: 'book', label: '翻開書', hint: '其他去處與說明', x: 0.27, y: 0.38, w: 0.41, h: 0.2, section: '.quest-board-more', panelTitle: '其他去處與使用說明' },
+      ],
+      effects: [{ type: 'steam', points: [[0.45, 0.42], [0.6, 0.44]] }, { type: 'flicker', points: [[0.82, 0.68], [0.88, 0.1]], radius: 0.03 }, { type: 'dust', count: 14 }],
+      wide: {
+        art: 'assets/scenes/board/study_nook_wide.webp', aspect: 1.5, npcAt: [0.2, 0.92],
+        rects: { chalkboard: [0.4, 0.1, 0.28, 0.24], book: [0.32, 0.5, 0.26, 0.16] },
+        effects: [
+          { type: 'steam', points: [[0.455, 0.46], [0.39, 0.5], [0.52, 0.5]] },
+          { type: 'flicker', points: [[0.75, 0.15], [0.19, 0.42], [0.86, 0.55]], radius: 0.02 },
+          { type: 'dust', count: 20 }, { type: 'birds', y: 0.2, count: 3 },
+        ],
+        walkers: [{ id: 'companion', path: [[0.15, 0.85], [0.3, 0.8], [0.22, 0.92]], speed: 0.03, pause: 3000 }],
+      },
+    },
+
+    focus: {
+      art: 'assets/home/room_base.png',
+      aspect: 720 / 1279,
+      title: '小屋書桌',
+      npc: 'companion',
+      npcAt: [0.3, 0.86],
+      greeting: () => ['我陪你一起讀書！選好時間就開始吧。'],
+      tips: ['書架上放著你的各種紀錄。', '專注結束後，活動會送到雲端確認。', '累了就休息五分鐘，看看窗外吧。'],
+      float: ['.focus-timer-section'],
+      hide: ['main > .hero'],
+      objects: [
+        { id: 'shelf', label: '書架', hint: '我的紀錄', x: 0.12, y: 0.29, w: 0.25, h: 0.27, section: 'main .subnav', panelTitle: '書架：我的紀錄' },
+        { id: 'window', label: '窗戶', hint: '看看外面', x: 0.31, y: 0.08, w: 0.38, h: 0.21, say: () => ['外面的天色很美。專注一段時間後，記得讓眼睛休息一下。'] },
+      ],
+      effects: [{ type: 'flicker', points: [[0.12, 0.2], [0.88, 0.2]], radius: 0.05 }, { type: 'stars', count: 8, height: 0.2 }, { type: 'dust', count: 14 }],
+      wide: {
+        art: 'assets/scenes/workbench/cabin_wide.webp', aspect: 1.5, npcAt: [0.3, 0.9],
+        rects: { shelf: [0.23, 0.34, 0.14, 0.36], window: [0.39, 0.1, 0.23, 0.26] },
+        effects: [{ type: 'flicker', points: [[0.22, 0.24], [0.79, 0.24]], radius: 0.03 }, { type: 'stars', count: 12, height: 0.3 }, { type: 'dust', count: 20 }],
+      },
+    },
+
+    profile: {
+      art: 'assets/home/room_base.png',
+      aspect: 720 / 1279,
+      title: '夥伴名片',
+      npc: 'companion',
+      npcAt: [0.25, 0.92],
+      greeting: () => ['這是你的名片，朋友來拜訪時會看到它。'],
+      tips: ['書架上記著你的成長軌跡。', '名片可以換稱號、簽名和顏色。'],
+      float: ['.profile-container'],
+      objects: [
+        { id: 'shelf', label: '書架', hint: '成長軌跡', x: 0.12, y: 0.29, w: 0.25, h: 0.27, section: '#profileGrowthTracks', panelTitle: '書架：成長軌跡' },
+      ],
+      effects: [{ type: 'flicker', points: [[0.12, 0.2], [0.88, 0.2]], radius: 0.05 }, { type: 'dust', count: 14 }],
+      wide: {
+        art: 'assets/scenes/workbench/cabin_wide.webp', aspect: 1.5, npcAt: [0.12, 0.92],
+        rects: { shelf: [0.23, 0.34, 0.14, 0.36] },
+        effects: [{ type: 'flicker', points: [[0.22, 0.24], [0.79, 0.24]], radius: 0.03 }, { type: 'stars', count: 12, height: 0.3 }, { type: 'dust', count: 20 }],
+        walkers: [{ id: 'letty', path: [[0.05, 0.85], [0.2, 0.82]], speed: 0.02, pause: 4000 }],
+      },
+    },
+
     privacy: {
       wide: {
         art: 'assets/scenes/vault/vault_wide.webp', aspect: 1.5, npcAt: [0.3, 0.9],
