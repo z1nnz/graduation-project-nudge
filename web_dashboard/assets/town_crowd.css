@@ -1,0 +1,21 @@
+/* Friends in town: share switch and fixed phrases (town_crowd.js). */
+.town-crowd {
+  position: absolute;
+  left: 12px;
+  bottom: 84px;
+  z-index: 6;
+  width: min(320px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border: 3px solid var(--w-wood-deep, #3a2216);
+  border-radius: 6px;
+  background: rgba(251, 239, 217, 0.94);
+  color: var(--w-ink-dark, #3a1d0c);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+}
+.town-crowd-share { display: flex; align-items: center; gap: 6px; min-height: 36px; font-weight: 700; }
+.town-crowd-share input { width: 20px; height: 20px; accent-color: #c4710b; }
+.town-crowd-count { margin: 2px 0 6px; color: #8a5a34; }
+.town-crowd-phrases { display: flex; flex-wrap: wrap; gap: 6px; }
+.town-crowd-phrases .w-btn { min-height: 36px; padding: 4px 10px; font-size: 14px; }
+@media (max-width: 560px) { .town-crowd { bottom: 76px; font-size: 13px; } }

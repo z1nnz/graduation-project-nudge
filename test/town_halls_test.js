@@ -48,7 +48,7 @@ test('the town keeps its panel entries; the room only presses them', () => {
   assert.ok(town.includes('li.dataset.dest = dest.id;'));
   assert.ok(town.includes("root.NudgeTownHallView?.decorate(b, els('townPanel'), list, locked);"));
   const html = fs.readFileSync(path.join(web, 'town.html'), 'utf8');
-  const order = ['sprite_player.js', 'npc_dialog.js', 'scene_room.js', 'town_halls.js', 'town_hall_view.js', 'town.js?v=10']
+  const order = ['sprite_player.js', 'npc_dialog.js', 'scene_room.js', 'town_halls.js', 'town_hall_view.js', 'town.js?v=']
     .map(f => html.indexOf(`assets/${f}`));
   assert.ok(order.every(i => i > 0), 'scripts are loaded');
   assert.deepEqual([...order].sort((a, b) => a - b), order);

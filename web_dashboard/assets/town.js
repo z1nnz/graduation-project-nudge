@@ -489,11 +489,11 @@
     toast(`走向${building.name}門口…`, 1600);
   });
   doc.addEventListener('nudge-town-emote', event => {
-    if (!['wave', 'cheer', 'sit', 'sleep'].includes(event.detail?.type)) return;
+    if (!['wave', 'cheer', 'sit', 'sleep', 'heart', 'study'].includes(event.detail?.type)) return;
     state.emoteType = event.detail.type;
     state.emoteUntil = performance.now() + 4000;
     state.keys.clear(); state.target = null;
-    toast({ wave: '打招呼', cheer: '歡呼', sit: '坐下', sleep: '休息一下' }[state.emoteType], 1200);
+    toast({ wave: '打招呼', cheer: '歡呼', sit: '坐下', sleep: '休息一下', heart: '比愛心', study: '認真讀書' }[state.emoteType], 1200);
   });
 
   els('townPromptEnter').addEventListener('click', () => {
@@ -797,6 +797,9 @@
     }
     atmosphere?.draw(ctx, { buildings: BUILDINGS, speakingActorId: state.actorDialog?state.lastActorId:null, width: w, height: h, mapW: MAP_W, mapH: MAP_H,
       toScreen, scale: s, reducedMotion, hidden: doc.hidden }, now);
+    // Friends who share their walk appear here (town_crowd.js, optional).
+    root.NudgeTownCrowd?.draw(ctx, { toScreen, scale: s, mapW: MAP_W, mapH: MAP_H, reducedMotion, self: state.player });
+    root.NudgeTownCrowd?.report({ x: state.player.x / MAP_W, y: state.player.y / MAP_H, facing: state.face, emote: state.emoteType });
     if (playerImage.complete && playerImage.naturalWidth) {
       const p = toScreen(state.player);
       const pose = avatarCore.pose(state.faceIndex, state.face, state.moving, state.walking);
@@ -821,7 +824,7 @@
       ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, -pw / 2, -ph, pw, ph);
       ctx.restore();
       if (state.emoteType && now < state.emoteUntil) {
-        const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤' }[state.emoteType];
+        const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤', heart: '💗', study: '📖' }[state.emoteType];
         ctx.font = `${Math.max(18, Math.round(20 * s))}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText(icon, p.x, p.y - ph - 7 * s);
