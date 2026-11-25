@@ -21,14 +21,17 @@
 
   const room = root.NudgeSceneRoom.mount({
     host: doc.querySelector(config.host || 'main'),
-    art: config.art,
     title: config.title,
-    aspect: config.aspect,
     npc: config.npc,
-    npcAt: config.npcAt,
+    layouts: {
+      tall: {
+        art: config.art, aspect: config.aspect || 2 / 3, npcAt: config.npcAt, effects: config.effects || [],
+        walkers: config.walkers || [], rects: Object.fromEntries(config.objects.map(o => [o.id, [o.x, o.y, o.w, o.h]])),
+      },
+      ...(config.wide ? { wide: config.wide } : {}),
+    },
     greeting: config.greeting ? () => config.greeting(doc) : [],
     tips: config.tips || [],
-    effects: config.effects || [],
     objects: config.objects.map(o => ({
       ...o,
       onSelect: (event, r) => {

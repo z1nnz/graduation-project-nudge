@@ -7,6 +7,17 @@
 
   root.NudgePageRooms = Object.freeze({
     privacy: {
+      wide: {
+        art: 'assets/scenes/vault/vault_wide.webp', aspect: 1.5, npcAt: [0.3, 0.9],
+        rects: { door: [0.4, 0.15, 0.4, 0.53], seal: [0.81, 0.43, 0.16, 0.39], scrolls: [0.02, 0.12, 0.24, 0.61], banner: [0.5, 0.0, 0.2, 0.2] },
+        effects: [
+          { type: 'flicker', points: [[0.37, 0.16], [0.81, 0.16]], radius: 0.03, color: '#ff9a3c' },
+          { type: 'glow', points: [[0.37, 0.18], [0.81, 0.18], [0.7, 0.45]], radius: 0.06, color: 'rgba(255,170,70,0.45)' },
+          { type: 'sparkle', points: [[0.86, 0.46], [0.94, 0.48], [0.89, 0.42], [0.72, 0.4], [0.74, 0.55]] },
+          { type: 'dust', count: 16 },
+        ],
+        walkers: [{ id: 'inky', path: [[0.55, 0.9], [0.75, 0.86], [0.62, 0.95]], speed: 0.025, pause: 3500 }],
+      },
       art: 'assets/scenes/vault/vault.webp',
       title: '資料保險箱',
       npc: 'bell',
@@ -36,6 +47,16 @@
     },
 
     quests: {
+      wide: {
+        art: 'assets/scenes/board/board_wide.webp', aspect: 1.5, npcAt: [0.36, 0.92],
+        rects: { board: [0.21, 0.18, 0.47, 0.4], map: [0.73, 0.25, 0.18, 0.3], desk: [0.63, 0.6, 0.3, 0.24], clock: [0.08, 0.02, 0.1, 0.16], request: [0.01, 0.25, 0.17, 0.46] },
+        effects: [
+          { type: 'flicker', points: [[0.43, 0.06], [0.5, 0.07], [0.57, 0.06], [0.94, 0.22], [0.72, 0.63]], radius: 0.018 },
+          { type: 'flutter', count: 6, top: 0.2, fall: 0.4, x: 0.45 },
+          { type: 'dust', count: 18 },
+        ],
+        walkers: [{ id: 'chestnut', path: [[0.25, 0.8], [0.55, 0.75], [0.45, 0.88]], speed: 0.03, pause: 3000 }],
+      },
       art: 'assets/scenes/board/board.webp',
       title: '委託所',
       npc: 'scroll',
@@ -68,6 +89,20 @@
     },
 
     login: {
+      wide: {
+        art: 'assets/scenes/gate/gate_wide.webp', aspect: 1.5, npcAt: [0.25, 0.85],
+        rects: { pass: [0.78, 0.57, 0.15, 0.28], gate: [0.36, 0.3, 0.33, 0.35] },
+        effects: [
+          { type: 'clouds', top: 0.0, band: 0.1, count: 5, alpha: 0.3 },
+          { type: 'birds', y: 0.08 },
+          { type: 'flicker', points: [[0.33, 0.35], [0.72, 0.35], [0.48, 0.5]], radius: 0.02 },
+          { type: 'flutter', count: 10, color: '#f0b8e6', top: 0.0, fall: 0.6, x: 0.1 },
+        ],
+        walkers: [
+          { id: 'letty', path: [[0.5, 0.6], [0.5, 0.8], [0.6, 0.95], [0.5, 0.8]], speed: 0.03, pause: 2500 },
+          { id: 'sprout', path: [[0.48, 0.55], [0.53, 0.56]], speed: 0.01, pause: 4000 },
+        ],
+      },
       host: '#gateMain',
       art: 'assets/scenes/gate/gate.webp',
       title: '小鎮大門',

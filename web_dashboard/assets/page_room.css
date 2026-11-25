@@ -20,29 +20,29 @@ body[data-page="privacy"] .main > section[hidden] { display: none !important; }
 .room-panel--iron .card-grid-2 > * { background: #f1ead9; }
 .room-panel .card-grid-3 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 
-/* Login: the gate beside the pass on wide screens, above it on phones. */
-body[data-town-gate="login"] #gateMain {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-  gap: 20px;
-  align-items: start;
-}
-body[data-town-gate="login"] #gateMain > .room-stage { grid-row: 1 / span 3; min-height: auto; padding: 0; background: none; }
-body[data-town-gate="login"] #gateMain > .room-stage .room-frame { height: min(82dvh, 860px); }
+/* Login: the gate fills the screen and the sealed pass floats beside it. */
+body[data-town-gate="login"] #gateMain { position: relative; padding: 0; max-width: none; }
+body[data-town-gate="login"] .gate-intro { position: absolute; left: -9999px; }
 body[data-town-gate="login"] .gate-login {
-  position: relative;
+  position: absolute;
+  z-index: 6;
+  top: 24px;
+  right: 3vw;
+  width: min(400px, 92vw);
+  max-height: calc(100% - 48px);
+  overflow: auto;
   border: 4px solid var(--w-wood-deep);
   outline: 3px solid var(--w-frame);
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.35);
   background:
-    linear-gradient(rgba(255, 250, 240, 0.92), rgba(246, 231, 200, 0.96)),
+    linear-gradient(rgba(255, 250, 240, 0.95), rgba(246, 231, 200, 0.97)),
     repeating-linear-gradient(0deg, transparent 0 22px, rgba(138, 90, 52, 0.08) 22px 23px);
 }
 body[data-town-gate="login"] .gate-login::before {
-  /* wax seal on the pass */
   content: "✦";
   position: absolute;
-  top: -16px;
-  right: 18px;
+  top: 8px;
+  right: 12px;
   display: grid;
   place-items: center;
   width: 40px;
@@ -53,8 +53,7 @@ body[data-town-gate="login"] .gate-login::before {
   font: 20px var(--w-pixel);
   box-shadow: 0 3px 0 var(--w-wood-deep);
 }
-@media (max-width: 860px) {
-  body[data-town-gate="login"] #gateMain { grid-template-columns: 1fr; }
-  body[data-town-gate="login"] #gateMain > .room-stage { grid-row: auto; }
-  body[data-town-gate="login"] #gateMain > .room-stage .room-frame { height: min(52dvh, 520px); }
+@media (max-width: 859px), (max-aspect-ratio: 1/1) {
+  /* Phones: the gate scene first, the pass right under it. */
+  body[data-town-gate="login"] .gate-login { position: relative; top: auto; right: auto; margin: -64px auto 24px; max-height: none; }
 }
