@@ -8,7 +8,9 @@ const vm = require('node:vm');
 const web = path.join(__dirname, '..', 'web_dashboard');
 const read = f => fs.readFileSync(path.join(web, f), 'utf8');
 const box = {};
-vm.runInNewContext(read('assets/page_rooms.js'), { globalThis: box });
+const ctx = vm.createContext({ globalThis: box });
+vm.runInContext(read('assets/page_rooms.js'), ctx);
+vm.runInContext(read('assets/page_rooms_home.js'), ctx);
 const rooms = box.NudgePageRooms;
 
 test('each page room points its objects at sections that exist on that page', () => {
@@ -18,7 +20,7 @@ test('each page room points its objects at sections that exist on that page', ()
     assert.ok(room, key);
     assert.ok(fs.existsSync(path.join(web, room.art)), room.art);
     const html = read(file);
-    assert.ok(html.includes('assets/page_room.js') && html.includes('assets/page_rooms.js'), `${file} loads the room`);
+    assert.ok(html.includes('assets/page_room.js') && (html.includes('assets/page_rooms.js') || html.includes('assets/page_rooms_home.js')), `${file} loads the room`);
     for (const o of room.objects) {
       assert.ok(o.x >= 0 && o.y >= 0 && o.x + o.w <= 1.001 && o.y + o.h <= 1.001, `${key}.${o.id} fits the art`);
       assert.ok(o.section || o.href || o.say, `${key}.${o.id} does something`);
