@@ -46,9 +46,22 @@
     },
     tower: {
       npc: 'bell', line: '我是守門人鐘鐘。塔裡每一層都是一間自律房，推門就能上去。',
-      wide: W('assets/scenes/focus_tower/gate.webp', 512 / 216, {
-        rooms: [0.38, 0.1, 0.27, 0.75], 'room-chat': [0.68, 0.1, 0.12, 0.45],
-      }, { npcAt: [0.22, 0.95], effects: [lights([[0.3, 0.3], [0.72, 0.3]], 0.03), { type: 'fireflies', count: 12, top: 0.5, band: 0.45 }] }),
+      wide: W('assets/scenes/focus_tower/tower_wide.webp', 1.5, {
+        rooms: [0.45, 0.68, 0.14, 0.18], 'room-chat': [0.47, 0.24, 0.1, 0.1],
+      }, {
+        npcAt: [0.32, 0.9],
+        effects: [
+          { type: 'stars', count: 50, height: 0.3 }, { type: 'clouds', top: 0.1, band: 0.12, count: 4, alpha: 0.25 }, { type: 'birds', y: 0.12 },
+          lights([[0.52, 0.2], [0.52, 0.28], [0.52, 0.37], [0.52, 0.46], [0.52, 0.54], [0.52, 0.63], [0.46, 0.72], [0.58, 0.72]], 0.012),
+          { type: 'flicker', points: [[0.1, 0.6], [0.2, 0.53], [0.9, 0.53], [0.95, 0.56], [0.3, 0.55]], radius: 0.008, color: '#ffe08a' },
+          { type: 'smoke', points: [[0.06, 0.47], [0.92, 0.43]], rise: 0.06 },
+          { type: 'fireflies', count: 12, top: 0.55, band: 0.35 },
+        ],
+        walkers: [
+          { id: 'companion', path: [[0.2, 0.95], [0.4, 0.88], [0.5, 0.86]], speed: 0.04, pause: 2500 },
+          { id: 'letty', path: [[0.85, 0.92], [0.65, 0.88], [0.75, 0.97]], speed: 0.03, pause: 3000 },
+        ],
+      }),
       tall: W('assets/scenes/focus_tower/tower_tall.webp', 2 / 3, {
         rooms: [0.52, 0.72, 0.18, 0.14], 'room-chat': [0.55, 0.25, 0.14, 0.12],
       }, {
