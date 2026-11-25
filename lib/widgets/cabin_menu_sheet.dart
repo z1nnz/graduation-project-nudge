@@ -26,6 +26,12 @@ const cabinMenuItems = [
     Icons.storefront,
   ),
   CabinMenuItem(
+    'commission',
+    '委託所',
+    'assets/ui/icons/icon_quest.png',
+    Icons.assignment,
+  ),
+  CabinMenuItem(
     'health',
     '健康',
     'assets/ui/icons/icon_health.png',

@@ -29,7 +29,18 @@ class SceneObject {
   final void Function(BuildContext context, SceneRoomController room) onTap;
 }
 
-enum SceneEffectKind { dust, glow, sparkle, fireflies, stars, flutter, steam }
+enum SceneEffectKind {
+  dust,
+  glow,
+  sparkle,
+  fireflies,
+  stars,
+  flutter,
+  steam,
+  birds,
+  clouds,
+  flicker,
+}
 
 /// Ambient life drawn over the art at 10 fps; [points] are art fractions.
 class SceneEffect {
@@ -50,10 +61,13 @@ class SceneEffect {
       radius = 0,
       top = 0,
       band = 0;
-  const SceneEffect.fireflies({this.count = 14, this.top = 0.3, this.band = 0.5})
-    : kind = SceneEffectKind.fireflies,
-      points = const [],
-      radius = 0;
+  const SceneEffect.fireflies({
+    this.count = 14,
+    this.top = 0.3,
+    this.band = 0.5,
+  }) : kind = SceneEffectKind.fireflies,
+       points = const [],
+       radius = 0;
   const SceneEffect.stars({this.count = 26, this.band = 0.25})
     : kind = SceneEffectKind.stars,
       points = const [],
@@ -63,6 +77,20 @@ class SceneEffect {
     : kind = SceneEffectKind.flutter,
       points = const [],
       radius = 0;
+  const SceneEffect.birds({this.top = 0.1, this.count = 5})
+    : kind = SceneEffectKind.birds,
+      points = const [],
+      radius = 0,
+      band = 0;
+  const SceneEffect.clouds({this.top = 0.02, this.band = 0.12, this.count = 4})
+    : kind = SceneEffectKind.clouds,
+      points = const [],
+      radius = 0;
+  const SceneEffect.flicker(this.points, {this.radius = 0.03})
+    : kind = SceneEffectKind.flicker,
+      count = 0,
+      top = 0,
+      band = 0;
   const SceneEffect.steam(this.points)
     : kind = SceneEffectKind.steam,
       count = 0,
@@ -76,12 +104,42 @@ class SceneEffect {
   final double radius, top, band;
 }
 
+/// A townsperson strolling along [path] (art fractions), looping.
+class SceneWalker {
+  const SceneWalker(
+    this.character,
+    this.path, {
+    this.speed = 0.05,
+    this.pause = const Duration(seconds: 2),
+  });
+  final GameCharacter character;
+  final List<Offset> path;
+  final double speed; // art fractions per second
+  final Duration pause;
+}
+
+class _WalkerState {
+  _WalkerState(this.walker, double start) : t = start;
+  final SceneWalker walker;
+  int seg = 0;
+  double t;
+  Duration rest = Duration.zero;
+  Offset at = Offset.zero;
+  CharacterAnimation anim = CharacterAnimation.idle;
+}
+
 enum BurstKind { coin, star, heart, seal, leaf }
 
 /// What objects can do to their room.
 abstract class SceneRoomController {
   Future<void> say(List<String> lines, {List<NpcDialogAction> actions});
-  void burst(BurstKind kind, {required String from, String? to, int count, String? announce});
+  void burst(
+    BurstKind kind, {
+    required String from,
+    String? to,
+    int count,
+    String? announce,
+  });
 }
 
 /// A facility room: generated art, glowing objects with wooden signs, an NPC
@@ -101,6 +159,7 @@ class SceneRoom extends StatefulWidget {
     this.effects = const [],
     this.trailing,
     this.footer,
+    this.walkers = const [],
   });
 
   final String art, title;
@@ -112,6 +171,7 @@ class SceneRoom extends StatefulWidget {
   final List<SceneObject> objects;
   final List<SceneEffect> effects;
   final Widget? trailing, footer;
+  final List<SceneWalker> walkers;
 
   @override
   State<SceneRoom> createState() => SceneRoomState();
@@ -132,6 +192,45 @@ class SceneRoomState extends State<SceneRoom>
   final _frame = ValueNotifier<int>(0);
   final _clock = ValueNotifier<Duration>(Duration.zero);
   final List<_Burst> _bursts = [];
+  late final List<_WalkerState> _walkers = _makeWalkers();
+  Duration _lastTick = Duration.zero;
+
+  List<_WalkerState> _makeWalkers() => [
+    for (var i = 0; i < widget.walkers.length; i++)
+      _WalkerState(widget.walkers[i], (i * 0.37) % 1)
+        ..at = widget.walkers[i].path.first,
+  ];
+
+  void _stepWalkers(Duration dt) {
+    for (final w in _walkers) {
+      final path = w.walker.path;
+      if (path.length < 2) continue;
+      if (w.rest > Duration.zero) {
+        w.rest -= dt;
+        w.anim = CharacterAnimation.idle;
+      } else {
+        final a = path[w.seg], b = path[(w.seg + 1) % path.length];
+        final len = math.max(0.01, (b - a).distance);
+        w.t += dt.inMicroseconds / 1e6 * w.walker.speed / len;
+        if (w.t >= 1) {
+          w.t = 0;
+          w.seg = (w.seg + 1) % path.length;
+          if (w.seg % 2 == 0) w.rest = w.walker.pause;
+        }
+        final d = b - a;
+        w.anim = d.dx.abs() > d.dy.abs()
+            ? (d.dx > 0
+                  ? CharacterAnimation.walkRight
+                  : CharacterAnimation.walkLeft)
+            : (d.dy > 0
+                  ? CharacterAnimation.walkDown
+                  : CharacterAnimation.walkUp);
+      }
+      final a = path[w.seg], b = path[(w.seg + 1) % path.length];
+      w.at = Offset.lerp(a, b, w.t)!;
+    }
+  }
+
   Rect _artRect = Rect.zero;
   bool _talking = false, _resumed = true;
   int _tipIndex = 0;
@@ -161,8 +260,7 @@ class SceneRoomState extends State<SceneRoom>
   }
 
   void _sync() {
-    final run =
-        _resumed && !_reduced && TickerMode.valuesOf(context).enabled;
+    final run = _resumed && !_reduced && TickerMode.valuesOf(context).enabled;
     if (run && !_ticker.isActive) _ticker.start();
     if (!run && _ticker.isActive) _ticker.stop();
   }
@@ -171,6 +269,8 @@ class SceneRoomState extends State<SceneRoom>
     _clock.value = elapsed;
     final f = elapsed.inMilliseconds ~/ 100;
     if (f != _frame.value) _frame.value = f;
+    _stepWalkers(elapsed - _lastTick);
+    _lastTick = elapsed;
     _bursts.removeWhere(
       (b) => elapsed - b.start > const Duration(milliseconds: 1400),
     );
@@ -323,6 +423,25 @@ class SceneRoomState extends State<SceneRoom>
                     onTap: () => o.onTap(context, this),
                   ),
                 ),
+              for (final w in _walkers)
+                ValueListenableBuilder<Duration>(
+                  valueListenable: _clock,
+                  builder: (_, _, _) => Positioned(
+                    left: art.left + w.at.dx * art.width - 32,
+                    top: art.top + w.at.dy * art.height - 64,
+                    child: IgnorePointer(
+                      child: ExcludeSemantics(
+                        child: CharacterSprite(
+                          character: w.walker.character,
+                          animation: _reduced
+                              ? CharacterAnimation.idle
+                              : w.anim,
+                          size: 64,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               if (widget.npc != null)
                 Positioned(
                   left: art.left + widget.npcAt.dx * art.width - 56,
@@ -343,7 +462,12 @@ class SceneRoomState extends State<SceneRoom>
                 ),
               ),
               if (widget.footer != null)
-                Positioned(left: 12, right: 12, bottom: 12, child: widget.footer!),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                  child: widget.footer!,
+                ),
               Positioned.fill(
                 child: IgnorePointer(
                   child: ValueListenableBuilder<Duration>(
@@ -621,7 +745,9 @@ class _LifePainter extends CustomPainter {
             final r =
                 e.radius *
                 s.width *
-                (1 + 0.08 * math.sin(f / 3 + i * 2) + 0.05 * math.sin(f / 1.7 + i));
+                (1 +
+                    0.08 * math.sin(f / 3 + i * 2) +
+                    0.05 * math.sin(f / 1.7 + i));
             paint.shader = RadialGradient(
               colors: [const Color(0x73FFC85A), const Color(0x00FFC85A)],
             ).createShader(Rect.fromCircle(center: c, radius: r));
@@ -656,18 +782,86 @@ class _LifePainter extends CustomPainter {
             final x = ((i * 0.733) % 1) * s.width;
             final y = ((i * 0.419) % 1) * e.band * s.height;
             paint.color = Colors.white.withValues(
-              alpha: (0.3 + 0.7 * math.max(0, math.sin(f / 6 + i * 1.9))).clamp(0, 1),
+              alpha: (0.3 + 0.7 * math.max(0, math.sin(f / 6 + i * 1.9))).clamp(
+                0,
+                1,
+              ),
             );
             canvas.drawRect(Rect.fromLTWH(x, y, 2, 2), paint);
           }
         case SceneEffectKind.flutter:
           for (var i = 0; i < e.count; i++) {
             final t = (f * 0.004 + i / e.count) % 1;
-            final x = (0.5 + 0.35 * math.sin(i * 2.1) + 0.05 * math.sin(f / 8 + i)) * s.width;
+            final x =
+                (0.5 + 0.35 * math.sin(i * 2.1) + 0.05 * math.sin(f / 8 + i)) *
+                s.width;
             final y = (e.top + t * e.band) * s.height;
-            paint.color = const Color(0xFFF6E7C8).withValues(alpha: 0.8 * (1 - t));
+            paint.color = const Color(
+              0xFFF6E7C8,
+            ).withValues(alpha: 0.8 * (1 - t));
             canvas.drawRect(
               Rect.fromLTWH(x, y, 5, (math.sin(f / 5 + i).abs() * 4 + 1)),
+              paint,
+            );
+          }
+        case SceneEffectKind.birds:
+          const period = 160;
+          final t = (f % period) / period;
+          if (t <= 0.6) {
+            final k = t / 0.6, dir = (f ~/ period).isOdd ? -1 : 1;
+            final baseX = dir > 0 ? -0.1 + k * 1.2 : 1.1 - k * 1.2;
+            paint.color = const Color(0xD92B1D3A);
+            for (var i = 0; i < e.count; i++) {
+              final x = (baseX - dir * i * 0.03) * s.width;
+              final y =
+                  (e.top +
+                      (i % 2) * 0.015 +
+                      i * 0.004 +
+                      math.sin(k * 6) * 0.01) *
+                  s.height;
+              final flap = (f + i * 2) % 4 < 2 ? 2.0 : 0.0;
+              canvas.drawRect(Rect.fromLTWH(x - 4, y - flap, 4, 2), paint);
+              canvas.drawRect(Rect.fromLTWH(x, y, 2, 2), paint);
+              canvas.drawRect(Rect.fromLTWH(x + 2, y - flap, 4, 2), paint);
+            }
+          }
+        case SceneEffectKind.clouds:
+          paint.color = const Color(0x55F4E6FF);
+          for (var i = 0; i < e.count; i++) {
+            final span = s.width * 1.4;
+            final x =
+                ((i * 0.37 * span + f * (0.6 + (i % 3) * 0.25)) % span) -
+                s.width * 0.2;
+            final y = (e.top + ((i * 0.53) % 1) * e.band) * s.height;
+            final cw = s.width * (0.12 + (i % 3) * 0.04), ch = cw * 0.32;
+            canvas.drawRect(
+              Rect.fromLTWH(x, y + ch * 0.4, cw, ch * 0.6),
+              paint,
+            );
+            canvas.drawRect(
+              Rect.fromLTWH(x + cw * 0.2, y, cw * 0.45, ch),
+              paint,
+            );
+          }
+        case SceneEffectKind.flicker:
+          for (var i = 0; i < e.points.length; i++) {
+            final a =
+                0.18 +
+                0.12 * math.sin(f / 2.3 + i * 1.7) +
+                0.06 * math.sin(f / 0.9 + i);
+            paint.color = const Color(
+              0xFFFFCF6A,
+            ).withValues(alpha: a.clamp(0, 1));
+            final r = e.radius * s.width;
+            canvas.drawRect(
+              Rect.fromCenter(
+                center: Offset(
+                  e.points[i].dx * s.width,
+                  e.points[i].dy * s.height,
+                ),
+                width: r * 2,
+                height: r * 2,
+              ),
               paint,
             );
           }
@@ -675,7 +869,9 @@ class _LifePainter extends CustomPainter {
           for (var i = 0; i < e.points.length; i++) {
             for (var k = 0; k < 5; k++) {
               final t = (f * 0.02 + k / 5 + i * 0.3) % 1;
-              paint.color = const Color(0xFFF3EEE8).withValues(alpha: 0.35 * (1 - t));
+              paint.color = const Color(
+                0xFFF3EEE8,
+              ).withValues(alpha: 0.35 * (1 - t));
               canvas.drawRect(
                 Rect.fromLTWH(
                   e.points[i].dx * s.width + math.sin(t * 6 + i) * 6,
@@ -713,18 +909,32 @@ class _BurstPainter extends CustomPainter {
     final fill = Paint(), edge = Paint()..color = GamePalette.woodDeep;
     for (final b in bursts) {
       for (var i = 0; i < b.count; i++) {
-        final t =
-            ((now - b.start).inMilliseconds - i * 45) / 900.0;
+        final t = ((now - b.start).inMilliseconds - i * 45) / 900.0;
         if (t <= 0 || t >= 1) continue;
         final spread = (i - (b.count - 1) / 2) * 14.0;
         final arc = -40.0 - (i % 3) * 22;
         final lift = math.sin(t * math.pi) * arc;
-        final pos = Offset.lerp(b.from, b.to + Offset(b.to == b.from ? spread : 0, 0), t)!
-            .translate(spread * (1 - t) * 0.4, lift);
+        final pos = Offset.lerp(
+          b.from,
+          b.to + Offset(b.to == b.from ? spread : 0, 0),
+          t,
+        )!.translate(spread * (1 - t) * 0.4, lift);
         final r = 5.0 * (t < 0.15 ? t / 0.15 : 1.0);
-        fill.color = _colors[b.kind]!.withValues(alpha: (1 - t * t).clamp(0, 1));
-        canvas.drawRect(Rect.fromCenter(center: pos.translate(1.5, 1.5), width: r * 2, height: r * 2), edge);
-        canvas.drawRect(Rect.fromCenter(center: pos, width: r * 2, height: r * 2), fill);
+        fill.color = _colors[b.kind]!.withValues(
+          alpha: (1 - t * t).clamp(0, 1),
+        );
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: pos.translate(1.5, 1.5),
+            width: r * 2,
+            height: r * 2,
+          ),
+          edge,
+        );
+        canvas.drawRect(
+          Rect.fromCenter(center: pos, width: r * 2, height: r * 2),
+          fill,
+        );
       }
     }
   }

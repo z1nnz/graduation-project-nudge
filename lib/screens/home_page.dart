@@ -1,4 +1,5 @@
 import '../models/cabin_parcels.dart';
+import 'game_rooms.dart';
 import 'store_scene_page.dart';
 import 'collection_book_page.dart';
 import 'package:flutter/material.dart';
@@ -12,11 +13,9 @@ import '../widgets/immersive_cabin.dart';
 import '../widgets/cabin_route.dart';
 import '../widgets/quest_scroll.dart';
 import '../widgets/cabin_menu_sheet.dart';
-import 'nudge_device_page.dart';
 import 'health_page.dart';
 import 'calendar_page.dart';
 import 'reminder_center_page.dart';
-import 'settings_page.dart';
 import 'account_page.dart';
 import '../models/cabin_layout.dart';
 import '../models/cabin_tour_memory.dart';
@@ -90,7 +89,7 @@ class HomePage extends StatelessWidget {
     ]).then((v) => (v[0] as CabinLayout, v[1] as bool));
     return Scaffold(
       key: _immersiveScaffold,
-      drawer: AppDrawer(onOpenTasks: () => push(const TasksPage())),
+      drawer: AppDrawer(onOpenTasks: () => push(const CommissionHallPage())),
       body: FutureBuilder<(CabinLayout, bool)>(
         future: _cabinData,
         builder: (context, snapshot) {
@@ -143,7 +142,7 @@ class HomePage extends StatelessWidget {
             socialUnread: appState.unreadUserNotificationCount,
             parcelCount: CabinParcels.from(appState.userNotifications).length,
             onOpenParcel: () => _openParcel(context, appState),
-            onOpenDevice: () => push(const NudgeDevicePage()),
+            onOpenDevice: () => push(const DeviceBenchPage()),
             showTour: !tourSeen,
             accountKey: appState.currentUser?.id,
             onTourDone: () {
@@ -155,6 +154,7 @@ class HomePage extends StatelessWidget {
               onOpen: (id) => push(switch (id) {
                 'character' => const CharacterPage(),
                 'shop' => const StoreScenePage(),
+                'commission' => const CommissionHallPage(),
                 'health' => const HealthPage(),
                 'calendar' => const CalendarPage(),
                 'stats' => const PersonalAnalysisPage(),
@@ -164,7 +164,7 @@ class HomePage extends StatelessWidget {
                 'reminders' => const ReminderCenterPage(),
                 'letter' => const FutureLetterPage(),
                 'collection' => const CollectionBookPage(),
-                'settings' => const SettingsPage(),
+                'settings' => const WorkshopPage(),
                 _ => const AccountPage(),
               }),
             ),

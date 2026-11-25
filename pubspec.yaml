@@ -107,6 +107,11 @@ flutter:
     - assets/scenes/focus_tower/
     - assets/scenes/post_office/
     - assets/scenes/store/
+    - assets/scenes/board/
+    - assets/scenes/gate/
+    - assets/scenes/vault/
+    - assets/scenes/workshop/
+    - assets/scenes/workbench/
     - assets/scenes/
     - assets/branding/
     - assets/avatar/
