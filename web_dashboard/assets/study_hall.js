@@ -14,16 +14,48 @@
   const roster = ["slime", "ghost", "goblin", "snail"];
   let previousDamage;
   let clockButton;
-  const actors = [];
+  let guideButton;
+  let guideActor;
+  const seatActors = new Map();
+
   function clearActors() {
-    for (const actor of actors.splice(0)) actor.destroy();
+    guideActor?.destroy();
+    guideButton?.remove();
+    guideActor = guideButton = undefined;
+    for (const actor of seatActors.values()) actor.destroy();
+    seatActors.clear();
   }
 
-  function addActor(parent, id, animation, className, size) {
-    const element = document.createElement("span");
-    element.className = className;
-    parent.append(element);
-    actors.push(NudgeSpritePlayer.characterPlayer(element, id, { animation, size }));
+  function roomGuide() {
+    if (guideButton) return guideButton;
+    guideButton = document.createElement("button");
+    guideButton.type = "button";
+    guideButton.className = "study-hall-guide";
+    guideButton.setAttribute("aria-label", "問問墨墨");
+    guideButton.setAttribute("aria-haspopup", "dialog");
+    const costume = document.createElement("span");
+    costume.className = "study-hall-guide-sprite";
+    guideButton.append(costume);
+    guideActor = NudgeSpritePlayer.characterPlayer(costume, "inky", { size: 48 });
+    guideButton.addEventListener("click", () => NudgeNpcDialog.open({
+      speaker: "inky",
+      lines: ["看看座位就知道誰在專注，想一起讀書就點牆上的番茄鐘。"],
+      portraitSize: 64,
+    }));
+    return guideButton;
+  }
+
+  function seatActor(memberId, animation) {
+    let actor = seatActors.get(memberId);
+    if (!actor) {
+      const element = document.createElement("span");
+      element.className = "study-hall-avatar";
+      actor = NudgeSpritePlayer.characterPlayer(element, "companion", { animation, size: 32 });
+      seatActors.set(memberId, actor);
+    } else if (actor.el.dataset.animation !== animation) {
+      actor.play(animation);
+    }
+    return actor.el;
   }
 
   addEventListener("pagehide", event => {
@@ -130,27 +162,20 @@
     const chandelier = progress >= 1 ? 2 : progress >= .5 ? 1 : 0;
     stage.classList.add("is-study-hall");
     stage.style.setProperty("--hall-light", String(.68 + Math.min(online, 8) * .065));
-    clearActors();
-    stage.replaceChildren(image(art + "chandelier-" + chandelier + ".png", 128, 96, "study-hall-chandelier"));
-
-    const guide = document.createElement("button");
-    guide.type = "button";
-    guide.className = "study-hall-guide";
-    guide.setAttribute("aria-label", "問問墨墨");
-    guide.setAttribute("aria-haspopup", "dialog");
-    addActor(guide, "inky", "idle", "study-hall-guide-sprite", 48);
-    guide.addEventListener("click", () => NudgeNpcDialog.open({
-      speaker: "inky",
-      lines: ["看看座位就知道誰在專注，想一起讀書就點牆上的番茄鐘。"],
-      portraitSize: 64,
-    }));
-    stage.append(guide);
-    stage.append(roomClock());
+    const guide = roomGuide();
+    const clock = roomClock();
+    for (const child of [...stage.children]) {
+      if (child !== guide && child !== clock) child.remove();
+    }
+    stage.prepend(image(art + "chandelier-" + chandelier + ".png", 128, 96, "study-hall-chandelier"));
+    if (guide.parentElement !== stage) stage.append(guide);
+    if (clock.parentElement !== stage) stage.append(clock);
     if (focusedClock) clockButton.focus({ preventScroll: true });
     if (state.available && room.roomType === "study" && Math.min(goal, scene.approvedCount) > 0) {
       stage.append(roomBoss(goal * scene.approvedCount, [...minutes.values()].reduce((sum, value) => sum + value, 0)));
     }
     const count = Math.min(8, scene.approvedCount + scene.emptySeats);
+    const occupiedActors = new Set();
     seats.slice(0, count).forEach(([left, top], index) => {
       const seat = scene.seats[index];
       const data = document.createElement(seat ? "button" : "span");
@@ -171,7 +196,8 @@
         if (occupied || seat.isViewer) {
           if (pose !== "exercise" || !occupied) {
             const animation = !occupied ? "walk_up" : pose === "sleep" ? "sleep" : "think";
-            addActor(data, "companion", animation, "study-hall-avatar", 32);
+            occupiedActors.add(seat.memberId);
+            data.append(seatActor(seat.memberId, animation));
             if (occupied && pose === "read") {
               const book = document.createElement("span");
               book.className = "study-hall-book";
@@ -201,6 +227,12 @@
       stage.append(data);
       if (previousFocus && seat?.memberId === previousFocus) data.focus({ preventScroll: true });
     });
+
+    for (const [memberId, actor] of seatActors) {
+      if (occupiedActors.has(memberId)) continue;
+      actor.destroy();
+      seatActors.delete(memberId);
+    }
 
     function showDetails() {
       const seat = scene.seats.find(item => item.memberId === state.selectedId);
