@@ -2,9 +2,11 @@
 body[data-garden-room] .g-main > #gardenScene { display: none; }
 body[data-garden-room] .room-panel #gardenScene { display: block; }
 .gs-beds { position: absolute; inset: 0; pointer-events: none; }
-.gs-bed { position: absolute; display: flex; align-items: flex-end; justify-content: space-around; pointer-events: none; }
+.gs-bed { position: absolute; display: flex; align-items: center; justify-content: center; gap: 6%; pointer-events: none; }
+/* sprites stand on the middle of the soil: shift up so the stem base sits at the bed's centre line */
+.gs-bed > .gs-plant { margin-top: calc(var(--size) * -0.35); }
 .gs-plant {
-  --size: min(8cqw, 72px);
+  --size: min(6.5cqw, 72px);
   flex: none;
   position: relative;
   width: var(--size);
@@ -23,7 +25,9 @@ body[data-garden-room] .room-panel #gardenScene { display: block; }
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35));
 }
 .gs-plant:nth-child(2n) { animation-delay: -1.4s; }
-.gs-plant[data-week="now"] { --size: min(10.5cqw, 96px); }
+.gs-plant[data-week="now"] { --size: min(8.5cqw, 96px); }
+[data-layout="wide"] .gs-plant { --size: min(4.2cqw, 80px); }
+[data-layout="wide"] .gs-plant[data-week="now"] { --size: min(5.4cqw, 104px); }
 .gs-plant[data-stage="0"] { background: none; animation: none; }
 .gs-plant[data-stage="0"]::before { content: "·"; position: absolute; inset: auto 0 0; color: #d9c29a; font: 20px/1 var(--w-pixel); text-align: center; }
 .gs-plant:disabled { cursor: progress; }

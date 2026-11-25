@@ -121,23 +121,78 @@
         }
       }
     },
+    // A small flock crossing the sky every so often.
+    birds(g, w, h, f, o) {
+      const period = o.period || 160, t = (f % period) / period;
+      if (t > 0.6) return;
+      const k = t / 0.6, dir = Math.floor(f / period) % 2 ? -1 : 1;
+      const baseX = dir > 0 ? -0.1 + k * 1.2 : 1.1 - k * 1.2;
+      const baseY = (o.y ?? 0.12) + Math.sin(k * 6) * 0.01;
+      g.globalAlpha = 0.85;
+      g.fillStyle = o.color || '#2b1d3a';
+      for (let i = 0; i < (o.count || 5); i++) {
+        const x = (baseX - dir * i * 0.03) * w, y = (baseY + (i % 2) * 0.015 + i * 0.004) * h;
+        const flap = (f + i * 2) % 4 < 2 ? 2 : 0;
+        g.fillRect((x - 4) | 0, (y - flap) | 0, 4, 2);
+        g.fillRect(x | 0, y | 0, 2, 2);
+        g.fillRect((x + 2) | 0, (y - flap) | 0, 4, 2);
+      }
+    },
+    // Soft pixel clouds drifting through a sky band.
+    clouds(g, w, h, f, o) {
+      const top = (o.top ?? 0.02) * h, band = (o.band ?? 0.15) * h;
+      for (let i = 0; i < (o.count || 4); i++) {
+        const span = w * 1.4;
+        const x = ((i * 0.37 * span + f * (0.6 + (i % 3) * 0.25)) % span) - w * 0.2;
+        const y = top + ((i * 0.53) % 1) * band;
+        const cw = w * (0.08 + (i % 3) * 0.03), ch = cw * 0.32;
+        g.globalAlpha = o.alpha ?? 0.35;
+        g.fillStyle = o.color || '#f4e6ff';
+        g.fillRect(x | 0, (y + ch * 0.4) | 0, cw | 0, (ch * 0.6) | 0);
+        g.fillRect((x + cw * 0.2) | 0, y | 0, (cw * 0.45) | 0, ch | 0);
+        g.fillRect((x + cw * 0.5) | 0, (y + ch * 0.15) | 0, (cw * 0.35) | 0, (ch * 0.85) | 0);
+      }
+    },
+    // Lantern and window lights breathing at points.
+    flicker(g, w, h, f, o) {
+      for (const [i, p] of (o.points || []).entries()) {
+        const a = 0.18 + 0.12 * Math.sin(f / 2.3 + i * 1.7) + 0.06 * Math.sin(f / 0.9 + i);
+        g.globalAlpha = Math.max(0, a);
+        g.fillStyle = o.color || '#ffcf6a';
+        const r = (o.radius || 0.03) * w;
+        g.fillRect((p[0] * w - r) | 0, (p[1] * h - r) | 0, (r * 2) | 0, (r * 2) | 0);
+      }
+    },
   };
+
+  // Desktop (wide, landscape art) or phone (tall, portrait art).
+  function layoutKey(layouts) {
+    if (!layouts.wide) return 'tall';
+    if (!layouts.tall) return 'wide';
+    return root.innerWidth >= 860 && root.innerWidth / Math.max(1, root.innerHeight) >= 1.05 ? 'wide' : 'tall';
+  }
 
   function mount(options) {
     const {
-      host, art, title, aspect = '2 / 3', npc, npcAt = [0.12, 0.62], npcSize = 128,
-      greeting = [], tips = [], objects = [], effects = [], panelVariant = 'parchment',
+      host, title, npc, npcSize = 128, greeting = [], tips = [], objects = [], panelVariant = 'parchment',
     } = options;
+    const toAspect = a => (typeof a === 'string' ? a.split('/').map(Number).reduce((x, y) => x / y) : a || 2 / 3);
+    // Old single-art configs become the tall layout.
+    const layouts = options.layouts || {
+      tall: {
+        art: options.art, aspect: options.aspect, npcAt: options.npcAt, effects: options.effects,
+        walkers: options.walkers, rects: Object.fromEntries(objects.map(o => [o.id, [o.x, o.y, o.w, o.h]])),
+      },
+    };
     const media = root.matchMedia('(prefers-reduced-motion: reduce)');
     const stage = el('section', { class: 'room-stage', 'aria-label': `${title}場景` });
-    stage.style.setProperty('--room-art', `url("${new URL(art, doc.baseURI).href}")`);
     const frame = el('div', { class: 'room-frame' });
-    frame.style.aspectRatio = aspect;
-    const picture = el('img', { class: 'room-art', src: art, alt: '', 'aria-hidden': 'true', decoding: 'async' });
+    const picture = el('img', { class: 'room-art', alt: '', 'aria-hidden': 'true', decoding: 'async' });
     const canvas = el('canvas', { class: 'room-life', 'aria-hidden': 'true' });
+    const crowd = el('div', { class: 'room-crowd', 'aria-hidden': 'true' });
     const fx = el('div', { class: 'room-fx', 'aria-hidden': 'true' });
     const live = el('p', { class: 'room-live', role: 'status', 'aria-live': 'polite' });
-    frame.append(picture, canvas);
+    frame.append(picture, canvas, crowd);
     stage.append(frame, live);
     (host || doc.querySelector('main') || doc.body).prepend(stage);
 
@@ -148,18 +203,11 @@
         type: 'button', class: `room-object${o.className ? ' ' + o.className : ''}`,
         'aria-label': o.label + (o.hint ? `：${o.hint}` : ''), 'data-object': o.id,
       });
-      b.style.left = o.x * 100 + '%';
-      b.style.top = o.y * 100 + '%';
-      b.style.width = (o.w || 0.16) * 100 + '%';
-      b.style.height = (o.h || 0.12) * 100 + '%';
       const sign = el('span', { class: 'room-sign' });
       sign.append(el('span', { class: 'room-sign-text' }, o.label));
       const badge = el('span', { class: 'room-badge', hidden: true });
       b.append(el('span', { class: 'room-glow', 'aria-hidden': 'true' }), sign, badge);
-      b.addEventListener('click', event => {
-        poke(b);
-        o.onSelect?.(event, api);
-      });
+      b.addEventListener('click', event => { poke(b); o.onSelect?.(event, api); });
       frame.append(b);
       buttons.set(o.id, b);
     }
@@ -168,16 +216,12 @@
     let player = null, npcButton = null, speech = null;
     if (npc) {
       npcButton = el('button', { type: 'button', class: 'room-npc', 'aria-label': `和${characterName(npc)}說話`, 'aria-haspopup': 'dialog' });
-      npcButton.style.left = npcAt[0] * 100 + '%';
-      npcButton.style.top = npcAt[1] * 100 + '%';
-      npcButton.style.setProperty('--npc-size', npcSize + 'px');
       const body = el('span', { class: 'room-npc-body', 'aria-hidden': 'true' });
       const tag = el('span', { class: 'room-sign room-npc-name' });
       tag.append(el('span', { class: 'room-sign-text' }, characterName(npc)));
       const bubble = el('span', { class: 'room-npc-bubble', 'aria-hidden': 'true' }, '…');
       npcButton.append(bubble, body, tag);
       frame.append(npcButton);
-      player = root.NudgeSpritePlayer.characterPlayer(body, npc, { animation: 'idle', size: npcSize });
       let tipIndex = 0;
       npcButton.addEventListener('click', () => {
         const lines = [...(typeof greeting === 'function' ? greeting() : greeting)];
@@ -191,22 +235,122 @@
       speech?.close?.();
       player?.play('talk');
       try {
-        speech = root.NudgeNpcDialog.open({
-          speaker: npc, lines, actions,
-          onClose: () => { player?.play('idle'); speech = null; },
-        });
+        speech = root.NudgeNpcDialog.open({ speaker: npc, lines, actions, onClose: () => { player?.play('idle'); speech = null; } });
       } catch { speech = null; }
       return speech;
     }
 
+    // ---- walkers: townsfolk strolling along paths ----
+    let walkers = [];
+    function buildWalkers(list) {
+      for (const w of walkers) w.player?.destroy?.();
+      crowd.textContent = '';
+      walkers = (list || []).map((w, i) => {
+        const node = el('span', { class: 'room-walker' });
+        crowd.append(node);
+        let wp = null;
+        try { wp = root.NudgeSpritePlayer.characterPlayer(node, w.id, { animation: 'idle', size: Math.round(64 * scale) }); } catch { wp = null; }
+        return { ...w, node, player: wp, seg: 0, t: (i * 0.37) % 1, rest: 0, anim: '' };
+      });
+    }
+    function placeWalker(w, dtMs) {
+      const path = w.path;
+      if (!path || path.length < 2) return;
+      if (dtMs && !media.matches) {
+        if (w.rest > 0) w.rest -= dtMs;
+        else {
+          const a = path[w.seg], b = path[(w.seg + 1) % path.length];
+          const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 0.01;
+          w.t += (dtMs / 1000) * (w.speed || 0.035) / len;
+          if (w.t >= 1) {
+            w.t = 0;
+            w.seg = (w.seg + 1) % path.length;
+            if (w.pause && Math.random() < 0.5) w.rest = w.pause;
+          }
+        }
+      }
+      const a = path[w.seg], b = path[(w.seg + 1) % path.length];
+      const x = a[0] + (b[0] - a[0]) * w.t, y = a[1] + (b[1] - a[1]) * w.t;
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const anim = media.matches || w.rest > 0 ? 'idle'
+        : Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'walk_right' : 'walk_left') : (dy > 0 ? 'walk_down' : 'walk_up');
+      if (anim !== w.anim && w.player) { w.player.play(anim); w.anim = anim; }
+      w.node.style.left = x * 100 + '%';
+      w.node.style.top = y * 100 + '%';
+      w.node.style.zIndex = String(Math.round(y * 100));
+    }
+
+    // ---- layout: art, object spots and life for wide or tall screens ----
+    let current = null, layout = null, scale = 1;
+    function buildNpc() {
+      if (!npcButton) return;
+      player?.destroy?.();
+      const size = Math.round(npcSize * scale);
+      npcButton.style.setProperty('--npc-size', size + 'px');
+      player = root.NudgeSpritePlayer.characterPlayer(npcButton.querySelector('.room-npc-body'), npc, { animation: 'idle', size });
+    }
+    function applyLayout(force) {
+      const key = layoutKey(layouts);
+      if (key === current && !force) return;
+      current = key;
+      layout = { ...layouts[key], aspect: toAspect(layouts[key].aspect) };
+      stage.dataset.layout = key;
+      picture.src = layout.art;
+      stage.style.setProperty('--room-art', `url("${new URL(layout.art, doc.baseURI).href}")`);
+      for (const [id, b] of buttons) {
+        const r = layout.rects?.[id];
+        b.hidden = !r;
+        if (!r) continue;
+        b.style.left = r[0] * 100 + '%';
+        b.style.top = r[1] * 100 + '%';
+        b.style.width = r[2] * 100 + '%';
+        b.style.height = r[3] * 100 + '%';
+      }
+      if (npcButton) {
+        const at = layout.npcAt || [0.12, 0.9];
+        npcButton.style.left = at[0] * 100 + '%';
+        npcButton.style.top = at[1] * 100 + '%';
+      }
+      buildWalkers(layout.walkers);
+      for (const w of walkers) placeWalker(w, 0);
+      options.onLayout?.(key, api);
+    }
+    // Fill the screen below the HUD: cover it, cropping at most ~8% per side
+    // so objects near the edges stay reachable.
+    function fit() {
+      const top = Math.max(0, stage.getBoundingClientRect().top + root.scrollY);
+      const sw = stage.clientWidth || root.innerWidth;
+      const sh = Math.max(360, root.innerHeight - top);
+      stage.style.height = sh + 'px';
+      const a = layout.aspect;
+      let w = Math.max(sw, sh * a), h = w / a;
+      if (w > sw * 1.16) { w = sw * 1.16; h = w / a; }
+      if (h > sh * 1.22) { h = sh * 1.22; w = h * a; }
+      frame.style.width = Math.round(w) + 'px';
+      frame.style.height = Math.round(h) + 'px';
+      frame.style.left = Math.round((sw - w) / 2) + 'px';
+      frame.style.top = Math.round((sh - h) / 2) + 'px';
+      const next = Math.max(0.6, Math.min(1.4, Math.min(w, h * 1.5) / 1100));
+      frame.style.setProperty('--room-scale', String(next));
+      if (!player || Math.abs(next - scale) > 0.04) {
+        scale = next;
+        buildNpc();
+        buildWalkers(layout.walkers);
+        for (const wk of walkers) placeWalker(wk, 0);
+        sync();
+      }
+      lastFrame = -1;
+      if (!running()) paint(0);
+    }
+
     // ---- panel ----
     const dialog = el('dialog', { class: `room-panel room-panel--${panelVariant}`, 'aria-label': title });
-    const head = el('div', { class: 'room-panel-bar' });
+    const bar = el('div', { class: 'room-panel-bar' });
     const heading = el('h2', { class: 'room-panel-title' }, title);
     const closeBtn = el('button', { type: 'button', class: 'w-btn room-panel-close' }, '放回去');
     const body = el('div', { class: 'room-panel-body' });
-    head.append(heading, closeBtn);
-    dialog.append(head, body);
+    bar.append(heading, closeBtn);
+    dialog.append(bar, body);
     doc.body.append(dialog);
     let returnFocus = null, panelHome = null, onPanelClose = null;
     function openPanel({ title: label = title, content, variant, from, onClose } = {}) {
@@ -229,10 +373,7 @@
       closeBtn.focus({ preventScroll: true });
       sync();
     }
-    function closePanel() {
-      if (!dialog.open) return;
-      dialog.close();
-    }
+    function closePanel() { if (dialog.open) dialog.close(); }
     dialog.addEventListener('close', () => {
       if (panelHome) {
         panelHome.parent.insertBefore(panelHome.node, panelHome.next);
@@ -294,21 +435,22 @@
     const g = canvas.getContext('2d');
     let raf = null, last = null, elapsed = 0, lastFrame = -1, visible = true;
     function paint(f) {
-      const r = frame.getBoundingClientRect();
+      const w = Math.max(1, Math.round(frame.clientWidth)), h = Math.max(1, Math.round(frame.clientHeight));
       const dpr = Math.min(root.devicePixelRatio || 1, 2);
-      const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, h);
-      for (const e of effects) {
+      for (const e of layout?.effects || []) {
         const fn = EFFECTS[e.type];
         if (fn) { g.save(); fn(g, w, h, f, e); g.restore(); }
       }
     }
     function tick(now) {
       raf = null;
-      if (last != null) elapsed += Math.min(now - last, 100);
+      const dt = last != null ? Math.min(now - last, 100) : 0;
+      elapsed += dt;
       last = now;
+      for (const w of walkers) placeWalker(w, dt);
       const f = Math.floor(elapsed / 100); // 10 fps keeps the pixel feel
       if (f !== lastFrame) { paint(f); lastFrame = f; }
       if (running()) raf = root.requestAnimationFrame(tick);
@@ -318,32 +460,48 @@
       if (raf != null) root.cancelAnimationFrame(raf);
       raf = null; last = null;
       stage.classList.toggle('is-still', media.matches);
-      if (running()) { player?.play('idle'); raf = root.requestAnimationFrame(tick); }
-      else { paint(0); player?.stop?.(); }
+      if (running()) {
+        player?.play('idle');
+        for (const w of walkers) w.anim = '';
+        raf = root.requestAnimationFrame(tick);
+      } else {
+        paint(0);
+        player?.stop?.();
+        for (const w of walkers) { w.player?.stop?.(); w.anim = 'stopped'; }
+      }
     }
     const io = new IntersectionObserver(entries => { visible = entries[0].isIntersecting; sync(); });
     io.observe(stage);
     doc.addEventListener('visibilitychange', sync);
     media.addEventListener('change', sync);
-    root.addEventListener('resize', () => { lastFrame = -1; if (!running()) paint(0); });
+    let resizeTimer = null;
+    const onResize = () => {
+      root.clearTimeout(resizeTimer);
+      resizeTimer = root.setTimeout(() => { applyLayout(false); fit(); }, 80);
+    };
+    root.addEventListener('resize', onResize);
     if (!media.matches) stage.classList.add('is-arriving');
-    picture.addEventListener('load', () => { lastFrame = -1; sync(); });
-    sync();
 
-    const api = Object.freeze({
+    const api = {
       stage, frame, dialog, body, say, openPanel, closePanel, burst, poke, announce, setBadge,
-      object: id => buttons.get(id), npcButton,
+      object: id => buttons.get(id), npcButton, layout: () => current,
       destroy() {
         if (raf != null) root.cancelAnimationFrame(raf);
         io.disconnect();
         player?.destroy?.();
+        for (const w of walkers) w.player?.destroy?.();
         media.removeEventListener('change', sync);
         doc.removeEventListener('visibilitychange', sync);
+        root.removeEventListener('resize', onResize);
         dialog.remove(); stage.remove(); fx.remove();
       },
-    });
-    return api;
+    };
+    applyLayout(true);
+    fit();
+    picture.addEventListener('load', fit);
+    sync();
+    return Object.freeze(api);
   }
 
-  root.NudgeSceneRoom = Object.freeze({ mount, EFFECTS: Object.keys(EFFECTS) });
+  root.NudgeSceneRoom = Object.freeze({ mount, layoutKey, EFFECTS: Object.keys(EFFECTS) });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

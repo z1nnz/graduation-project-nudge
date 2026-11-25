@@ -21,7 +21,11 @@
   const TICKET_WINDOW_MS = 2 * 60 * 60 * 1000;
   const PLAY_MS_PER_TICKET = 5 * 60 * 1000;
   const USED_LIMIT = 40;
-  const NO_TICKET_TEXT = '先去書桌專注一下吧';
+  const NO_TICKET_TEXT = '今天的免費次數用完了';
+  // Everyone gets a few free plays a day (a day starts at 05:00, like the
+  // rest of Nudge). Cloud-confirmed focus still earns bonus tickets.
+  const FREE_PLAYS_PER_DAY = 3;
+  const DAY_START_HOUR = 5;
 
   function ticketCount(minutes) {
     const m = Number(minutes);
@@ -61,13 +65,39 @@
    * Spend the soonest-expiring ticket. Returns null when there is none,
    * otherwise the spent ticket, the new used list and a fresh session.
    */
-  function spendTicket(receipts, nowMs, usedIds) {
-    const list = availableTickets(receipts, nowMs, usedIds);
+  function spendTicket(receipts, nowMs, usedIds, options = {}) {
+    const list = options.free ? allTickets(receipts, nowMs, usedIds) : availableTickets(receipts, nowMs, usedIds);
     if (!list.length) return null;
     const ticket = list[0];
     const prior = Array.isArray(usedIds) ? usedIds.filter(x => typeof x === 'string') : [];
     const used = [...prior.filter(x => x !== ticket.id), ticket.id].slice(-USED_LIMIT);
     return { ticket, used, session: { ticketId: ticket.id, remainingMs: ticket.playMs } };
+  }
+
+  function playDay(nowMs) {
+    const d = new Date(Number(nowMs) - DAY_START_HOUR * 3600 * 1000);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  /** Today's unused free plays. */
+  function freeTickets(nowMs, usedIds) {
+    const used = new Set(Array.isArray(usedIds) ? usedIds : []);
+    const day = playDay(nowMs);
+    const start = new Date(Number(nowMs) - DAY_START_HOUR * 3600 * 1000);
+    start.setHours(0, 0, 0, 0);
+    const expiresAt = start.getTime() + (24 + DAY_START_HOUR) * 3600 * 1000;
+    const out = [];
+    for (let slot = 1; slot <= FREE_PLAYS_PER_DAY; slot += 1) {
+      const id = `free:${day}#${slot}`;
+      if (!used.has(id)) out.push({ id, receiptId: null, slot, expiresAt, playMs: PLAY_MS_PER_TICKET, free: true });
+    }
+    return out;
+  }
+
+  /** Focus tickets first (they expire sooner), then today's free plays. */
+  function allTickets(receipts, nowMs, usedIds) {
+    return [...availableTickets(receipts, nowMs, usedIds), ...freeTickets(nowMs, usedIds)];
   }
 
   /** Play time left after `elapsedMs` of running (paused time is never passed in). */
@@ -131,7 +161,11 @@
     TICKET_WINDOW_MS,
     PLAY_MS_PER_TICKET,
     NO_TICKET_TEXT,
+    FREE_PLAYS_PER_DAY,
     ticketCount,
+    playDay,
+    freeTickets,
+    allTickets,
     availableTickets,
     spendTicket,
     drainSession,

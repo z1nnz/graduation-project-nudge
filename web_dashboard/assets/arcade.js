@@ -42,7 +42,7 @@
     if (!state.uid) return [];
     return [...core.readList(store.get(legacyUsedKey())), ...core.readList(store.get(usedKey()))];
   }
-  function tickets() { return state.uid ? core.availableTickets(state.receipts, Date.now(), usedIds()) : []; }
+  function tickets() { return state.uid ? core.allTickets(state.failed ? [] : state.receipts, Date.now(), usedIds()) : []; }
   function saveSession() {
     if (!state.uid) return;
     if (core.validSession(state.session)) store.set(sessionKey(), JSON.stringify(state.session));
@@ -92,13 +92,13 @@
 
   // ---------- ticket chip and hall ----------
   function ticketText() {
-    if (!state.uid) return { cls: 'is-alert', text: '登入後可使用休息券' };
-    if (state.failed) return { cls: 'is-alert', text: '暫時讀不到雲端紀錄' };
-    if (!state.loaded) return { cls: 'is-wait', text: '雲端確認中…' };
-    if (core.validSession(state.session)) return { cls: 'is-ok', text: `本券剩 ${core.formatClock(state.session.remainingMs)}` };
+    if (!state.uid) return { cls: 'is-alert', text: '登入後就能玩' };
+    if (!state.loaded && !state.failed) return { cls: 'is-wait', text: '雲端確認中…' };
+    if (core.validSession(state.session)) return { cls: 'is-ok', text: `這局剩 ${core.formatClock(state.session.remainingMs)}` };
     const list = tickets();
-    if (!list.length) return { cls: 'is-wait', text: '休息券 ×0' };
-    return { cls: 'is-ok', text: `休息券 ×${list.length}` };
+    const free = list.filter(t => t.free).length, bonus = list.length - free;
+    if (!list.length) return { cls: 'is-wait', text: '今天的次數用完了' };
+    return { cls: 'is-ok', text: `今天還能玩 ${list.length} 次${bonus ? `（含專注獎勵 ${bonus}）` : ''}` };
   }
   function refreshTicket() {
     const chip = els('arcadeTicket');
@@ -106,10 +106,10 @@
     chip.className = `w-chip arcade-ticket ${t.cls}`;
     chip.textContent = t.text;
     const status = els('arcadeStatus');
-    if (!state.uid) status.textContent = '請先登入，休息券只來自你自己雲端確認的專注。';
+    if (!state.uid) status.textContent = '請先登入。每天有 3 次免費遊玩，專注 25 分鐘以上還能多拿獎勵券。';
     else if (!state.loaded) status.textContent = '雲端確認中：正在讀取你最近的專注紀錄…';
     else if (state.failed) status.textContent = '暫時讀不到雲端紀錄，請確認網路後重新整理。';
-    else if (!core.validSession(state.session) && !tickets().length) status.textContent = `${core.NO_TICKET_TEXT}：完成一次 25 分鐘以上的專注，雲端確認後就會拿到休息券。`;
+    else if (!core.validSession(state.session) && !tickets().length) status.textContent = `${core.NO_TICKET_TEXT}：明天早上 5 點會補滿 3 次；現在完成一次 25 分鐘以上的專注，也能多拿一張獎勵券。`;
     else status.textContent = '點一台機台看看說明和你的最佳紀錄。';
     if (!els('arcadeInfo').hidden && state.infoFor) fillInfo(state.infoFor);
   }
@@ -193,29 +193,29 @@
     start.hidden = false;
     start.disabled = false;
     if (!state.uid) {
-      note.textContent = '登入後完成一次專注，就能拿到休息券。';
+      note.textContent = '登入後每天可以免費玩 3 次。';
       start.hidden = true;
       desk.hidden = false;
       desk.textContent = '前往登入';
       desk.href = 'login.html';
-    } else if (!state.loaded || state.failed) {
-      note.textContent = state.failed ? '暫時讀不到雲端紀錄，請稍後再試。' : '雲端確認中：正在確認你的休息券…';
+    } else if (!state.loaded && !state.failed) {
+      note.textContent = '雲端確認中：正在確認你今天的次數…';
       start.textContent = '雲端確認中…';
       start.disabled = true;
     } else if (core.validSession(state.session)) {
-      note.textContent = `這張休息券還剩 ${core.formatClock(state.session.remainingMs)}，可以換任何一台繼續玩。`;
+      note.textContent = `這一局還剩 ${core.formatClock(state.session.remainingMs)}，可以換任何一台繼續玩。`;
       start.textContent = '繼續遊玩';
     } else {
       const list = tickets();
       if (list.length) {
-        const exp = new Date(list[0].expiresAt);
-        note.textContent = `你有 ${list.length} 張休息券。開始會用掉 1 張，可玩 5 分鐘（暫停時不計時）。這張券在 ${String(exp.getHours()).padStart(2, '0')}:${String(exp.getMinutes()).padStart(2, '0')} 前有效。`;
-        start.textContent = '用 1 張休息券開始';
+        const free = list.filter(t => t.free).length;
+        note.textContent = `今天還能玩 ${list.length} 次${list.length > free ? `（含 ${list.length - free} 張專注獎勵券）` : ''}。每次 5 分鐘，暫停時不計時；每天早上 5 點補滿 3 次免費遊玩。`;
+        start.textContent = '開始玩';
       } else {
-        note.textContent = `${core.NO_TICKET_TEXT}。25 分鐘以上、雲端確認的專注可換 1 張休息券。`;
+        note.textContent = `${core.NO_TICKET_TEXT}，明天早上 5 點會補滿。現在去專注 25 分鐘以上，雲端確認後能多拿一張獎勵券。`;
         start.hidden = true;
         desk.hidden = false;
-        desk.textContent = core.NO_TICKET_TEXT;
+        desk.textContent = '去書桌專注換獎勵券';
         desk.href = 'personal-focus.html';
       }
     }
@@ -229,14 +229,14 @@
   els('infoClose').addEventListener('click', () => { state.infoFor = null; closeDialog('arcadeInfo'); });
   els('infoStart').addEventListener('click', () => {
     const game = state.infoFor;
-    if (!game || !state.uid || !state.loaded) return;
+    if (!game || !state.uid || (!state.loaded && !state.failed)) return;
     if (!core.validSession(state.session)) {
-      const spent = core.spendTicket(state.receipts, Date.now(), usedIds());
+      const spent = core.spendTicket(state.failed ? [] : state.receipts, Date.now(), usedIds(), { free: true });
       if (!spent) { fillInfo(game); toast(core.NO_TICKET_TEXT); return; }
       store.set(usedKey(), JSON.stringify(spent.used.filter(id => id.includes('#'))));
       state.session = spent.session;
       saveSession();
-      toast('用掉 1 張休息券，盡情玩 5 分鐘吧！');
+      toast(spent.ticket.free ? `用掉今天第 ${spent.ticket.slot} 次免費遊玩，盡情玩 5 分鐘吧！` : '用掉 1 張專注獎勵券，盡情玩 5 分鐘吧！');
     }
     closeDialog('arcadeInfo', { restore: false });
     state.infoFor = null;
@@ -288,7 +288,7 @@
       }
       els('resultBest').textContent = result.newBest ? '★ 新的個人最佳紀錄！' : (result.bestText || '');
       const again = els('resultAgain');
-      again.textContent = core.validSession(state.session) ? '再玩一次' : '換一張券再玩';
+      again.textContent = core.validSession(state.session) ? '再玩一次' : '再開一局';
       again.disabled = !core.validSession(state.session) && !tickets().length;
       openDialog('arcadeResult', els('gameExit'));
     },

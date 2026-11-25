@@ -31,10 +31,40 @@
   let catPets = 0;
   const room = root.NudgeSceneRoom.mount({
     host: doc.getElementById('storeMain'),
-    art: 'assets/scenes/store/store.webp',
     title: '小鎮雜貨店',
     npc: 'chestnut',
-    npcAt: [0.3, 0.88],
+    layouts: {
+      wide: {
+        art: 'assets/scenes/store/store_wide.webp', aspect: 1.5, npcAt: [0.17, 0.9],
+        rects: {
+          clothes: [0.05, 0.2, 0.24, 0.45], furniture: [0.33, 0.2, 0.24, 0.35], cabinet: [0.59, 0.17, 0.16, 0.46],
+          cashbox: [0.26, 0.5, 0.09, 0.12], cat: [0.43, 0.55, 0.1, 0.07], mirror: [0.76, 0.33, 0.23, 0.42],
+        },
+        effects: [
+          { type: 'glow', points: [[0.43, 0.13], [0.62, 0.13], [0.59, 0.54], [0.03, 0.79]], radius: 0.06 },
+          { type: 'sparkle', points: [[0.63, 0.3], [0.7, 0.28], [0.64, 0.4], [0.71, 0.42], [0.65, 0.5], [0.7, 0.5]] },
+          { type: 'flicker', points: [[0.18, 0.1], [0.25, 0.1]], radius: 0.02, color: '#ffd98a' },
+          { type: 'dust', count: 22 },
+        ],
+        walkers: [
+          { id: 'letty', path: [[0.4, 0.9], [0.62, 0.86], [0.72, 0.95], [0.5, 0.97]], speed: 0.05, pause: 1800 },
+          { id: 'inky', path: [[0.86, 0.95], [0.66, 0.9], [0.8, 0.86]], speed: 0.035, pause: 2600 },
+        ],
+      },
+      tall: {
+        art: 'assets/scenes/store/store.webp', aspect: 2 / 3, npcAt: [0.3, 0.9],
+        rects: {
+          clothes: [0.03, 0.235, 0.3, 0.225], furniture: [0.35, 0.235, 0.265, 0.23], cabinet: [0.65, 0.19, 0.215, 0.27],
+          cashbox: [0.06, 0.49, 0.15, 0.085], cat: [0.29, 0.51, 0.25, 0.065], mirror: [0.75, 0.48, 0.24, 0.3],
+        },
+        effects: [
+          { type: 'glow', points: [[0.42, 0.125], [0.67, 0.125], [0.58, 0.5], [0.02, 0.83]], radius: 0.09 },
+          { type: 'sparkle', points: [[0.72, 0.28], [0.8, 0.25], [0.7, 0.38], [0.82, 0.36], [0.74, 0.43], [0.83, 0.44]] },
+          { type: 'dust', count: 16 },
+        ],
+        walkers: [{ id: 'letty', path: [[0.45, 0.8], [0.7, 0.82], [0.6, 0.92], [0.4, 0.88]], speed: 0.05, pause: 2000 }],
+      },
+    },
     greeting: () => {
       const c = coins();
       return [c == null ? '歡迎光臨！登入之後，我就能幫你查錢箱裡有多少自律幣喔。' : `歡迎光臨！你的錢箱裡有 ${c} 枚自律幣。`];
@@ -48,30 +78,25 @@
       '那隻橘貓叫「麻糬」，牠只在你摸牠的時候才會醒來。',
     ],
     objects: [
-      { id: 'clothes', label: '衣服架', hint: '常駐角色', x: 0.03, y: 0.235, w: 0.3, h: 0.225,
+      { id: 'clothes', label: '衣服架', hint: '常駐角色',
         onSelect: (e, r) => openShelf(['permanent'], r.object('clothes')) },
-      { id: 'furniture', label: '家具架', hint: '小屋家具', x: 0.35, y: 0.235, w: 0.265, h: 0.23,
+      { id: 'furniture', label: '家具架', hint: '小屋家具',
         onSelect: (e, r) => openShelf(['decor'], r.object('furniture')) },
-      { id: 'cabinet', label: '玻璃櫃', hint: '限時與活動角色', x: 0.65, y: 0.19, w: 0.215, h: 0.27,
+      { id: 'cabinet', label: '玻璃櫃', hint: '限時與活動角色',
         onSelect: (e, r) => openShelf(['limited', 'event_character'], r.object('cabinet')) },
-      { id: 'cashbox', label: '錢箱', hint: '看看自律幣', x: 0.06, y: 0.49, w: 0.15, h: 0.085,
+      { id: 'cashbox', label: '錢箱', hint: '看看自律幣',
         onSelect: (e, r) => {
           r.burst({ kind: 'coin', count: 5, from: 'cashbox' });
           r.openPanel({ title: '錢箱與帳本', content: ledger, variant: 'parchment', from: r.object('cashbox') });
         } },
-      { id: 'cat', label: '麻糬', hint: '摸摸貓', x: 0.29, y: 0.51, w: 0.25, h: 0.065,
+      { id: 'cat', label: '麻糬', hint: '摸摸貓',
         onSelect: (e, r) => {
           catPets += 1;
           r.burst({ kind: 'heart', count: 4 + Math.min(catPets, 4), from: 'cat', text: catPets > 3 ? '麻糬翻了個身，呼嚕呼嚕。' : '麻糬呼嚕了一聲。' });
           if (catPets === 5) r.say(['麻糬很少讓客人摸這麼久，牠很喜歡你喔！']);
         } },
-      { id: 'mirror', label: '鏡子', hint: '進更衣室換裝', x: 0.75, y: 0.48, w: 0.24, h: 0.3,
+      { id: 'mirror', label: '鏡子', hint: '進更衣室換裝',
         onSelect: () => { root.location.href = 'profile.html'; } },
-    ],
-    effects: [
-      { type: 'glow', points: [[0.42, 0.125], [0.67, 0.125], [0.58, 0.5], [0.02, 0.83]], radius: 0.09 },
-      { type: 'sparkle', points: [[0.72, 0.28], [0.8, 0.25], [0.7, 0.38], [0.82, 0.36], [0.74, 0.43], [0.83, 0.44]] },
-      { type: 'dust', count: 16 },
     ],
   });
 

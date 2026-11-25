@@ -1,37 +1,28 @@
 /* Facility rooms built by scene_room.js. Colours come from world_ui.css. */
 .room-stage {
+  /* Full screen under the page HUD; scene_room.js sets the exact height. */
   position: relative;
-  display: grid;
-  place-items: center;
+  display: block;
   width: 100%;
-  min-height: min(92dvh, 980px);
-  padding: 12px 0 20px;
+  height: calc(100dvh - 56px);
   overflow: hidden;
   isolation: isolate;
   background: var(--w-night);
 }
 .room-stage::before {
-  /* Blurred copy of the art fills wide screens beside the portrait room. */
+  /* Blurred copy of the art fills any letterbox edge. */
   content: "";
   position: absolute;
   inset: -40px;
   z-index: -1;
   background: var(--room-art) center / cover no-repeat;
-  filter: blur(22px) brightness(0.45) saturate(1.1);
+  filter: blur(22px) brightness(0.55) saturate(1.1);
 }
 .room-frame {
-  position: relative;
-  height: min(88dvh, 960px);
-  max-width: calc(100vw - 16px);
-  border: 4px solid var(--w-wood-deep);
-  outline: 3px solid var(--w-frame);
-  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.35), 0 0 60px rgba(255, 197, 77, 0.12);
+  position: absolute;
   image-rendering: pixelated;
   container-type: inline-size;
-}
-@media (max-width: 640px) {
-  .room-stage { min-height: auto; padding: 0; }
-  .room-frame { height: auto; width: 100%; max-width: 100%; border-width: 0; outline: 0; box-shadow: none; }
+  --room-scale: 1;
 }
 .room-art,
 .room-life {
@@ -83,7 +74,7 @@
 .room-sign {
   position: absolute;
   left: 50%;
-  bottom: calc(100% - 6px);
+  top: 8%;
   translate: -50% 0;
   display: inline-block;
   padding: 4px 10px 5px;
@@ -100,6 +91,7 @@
 }
 .room-sign::after {
   /* little rope post under the sign */
+  display: none;
   content: "";
   position: absolute;
   left: 50%;
@@ -163,7 +155,6 @@
   animation: room-bob 1.6s steps(4) infinite;
 }
 @container (max-width: 520px) {
-  .room-npc { --npc-size: 88px !important; }
   .room-sign { font-size: 14px; padding: 3px 7px; }
 }
 
@@ -236,3 +227,17 @@
   .room-glow { opacity: 0.35; }
 }
 [data-room-hidden][hidden] { display: none !important; }
+
+/* Townsfolk walking through the scene. */
+.room-crowd { position: absolute; inset: 0; pointer-events: none; }
+.room-walker {
+  position: absolute;
+  translate: -50% -100%;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35));
+}
+/* Signs and the NPC grow with the screen. */
+.room-sign { font-size: calc(15px * var(--room-scale)); }
+/* Break out of the page's centred column so the room spans the window. */
+.room-stage { width: 100vw; max-width: none; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+html:has(.room-stage), body:has(.room-stage) { overflow-x: hidden; }
+.room-npc .room-npc-name { top: auto; }
