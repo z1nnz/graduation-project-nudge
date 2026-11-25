@@ -39,14 +39,7 @@ class ProcrastinationBossCard extends StatelessWidget {
                   height: 40,
                   child: Stack(
                     children: [
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _SlimePainter(
-                            boss.species,
-                            defeated: boss.defeated,
-                          ),
-                        ),
-                      ),
+                      Positioned.fill(child: _BossSprite(boss: boss)),
                       if (boss.defeated)
                         const Positioned(
                           key: Key('boss-defeated'),
@@ -114,72 +107,65 @@ class ProcrastinationBossCard extends StatelessWidget {
   }
 }
 
-/// A chunky pixel slime drawn on a 11x10 grid.
-class _SlimePainter extends CustomPainter {
-  _SlimePainter(this.species, {required this.defeated});
+class _BossSprite extends StatefulWidget {
+  const _BossSprite({required this.boss});
 
-  final BossSpecies species;
-  final bool defeated;
-
-  static const _shape = [
-    '...XXXXX...',
-    '..XXXXXXX..',
-    '.XXXXXXXXX.',
-    '.XXXXXXXXX.',
-    'XXXXXXXXXXX',
-    'XXXXXXXXXXX',
-    'XXXXXXXXXXX',
-    'XXXXXXXXXXX',
-    '.XXXXXXXXX.',
-    '..XX.X.XX..',
-  ];
+  final ProcrastinationBoss boss;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final cell = size.width / 11;
-    final top = (size.height - cell * 10) / 2;
-    final body = Paint()
-      ..color = defeated ? species.body.withValues(alpha: 0.55) : species.body;
-    final dark = Paint()..color = species.dark;
-    for (var y = 0; y < _shape.length; y++) {
-      for (var x = 0; x < 11; x++) {
-        if (_shape[y][x] != 'X') continue;
-        final edge =
-            y == 0 ||
-            x == 0 ||
-            x == 10 ||
-            _shape[y - 1][x] != 'X' ||
-            _shape[y][x - 1] != 'X' ||
-            _shape[y][x + 1] != 'X';
-        canvas.drawRect(
-          Rect.fromLTWH(x * cell, top + y * cell, cell + 0.5, cell + 0.5),
-          edge ? dark : body,
-        );
-      }
-    }
-    final eye = Paint()..color = const Color(0xFF1B1020);
-    if (defeated) {
-      for (final x in [3, 7]) {
-        canvas.drawRect(
-          Rect.fromLTWH(x * cell, top + 4.5 * cell, cell, cell * 0.4),
-          eye,
-        );
-      }
-    } else {
-      for (final x in [3, 7]) {
-        canvas.drawRect(
-          Rect.fromLTWH(x * cell, top + 4 * cell, cell, cell * 1.4),
-          eye,
-        );
-      }
-      canvas.drawRect(
-        Rect.fromLTWH(4.5 * cell, top + 6.6 * cell, cell * 2, cell * 0.5),
-        eye,
-      );
+  State<_BossSprite> createState() => _BossSpriteState();
+}
+
+class _BossSpriteState extends State<_BossSprite>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _hit = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+  )..value = 1;
+
+  @override
+  void didUpdateWidget(covariant _BossSprite oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!MediaQuery.disableAnimationsOf(context) &&
+        !widget.boss.defeated &&
+        widget.boss.species == oldWidget.boss.species &&
+        widget.boss.doneSeconds > oldWidget.boss.doneSeconds) {
+      _hit.forward(from: 0);
     }
   }
 
   @override
-  bool shouldRepaint(_SlimePainter old) =>
-      old.species != species || old.defeated != defeated;
+  void dispose() {
+    _hit.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const sprites = ['slime', 'ghost', 'goblin', 'snail'];
+    final boss = widget.boss;
+    final name = sprites[ProcrastinationBoss.roster.indexOf(boss.species)];
+    return AnimatedBuilder(
+      animation: _hit,
+      builder: (context, _) {
+        final moving =
+            !MediaQuery.disableAnimationsOf(context) && _hit.value < 1;
+        final pose = boss.defeated
+            ? 'down'
+            : moving
+            ? 'hit'
+            : 'idle';
+        final tick = (_hit.value * 4).floor();
+        return Transform.translate(
+          offset: Offset(moving ? const [0.0, -3.0, 3.0, -1.0][tick] : 0, 0),
+          child: Image.asset(
+            'assets/scenes/study_hall/${name}_$pose.webp',
+            filterQuality: FilterQuality.none,
+            excludeFromSemantics: true,
+            gaplessPlayback: true,
+          ),
+        );
+      },
+    );
+  }
 }

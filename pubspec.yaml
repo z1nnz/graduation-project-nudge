@@ -104,6 +104,7 @@ flutter:
     - assets/branding/
     - assets/avatar/
     - assets/avatar/characters/
+    - assets/scenes/study_hall/
     - assets/avatar/icons/
     - assets/avatar/simple_outfits/
     - assets/avatar/accessories/

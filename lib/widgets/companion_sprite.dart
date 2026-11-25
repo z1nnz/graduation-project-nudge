@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../models/avatar_profile.dart';
 import '../models/companion_pose.dart';
+import '../models/character_catalog.dart';
+import 'sprite_animation.dart';
 import 'avatar_preview.dart';
 
 /// The companion character doing an activity. First-stage characters use
@@ -16,6 +18,7 @@ class CompanionSprite extends StatefulWidget {
     required this.profile,
     required this.pose,
     required this.size,
+    this.characterAnimation,
     this.facingLeft = false,
     this.stepPhase = 0,
   });
@@ -23,6 +26,7 @@ class CompanionSprite extends StatefulWidget {
   final AvatarProfile profile;
   final CompanionPose pose;
   final double size;
+  final CharacterAnimation? characterAnimation;
 
   /// Mirror the sprite while walking left.
   final bool facingLeft;
@@ -108,7 +112,14 @@ class _CompanionSpriteState extends State<CompanionSprite>
     final walkFrames = widget.pose == CompanionPose.walk
         ? CompanionPose.walkFrames(widget.profile.faceShapeIndex)
         : null;
-    final Widget body = walkFrames != null
+    final characterAnimation = widget.characterAnimation;
+    final Widget body = characterAnimation != null
+        ? CharacterSprite(
+            character: GameCharacters.companion,
+            animation: characterAnimation,
+            size: size,
+          )
+        : walkFrames != null
         // The base sprite renders taller than its box; draw the tightly
         // trimmed step frames at the same visible height to avoid size jumps.
         ? OverflowBox(

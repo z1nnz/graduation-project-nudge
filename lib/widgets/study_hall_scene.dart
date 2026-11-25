@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/avatar_profile.dart';
+import '../models/character_catalog.dart';
 import '../models/companion_pose.dart';
 import '../models/study_hall_layout.dart';
 import '../models/study_hall_seating.dart';
 import '../models/study_room_models.dart';
 import 'companion_sprite.dart';
+import 'npc_dialog.dart';
+import 'sprite_animation.dart';
 
 /// The study room as a pixel hall: members sit at their seats doing what
 /// they are doing, so "who is here" is visible instead of counted. The room
@@ -60,7 +63,9 @@ class StudyHallScene extends StatelessWidget {
                 // Dim the room when few members are active.
                 IgnorePointer(
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 600),
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 600),
                     color: Colors.black.withValues(
                       alpha: 0.38 * (1 - seating.brightness),
                     ),
@@ -75,6 +80,25 @@ class StudyHallScene extends StatelessWidget {
                     StudyHallLayout.lanterns[lanternStage.clamp(0, 2)],
                     fit: BoxFit.contain,
                     filterQuality: FilterQuality.none,
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Semantics(
+                    label: '問問墨墨',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => NpcDialog.show(
+                        context,
+                        speaker: GameCharacters.inky,
+                        lines: const ['看看座位就知道誰在專注，想一起讀書就點牆上的番茄鐘。'],
+                      ),
+                      child: const CharacterSprite(
+                        character: GameCharacters.inky,
+                        size: 48,
+                      ),
+                    ),
                   ),
                 ),
                 for (var i = 0; i < seating.seats.length; i++)
@@ -111,13 +135,16 @@ class StudyHallScene extends StatelessWidget {
     final pose = CompanionPose.forMember(member.status, roomType);
     final size = seat.height * h;
     final mine = member.memberId == myId;
+    final tapWidth = size < 44 ? 44.0 : size;
     return Positioned(
-      left: seat.centerX * w - size / 2,
+      left: seat.centerX * w - tapWidth / 2,
       top: (seat.bottom - seat.height) * h - 18,
-      width: size,
+      width: tapWidth,
       height: size + 42,
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 450),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 450),
         transitionBuilder: (child, animation) => FadeTransition(
           opacity: animation,
           child: ScaleTransition(scale: animation, child: child),
@@ -149,6 +176,11 @@ class StudyHallScene extends StatelessWidget {
                             member.avatarProfile ?? AvatarProfile.initial(),
                         pose: pose,
                         size: size,
+                        characterAnimation: switch (pose) {
+                          CompanionPose.read => CharacterAnimation.think,
+                          CompanionPose.sleep => CharacterAnimation.sleep,
+                          _ => null,
+                        },
                       ),
                       _NameTag(text: mine ? '你' : _name(member), mine: mine),
                     ],
@@ -188,7 +220,7 @@ class _Banner extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: 12.5,
+          fontSize: 14,
         ),
       ),
     );
@@ -216,7 +248,7 @@ class _NameTag extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: mine ? const Color(0xFF3A1D00) : Colors.white,
-          fontSize: 10.5,
+          fontSize: 14,
           fontWeight: FontWeight.w800,
         ),
       ),
