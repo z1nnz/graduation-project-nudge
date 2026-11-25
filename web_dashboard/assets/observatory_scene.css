@@ -1,0 +1,41 @@
+.observatory-sky{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.observatory-telescope{position:absolute;width:clamp(120px,27%,220px);right:7%;bottom:23%;pointer-events:none;transform-origin:50% 92%;image-rendering:pixelated}
+.observatory-stars{position:absolute;inset:0;pointer-events:none}.observatory-stars button{pointer-events:auto}
+.observatory-star,.observatory-badge-star{position:absolute;transform:translate(-50%,-50%);min-width:44px;min-height:44px;padding:2px;border:0;background:var(--w-wood-deep);color:var(--w-ink);cursor:pointer;font:28px var(--w-pixel);line-height:1.2}
+.observatory-star span{display:block}.observatory-star time{display:block;font:14px var(--w-body)}.observatory-star.is-lit,.observatory-badge-star.is-lit{color:var(--w-gold)}
+.observatory-badge-star{background:transparent;text-shadow:2px 2px var(--w-wood-deep)}
+.observatory-links{position:absolute;left:8px;right:8px;bottom:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px}
+.observatory-links a{display:flex;align-items:center;min-height:44px;padding:8px;background:var(--w-wood-deep);border:2px solid var(--w-frame);color:var(--w-ink);font:14px var(--w-pixel)}
+.observatory-day{padding:16px;background:var(--w-parchment);color:var(--w-ink-dark);font-size:16px}.observatory-day dl{display:grid;grid-template-columns:1fr 1fr;gap:12px}.observatory-day dd{margin:0}
+body[data-observatory-scene] .facility-panel{width:calc(100% - 8px)}
+body[data-observatory-scene] .facility-content{padding:4px}
+body[data-observatory-scene] .facility-content>.w-main{width:100%;padding:0;max-width:none}
+body[data-observatory-scene] .world-shell{padding:0}
+body[data-observatory-scene] .facility-status{font-size:14px;line-height:1.4}
+body[data-observatory-scene=planet] .facility-content :is(.hero,.hero-card,.tool-panel,.generated-card,.page-section){background:var(--w-parchment);color:var(--w-ink-dark);border:3px solid var(--w-frame);box-shadow:none;border-radius:0;min-width:0}
+body[data-observatory-scene=planet] .facility-content :is(h1,h2,h3,strong){color:var(--w-ink-dark);font-family:var(--w-pixel)}
+body[data-observatory-scene=planet] .facility-content :is(p,span,label){color:var(--w-ink-dark);font-size:14px}
+body[data-observatory-scene] .facility-content .planet-stage{overflow:hidden;max-width:100%;background:var(--w-night)}
+body[data-observatory-scene] .facility-content .planet-stage *{animation:none!important}
+body[data-observatory-scene] .facility-content .planet-stage :is(.galaxy-core,.universe-core){background:var(--w-violet-deep)}
+@media(max-width:480px){.facility-status{padding:8px}.observatory-device{border-width:0}.facility-panel-bar{padding:6px}.observatory-star time{font-size:14px}}
+
+body[data-observatory-scene] .facility-object{right:8px;max-width:260px}body[data-observatory-scene] .facility-object .facility-name{white-space:normal}
+
+.planet-ledger{background:var(--w-parchment);color:var(--w-ink-dark);border:3px solid var(--w-frame);padding:16px;min-width:0}.planet-ledger strong{display:block;font:28px var(--w-pixel)}
+
+.planning-ledger{background:var(--w-parchment);color:var(--w-ink-dark);border:3px solid var(--w-frame);padding:16px}.planning-ledger strong{display:block;font:24px var(--w-pixel)}
+body[data-observatory-scene] .facility-content #missionOrbBtn{position:relative;min-height:44px;margin:12px;z-index:1}
+body[data-observatory-scene] .facility-content .mission-log-panel{position:relative;bottom:auto;right:auto;left:auto;width:100%;max-width:100%;background:var(--w-parchment);color:var(--w-ink-dark);border:3px solid var(--w-frame);box-shadow:none;backdrop-filter:none;transform:none;border-radius:0}
+body[data-observatory-scene] .facility-content .mission-list label{background:var(--w-parchment-hi);color:var(--w-ink-dark);border:2px solid var(--w-frame);font-size:14px;border-radius:0}
+body[data-observatory-scene] .facility-content .stage-nav button{min-height:44px;background:var(--w-wood-dark);color:var(--w-ink);border:2px solid var(--w-frame);font:14px var(--w-pixel);box-shadow:none}
+
+body[data-observatory-scene] .facility-content .mission-log-panel:not(.active){display:none}
+body[data-observatory-scene] .facility-content .mission-log-panel.active{display:block}
+body[data-observatory-scene] .facility-content .mission-log-header{color:var(--w-ink-dark);text-shadow:none;border-color:var(--w-frame);font:18px var(--w-pixel)}
+
+body[data-observatory-scene] .facility-content #missionOrbBtn{inset:auto!important;transform:none!important;width:auto!important;height:auto!important;min-width:120px;min-height:44px;float:none;display:block}
+body[data-observatory-scene] .facility-content #missionLogPanel :is(p,span,small,button,label){color:var(--w-ink-dark)!important;font-size:14px!important;text-shadow:none!important}
+body[data-observatory-scene] .facility-content #missionLogPanel button{min-width:44px;min-height:44px;border:2px solid var(--w-frame)!important;background:var(--w-parchment-hi)!important;padding:6px!important;font-family:var(--w-pixel)}
+body[data-observatory-scene] .facility-content .mission-actions{display:flex;flex-wrap:wrap;gap:8px}
+body[data-observatory-scene] .facility-content .energy-bar-container{display:none}

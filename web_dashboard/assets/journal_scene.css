@@ -1,0 +1,29 @@
+body[data-journal-scene]{--paper:var(--w-parchment);--ink:var(--w-ink-dark);--wood:var(--w-wood-deep);--gold:var(--w-gold);--muted:var(--w-ink);background:var(--w-night);font-size:16px}
+body[data-journal-scene]::before{display:none}
+body[data-journal-scene] .museum-header{background:var(--w-wood-dark);border-color:var(--w-frame);padding:12px}
+body[data-journal-scene] .museum-header a{color:var(--w-ink);font-size:16px}
+.journal-life{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.journal-writing{display:block;width:128px;height:72px;image-rendering:pixelated;background:var(--w-parchment-hi);border:2px solid var(--w-frame);margin:8px}
+body[data-journal-scene] .facility-object{right:8px;max-width:260px}
+body[data-journal-scene] .facility-name{white-space:normal}
+body[data-journal-scene] .facility-content{font-family:var(--w-body);font-size:16px;line-height:1.6;background:var(--w-parchment);color:var(--w-ink-dark)}
+body[data-journal-scene] .facility-content :is(h1,h2,h3){font-family:var(--w-pixel);color:var(--w-ink-dark);text-shadow:none}
+body[data-journal-scene] .facility-content :is(p,span,small,label,li,dt,dd){font-size:14px;color:var(--w-ink-dark)}
+body[data-journal-scene] .facility-content #museumMain{width:100%;margin:0;padding:8px;max-width:none}
+body[data-journal-scene] .facility-content :is(.museum-panel,.museum-metric,.museum-empty,.share-controls,.share-preview,.identity-certificate){background:var(--w-parchment-hi);color:var(--w-ink-dark);border:3px solid var(--w-frame);box-shadow:none;border-radius:3px}
+body[data-journal-scene] .facility-content :is(#museumStatus,#growthStatus){background:var(--w-wood-deep);color:var(--w-ink);font-size:14px}
+body[data-journal-scene] .facility-content :is(button,input,select,textarea){font:16px var(--w-body);min-height:44px;border:2px solid var(--w-frame);border-radius:3px;max-width:100%}
+body[data-journal-scene] .facility-content :is(input,select,textarea){background:var(--w-parchment-hi);color:var(--w-ink-dark)}
+body[data-journal-scene] .facility-content button{font-family:var(--w-pixel);background:var(--w-wood-dark);color:var(--w-ink);padding:8px 12px;cursor:pointer}
+body[data-journal-scene] .facility-content button[disabled]{opacity:.6;cursor:default}
+body[data-journal-scene] .facility-content .museum-nav a{color:var(--w-ink);font-size:14px;background:var(--w-wood-dark)}
+body[data-journal-scene] .facility-content .museum-nav a[aria-current]{background:var(--w-gold);color:var(--w-ink-dark)}
+body[data-journal-scene] .facility-content :is(.museum-meter,.museum-bar){background:var(--w-gold-deep)}
+body[data-journal-scene] .facility-content canvas{max-width:100%;height:auto}
+body[data-journal-scene] .museum-footer{background:var(--w-wood-deep);color:var(--w-ink);padding:12px;font-size:14px}
+body[data-journal-scene] .museum-footer a{color:var(--w-ink);min-height:44px;display:inline-flex;align-items:center}
+@media(max-width:480px){body[data-journal-scene] .facility-content{padding:4px}body[data-journal-scene] .facility-status{line-height:1.4;padding:8px}}
+body[data-journal-scene] .facility-content #museumDescription{color:var(--w-ink-dark)}
+body[data-journal-scene] .facility-content pre{color:var(--w-ink-dark);font-size:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+body[data-journal-scene] .facility-content strong{color:var(--w-ink-dark)}
+body[data-journal-scene] > main{display:none}

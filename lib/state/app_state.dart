@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,7 @@ import '../models/companion_device_link.dart';
 import '../models/avatar_profile.dart';
 import '../models/activity_ledger.dart';
 import '../models/badge_record.dart';
+import '../models/confirmed_badge_state.dart';
 import '../models/confirmed_activity_feedback.dart';
 import '../models/activity_feedback_state.dart';
 import '../models/catalog_schedule.dart';
@@ -197,6 +199,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  final _confirmedBadges = ConfirmedBadgeState();
+  StreamSubscription? _confirmedBadgeSubscription;
   StreamSubscription? _userSubscription;
   StreamSubscription? _friendsSubscription;
   StreamSubscription? _incomingRequestsSubscription;
@@ -314,6 +318,9 @@ class AppState extends ChangeNotifier {
         _activityFeedbackSubscription?.cancel();
         _activityFeedbackSubscription = null;
         final feedbackAuthGeneration = _activityFeedback.begin(user?.uid);
+        _confirmedBadgeSubscription?.cancel();
+        _confirmedBadgeSubscription = null;
+        _confirmedBadges.begin(user?.uid);
         notifyListeners();
         if (user != null) {
           _isGuestMode = false;
@@ -501,6 +508,31 @@ class AppState extends ChangeNotifier {
           },
           onError: (error) {
             debugPrint('User notification listener failed: $error');
+          },
+        );
+
+    final badgeGeneration = _confirmedBadges.begin(user.uid);
+    _confirmedBadgeSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .snapshots(includeMetadataChanges: true)
+        .listen(
+          (snapshot) {
+            if (!_confirmedBadges.isCurrent(badgeGeneration)) return;
+            _confirmedBadges.update(
+              badgeGeneration,
+              documentId: snapshot.id,
+              data: snapshot.exists ? snapshot.data() : null,
+              fromCache: snapshot.metadata.isFromCache,
+              pendingWrites: snapshot.metadata.hasPendingWrites,
+              now: DateTime.now(),
+            );
+            notifyListeners();
+          },
+          onError: (Object error) {
+            if (!_confirmedBadges.isCurrent(badgeGeneration)) return;
+            _confirmedBadges.fail(badgeGeneration);
+            notifyListeners();
           },
         );
 
@@ -884,9 +916,8 @@ class AppState extends ChangeNotifier {
 
   bool _isActiveShopItem(Map<String, dynamic> data) {
     if (data['status'] != 'published') return false;
-    return _catalogSchedule(
-      data,
-    ).activeAt(DateTime.now().millisecondsSinceEpoch ~/ 1000);
+    return _catalogSchedule(data)
+        .activeAt(DateTime.now().millisecondsSinceEpoch ~/ 1000);
   }
 
   /// Merges Firestore room documents into the local _studyRooms list.
@@ -1759,6 +1790,9 @@ class AppState extends ChangeNotifier {
   }
 
   void _cancelFirestoreListeners() {
+    _confirmedBadges.begin(null);
+    _confirmedBadgeSubscription?.cancel();
+    _confirmedBadgeSubscription = null;
     _activityFeedback.begin(null);
     _activityFeedbackSubscription?.cancel();
     _activityFeedbackSubscription = null;
@@ -2760,9 +2794,8 @@ class AppState extends ChangeNotifier {
   }
 
   String get currentAvatarProgressKey {
-    return AvatarCatalog.stageForIndex(
-      _avatarProfile.faceShapeIndex,
-    ).progressKey;
+    return AvatarCatalog.stageForIndex(_avatarProfile.faceShapeIndex)
+        .progressKey;
   }
 
   int get todayAvatarExperience {
@@ -3405,16 +3438,21 @@ class AppState extends ChangeNotifier {
     required String name,
     required int progress,
     required int target,
+    bool persistUnlocks = true,
+    Map<String, String>? unlockedDates,
   }) {
     final safeProgress = progress < 0 ? 0 : progress;
     final currentlyUnlocked = safeProgress >= target;
-    if (currentlyUnlocked && !_unlockedBadgeDates.containsKey(key)) {
+    if (persistUnlocks &&
+        currentlyUnlocked &&
+        !_unlockedBadgeDates.containsKey(key)) {
       _unlockedBadgeDates[key] = DateTime.now().toIso8601String();
       _saveUnlockedBadges();
     }
 
-    final unlocked = _unlockedBadgeDates.containsKey(key);
-    final unlockedAt = DateTime.tryParse(_unlockedBadgeDates[key] ?? '');
+    final dates = unlockedDates ?? _unlockedBadgeDates;
+    final unlocked = dates.containsKey(key);
+    final unlockedAt = DateTime.tryParse(dates[key] ?? '');
     final displayProgress = unlocked && safeProgress < target
         ? target
         : safeProgress;
@@ -3432,7 +3470,31 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  List<BadgeRecord> get badgeRecords {
+  List<BadgeRecord> get badgeRecords => _badgeRecordsForDisplay();
+
+  bool get areBadgeRecordsConfirmed =>
+      !_isGuestMode &&
+      _confirmedBadges.confirmed &&
+      _confirmedBadges.userId == _currentUser?.id;
+
+  List<BadgeRecord> get confirmedBadgeRecords =>
+      _confirmedBadges.project(_badgeRecordsForDisplay(persistUnlocks: false));
+
+  List<BadgeRecord> _badgeRecordsForDisplay({bool persistUnlocks = true}) {
+    BadgeRecord build({
+      required String key,
+      required String name,
+      required int progress,
+      required int target,
+    }) => _buildBadge(
+      key: key,
+      name: name,
+      progress: progress,
+      target: target,
+      persistUnlocks: persistUnlocks,
+      unlockedDates: persistUnlocks ? null : const {},
+    );
+
     final summaries = List<DailySummary>.from(_dailySummaries)
       ..sort((a, b) => a.date.compareTo(b.date));
 
@@ -3466,97 +3528,82 @@ class AppState extends ChangeNotifier {
     final joinedRoomCount = _studyRooms.isEmpty ? 0 : 1;
 
     return [
-      _buildBadge(
+      build(
         key: 'task_starter',
         name: '任務起步者',
         progress: completedTasks > 0 ? 1 : 0,
         target: 1,
       ),
-      _buildBadge(
+      build(
         key: 'focus_beginner',
         name: '專注新手',
         progress: focusMinutes,
         target: 25,
       ),
-      _buildBadge(
+      build(
         key: 'focus_streak',
         name: '專注連續者',
         progress: focusStreak,
         target: 3,
       ),
-      _buildBadge(
-        key: 'task_streak',
-        name: '任務連續者',
-        progress: taskStreak,
-        target: 3,
-      ),
-      _buildBadge(
+      build(key: 'task_streak', name: '任務連續者', progress: taskStreak, target: 3),
+      build(
         key: 'sleep_guard',
         name: '睡眠守護者',
         progress: goodSleepDays,
         target: 3,
       ),
-      _buildBadge(
+      build(
         key: 'step_master',
         name: '步數達人',
         progress: highStepDays,
         target: 3,
       ),
-      _buildBadge(
+      build(
         key: 'steady_progress',
         name: '穩定前進',
         progress: goodScoreDays,
         target: 3,
       ),
-      _buildBadge(
-        key: 'score_keeper',
-        name: '高分維持',
-        progress: avgScore,
-        target: 70,
-      ),
-      _buildBadge(
-        key: 'coin_earner',
-        name: '門檻達人',
-        progress: totalCoins,
-        target: 80,
-      ),
-      _buildBadge(
+      build(key: 'score_keeper', name: '高分維持', progress: avgScore, target: 70),
+      build(key: 'coin_earner', name: '門檻達人', progress: totalCoins, target: 80),
+      build(
         key: 'auto_tracker',
         name: '自動追蹤者',
         progress: autoTrackedCompleted,
         target: 5,
       ),
-      _buildBadge(
+      build(
         key: 'health_sync',
         name: '健康同步者',
         progress: _isHealthConnected ? 1 : 0,
         target: 1,
       ),
-      _buildBadge(
+      build(
         key: 'health_task',
         name: '健康任務實踐者',
         progress: healthTaskCompleted,
         target: 5,
       ),
-      _buildBadge(
+      build(
         key: 'room_joiner',
         name: '自律房參與者',
         progress: joinedRoomCount,
         target: 1,
       ),
-      _buildBadge(
+      build(
         key: 'room_focus',
         name: '自律房推進者',
         progress: roomFocusMinutes,
         target: 120,
       ),
-      _buildBadge(
+      build(
         key: 'room_leader',
         name: '房內領先者',
         progress: isTopInRoom ? 1 : 0,
         target: 1,
       ),
-      _buildBadge(
+      build(
         key: 'room_social',
         name: '活躍自律房',
         progress: activeRoomCount,
@@ -4421,17 +4468,15 @@ class AppState extends ChangeNotifier {
     );
     if (!enforceUnlocks) return;
     if (!isAvatarEvolutionStageUnlocked(_avatarProfile.faceShapeIndex)) {
-      final series = AvatarCatalog.stageForIndex(
-        _avatarProfile.faceShapeIndex,
-      ).series;
+      final series = AvatarCatalog.stageForIndex(_avatarProfile.faceShapeIndex)
+          .series;
       _avatarProfile = _avatarProfile.copyWith(
         faceShapeIndex: _highestUnlockedAvatarStageIndex(series: series),
       );
     }
     if (!isAvatarIconUnlocked(_avatarProfile.avatarIconIndex)) {
-      final series = AvatarCatalog.stageForIndex(
-        _avatarProfile.avatarIconIndex,
-      ).series;
+      final series = AvatarCatalog.stageForIndex(_avatarProfile.avatarIconIndex)
+          .series;
       _avatarProfile = _avatarProfile.copyWith(
         avatarIconIndex: _highestUnlockedAvatarStageIndex(series: series),
       );
@@ -5609,16 +5654,14 @@ class AppState extends ChangeNotifier {
         final firstDate = DateTime.tryParse(sortedSummaries.first.date) ?? now;
         nextWeekStartMonday = getMonday5AMOfThisWeek(firstDate);
       } else {
-        nextWeekStartMonday = getMonday5AMOfThisWeek(
-          now,
-        ).subtract(const Duration(days: 7));
+        nextWeekStartMonday = getMonday5AMOfThisWeek(now)
+            .subtract(const Duration(days: 7));
       }
     } else {
       final lastSettled = DateTime.tryParse(_lastSettledWeekMonday!);
       if (lastSettled == null) {
-        nextWeekStartMonday = getMonday5AMOfThisWeek(
-          now,
-        ).subtract(const Duration(days: 7));
+        nextWeekStartMonday = getMonday5AMOfThisWeek(now)
+            .subtract(const Duration(days: 7));
       } else {
         nextWeekStartMonday = lastSettled.add(const Duration(days: 7));
       }

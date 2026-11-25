@@ -1,6 +1,7 @@
+import '../theme/game_ui.dart';
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../state/app_state.dart';
+
 import '../theme/app_ui.dart';
 import 'today_advice_page.dart';
 import 'statistics_page.dart';
@@ -39,9 +40,8 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final accentColor = GamePalette.goldDeep;
+    final secondaryText = GamePalette.of(context).inkMuted;
     final isDark = AppUI.isDark(context);
 
     void openTasksPage() {
@@ -55,7 +55,7 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
       appBar: AppBar(
         title: const Text(
           '個人進階分析',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontFamily: 'Cubic11', fontWeight: FontWeight.bold),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50),
@@ -63,7 +63,7 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E2330) : const Color(0xFFECEBFA),
+              color: isDark ? GamePalette.woodDeep : GamePalette.inkLight,
               borderRadius: BorderRadius.circular(16),
             ),
             child: TabBar(
@@ -71,12 +71,12 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
               indicator: BoxDecoration(
-                color: isDark ? const Color(0xFF2E3548) : Colors.white,
+                color: isDark ? GamePalette.woodDark : GamePalette.inkLight,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   if (!isDark)
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: GamePalette.inkDark.withValues(alpha: 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -85,6 +85,7 @@ class _PersonalAnalysisPageState extends State<PersonalAnalysisPage>
               labelColor: accentColor,
               unselectedLabelColor: secondaryText,
               labelStyle: const TextStyle(
+                fontFamily: 'Cubic11',
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),

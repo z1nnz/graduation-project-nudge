@@ -13,7 +13,7 @@
   ];
   const SEASONS = ['winter', 'spring', 'summer', 'autumn'];
   const NPCS = [
-    { id: 'baker', name: '麵包師傅・阿麥', colors: ['#8a472e', '#f3c67a', '#fff0ce'],
+    { id: 'baker', name: '雜貨店老闆・栗子', character: 'chestnut', colors: ['#8a472e', '#f3c67a', '#fff0ce'],
       route: [[.20, .80], [.29, .70], [.35, .61], [.29, .70]],
       lines: {
         dawn: ['麵團還在醒，早安也慢慢來。', '第一爐麵包快好了，香味會先到。'],
@@ -21,7 +21,7 @@
         dusk: ['收工前把桌子擦乾淨，明天會輕鬆些。', '今天完成的一件小事，我替你記得。'],
         night: ['店門關了，明天再買也可以。', '夜深了，讓麵團和你都休息吧。'],
       } },
-    { id: 'gardener', name: '園丁奶奶・花姨', colors: ['#566e43', '#e6bf95', '#f5d1a4'],
+    { id: 'gardener', name: '園丁・苗苗', character: 'sprout', colors: ['#566e43', '#e6bf95', '#f5d1a4'],
       route: [[.67, .82], [.60, .77], [.55, .67], [.60, .77]],
       lines: {
         dawn: ['清晨的花還掛著露水，輕輕走。', '每天澆一點點水，花會自己長。'],
@@ -29,7 +29,7 @@
         dusk: ['夕陽替花園染了顏色，來坐坐。', '把今天的努力留在土裡吧。'],
         night: ['花兒睡了，我們也放慢腳步。', '月光下的花園很安靜，晚安。'],
       } },
-    { id: 'postman', name: '郵差少年・小星', colors: ['#496b9b', '#f2cba0', '#ebd6a1'],
+    { id: 'postman', name: '郵差・小信', character: 'letty', colors: ['#496b9b', '#f2cba0', '#ebd6a1'],
       route: [[.50, .62], [.56, .54], [.66, .46], [.56, .54]],
       lines: {
         dawn: ['今天第一封信，要送給剛起床的你。', '郵袋準備好了，我們慢慢出發。'],
@@ -96,7 +96,7 @@
     const t = cycle - index;
     const a = route[index], b = route[(index + 1) % route.length];
     return { x: a[0] + (b[0] - a[0]) * t, y: a[1] + (b[1] - a[1]) * t,
-      facing: b[0] < a[0] ? 'west' : 'east' };
+      facing: Math.abs(b[0]-a[0])>Math.abs(b[1]-a[1])?(b[0]<a[0]?'west':'east'):(b[1]<a[1]?'north':'south') };
   }
 
   function npcLine(npc, phase, dayKey) {

@@ -51,7 +51,7 @@ test('migrated player pages use town chrome without old dashboard or star layers
   for (const page of migrated) {
     const html = fs.readFileSync(path.join(root, page), 'utf8');
     assert.match(html, /<body class="w-page world-page"/, page);
-    assert.match(html, /assets\/world_ui\.css\?v=2/, page);
+    assert.match(html, /assets\/world_ui\.css\?v=3/, page);
     assert.match(html, /data-town-return/, page);
     assert.match(html, /assets\/town_routes\.js/, page);
     assert.match(html, /assets\/town_return\.js/, page);
@@ -59,7 +59,7 @@ test('migrated player pages use town chrome without old dashboard or star layers
     assert.doesNotMatch(html, /class="stars(?:\s|\")/, page);
   }
   const builder = fs.readFileSync(path.join(root, 'planet-builder.html'), 'utf8');
-  assert.match(builder, /assets\/world_ui\.css\?v=2/);
+  assert.match(builder, /assets\/world_ui\.css\?v=3/);
   assert.match(builder, /data-town-return/);
   assert.equal(windowCore.windowPath('planet-builder.html', 'https://nudge.example/web/town.html'), 'planet-builder.html');
 });
