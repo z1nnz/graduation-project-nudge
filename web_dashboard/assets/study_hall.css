@@ -118,6 +118,30 @@ body[data-page="rooms"] .room-stage-count { background: var(--w-wood-dark); colo
 }
 .study-hall-viewer strong { background: var(--w-gold); color: var(--w-wood-deep); }
 .study-hall-desk-lamp { position: absolute; top: 0; left: 66%; }
+.study-hall-guide {
+  position: absolute;
+  z-index: 1;
+  top: 3%;
+  left: 4%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.study-hall-guide:focus-visible { outline: 3px solid var(--w-gold); }
+.study-hall-guide-sprite { display: block; }
+.study-hall-seat .w-sprite { margin-bottom: 8px; }
+.study-hall-book {
+  position: absolute;
+  left: 50%;
+  bottom: 13px;
+  width: 12px;
+  height: 6px;
+  transform: translateX(-50%);
+  border: 1px solid var(--w-wood-deep);
+  background: linear-gradient(90deg, var(--w-parchment-hi) 45%, var(--w-wood) 45% 55%, var(--w-parchment-hi) 55%);
+  pointer-events: none;
+}
 .study-hall-avatar { width: 32px; height: 50px; object-fit: contain; }
 .study-hall-seat:has(.study-hall-avatar) strong { position: absolute; bottom: 0; }
 @media (max-width: 480px) {

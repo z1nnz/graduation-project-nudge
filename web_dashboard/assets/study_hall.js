@@ -14,6 +14,21 @@
   const roster = ["slime", "ghost", "goblin", "snail"];
   let previousDamage;
   let clockButton;
+  const actors = [];
+  function clearActors() {
+    for (const actor of actors.splice(0)) actor.destroy();
+  }
+
+  function addActor(parent, id, animation, className, size) {
+    const element = document.createElement("span");
+    element.className = className;
+    parent.append(element);
+    actors.push(NudgeSpritePlayer.characterPlayer(element, id, { animation, size }));
+  }
+
+  addEventListener("pagehide", event => {
+    if (!event.persisted) clearActors();
+  });
   const syncClock = () => {
     if (!clockButton) return;
     const digits = roundTime.hidden ? "" : roundTime.textContent;
@@ -69,6 +84,7 @@
 
   function stop() {
     state?.unsubscribe();
+    clearActors();
     clockButton?.remove();
     clockButton = undefined;
     previousDamage = undefined;
@@ -114,8 +130,21 @@
     const chandelier = progress >= 1 ? 2 : progress >= .5 ? 1 : 0;
     stage.classList.add("is-study-hall");
     stage.style.setProperty("--hall-light", String(.68 + Math.min(online, 8) * .065));
+    clearActors();
     stage.replaceChildren(image(art + "chandelier-" + chandelier + ".png", 128, 96, "study-hall-chandelier"));
 
+    const guide = document.createElement("button");
+    guide.type = "button";
+    guide.className = "study-hall-guide";
+    guide.setAttribute("aria-label", "問問墨墨");
+    guide.setAttribute("aria-haspopup", "dialog");
+    addActor(guide, "inky", "idle", "study-hall-guide-sprite", 48);
+    guide.addEventListener("click", () => NudgeNpcDialog.open({
+      speaker: "inky",
+      lines: ["看看座位就知道誰在專注，想一起讀書就點牆上的番茄鐘。"],
+      portraitSize: 64,
+    }));
+    stage.append(guide);
     stage.append(roomClock());
     if (focusedClock) clockButton.focus({ preventScroll: true });
     if (state.available && room.roomType === "study" && Math.min(goal, scene.approvedCount) > 0) {
@@ -140,12 +169,21 @@
         data.classList.toggle("study-hall-viewer", seat.isViewer);
         const pose = seat.postureKey === "focusing" ? (room.roomType === "exercise" ? "exercise" : "read") : "sleep";
         if (occupied || seat.isViewer) {
-          const face = state.faces.get(seat.memberId) ?? 0;
-          const family = Math.floor(face / 3) * 3;
-          const sprite = seat.postureKey === "away"
-            ? "assets/avatar/characters/character_" + face + ".png"
-            : "assets/avatar/poses/pose_" + family + "_" + pose + ".png";
-          data.append(image(sprite, 32, 50, "study-hall-avatar"));
+          if (pose !== "exercise" || !occupied) {
+            const animation = !occupied ? "walk_up" : pose === "sleep" ? "sleep" : "think";
+            addActor(data, "companion", animation, "study-hall-avatar", 32);
+            if (occupied && pose === "read") {
+              const book = document.createElement("span");
+              book.className = "study-hall-book";
+              book.setAttribute("aria-hidden", "true");
+              data.append(book);
+            }
+          } else {
+            const face = state.faces.get(seat.memberId) ?? 0;
+            const family = Math.floor(face / 3) * 3;
+            const sprite = "assets/avatar/poses/pose_" + family + "_exercise.png";
+            data.append(image(sprite, 32, 50, "study-hall-avatar"));
+          }
         }
         const label = document.createElement("strong");
         label.textContent = name;
@@ -198,7 +236,8 @@
     }
     Object.assign(state, options);
     const active = state;
-    for (const seat of options.scene.seats.slice(0, 8)) {
+    const exerciseSeats = options.room.roomType === "exercise" ? options.scene.seats.slice(0, 8) : [];
+    for (const seat of exerciseSeats) {
       if (active.faces.has(seat.memberId)) continue;
       active.faces.set(seat.memberId, 0);
       options.db.collection("public_profiles").doc(seat.memberId).get().then(snapshot => {

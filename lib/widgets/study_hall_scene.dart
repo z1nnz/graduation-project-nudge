@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/avatar_profile.dart';
+import '../models/character_catalog.dart';
 import '../models/companion_pose.dart';
 import '../models/study_hall_layout.dart';
 import '../models/study_hall_seating.dart';
 import '../models/study_room_models.dart';
 import 'companion_sprite.dart';
+import 'npc_dialog.dart';
+import 'sprite_animation.dart';
 
 /// The study room as a pixel hall: members sit at their seats doing what
 /// they are doing, so "who is here" is visible instead of counted. The room
@@ -77,6 +80,25 @@ class StudyHallScene extends StatelessWidget {
                     StudyHallLayout.lanterns[lanternStage.clamp(0, 2)],
                     fit: BoxFit.contain,
                     filterQuality: FilterQuality.none,
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Semantics(
+                    label: '問問墨墨',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => NpcDialog.show(
+                        context,
+                        speaker: GameCharacters.inky,
+                        lines: const ['看看座位就知道誰在專注，想一起讀書就點牆上的番茄鐘。'],
+                      ),
+                      child: const CharacterSprite(
+                        character: GameCharacters.inky,
+                        size: 48,
+                      ),
+                    ),
                   ),
                 ),
                 for (var i = 0; i < seating.seats.length; i++)
@@ -154,6 +176,11 @@ class StudyHallScene extends StatelessWidget {
                             member.avatarProfile ?? AvatarProfile.initial(),
                         pose: pose,
                         size: size,
+                        characterAnimation: switch (pose) {
+                          CompanionPose.read => CharacterAnimation.think,
+                          CompanionPose.sleep => CharacterAnimation.sleep,
+                          _ => null,
+                        },
                       ),
                       _NameTag(text: mine ? '你' : _name(member), mine: mine),
                     ],
