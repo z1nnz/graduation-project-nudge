@@ -100,24 +100,24 @@ flutter:
     - assets/scenes/library/
     - assets/scenes/observatory/
     - assets/scenes/journal/
+    - assets/scenes/study_hall/
+    - assets/scenes/town_plaza/
+    - assets/scenes/guild_hall/
+    - assets/scenes/family_courtyard/
+    - assets/scenes/focus_tower/
+    - assets/scenes/post_office/
     - assets/scenes/
     - assets/branding/
     - assets/avatar/
     - assets/avatar/characters/
-    - assets/scenes/study_hall/
     - assets/avatar/icons/
     - assets/avatar/simple_outfits/
     - assets/avatar/accessories/
-    - assets/scenes/town_plaza/
     - assets/home/
     - assets/home/window/
-    - assets/scenes/guild_hall/
-    - assets/scenes/family_courtyard/
     - assets/avatar/poses/
     - assets/rooms/
-    - assets/scenes/focus_tower/
     - assets/ui/icons/
-    - assets/scenes/post_office/
     - assets/audio/ambient/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
