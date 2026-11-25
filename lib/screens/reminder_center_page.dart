@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/character_catalog.dart';
 import '../models/user_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../theme/game_ui.dart';
 import '../widgets/cabin_mail_art.dart';
+import '../widgets/npc_dialog.dart';
+import '../widgets/sprite_animation.dart';
 
 enum _PostOfficeObject { mailbox, alarms }
 
@@ -383,6 +386,25 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
                   fit: BoxFit.cover,
                   filterQuality: FilterQuality.none,
                   excludeFromSemantics: true,
+                ),
+              ),
+              Positioned.fill(
+                child: Center(
+                  child: Semantics(
+                    label: '與郵差小信對話',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => NpcDialog.show(
+                        context,
+                        speaker: GameCharacters.letty,
+                        lines: const ['來信請打開信箱，要設定提醒就看看鬧鐘架。'],
+                      ),
+                      child: const CharacterSprite(
+                        character: GameCharacters.letty,
+                        size: 64,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               Positioned(

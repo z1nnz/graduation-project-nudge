@@ -3,7 +3,10 @@
   const scene = document.querySelector(".post-office-scene");
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   const guide = scene.querySelector("[data-post-office-guide]");
-  const dialog = document.querySelector(".post-office-dialog");
+  const letty = NudgeSpritePlayer.characterPlayer(guide.querySelector(".post-office-actor"), "letty", { size: 64 });
+  addEventListener("pagehide", event => {
+    if (!event.persisted) letty.destroy();
+  });
   let frame;
   let visible = false;
   let tick = -1;
@@ -30,8 +33,12 @@
   }).observe(scene);
   motion.addEventListener("change", sync);
   document.addEventListener("visibilitychange", sync);
-  guide.addEventListener("click", () => dialog.showModal());
-  dialog.addEventListener("close", () => guide.focus());
+  guide.addEventListener("click", () => NudgeNpcDialog.open({
+    speaker: "letty",
+    lines: ["來信放在信箱，拆過的信會收進抽屜。想設定提醒時，看看鬧鐘架。"],
+    portraitSize: 64,
+    actions: [{ label: "關閉" }],
+  }));
   for (const link of scene.querySelectorAll('a[href^="#"]')) link.addEventListener("click", () => {
     const destination = document.querySelector(link.hash);
     if (destination instanceof HTMLDetailsElement) destination.open = true;

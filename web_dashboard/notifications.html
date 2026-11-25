@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="assets/plaza_scene.css?v=1" />
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/web_push.css?v=1" />
-    <link rel="stylesheet" href="assets/post_office_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/post_office_scene.css?v=2" />
   </head>
   <body class="w-page" data-page="notifications" data-social-facility="plaza">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -25,13 +25,8 @@
           <a class="w-btn post-office-object post-office-clock" href="#notificationPreferencesContainer" aria-label="打開鬧鐘架與提醒設定">鬧鐘架</a>
           <a class="w-btn post-office-object post-office-push" href="#webPushTitle">推播設定</a>
           <span class="post-office-lamp" aria-hidden="true"></span>
-          <button class="w-btn post-office-object post-office-npc" type="button" aria-label="小信，郵局嚮導" aria-haspopup="dialog" data-post-office-guide>小信</button>
+          <button class="w-btn post-office-object post-office-npc" type="button" aria-label="小信，郵局嚮導" aria-haspopup="dialog" data-post-office-guide><span class="post-office-actor" aria-hidden="true"></span>小信</button>
         </section>
-        <dialog class="w-parchment post-office-dialog" aria-label="郵局嚮導">
-          <h2>小信</h2>
-          <p>來信放在信箱，拆過的信會收進抽屜。想設定提醒時，看看鬧鐘架。</p>
-          <form method="dialog"><button class="w-btn">關閉</button></form>
-        </dialog>
         <header class="w-parchment">
           <div>
             <span class="eyebrow">Notification Center</span>
@@ -113,7 +108,9 @@
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/app.js?v=30"></script>
-    <script src="assets/post_office_scene.js?v=1"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/post_office_scene.js?v=2"></script>
     <script>
       // The actual rendering logic will be hooked into app.js
     </script>

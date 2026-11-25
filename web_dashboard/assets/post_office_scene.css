@@ -16,19 +16,13 @@
 @media (prefers-reduced-motion: reduce) { .post-office-object { transition: none; } }
 .post-office-clock { left: 73%; top: 60%; }
 .post-office-push { left: 53%; top: 84%; }
-.post-office-npc { left: 50%; top: 27%; }
-.post-office-npc::before {
+.post-office-npc { left: 50%; top: 34%; }
+.post-office-actor {
   position: absolute;
-  content: "";
-  display: block;
-  inset: -22px auto auto calc(50% - 10px);
-  height: 20px;
-  width: 20px;
-  border: 2px solid var(--w-gold);
-  background: var(--w-wood-deep);
+  bottom: calc(100% - 4px);
+  left: 50%;
+  transform: translateX(-50%);
 }
-.post-office-dialog { width: min(30rem, 100% - 1.5rem); padding: 1rem; }
-.post-office-dialog::backdrop { background: var(--w-night); opacity: .72; }
 .post-office-lamp {
   position: absolute;
   left: 12%;

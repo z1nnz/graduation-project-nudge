@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/screens/reminder_center_page.dart';
 import 'package:nudge/state/app_state.dart';
+import 'package:nudge/widgets/npc_dialog.dart';
+import 'package:nudge/widgets/sprite_animation.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -18,12 +20,25 @@ void main() {
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
         value: state,
-        child: const MaterialApp(home: ReminderCenterPage()),
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: child!,
+          ),
+          home: const ReminderCenterPage(),
+        ),
       ),
     );
     expect(find.bySemanticsLabel('查看郵局裡的鬧鐘架'), findsOneWidget);
     expect(find.bySemanticsLabel('打開郵局裡的信箱'), findsOneWidget);
     expect(find.byType(Switch), findsNothing);
+    final postman = find.byType(CharacterSprite);
+    expect(tester.widget<CharacterSprite>(postman).character.id, 'letty');
+    await tester.tap(postman);
+    await tester.pumpAndSettle();
+    expect(find.byType(NpcDialog), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('打開信箱'));
     await tester.pumpAndSettle();
     expect(find.text('站內通知'), findsOneWidget);
