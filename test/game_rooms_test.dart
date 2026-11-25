@@ -53,4 +53,32 @@ void main() {
       },
     );
   }
+
+  testWidgets('tablets get the landscape room with its own spots', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
+        home: const WorkshopPage(),
+      ),
+    );
+    await tester.pump();
+    final images = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((i) => (i.image as AssetImage).assetName);
+    expect(images, contains('assets/scenes/workshop/workshop_wide.webp'));
+    final bell = tester.getRect(
+      find.byKey(const ValueKey('scene-object-bell')),
+    );
+    expect(bell.width, greaterThanOrEqualTo(44));
+    expect(tester.takeException(), isNull);
+  });
 }

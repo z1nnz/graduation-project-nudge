@@ -1,5 +1,6 @@
 import '../models/cabin_parcels.dart';
 import 'game_rooms.dart';
+import 'garden_park_pages.dart';
 import 'store_scene_page.dart';
 import 'collection_book_page.dart';
 import 'package:flutter/material.dart';
@@ -155,6 +156,8 @@ class HomePage extends StatelessWidget {
                 'character' => const CharacterPage(),
                 'shop' => const StoreScenePage(),
                 'commission' => const CommissionHallPage(),
+                'garden' => const GardenScenePage(),
+                'park' => const ParkScenePage(),
                 'health' => const HealthPage(),
                 'calendar' => const CalendarPage(),
                 'stats' => const PersonalAnalysisPage(),

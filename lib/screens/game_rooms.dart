@@ -29,6 +29,32 @@ class CommissionHallPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     body: SceneRoom(
       art: 'assets/scenes/board/board.webp',
+      wide: const SceneWideLayout(
+        art: 'assets/scenes/board/board_wide.webp',
+        npcAt: Offset(0.36, 0.92),
+        rects: {
+          'board': Rect.fromLTWH(0.21, 0.18, 0.47, 0.4),
+          'desk': Rect.fromLTWH(0.63, 0.6, 0.3, 0.24),
+          'clock': Rect.fromLTWH(0.08, 0.02, 0.1, 0.16),
+          'map': Rect.fromLTWH(0.73, 0.25, 0.18, 0.3),
+        },
+        effects: [
+          SceneEffect.flicker([
+            Offset(0.5, 0.07),
+            Offset(0.94, 0.22),
+            Offset(0.72, 0.63),
+          ]),
+          SceneEffect.flutter(count: 6, top: 0.2, band: 0.4),
+          SceneEffect.dust(count: 20),
+        ],
+        walkers: [
+          SceneWalker(GameCharacters.chestnut, [
+            Offset(0.25, 0.8),
+            Offset(0.55, 0.75),
+            Offset(0.45, 0.88),
+          ], speed: 0.03),
+        ],
+      ),
       title: '委託所',
       npc: GameCharacters.scroll,
       npcAt: const Offset(0.2, 0.95),
@@ -96,6 +122,27 @@ class AskScrollPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     body: SceneRoom(
       art: 'assets/scenes/board/study_nook.webp',
+      wide: const SceneWideLayout(
+        art: 'assets/scenes/board/study_nook_wide.webp',
+        npcAt: Offset(0.2, 0.92),
+        rects: {
+          'book': Rect.fromLTWH(0.32, 0.5, 0.26, 0.16),
+          'chalkboard': Rect.fromLTWH(0.4, 0.1, 0.28, 0.24),
+        },
+        effects: [
+          SceneEffect.steam([
+            Offset(0.455, 0.46),
+            Offset(0.39, 0.5),
+            Offset(0.52, 0.5),
+          ]),
+          SceneEffect.flicker([
+            Offset(0.75, 0.15),
+            Offset(0.19, 0.42),
+            Offset(0.86, 0.55),
+          ]),
+          SceneEffect.dust(count: 20),
+        ],
+      ),
       title: '問阿紙',
       npc: GameCharacters.scroll,
       npcAt: const Offset(0.22, 0.92),
@@ -134,6 +181,26 @@ class WorkshopPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     body: SceneRoom(
       art: 'assets/scenes/workshop/workshop.webp',
+      wide: const SceneWideLayout(
+        art: 'assets/scenes/workshop/workshop_wide.webp',
+        npcAt: Offset(0.2, 0.92),
+        rects: {
+          'bell': Rect.fromLTWH(0.31, 0.42, 0.08, 0.17),
+          'globe': Rect.fromLTWH(0.45, 0.41, 0.1, 0.18),
+          'key': Rect.fromLTWH(0.6, 0.38, 0.08, 0.2),
+          'shield': Rect.fromLTWH(0.7, 0.39, 0.11, 0.2),
+          'window': Rect.fromLTWH(0.8, 0.07, 0.13, 0.33),
+        },
+        effects: [
+          SceneEffect.stars(count: 10, band: 0.3),
+          SceneEffect.flicker([
+            Offset(0.58, 0.08),
+            Offset(0.07, 0.38),
+            Offset(0.95, 0.68),
+          ]),
+          SceneEffect.dust(count: 20),
+        ],
+      ),
       title: '工作室',
       npc: GameCharacters.chestnut,
       npcAt: const Offset(0.2, 0.95),
@@ -193,6 +260,26 @@ class VaultPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     body: SceneRoom(
       art: 'assets/scenes/vault/vault.webp',
+      wide: const SceneWideLayout(
+        art: 'assets/scenes/vault/vault_wide.webp',
+        npcAt: Offset(0.3, 0.9),
+        rects: {
+          'door': Rect.fromLTWH(0.4, 0.15, 0.4, 0.53),
+          'seal': Rect.fromLTWH(0.81, 0.43, 0.16, 0.39),
+        },
+        effects: [
+          SceneEffect.flicker([
+            Offset(0.37, 0.16),
+            Offset(0.81, 0.16),
+          ], radius: 0.04),
+          SceneEffect.sparkle([
+            Offset(0.86, 0.46),
+            Offset(0.94, 0.48),
+            Offset(0.72, 0.4),
+          ]),
+          SceneEffect.dust(count: 16),
+        ],
+      ),
       title: '資料保險箱',
       npc: GameCharacters.bell,
       npcAt: const Offset(0.2, 0.95),
@@ -238,6 +325,22 @@ class DeviceBenchPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     body: SceneRoom(
       art: 'assets/scenes/workbench/workbench.webp',
+      wide: const SceneWideLayout(
+        art: 'assets/scenes/workbench/workbench_wide.webp',
+        npcAt: Offset(0.2, 0.92),
+        rects: {
+          'device': Rect.fromLTWH(0.53, 0.32, 0.13, 0.15),
+          'notebook': Rect.fromLTWH(0.76, 0.38, 0.12, 0.14),
+        },
+        effects: [
+          SceneEffect.stars(count: 16, band: 0.35),
+          SceneEffect.flicker([
+            Offset(0.6, 0.38),
+            Offset(0.47, 0.3),
+          ], radius: 0.03),
+          SceneEffect.dust(count: 18),
+        ],
+      ),
       title: '裝置工作台',
       npc: GameCharacters.stella,
       npcAt: const Offset(0.2, 0.95),
