@@ -10,8 +10,11 @@
   if (!world || !doc) return;
 
   const ART_DIR = 'assets/scenes/town_world/';
-  const ART = { far: 'far_mountains.webp', forest: 'forest_trail.webp', residential: 'residential.webp',
-    lakeEast: 'lakeside_east.webp', lakeSouth: 'lakeside_south.webp', near: 'near_foliage.webp' };
+  // Ground is a seamless tile; buildings, trees and bushes are keyed sprites
+  // placed by the engine so art never disagrees with walls and doors.
+  const ART = { far: 'far_mountains.webp', grass: 'grass_tile.webp', forest: 'forest_tile.webp',
+    cottageA: 'cottage_a.png', cottageB: 'cottage_b.png', treeA: 'tree_oak.png', treeB: 'tree_pine.png',
+    bush: 'bush_flowers.png', windmill: 'windmill.png' };
   const art = {};
   for (const [key, file] of Object.entries(ART)) {
     const image = new Image();
@@ -83,20 +86,41 @@
     }
   }
 
+  // Seamless ground tile, aligned to world coordinates so it never swims.
+  const TILE = 256;
+  function tile(ctx, view, image, r) {
+    const x0 = Math.max(r.x, view.camera.x - view.width / view.scale / 2 - TILE);
+    const y0 = Math.max(r.y, view.camera.y - view.height / view.scale / 2 - TILE);
+    const x1 = Math.min(r.x + r.w, view.camera.x + view.width / view.scale / 2 + TILE);
+    const y1 = Math.min(r.y + r.h, view.camera.y + view.height / view.scale / 2 + TILE);
+    ctx.save();
+    const clip = screenRect(view, r);
+    ctx.beginPath();
+    ctx.rect(clip.x, clip.y, clip.w, clip.h);
+    ctx.clip();
+    for (let wy = Math.floor(y0 / TILE) * TILE; wy < y1; wy += TILE) {
+      for (let wx = Math.floor(x0 / TILE) * TILE; wx < x1; wx += TILE) {
+        const p = view.toScreen({ x: wx, y: wy });
+        ctx.drawImage(image, Math.floor(p.x), Math.floor(p.y), Math.ceil(TILE * view.scale) + 1, Math.ceil(TILE * view.scale) + 1);
+      }
+    }
+    ctx.restore();
+  }
+
   // ---------- district ground (art or pixel stand-in) ----------
   function drawGround(ctx, view) {
     const fills = [
-      ['forest', world.DISTRICTS[1].rects[0]], ['residential', world.DISTRICTS[2].rects[0]],
-      ['lakeEast', world.DISTRICTS[3].rects[0]], ['lakeSouth', world.DISTRICTS[3].rects[1]],
+      ['forest', world.DISTRICTS[1].rects[0]], ['grass', world.DISTRICTS[2].rects[0]],
+      ['grass', world.DISTRICTS[3].rects[0]], ['grass', world.DISTRICTS[3].rects[1]],
     ];
     for (const [key, r] of fills) {
       if (!visible(view, r)) continue;
       const s = screenRect(view, r);
-      if (ready(key)) { ctx.drawImage(art[key], s.x, s.y, s.w, s.h); continue; }
-      px(ctx, s.x, s.y, s.w, s.h, C.grass);
-      const tile = Math.max(8, Math.round(24 * view.scale));
-      for (let y = 0; y < s.h; y += tile) {
-        for (let x = (y / tile) % 2 ? tile / 2 : 0; x < s.w; x += tile * 2) px(ctx, s.x + x, s.y + y, tile / 3, tile / 3, C.grassDark);
+      if (ready(key)) { tile(ctx, view, art[key], r); continue; }
+      px(ctx, s.x, s.y, s.w, s.h, key === 'forest' ? C.grassDark : C.grass);
+      const step = Math.max(8, Math.round(24 * view.scale));
+      for (let y = 0; y < s.h; y += step) {
+        for (let x = (y / step) % 2 ? step / 2 : 0; x < s.w; x += step * 2) px(ctx, s.x + x, s.y + y, step / 3, step / 3, key === 'forest' ? C.leaf : C.grassDark);
       }
     }
     // Dirt paths joining the districts to the market roads.
@@ -130,11 +154,18 @@
     if (!visible(view, r)) return [];
     const s = screenRect(view, r);
     const u = Math.max(2, Math.round(3 * view.scale));
-    px(ctx, s.x, s.y + s.h * 0.4, s.w, s.h * 0.6, C.wall);
-    for (let i = 0; i < 6; i++) px(ctx, s.x - u + i * u, s.y + s.h * 0.4 - i * s.h * 0.066, s.w + 2 * u - i * 2 * u, s.h * 0.07, i % 2 ? C.roofDark : C.roof);
-    px(ctx, s.x + s.w * 0.44, s.y + s.h * 0.68, s.w * 0.14, s.h * 0.32, C.woodDark);
+    const spriteKey = Number(house.id.slice(1)) % 2 ? 'cottageA' : 'cottageB';
+    const sprite = ready(spriteKey) ? art[spriteKey] : null;
+    if (sprite) {
+      const h = s.w * sprite.naturalHeight / sprite.naturalWidth;
+      ctx.drawImage(sprite, Math.round(s.x), Math.round(s.y + s.h - h), Math.round(s.w), Math.round(h));
+    } else {
+      px(ctx, s.x, s.y + s.h * 0.4, s.w, s.h * 0.6, C.wall);
+      for (let i = 0; i < 6; i++) px(ctx, s.x - u + i * u, s.y + s.h * 0.4 - i * s.h * 0.066, s.w + 2 * u - i * 2 * u, s.h * 0.07, i % 2 ? C.roofDark : C.roof);
+      px(ctx, s.x + s.w * 0.44, s.y + s.h * 0.68, s.w * 0.14, s.h * 0.32, C.woodDark);
+    }
     const chimney = { x: s.x + s.w * house.chimney[0], y: s.y + s.h * 0.08 };
-    px(ctx, chimney.x, chimney.y, u * 4, s.h * 0.2, C.woodDark);
+    if (!sprite) px(ctx, chimney.x, chimney.y, u * 4, s.h * 0.2, C.woodDark);
     const time = t(now, view.reducedMotion);
     for (let i = 0; i < 3; i++) {
       const rise = view.reducedMotion ? i * 10 : ((time * 14 + i * 12) % 36);
@@ -143,7 +174,7 @@
     }
     ctx.globalAlpha = 1;
     return house.windows.map(([wx, wy], index) => ({
-      id: `${house.id}:${index}`, x: s.x + s.w * wx - u * 3, y: s.y + s.h * wy, w: u * 6, h: u * 6,
+      id: `${house.id}:${index}`, art: Boolean(sprite), x: s.x + s.w * wx - u * 3, y: s.y + s.h * wy, w: u * 6, h: u * 6,
     }));
   }
 
@@ -166,6 +197,12 @@
       if (!visible(view, tree)) continue;
       const p = view.toScreen({ x: tree.x, y: tree.y + 60 });
       const sway = Math.round(Math.sin(time * 1.4 + i) * 2) * u * 0.5;
+      const treeSprite = ready(i % 3 ? 'treeA' : 'treeB') ? art[i % 3 ? 'treeA' : 'treeB'] : null;
+      if (treeSprite) {
+        const th = 70 * view.scale, tw = th * treeSprite.naturalWidth / treeSprite.naturalHeight;
+        ctx.drawImage(treeSprite, Math.round(p.x - tw / 2 + sway), Math.round(p.y - th), Math.round(tw), Math.round(th));
+        continue;
+      }
       px(ctx, p.x - u, p.y - 18 * view.scale, u * 2, 18 * view.scale, C.trunk);
       px(ctx, p.x - 14 * view.scale + sway, p.y - 46 * view.scale, 28 * view.scale, 30 * view.scale, C.leaf);
       px(ctx, p.x - 8 * view.scale + sway, p.y - 52 * view.scale, 16 * view.scale, 10 * view.scale, C.leafLight);
@@ -240,6 +277,11 @@
       const x = ((i * 233 + shift) % span + span) % span - 100;
       const sway = Math.round(Math.sin(time * 1.8 + i) * 2) * u * 0.5;
       const y = view.height - u * 4;
+      if (ready('bush')) {
+        const bw = u * 16, bh = bw * art.bush.naturalHeight / art.bush.naturalWidth;
+        ctx.drawImage(art.bush, Math.round(x + sway), Math.round(view.height - bh * 0.7), Math.round(bw), Math.round(bh));
+        continue;
+      }
       px(ctx, x + sway, y - u * 3, u * 8, u * 7, C.leaf);
       px(ctx, x + u * 2 + sway, y - u * 5, u * 4, u * 3, C.leafLight);
       if (i % 2) px(ctx, x + u * 5 + sway, y - u * 4, u, u, '#f2a7c3');
@@ -263,7 +305,7 @@
     if (sky === 'snow') { ctx.fillStyle = 'rgba(235,235,255,0.1)'; ctx.fillRect(0, 0, view.width, view.height); }
     for (const win of windows) {
       if (!world.windowLit(win.id, view.phase, view.minutesIntoPhase, view.hour)) {
-        px(ctx, win.x, win.y, win.w, win.h, C.window);
+        if (!win.art) px(ctx, win.x, win.y, win.w, win.h, C.window);
         continue;
       }
       ctx.globalAlpha = 0.35;
@@ -285,6 +327,11 @@
   function drawMid(ctx, view, now) {
     const windows = world.HOUSES.flatMap(house => drawHouse(ctx, view, house, now));
     drawTrees(ctx, view, now);
+    if (ready('windmill')) {
+      const p = view.toScreen(world.LANDMARKS.windmill);
+      const mh = 120 * view.scale, mw = mh * art.windmill.naturalWidth / art.windmill.naturalHeight;
+      ctx.drawImage(art.windmill, Math.round(p.x - mw / 2), Math.round(p.y - mh * 0.15), Math.round(mw), Math.round(mh));
+    }
     drawWheel(ctx, view, world.LANDMARKS.windmill, 46, 4, now, 0.8, ['#e9d2a6', '#c9a46b']);
     drawWheel(ctx, view, world.LANDMARKS.waterwheel, 30, 8, now, 1.2, [C.wood, C.woodDark]);
     drawFlags(ctx, view, now);

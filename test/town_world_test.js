@@ -84,14 +84,14 @@ test('desktop and phone get separate compositions', () => {
 
 function fakeContext(log) {
   const ctx = { globalAlpha: 1, fillStyle: '', imageSmoothingEnabled: false };
-  for (const name of ['fillRect', 'drawImage', 'save', 'restore', 'beginPath', 'fill']) {
+  for (const name of ['fillRect', 'drawImage', 'save', 'restore', 'beginPath', 'fill', 'rect', 'clip']) {
     ctx[name] = (...args) => log.push([name, ...args.map(a => (typeof a === 'number' ? Math.round(a) : 'x')), ctx.fillStyle, ctx.globalAlpha]);
   }
   return ctx;
 }
 
-function loadRenderer() {
-  const sandbox = { Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } }, document: {}, Math, Object, Array };
+function loadRenderer(withArt = false) {
+  const sandbox = { Image: class { constructor() { this.complete = withArt; this.naturalWidth = withArt ? 64 : 0; this.naturalHeight = withArt ? 64 : 0; } }, document: {}, Math, Object, Array };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync('web_dashboard/assets/town_world_core.js', 'utf8'), sandbox);
@@ -146,4 +146,13 @@ test('town.html loads the living world before the town script', () => {
   assert.match(source, /worldView\.drawMid/);
   assert.match(source, /worldView\.drawFront/);
   assert.match(source, /concat\(WORLD_BLOCKERS\)/);
+});
+
+test('generated art replaces each stand-in layer once the files exist', () => {
+  const renderer = loadRenderer(true);
+  const { log } = frame(renderer, 1000, false);
+  const images = log.filter(entry => entry[0] === 'drawImage').length;
+  assert.ok(images > 20, 'ground tiles, far band, houses, trees and bushes draw from art');
+  assert.deepEqual(Object.keys(renderer.ART).sort(),
+    ['bush', 'cottageA', 'cottageB', 'far', 'forest', 'grass', 'treeA', 'treeB', 'windmill']);
 });
