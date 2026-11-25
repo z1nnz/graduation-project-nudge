@@ -91,6 +91,7 @@
 | `admin_dashboard.html` | 營運後台（目錄、裝置指派） | 公開頁；寫入經 `manageCatalogItem`、`manageDeviceAssignment`，由 Cloud 檢查營運身分 | cloud | 其他工具 | 小鎮廣場 |
 | `research.html`、`research-anonymized.html`、`research-scenario.html`、`research-score-demo.html` | 研究與展示 | 登入 | demo | 其他工具 | 小鎮廣場 |
 | `presentation.html` | 專題發表流程 | 登入 | demo | 其他工具 | 小鎮廣場 |
+| `characters-demo.html` | 小鎮居民動畫（夥伴與 NPC 的 sprite sheet、對話框） | 公開 | static | 其他工具 | 小鎮廣場 |
 
 ## 已知風險
 

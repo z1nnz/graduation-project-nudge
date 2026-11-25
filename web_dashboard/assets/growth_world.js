@@ -20,7 +20,7 @@
     doc.addEventListener('firebase-ready',boot);
     root.addEventListener('pagehide',()=>{++version;active=false;off?.();off=null;stop();stop=()=>{};doc.dispatchEvent(new Event('growth-clear'));});
     root.addEventListener('pageshow',boot);
-    if(!root.firebase?.apps?.length){const s=el('script',null,{src:'assets/app.js?v=30&surface=growth-world-1'});s.onerror=()=>say('連線未就緒，請重新整理。');doc.head.append(s);}boot();
+    if(!root.firebase?.apps?.length&&!doc.querySelector('script[src^="assets/app.js"]')){const s=el('script',null,{src:'assets/app.js?v=30&surface=growth-world-1'});s.onerror=()=>{s.remove();say('連線未就緒，請重新整理。');};doc.head.append(s);}boot();
   }
   async function sessions(ctx,start,end){
     const now=new Date().toISOString();
