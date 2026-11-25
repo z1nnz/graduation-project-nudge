@@ -153,6 +153,38 @@
         g.fillRect((x + cw * 0.5) | 0, (y + ch * 0.15) | 0, (cw * 0.35) | 0, (ch * 0.85) | 0);
       }
     },
+    // Fountain: droplets arcing out of each jet and ripple rings in the basin.
+    fountain(g, w, h, f, o) {
+      const k = o.scale || 1;
+      for (const [j, p] of (o.points || []).entries()) {
+        const x0 = p[0] * w, y0 = p[1] * h, unit = w * 0.01 * k;
+        g.fillStyle = '#e6f6ff';
+        for (let i = 0; i < 14; i++) {
+          const t = ((f * 0.9 + i * 1.7 + j * 3) % 10) / 10;
+          const side = i % 2 ? 1 : -1, spread = (1 + (i % 5)) * 0.6;
+          g.globalAlpha = 0.9 - t * 0.4;
+          g.fillRect((x0 + side * spread * t * unit * 3) | 0, (y0 - (5 * t - 7 * t * t) * unit * 2) | 0, 2, 3);
+        }
+        const ring = ((f + j * 4) % 12) / 12, rx = unit * (2 + ring * 7), ry = rx * 0.35;
+        g.globalAlpha = 0.5 * (1 - ring);
+        g.fillStyle = '#c9e9ff';
+        const by = y0 + unit * (o.basin ?? 2.5);
+        g.fillRect((x0 - rx) | 0, (by - ry) | 0, (rx * 2) | 0, 1);
+        g.fillRect((x0 - rx) | 0, (by + ry) | 0, (rx * 2) | 0, 1);
+      }
+    },
+    // Chimney smoke: grey puffs rising and widening.
+    smoke(g, w, h, f, o) {
+      for (const [i, p] of (o.points || []).entries()) {
+        for (let k = 0; k < 4; k++) {
+          const t = ((f * 0.08 + k / 4 + i * 0.29) % 1);
+          g.globalAlpha = 0.32 * (1 - t);
+          g.fillStyle = o.color || '#e9e3ee';
+          const size = 4 + t * 10;
+          g.fillRect((p[0] * w + Math.sin(t * 5 + i) * 6 - size / 2) | 0, (p[1] * h - t * (o.rise ?? 0.08) * h) | 0, size | 0, (size * 0.7) | 0);
+        }
+      }
+    },
     // Lantern and window lights breathing at points.
     flicker(g, w, h, f, o) {
       for (const [i, p] of (o.points || []).entries()) {

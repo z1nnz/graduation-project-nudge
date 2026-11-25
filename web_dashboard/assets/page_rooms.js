@@ -96,6 +96,8 @@
           { type: 'clouds', top: 0.0, band: 0.1, count: 5, alpha: 0.3 },
           { type: 'birds', y: 0.08 },
           { type: 'flicker', points: [[0.33, 0.35], [0.72, 0.35], [0.48, 0.5]], radius: 0.02 },
+          { type: 'fountain', points: [[0.525, 0.5]], scale: 0.4, basin: 1.5 },
+          { type: 'flicker', points: [[0.44, 0.45], [0.47, 0.42], [0.58, 0.45], [0.6, 0.48]], radius: 0.006, color: '#ffe08a' },
           { type: 'flutter', count: 10, color: '#f0b8e6', top: 0.0, fall: 0.6, x: 0.1 },
         ],
         walkers: [
