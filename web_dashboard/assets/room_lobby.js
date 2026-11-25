@@ -55,7 +55,8 @@
       root.style.setProperty("--tower-flame", String([0.4, 0.65, 0.8, 0.6][tick % 4]));
       bird.style.transform = "translate(" + (tick % 65) + "vw," + [0, -2, -4, -2][tick % 4] + "px)";
       if (greetingStart != null && modal.open && !gate.hidden) {
-        greeting.textContent = dialogue.slice(0, Math.floor((timestamp - greetingStart) / 36) + 1);
+        const shown = NudgeNpcDialog.typedLength(dialogue, timestamp - greetingStart);
+        greeting.textContent = dialogue.slice(0, shown);
         if (greeting.textContent === dialogue) {
           greetingStart = null;
           bell.play("idle");
