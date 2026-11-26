@@ -824,10 +824,13 @@
       ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, -pw / 2, -ph, pw, ph);
       ctx.restore();
       if (state.emoteType && now < state.emoteUntil) {
-        const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤', heart: '💗', study: '📖' }[state.emoteType];
-        ctx.font = `${Math.max(18, Math.round(20 * s))}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(icon, p.x, p.y - ph - 7 * s);
+        // #200 H2: pixel-animated emote, emoji only as a fallback.
+        if (!root.NudgeTownPixelEmotes?.draw(ctx, state.emoteType, p.x, p.y - ph - 7 * s, 22 * s, now, reducedMotion)) {
+          const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤', heart: '💗', study: '📖' }[state.emoteType];
+          ctx.font = `${Math.max(18, Math.round(20 * s))}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(icon, p.x, p.y - ph - 7 * s);
+        }
       } else if (now >= state.emoteUntil) state.emoteType = null;
     }
     root.NudgeTownHud?.setPlayer(state.player, now);
