@@ -1,12 +1,6 @@
-import 'dart:io';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nudge/models/daily_summary.dart';
-import 'package:nudge/models/user_model.dart';
 import 'package:nudge/screens/login_page.dart';
 import 'package:nudge/screens/register_page.dart';
 import 'package:nudge/screens/settings_page.dart';
@@ -15,88 +9,9 @@ import 'package:nudge/screens/my_profile_page.dart';
 import 'package:nudge/screens/about_page.dart';
 import 'package:nudge/screens/privacy_data_page.dart';
 import 'package:nudge/screens/nudge_device_page.dart';
-import 'package:nudge/screens/reminder_center_page.dart';
-import 'package:nudge/state/app_state.dart';
-import 'package:nudge/theme/game_ui.dart';
-import 'package:provider/provider.dart';
 
-DailySummary summary() => DailySummary(
-  date: DateTime.now().toIso8601String().substring(0, 10),
-  completedTasks: 2,
-  totalTasks: 3,
-  focusMinutes: 50,
-  sleepHours: 7.5,
-  steps: 4200,
-  exerciseMinutes: 20,
-  disciplineScore: 68,
-);
+import 'support/studio_test_fixture.dart';
 
-class _StudioState extends AppState {
-  @override
-  List<DailySummary> get dailySummaries => [summary()];
-  @override
-  bool get isHealthConnected => true;
-  @override
-  double get sleepHours => 7.5;
-  @override
-  int get steps => 4200;
-  @override
-  int get exerciseMinutes => 20;
-  @override
-  UserModel get currentUser => UserModel(
-    id: 'local-test',
-    username: 'fixture',
-    nickname: 'local fixture',
-    signature: '',
-    createdAt: DateTime(2026),
-    updatedAt: DateTime(2026),
-  );
-
-}
-
-Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {
-  await tester.pumpAndSettle();
-  final out = Platform.environment['NUDGE_QA_SCREENSHOT_DIR'];
-  if (out == null) return;
-  await tester.runAsync(() async {
-    final image =
-        await (key.currentContext!.findRenderObject() as RenderRepaintBoundary)
-            .toImage();
-    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    await Directory(out).create(recursive: true);
-    await File('$out/$name.png').writeAsBytes(bytes!.buffer.asUint8List());
-  });
-}
-
-Widget shell(AppState state, Widget page, GlobalKey key, bool dark) =>
-    ChangeNotifierProvider<AppState>.value(
-      value: state,
-      child: RepaintBoundary(
-        key: key,
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            brightness: dark ? Brightness.dark : Brightness.light,
-            fontFamily: 'Cubic11',
-            appBarTheme: GameTheme.appBar(),
-            textButtonTheme: GameTheme.secondaryButton(dark: dark),
-            elevatedButtonTheme: GameTheme.primaryButton(),
-            chipTheme: GameTheme.chips(dark: dark),
-            inputDecorationTheme: GameTheme.inputs(dark: dark),
-            pageTransitionsTheme: GameTheme.pageTransitions(),
-          ),
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              disableAnimations: true,
-              textScaler: TextScaler.linear(1.15),
-            ),
-            child: child!,
-          ),
-          home: page,
-        ),
-      ),
-    );
 void main() {
   setUpAll(() async {
     await (FontLoader(
@@ -115,7 +30,6 @@ void main() {
     'about': (const AboutPage(), '翻開旅程手冊'),
     'privacy': (const PrivacyDataPage(), '打開資料保險箱'),
     'device': (const NudgeDevicePage(), '操作裝置工作台'),
-    'reminders': (const ReminderCenterPage(), '調整提醒撥桿'),
   };
   for (final dark in [false, true]) {
     for (final entry in pages.entries) {
@@ -125,13 +39,15 @@ void main() {
           tester.view.physicalSize = const Size(360, 780);
           tester.view.devicePixelRatio = 1;
           addTearDown(tester.view.reset);
-          final state = _StudioState(), key = GlobalKey();
+          final semantics = tester.ensureSemantics();
+          final state = StudioTestState(), key = GlobalKey();
           await tester.pumpWidget(shell(state, entry.value.$1, key, dark));
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 80)),
           );
           await tester.pump();
           expect(find.text(entry.value.$2), findsOneWidget);
+          expect(find.bySemanticsLabel(entry.value.$2), findsWidgets);
           await capture(tester, key, 'r5-app-${entry.key}-$dark-scene');
           await tester.tap(find.text(entry.value.$2));
           await tester.pump();
@@ -148,6 +64,7 @@ void main() {
           }
           await tester.pumpWidget(const SizedBox.shrink());
           state.dispose();
+          semantics.dispose();
         },
       );
     }

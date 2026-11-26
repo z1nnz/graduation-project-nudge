@@ -695,10 +695,9 @@ class _PrivacyDataRightsCardState extends State<_PrivacyDataRightsCard> {
     final export = request.isExport;
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        export ? Icons.file_download_outlined : Icons.person_remove_outlined,
-        color: export ? GamePalette.violet : GamePalette.red,
-      ),
+      leading: export
+          ? const GameExportScroll()
+          : const Icon(Icons.person_remove_outlined, color: GamePalette.red),
       title: Text(export ? '帳號資料匯出' : '帳號刪除申請'),
       subtitle: Text(
         '${_statusLabel(request)} · 申請 ${_date(request.requestedAt)}'

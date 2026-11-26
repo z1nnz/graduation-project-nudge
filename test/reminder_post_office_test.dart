@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/screens/reminder_center_page.dart';
 import 'package:nudge/state/app_state.dart';
 import 'package:nudge/widgets/npc_dialog.dart';
+import 'package:nudge/widgets/game_pixel_switch.dart';
 import 'package:nudge/widgets/sprite_animation.dart';
 import 'package:provider/provider.dart';
 
@@ -31,7 +32,7 @@ void main() {
     );
     expect(find.bySemanticsLabel('查看郵局裡的鬧鐘架'), findsOneWidget);
     expect(find.bySemanticsLabel('打開郵局裡的信箱'), findsOneWidget);
-    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(GamePixelSwitch), findsNothing);
     final postman = find.byType(CharacterSprite);
     expect(tester.widget<CharacterSprite>(postman).character.id, 'letty');
     await tester.tap(postman);
@@ -46,8 +47,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('站內通知'), findsNothing);
     await tester.scrollUntilVisible(find.text('鬧鐘架'), 280);
-    await tester.scrollUntilVisible(find.byType(Switch).first, 180);
-    expect(find.byType(Switch), findsWidgets);
+    await tester.scrollUntilVisible(find.byType(GamePixelSwitch).first, 180);
+    expect(find.byType(GamePixelSwitch), findsWidgets);
     semantics.dispose();
   });
 }

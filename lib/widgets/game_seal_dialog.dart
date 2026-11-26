@@ -53,7 +53,8 @@ class GameSealDialog extends StatelessWidget {
 }
 
 class _SealPreview extends StatefulWidget {
-  const _SealPreview();
+  const _SealPreview({this.second = false});
+  final bool second;
   @override
   State<_SealPreview> createState() => _SealPreviewState();
 }
@@ -81,7 +82,7 @@ class _SealPreviewState extends State<_SealPreview>
     if (MediaQuery.disableAnimationsOf(context)) {
       _time.stop();
       _time.value = 0;
-    } else if (!_active || !TickerMode.of(context)) {
+    } else if (!_active || !TickerMode.valuesOf(context).enabled) {
       _time.stop();
     } else if (!_time.isAnimating && _time.value < 1) {
       _time.forward();
@@ -103,14 +104,17 @@ class _SealPreviewState extends State<_SealPreview>
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: '兩道確認封印，尚未送出',
+    label: widget.second ? '第二道確認封印，尚未送出' : '兩道確認封印，尚未送出',
     child: SizedBox(
       height: 72,
       width: 144,
       child: AnimatedBuilder(
         animation: _time,
         builder: (context, _) => CustomPaint(
-          painter: _SealPainter(frame: (_time.value * 9).floor()),
+          painter: _SealPainter(
+            frame: (_time.value * 9).floor(),
+            second: widget.second,
+          ),
         ),
       ),
     ),
@@ -118,16 +122,17 @@ class _SealPreviewState extends State<_SealPreview>
 }
 
 class _SealPainter extends CustomPainter {
-  const _SealPainter({required this.frame});
+  const _SealPainter({required this.frame, required this.second});
+  final bool second;
   final int frame;
   @override
   void paint(Canvas c, Size s) {
     final p = Paint()..color = GamePalette.woodDark;
     for (var i = 0; i < 2; i++) {
       final x = s.width * (.25 + .5 * i),
-          y = 22 + (i == 0 ? 9 - frame : 0).toDouble();
+          y = 22 + (i == (second ? 1 : 0) ? 9 - frame : 0).toDouble();
       c.drawRect(Rect.fromLTWH(x - 22, y - 2, 44, 44), p);
-      p.color = i == 0 ? GamePalette.red : GamePalette.woodDeep;
+      p.color = i == 0 || second ? GamePalette.red : GamePalette.woodDeep;
       c.drawRect(Rect.fromLTWH(x - 18, y + 2, 36, 36), p);
       p.color = GamePalette.gold;
       if (i == 0) {
@@ -140,7 +145,8 @@ class _SealPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SealPainter old) => old.frame != frame;
+  bool shouldRepaint(covariant _SealPainter old) =>
+      old.frame != frame || old.second != second;
 }
 
 class GameDeletionReasonDialog extends StatefulWidget {
@@ -174,6 +180,8 @@ class _GameDeletionReasonDialogState extends State<GameDeletionReasonDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const _SealPreview(second: true),
+        const SizedBox(height: 12),
         const Text(
           '第二道封印・正式確認',
           style: TextStyle(fontFamily: 'Cubic11', fontSize: 16),
@@ -208,4 +216,39 @@ class _GameDeletionReasonDialogState extends State<GameDeletionReasonDialog> {
       ),
     ],
   );
+}
+
+/// A receipt ornament appears only beside a real Cloud export request.
+class GameExportScroll extends StatelessWidget {
+  const GameExportScroll({super.key});
+  @override
+  Widget build(BuildContext context) => const ExcludeSemantics(
+    child: SizedBox(
+      width: 44,
+      height: 44,
+      child: CustomPaint(painter: _ExportScrollPainter()),
+    ),
+  );
+}
+
+class _ExportScrollPainter extends CustomPainter {
+  const _ExportScrollPainter();
+  @override
+  void paint(Canvas c, Size s) {
+    final p = Paint()..isAntiAlias = false;
+    p.color = GamePalette.woodDeep;
+    c.drawRect(const Rect.fromLTWH(5, 6, 34, 34), p);
+    p.color = GamePalette.parchment;
+    c.drawRect(const Rect.fromLTWH(9, 10, 26, 26), p);
+    p.color = GamePalette.gold;
+    c.drawRect(const Rect.fromLTWH(5, 5, 6, 36), p);
+    c.drawRect(const Rect.fromLTWH(33, 5, 6, 36), p);
+    p.color = GamePalette.woodDark;
+    for (var i = 0; i < 3; i++) {
+      c.drawRect(Rect.fromLTWH(15, 16 + i * 6, 14, 2), p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ExportScrollPainter old) => false;
 }

@@ -240,6 +240,7 @@ class _LoginPageState extends State<LoginPage> {
                             try {
                               await context.read<AppState>().signInWithGoogle();
                             } catch (e) {
+                              if (!mounted) return;
                               setState(() {
                                 _errorMessage = 'Google 登入失敗：$e';
                               });
@@ -278,6 +279,7 @@ class _LoginPageState extends State<LoginPage> {
                                   .read<AppState>()
                                   .signInWithFacebook();
                             } catch (e) {
+                              if (!mounted) return;
                               setState(() {
                                 _errorMessage = 'Facebook 登入失敗：$e';
                               });

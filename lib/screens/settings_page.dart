@@ -273,7 +273,7 @@ class SettingsPage extends StatelessWidget {
             label: '盾牌・隱私',
             icon: Icons.shield_outlined,
             x: .22,
-            y: .4,
+            y: .33,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PrivacyDataPage()),
