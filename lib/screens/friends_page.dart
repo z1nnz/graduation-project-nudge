@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/social_plaza_stage.dart';
+import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
 import 'package:provider/provider.dart';
 
 import '../models/avatar_profile.dart';
@@ -185,7 +186,30 @@ class _FriendsPageState extends State<FriendsPage> {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
-          const SocialPlazaStage(title: '好友長椅'),
+          LivingSceneBanner(
+            art: 'assets/scenes/town_plaza/plaza.webp',
+            aspect: 1.5,
+            title: '好友長椅',
+            npc: GameCharacters.letty,
+            npcAt: const Offset(0.72, 0.5),
+            npcLine: '好友都在下面，點一位就能去拜訪他的小屋。',
+            spots: [
+              const LivingSpot(
+                id: 'bench',
+                label: '長椅',
+                rect: Rect.fromLTWH(0.82, 0.7, 0.16, 0.16),
+                change: LivingChange.rise,
+                line: '坐下來看看大家今天的狀態吧！好友名單就在下面。',
+              ),
+              LivingSpot(
+                id: 'mailbox',
+                label: '邀請郵筒',
+                rect: const Rect.fromLTWH(0.81, 0.26, 0.12, 0.18),
+                change: LivingChange.open,
+                onArrive: () => _openAddFriendPage(context),
+              ),
+            ],
+          ),
           const SizedBox(height: AppUI.sectionGap),
           Card(
             shape: AppUI.cardShape(),

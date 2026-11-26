@@ -32,7 +32,9 @@ void main() {
     expect(find.bySemanticsLabel('查看郵局裡的鬧鐘架'), findsOneWidget);
     expect(find.bySemanticsLabel('打開郵局裡的信箱'), findsOneWidget);
     expect(find.byType(Switch), findsNothing);
-    final postman = find.byType(CharacterSprite);
+    final postman = find.byWidgetPredicate(
+      (w) => w is CharacterSprite && w.character.id == 'letty',
+    );
     expect(tester.widget<CharacterSprite>(postman).character.id, 'letty');
     await tester.tap(postman);
     await tester.pumpAndSettle();

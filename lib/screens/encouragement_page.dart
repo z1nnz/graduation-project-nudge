@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/social_plaza_stage.dart';
+import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
 import 'package:provider/provider.dart';
 import '../models/social_encouragement_record.dart';
 import '../state/app_state.dart';
@@ -93,7 +94,30 @@ class EncouragementPage extends StatelessWidget {
             ListView(
               padding: const EdgeInsets.all(AppUI.pagePadding),
               children: [
-                const SocialPlazaStage(title: '鼓勵郵筒'),
+                LivingSceneBanner(
+                  art: 'assets/scenes/post_office/post_office.webp',
+                  aspect: 1.5,
+                  title: '鼓勵郵筒',
+                  npc: GameCharacters.letty,
+                  npcAt: const Offset(0.86, 0.92),
+                  npcLine: '好友的鼓勵都會送到這裡，只用固定的句子，每封都溫暖。',
+                  spots: const [
+                    LivingSpot(
+                      id: 'desk',
+                      label: '收信桌',
+                      rect: Rect.fromLTWH(0.3, 0.48, 0.42, 0.16),
+                      change: LivingChange.open,
+                      line: '桌上是最新的鼓勵，往下看就能讀到。',
+                    ),
+                    LivingSpot(
+                      id: 'pigeonholes',
+                      label: '信格',
+                      rect: Rect.fromLTWH(0.1, 0.18, 0.25, 0.3),
+                      change: LivingChange.shake,
+                      line: '每一格都是一位好友寄來的心意。',
+                    ),
+                  ],
+                ),
                 const SizedBox(height: AppUI.sectionGap),
                 Container(
                   padding: const EdgeInsets.all(18),

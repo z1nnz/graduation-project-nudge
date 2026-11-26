@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/social_plaza_stage.dart';
+import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -88,8 +89,22 @@ class _AddFriendPageState extends State<AddFriendPage> {
           28,
         ),
         children: [
-          SocialPlazaStage(
+          LivingSceneBanner(
+            art: 'assets/scenes/town_plaza/plaza.webp',
+            aspect: 1.5,
             title: '好友邀請郵筒',
+            npc: GameCharacters.letty,
+            npcAt: const Offset(0.72, 0.5),
+            npcLine: '把邀請投進郵筒，對方同意後才會成為好友。',
+            spots: const [
+              LivingSpot(
+                id: 'mailbox',
+                label: '邀請郵筒',
+                rect: Rect.fromLTWH(0.81, 0.26, 0.12, 0.18),
+                change: LivingChange.open,
+                line: '輸入好友的 ID 或掃描 QR 碼，邀請就會投進這個郵筒。',
+              ),
+            ],
             objects: [
               if (_postedInvitations > 0)
                 TweenAnimationBuilder<double>(
