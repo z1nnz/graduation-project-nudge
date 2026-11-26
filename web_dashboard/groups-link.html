@@ -6,15 +6,14 @@
     <title>Nudge 團體組織連結</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=3" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/living_room.css?v=1" />
   </head>
-  <body data-page="groups" data-social-facility="guild">
-    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
-    <header class="scene-topbar">
-      <a data-town-return href="town.html">← 回小鎮</a>
-      <span class="scene-place" data-scene-place>團體會館</span>
-    </header>
-    <nav class="scene-nav" data-scene-nav></nav>
-    <main class="main scene-main" id="sceneMain" tabindex="-1">
+  <body class="w-page world-page" data-page="groups" data-social-facility="guild" data-living-room="groups-link">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>團體組織連結</h1></header>
+    <main class="main w-main" id="sceneMain" tabindex="-1">
         <header class="hero scene-hero">
           <div>
             <span class="eyebrow">Organization Joining</span>
@@ -50,5 +49,12 @@
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/app.js?v=31"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/scenes/social_world/living_room.js?v=1"></script>
+    <script src="assets/scenes/social_world/social_rooms.js?v=1"></script>
+    <script src="assets/scenes/social_world/living_page.js?v=1"></script>
   </body>
 </html>
