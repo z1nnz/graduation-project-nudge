@@ -800,6 +800,8 @@
     // Friends who share their walk appear here (town_crowd.js, optional).
     root.NudgeTownCrowd?.draw(ctx, { toScreen, scale: s, mapW: MAP_W, mapH: MAP_H, reducedMotion, self: state.player });
     root.NudgeTownCrowd?.report({ x: state.player.x / MAP_W, y: state.player.y / MAP_H, facing: state.face, emote: state.emoteType });
+    // #200 H3: festival decorations and town-goal fireworks (town_festival.js, optional).
+    root.NudgeTownFestival?.draw(ctx, { toScreen, scale: s, width: w, height: h, mapW: MAP_W, mapH: MAP_H, reducedMotion }, now);
     if (playerImage.complete && playerImage.naturalWidth) {
       const p = toScreen(state.player);
       const pose = avatarCore.pose(state.faceIndex, state.face, state.moving, state.walking);

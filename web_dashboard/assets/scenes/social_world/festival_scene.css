@@ -1,0 +1,12 @@
+/* #200 H3: festival decorations inside the festival plaza and town-goal scenes. */
+.living-festival { position: absolute; pointer-events: none; image-rendering: pixelated; z-index: 40; }
+.living-festival--lantern_string, .living-festival--star_garland { top: 4%; width: 46%; }
+.living-festival--lantern_string.living-festival--0, .living-festival--star_garland.living-festival--0 { left: 2%; }
+.living-festival--lantern_string.living-festival--1, .living-festival--star_garland.living-festival--1 { right: 2%; }
+.living-festival--cherry_tree { bottom: 18%; width: 16%; }
+.living-festival--snowman { bottom: 14%; width: 8%; }
+.living-festival--cherry_tree.living-festival--0, .living-festival--snowman.living-festival--0 { left: 4%; }
+.living-festival--cherry_tree.living-festival--1, .living-festival--snowman.living-festival--1 { right: 6%; }
+.living-festival--lantern_string, .living-festival--star_garland { animation: living-festival-sway 2.8s steps(4) infinite alternate; transform-origin: 50% 0; }
+@keyframes living-festival-sway { from { rotate: -1deg; } to { rotate: 1deg; } }
+@media (prefers-reduced-motion: reduce) { .living-festival { animation: none !important; } }
