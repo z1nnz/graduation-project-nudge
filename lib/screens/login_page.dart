@@ -242,7 +242,7 @@ class _LoginPageState extends State<LoginPage> {
                             // Apple Button
                             _SocialIconButton(
                               icon: Icons.apple_rounded,
-                              color: GamePalette.inkLight,
+                              color: primaryText,
                               onTap: () => _showPresentationDialog(
                                 context,
                                 'Apple 登入',
