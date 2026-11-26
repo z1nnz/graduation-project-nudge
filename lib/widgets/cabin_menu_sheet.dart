@@ -26,6 +26,24 @@ const cabinMenuItems = [
     Icons.storefront,
   ),
   CabinMenuItem(
+    'commission',
+    '委託所',
+    'assets/ui/icons/icon_quest.png',
+    Icons.assignment,
+  ),
+  CabinMenuItem(
+    'garden',
+    '花園',
+    'assets/ui/icons/icon_health.png',
+    Icons.local_florist,
+  ),
+  CabinMenuItem(
+    'park',
+    '遊樂園',
+    'assets/ui/icons/icon_room.png',
+    Icons.attractions,
+  ),
+  CabinMenuItem(
     'health',
     '健康',
     'assets/ui/icons/icon_health.png',
@@ -155,15 +173,19 @@ class _CabinMenu extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    for (final item in cabinMenuItems) _Slot(item: item),
-                  ],
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: GridView.count(
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        for (final item in cabinMenuItems) _Slot(item: item),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),

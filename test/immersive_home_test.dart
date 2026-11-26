@@ -125,6 +125,35 @@ void main() {
     expect(after.dx, lessThan(before.dx - 20));
   });
 
+  testWidgets('cabin 2.0: the lamp dims the room and the plant gets watered', (
+    tester,
+  ) async {
+    await tester.runAsync(() => _pump(tester));
+    expect(find.byKey(const Key('cabin-lamp-off')), findsNothing);
+    await tester.tap(find.byKey(const Key('cabin-lamp')));
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.byKey(const Key('cabin-lamp-off')), findsOneWidget);
+    expect(find.textContaining('關燈了'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('cabin-lamp')));
+    await tester.pump();
+    expect(find.byKey(const Key('cabin-lamp-off')), findsNothing);
+
+    final before = tester.getCenter(find.byKey(const Key('cabin-companion')));
+    await tester.tap(find.byKey(const Key('cabin-plant')));
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    final after = tester.getCenter(find.byKey(const Key('cabin-companion')));
+    expect(
+      after.dx,
+      lessThan(before.dx),
+      reason: 'the companion walks to the plant',
+    );
+    expect(find.textContaining('澆點水'), findsOneWidget);
+  });
+
   testWidgets('poking the companion cheers; long press opens the character', (
     tester,
   ) async {

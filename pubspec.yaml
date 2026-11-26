@@ -97,7 +97,24 @@ flutter:
     - assets/characters/bell/
     - assets/characters/letty/
     - assets/characters/stella/
+    - assets/scenes/library/
+    - assets/scenes/observatory/
+    - assets/scenes/journal/
+    - assets/scenes/study_hall/
+    - assets/scenes/town_plaza/
+    - assets/scenes/guild_hall/
+    - assets/scenes/family_courtyard/
+    - assets/scenes/focus_tower/
+    - assets/scenes/post_office/
+    - assets/scenes/store/
+    - assets/scenes/board/
+    - assets/scenes/garden/
+    - assets/scenes/park/
+    - assets/scenes/gate/
+    - assets/scenes/vault/
     - assets/scenes/studio/
+    - assets/scenes/workshop/
+    - assets/scenes/workbench/
     - assets/scenes/
     - assets/branding/
     - assets/avatar/
@@ -111,6 +128,7 @@ flutter:
     - assets/rooms/
     - assets/ui/icons/
     - assets/audio/ambient/
+    - assets/audio/sfx/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

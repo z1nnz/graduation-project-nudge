@@ -1,5 +1,9 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 
@@ -66,7 +70,8 @@ class ScoreExplanationPage extends StatelessWidget {
       '運動表現': exerciseScore,
     };
 
-    final sorted = scores.entries.toList()..sort((a, b) => a.value.compareTo(b.value));
+    final sorted = scores.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
     final weakest = sorted.first.key;
 
     switch (weakest) {
@@ -88,7 +93,7 @@ class ScoreExplanationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
+    final accentColor = GamePalette.goldDeep;
 
     final taskScore = _taskScore(appState);
     final focusScore = _focusScore(appState);
@@ -98,204 +103,207 @@ class ScoreExplanationPage extends StatelessWidget {
     final totalScore = _totalScore(appState);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('自律分數說明'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.20),
-                    shape: BoxShape.circle,
+      appBar: AppBar(title: const Text('自律分數說明')),
+      body: GameFacilityScene(
+        title: '自律分數手冊',
+        objectLabel: '翻開分數手冊',
+        background: 'assets/scenes/library/library_room.webp',
+        child: ListView(
+          padding: const EdgeInsets.all(AppUI.pagePadding),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: GameRecordStyle.hero(accentColor),
+              child: Row(
+                children: [
+                  Container(
+                    width: 62,
+                    height: 62,
+                    decoration: BoxDecoration(
+                      color: GamePalette.inkLight.withValues(alpha: 0.20),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_graph_outlined,
+                      color: GamePalette.inkLight,
+                      size: 30,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.auto_graph_outlined,
-                    color: Colors.white,
-                    size: 30,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '目前總分',
+                          style: TextStyle(
+                            color: GamePalette.inkLight,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '$totalScore 分',
+                          style: TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _scoreLevel(totalScore),
+                          style: TextStyle(
+                            color: GamePalette.inkLight,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUI.sectionGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.pie_chart_outline, color: accentColor),
+                        const SizedBox(width: 8),
+                        const Text('分數組成', style: AppUI.sectionTitle),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _ScoreRow(
+                      title: '任務完成',
+                      subtitle: '最高 30 分',
+                      score: taskScore,
+                      maxScore: 30,
+                      color: GamePalette.violet,
+                    ),
+                    const SizedBox(height: 12),
+                    _ScoreRow(
+                      title: '專注時間',
+                      subtitle: '最高 30 分',
+                      score: focusScore,
+                      maxScore: 30,
+                      color: GamePalette.violet,
+                    ),
+                    const SizedBox(height: 12),
+                    _ScoreRow(
+                      title: '睡眠狀態',
+                      subtitle: '最高 15 分',
+                      score: sleepScore,
+                      maxScore: 15,
+                      color: GamePalette.violet,
+                    ),
+                    const SizedBox(height: 12),
+                    _ScoreRow(
+                      title: '步數活動',
+                      subtitle: '最高 15 分',
+                      score: stepsScore,
+                      maxScore: 15,
+                      color: GamePalette.green,
+                    ),
+                    const SizedBox(height: 12),
+                    _ScoreRow(
+                      title: '運動表現',
+                      subtitle: '最高 10 分',
+                      score: exerciseScore,
+                      maxScore: 10,
+                      color: GamePalette.goldDeep,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '目前總分',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '$totalScore 分',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _scoreLevel(totalScore),
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.rule_folder_outlined, color: accentColor),
+                        const SizedBox(width: 8),
+                        const Text('計算規則', style: AppUI.sectionTitle),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const _RuleItem(text: '任務完成率會換算成最高 30 分。'),
+                    const _RuleItem(text: '專注時間以 120 分鐘為滿分基準，最高 30 分。'),
+                    const _RuleItem(text: '睡眠以 8 小時為滿分基準，最高 15 分。'),
+                    const _RuleItem(text: '步數以 8000 步為滿分基準，最高 15 分。'),
+                    const _RuleItem(text: '運動以 30 分鐘為滿分基準，最高 10 分。'),
+                    const SizedBox(height: 8),
+                    const Text('如果尚未同步健康資料，健康相關項目分數會暫時為 0。', style: AppUI.body),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.pie_chart_outline, color: accentColor),
-                      const SizedBox(width: 8),
-                      const Text('分數組成', style: AppUI.sectionTitle),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _ScoreRow(
-                    title: '任務完成',
-                    subtitle: '最高 30 分',
-                    score: taskScore,
-                    maxScore: 30,
-                    color: AppUI.primary,
-                  ),
-                  const SizedBox(height: 12),
-                  _ScoreRow(
-                    title: '專注時間',
-                    subtitle: '最高 30 分',
-                    score: focusScore,
-                    maxScore: 30,
-                    color: AppUI.blue,
-                  ),
-                  const SizedBox(height: 12),
-                  _ScoreRow(
-                    title: '睡眠狀態',
-                    subtitle: '最高 15 分',
-                    score: sleepScore,
-                    maxScore: 15,
-                    color: AppUI.purple,
-                  ),
-                  const SizedBox(height: 12),
-                  _ScoreRow(
-                    title: '步數活動',
-                    subtitle: '最高 15 分',
-                    score: stepsScore,
-                    maxScore: 15,
-                    color: AppUI.green,
-                  ),
-                  const SizedBox(height: 12),
-                  _ScoreRow(
-                    title: '運動表現',
-                    subtitle: '最高 10 分',
-                    score: exerciseScore,
-                    maxScore: 10,
-                    color: AppUI.orange,
-                  ),
-                ],
               ),
             ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.rule_folder_outlined, color: accentColor),
-                      const SizedBox(width: 8),
-                      const Text('計算規則', style: AppUI.sectionTitle),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const _RuleItem(text: '任務完成率會換算成最高 30 分。'),
-                  const _RuleItem(text: '專注時間以 120 分鐘為滿分基準，最高 30 分。'),
-                  const _RuleItem(text: '睡眠以 8 小時為滿分基準，最高 15 分。'),
-                  const _RuleItem(text: '步數以 8000 步為滿分基準，最高 15 分。'),
-                  const _RuleItem(text: '運動以 30 分鐘為滿分基準，最高 10 分。'),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '如果尚未同步健康資料，健康相關項目分數會暫時為 0。',
-                    style: AppUI.body,
-                  ),
-                ],
+            const SizedBox(height: AppUI.cardGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb_outline, color: accentColor),
+                        const SizedBox(width: 8),
+                        const Text('目前最值得補強', style: AppUI.sectionTitle),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      _scoreAdvice(appState),
+                      style: AppUI.body.copyWith(
+                        color: GamePalette.of(context).ink,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.lightbulb_outline, color: accentColor),
-                      const SizedBox(width: 8),
-                      const Text('目前最值得補強', style: AppUI.sectionTitle),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    _scoreAdvice(appState),
-                    style: AppUI.body.copyWith(color: AppUI.textPrimaryOf(context)),
-                  ),
-                ],
+            const SizedBox(height: AppUI.cardGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.trending_up, color: accentColor),
+                        const SizedBox(width: 8),
+                        const Text('快速提升分數的方法', style: AppUI.sectionTitle),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const _RuleItem(text: '先完成今天最重要的一個任務。'),
+                    const _RuleItem(text: '至少完成一輪專注。'),
+                    const _RuleItem(text: '同步健康資料，補足睡眠、步數與運動資訊。'),
+                    const _RuleItem(text: '先求穩定，不一定要一次做到滿分。'),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.trending_up, color: accentColor),
-                      const SizedBox(width: 8),
-                      const Text('快速提升分數的方法', style: AppUI.sectionTitle),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const _RuleItem(text: '先完成今天最重要的一個任務。'),
-                  const _RuleItem(text: '至少完成一輪專注。'),
-                  const _RuleItem(text: '同步健康資料，補足睡眠、步數與運動資訊。'),
-                  const _RuleItem(text: '先求穩定，不一定要一次做到滿分。'),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -329,16 +337,18 @@ class _ScoreRow extends StatelessWidget {
               child: Text(
                 title,
                 style: TextStyle(
+                  fontFamily: 'Cubic11',
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: AppUI.textPrimaryOf(context),
+                  color: GamePalette.of(context).ink,
                 ),
               ),
             ),
             Text(
               '$score / $maxScore',
               style: TextStyle(
-                fontSize: 13,
+                fontFamily: 'Cubic11',
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -349,17 +359,17 @@ class _ScoreRow extends StatelessWidget {
         Text(
           subtitle,
           style: TextStyle(
-            fontSize: 12,
-            color: AppUI.textSecondaryOf(context),
+            fontSize: 14,
+            color: GamePalette.of(context).inkMuted,
           ),
         ),
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
+          child: GameMetricGauge(
             value: progress,
             minHeight: 9,
-            backgroundColor: const Color(0xFFE5E7EB),
+            backgroundColor: GamePalette.inkLight,
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
         ),
@@ -371,9 +381,7 @@ class _ScoreRow extends StatelessWidget {
 class _RuleItem extends StatelessWidget {
   final String text;
 
-  const _RuleItem({
-    required this.text,
-  });
+  const _RuleItem({required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -387,16 +395,11 @@ class _RuleItem extends StatelessWidget {
             child: Icon(
               Icons.circle,
               size: 8,
-              color: AppUI.textSecondaryOf(context),
+              color: GamePalette.of(context).inkMuted,
             ),
           ),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: AppUI.body,
-            ),
-          ),
+          Expanded(child: Text(text, style: AppUI.body)),
         ],
       ),
     );

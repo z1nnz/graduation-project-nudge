@@ -77,7 +77,8 @@ void main() {
 
   test('every app card gets the wooden frame', () {
     final shape = AppUI.cardShape() as RoundedRectangleBorder;
-    expect(shape.side.width, 2);
+    expect(shape.side.width, 3);
+    expect(shape.borderRadius, BorderRadius.circular(AppUI.radiusCard));
     expect(shape.side.style, BorderStyle.solid);
   });
 

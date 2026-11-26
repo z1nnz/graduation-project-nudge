@@ -70,6 +70,7 @@ class _SealPreviewState extends State<_SealPreview>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();

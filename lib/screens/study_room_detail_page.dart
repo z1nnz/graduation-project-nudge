@@ -8,9 +8,67 @@ import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../widgets/study_hall_scene.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
 import '../widgets/avatar_preview.dart';
 import 'health_page.dart';
 import 'study_room_live_page.dart';
+
+class StudyRoomNoticeBoard extends StatelessWidget {
+  const StudyRoomNoticeBoard({
+    super.key,
+    required this.onSeats,
+    required this.onSettings,
+    this.seats,
+  });
+
+  final VoidCallback onSeats;
+  final VoidCallback onSettings;
+  final Widget? seats;
+
+  @override
+  Widget build(BuildContext context) {
+    final objects = Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        Semantics(
+          label: '座位上的房間成員',
+          child: GameButton(label: '查看座位', onPressed: onSeats),
+        ),
+        Semantics(
+          label: '牆上的房務告示',
+          child: GameButton(label: '房間設定', onPressed: onSettings),
+        ),
+      ],
+    );
+    if (seats != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          seats!,
+          GamePanel(child: objects),
+        ],
+      );
+    }
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/scenes/study_hall/hall.webp',
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.none,
+            excludeFromSemantics: true,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 118, 12, 12),
+          child: Center(child: objects),
+        ),
+      ],
+    );
+  }
+}
 
 class StudyRoomDetailPage extends StatelessWidget {
   final String roomId;
@@ -924,6 +982,42 @@ class StudyRoomDetailPage extends StatelessWidget {
           ),
         );
         final meAvatarProfile = _memberAvatarProfile(appState, me);
+        final visibleSeats = canEnterLiveRoom
+            ? StudyHallScene(
+                roomType: room.roomType,
+                seating: StudyHallSeating.assign([
+                  for (final member in approvedMembers)
+                    member.avatarProfile != null
+                        ? member
+                        : member.copyWith(
+                            avatarProfile: _memberAvatarProfile(
+                              appState,
+                              member,
+                            ),
+                          ),
+                ], myId: currentMemberId),
+                myId: currentMemberId,
+                lanternStage: () {
+                  final goal = room.challengeGoalSeconds;
+                  if (goal <= 0) return 0;
+                  final total = approvedMembers.fold<int>(
+                    0,
+                    (sum, m) => sum + m.todayFocusSeconds,
+                  );
+                  return total >= goal
+                      ? 2
+                      : total * 2 >= goal
+                      ? 1
+                      : 0;
+                }(),
+                onMemberTap: (_) => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StudyRoomLivePage(roomId: room.id),
+                  ),
+                ),
+              )
+            : null;
 
         return DefaultTabController(
           length: 4,
@@ -945,6 +1039,15 @@ class StudyRoomDetailPage extends StatelessWidget {
                 ListView(
                   padding: const EdgeInsets.all(AppUI.pagePadding),
                   children: [
+                    Builder(
+                      builder: (sceneContext) => StudyRoomNoticeBoard(
+                        seats: visibleSeats,
+                        onSeats: () =>
+                            DefaultTabController.of(sceneContext).animateTo(1),
+                        onSettings: () =>
+                            DefaultTabController.of(sceneContext).animateTo(3),
+                      ),
+                    ),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: AppUI.heroGradient(accent),
@@ -1189,41 +1292,6 @@ class StudyRoomDetailPage extends StatelessWidget {
 
                     const SizedBox(height: AppUI.sectionGap),
 
-                    StudyHallScene(
-                      roomType: room.roomType,
-                      seating: StudyHallSeating.assign([
-                        for (final member in approvedMembers)
-                          member.avatarProfile != null
-                              ? member
-                              : member.copyWith(
-                                  avatarProfile: _memberAvatarProfile(
-                                    appState,
-                                    member,
-                                  ),
-                                ),
-                      ], myId: currentMemberId),
-                      myId: currentMemberId,
-                      lanternStage: () {
-                        final goal = room.challengeGoalSeconds;
-                        if (goal <= 0) return 0;
-                        final total = approvedMembers.fold<int>(
-                          0,
-                          (sum, m) => sum + m.todayFocusSeconds,
-                        );
-                        return total >= goal
-                            ? 2
-                            : total * 2 >= goal
-                            ? 1
-                            : 0;
-                      }(),
-                      onMemberTap: (_) => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => StudyRoomLivePage(roomId: room.id),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppUI.sectionGap),
                     _SectionHeader(
                       title: '我的房內狀態',
                       subtitle: '查看自己在這間房的狀態與今日進度。',

@@ -44,6 +44,7 @@
     const coins = balance();
     el.textContent = state.uid ? (coins == null ? '—' : String(coins)) : '登入後顯示';
     el.dataset.count = coins == null ? '0' : String(coins);
+    doc.querySelectorAll('[data-store-coins]').forEach(n => { n.textContent = el.textContent; });
   }
 
   function listings() {
@@ -78,38 +79,68 @@
     for (const item of list) container.appendChild(card(item));
   }
 
+  // One item on a shelf: tap it to lift it up and read it, then buy.
   function card(item) {
-    const el = doc.createElement('div');
-    el.className = 'shop-item-card';
+    const el = doc.createElement('article');
+    el.className = 'shop-item-card store-slot';
     el.dataset.itemKey = item.itemKey;
-    if (item.endTime) {
-      const badge = doc.createElement('div');
-      badge.className = 'expires-badge';
-      badge.textContent = `⏳ 期限：${new Date(item.endTime * 1000).toLocaleString('zh-TW')}`;
-      el.appendChild(badge);
-    }
+    if (item.owned) el.dataset.owned = '1';
+    const lift = doc.createElement('button');
+    lift.type = 'button';
+    lift.className = 'store-lift';
+    lift.setAttribute('aria-expanded', 'false');
+    lift.setAttribute('aria-label', `拿起來看：${item.name}`);
     const image = doc.createElement('img');
     image.src = item.image;
-    image.alt = item.name;
+    image.alt = '';
     image.loading = 'lazy';
     image.addEventListener('error', () => { image.hidden = true; });
+    lift.append(image);
+    lift.addEventListener('click', () => {
+      const lifted = !el.classList.contains('is-lifted');
+      container.querySelectorAll('.store-slot.is-lifted').forEach(n => {
+        n.classList.remove('is-lifted');
+        n.querySelector('.store-lift')?.setAttribute('aria-expanded', 'false');
+      });
+      el.classList.toggle('is-lifted', lifted);
+      lift.setAttribute('aria-expanded', String(lifted));
+      if (lifted) root.dispatchEvent(new root.CustomEvent('nudge-shop-lift', { detail: { item } }));
+    });
+    if (item.endTime) {
+      const badge = doc.createElement('span');
+      badge.className = 'expires-badge';
+      badge.textContent = `限時到 ${new Date(item.endTime * 1000).toLocaleDateString('zh-TW')}`;
+      el.appendChild(badge);
+    }
     const name = doc.createElement('strong');
     name.textContent = item.name;
+    const tag = doc.createElement('span');
+    tag.className = 'store-price';
+    tag.textContent = item.owned ? '已擁有' : `${item.price} 幣`;
     const description = doc.createElement('p');
+    description.className = 'store-desc';
     description.textContent = item.description;
     const button = doc.createElement('button');
-    button.className = 'shop-btn';
+    button.className = 'shop-btn w-btn';
     button.type = 'button';
     const look = core.buttonState(item, { signedIn: Boolean(state.uid), balance: balance(), busy: state.inFlight.has(item.itemKey) });
     button.textContent = look.label;
-    button.disabled = look.disabled;
-    button.addEventListener('click', () => (look.login ? goLogin() : buy(item)));
+    // Short of coins: stay pressable so the shopkeeper can say how many are missing.
+    button.disabled = look.disabled && look.reason !== 'balance';
+    if (look.reason === 'balance') button.dataset.short = '1';
+    button.addEventListener('click', () => {
+      if (look.reason === 'balance') {
+        root.dispatchEvent(new root.CustomEvent('nudge-shop-short', { detail: { item, missing: item.price - balance() } }));
+        return;
+      }
+      if (look.login) goLogin(); else buy(item, button);
+    });
     const note = doc.createElement('p');
     note.className = 'shop-note';
     note.setAttribute('role', 'status');
     const saved = state.notes.get(item.itemKey);
     if (saved) { note.textContent = saved.text; note.dataset.tone = saved.tone; }
-    el.append(image, name, description, button, note);
+    el.append(lift, name, tag, description, button, note);
     return el;
   }
 
@@ -118,7 +149,7 @@
     root.location.href = 'login.html';
   }
 
-  async function buy(item) {
+  async function buy(item, from) {
     if (!state.uid) { goLogin(); return; }
     if (!state.inFlight.start(item.itemKey)) return; // second press while sending
     state.notes.set(item.itemKey, { text: '正在向雲端帳本兌換…', tone: '' });
@@ -139,9 +170,11 @@
         text: item.kind === 'decor' ? `${text}可以到小屋擺放。` : text,
         tone: 'ok',
       });
+      root.dispatchEvent(new root.CustomEvent('nudge-shop-purchase', { detail: { item, from, alreadyUnlocked: Boolean(result.alreadyUnlocked) } }));
     } catch (error) {
       const failure = core.purchaseError(error);
       state.notes.set(item.itemKey, { text: failure.message, tone: 'bad' });
+      root.dispatchEvent(new root.CustomEvent('nudge-shop-failed', { detail: { item, failure } }));
     } finally {
       state.inFlight.finish(item.itemKey);
       render();
@@ -155,6 +188,7 @@
     render();
   }
   doc.querySelectorAll('.shop-tab-btn').forEach(btn => btn.addEventListener('click', () => selectTab(btn.dataset.tab)));
+  root.NudgeRewardShop = Object.freeze({ selectTab, tab: () => state.tab, balance });
 
   // ---------- data ----------
   root.fetch('assets/home/home_decor_catalog.json', { cache: 'no-cache' })

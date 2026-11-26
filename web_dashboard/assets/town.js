@@ -94,6 +94,7 @@
     emoteType: null,
     emoteUntil: 0,
     static: false,
+    hovered: null,
   };
 
   const mapImage = new Image();
@@ -182,6 +183,8 @@
       }
       openPanel(b);
     });
+    button.addEventListener('focus', () => { state.hovered = b; });
+    button.addEventListener('blur', () => { state.hovered = null; });
     li.appendChild(button);
     els('townDirectoryList').appendChild(li);
     directoryButtons.set(b.id, button);
@@ -330,10 +333,13 @@
     for (const dest of routes.destinationsFor(b.id, { includePlanned: true })) {
       list.appendChild(panelEntry(dest));
     }
+    // Interior art and object spots, when the page loaded town_hall_view.js.
+    root.NudgeTownHallView?.decorate(b, els('townPanel'), list, locked);
   }
 
   function panelEntry(dest) {
     const li = doc.createElement('li');
+    li.dataset.dest = dest.id;
     const entry = routes.entryState(dest, viewer());
     let control;
     const opener = dest.scene ? routes.sceneOpener(dest.scene) : null;
@@ -380,6 +386,12 @@
   function buildingAt(p) {
     return BUILDINGS.find(b => p.x >= b.rect.x && p.x <= b.rect.x + b.rect.w && p.y >= b.rect.y && p.y <= b.rect.y + b.rect.h) || null;
   }
+
+  canvas.addEventListener('pointermove', event => {
+    const rect=canvas.getBoundingClientRect();
+    state.hovered=buildingAt(toMap(event.clientX-rect.left,event.clientY-rect.top));
+  });
+  canvas.addEventListener('pointerleave', () => { state.hovered=null; });
 
   let longPressTimer = null;
   const clearLongPress = () => { if (longPressTimer) root.clearTimeout(longPressTimer); longPressTimer = null; };
@@ -477,11 +489,11 @@
     toast(`走向${building.name}門口…`, 1600);
   });
   doc.addEventListener('nudge-town-emote', event => {
-    if (!['wave', 'cheer', 'sit', 'sleep'].includes(event.detail?.type)) return;
+    if (!['wave', 'cheer', 'sit', 'sleep', 'heart', 'study'].includes(event.detail?.type)) return;
     state.emoteType = event.detail.type;
     state.emoteUntil = performance.now() + 4000;
     state.keys.clear(); state.target = null;
-    toast({ wave: '打招呼', cheer: '歡呼', sit: '坐下', sleep: '休息一下' }[state.emoteType], 1200);
+    toast({ wave: '打招呼', cheer: '歡呼', sit: '坐下', sleep: '休息一下', heart: '比愛心', study: '認真讀書' }[state.emoteType], 1200);
   });
 
   els('townPromptEnter').addEventListener('click', () => {
@@ -489,6 +501,7 @@
     else if (state.near) enter(state.near);
   });
 
+  let actorTyping=null;
   function speakActor(actor) {
     if (state.static || state.panel || state.sceneOpen || state.tour >= 0) return;
     if (actor.id === 'owl') { startTour(); return; }
@@ -496,15 +509,22 @@
     state.lastActorId = actor.id;
     state.keys.clear(); state.target = null;
     els('townNpcName').textContent = actor.name;
-    els('townNpcLine').textContent = atmosphere.line(actor);
+    const line=atmosphere.line(actor),target=els('townNpcLine');
+    if(actorTyping)root.cancelAnimationFrame(actorTyping);
+    target.setAttribute('aria-label',line);target.setAttribute('aria-live','off');
+    const start=performance.now();
+    const type=now=>{if(doc.hidden){actorTyping=null;target.textContent=line;return;}const count=reducedMotion?line.length:Math.floor((now-start)/35);target.textContent=line.slice(0,count);if(count<line.length)actorTyping=root.requestAnimationFrame(type);else actorTyping=null;};
+    type(start);
     els('townNpcDialog').hidden = false;
     els('townNpcClose').focus({ preventScroll: true });
   }
   function closeActorDialog() {
     if (!state.actorDialog) return;
     state.actorDialog = false;
+    if(actorTyping)root.cancelAnimationFrame(actorTyping);actorTyping=null;
     els('townNpcDialog').hidden = true;
-    actorButtons.get(state.lastActorId)?.focus({ preventScroll: true });
+    const returnButton=actorButtons.get(state.lastActorId);
+    if(returnButton){returnButton.hidden=false;returnButton.focus({preventScroll:true});}
   }
   els('townNpcClose').addEventListener('click', closeActorDialog);
   els('townZoomIn').addEventListener('click', () => { zoomTouched = true; setZoom(state.zoom + 0.2); });
@@ -764,10 +784,22 @@
     ctx.fillRect(0, 0, w, h);
     if (mapImage.complete) {
       const origin = toScreen({ x: 0, y: 0 });
+      ctx.save();
+      if(['cloudy','rain'].includes(atmosphere?.weather?.().kind))ctx.filter='saturate(.35)';
       ctx.drawImage(mapImage, origin.x, origin.y, MAP_W * s, MAP_H * s);
+      ctx.restore();
     }
-    atmosphere?.draw(ctx, { width: w, height: h, mapW: MAP_W, mapH: MAP_H,
+    if(state.hovered && !reducedMotion && mapImage.complete && mapImage.naturalWidth){
+      const b=state.hovered,origin=toScreen({x:b.rect.x,y:b.rect.y}),bw=b.rect.w*s,bh=b.rect.h*s;
+      ctx.drawImage(mapImage,b.rect.x,b.rect.y,b.rect.w,b.rect.h,origin.x-bw*.015,origin.y-bh*.03,bw*1.03,bh*1.03);
+      const door=toScreen(b.door);ctx.save();ctx.fillStyle=getComputedStyle(doc.documentElement).getPropertyValue('--w-gold');ctx.globalAlpha=.5;
+      ctx.fillRect(Math.round(door.x-5*s),Math.round(door.y-20*s),10*s,18*s);ctx.restore();
+    }
+    atmosphere?.draw(ctx, { buildings: BUILDINGS, speakingActorId: state.actorDialog?state.lastActorId:null, width: w, height: h, mapW: MAP_W, mapH: MAP_H,
       toScreen, scale: s, reducedMotion, hidden: doc.hidden }, now);
+    // Friends who share their walk appear here (town_crowd.js, optional).
+    root.NudgeTownCrowd?.draw(ctx, { toScreen, scale: s, mapW: MAP_W, mapH: MAP_H, reducedMotion, self: state.player });
+    root.NudgeTownCrowd?.report({ x: state.player.x / MAP_W, y: state.player.y / MAP_H, facing: state.face, emote: state.emoteType });
     if (playerImage.complete && playerImage.naturalWidth) {
       const p = toScreen(state.player);
       const pose = avatarCore.pose(state.faceIndex, state.face, state.moving, state.walking);
@@ -792,7 +824,7 @@
       ctx.drawImage(image, crop.x, crop.y, crop.w, crop.h, -pw / 2, -ph, pw, ph);
       ctx.restore();
       if (state.emoteType && now < state.emoteUntil) {
-        const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤' }[state.emoteType];
+        const icon = { wave: '👋', cheer: '✨', sit: '🪑', sleep: '💤', heart: '💗', study: '📖' }[state.emoteType];
         ctx.font = `${Math.max(18, Math.round(20 * s))}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText(icon, p.x, p.y - ph - 7 * s);
@@ -805,6 +837,7 @@
       el.style.left = `${p.x}px`;
       el.style.top = `${Math.max(labelTop, p.y)}px`;
       el.classList.toggle('is-near', state.near === b);
+      el.classList.toggle('is-hovered', state.hovered === b);
     }
     for (const actor of actors) {
       const p = toScreen({ x: actor.x * MAP_W, y: actor.y * MAP_H });

@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
-    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/guild_calendar.css?v=1" />
     <link rel="stylesheet" href="assets/safety.css?v=1" />
+    <link rel="stylesheet" href="assets/community_ground.css?v=fb3" />
   </head>
   <body class="w-page" data-page="group-hall" data-social-facility="guild">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -19,7 +20,14 @@
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
     <main class="w-main" id="sceneMain" tabindex="-1">
-        <header class="hero scene-hero">
+        <section class="community-ground community-ground--guild" data-community-ground aria-label="團體會館">
+          <span class="community-spark" aria-hidden="true">✦</span><span class="community-light" aria-hidden="true"></span>
+          <button class="w-btn community-stop" type="button" data-community-open="calendar" style="--w-x:23%;--w-y:67%" aria-label="活動日曆">活動日曆</button>
+          <button class="w-btn community-stop" type="button" data-community-open="challenge" style="--w-x:68%;--w-y:30%" aria-label="團體挑戰">團體挑戰</button>
+          <button class="w-btn community-stop" type="button" data-community-open="office" disabled style="--w-x:81%;--w-y:67%" aria-label="辦公室">辦公室</button>
+          <button class="w-btn community-stop community-host" type="button" data-community-open="guide" aria-label="會館嚮導" aria-haspopup="dialog"><span class="community-actor" aria-hidden="true"></span>會館嚮導</button>
+        </section>
+        <header class="community-scope">
           <div>
             <span class="eyebrow">Group Hall</span>
             <h1>一起約好，各自出發</h1>
@@ -32,7 +40,9 @@
             <p>管理者無法替成員打卡或讀取未分享的個人資料。</p>
           </div>
         </header>
-        <section class="guild-calendar w-panel" data-guild-calendar hidden aria-labelledby="guildCalendarTitle">
+        <div data-community-panel="calendar" tabindex="-1" hidden>
+        <section class="guild-calendar w-parchment" data-guild-calendar hidden aria-labelledby="guildCalendarTitle">
+          <button class="w-btn" type="button" data-community-return>回會館</button>
           <header>
             <h2 id="guildCalendarTitle">團體活動行事曆</h2>
             <div class="guild-calendar-tools">
@@ -74,8 +84,22 @@
             </details>
           </div>
         </section>
+        </div>
 
-        <button type="button" class="w-btn" data-safety-group-manage hidden>管理</button>
+        <section class="w-parchment" data-community-panel="challenge" hidden tabindex="-1">
+          <button class="w-btn" type="button" data-community-return>回會館</button>
+          <h2>團體挑戰壁畫</h2>
+          <p data-community-mural-status>等候目前的挑戰。</p>
+          <div class="community-mural" data-community-mural aria-hidden="true"></div>
+          <a class="w-btn" href="groups.html">查看共同挑戰與參與進度</a>
+        </section>
+        <section class="w-parchment" data-community-panel="office" hidden tabindex="-1">
+          <button class="w-btn" type="button" data-community-return>回會館</button>
+          <h2>管理員辦公室</h2>
+          <button type="button" class="w-btn" data-safety-group-manage hidden>成員管理</button>
+          <a class="w-btn" href="groups-challenge.html">團體挑戰建立器</a>
+          <a class="w-btn" href="groups-study-schedule.html">讀書時段管理</a>
+        </section>
         <a class="w-btn" href="clubs.html">社團佈告欄</a>
         <div data-social-scene aria-live="polite"><p class="visit-empty">載入中…</p></div>
       </main>
@@ -83,11 +107,14 @@
     <script src="assets/family_link_contract.js?v=1"></script>
     <script src="assets/guild_calendar_core.js?v=1"></script>
     <script src="assets/guild_calendar.js?v=1"></script>
-    <script src="assets/family_group_scenes.js?v=3"></script>
-    <script src="assets/town_routes.js?v=5"></script>
+    <script src="assets/family_group_scenes.js?v=4"></script>
+    <script src="assets/town_routes.js?v=7"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/safety_ui.js?v=1"></script>
-    <script src="assets/app.js?v=30"></script>
+    <script src="assets/app.js?v=31"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/community_ground.js?v=2"></script>
   </body>
 </html>

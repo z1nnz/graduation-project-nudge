@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/social-scenes.css?v=1" />
     <link rel="stylesheet" href="assets/social_scene.css?v=1" />
-    <link rel="stylesheet" href="assets/world_ui.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/family_garden.css?v=1" />
     <link rel="stylesheet" href="assets/safety.css?v=1" />
+    <link rel="stylesheet" href="assets/community_ground.css?v=fb3" />
   </head>
   <body class="w-page" data-page="family-courtyard" data-social-facility="family">
     <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
@@ -19,7 +20,14 @@
     </header>
     <nav class="scene-nav" data-scene-nav></nav>
     <main class="main w-main" id="sceneMain" tabindex="-1">
-        <header class="hero scene-hero">
+        <section class="community-ground community-ground--courtyard" data-community-ground aria-label="家庭庭院">
+          <span class="community-spark" aria-hidden="true">✦</span><span class="community-light" aria-hidden="true"></span>
+          <button class="w-btn community-stop" type="button" data-community-open="garden" style="--w-x:51%;--w-y:57%" aria-label="花圃">花圃</button>
+          <button class="w-btn community-stop" type="button" data-community-open="reviews" style="--w-x:22%;--w-y:32%" aria-label="留言桌">留言桌</button>
+          <button class="w-btn community-stop" type="button" data-community-open="letters" style="--w-x:79%;--w-y:64%" aria-label="鼓勵信箱">鼓勵信箱</button>
+          <button class="w-btn community-stop community-host" type="button" data-community-open="guide" aria-label="庭院嚮導" aria-haspopup="dialog"><span class="community-actor" aria-hidden="true"></span>庭院嚮導</button>
+        </section>
+        <header class="community-scope">
           <div>
             <span class="eyebrow">Family Courtyard</span>
             <h1>在庭院裡互相照顧</h1>
@@ -33,12 +41,14 @@
           </div>
         </header>
         <div data-family-garden hidden>
-          <section class="w-parchment family-garden">
+          <section class="w-parchment family-garden" data-community-panel="garden" tabindex="-1" hidden>
+            <button class="w-btn" type="button" data-community-return>回庭院</button>
             <h2>共同花圃</h2>
             <div class="family-garden-plot" data-garden-plot aria-label="共同花圃"></div>
             <p data-garden-status role="status"></p>
           </section>
-          <section class="w-parchment family-garden">
+          <section class="w-parchment family-garden" data-community-panel="reviews" tabindex="-1" hidden>
+            <button class="w-btn" type="button" data-community-return>回庭院</button>
             <h2>每週家庭回顧</h2>
             <img class="family-review-cover" src="assets/family_garden/reflection.png" alt="" width="960" height="600" loading="lazy" />
             <p data-garden-week></p>
@@ -51,7 +61,8 @@
               <button class="w-btn" data-garden-remove type="button" hidden>刪除我的內容</button>
             </form>
           </section>
-          <section class="w-parchment family-garden">
+          <section class="w-parchment family-garden" data-community-panel="letters" tabindex="-1" hidden>
+            <button class="w-btn" type="button" data-community-return>回庭院</button>
             <h2>排程鼓勵信</h2>
             <label data-garden-optout hidden><input type="checkbox" /> 不接收排程鼓勵信</label>
             <form data-garden-letter hidden>
@@ -79,11 +90,14 @@
     <script src="assets/relationship_membership_contract.js?v=1"></script>
     <script src="assets/family_link_contract.js?v=1"></script>
     <script src="assets/family_garden.js?v=1"></script>
-    <script src="assets/family_group_scenes.js?v=3"></script>
-    <script src="assets/town_routes.js?v=5"></script>
+    <script src="assets/family_group_scenes.js?v=4"></script>
+    <script src="assets/town_routes.js?v=7"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/safety_ui.js?v=1"></script>
-    <script src="assets/app.js?v=30"></script>
+    <script src="assets/app.js?v=31"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/community_ground.js?v=2"></script>
   </body>
 </html>

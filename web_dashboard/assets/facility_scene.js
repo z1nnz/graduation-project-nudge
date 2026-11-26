@@ -7,6 +7,13 @@
     for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
     return n;
   }
+  const WIDE_ART = {
+    "assets/scenes/library/library_room.webp": "assets/scenes/library/library_wide.webp",
+    "assets/scenes/observatory/observatory_room.webp": "assets/scenes/observatory/observatory_wide.webp",
+    "assets/scenes/journal/journal_room.webp": "assets/scenes/journal/journal_room_wide.webp",
+    "assets/scenes/journal/health_cabin.webp": "assets/scenes/journal/health_cabin_wide.webp",
+    "assets/scenes/journal/letter_garden.webp": "assets/scenes/journal/letter_garden_wide.webp",
+  };
   function mount({
     title,
     background,
@@ -19,7 +26,18 @@
       class: "facility-stage",
       "aria-label": title + "場景",
     });
-    stage.style.backgroundImage = 'url("' + background + '")';
+    // Desktop gets the landscape art when there is one; phones keep portrait.
+    const pickArt = () =>
+      WIDE_ART[background] && root.innerWidth >= 860 && root.innerWidth / Math.max(1, root.innerHeight) >= 1.05
+        ? WIDE_ART[background]
+        : background;
+    const applyArt = () => {
+      const art = pickArt();
+      if (stage.dataset) stage.dataset.layout = art === background ? "tall" : "wide";
+      stage.style.backgroundImage = 'url("' + art + '")';
+    };
+    applyArt();
+    root.addEventListener?.("resize", applyArt);
     const canvas = el("canvas", null, {
       "aria-hidden": "true",
       class: "facility-life",
@@ -96,6 +114,7 @@
       size: 128,
     });
     npcButton.addEventListener("click", () => {
+      root.NudgeSfx?.play("page");
       speech = root.NudgeNpcDialog.open({ speaker: npc, lines: [guideLine] });
       const box = doc.querySelector(".w-npc-dialog");
       box?.setAttribute("aria-modal", "true");
@@ -130,7 +149,7 @@
         }),
         el("span", o.label, { class: "facility-name" }),
       );
-      b.addEventListener("click", () => (o.onSelect ? o.onSelect() : open()));
+      b.addEventListener("click", () => { root.NudgeSfx?.play("open"); return o.onSelect ? o.onSelect() : open(); });
       stage.append(b);
       return b;
     });

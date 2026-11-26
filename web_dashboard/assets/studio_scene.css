@@ -1,19 +1,4 @@
-body[data-studio-scene]{background:var(--w-night);font-size:16px}
-body[data-studio-scene] .gate-wrap{max-width:none;padding:0}
-body[data-studio-scene] .gate-wrap>main,body[data-studio-scene] .world-shell>main{display:none}
-body[data-studio-scene] .facility-content{background:var(--w-parchment);color:var(--w-ink-dark);font:16px/1.6 var(--w-body)}
-body[data-studio-scene] .facility-content>main{display:block;width:100%;max-width:none;margin:0;padding:8px}
-body[data-studio-scene] .facility-content :is(.hero,.hero-card,.panel,.gate-paper,.gate-intro){background:var(--w-parchment-hi);color:var(--w-ink-dark);border:3px solid var(--w-frame);box-shadow:none;border-radius:3px;min-width:0}
-body[data-studio-scene] .facility-content :is(h1,h2,h3,strong){color:var(--w-ink-dark);font-family:var(--w-pixel);text-shadow:none}
-body[data-studio-scene] .facility-content :is(p,span,small,label){color:var(--w-ink-dark);font-size:14px}
-body[data-studio-scene] .facility-content :is(button,input,select,textarea){min-height:44px;font-size:16px;max-width:100%;border-radius:3px}
-body[data-studio-scene] .facility-content button{background:var(--w-wood-dark);color:var(--w-ink);border:2px solid var(--w-frame);font-family:var(--w-pixel);padding:8px 12px}
-body[data-studio-scene] .facility-content input{background:var(--w-parchment-hi);color:var(--w-ink-dark);border:2px solid var(--w-frame)}
-body[data-studio-scene] .facility-content .gate-error{color:var(--w-ink-dark);border-color:var(--w-red)}
-body[data-studio-scene] .facility-object{right:8px;max-width:260px}
-body[data-studio-scene] .facility-name{white-space:normal}
-body[data-studio-scene] .facility-symbol canvas{width:96px;height:64px;image-rendering:pixelated}
-.studio-companion{position:absolute;right:13%;top:32%;pointer-events:none}
+.studio-companion{position:absolute;right:13%;top:32%;pointer-events:none;image-rendering:pixelated}
 .studio-seal-dialog{background:var(--w-parchment);color:var(--w-ink-dark);border:4px solid var(--w-wood);padding:16px;max-width:520px;width:calc(100% - 24px);font:16px/1.6 var(--w-body)}
 .studio-seal-dialog h2{font:20px var(--w-pixel);color:var(--w-ink-dark)}
 .studio-seal-dialog::backdrop{background:var(--w-night);opacity:.85}

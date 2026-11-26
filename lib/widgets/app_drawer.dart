@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/store_scene_page.dart';
 import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
@@ -9,7 +10,6 @@ import '../screens/badges_page.dart';
 import '../screens/settings_page.dart';
 import '../screens/about_page.dart';
 import '../screens/account_page.dart';
-import '../screens/avatar_shop_page.dart';
 import '../screens/calendar_page.dart';
 import '../screens/character_page.dart';
 import '../screens/health_page.dart';
@@ -278,7 +278,7 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     icon: Icons.storefront_outlined,
                     title: '造型商城',
-                    onTap: () => _openPage(context, const AvatarShopPage()),
+                    onTap: () => _openPage(context, const StoreScenePage()),
                     accentColor: accentColor,
                   ),
                   _drawerItem(

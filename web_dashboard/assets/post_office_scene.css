@@ -1,0 +1,68 @@
+.post-office-scene {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-height: 20rem;
+  aspect-ratio: 3/2;
+  border: 3px solid var(--w-frame);
+  background: var(--w-night) url("scenes/post_office/post_office.webp") center / 100% 100% no-repeat;
+  overflow: hidden;
+  image-rendering: pixelated;
+}
+.post-office-object { position: absolute; left: 22%; top: 66%; transform: translate(-50%, -50%); min-height: 44px; }
+.w-btn.post-office-object:active { transform: translate(-50%, -50%); }
+.post-office-object { touch-action: manipulation; }
+@media (prefers-reduced-motion: reduce) { .post-office-object { transition: none; } }
+.post-office-clock { left: 73%; top: 60%; }
+.post-office-push { left: 53%; top: 84%; }
+.post-office-npc { left: 50%; top: 34%; }
+.post-office-actor {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.post-office-lamp {
+  position: absolute;
+  left: 12%;
+  top: 22%;
+  width: 18%;
+  aspect-ratio: 1;
+  background: radial-gradient(var(--w-gold), transparent 74%);
+  opacity: var(--w-post-light, .5);
+  pointer-events: none;
+}
+.post-office-dust { transform: translateY(var(--w-post-dust, 0)); position: absolute; left: 47%; top: 33%; color: var(--w-gold); pointer-events: none; }
+.mailbox-envelope > summary {
+  min-height: 44px;
+  cursor: pointer;
+  padding: .55rem;
+  background: var(--w-parchment-hi);
+  border: 2px solid var(--w-frame);
+  color: var(--w-ink-dark);
+  font-family: var(--w-pixel);
+}
+.mailbox-envelope > summary::marker { color: var(--w-red); }
+.mailbox-envelope.is-unread > summary { border-inline-start: 8px solid var(--w-red); }
+.mailbox-envelope[data-kind="thanks_card"] > summary { border-inline-start-color: var(--w-violet-deep); }
+.mailbox-envelope[data-kind="town_goal_celebration"] > summary { border-inline-start-color: var(--w-gold-deep); }
+.mailbox-envelope > div { padding: .25rem .65rem .65rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .post-office-scene { animation: enter-post-office .4s ease-out; }
+  .mailbox-envelope[open] > div { animation: unfold-letter .25s ease-out; }
+  @keyframes enter-post-office { from { opacity: .5; transform: scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes unfold-letter { from { opacity: .3; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+}
+/* Later page sheets (social/plaza) reset section backgrounds; keep the post office art. */
+body .post-office-scene { background-image: url("scenes/post_office/post_office.webp") !important; background-size: cover !important; background-position: center !important; }
+
+/* Desktop: grow the scene to the window height and centre it; phones fill the width. */
+.post-office-scene {
+  inline-size: min(100vw, calc((100dvh - 64px) * 1.5));
+  max-inline-size: none;
+  position: relative;
+  left: 50%;
+  translate: -50% 0;
+}
+html:has(.post-office-scene), body:has(.post-office-scene) { overflow-x: hidden; }

@@ -6,11 +6,14 @@
     <title>Nudge 專注書桌</title>
     <link rel="stylesheet" href="assets/styles.css" />
     <link rel="stylesheet" href="assets/town_chrome.css?v=1" />
-    <link rel="stylesheet" href="assets/world_ui.css?v=2" />
-    <script defer src="assets/town_routes.js?v=5"></script>
+    <link rel="stylesheet" href="assets/world_ui.css?v=3" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=4" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/page_room.css?v=4" />
+    <script defer src="assets/town_routes.js?v=7"></script>
     <script defer src="assets/town_return.js?v=2"></script>
   </head>
-  <body class="w-page world-page" data-page="personal">
+  <body class="w-page world-page" data-page="personal" data-room-key="focus">
     <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>專注書桌</h1></header>
     <div class="world-shell">
 
@@ -52,7 +55,7 @@
 
       <div class="focus-ambient" id="hyperdriveBg" aria-hidden="true"></div>
     </div>
-    <script src="assets/app.js?v=30"></script>
+    <script src="assets/app.js?v=31"></script>
     <script src="assets/confirmed_activity_feedback.js?v=1"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
@@ -230,5 +233,11 @@
         window.addEventListener('pagehide', () => unsubscribeReceipt?.(), { once: true });
       });
     </script>
+      <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/page_rooms_home.js?v=1"></script>
+    <script src="assets/page_room.js?v=4"></script>
   </body>
 </html>

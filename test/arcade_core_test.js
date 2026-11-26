@@ -93,3 +93,21 @@ test('records are per account and compare the right way', () => {
   assert.equal(core.formatClock(300000), '5:00');
   assert.equal(core.formatClock(61001), '1:02');
 });
+
+test('everyone gets three free plays a day, reset at 05:00, plus focus bonus tickets', () => {
+  const core = require('../web_dashboard/assets/arcade_core.js');
+  const morning = new Date(2026, 10, 25, 9, 0).getTime();
+  const free = core.freeTickets(morning, []);
+  assert.equal(free.length, core.FREE_PLAYS_PER_DAY);
+  assert.ok(free.every(t => t.free && t.playMs === core.PLAY_MS_PER_TICKET));
+  // spending uses one and the next call has one fewer
+  const spent = core.spendTicket([], morning, [], { free: true });
+  assert.equal(spent.ticket.free, true);
+  assert.equal(core.freeTickets(morning, spent.used).length, core.FREE_PLAYS_PER_DAY - 1);
+  // 04:59 still counts as the previous day; 05:00 starts a fresh day
+  assert.equal(core.playDay(new Date(2026, 10, 26, 4, 59).getTime()), core.playDay(morning));
+  assert.notEqual(core.playDay(new Date(2026, 10, 26, 5, 0).getTime()), core.playDay(morning));
+  assert.equal(core.freeTickets(new Date(2026, 10, 26, 5, 0).getTime(), spent.used).length, core.FREE_PLAYS_PER_DAY);
+  // without the free option the old focus-only rule is unchanged
+  assert.equal(core.spendTicket([], morning, []), null);
+});

@@ -9,6 +9,50 @@ body[data-page="rooms"] .room-stage-panel {
 }
 body[data-page="rooms"] .room-stage-detail { color: var(--w-ink-dark) !important; }
 body[data-page="rooms"] .room-stage-count { background: var(--w-wood-dark); color: var(--w-gold); }
+.study-room-wall-clock {
+  position: absolute;
+  z-index: 1;
+  top: 11%;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--w-frame);
+  background: var(--w-wood-deep);
+  color: var(--w-gold);
+  isolation: isolate;
+  font: .875rem var(--w-pixel);
+  cursor: pointer;
+}
+.study-room-wall-clock::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 2px;
+  height: 37%;
+  left: 50%;
+  bottom: 50%;
+  background: var(--w-frame);
+  opacity: .5;
+  transform-origin: bottom;
+  transform: rotate(var(--w-clock-angle, 0deg));
+}
+.study-room-corner-monster {
+  position: absolute;
+  z-index: 1;
+  right: 2%;
+  bottom: 0;
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
+  color: var(--w-gold);
+}
+.study-room-corner-monster meter { width: 58px; accent-color: var(--w-red); }
+.study-room-corner-monster img { image-rendering: pixelated; }
+@media (prefers-reduced-motion: no-preference) {
+  .study-room-corner-monster.is-hit img { animation: study-monster-hit 260ms steps(4); }
+  @keyframes study-monster-hit { 33% { transform: translateX(-5px); } 66% { transform: translateX(4px); } }
+}
 .room-stage.is-study-hall {
   display: block;
   position: relative;
@@ -26,7 +70,7 @@ body[data-page="rooms"] .room-stage-count { background: var(--w-wood-dark); colo
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: url("study_hall/hall.png") center / 100% 100% no-repeat;
+  background: url("scenes/study_hall/hall.webp") center / 100% 100% no-repeat;
   image-rendering: pixelated;
   filter: brightness(var(--hall-light, .68));
   transition: filter 240ms ease-out;
@@ -74,6 +118,30 @@ body[data-page="rooms"] .room-stage-count { background: var(--w-wood-dark); colo
 }
 .study-hall-viewer strong { background: var(--w-gold); color: var(--w-wood-deep); }
 .study-hall-desk-lamp { position: absolute; top: 0; left: 66%; }
+.study-hall-guide {
+  position: absolute;
+  z-index: 1;
+  top: 3%;
+  left: 4%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.study-hall-guide:focus-visible { outline: 3px solid var(--w-gold); }
+.study-hall-guide-sprite { display: block; }
+.study-hall-seat .w-sprite { margin-bottom: 8px; }
+.study-hall-book {
+  position: absolute;
+  left: 50%;
+  bottom: 13px;
+  width: 12px;
+  height: 6px;
+  transform: translateX(-50%);
+  border: 1px solid var(--w-wood-deep);
+  background: linear-gradient(90deg, var(--w-parchment-hi) 45%, var(--w-wood) 45% 55%, var(--w-parchment-hi) 55%);
+  pointer-events: none;
+}
 .study-hall-avatar { width: 32px; height: 50px; object-fit: contain; }
 .study-hall-seat:has(.study-hall-avatar) strong { position: absolute; bottom: 0; }
 @media (max-width: 480px) {
@@ -85,3 +153,12 @@ body[data-page="rooms"] .room-stage-count { background: var(--w-wood-dark); colo
 @media (prefers-reduced-motion: reduce) {
   .is-study-hall::before { transition: none; }
 }
+
+/* Desktop: the study hall grows to the window height. */
+.room-stage.is-study-hall {
+  width: min(100vw, calc((100dvh - 64px) * 16 / 9));
+  max-width: none;
+  left: 50%;
+  translate: -50% 0;
+}
+html:has(.is-study-hall), body:has(.is-study-hall) { overflow-x: hidden; }

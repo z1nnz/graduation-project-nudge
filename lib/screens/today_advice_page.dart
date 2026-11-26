@@ -1,5 +1,9 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
@@ -60,9 +64,9 @@ class TodayAdvicePage extends StatelessWidget {
   }
 
   List<Map<String, dynamic>> _unfinishedFixedTasks(AppState appState) {
-    return _unfinishedTasks(
-      appState,
-    ).where((task) => (task['taskType'] ?? 'fixed') == 'fixed').toList();
+    return _unfinishedTasks(appState)
+        .where((task) => (task['taskType'] ?? 'fixed') == 'fixed')
+        .toList();
   }
 
   int _priorityRank(String p) {
@@ -297,7 +301,7 @@ class TodayAdvicePage extends StatelessWidget {
     AppState appState,
     TaskModel task,
   ) {
-    final accentColor = appState.currentIconColor;
+    final accentColor = GamePalette.goldDeep;
     final sourceLabel = TaskModel.sourceTypeToChinese(task.sourceType);
     final potentialScore = appState.taskPotentialScoreForTask(task);
     final rewardReason = appState.taskRewardReasonForTask(task);
@@ -309,8 +313,8 @@ class TodayAdvicePage extends StatelessWidget {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) {
-        final primaryText = AppUI.textPrimaryOf(context);
-        final secondaryText = AppUI.textSecondaryOf(context);
+        final primaryText = GamePalette.of(context).ink;
+        final secondaryText = GamePalette.of(context).inkMuted;
         return Padding(
           padding: EdgeInsets.fromLTRB(
             AppUI.pagePadding,
@@ -327,7 +331,7 @@ class TodayAdvicePage extends StatelessWidget {
                   Container(
                     width: 46,
                     height: 46,
-                    decoration: AppUI.softCardOf(context, accentColor),
+                    decoration: GameRecordStyle.inset(context, accentColor),
                     child: Icon(Icons.assignment_outlined, color: accentColor),
                   ),
                   const SizedBox(width: 12),
@@ -338,6 +342,7 @@ class TodayAdvicePage extends StatelessWidget {
                         Text(
                           task.title,
                           style: TextStyle(
+                            fontFamily: 'Cubic11',
                             color: primaryText,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -366,12 +371,14 @@ class TodayAdvicePage extends StatelessWidget {
                   _DetailPill(
                     label: '來源',
                     value: sourceLabel,
-                    color: AppUI.blue,
+                    color: GamePalette.violet,
                   ),
                   _DetailPill(
                     label: '狀態',
                     value: canCompleteToday ? '今日可執行' : '等待驗收',
-                    color: canCompleteToday ? AppUI.green : AppUI.orange,
+                    color: canCompleteToday
+                        ? GamePalette.green
+                        : GamePalette.goldDeep,
                   ),
                 ],
               ),
@@ -379,6 +386,7 @@ class TodayAdvicePage extends StatelessWidget {
               Text(
                 rewardReason,
                 style: TextStyle(
+                  fontFamily: 'Cubic11',
                   color: secondaryText,
                   height: 1.5,
                   fontWeight: FontWeight.w600,
@@ -397,7 +405,7 @@ class TodayAdvicePage extends StatelessWidget {
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: accentColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: GamePalette.inkLight,
                   ),
                   onPressed: () {
                     Navigator.pop(context);
@@ -417,9 +425,9 @@ class TodayAdvicePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final accentColor = GamePalette.goldDeep;
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     final urgentDeadlineTask = _highestPriorityUrgentDeadlineTask(appState);
     final topTask = _highestPriorityTask(appState);
@@ -450,325 +458,357 @@ class TodayAdvicePage extends StatelessWidget {
               : '今天可以先新增一個明確任務，讓系統開始幫你建立節奏。');
 
     final listBody = ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.20),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.tips_and_updates_outlined,
-                    color: Colors.white,
-                    size: 30,
-                  ),
+      padding: const EdgeInsets.all(AppUI.pagePadding),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: GameRecordStyle.hero(accentColor),
+          child: Row(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: GamePalette.inkLight.withValues(alpha: 0.20),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '今日建議',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                child: const Icon(
+                  Icons.tips_and_updates_outlined,
+                  color: GamePalette.inkLight,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '今日建議',
+                      style: TextStyle(
+                        color: GamePalette.inkLight,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
-                      SizedBox(height: 6),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      '根據任務優先級、截止日、專注與健康狀態，整理今天最適合先做的事情。',
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        color: GamePalette.inkLight,
+                        fontSize: 16,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [
+                  accentColor.withValues(alpha: 0.12),
+                  accentColor.withValues(alpha: 0.03),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: accentColor.withValues(alpha: 0.18),
+                    child: Icon(
+                      Icons.psychology_outlined,
+                      size: 28,
+                      color: accentColor,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AI 智能自律導師',
+                          style: TextStyle(
+                            fontFamily: 'Cubic11',
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: primaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '一鍵診斷歷史健康與專注的盲點關聯性',
+                          style: TextStyle(
+                            fontFamily: 'Cubic11',
+                            fontSize: 14,
+                            color: secondaryText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accentColor,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => _showAICoachDialog(context, appState),
+                    child: const Text(
+                      '諮詢',
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        if (mainLineTasks.isNotEmpty) ...[
+          GameArtifact(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.route_outlined, color: accentColor),
+                      const SizedBox(width: 8),
                       Text(
-                        '根據任務優先級、截止日、專注與健康狀態，整理今天最適合先做的事情。',
+                        '今日主線任務',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          height: 1.5,
-                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Cubic11',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '先處理這 ${mainLineTasks.length} 件，今天就會有清楚推進感。',
+                    style: TextStyle(
+                      fontFamily: 'Cubic11',
+                      color: secondaryText,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ...mainLineTasks.asMap().entries.map(
+                    (entry) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: entry.key == mainLineTasks.length - 1 ? 0 : 10,
+                      ),
+                      child: _MainQuestCard(
+                        index: entry.key + 1,
+                        task: entry.value,
+                        score: appState.taskPotentialScoreForTask(entry.value),
+                        reason: appState.taskRewardReasonForTask(entry.value),
+                        accentColor: accentColor,
+                        onStart: () =>
+                            _runPrimaryAction(context, appState, entry.value),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppUI.cardGap),
+        ],
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.star_border, color: accentColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      mainAdviceTitle,
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  mainAdviceContent,
+                  style: TextStyle(
+                    fontFamily: 'Cubic11',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: primaryText,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '因為目前還有未完成的中優先級固定任務，先完成一件能讓今天有進度。',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: secondaryText,
+                    height: 1.5,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  colors: [
-                    accentColor.withValues(alpha: 0.12),
-                    accentColor.withValues(alpha: 0.03),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Row(
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    CircleAvatar(
-                      radius: 26,
-                      backgroundColor: accentColor.withValues(alpha: 0.18),
-                      child: Icon(Icons.psychology_outlined, size: 28, color: accentColor),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'AI 智能自律導師',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: primaryText,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '一鍵診斷歷史健康與專注的盲點關聯性',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: secondaryText,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    Icon(Icons.bolt, color: accentColor),
                     const SizedBox(width: 8),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accentColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    Text(
+                      '現在可以做',
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
                       ),
-                      onPressed: () => _showAICoachDialog(context, appState),
-                      child: const Text('諮詢', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 14),
+                _AdviceActionCard(
+                  icon: _primaryActionIcon(weightedTask),
+                  title: _primaryActionTitle(weightedTask),
+                  subtitle: _primaryActionSubtitle(weightedTask),
+                  color: accentColor,
+                  onTap: () {
+                    _runPrimaryAction(context, appState, weightedTask);
+                  },
+                ),
+                const SizedBox(height: 12),
+                _AdviceActionCard(
+                  icon: Icons.checklist_rounded,
+                  title: '查看任務列表',
+                  subtitle: '想自己挑任務時，回任務頁整理今天的項目',
+                  color: accentColor,
+                  onTap: () {
+                    _openTasks(context);
+                  },
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppUI.cardGap),
-          if (mainLineTasks.isNotEmpty) ...[
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
+                    Icon(Icons.view_list_outlined, color: accentColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      '其他建議',
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                ...otherAdvices.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.route_outlined, color: accentColor),
-                        const SizedBox(width: 8),
-                        Text(
-                          '今日主線任務',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: primaryText,
+                        Icon(Icons.circle, size: 10, color: accentColor),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: secondaryText,
+                              height: 1.55,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '先處理這 ${mainLineTasks.length} 件，今天就會有清楚推進感。',
-                      style: TextStyle(
-                        color: secondaryText,
-                        height: 1.4,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    ...mainLineTasks.asMap().entries.map(
-                      (entry) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: entry.key == mainLineTasks.length - 1
-                              ? 0
-                              : 10,
-                        ),
-                        child: _MainQuestCard(
-                          index: entry.key + 1,
-                          task: entry.value,
-                          score: appState.taskPotentialScoreForTask(
-                            entry.value,
-                          ),
-                          reason: appState.taskRewardReasonForTask(entry.value),
-                          accentColor: accentColor,
-                          onStart: () =>
-                              _runPrimaryAction(context, appState, entry.value),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: AppUI.cardGap),
-          ],
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.star_border, color: accentColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        mainAdviceTitle,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    mainAdviceContent,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: primaryText,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '因為目前還有未完成的中優先級固定任務，先完成一件能讓今天有進度。',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: secondaryText,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.bolt, color: accentColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        '現在可以做',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _AdviceActionCard(
-                    icon: _primaryActionIcon(weightedTask),
-                    title: _primaryActionTitle(weightedTask),
-                    subtitle: _primaryActionSubtitle(weightedTask),
-                    color: accentColor,
-                    onTap: () {
-                      _runPrimaryAction(context, appState, weightedTask);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _AdviceActionCard(
-                    icon: Icons.checklist_rounded,
-                    title: '查看任務列表',
-                    subtitle: '想自己挑任務時，回任務頁整理今天的項目',
-                    color: accentColor,
-                    onTap: () {
-                      _openTasks(context);
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.view_list_outlined, color: accentColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        '其他建議',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  ...otherAdvices.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.circle, size: 10, color: accentColor),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              item,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: secondaryText,
-                                height: 1.55,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
+        ),
+      ],
+    );
 
-    if (!showAppBar) return listBody;
+    if (!showAppBar) {
+      return GameFacilityScene(
+        title: '墨墨的觀察桌',
+        objectLabel: '聽聽今日建議',
+        background: 'assets/scenes/library/library_room.webp',
+        child: listBody,
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('今日建議')),
-      body: listBody,
+      body: GameFacilityScene(
+        title: '墨墨的觀察桌',
+        objectLabel: '聽聽今日建議',
+        background: 'assets/scenes/library/library_room.webp',
+        child: listBody,
+      ),
     );
   }
 }
@@ -799,8 +839,9 @@ class _DetailPill extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppUI.textSecondaryOf(context),
-              fontSize: 12,
+              fontFamily: 'Cubic11',
+              color: GamePalette.of(context).inkMuted,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -808,6 +849,7 @@ class _DetailPill extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
+              fontFamily: 'Cubic11',
               color: color,
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -872,13 +914,13 @@ class _MainQuestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppUI.surfaceVariantOf(context),
+        color: GamePalette.of(context).backgroundBottom,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
@@ -890,7 +932,7 @@ class _MainQuestCard extends StatelessWidget {
               Container(
                 width: 42,
                 height: 42,
-                decoration: AppUI.softCardOf(context, accentColor),
+                decoration: GameRecordStyle.inset(context, accentColor),
                 child: Icon(_icon, color: accentColor),
               ),
               const SizedBox(width: 12),
@@ -901,6 +943,7 @@ class _MainQuestCard extends StatelessWidget {
                     Text(
                       '$index. ${task.title}',
                       style: TextStyle(
+                        fontFamily: 'Cubic11',
                         color: primaryText,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -910,8 +953,9 @@ class _MainQuestCard extends StatelessWidget {
                     Text(
                       reason,
                       style: TextStyle(
+                        fontFamily: 'Cubic11',
                         color: secondaryText,
-                        fontSize: 12,
+                        fontSize: 14,
                         height: 1.35,
                         fontWeight: FontWeight.w600,
                       ),
@@ -933,12 +977,12 @@ class _MainQuestCard extends StatelessWidget {
               _DetailPill(
                 label: '自律幣',
                 value: score > 0 ? '跨門檻 +3' : '額外規則',
-                color: AppUI.orange,
+                color: GamePalette.goldDeep,
               ),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
                   backgroundColor: accentColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: GamePalette.inkLight,
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -974,8 +1018,8 @@ class _AdviceActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Material(
       color: Colors.transparent,
@@ -1009,6 +1053,7 @@ class _AdviceActionCard extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
+                        fontFamily: 'Cubic11',
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                         color: primaryText,
@@ -1065,9 +1110,9 @@ class _AICoachBottomSheetState extends State<_AICoachBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-    final accentColor = widget.appState.currentIconColor;
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
+    final accentColor = GamePalette.goldDeep;
 
     return Container(
       decoration: BoxDecoration(
@@ -1098,7 +1143,10 @@ class _AICoachBottomSheetState extends State<_AICoachBottomSheet> {
               children: [
                 CircleAvatar(
                   backgroundColor: accentColor.withValues(alpha: 0.12),
-                  child: Icon(Icons.psychology_alt_outlined, color: accentColor),
+                  child: Icon(
+                    Icons.psychology_alt_outlined,
+                    color: accentColor,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1108,6 +1156,7 @@ class _AICoachBottomSheetState extends State<_AICoachBottomSheet> {
                       Text(
                         'AI 智能自律導師',
                         style: TextStyle(
+                          fontFamily: 'Cubic11',
                           color: primaryText,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1115,7 +1164,7 @@ class _AICoachBottomSheetState extends State<_AICoachBottomSheet> {
                       ),
                       Text(
                         '基於歷史步數、睡眠與專注關聯性診斷',
-                        style: TextStyle(color: secondaryText, fontSize: 12),
+                        style: TextStyle(color: secondaryText, fontSize: 14),
                       ),
                     ],
                   ),
@@ -1137,12 +1186,20 @@ class _AICoachBottomSheetState extends State<_AICoachBottomSheet> {
                           const SizedBox(height: 16),
                           Text(
                             '正在分析你過去 7 天的自律數據...',
-                            style: TextStyle(color: secondaryText, fontSize: 14, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontFamily: 'Cubic11',
+                              color: secondaryText,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '尋找睡眠、步數與專注之間的盲點關聯...',
-                            style: TextStyle(color: secondaryText, fontSize: 12),
+                            style: TextStyle(
+                              color: secondaryText,
+                              fontSize: 14,
+                            ),
                           ),
                         ],
                       ),
@@ -1168,11 +1225,20 @@ class _AICoachBottomSheetState extends State<_AICoachBottomSheet> {
                 style: FilledButton.styleFrom(
                   backgroundColor: accentColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.check_circle_outline_rounded),
-                label: const Text('好的，我會試著調整', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  '好的，我會試著調整',
+                  style: TextStyle(
+                    fontFamily: 'Cubic11',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ],

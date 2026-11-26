@@ -68,7 +68,7 @@
     d('museum', 'personal.html', 'library', '成長紀錄館', 'player', 'login', null, 'cloud', '#84'),
     d('onboarding', 'onboarding.html', 'library', '新手角色建立', 'player', 'login', null, 'cloud', '#124'),
     d('identity', 'personal-identity.html', 'library', '自律身分書', 'player', 'login', null, 'cloud', '#84'),
-    d('trends', 'personal-trends.html', 'library', '成長年鑑翻頁書', 'player', 'login', null, 'cloud', '#124'),
+    d('trends', 'personal-trends.html', 'observatory', '成長年鑑翻頁書', 'player', 'login', null, 'cloud', '#124'),
     d('skill-tree', 'personal-skill-tree.html', 'library', '技能書籤', 'player', 'login', null, 'cloud', '#84'),
     d('weather', 'personal-weather.html', 'library', '生活天氣回顧', 'player', 'login', null, 'cloud', '#84'),
     d('pressure', 'personal-pressure.html', 'library', '溫柔整理', 'player', 'login', null, 'cloud', '#84'),
@@ -76,7 +76,7 @@
     d('future-letter', 'personal-letter.html', 'library', '未來的信', 'player', 'login', null, 'cloud', '#84'),
     d('share-card', 'personal-share.html', 'library', '成長分享卡', 'player', 'login', null, 'cloud', '#124'),
     d('time-capsule', 'personal-time-capsule.html', 'library', '自律時間膠囊', 'player', 'login', null, 'cloud', '#84'),
-    d('achievements', 'achievements.html', 'library', '成就大廳（二樓）', 'player', 'login', null, 'cloud', '#124'),
+    d('achievements', 'achievements.html', 'observatory', '成就星圖室', 'player', 'login', null, 'cloud', '#124'),
     d('shop', 'operations.html', 'store', '角色商城', 'player', 'login', null, 'cloud', '#82'),
     // Arcade hall: catch-the-stars plus three break games, all on break tickets.
     d('arcade', 'arcade.html', 'park', '遊戲機台大廳（休息券）', 'player', 'login', null, 'cloud', '#82'),
@@ -84,13 +84,13 @@
     d('virtual-devices', 'observatory.html', 'observatory', 'Orbit／Station 虛擬裝置', 'player', 'login', null, 'mixed', '#124'),
     d('planet-builder', 'planet-builder.html', 'observatory', '星球建築規劃器（示範）', 'player', 'login', null, 'demo', 'core'),
     d('garden-scene', 'garden.html', 'garden', '星光花園', 'player', 'login', 'level10', 'cloud', '#82'),
+    d('town-goals', 'town-goals.html', 'plaza', '小鎮廣場與共同目標', 'player', 'login', null, 'cloud', '#83'),
     d('mailbox', 'mailbox.html', 'plaza', '小鎮郵箱', 'player', 'login', null, 'cloud', '#83'),
     d('notifications', 'notifications.html', 'plaza', '通知與邀請', 'player', 'login', null, 'cloud', '#83'),
     d('safety-center', 'safety-center.html', 'plaza', '安全與管理中心', 'player', 'login', null, 'cloud', '#83'),
     d('buddies', 'buddies.html', 'plaza', '自律夥伴', 'player', 'login', null, 'cloud', '#83'),
     d('thanks-cards', 'thanks-cards.html', 'plaza', '感謝卡冊', 'player', 'login', null, 'cloud', '#83'),
     d('exchange-journal', 'exchange-journal.html', 'plaza', '交換日記', 'player', 'login', null, 'cloud', '#83'),
-    d('town-goals', 'town-goals.html', 'plaza', '全鎮共同目標', 'player', 'login', null, 'cloud', '#83'),
     d('friends', 'friend.html', 'plaza', '好友', 'player', 'login', null, 'cloud', '#83'),
     d('friend-visits', 'friend-visits.html', 'plaza', '好友拜訪紀錄', 'player', 'login', null, 'cloud', '#83'),
     d('privacy', 'privacy.html', 'plaza', '隱私與資料', 'player', 'login', null, 'cloud', 'core'),
@@ -111,6 +111,7 @@
     d('presentation', 'presentation.html', null, '專題發表流程', 'tool', 'login', null, 'static', 'core'),
     d('museum-demo', 'museum-demo.html', null, '紀錄館展示', 'tool', 'public', null, 'demo', '#84'),
     d('world-ui-kit', 'world-ui-kit.html', null, '像素介面元件', 'tool', 'public', null, 'static', 'core'),
+    d('characters-demo', 'characters-demo.html', null, '小鎮居民動畫', 'tool', 'public', null, 'static', 'core'),
   ]);
 
   function d(id, href, building, title, audience, auth, gate, source, owner, status) {

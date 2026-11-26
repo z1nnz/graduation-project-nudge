@@ -2623,6 +2623,8 @@ function connectLocalFirebaseEmulators() {
   firebase.auth().useEmulator("http://127.0.0.1:9099");
   db.useEmulator("127.0.0.1", 8180);
   functions?.useEmulator("127.0.0.1", 5001);
+  // Pages also call the regional instance directly; point it at the emulator too.
+  try { firebase.app().functions("asia-east1").useEmulator("127.0.0.1", 5001); } catch (_) { /* already connected */ }
   console.warn("Nudge Web is connected to local Firebase emulators.");
   return true;
 }
@@ -4811,7 +4813,7 @@ function initializeFirebaseWeb() {
                 window.frameElement?.id === "townWindowFrame"
               )) {
                 Promise.all([
-                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=5", "Town routes unavailable"),
+                  loadWindowModule("NudgeTownRoutes", "assets/town_routes.js?v=6", "Town routes unavailable"),
                   loadWindowModule("NudgePresenceCore", "assets/presence_core.js?v=1", "Presence contract unavailable"),
                   loadWindowModule("NudgeFriendPresence", "assets/presence.js?v=1", "Presence unavailable"),
                 ]).then(([, , presence]) => {

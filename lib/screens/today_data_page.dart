@@ -1,3 +1,6 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -14,9 +17,9 @@ class TodayDataPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final accentColor = GamePalette.goldDeep;
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
     final completedTasks = appState.todayActionableTaskCompleted;
     final totalTasks = appState.todayActionableTaskTotal;
     final taskProgress = totalTasks == 0
@@ -35,73 +38,78 @@ class TodayDataPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppUI.scaffoldBackgroundOf(context),
       appBar: AppBar(title: const Text('今日數據')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppUI.pagePadding,
-          8,
-          AppUI.pagePadding,
-          28,
+      body: GameFacilityScene(
+        title: '今日觀測書桌',
+        objectLabel: '查看今日數據',
+        background: 'assets/scenes/library/library_room.webp',
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppUI.pagePadding,
+            8,
+            AppUI.pagePadding,
+            28,
+          ),
+          children: [
+            _TodayDataHeroCard(
+              completedTasks: completedTasks,
+              totalTasks: totalTasks,
+              focusMinutes: appState.focusMinutes,
+              sleepHours: appState.sleepHours,
+              steps: appState.steps,
+              isHealthConnected: appState.isHealthConnected,
+              accentColor: accentColor,
+            ),
+            const SizedBox(height: AppUI.sectionGap),
+            _SectionHeader(title: '核心數據', color: primaryText),
+            const SizedBox(height: AppUI.cardGap),
+            _MetricDetailCard(
+              icon: Icons.task_alt_outlined,
+              title: '今日任務',
+              value: '$completedTasks / $totalTasks',
+              target: totalTasks == 0 ? '尚未建立今日任務' : '完成全部今日任務',
+              progress: taskProgress,
+              color: GamePalette.green,
+              primaryText: primaryText,
+              secondaryText: secondaryText,
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _MetricDetailCard(
+              icon: Icons.timer_outlined,
+              title: '專注時間',
+              value: '${appState.focusMinutes} 分',
+              target: '目標 ${AppState.avatarAutoFocusFullMinutes} 分鐘',
+              progress: focusProgress,
+              color: GamePalette.violet,
+              primaryText: primaryText,
+              secondaryText: secondaryText,
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _MetricDetailCard(
+              icon: Icons.bedtime_outlined,
+              title: '睡眠',
+              value: appState.isHealthConnected
+                  ? '${appState.sleepHours.toStringAsFixed(1)} 小時'
+                  : '未同步',
+              target:
+                  '目標 ${AppState.avatarAutoSleepFullHours.toStringAsFixed(0)} 小時',
+              progress: sleepProgress,
+              color: GamePalette.violet,
+              primaryText: primaryText,
+              secondaryText: secondaryText,
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _MetricDetailCard(
+              icon: Icons.directions_walk,
+              title: '步數',
+              value: appState.isHealthConnected ? '${appState.steps}' : '未同步',
+              target: '目標 ${AppState.avatarAutoStepsFull} 步',
+              progress: stepProgress,
+              color: GamePalette.green,
+              primaryText: primaryText,
+              secondaryText: secondaryText,
+            ),
+          ],
         ),
-        children: [
-          _TodayDataHeroCard(
-            completedTasks: completedTasks,
-            totalTasks: totalTasks,
-            focusMinutes: appState.focusMinutes,
-            sleepHours: appState.sleepHours,
-            steps: appState.steps,
-            isHealthConnected: appState.isHealthConnected,
-            accentColor: accentColor,
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          _SectionHeader(title: '核心數據', color: primaryText),
-          const SizedBox(height: AppUI.cardGap),
-          _MetricDetailCard(
-            icon: Icons.task_alt_outlined,
-            title: '今日任務',
-            value: '$completedTasks / $totalTasks',
-            target: totalTasks == 0 ? '尚未建立今日任務' : '完成全部今日任務',
-            progress: taskProgress,
-            color: AppUI.green,
-            primaryText: primaryText,
-            secondaryText: secondaryText,
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _MetricDetailCard(
-            icon: Icons.timer_outlined,
-            title: '專注時間',
-            value: '${appState.focusMinutes} 分',
-            target: '目標 ${AppState.avatarAutoFocusFullMinutes} 分鐘',
-            progress: focusProgress,
-            color: AppUI.blue,
-            primaryText: primaryText,
-            secondaryText: secondaryText,
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _MetricDetailCard(
-            icon: Icons.bedtime_outlined,
-            title: '睡眠',
-            value: appState.isHealthConnected
-                ? '${appState.sleepHours.toStringAsFixed(1)} 小時'
-                : '未同步',
-            target:
-                '目標 ${AppState.avatarAutoSleepFullHours.toStringAsFixed(0)} 小時',
-            progress: sleepProgress,
-            color: AppUI.purple,
-            primaryText: primaryText,
-            secondaryText: secondaryText,
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _MetricDetailCard(
-            icon: Icons.directions_walk,
-            title: '步數',
-            value: appState.isHealthConnected ? '${appState.steps}' : '未同步',
-            target: '目標 ${AppState.avatarAutoStepsFull} 步',
-            progress: stepProgress,
-            color: AppUI.green,
-            primaryText: primaryText,
-            secondaryText: secondaryText,
-          ),
-        ],
       ),
     );
   }
@@ -130,7 +138,7 @@ class _TodayDataHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: AppUI.heroGradient(accentColor),
+      decoration: GameRecordStyle.hero(accentColor),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -140,12 +148,12 @@ class _TodayDataHeroCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: GamePalette.inkLight.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Icon(
                   Icons.monitor_heart_outlined,
-                  color: Colors.white,
+                  color: GamePalette.inkLight,
                   size: 26,
                 ),
               ),
@@ -156,7 +164,8 @@ class _TodayDataHeroCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white,
+                    fontFamily: 'Cubic11',
+                    color: GamePalette.inkLight,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),
@@ -165,25 +174,27 @@ class _TodayDataHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+          GridView(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              mainAxisExtent: 92,
+            ),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 2.25,
             children: [
               _HeroMetricTile(
                 icon: Icons.task_alt_outlined,
                 label: '任務',
                 value: '$completedTasks/$totalTasks',
-                color: const Color(0xFF34D399),
+                color: GamePalette.green,
               ),
               _HeroMetricTile(
                 icon: Icons.timer_outlined,
                 label: '專注',
                 value: '$focusMinutes 分',
-                color: const Color(0xFF93C5FD),
+                color: GamePalette.violet,
               ),
               _HeroMetricTile(
                 icon: Icons.bedtime_outlined,
@@ -191,13 +202,13 @@ class _TodayDataHeroCard extends StatelessWidget {
                 value: isHealthConnected
                     ? '${sleepHours.toStringAsFixed(1)} 小時'
                     : '未同步',
-                color: const Color(0xFFC4B5FD),
+                color: GamePalette.inkLight,
               ),
               _HeroMetricTile(
                 icon: Icons.directions_walk,
                 label: '步數',
                 value: isHealthConnected ? '$steps' : '未同步',
-                color: const Color(0xFF6EE7B7),
+                color: GamePalette.green,
               ),
             ],
           ),
@@ -225,9 +236,9 @@ class _HeroMetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: GamePalette.inkLight.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        border: Border.all(color: GamePalette.inkLight.withValues(alpha: 0.16)),
       ),
       child: Row(
         children: [
@@ -243,8 +254,9 @@ class _HeroMetricTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
+                    fontFamily: 'Cubic11',
+                    color: GamePalette.inkLight,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -256,7 +268,8 @@ class _HeroMetricTile extends StatelessWidget {
                     value,
                     maxLines: 1,
                     style: const TextStyle(
-                      color: Colors.white,
+                      fontFamily: 'Cubic11',
+                      color: GamePalette.inkLight,
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
@@ -281,7 +294,12 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w900),
+      style: TextStyle(
+        fontFamily: 'Cubic11',
+        color: color,
+        fontSize: 18,
+        fontWeight: FontWeight.w900,
+      ),
     );
   }
 }
@@ -309,7 +327,7 @@ class _MetricDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -321,7 +339,7 @@ class _MetricDetailCard extends StatelessWidget {
                 Container(
                   width: 42,
                   height: 42,
-                  decoration: AppUI.softCardOf(context, color),
+                  decoration: GameRecordStyle.inset(context, color),
                   child: Icon(icon, color: color, size: 22),
                 ),
                 const SizedBox(width: 12),
@@ -334,6 +352,7 @@ class _MetricDetailCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: 'Cubic11',
                           color: primaryText,
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
@@ -345,8 +364,9 @@ class _MetricDetailCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: 'Cubic11',
                           color: secondaryText,
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -359,6 +379,7 @@ class _MetricDetailCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
+                    fontFamily: 'Cubic11',
                     color: color,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
@@ -369,11 +390,11 @@ class _MetricDetailCard extends StatelessWidget {
             const SizedBox(height: 14),
             ClipRRect(
               borderRadius: BorderRadius.circular(AppUI.radiusPill),
-              child: LinearProgressIndicator(
+              child: GameMetricGauge(
                 value: progress,
                 minHeight: 8,
                 backgroundColor: AppUI.isDark(context)
-                    ? const Color(0xFF2A2F3A)
+                    ? GamePalette.woodDeep
                     : color.withValues(alpha: 0.12),
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),

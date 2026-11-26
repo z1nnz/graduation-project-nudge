@@ -1,5 +1,9 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../state/app_state.dart';
 import '../models/daily_summary.dart';
 import '../theme/app_ui.dart';
@@ -228,10 +232,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Color _scoreLevelColor(int score, Color accentColor) {
-    if (score >= 85) return AppUI.green;
+    if (score >= 85) return GamePalette.green;
     if (score >= 70) return accentColor;
-    if (score >= 50) return AppUI.orange;
-    return const Color(0xFFEF4444);
+    if (score >= 50) return GamePalette.goldDeep;
+    return GamePalette.red;
   }
 
   String _nextActionText(List<DailySummary> summaries) {
@@ -258,7 +262,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           title: '還沒有今日資料',
           detail: '完成任務或產生自動追蹤紀錄後，這裡會拆解分數來源。',
           icon: Icons.info_outline,
-          color: AppUI.blue,
+          color: GamePalette.violet,
         ),
       ];
     }
@@ -274,7 +278,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           title: '今天還沒有任務',
           detail: '沒有任務就無法累積加權自律分數，建議先建立一個小任務。',
           icon: Icons.playlist_add_check_outlined,
-          color: AppUI.orange,
+          color: GamePalette.goldDeep,
         ),
       );
     } else if (taskRate < 50) {
@@ -284,7 +288,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           detail:
               '今天完成 ${summary.completedTasks}/${summary.totalTasks} 個任務，完成率 $taskRate%。',
           icon: Icons.task_alt_outlined,
-          color: AppUI.orange,
+          color: GamePalette.goldDeep,
         ),
       );
     } else {
@@ -294,7 +298,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           detail:
               '今天完成 ${summary.completedTasks}/${summary.totalTasks} 個任務，完成率 $taskRate%。',
           icon: Icons.check_circle_outline,
-          color: AppUI.green,
+          color: GamePalette.green,
         ),
       );
     }
@@ -305,7 +309,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           title: '專注分鐘偏少',
           detail: '目前專注 ${summary.focusMinutes} 分鐘，還沒有形成明顯的專注貢獻。',
           icon: Icons.timer_outlined,
-          color: AppUI.blue,
+          color: GamePalette.violet,
         ),
       );
     }
@@ -318,7 +322,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           detail:
               '健康來源完成 ${summary.healthCompleted}/${summary.healthTotal}，睡眠、步數或運動可能還差一點。',
           icon: Icons.favorite_border,
-          color: const Color(0xFFEF4444),
+          color: GamePalette.red,
         ),
       );
     }
@@ -330,7 +334,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           detail:
               '自律房完成 ${summary.roomCompleted}/${summary.roomTotal}，房內目標會影響高權重來源。',
           icon: Icons.groups_outlined,
-          color: const Color(0xFF14B8A6),
+          color: GamePalette.green,
         ),
       );
     }
@@ -343,7 +347,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           detail:
               '目前 ${summary.disciplineScore} 分，下一個自律幣門檻是 ${summary.nextCoinMilestone} 分。',
           icon: Icons.monetization_on_outlined,
-          color: AppUI.orange,
+          color: GamePalette.goldDeep,
         ),
       );
     } else {
@@ -352,7 +356,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
           title: '今日分數門檻已滿',
           detail: '已經達到 100 分門檻，今日自律幣主要上限已拿滿。',
           icon: Icons.emoji_events_outlined,
-          color: AppUI.green,
+          color: GamePalette.green,
         ),
       );
     }
@@ -377,7 +381,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final accentColor = appState.currentIconColor;
+    final accentColor = GamePalette.goldDeep;
     final summaries = _filteredSummaries(appState.dailySummaries);
     final latestSummary = summaries.isEmpty ? null : summaries.last;
 
@@ -397,57 +401,178 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final trendText = _trendText(summaries);
     final levelColor = _scoreLevelColor(avgScore, accentColor);
 
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     final listBody = ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
+      padding: const EdgeInsets.all(AppUI.pagePadding),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: GameRecordStyle.hero(accentColor),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: GamePalette.inkLight.withValues(alpha: 0.20),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.bar_chart_rounded,
+                      color: GamePalette.inkLight,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _rangeTitle(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$avgScore 分 / 完成率 $avgCompletionRate%',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                trendText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Cubic11',
+                  color: GamePalette.inkLight,
+                  fontSize: 14,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: ['最近 7 天', '最近 30 天', '本月'].map((range) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _RangeChip(
+                  label: range,
+                  selected: selectedRange == range,
+                  accentColor: accentColor,
+                  onTap: () => setState(() => selectedRange = range),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
             padding: const EdgeInsets.all(18),
-            decoration: AppUI.heroGradient(accentColor),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 54,
-                      height: 54,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.20),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.bar_chart_rounded,
-                        color: Colors.white,
-                        size: 28,
+                    Icon(Icons.auto_graph_outlined, color: levelColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '摘要判讀',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Cubic11',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _ScoreRing(
+                      score: avgScore,
+                      color: levelColor,
+                      primaryText: primaryText,
+                      secondaryText: secondaryText,
+                    ),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _rangeTitle(),
+                            _scoreLevelTitle(avgScore),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
+                            style: TextStyle(
+                              fontFamily: 'Cubic11',
+                              color: primaryText,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _scoreLevelDescription(avgScore, avgCompletionRate),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Cubic11',
+                              color: secondaryText,
+                              fontSize: 14,
+                              height: 1.45,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$avgScore 分 / 完成率 $avgCompletionRate%',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: () => _showScoreReasons(latestSummary),
+                              icon: const Icon(Icons.manage_search, size: 18),
+                              label: const Text('為什麼分數低'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: levelColor,
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 32),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                             ),
                           ),
                         ],
@@ -456,504 +581,415 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  trendText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    height: 1.45,
-                    fontWeight: FontWeight.w600,
-                  ),
+                _MetricStrip(
+                  items: [
+                    _MetricStripItem(
+                      label: '完成率',
+                      value: '$avgCompletionRate%',
+                      color: GamePalette.violet,
+                    ),
+                    _MetricStripItem(
+                      label: '任務',
+                      value: '$totalCompletedTasks 個',
+                      color: GamePalette.green,
+                    ),
+                    _MetricStripItem(
+                      label: '自律幣',
+                      value: '+$totalCoins',
+                      color: GamePalette.goldDeep,
+                    ),
+                    _MetricStripItem(
+                      label: '追蹤',
+                      value: '$totalAutoCompleted/$totalAutoTasks',
+                      color: GamePalette.violet,
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppUI.cardGap),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: ['最近 7 天', '最近 30 天', '本月'].map((range) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _RangeChip(
-                    label: range,
-                    selected: selectedRange == range,
-                    accentColor: accentColor,
-                    onTap: () => setState(() => selectedRange = range),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.auto_graph_outlined, color: levelColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '摘要判讀',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: primaryText,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _ScoreRing(
-                        score: avgScore,
-                        color: levelColor,
-                        primaryText: primaryText,
-                        secondaryText: secondaryText,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _scoreLevelTitle(avgScore),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: primaryText,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _scoreLevelDescription(
-                                avgScore,
-                                avgCompletionRate,
-                              ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: secondaryText,
-                                fontSize: 13,
-                                height: 1.45,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton.icon(
-                                onPressed: () =>
-                                    _showScoreReasons(latestSummary),
-                                icon: const Icon(Icons.manage_search, size: 18),
-                                label: const Text('為什麼分數低'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: levelColor,
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(0, 32),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _MetricStrip(
-                    items: [
-                      _MetricStripItem(
-                        label: '完成率',
-                        value: '$avgCompletionRate%',
-                        color: AppUI.primary,
-                      ),
-                      _MetricStripItem(
-                        label: '任務',
-                        value: '$totalCompletedTasks 個',
-                        color: AppUI.green,
-                      ),
-                      _MetricStripItem(
-                        label: '自律幣',
-                        value: '+$totalCoins',
-                        color: AppUI.orange,
-                      ),
-                      _MetricStripItem(
-                        label: '追蹤',
-                        value: '$totalAutoCompleted/$totalAutoTasks',
-                        color: AppUI.blue,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.psychology_alt_outlined, color: accentColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '分析結果',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: primaryText,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    insight,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: primaryText,
-                      height: 1.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MiniInsightMetric(
-                          label: '需補強',
-                          value: weakestArea,
-                          icon: Icons.warning_amber_outlined,
-                          color: AppUI.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _MiniInsightMetric(
-                          label: '最佳日',
-                          value: bestDay == null
-                              ? '--'
-                              : '${_shortDate(bestDay.date)} / ${bestDay.disciplineScore}',
-                          icon: Icons.emoji_events_outlined,
-                          color: AppUI.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                     width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => _StatisticsInsightDetailPage(
-                              rangeLabel: selectedRange,
-                              insight: insight,
-                              trendText: trendText,
-                              nextAction: nextAction,
-                              bestDayLabel: bestDay == null
-                                  ? '--'
-                                  : '${_shortDate(bestDay.date)} / ${bestDay.disciplineScore} 分',
-                              weakestArea: weakestArea,
-                              sourceLabel:
-                                  '健康 $totalHealthCompleted、自律房 $totalRoomCompleted',
-                              bestCompletedTasks: bestCompletedTasks,
-                              accentColor: accentColor,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                      label: const Text('查看完整分析'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.insights_rounded, color: accentColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        '個人進階中心',
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.psychology_alt_outlined, color: accentColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '分析結果',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
+                          fontFamily: 'Cubic11',
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: primaryText,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '時間膠囊與未來的信，寫給未來的自律期許與情緒陪伴。',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: secondaryText,
-                      height: 1.4,
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  insight,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Cubic11',
+                    fontSize: 14,
+                    color: primaryText,
+                    height: 1.5,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const TimeCapsulePage()),
-                            );
-                          },
-                          icon: const Icon(Icons.hourglass_empty_rounded, size: 18),
-                          label: const Text('時間膠囊'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: accentColor,
-                            side: BorderSide(color: accentColor.withValues(alpha: 0.5)),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MiniInsightMetric(
+                        label: '需補強',
+                        value: weakestArea,
+                        icon: Icons.warning_amber_outlined,
+                        color: GamePalette.goldDeep,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MiniInsightMetric(
+                        label: '最佳日',
+                        value: bestDay == null
+                            ? '--'
+                            : '${_shortDate(bestDay.date)} / ${bestDay.disciplineScore}',
+                        icon: Icons.emoji_events_outlined,
+                        color: GamePalette.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => _StatisticsInsightDetailPage(
+                            rangeLabel: selectedRange,
+                            insight: insight,
+                            trendText: trendText,
+                            nextAction: nextAction,
+                            bestDayLabel: bestDay == null
+                                ? '--'
+                                : '${_shortDate(bestDay.date)} / ${bestDay.disciplineScore} 分',
+                            weakestArea: weakestArea,
+                            sourceLabel:
+                                '健康 $totalHealthCompleted、自律房 $totalRoomCompleted',
+                            bestCompletedTasks: bestCompletedTasks,
+                            accentColor: accentColor,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const FutureLetterPage()),
-                            );
-                          },
-                          icon: const Icon(Icons.mail_outline_rounded, size: 18),
-                          label: const Text('未來的信'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: accentColor,
-                            side: BorderSide(color: accentColor.withValues(alpha: 0.5)),
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
+                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                    label: const Text('查看完整分析'),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '這頁看什麼',
-                    style: TextStyle(
-                      color: primaryText,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _InsightGuideRow(
-                    icon: Icons.lightbulb_outline,
-                    title: '先看系統判讀',
-                    subtitle: '它會把目前最重要的問題翻成一句話。',
-                    color: accentColor,
-                  ),
-                  const SizedBox(height: 10),
-                  _InsightGuideRow(
-                    icon: Icons.flag_outlined,
-                    title: '再看下一步',
-                    subtitle: '這是最適合拿去執行的具體行動。',
-                    color: AppUI.green,
-                  ),
-                  const SizedBox(height: 10),
-                  _InsightGuideRow(
-                    icon: Icons.account_tree_outlined,
-                    title: '最後看來源',
-                    subtitle: '確認分數主要來自健康、自律房或一般任務。',
-                    color: AppUI.orange,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.show_chart, color: accentColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '加權分數趨勢',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: primaryText,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  if (summaries.isEmpty)
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.insights_rounded, color: accentColor),
+                    const SizedBox(width: 8),
                     Text(
-                      '目前還沒有足夠資料可顯示趨勢。',
+                      '個人進階中心',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: secondaryText,
-                        height: 1.5,
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      height: 220,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: summaries.map((summary) {
-                          final progress = (summary.disciplineScore / 100)
-                              .clamp(0.0, 1.0);
-                          final height = 30 + progress * 120;
-
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${summary.disciplineScore}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: primaryText,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 400),
-                                    width: 28,
-                                    height: height,
-                                    decoration: BoxDecoration(
-                                      color: accentColor,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    _shortDate(summary.date),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: primaryText,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                        fontFamily: 'Cubic11',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
                       ),
                     ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Text(
-            '最近紀錄',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryText,
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          if (summaries.isEmpty)
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.all(AppUI.innerPadding),
-                child: Text(
-                  '目前還沒有歷史紀錄。',
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '時間膠囊與未來的信，寫給未來的自律期許與情緒陪伴。',
                   style: TextStyle(
                     fontSize: 14,
                     color: secondaryText,
-                    height: 1.5,
+                    height: 1.4,
                   ),
                 ),
-              ),
-            )
-          else
-            Card(
-              shape: AppUI.cardShape(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  children: summaries.reversed.map((summary) {
-                    return _DailySummaryRow(summary: summary);
-                  }).toList(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TimeCapsulePage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.hourglass_empty_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('時間膠囊'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: accentColor,
+                          side: BorderSide(
+                            color: accentColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FutureLetterPage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                        label: const Text('未來的信'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: accentColor,
+                          side: BorderSide(
+                            color: accentColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppUI.innerPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '這頁看什麼',
+                  style: TextStyle(
+                    fontFamily: 'Cubic11',
+                    color: primaryText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _InsightGuideRow(
+                  icon: Icons.lightbulb_outline,
+                  title: '先看系統判讀',
+                  subtitle: '它會把目前最重要的問題翻成一句話。',
+                  color: accentColor,
+                ),
+                const SizedBox(height: 10),
+                _InsightGuideRow(
+                  icon: Icons.flag_outlined,
+                  title: '再看下一步',
+                  subtitle: '這是最適合拿去執行的具體行動。',
+                  color: GamePalette.green,
+                ),
+                const SizedBox(height: 10),
+                _InsightGuideRow(
+                  icon: Icons.account_tree_outlined,
+                  title: '最後看來源',
+                  subtitle: '確認分數主要來自健康、自律房或一般任務。',
+                  color: GamePalette.goldDeep,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        GameArtifact(
+          shape: AppUI.cardShape(),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.show_chart, color: accentColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '加權分數趨勢',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Cubic11',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                if (summaries.isEmpty)
+                  Text(
+                    '目前還沒有足夠資料可顯示趨勢。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: secondaryText,
+                      height: 1.5,
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 220,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: summaries.map((summary) {
+                        final progress = (summary.disciplineScore / 100).clamp(
+                          0.0,
+                          1.0,
+                        );
+                        final height = 30 + progress * 120;
+
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${summary.disciplineScore}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: 'Cubic11',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: primaryText,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 400),
+                                  width: 28,
+                                  height: height,
+                                  decoration: BoxDecoration(
+                                    color: accentColor,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  _shortDate(summary.date),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: 'Cubic11',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppUI.sectionGap),
+        Text(
+          '最近紀錄',
+          style: TextStyle(
+            fontFamily: 'Cubic11',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: primaryText,
+          ),
+        ),
+        const SizedBox(height: AppUI.cardGap),
+        if (summaries.isEmpty)
+          GameArtifact(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUI.innerPadding),
+              child: Text(
+                '目前還沒有歷史紀錄。',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: secondaryText,
+                  height: 1.5,
                 ),
               ),
             ),
-        ],
-      );
+          )
+        else
+          GameArtifact(
+            shape: AppUI.cardShape(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                children: summaries.reversed.map((summary) {
+                  return _DailySummaryRow(summary: summary);
+                }).toList(),
+              ),
+            ),
+          ),
+      ],
+    );
 
-    if (!widget.showAppBar) return listBody;
+    if (!widget.showAppBar) {
+      return GameFacilityScene(
+        title: '冒險紀錄圖書館',
+        objectLabel: '翻開統計書',
+        background: 'assets/scenes/library/library_room.webp',
+        child: listBody,
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('統計分析')),
-      body: listBody,
+      body: GameFacilityScene(
+        title: '冒險紀錄圖書館',
+        objectLabel: '翻開統計書',
+        background: 'assets/scenes/library/library_room.webp',
+        child: listBody,
+      ),
     );
   }
 }
@@ -977,44 +1013,20 @@ class _ScoreRing extends StatelessWidget {
 
     return SizedBox(
       width: 92,
-      height: 92,
-      child: Stack(
-        alignment: Alignment.center,
+      height: 112,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 92,
-            height: 92,
-            child: CircularProgressIndicator(
-              value: progress,
-              strokeWidth: 9,
-              strokeCap: StrokeCap.round,
-              backgroundColor: Theme.of(context).dividerColor,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
+          GameMetricGauge(value: progress),
+          Text(
+            '$score',
+            style: TextStyle(
+              fontFamily: 'Cubic11',
+              fontSize: 26,
+              color: primaryText,
             ),
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$score',
-                style: TextStyle(
-                  color: primaryText,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '分',
-                style: TextStyle(
-                  color: secondaryText,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
+          Text('加權分數', style: TextStyle(fontSize: 14, color: secondaryText)),
         ],
       ),
     );
@@ -1040,15 +1052,15 @@ class _MetricStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
         color: AppUI.isDark(context)
-            ? const Color(0xFF242A36)
-            : const Color(0xFFF3F4F6),
+            ? GamePalette.woodDeep
+            : GamePalette.inkLight,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -1073,8 +1085,9 @@ class _MetricStrip extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      fontFamily: 'Cubic11',
                       color: secondaryText,
-                      fontSize: 11,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1084,6 +1097,7 @@ class _MetricStrip extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      fontFamily: 'Cubic11',
                       color: primaryText,
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
@@ -1130,8 +1144,8 @@ class _ScoreReasonSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return SafeArea(
       child: Padding(
@@ -1148,6 +1162,7 @@ class _ScoreReasonSheet extends StatelessWidget {
             Text(
               summary == null ? '分數拆解' : '${summary!.date} 分數拆解',
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 color: primaryText,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -1159,8 +1174,9 @@ class _ScoreReasonSheet extends StatelessWidget {
                   ? '目前還沒有足夠資料。'
                   : '自律分數 ${summary!.disciplineScore} 分，自律幣 +${summary!.coinsEarned} 枚。',
               style: TextStyle(
+                fontFamily: 'Cubic11',
                 color: secondaryText,
-                fontSize: 13,
+                fontSize: 14,
                 height: 1.45,
                 fontWeight: FontWeight.w600,
               ),
@@ -1173,7 +1189,7 @@ class _ScoreReasonSheet extends StatelessWidget {
                   final reason = reasons[index];
                   return Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: AppUI.softCardOf(context, reason.color),
+                    decoration: GameRecordStyle.inset(context, reason.color),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1186,6 +1202,7 @@ class _ScoreReasonSheet extends StatelessWidget {
                               Text(
                                 reason.title,
                                 style: TextStyle(
+                                  fontFamily: 'Cubic11',
                                   color: primaryText,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,
@@ -1195,8 +1212,9 @@ class _ScoreReasonSheet extends StatelessWidget {
                               Text(
                                 reason.detail,
                                 style: TextStyle(
+                                  fontFamily: 'Cubic11',
                                   color: secondaryText,
-                                  fontSize: 13,
+                                  fontSize: 14,
                                   height: 1.45,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1262,8 +1280,9 @@ class _InsightCallout extends StatelessWidget {
                 Text(
                   '系統判讀',
                   style: TextStyle(
+                    fontFamily: 'Cubic11',
                     color: secondaryText,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1273,6 +1292,7 @@ class _InsightCallout extends StatelessWidget {
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
+                    fontFamily: 'Cubic11',
                     fontSize: 14,
                     color: primaryText,
                     height: 1.5,
@@ -1303,7 +1323,7 @@ class _RangeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
 
     return GestureDetector(
       onTap: onTap,
@@ -1320,8 +1340,9 @@ class _RangeChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : primaryText,
-            fontSize: 13,
+            fontFamily: 'Cubic11',
+            color: selected ? GamePalette.inkLight : primaryText,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1345,13 +1366,13 @@ class _InsightChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
       constraints: const BoxConstraints(minWidth: 132, maxWidth: 260),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1366,7 +1387,8 @@ class _InsightChip extends StatelessWidget {
                   TextSpan(
                     text: '$label ',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontFamily: 'Cubic11',
+                      fontSize: 14,
                       color: secondaryText,
                       fontWeight: FontWeight.w700,
                     ),
@@ -1374,7 +1396,8 @@ class _InsightChip extends StatelessWidget {
                   TextSpan(
                     text: value,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontFamily: 'Cubic11',
+                      fontSize: 14,
                       color: primaryText,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1404,12 +1427,12 @@ class _MiniInsightMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Row(
         children: [
           Icon(icon, color: color, size: 19),
@@ -1421,8 +1444,9 @@ class _MiniInsightMetric extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
+                    fontFamily: 'Cubic11',
                     color: secondaryText,
-                    fontSize: 11,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1432,8 +1456,9 @@ class _MiniInsightMetric extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
+                    fontFamily: 'Cubic11',
                     color: primaryText,
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1471,161 +1496,170 @@ class _StatisticsInsightDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Scaffold(
       appBar: AppBar(title: const Text('分析詳情')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: AppUI.heroGradient(accentColor),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.psychology_alt_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        rangeLabel,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        '完整分析結果',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.sectionGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _InsightCallout(
-                    text: insight,
-                    color: accentColor,
-                    primaryText: primaryText,
-                    secondaryText: secondaryText,
-                  ),
-                  const SizedBox(height: 14),
-                  _NextActionBox(
-                    text: nextAction,
-                    color: accentColor,
-                    primaryText: primaryText,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '關鍵指標',
-                    style: TextStyle(
-                      color: primaryText,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _InsightChip(
-                        label: '最佳日',
-                        value: bestDayLabel,
-                        icon: Icons.emoji_events_outlined,
-                        color: AppUI.orange,
-                      ),
-                      _InsightChip(
-                        label: '需補強',
-                        value: weakestArea,
-                        icon: Icons.warning_amber_outlined,
-                        color: const Color(0xFFB45309),
-                      ),
-                      _InsightChip(
-                        label: '來源',
-                        value: sourceLabel,
-                        icon: Icons.account_tree_outlined,
-                        color: const Color(0xFF14B8A6),
-                      ),
-                      _InsightChip(
-                        label: '最多',
-                        value: '$bestCompletedTasks 個任務',
-                        icon: Icons.task_alt_outlined,
-                        color: AppUI.green,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          Card(
-            shape: AppUI.cardShape(),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUI.innerPadding),
+      body: GameFacilityScene(
+        title: '冒險紀錄圖書館',
+        objectLabel: '翻開統計書',
+        background: 'assets/scenes/library/library_room.webp',
+        child: ListView(
+          padding: const EdgeInsets.all(AppUI.pagePadding),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: GameRecordStyle.hero(accentColor),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.trending_up_outlined, color: accentColor),
-                  const SizedBox(width: 12),
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: GamePalette.inkLight.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.psychology_alt_outlined,
+                      color: GamePalette.inkLight,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
                   Expanded(
-                    child: Text(
-                      trendText,
-                      style: TextStyle(
-                        color: secondaryText,
-                        fontSize: 14,
-                        height: 1.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          rangeLabel,
+                          style: const TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          '完整分析結果',
+                          style: TextStyle(
+                            fontFamily: 'Cubic11',
+                            color: GamePalette.inkLight,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppUI.sectionGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _InsightCallout(
+                      text: insight,
+                      color: accentColor,
+                      primaryText: primaryText,
+                      secondaryText: secondaryText,
+                    ),
+                    const SizedBox(height: 14),
+                    _NextActionBox(
+                      text: nextAction,
+                      color: accentColor,
+                      primaryText: primaryText,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '關鍵指標',
+                      style: TextStyle(
+                        fontFamily: 'Cubic11',
+                        color: primaryText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _InsightChip(
+                          label: '最佳日',
+                          value: bestDayLabel,
+                          icon: Icons.emoji_events_outlined,
+                          color: GamePalette.goldDeep,
+                        ),
+                        _InsightChip(
+                          label: '需補強',
+                          value: weakestArea,
+                          icon: Icons.warning_amber_outlined,
+                          color: GamePalette.goldDeep,
+                        ),
+                        _InsightChip(
+                          label: '來源',
+                          value: sourceLabel,
+                          icon: Icons.account_tree_outlined,
+                          color: GamePalette.green,
+                        ),
+                        _InsightChip(
+                          label: '最多',
+                          value: '$bestCompletedTasks 個任務',
+                          icon: Icons.task_alt_outlined,
+                          color: GamePalette.green,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            GameArtifact(
+              shape: AppUI.cardShape(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUI.innerPadding),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.trending_up_outlined, color: accentColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        trendText,
+                        style: TextStyle(
+                          fontFamily: 'Cubic11',
+                          color: secondaryText,
+                          fontSize: 14,
+                          height: 1.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1647,7 +1681,7 @@ class _NextActionBox extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: AppUI.softCardOf(context, color),
+      decoration: GameRecordStyle.inset(context, color),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -1659,7 +1693,8 @@ class _NextActionBox extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13,
+                fontFamily: 'Cubic11',
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: primaryText,
                 height: 1.35,
@@ -1687,8 +1722,8 @@ class _InsightGuideRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1696,7 +1731,7 @@ class _InsightGuideRow extends StatelessWidget {
         Container(
           width: 34,
           height: 34,
-          decoration: AppUI.softCardOf(context, color),
+          decoration: GameRecordStyle.inset(context, color),
           child: Icon(icon, color: color, size: 18),
         ),
         const SizedBox(width: 10),
@@ -1707,6 +1742,7 @@ class _InsightGuideRow extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
+                  fontFamily: 'Cubic11',
                   color: primaryText,
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
@@ -1717,7 +1753,7 @@ class _InsightGuideRow extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   color: secondaryText,
-                  fontSize: 12,
+                  fontSize: 14,
                   height: 1.35,
                 ),
               ),
@@ -1736,9 +1772,9 @@ class _DailySummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
-    final accentColor = context.watch<AppState>().currentIconColor;
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
+    final accentColor = GamePalette.goldDeep;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1753,7 +1789,8 @@ class _DailySummaryRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13,
+                fontFamily: 'Cubic11',
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: secondaryText,
               ),
@@ -1762,7 +1799,7 @@ class _DailySummaryRow extends StatelessWidget {
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
+              child: GameMetricGauge(
                 value: (summary.disciplineScore / 100).clamp(0.0, 1.0),
                 minHeight: 8,
                 backgroundColor: Theme.of(context).dividerColor,
@@ -1777,7 +1814,8 @@ class _DailySummaryRow extends StatelessWidget {
               '${summary.disciplineScore}分',
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontSize: 13,
+                fontFamily: 'Cubic11',
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: primaryText,
               ),
@@ -1790,9 +1828,10 @@ class _DailySummaryRow extends StatelessWidget {
               '+${summary.coinsEarned}',
               textAlign: TextAlign.right,
               style: const TextStyle(
-                fontSize: 13,
+                fontFamily: 'Cubic11',
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppUI.orange,
+                color: GamePalette.goldDeep,
               ),
             ),
           ),

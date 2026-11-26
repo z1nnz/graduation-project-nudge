@@ -26,6 +26,7 @@
     const toggle = root?.querySelector("[data-presence-sharing]");
     const status = root?.querySelector("[data-presence-status]");
     const list = root?.querySelector("[data-presence-list]");
+    const residents = root?.hasAttribute("data-plaza-bench") && document.querySelector("[data-plaza-residents]");
     let friends = new Map();
     let visible = [];
     let loaded = false;
@@ -55,6 +56,7 @@
         const focusedFriend = document.activeElement?.dataset.presenceCheer;
         list.replaceChildren(...live.map(item => {
           const row = node("li", "");
+          if (residents) row.dataset.presenceFriend = item.uid;
           const cheer = node("button", "送打氣");
           cheer.type = "button";
           cheer.className = "w-btn";
@@ -86,6 +88,33 @@
           const actions = node("div", "");
           actions.className = "presence-actions";
           actions.append(cheer);
+          if (root.hasAttribute("data-plaza-bench")) {
+            row.classList.add("plaza-friend");
+            const badge = node("span", "");
+            badge.className = "plaza-friend-figure";
+            badge.setAttribute("aria-hidden", "true");
+            row.append(badge);
+            const thanks = node("a", "送感謝卡");
+            thanks.className = "w-btn";
+            thanks.href = "thanks-cards.html?to=" + encodeURIComponent(item.uid);
+            const hug = node("button", "送擁抱");
+            hug.type = "button";
+            hug.className = "w-btn";
+            hug.addEventListener("click", async () => {
+              if (!friends.has(item.uid)) return;
+              hug.disabled = true;
+              try {
+                await functions.httpsCallable("sendDeviceHug")({ toUserId: item.uid });
+                error = "擁抱已送出。";
+              } catch {
+                error = "擁抱未送出，請稍後再試。";
+              } finally {
+                hug.disabled = false;
+                render();
+              }
+            });
+            actions.append(hug, thanks);
+          }
           if (item.openCabin) {
             const cabin = node("a", "拜訪小屋");
             cabin.className = "w-btn";
@@ -95,6 +124,33 @@
           row.append(node("p", item.name + "正在" + routes.BUILDINGS[item.building].name), actions);
           return row;
         }));
+        if (residents) {
+          const friendIds = new Set(live.map(item => item.uid));
+          const currentSeat = document.activeElement?.dataset.plazaFriend;
+          residents.replaceChildren(...live.slice(0, 3).map(item => {
+            const seat = node("button", "");
+            seat.type = "button";
+            seat.className = "plaza-resident";
+            seat.dataset.plazaFriend = item.uid;
+            seat.setAttribute("aria-label", "查看好友 " + item.name);
+            seat.setAttribute("aria-haspopup", "dialog");
+            const portrait = node("span", "");
+            portrait.className = "plaza-friend-figure";
+            portrait.setAttribute("aria-hidden", "true");
+            seat.append(portrait, node("strong", item.name));
+            seat.addEventListener("click", () => {
+              if (stopped || item.expiresAt <= Date.now() || !friends.has(item.uid)) return;
+              root.dispatchEvent(new CustomEvent("plaza-friend-open", { detail: seat }));
+              const row = [...list.children].find(entry => entry.dataset.presenceFriend === item.uid);
+              row?.querySelector("button, a")?.focus();
+            });
+            return seat;
+          }));
+          if (currentSeat && friendIds.has(currentSeat)) {
+            [...residents.children].find(seat => seat.dataset.plazaFriend === currentSeat)?.focus({ preventScroll: true });
+          }
+          if (currentSeat && !friendIds.has(currentSeat)) document.querySelector("[data-plaza-panel=friends]")?.focus();
+        }
         if (focusedFriend) {
           const button = [...list.querySelectorAll("button")].find(item => item.dataset.presenceCheer === focusedFriend);
           (button && !button.disabled ? button : toggle).focus({ preventScroll: true });
@@ -206,6 +262,7 @@
         toggle.disabled = true;
         toggle.checked = false;
         list.replaceChildren();
+        if (residents) residents.replaceChildren();
         delete list.dataset.signature;
       }
       if (version && token) {

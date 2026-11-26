@@ -1,0 +1,98 @@
+/* Pages fronted by a room (page_room.js). */
+body[data-page="privacy"] .world-shell,
+body[data-page="quests"] .w-main { padding-top: 0; }
+body[data-page="privacy"] .main > .hero[hidden],
+body[data-page="privacy"] .main > section[hidden] { display: none !important; }
+
+/* Inside a panel, old dashboard blocks read as parchment notes. */
+.room-panel .hero,
+.room-panel .panel,
+.room-panel .card-grid-3 > *,
+.room-panel .card-grid-2 > * {
+  border: 2px solid var(--w-wood);
+  border-radius: 4px;
+  background: var(--w-parchment-hi);
+  color: var(--w-ink-dark);
+  box-shadow: 0 3px 0 rgba(58, 34, 22, 0.35);
+}
+.room-panel .eyebrow { color: var(--w-ink-soft); font-family: var(--w-pixel); }
+.room-panel--iron .panel,
+.room-panel--iron .card-grid-2 > * { background: #f1ead9; }
+.room-panel .card-grid-3 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* Login: the gate fills the screen and the sealed pass floats beside it. */
+body[data-town-gate="login"] #gateMain { position: relative; padding: 0; max-width: none; }
+body[data-town-gate="login"] .gate-intro { position: absolute; left: -9999px; }
+body[data-town-gate="login"] .gate-login {
+  position: absolute;
+  z-index: 6;
+  top: 24px;
+  right: 3vw;
+  width: min(400px, 92vw);
+  max-height: calc(100% - 48px);
+  overflow: auto;
+  border: 4px solid var(--w-wood-deep);
+  outline: 3px solid var(--w-frame);
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.35);
+  background:
+    linear-gradient(rgba(255, 250, 240, 0.95), rgba(246, 231, 200, 0.97)),
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(138, 90, 52, 0.08) 22px 23px);
+}
+body[data-town-gate="login"] .gate-login::before {
+  content: "✦";
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--w-red);
+  color: var(--w-gold);
+  font: 20px var(--w-pixel);
+  box-shadow: 0 3px 0 var(--w-wood-deep);
+}
+@media (max-width: 859px), (max-aspect-ratio: 1/1) {
+  /* Phones: the gate scene first, the pass right under it. */
+  body[data-town-gate="login"] .gate-login { position: relative; top: auto; right: auto; margin: -64px auto 24px; max-height: none; }
+}
+
+/* A page's main control floating over its room. */
+.room-float {
+  position: absolute !important;
+  z-index: 6;
+  margin: 0 !important;
+  overflow: auto;
+  border: 4px solid var(--w-wood-deep) !important;
+  outline: 3px solid var(--w-frame);
+  border-radius: 6px !important;
+  background: rgba(251, 239, 217, 0.96) !important;
+  color: var(--w-ink-dark) !important;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.35) !important;
+  padding: 16px !important;
+}
+.room-float :is(h1, h2, h3, p, span, small, strong, label) { color: var(--w-ink-dark); }
+/* desktop: on the right; phones: over the floor */
+.room-stage[data-layout="wide"] .room-float { top: 24px; right: 3vw; width: min(420px, 34vw); max-height: calc(100% - 48px); }
+.room-stage[data-layout="tall"] .room-float { left: 12px; right: 12px; bottom: 12px; max-height: 46%; }
+.room-stage[data-layout="wide"] .room-float--focus { top: 50%; left: 50%; right: auto; translate: -50% -60%; width: min(460px, 40vw); }
+.room-stage[data-layout="wide"] .room-float--profile { width: min(640px, 48vw); }
+.room-float--focus .timer-display { font-family: var(--w-pixel); color: var(--w-ink-dark); text-shadow: none; }
+.room-float--focus .focus-timer-container { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.room-float--focus .timer-status { color: var(--w-ink-soft) !important; }
+/* Profile card on parchment: old dark tiles become paper notes. */
+.room-float--profile .fb-cover-card,
+.room-float--profile .fb-card,
+.room-float--profile .fb-left-column > *,
+.room-float--profile .fb-right-column > * {
+  background: var(--w-parchment-hi) !important;
+  border: 2px solid var(--w-wood) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 3px 0 rgba(58, 34, 22, 0.3) !important;
+}
+.room-float--profile .fb-cover-banner { background: linear-gradient(135deg, #4a2a5e, #8b6cf0) !important; }
+.room-float--profile :is(h1, h2, h3, h4, p, span, small, strong, label, li, div) { color: var(--w-ink-dark) !important; }
+.room-float--profile .fb-profile-name { font-family: var(--w-pixel); }
+.room-float--profile :is(input, select, textarea) { background: #fffaf0 !important; color: var(--w-ink-dark) !important; border: 2px solid var(--w-wood) !important; }
+.room-float--profile .fb-profile-body { display: grid; grid-template-columns: 1fr; gap: 12px; }

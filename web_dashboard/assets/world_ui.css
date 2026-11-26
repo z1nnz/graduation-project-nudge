@@ -1,6 +1,6 @@
 /* Nudge world UI: the pixel look shared by the App cabin and every Web page.
  *
- * Load on a page:  <link rel="stylesheet" href="assets/world_ui.css?v=1">
+ * Load on a page:  <link rel="stylesheet" href="assets/world_ui.css?v=3">
  * and give <body class="w-page">. See world-ui-kit.html for every component.
  * Colours and fonts come only from the tokens below; do not hard-code new
  * ones in page CSS. The old starry background is not used any more.

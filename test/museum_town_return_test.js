@@ -9,6 +9,6 @@ test('all personal player pages use the shared town return contract',()=>{
   assert.match(html,/<a[^>]*data-town-return[^>]*href="town\.html"[^>]*>← 回小鎮<\/a>/,page);
   assert.match(html,/assets\/town_routes\.js/,page);assert.match(html,/assets\/town_return\.js/,page);
   const href=routes.returnHrefForPage(page);
-  assert.equal(href,page==='personal-focus.html'?'town.html?at=cabin':'town.html?at=library');
+  assert.equal(href,page==='personal-focus.html'?'town.html?at=cabin':page==='personal-trends.html'?'town.html?at=observatory':'town.html?at=library');
  }
 });

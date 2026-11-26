@@ -6,23 +6,23 @@ class AppUI {
   static const Color background = Color(0xFFF7F6FB);
 
   // 舊專案相容用：先保留固定色
-  static const Color textPrimary = Color(0xFF2D2A32);
-  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textPrimary = Color(0xFF3A1D0C); // ink on parchment
+  static const Color textSecondary = Color(0xFF7A5532); // soft ink
 
   // 深色模式 helper 用
-  static const Color darkTextPrimary = Color(0xFFF3F4F6);
-  static const Color darkTextSecondary = Color(0xFFB6BDC9);
+  static const Color darkTextPrimary = Color(0xFFFBEFE2);
+  static const Color darkTextSecondary = Color(0xFFD8BFA8);
 
-  static const Color lightCard = Colors.white;
-  static const Color darkCard = Color(0xFF1A1D24);
+  static const Color lightCard = Color(0xFFFBEFD9); // parchment
+  static const Color darkCard = Color(0xFF2A1A12); // dark wood
 
   static const Color blue = Color(0xFF4F8CFF);
   static const Color green = Color(0xFF10B981);
   static const Color purple = Color(0xFF8B5CF6);
   static const Color orange = Color(0xFFF59E0B);
 
-  static const double radiusCard = 20;
-  static const double radiusLarge = 28;
+  static const double radiusCard = 8;
+  static const double radiusLarge = 10;
   static const double radiusPill = 999;
 
   static const double pagePadding = 16;
@@ -32,12 +32,14 @@ class AppUI {
 
   // 舊專案相容用：保留靜態 TextStyle
   static const TextStyle sectionTitle = TextStyle(
+    fontFamily: 'Cubic11',
     fontSize: 18,
     fontWeight: FontWeight.bold,
     color: textPrimary,
   );
 
   static const TextStyle cardTitle = TextStyle(
+    fontFamily: 'Cubic11',
     fontSize: 18,
     fontWeight: FontWeight.bold,
     color: textPrimary,
@@ -50,6 +52,7 @@ class AppUI {
   );
 
   static const TextStyle strongValue = TextStyle(
+    fontFamily: 'Cubic11',
     fontSize: 18,
     fontWeight: FontWeight.bold,
     color: textPrimary,
@@ -220,6 +223,7 @@ class AppUI {
 
   static TextStyle sectionTitleOf(BuildContext context) {
     return TextStyle(
+      fontFamily: 'Cubic11',
       fontSize: 18,
       fontWeight: FontWeight.bold,
       color: textPrimaryOf(context),
@@ -228,6 +232,7 @@ class AppUI {
 
   static TextStyle cardTitleOf(BuildContext context) {
     return TextStyle(
+      fontFamily: 'Cubic11',
       fontSize: 18,
       fontWeight: FontWeight.bold,
       color: textPrimaryOf(context),
@@ -244,6 +249,7 @@ class AppUI {
 
   static TextStyle strongValueOf(BuildContext context) {
     return TextStyle(
+      fontFamily: 'Cubic11',
       fontSize: 18,
       fontWeight: FontWeight.bold,
       color: textPrimaryOf(context),
@@ -274,21 +280,23 @@ class AppUI {
 
   // 新版深色模式可用
   static BoxDecoration softCardOf(BuildContext context, Color color) {
-    final opacity = isDark(context) ? 0.16 : 0.08;
+    final opacity = isDark(context) ? 0.16 : 0.1;
     return BoxDecoration(
       color: color.withValues(alpha: opacity),
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: color.withValues(alpha: 0.45), width: 2),
     );
   }
 
   /// Wooden frame shared by every card, matching the companion cabin.
   /// A translucent wood tone reads on both parchment (light) and dark wood.
-  static const cardFrame = Color(0xCCA8743F);
+  static const cardFrame = Color(0xFF8A5A34);
 
+  /// Pixel wood frame: small corners, thick border.
   static ShapeBorder cardShape() {
     return RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radiusCard),
-      side: const BorderSide(color: cardFrame, width: 2),
+      side: const BorderSide(color: cardFrame, width: 3),
     );
   }
 
@@ -336,51 +344,42 @@ class _AppBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final themeColors = AppUI.backgroundThemeColors(themeKey, isDark);
-    final primary = themeColors.length > 1 ? themeColors[1] : AppUI.primary;
-    final blue = themeKey == 'galaxySleep' ? AppUI.purple : AppUI.blue;
-    final green = themeKey == 'sakuraWalk'
-        ? const Color(0xFFEC4899)
-        : AppUI.green;
-
-    void drawSoftCircle(
-      Offset center,
-      double radius,
-      Color color,
-      double alpha,
-    ) {
-      final paint = Paint()..color = color.withValues(alpha: alpha);
-      canvas.drawCircle(center, radius, paint);
+    // Wood-plank wall over the chosen theme colours: plank seams, staggered
+    // joints, a little grain and warm lantern light in two corners.
+    final seam = Paint()
+      ..color = (isDark ? const Color(0xFF000000) : const Color(0xFF5A3826))
+          .withValues(alpha: isDark ? 0.22 : 0.10);
+    final grain = Paint()
+      ..color = (isDark ? const Color(0xFFFFE6A3) : const Color(0xFF8A5A34))
+          .withValues(alpha: isDark ? 0.03 : 0.05);
+    const plank = 28.0;
+    var row = 0;
+    for (double y = 0; y < size.height + plank; y += plank, row++) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 2), seam);
+      final offset = row.isEven ? 0.0 : 90.0;
+      for (double x = offset; x < size.width; x += 180) {
+        canvas.drawRect(Rect.fromLTWH(x, y, 2, plank), seam);
+      }
+      for (double x = (row * 37) % 60.0; x < size.width; x += 60) {
+        canvas.drawRect(Rect.fromLTWH(x, y + 9 + (row % 3) * 4, 22, 1), grain);
+      }
     }
-
-    drawSoftCircle(
-      Offset(size.width * 0.12, size.height * 0.10),
-      size.width * 0.34,
-      primary,
-      isDark ? 0.10 : 0.08,
-    );
-    drawSoftCircle(
-      Offset(size.width * 0.92, size.height * 0.26),
-      size.width * 0.30,
-      blue,
-      isDark ? 0.08 : 0.06,
-    );
-    drawSoftCircle(
-      Offset(size.width * 0.18, size.height * 0.86),
-      size.width * 0.28,
-      green,
-      isDark ? 0.06 : 0.05,
-    );
-
-    final linePaint = Paint()
-      ..color = (isDark ? Colors.white : primary).withValues(
-        alpha: isDark ? 0.025 : 0.035,
-      )
-      ..strokeWidth = 1;
-
-    const gap = 48.0;
-    for (double y = 0; y < size.height + gap; y += gap) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y + 22), linePaint);
+    for (final c in [
+      Offset(size.width * 0.08, size.height * 0.08),
+      Offset(size.width * 0.92, size.height * 0.08),
+    ]) {
+      final r = size.width * 0.45;
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              const Color(0xFFFFC85A).withValues(alpha: isDark ? 0.16 : 0.12),
+              const Color(0x00FFC85A),
+            ],
+          ).createShader(Rect.fromCircle(center: c, radius: r)),
+      );
     }
   }
 

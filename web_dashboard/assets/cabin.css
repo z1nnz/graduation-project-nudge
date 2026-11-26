@@ -187,3 +187,65 @@
   .cabin-stage { width: 100%; }
   .cabin-tiles { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
 }
+
+/* ---------- desktop: the landscape cabin fills the window ---------- */
+@media (min-width: 860px) and (min-aspect-ratio: 21/20) {
+  .cabin-scene { display: block; position: relative; }
+  .cabin-stage[data-layout="wide"] {
+    width: min(calc(100vw - 32px), calc((100dvh - 110px) * 1.5));
+    max-width: none;
+  }
+  .cabin-room .cabin-summary { max-width: none; }
+  /* tools float over the room's top-right corner */
+  .cabin-side {
+    position: absolute;
+    top: 12px;
+    right: max(12px, calc((100% - min(calc(100vw - 32px), calc((100dvh - 110px) * 1.5))) / 2 + 12px));
+    z-index: 10;
+    width: 300px;
+    max-height: calc(100dvh - 140px);
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+  }
+  .cabin-side > .cabin-hint { display: none; }
+}
+.cabin-touches { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.cabin-touch {
+  position: absolute;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 30%;
+  background: radial-gradient(closest-side, rgba(255, 214, 120, 0.45), rgba(255, 214, 120, 0));
+  opacity: 0.25;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: cabin-breathe 2.6s steps(8) infinite;
+}
+.cabin-touch:hover, .cabin-touch:focus-visible { opacity: 1; animation: none; outline: 3px dashed var(--w-gold); }
+@keyframes cabin-breathe { 50% { opacity: 0.8; } }
+.cabin-stage::after {
+  /* the lamp's light: switched off, the room dims */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: #140e22;
+  opacity: 0;
+  transition: opacity 0.4s steps(4);
+}
+.cabin-stage.is-lamp-off::after { opacity: 0.42; }
+.cabin-sparkle {
+  position: absolute;
+  z-index: 8;
+  font: 18px var(--w-pixel);
+  color: var(--w-gold);
+  text-shadow: 1px 1px 0 var(--w-wood-deep);
+  pointer-events: none;
+  animation: cabin-float 0.9s ease-out both;
+}
+@keyframes cabin-float { from { transform: translateY(0) scale(0.6); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(-40px) scale(1.1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cabin-touch { animation: none; opacity: 0.5; } }

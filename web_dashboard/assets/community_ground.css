@@ -1,0 +1,82 @@
+.community-ground {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  aspect-ratio: 3 / 2;
+  min-height: 21rem;
+  overflow: hidden;
+  border: 3px solid var(--w-frame);
+  background: var(--w-night) center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+.community-ground--guild { background-image: url(scenes/guild_hall/hall.webp); }
+.community-ground--courtyard { background-image: url(scenes/family_courtyard/courtyard.webp); }
+.community-stop {
+  position: absolute;
+  z-index: 1;
+  left: var(--w-x);
+  top: var(--w-y);
+  transform: translate(-50%, -50%);
+  min-height: 44px;
+  max-width: 44%;
+  font-size: .875rem;
+}
+.w-btn.community-stop:active { transform: translate(-50%, -50%); }
+.community-stop { touch-action: manipulation; }
+@media (prefers-reduced-motion: reduce) { .community-stop { transition: none; } }
+.community-stop:focus-visible { outline: 3px solid var(--w-gold); }
+.community-host { --w-x: 49%; --w-y: 87%; }
+@media (max-width: 480px) {
+  .community-ground--courtyard [data-community-open="garden"] { top: 51%; }
+  .community-ground--courtyard [data-community-open="letters"] { top: 69%; }
+}
+.community-actor {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.community-light {
+  position: absolute;
+  width: 15%;
+  top: 24%;
+  right: 19%;
+  aspect-ratio: 1;
+  background: radial-gradient(var(--w-gold), transparent 75%);
+  opacity: var(--w-halo, .35);
+}
+.community-spark {
+  position: absolute;
+  top: 12%;
+  left: 41%;
+  color: var(--w-gold);
+  transform: translateY(var(--w-ember, 0px));
+}
+.community-scope { margin-block: 1rem; }
+.community-mural {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  max-width: 20rem;
+  padding: .5rem;
+  background: var(--w-wood-deep);
+  border: 2px solid var(--w-frame);
+}
+.community-mural span { aspect-ratio: 1.5; background: var(--w-wood); border: 2px solid var(--w-frame); }
+.community-mural span.is-painted { background: var(--w-gold); }
+[data-community-panel][hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .community-ground { animation: community-enter .4s ease-out; }
+  @keyframes community-enter { from { opacity: .55; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+}
+
+/* Desktop: grow the scene to the window height and centre it; phones fill the width. */
+.community-ground {
+  inline-size: min(100vw, calc((100dvh - 64px) * 1.5));
+  max-inline-size: none;
+  position: relative;
+  left: 50%;
+  translate: -50% 0;
+}
+html:has(.community-ground), body:has(.community-ground) { overflow-x: hidden; }

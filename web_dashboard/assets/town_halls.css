@@ -1,0 +1,71 @@
+/* Building interiors: the town panel becomes a full-screen room. */
+.town-panel.is-room {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  width: auto;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  overflow: hidden;
+  background: var(--w-night, #1b1530);
+}
+.town-panel.is-room .town-panel-head {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 5;
+  padding: 6px 10px;
+  border: 3px solid var(--w-wood-deep, #3a2216);
+  border-radius: 6px;
+  background: linear-gradient(var(--w-wood, #8a5a34), var(--w-wood-dark, #5a3826));
+}
+.town-panel.is-room .town-panel-head h2 { font-family: var(--w-pixel, sans-serif); }
+.town-panel.is-room > p { position: absolute; left: -9999px; }
+.town-hall-host { position: absolute; inset: 0; }
+.town-hall-host .room-stage { height: 100dvh !important; width: 100%; margin: 0; }
+
+/* Spotted entries are pressed through the room's objects; keep them for
+   screen readers only. Unspotted entries hang as signs at the bottom. */
+.town-panel.is-room .town-panel-list {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+.town-panel.is-room .town-panel-list > li.is-spot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.town-panel.is-room .town-panel-list > li.is-signpost { pointer-events: auto; }
+.town-panel.is-room li.is-signpost > .town-panel-entry {
+  display: inline-flex;
+  flex-direction: column;
+  width: auto;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 3px solid var(--w-wood-deep, #3a2216);
+  border-radius: 4px;
+  background: var(--w-parchment, #f6e7c8);
+  color: var(--w-ink-dark, #3a1d0c);
+  box-shadow: 0 3px 0 var(--w-wood-deep, #3a2216);
+  font-family: var(--w-pixel, sans-serif);
+}
+.room-object.is-login .room-sign { background: linear-gradient(#6b55c8, #4b2fa8); }
+.room-object:is(.is-locked, .is-planned) { filter: grayscale(0.7); opacity: 0.7; }
