@@ -1,3 +1,4 @@
+import 'firefly_game_page.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -249,13 +250,22 @@ class ParkScenePage extends StatelessWidget {
         title: '遊樂園',
         npc: GameCharacters.bounce,
         npcAt: const Offset(0.24, 0.95),
-        greeting: () => ['我是跳跳！每天可以免費玩 3 次，四個遊樂設施隨你挑～'],
+        greeting: () => ['我是跳跳！每天可以免費玩 3 次，左下角的螢火蟲燈在 App 裡就能玩～'],
         tips: const ['專注 25 分鐘以上，還能多拿獎勵券喔。', '跳房子是免費的，跳幾下活動一下筋骨吧～'],
         objects: [
           ride('wheel', '摩天輪', '接星星', _r(0.05, 0.03, 0.4, 0.29)),
           ride('stall', '撈魚攤', '星光釣魚', _r(0.02, 0.4, 0.43, 0.2)),
           ride('stage', '舞台', '鐘塔節奏', _r(0.66, 0.4, 0.3, 0.16)),
           ride('carousel', '旋轉木馬', '記憶配對', _r(0.65, 0.1, 0.32, 0.25)),
+          SceneObject(
+            id: 'lantern',
+            label: '螢火蟲燈',
+            hint: '在 App 裡玩螢火蟲燈籠',
+            rect: _r(0.04, 0.62, 0.12, 0.12),
+            onTap: (c, _) => Navigator.of(c).push(
+              MaterialPageRoute<void>(builder: (_) => const FireflyGamePage()),
+            ),
+          ),
           SceneObject(
             id: 'hopscotch',
             label: '跳房子',
@@ -304,6 +314,7 @@ class ParkScenePage extends StatelessWidget {
             'stall': Rect.fromLTWH(0.17, 0.37, 0.24, 0.21),
             'stage': Rect.fromLTWH(0.7, 0.38, 0.18, 0.18),
             'hopscotch': Rect.fromLTWH(0.72, 0.57, 0.18, 0.15),
+            'lantern': Rect.fromLTWH(0.05, 0.6, 0.06, 0.2),
           },
           effects: [
             SceneEffect.clouds(top: 0.0, band: 0.07, count: 5),
@@ -325,7 +336,7 @@ class ParkScenePage extends StatelessWidget {
         ),
         footer: Center(
           child: Text(
-            '遊戲在網頁版遊樂園進行，App 會幫你打開。',
+            '螢火蟲燈籠直接在 App 裡玩；其他設施會打開網頁版遊樂園。',
             style: TextStyle(
               color: GamePalette.inkLight.withValues(alpha: 0.9),
               fontSize: 13,

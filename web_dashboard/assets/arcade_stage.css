@@ -1,0 +1,32 @@
+/* Arcade stage dressing (arcade_stage.js). */
+.as-buddy { display: inline-block; vertical-align: bottom; margin-left: 8px; }
+#gameStage { position: relative; }
+.as-spark { position: absolute; width: 6px; height: 6px; background: #ffe36b; box-shadow: 0 0 0 2px #c4710b; pointer-events: none; animation: as-spark 0.5s steps(5) forwards; z-index: 5; }
+@keyframes as-spark { to { transform: translate(var(--as-dx), var(--as-dy)); opacity: 0; } }
+.as-reveal #resultLines li { animation: as-line 0.3s steps(3) both; animation-delay: calc(var(--as-i) * 0.25s); }
+.as-reveal #resultGrade { animation: as-stamp 0.45s steps(4) 0.6s both; }
+.as-reveal .as-stars { animation: as-line 0.4s steps(4) 0.9s both; }
+.as-stars { font-size: 28px; color: #ffc54d; letter-spacing: 4px; margin: 4px 0; text-shadow: 2px 2px 0 #2a1a14; }
+@keyframes as-line { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+@keyframes as-stamp { 0% { opacity: 0; transform: scale(2.4) rotate(-14deg); } 70% { opacity: 1; transform: scale(0.92) rotate(-6deg); } 100% { transform: rotate(-6deg); } }
+.as-ride { position: fixed; inset: 0; z-index: 3000; pointer-events: none; overflow: hidden; }
+.as-ride i { position: absolute; }
+.as-ride--wheel { background: #160f2e; animation: as-fade 0.6s steps(6) both; }
+.as-ride--wheel .as-ride-a { left: 50%; top: 50%; width: 120px; height: 96px; margin: -48px 0 0 -60px; background: #d8452e; border: 6px solid #2a1a14; box-shadow: inset 0 -30px 0 #a0301e; animation: as-rise 0.6s steps(6) both; }
+.as-ride--wheel .as-ride-b { left: 50%; top: 0; width: 6px; height: 50%; background: #2a1a14; animation: as-rise 0.6s steps(6) both; }
+.as-ride--wheel .as-ride-c { inset: 0; background: repeating-linear-gradient(0deg, transparent 0 18px, #ffe7a822 18px 20px); animation: as-rise 0.6s steps(6) reverse both; }
+@keyframes as-rise { from { transform: translateY(60vh); } to { transform: translateY(-10vh); } }
+.as-ride--tent .as-ride-a, .as-ride--tent .as-ride-b { top: 0; bottom: 0; width: 50%; background: repeating-linear-gradient(90deg, #d8452e 0 28px, #f6e7c8 28px 56px); }
+.as-ride--tent .as-ride-a { left: 0; animation: as-curtain-l 0.6s steps(6) both; }
+.as-ride--tent .as-ride-b { right: 0; animation: as-curtain-r 0.6s steps(6) both; }
+@keyframes as-curtain-l { 0% { transform: translateX(-100%); } 45%, 55% { transform: none; } 100% { transform: translateX(-100%); } }
+@keyframes as-curtain-r { 0% { transform: translateX(100%); } 45%, 55% { transform: none; } 100% { transform: translateX(100%); } }
+.as-ride--carousel { background: repeating-conic-gradient(from 0deg at 50% 50%, #8b6cf0 0 15deg, #ffc54d 15deg 30deg); animation: as-spin 0.6s steps(8) both; }
+@keyframes as-spin { from { transform: rotate(0) scale(2); opacity: 0.9; } to { transform: rotate(180deg) scale(2); opacity: 0; } }
+.as-ride--lantern { background: radial-gradient(circle at 50% 50%, #ffd56b 0 8%, #2a1d52 8% 30%, #160f2e 30%); animation: as-zoom 0.6s steps(6) both; }
+@keyframes as-zoom { from { transform: scale(0.2); } 60% { transform: scale(1.2); } to { transform: scale(3); opacity: 0; } }
+@keyframes as-fade { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .as-spark, .as-ride { display: none; }
+  .as-reveal #resultLines li, .as-reveal #resultGrade, .as-reveal .as-stars { animation: none; }
+}
