@@ -10,14 +10,15 @@
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/room_chat.css?v=1" />
     <link rel="stylesheet" href="assets/safety.css?v=1" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/living_room.css?v=1" />
   </head>
-  <body class="w-page" data-page="room-chat" data-social-facility="tower">
-    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
+  <body class="w-page world-page" data-page="room-chat" data-social-facility="tower" data-living-room="room-chat">
     <header class="w-hud">
       <a data-town-return href="town.html">← 回小鎮</a>
       <h1>夥伴聊天室</h1>
     </header>
-    <nav class="scene-nav" data-scene-nav></nav>
     <main class="main w-main" id="sceneMain" tabindex="-1">
         <header class="hero w-panel room-chat-hero"><div>
           <a class="room-chat-back" href="rooms.html" data-room-chat-back>← 返回活動房</a>
@@ -63,5 +64,12 @@
     <script src="assets/room_chat.js?v=2"></script>
     <script src="assets/safety_ui.js?v=1"></script>
     <script src="assets/app.js?v=31"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/scenes/social_world/living_room.js?v=1"></script>
+    <script src="assets/scenes/social_world/social_rooms.js?v=1"></script>
+    <script src="assets/scenes/social_world/living_page.js?v=1"></script>
   </body>
 </html>
