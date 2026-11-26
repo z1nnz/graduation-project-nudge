@@ -1,5 +1,13 @@
+import '../widgets/game_scene_life.dart';
+import '../widgets/cabin_weather_sheet.dart';
+import '../models/cabin_sky.dart';
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+import '../widgets/game_studio_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import 'about_page.dart';
@@ -18,7 +26,7 @@ class SettingsPage extends StatelessWidget {
     required String title,
     required Widget child,
   }) {
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -69,7 +77,9 @@ class SettingsPage extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : AppUI.textPrimaryOf(context),
+              color: isSelected
+                  ? GamePalette.inkLight
+                  : GamePalette.of(context).ink,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -89,14 +99,16 @@ class SettingsPage extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.read<AppState>().setIconColorSetting(value),
       child: Container(
-        width: 42,
-        height: 42,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
           border: Border.all(
             color: isSelected
-                ? (AppUI.isDark(context) ? Colors.white : Colors.black87)
+                ? (AppUI.isDark(context)
+                      ? GamePalette.inkLight
+                      : Colors.black87)
                 : Colors.transparent,
             width: 3,
           ),
@@ -111,7 +123,7 @@ class SettingsPage extends StatelessWidget {
               : null,
         ),
         child: isSelected
-            ? const Icon(Icons.check, color: Colors.white, size: 20)
+            ? const Icon(Icons.check, color: GamePalette.inkLight, size: 20)
             : null,
       ),
     );
@@ -174,7 +186,7 @@ class SettingsPage extends StatelessWidget {
                   Center(
                     child: Icon(
                       unlocked ? Icons.auto_awesome_outlined : Icons.lock,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: GamePalette.inkLight.withValues(alpha: 0.9),
                     ),
                   ),
                 ],
@@ -186,24 +198,35 @@ class SettingsPage extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppUI.textPrimaryOf(context),
+                color: GamePalette.of(context).ink,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               unlocked ? (isSelected ? '使用中' : '已解鎖') : '商城解鎖',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: unlocked ? accent : AppUI.textSecondaryOf(context),
+                color: unlocked ? accent : GamePalette.of(context).inkMuted,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openWeather(BuildContext context) async {
+    final sky = CabinSkyController.instance;
+    final picked = await showModalBottomSheet<Object>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CabinWeatherSheet(current: sky.city),
+    );
+    if (picked == null) return;
+    await sky.chooseCity(picked is CabinCity ? picked : null);
   }
 
   @override
@@ -213,330 +236,392 @@ class SettingsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('設定')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppUI.pagePadding),
-        children: [
-          _sectionCard(
-            context: context,
-            title: '帳號與同步',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.account_circle_outlined, color: accentColor),
-              title: Text(appState.isSignedIn ? '已登入帳號' : '登入與個人 ID'),
-              subtitle: Text(
-                appState.isSignedIn
-                    ? '${appState.accountProviderLabel}・${appState.myNudgeId}'
-                    : 'Email / Google / Apple、Nudge ID、名片同步',
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AccountPage()),
-                );
-              },
+      body: GameStudioScene(
+        title: '小鎮工作室',
+        label: '查看工作室設定',
+        gate: false,
+        icon: Icons.settings,
+        objects: [
+          GameSceneProp(
+            label: '鈴鐺・提醒',
+            icon: Icons.notifications_active_outlined,
+            x: .22,
+            y: .24,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ReminderCenterPage()),
             ),
           ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '實體專注裝置',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.sensors_outlined, color: accentColor),
-              title: const Text('Nudge 專注裝置'),
-              subtitle: Text(
-                appState.isNudgeDeviceSupported
-                    ? '連接已指派的 Android BLE 裝置並同步活動帳本'
-                    : 'BLE 控制需使用 Android 實體裝置',
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const NudgeDevicePage()),
-                );
-              },
+          GameSceneProp(
+            label: '地球儀・城市',
+            icon: Icons.public,
+            x: .76,
+            y: .24,
+            onTap: () => _openWeather(context),
+          ),
+          GameSceneProp(
+            label: '鑰匙・帳號',
+            icon: Icons.key,
+            x: .73,
+            y: .44,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AccountPage()),
             ),
           ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '提醒與通知',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                Icons.notifications_active_outlined,
-                color: accentColor,
-              ),
-              title: const Text('提醒中心'),
-              subtitle: Text(
-                '已開啟 ${appState.enabledReminderCount} 種提醒：任務、睡眠、自律房、截止日',
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ReminderCenterPage()),
-                );
-              },
+          GameSceneProp(
+            label: '盾牌・隱私',
+            icon: Icons.shield_outlined,
+            x: .22,
+            y: .4,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PrivacyDataPage()),
             ),
           ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '切換自律角色身份',
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    RolePill(
-                      label: '個人模式',
-                      role: 'personal',
-                      activeRole: appState.userRole,
-                      accentColor: accentColor,
-                      onTap: () => appState.setUserRole('personal'),
-                    ),
-                    const SizedBox(width: 8),
-                    RolePill(
-                      label: '孩子端',
-                      role: 'child',
-                      activeRole: appState.userRole,
-                      accentColor: accentColor,
-                      onTap: () => appState.setUserRole('child'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    RolePill(
-                      label: '家長端',
-                      role: 'guardian',
-                      activeRole: appState.userRole,
-                      accentColor: accentColor,
-                      onTap: () => appState.setUserRole('guardian'),
-                    ),
-                    const SizedBox(width: 8),
-                    RolePill(
-                      label: '團體/企業',
-                      role: 'group',
-                      activeRole: appState.userRole,
-                      accentColor: accentColor,
-                      onTap: () => appState.setUserRole('group'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '初始偏好',
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.flag_circle_outlined, color: accentColor),
-              title: const Text('重新查看新手引導'),
-              subtitle: const Text('調整目標類型、起步任務、角色、提醒與隱私確認'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const OnboardingPage()),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '外觀模式',
-            child: Row(
-              children: [
-                _themeModeOption(
-                  context: context,
-                  label: '跟隨系統',
-                  value: 'system',
-                  currentValue: appState.themeModeSetting,
-                  accentColor: accentColor,
-                ),
-                const SizedBox(width: 10),
-                _themeModeOption(
-                  context: context,
-                  label: '淺色',
-                  value: 'light',
-                  currentValue: appState.themeModeSetting,
-                  accentColor: accentColor,
-                ),
-                const SizedBox(width: 10),
-                _themeModeOption(
-                  context: context,
-                  label: '深色',
-                  value: 'dark',
-                  currentValue: appState.themeModeSetting,
-                  accentColor: accentColor,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: 'icon 顏色',
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _iconColorOption(
-                  context: context,
-                  value: 'purple',
-                  color: const Color(0xFF7C6AE6),
-                  currentValue: appState.iconColorSetting,
-                ),
-                _iconColorOption(
-                  context: context,
-                  value: 'blue',
-                  color: const Color(0xFF4F8CFF),
-                  currentValue: appState.iconColorSetting,
-                ),
-                _iconColorOption(
-                  context: context,
-                  value: 'teal',
-                  color: const Color(0xFF14B8A6),
-                  currentValue: appState.iconColorSetting,
-                ),
-                _iconColorOption(
-                  context: context,
-                  value: 'green',
-                  color: const Color(0xFF10B981),
-                  currentValue: appState.iconColorSetting,
-                ),
-                _iconColorOption(
-                  context: context,
-                  value: 'orange',
-                  color: const Color(0xFFF59E0B),
-                  currentValue: appState.iconColorSetting,
-                ),
-                _iconColorOption(
-                  context: context,
-                  value: 'pink',
-                  color: const Color(0xFFEC4899),
-                  currentValue: appState.iconColorSetting,
-                ),
-                _iconColorOption(
-                  context: context,
-                  value: 'red',
-                  color: const Color(0xFFEF4444),
-                  currentValue: appState.iconColorSetting,
-                ),
-                _iconColorOption(
-                  context: context,
-                  value: 'indigo',
-                  color: const Color(0xFF6366F1),
-                  currentValue: appState.iconColorSetting,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '背景主題',
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: AppUI.backgroundThemeKeys.map((themeKey) {
-                final index = AppUI.backgroundThemeKeys.indexOf(themeKey);
-                return _backgroundThemeOption(
-                  context: context,
-                  themeKey: themeKey,
-                  currentValue: appState.backgroundThemeSetting,
-                  unlocked: appState.isAvatarItemUnlocked(
-                    'appBackground',
-                    index,
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '資料管理',
-            child: Column(
-              children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    Icons.verified_user_outlined,
-                    color: accentColor,
-                  ),
-                  title: const Text('隱私與資料'),
-                  subtitle: const Text('健康權限、資料刪除與跨裝置同步規劃'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PrivacyDataPage(),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.refresh_outlined, color: accentColor),
-                  title: const Text('產生測試資料'),
-                  subtitle: const Text('快速建立 7 天示範紀錄'),
-                  onTap: () async {
-                    await context.read<AppState>().generateMockDailySummaries();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('已產生 7 天測試資料')),
-                      );
-                    }
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.delete_outline, color: accentColor),
-                  title: const Text('清除測試資料'),
-                  subtitle: const Text('清除歷史資料並重建今日摘要'),
-                  onTap: () async {
-                    await context.read<AppState>().clearDailySummaries();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('已清除歷史資料並重建今日摘要')),
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUI.cardGap),
-          _sectionCard(
-            context: context,
-            title: '更多資訊',
-            child: Column(
-              children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.info_outline, color: accentColor),
-                  title: const Text('關於我們'),
-                  subtitle: const Text('查看 App 理念與功能介紹'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AboutPage()),
-                    );
-                  },
-                ),
-              ],
+          GameSceneProp(
+            label: '裝置工作台',
+            icon: Icons.devices_outlined,
+            x: .76,
+            y: .59,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NudgeDevicePage()),
             ),
           ),
         ],
+        child: ListView(
+          padding: const EdgeInsets.all(AppUI.pagePadding),
+          children: [
+            _sectionCard(
+              context: context,
+              title: '帳號與同步',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.account_circle_outlined,
+                  color: accentColor,
+                ),
+                title: Text(appState.isSignedIn ? '已登入帳號' : '登入與個人 ID'),
+                subtitle: Text(
+                  appState.isSignedIn
+                      ? '${appState.accountProviderLabel}・${appState.myNudgeId}'
+                      : 'Email / Google / Apple、Nudge ID、名片同步',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AccountPage()),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '實體專注裝置',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.sensors_outlined, color: accentColor),
+                title: const Text('Nudge 專注裝置'),
+                subtitle: Text(
+                  appState.isNudgeDeviceSupported
+                      ? '連接已指派的 Android BLE 裝置並同步活動帳本'
+                      : 'BLE 控制需使用 Android 實體裝置',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NudgeDevicePage()),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '提醒與通知',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.notifications_active_outlined,
+                  color: accentColor,
+                ),
+                title: const Text('提醒中心'),
+                subtitle: Text(
+                  '已開啟 ${appState.enabledReminderCount} 種提醒：任務、睡眠、自律房、截止日',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ReminderCenterPage(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '切換自律角色身份',
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      RolePill(
+                        label: '個人模式',
+                        role: 'personal',
+                        activeRole: appState.userRole,
+                        accentColor: accentColor,
+                        onTap: () => appState.setUserRole('personal'),
+                      ),
+                      const SizedBox(width: 8),
+                      RolePill(
+                        label: '孩子端',
+                        role: 'child',
+                        activeRole: appState.userRole,
+                        accentColor: accentColor,
+                        onTap: () => appState.setUserRole('child'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      RolePill(
+                        label: '家長端',
+                        role: 'guardian',
+                        activeRole: appState.userRole,
+                        accentColor: accentColor,
+                        onTap: () => appState.setUserRole('guardian'),
+                      ),
+                      const SizedBox(width: 8),
+                      RolePill(
+                        label: '團體/企業',
+                        role: 'group',
+                        activeRole: appState.userRole,
+                        accentColor: accentColor,
+                        onTap: () => appState.setUserRole('group'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '初始偏好',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.flag_circle_outlined, color: accentColor),
+                title: const Text('重新查看新手引導'),
+                subtitle: const Text('調整目標類型、起步任務、角色、提醒與隱私確認'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OnboardingPage()),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '外觀模式',
+              child: Row(
+                children: [
+                  _themeModeOption(
+                    context: context,
+                    label: '跟隨系統',
+                    value: 'system',
+                    currentValue: appState.themeModeSetting,
+                    accentColor: accentColor,
+                  ),
+                  const SizedBox(width: 10),
+                  _themeModeOption(
+                    context: context,
+                    label: '淺色',
+                    value: 'light',
+                    currentValue: appState.themeModeSetting,
+                    accentColor: accentColor,
+                  ),
+                  const SizedBox(width: 10),
+                  _themeModeOption(
+                    context: context,
+                    label: '深色',
+                    value: 'dark',
+                    currentValue: appState.themeModeSetting,
+                    accentColor: accentColor,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: 'icon 顏色',
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _iconColorOption(
+                    context: context,
+                    value: 'purple',
+                    color: const Color(0xFF7C6AE6),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                  _iconColorOption(
+                    context: context,
+                    value: 'blue',
+                    color: const Color(0xFF4F8CFF),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                  _iconColorOption(
+                    context: context,
+                    value: 'teal',
+                    color: const Color(0xFF14B8A6),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                  _iconColorOption(
+                    context: context,
+                    value: 'green',
+                    color: const Color(0xFF10B981),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                  _iconColorOption(
+                    context: context,
+                    value: 'orange',
+                    color: const Color(0xFFF59E0B),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                  _iconColorOption(
+                    context: context,
+                    value: 'pink',
+                    color: const Color(0xFFEC4899),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                  _iconColorOption(
+                    context: context,
+                    value: 'red',
+                    color: const Color(0xFFEF4444),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                  _iconColorOption(
+                    context: context,
+                    value: 'indigo',
+                    color: const Color(0xFF6366F1),
+                    currentValue: appState.iconColorSetting,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '背景主題',
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: AppUI.backgroundThemeKeys.map((themeKey) {
+                  final index = AppUI.backgroundThemeKeys.indexOf(themeKey);
+                  return _backgroundThemeOption(
+                    context: context,
+                    themeKey: themeKey,
+                    currentValue: appState.backgroundThemeSetting,
+                    unlocked: appState.isAvatarItemUnlocked(
+                      'appBackground',
+                      index,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '資料管理',
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      Icons.verified_user_outlined,
+                      color: accentColor,
+                    ),
+                    title: const Text('隱私與資料'),
+                    subtitle: const Text('健康權限、資料刪除與跨裝置同步規劃'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyDataPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.refresh_outlined, color: accentColor),
+                    title: const Text('產生測試資料'),
+                    subtitle: const Text('快速建立 7 天示範紀錄'),
+                    onTap: () async {
+                      await context
+                          .read<AppState>()
+                          .generateMockDailySummaries();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('已產生 7 天測試資料')),
+                        );
+                      }
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.delete_outline, color: accentColor),
+                    title: const Text('清除測試資料'),
+                    subtitle: const Text('清除歷史資料並重建今日摘要'),
+                    onTap: () async {
+                      await context.read<AppState>().clearDailySummaries();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('已清除歷史資料並重建今日摘要')),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppUI.cardGap),
+            _sectionCard(
+              context: context,
+              title: '更多資訊',
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.info_outline, color: accentColor),
+                    title: const Text('關於我們'),
+                    subtitle: const Text('查看 App 理念與功能介紹'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AboutPage()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

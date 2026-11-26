@@ -6,8 +6,14 @@
     <title>Nudge 隱私與資料</title>
     <link rel="stylesheet" href="assets/styles.css?v=17" />
     <link rel="stylesheet" href="assets/world_ui.css?v=2" />
-  </head>
-  <body class="w-page world-page" data-page="privacy">
+  
+<link rel="preload" as="image" href="assets/scenes/studio/workshop_room.webp"><link rel="stylesheet" href="assets/facility_scene.css?v=1"><link rel="stylesheet" href="assets/studio_scene.css?v=1">
+<script defer src="assets/sprite_player.js?v=gameui-r5"></script>
+<script defer src="assets/npc_dialog.js?v=gameui-r5"></script>
+<script defer src="assets/facility_scene.js?v=gameui-r5"></script>
+<script defer src="assets/studio_scene.js?v=gameui-r5"></script>
+</head>
+  <body class="w-page world-page" data-studio-scene="vault" data-page="privacy">
     <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>鎮公所</h1></header>
     <div class="world-shell">
 
@@ -18,7 +24,7 @@
             <h1>你的資料，由你決定。</h1>
             <p>App 與 Web 共用同一份 Cloud consent。沒有目前版本的有效同意，Health Connect／Apple Health ingestion 會直接被拒絕。</p>
           </div>
-          <div class="hero-card">
+          <div class="vault-ledger">
             <span>目前政策版本</span>
             <strong data-privacy-version>2026-07-29</strong>
             <p data-privacy-updated>正在讀取 Cloud 同意狀態。</p>

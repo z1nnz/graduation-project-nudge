@@ -5451,7 +5451,8 @@ document.querySelector("[data-privacy-request-deletion]")?.addEventListener(
     )) {
       return;
     }
-    const reason = window.prompt("刪除原因（選填，最多 1000 字）", "") || "";
+    const reason = window.prompt("刪除原因（選填，最多 1000 字）", "");
+    if (reason === null) return;
     withWebPrivacyDataBusy(async () => {
       const result = await requestWebPrivacyDataAction(
         "request_account_deletion",
