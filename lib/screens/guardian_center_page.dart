@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/community_scene_header.dart';
+import '../widgets/living_world/living_community_header.dart';
 import 'package:provider/provider.dart';
 
 import '../models/family_link_contract.dart';
@@ -27,7 +28,7 @@ class GuardianCenterPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('家庭連結與隱私')),
-      body: CommunitySceneSections(
+      body: LivingCommunitySections(
         family: true,
         greeting: '在庭院看家庭樹，或打開留言桌整理家庭連結和分享設定。',
         leading: const RelationshipContextSwitcher(
