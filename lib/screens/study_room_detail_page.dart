@@ -7,6 +7,8 @@ import '../models/study_room_models.dart';
 import '../models/task_model.dart';
 import '../state/app_state.dart';
 import '../widgets/study_hall_scene.dart';
+import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
 import '../theme/app_ui.dart';
 import '../theme/game_ui.dart';
 import '../widgets/avatar_preview.dart';
@@ -51,21 +53,37 @@ class StudyRoomNoticeBoard extends StatelessWidget {
         ],
       );
     }
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/scenes/study_hall/hall.webp',
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.none,
-            excludeFromSemantics: true,
-          ),
+    return LivingSceneBanner(
+      art: 'assets/scenes/study_hall/hall.webp',
+      aspect: 1.5,
+      title: '自習廳',
+      npc: GameCharacters.bell,
+      npcAt: const Offset(0.12, 0.9),
+      npcLine: '大家在長桌一起專注。座位和房務告示都在這裡。',
+      spots: [
+        LivingSpot(
+          id: 'table',
+          label: '長桌座位',
+          rect: const Rect.fromLTWH(0.27, 0.54, 0.46, 0.3),
+          change: LivingChange.rise,
+          onArrive: onSeats,
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 118, 12, 12),
-          child: Center(child: objects),
+        LivingSpot(
+          id: 'board',
+          label: '房務告示',
+          rect: const Rect.fromLTWH(0.67, 0.33, 0.19, 0.18),
+          change: LivingChange.shake,
+          onArrive: onSettings,
+        ),
+        const LivingSpot(
+          id: 'clock',
+          label: '專注大鐘',
+          rect: Rect.fromLTWH(0.41, 0.04, 0.18, 0.28),
+          change: LivingChange.lit,
+          line: '大鐘會跟著大家的專注慢慢走。',
         ),
       ],
+      objects: [objects],
     );
   }
 }
