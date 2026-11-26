@@ -1,0 +1,101 @@
+/* Living-scene layer (world_life.js) over scene_room rooms. Pixel motion
+   only: steps() timing, no soft blur. Suggested for the shared CSS. */
+.wl-sky,
+.wl-near {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.wl-sky { z-index: 0; }
+.wl-stage .room-art { z-index: 1; }
+.wl-stage .room-life { z-index: 2; }
+.wl-actors { position: absolute; inset: 0; pointer-events: none; }
+.wl-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 140;
+  background: rgb(36 20 72 / var(--wl-night, 0));
+  mix-blend-mode: multiply;
+  transition: background-color 0.6s steps(4);
+}
+.wl-light.is-lamp {
+  background:
+    radial-gradient(circle at var(--wl-lamp-x, 50%) var(--wl-lamp-y, 40%), rgb(255 214 140 / 0.35) 0 18%, rgb(255 214 140 / 0.16) 18% 34%, transparent 34%),
+    rgb(36 20 72 / calc(var(--wl-night, 0) * 0.35));
+  mix-blend-mode: screen;
+}
+.wl-near { z-index: 150; }
+.wl-stage .room-object { z-index: 160; }
+.wl-stage .room-npc { z-index: 155; }
+
+.wl-player {
+  position: absolute;
+  transform: translate(-50%, calc(-53 / 56 * 100%));
+  pointer-events: none;
+}
+
+.wl-piece {
+  position: absolute;
+  z-index: 120;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  transform-origin: 50% 100%;
+}
+.wl-piece--pop { animation: wl-pop 0.5s steps(5) both; }
+.wl-piece--shake { animation: wl-shake 0.6s steps(6) both; }
+.wl-piece--open { transform-origin: 0 50%; animation: wl-open 0.7s steps(6) both; }
+.wl-piece--pull { animation: wl-pull 0.7s steps(6) both; }
+.wl-piece--lamp { animation: wl-lamp 0.8s steps(4) both; }
+.wl-piece--lift { animation: wl-lift 0.8s steps(6) both; }
+@keyframes wl-pop { 0% { transform: none; } 40% { transform: scale(1.06, 0.95); } 70% { transform: scale(0.97, 1.04); } 100% { transform: none; } }
+@keyframes wl-shake { 0%, 100% { transform: none; } 20% { transform: translateX(-2%); } 40% { transform: translateX(2%) rotate(1deg); } 60% { transform: translateX(-1.5%); } 80% { transform: translateX(1%); } }
+@keyframes wl-open { 0% { transform: none; } 60% { transform: perspective(600px) rotateY(-55deg); filter: brightness(0.8); } 100% { transform: perspective(600px) rotateY(-45deg); filter: brightness(0.85); } }
+@keyframes wl-pull { 0% { transform: none; } 60% { transform: translateY(10%) scale(1.04); } 100% { transform: translateY(8%) scale(1.03); } }
+@keyframes wl-lamp { 0% { filter: none; } 50% { filter: brightness(1.8) saturate(1.3) drop-shadow(0 0 6px #ffd56b); } 100% { filter: brightness(1.4) drop-shadow(0 0 4px #ffd56b); } }
+@keyframes wl-lift { 0% { transform: none; } 50% { transform: translateY(-14%) rotate(-3deg); } 100% { transform: translateY(-8%) rotate(-2deg); } }
+
+.wl-emote {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 33px;
+  height: 33px;
+  margin-left: -16px;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 200;
+  animation: wl-emote 1.6s steps(8) both;
+}
+@keyframes wl-emote {
+  0% { transform: translateY(6px) scale(0.4); opacity: 0; }
+  15% { transform: translateY(-4px) scale(1.1); opacity: 1; }
+  25%, 85% { transform: none; opacity: 1; }
+  100% { transform: translateY(-6px); opacity: 0; }
+}
+.room-npc.wl-hop .room-npc-body { animation: wl-hop 0.5s steps(5) 2; }
+.room-npc.wl-sway .room-npc-body { animation: wl-sway 1.2s steps(6) 1; }
+.room-npc.wl-wave .room-npc-body { animation: wl-sway 0.6s steps(4) 2; }
+@keyframes wl-hop { 0%, 100% { transform: none; } 50% { transform: translateY(-12%) scale(0.96, 1.04); } }
+@keyframes wl-sway { 0%, 100% { transform: none; } 30% { transform: rotate(-4deg); } 70% { transform: rotate(4deg); } }
+
+.wl-stage.wl-entering .room-frame { animation: wl-door-in 0.45s steps(6) both; }
+@keyframes wl-door-in {
+  from { clip-path: inset(0 50% 0 50%); filter: brightness(1.5); }
+  to { clip-path: inset(0 0 0 0); filter: none; }
+}
+.wl-stage.wl-leaving .room-frame { animation: wl-door-out 0.38s steps(5) both; }
+@keyframes wl-door-out {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 50% 0 50%); filter: brightness(0.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-piece, .wl-emote, .room-npc .room-npc-body, .wl-stage .room-frame { animation: none !important; }
+  .wl-light { transition: none; }
+}

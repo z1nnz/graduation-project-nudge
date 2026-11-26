@@ -219,10 +219,10 @@ abstract final class PlayerLookStore {
   static const key = 'nudge.player.look.v1';
 
   static Future<PlayerLook> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(key);
-    if (raw == null) return PlayerLook.standard;
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(key);
+      if (raw == null) return PlayerLook.standard;
       return PlayerLook.fromJson(
         Map<String, dynamic>.from(jsonDecode(raw) as Map),
       );
@@ -260,7 +260,12 @@ class PlayerAvatar extends StatefulWidget {
     this.holdFrame,
     this.onEnd,
     this.semanticLabel,
+    this.fallback,
   });
+
+  /// Shown instead when a sheet cannot load (e.g. before the asset folder
+  /// is bundled), so a room never shows an empty spot.
+  final Widget? fallback;
 
   final PlayerLook look;
   final PlayerAnimation animation;
@@ -285,6 +290,7 @@ class PlayerAvatarState extends State<PlayerAvatar>
   final Map<PlayerLayer, (ImageStream, ImageStreamListener)> _streams = {};
   bool _still = false;
   bool _ended = false;
+  bool _failed = false;
   int _frame = 0;
 
   /// The frame being shown (tests and callers that sync effects).
@@ -368,9 +374,15 @@ class PlayerAvatarState extends State<PlayerAvatar>
       }
       if (old != null) old.$1.removeListener(old.$2);
       _images.remove(layer);
-      final listener = ImageStreamListener((info, _) {
-        if (mounted) setState(() => _images[layer] = info.image);
-      }, onError: (e, _) => debugPrint('PlayerAvatar: $asset: $e'));
+      final listener = ImageStreamListener(
+        (info, _) {
+          if (mounted) setState(() => _images[layer] = info.image);
+        },
+        onError: (e, _) {
+          debugPrint('PlayerAvatar: $asset: $e');
+          if (mounted && !_failed) setState(() => _failed = true);
+        },
+      );
       stream.addListener(listener);
       _streams[layer] = (stream, listener);
     }
@@ -387,6 +399,9 @@ class PlayerAvatarState extends State<PlayerAvatar>
 
   @override
   Widget build(BuildContext context) {
+    if (_failed && widget.fallback != null) {
+      return SizedBox.fromSize(size: widget.size, child: widget.fallback);
+    }
     final paint = CustomPaint(
       size: widget.size,
       painter: _LayersPainter(

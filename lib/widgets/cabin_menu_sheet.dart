@@ -37,6 +37,7 @@ const cabinMenuItems = [
     'assets/ui/icons/icon_health.png',
     Icons.local_florist,
   ),
+  CabinMenuItem('pets', '寵物', 'assets/ui/icons/icon_character.png', Icons.pets),
   CabinMenuItem(
     'park',
     '遊樂園',
