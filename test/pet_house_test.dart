@@ -7,6 +7,8 @@ import 'package:nudge/screens/pet_house_page.dart';
 import 'package:nudge/widgets/world_life.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/disk_asset_bundle.dart';
+
 Future<void> _pump(
   WidgetTester tester,
   Size size, {
@@ -17,10 +19,13 @@ Future<void> _pump(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
-    MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(size: size, disableAnimations: still),
-        child: PetHousePage(focusMinutes: minutes),
+    DefaultAssetBundle(
+      bundle: DiskAssetBundle(),
+      child: MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: size, disableAnimations: still),
+          child: PetHousePage(focusMinutes: minutes),
+        ),
       ),
     ),
   );

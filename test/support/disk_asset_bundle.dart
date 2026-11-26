@@ -1,0 +1,86 @@
+import 'dart:io';
+
+import 'package:flutter/services.dart';
+
+/// Reads assets straight from the repo, so scenes can be tested with art
+/// that is not yet listed in pubspec.yaml. Missing files load as an empty
+/// transparent PNG instead of failing.
+class DiskAssetBundle extends CachingAssetBundle {
+  static final _blank = Uint8List.fromList(const [
+    0x89,
+    0x50,
+    0x4E,
+    0x47,
+    0x0D,
+    0x0A,
+    0x1A,
+    0x0A,
+    0x00,
+    0x00,
+    0x00,
+    0x0D,
+    0x49,
+    0x48,
+    0x44,
+    0x52, //
+    0x00,
+    0x00,
+    0x00,
+    0x01,
+    0x00,
+    0x00,
+    0x00,
+    0x01,
+    0x08,
+    0x06,
+    0x00,
+    0x00,
+    0x00,
+    0x1F,
+    0x15,
+    0xC4,
+    0x89,
+    0x00,
+    0x00,
+    0x00,
+    0x0D,
+    0x49,
+    0x44,
+    0x41,
+    0x54,
+    0x78,
+    0x9C,
+    0x63,
+    0x60,
+    0x00,
+    0x02,
+    0x00,
+    0x00,
+    0x05,
+    0x00,
+    0x01,
+    0xE9,
+    0xFA,
+    0xDC,
+    0xD8,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x49,
+    0x45,
+    0x4E,
+    0x44,
+    0xAE, 0x42, 0x60, 0x82,
+  ]);
+
+  @override
+  Future<ByteData> load(String key) async {
+    if (key.startsWith('AssetManifest') || key.startsWith('FontManifest')) {
+      return rootBundle.load(key);
+    }
+    final f = File(key);
+    final bytes = f.existsSync() ? f.readAsBytesSync() : _blank;
+    return ByteData.sublistView(bytes);
+  }
+}
