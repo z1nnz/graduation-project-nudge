@@ -108,7 +108,6 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     final primaryText = GamePalette.of(context).ink;
     final secondaryText = GamePalette.of(context).inkMuted;
-    final accentColor = AppUI.primary;
 
     return Scaffold(
       backgroundColor: AppUI.scaffoldBackgroundOf(context),
@@ -124,117 +123,100 @@ class _RegisterPageState extends State<RegisterPage> {
         label: '填寫入鎮通行證',
         gate: true,
         icon: Icons.assignment_ind,
-        child: GameBackground(
-          child: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 10),
-                    Text(
-                      '建立你的自律身分',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: primaryText,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '同步你的進度並與全球好友一同專注',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: secondaryText, fontSize: 14),
-                    ),
-                    const SizedBox(height: 32),
-                    if (_errorMessage != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
+        child: LayoutBuilder(
+          builder: (context, size) => GamePanel(
+            padding: EdgeInsets.zero,
+            child: SizedBox(
+              height: (size.maxHeight - 8).clamp(0, double.infinity),
+              child: SafeArea(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 10),
+                        Text(
+                          '建立你的自律身分',
                           textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: primaryText,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                    // Email Field
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: '電子郵件',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Password Field
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: '密碼',
-                        prefixIcon: Icon(Icons.lock_outline_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Confirm Password Field
-                    TextField(
-                      controller: _confirmPasswordController,
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _register(),
-                      decoration: const InputDecoration(
-                        labelText: '確認密碼',
-                        prefixIcon: Icon(Icons.lock_reset_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    // Submit Button
-                    FilledButton(
-                      onPressed: _loading ? null : _register,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accentColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                        const SizedBox(height: 8),
+                        Text(
+                          '同步你的進度並與全球好友一同專注',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: secondaryText, fontSize: 14),
                         ),
-                      ),
-                      child: _loading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  GamePalette.inkLight,
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              '註冊並登入',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                        const SizedBox(height: 32),
+                        if (_errorMessage != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.red.withValues(alpha: 0.3),
                               ),
                             ),
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        // Email Field
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
+                            labelText: '電子郵件',
+                            prefixIcon: Icon(Icons.email_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Password Field
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
+                            labelText: '密碼',
+                            prefixIcon: Icon(Icons.lock_outline_rounded),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Confirm Password Field
+                        TextField(
+                          controller: _confirmPasswordController,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _register(),
+                          decoration: const InputDecoration(
+                            labelText: '確認密碼',
+                            prefixIcon: Icon(Icons.lock_reset_rounded),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        // Submit Button
+                        GameButton(
+                          label: _loading ? '連線中…' : '註冊並登入',
+                          expand: true,
+                          onPressed: _loading ? null : _register,
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                  ],
+                  ),
                 ),
               ),
             ),
