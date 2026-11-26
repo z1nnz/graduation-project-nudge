@@ -43,7 +43,7 @@ List<LivingSpot> livingCommunitySpots({
     for (var i = 0; i < labels.length && i < slots.length; i++)
       LivingSpot(
         id: 'section-$i',
-        label: '走去${labels[i]}',
+        label: labels[i],
         rect: slots[i],
         change: _changes[i],
         onArrive: () => open(i),

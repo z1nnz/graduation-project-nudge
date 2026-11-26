@@ -13,7 +13,7 @@ void main() {
       open: (_) {},
     );
     expect(spots.length, courtyardSlots.length);
-    expect(spots.first.label, '走去區0');
+    expect(spots.first.label, '區0');
     for (final rect in [...courtyardSlots, ...hallSlots]) {
       expect(rect.left >= 0 && rect.right <= 1, isTrue);
       expect(rect.top >= 0 && rect.bottom <= 1, isTrue);
