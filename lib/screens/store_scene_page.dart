@@ -5,11 +5,14 @@ import '../models/character_catalog.dart';
 import '../state/app_state.dart';
 import '../theme/game_ui.dart';
 import '../widgets/home_decor_sheet.dart';
+import '../widgets/player_avatar.dart';
 import '../widgets/scene_room.dart';
+import '../widgets/sprite_animation.dart';
+import '../widgets/world_life.dart';
 import 'avatar_shop_page.dart';
-import 'avatar_wardrobe_page.dart';
 import 'character_page.dart';
 import 'coin_wallet_page.dart';
+import 'dressing_room_page.dart';
 import 'tasks_page.dart';
 
 /// The general store. Each object opens an existing, Cloud-backed page; the
@@ -23,11 +26,130 @@ class StoreScenePage extends StatefulWidget {
   State<StoreScenePage> createState() => _StoreScenePageState();
 }
 
-class _StoreScenePageState extends State<StoreScenePage> {
+class _StoreScenePageState extends State<StoreScenePage>
+    with PlayerWalkMixin<StoreScenePage> {
   int _catPets = 0;
+
+  /// Chestnut's reaction bubble (waves hello, shows an item, waves goodbye).
+  WorldEmoteKind? _npcEmote = WorldEmoteKind.star;
+  bool _catAwake = false;
+
+  static const _tall = {
+    'clothes': Rect.fromLTWH(0.03, 0.235, 0.3, 0.225),
+    'furniture': Rect.fromLTWH(0.35, 0.235, 0.265, 0.23),
+    'cabinet': Rect.fromLTWH(0.65, 0.19, 0.215, 0.27),
+    'cashbox': Rect.fromLTWH(0.06, 0.49, 0.15, 0.085),
+    'cat': Rect.fromLTWH(0.29, 0.51, 0.25, 0.065),
+    'mirror': Rect.fromLTWH(0.75, 0.48, 0.24, 0.3),
+  };
+  static const _wide = {
+    'clothes': Rect.fromLTWH(0.05, 0.2, 0.24, 0.45),
+    'furniture': Rect.fromLTWH(0.33, 0.2, 0.24, 0.35),
+    'cabinet': Rect.fromLTWH(0.59, 0.17, 0.16, 0.46),
+    'cashbox': Rect.fromLTWH(0.26, 0.5, 0.09, 0.12),
+    'cat': Rect.fromLTWH(0.43, 0.55, 0.1, 0.07),
+    'mirror': Rect.fromLTWH(0.76, 0.33, 0.23, 0.42),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    loadPlayerLook();
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _npcEmote = null);
+    });
+  }
 
   void _push(BuildContext context, Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+
+  /// Walk to the object, Chestnut shows it, then the feature opens; when
+  /// the customer comes back, Chestnut waves.
+  Future<void> _go(BuildContext c, String id, [Widget? page]) async {
+    await walkBelow((isWideRoom(c) ? _wide : _tall)[id]!, floorTop: 0.68);
+    if (!c.mounted) return;
+    setState(() => _npcEmote = WorldEmoteKind.surprise);
+    if (page == null) return;
+    await Navigator.of(c).push(MaterialPageRoute<void>(builder: (_) => page));
+    if (!mounted) return;
+    setState(() {
+      _npcEmote = WorldEmoteKind.heart;
+      _catAwake = true;
+      playerAnim = PlayerAnimation.happy;
+    });
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _npcEmote = null);
+    });
+  }
+
+  Future<void> _tryOn(BuildContext c) async {
+    await _go(c, 'mirror');
+    if (!c.mounted) return;
+    var look = playerLook;
+    await showDialog<void>(
+      context: c,
+      builder: (context) => StatefulBuilder(
+        builder: (context, set) => AlertDialog(
+          backgroundColor: GamePalette.parchment,
+          title: const Text('鏡子：試穿看看'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  key: const Key('store-mirror'),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFA9C0DE),
+                    border: Border.all(color: GamePalette.goldDeep, width: 6),
+                  ),
+                  child: Transform.flip(
+                    flipX: true,
+                    child: PlayerAvatar(
+                      key: ValueKey(look),
+                      look: look,
+                      animation: PlayerAnimation.turn,
+                      scale: 3,
+                      fallback: const Icon(Icons.checkroom, size: 96),
+                    ),
+                  ),
+                ),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final o in playerParts[PlayerLayer.outfit]!)
+                      ActionChip(
+                        key: Key('try-${o.id}'),
+                        label: Text(o.name),
+                        onPressed: () => set(
+                          () => look = look.withPart(PlayerLayer.outfit, o.id),
+                        ),
+                      ),
+                  ],
+                ),
+                const Text(
+                  '試穿不會花錢，也不會換掉你身上的衣服。',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('離開鏡子'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _push(c, const DressingRoomPage());
+              },
+              child: const Text('去更衣室'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,28 +208,33 @@ class _StoreScenePageState extends State<StoreScenePage> {
             label: '衣服架',
             hint: '服裝與配件',
             rect: const Rect.fromLTWH(0.03, 0.235, 0.3, 0.225),
-            onTap: (c, _) => _push(c, const AvatarShopPage()),
+            onTap: (c, _) => _go(c, 'clothes', const AvatarShopPage()),
           ),
           SceneObject(
             id: 'furniture',
             label: '家具架',
             hint: '小屋家具',
             rect: const Rect.fromLTWH(0.35, 0.235, 0.265, 0.23),
-            onTap: (c, _) => showHomeDecorSheet(c),
+            onTap: (c, _) async {
+              await _go(c, 'furniture');
+              if (c.mounted) await showHomeDecorSheet(c);
+            },
           ),
           SceneObject(
             id: 'cabinet',
             label: '玻璃櫃',
             hint: '角色',
             rect: const Rect.fromLTWH(0.65, 0.19, 0.215, 0.27),
-            onTap: (c, _) => _push(c, const CharacterPage()),
+            onTap: (c, _) => _go(c, 'cabinet', const CharacterPage()),
           ),
           SceneObject(
             id: 'cashbox',
             label: '錢箱',
             hint: '自律幣錢包',
             rect: const Rect.fromLTWH(0.06, 0.49, 0.15, 0.085),
-            onTap: (c, room) {
+            onTap: (c, room) async {
+              await _go(c, 'cashbox');
+              if (!c.mounted) return;
               room.burst(BurstKind.coin, from: 'cashbox', count: 5);
               _push(
                 c,
@@ -120,8 +247,13 @@ class _StoreScenePageState extends State<StoreScenePage> {
             label: '麻糬',
             hint: '摸摸貓',
             rect: const Rect.fromLTWH(0.29, 0.51, 0.25, 0.065),
-            onTap: (c, room) {
-              setState(() => _catPets++);
+            onTap: (c, room) async {
+              await _go(c, 'cat');
+              setState(() {
+                _catPets++;
+                _catAwake = true;
+                playerAnim = PlayerAnimation.wave;
+              });
               room.burst(
                 BurstKind.heart,
                 from: 'cat',
@@ -138,7 +270,7 @@ class _StoreScenePageState extends State<StoreScenePage> {
             label: '鏡子',
             hint: '進更衣室換裝',
             rect: const Rect.fromLTWH(0.75, 0.48, 0.24, 0.3),
-            onTap: (c, _) => _push(c, const AvatarWardrobePage()),
+            onTap: (c, _) => _tryOn(c),
           ),
         ],
         effects: const [
@@ -157,6 +289,55 @@ class _StoreScenePageState extends State<StoreScenePage> {
             Offset(0.83, 0.44),
           ]),
           SceneEffect.dust(),
+        ],
+        overlay: (context, art, wide) => [
+          walkingPlayer(
+            art,
+            fallback: CharacterSprite(
+              character: GameCharacters.companion,
+              size: 112,
+            ),
+          ),
+          if (_catAwake)
+            Positioned(
+              left:
+                  art.left +
+                  ((wide ? _wide : _tall)['cat']!.center.dx) * art.width -
+                  15,
+              top:
+                  art.top +
+                  ((wide ? _wide : _tall)['cat']!.top) * art.height -
+                  34,
+              child: const IgnorePointer(
+                child: WorldEmote(
+                  WorldEmoteKind.surprise,
+                  key: Key('store-cat-awake'),
+                ),
+              ),
+            ),
+          if (_npcEmote case final e?)
+            Positioned(
+              left: art.left + (wide ? 0.17 : 0.3) * art.width - 15,
+              top: art.top + (wide ? 0.9 : 0.88) * art.height - 168,
+              child: IgnorePointer(
+                child: WorldEmote(e, key: const Key('store-npc-emote')),
+              ),
+            ),
+          Positioned.fromRect(
+            rect: art,
+            child: IgnorePointer(
+              child: WorldClock(
+                builder: (_, f, _) => CustomPaint(
+                  key: const Key('store-near'),
+                  painter: WorldNearPainter(
+                    frame: f,
+                    count: 14,
+                    plants: const [WorldPlant(0.99, size: 0.14)],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

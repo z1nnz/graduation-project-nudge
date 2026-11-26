@@ -29,13 +29,13 @@
 
   const coins = () => shop()?.balance?.();
   let catPets = 0;
-  const room = root.NudgeSceneRoom.mount({
+  const room = root.NudgeStoreRoom = root.NudgeSceneRoom.mount({
     host: doc.getElementById('storeMain'),
     title: '小鎮雜貨店',
     npc: 'chestnut',
     layouts: {
       wide: {
-        art: 'assets/scenes/store/store_wide.webp', aspect: 1.5, npcAt: [0.17, 0.9],
+        art: 'assets/scenes/store/store_wide_mid.webp', aspect: 1.5, npcAt: [0.17, 0.9],
         rects: {
           clothes: [0.05, 0.2, 0.24, 0.45], furniture: [0.33, 0.2, 0.24, 0.35], cabinet: [0.59, 0.17, 0.16, 0.46],
           cashbox: [0.26, 0.5, 0.09, 0.12], cat: [0.43, 0.55, 0.1, 0.07], mirror: [0.76, 0.33, 0.23, 0.42],
@@ -52,7 +52,7 @@
         ],
       },
       tall: {
-        art: 'assets/scenes/store/store.webp', aspect: 2 / 3, npcAt: [0.3, 0.9],
+        art: 'assets/scenes/store/store_mid.webp', aspect: 2 / 3, npcAt: [0.3, 0.9],
         rects: {
           clothes: [0.03, 0.235, 0.3, 0.225], furniture: [0.35, 0.235, 0.265, 0.23], cabinet: [0.65, 0.19, 0.215, 0.27],
           cashbox: [0.06, 0.49, 0.15, 0.085], cat: [0.29, 0.51, 0.25, 0.065], mirror: [0.75, 0.48, 0.24, 0.3],

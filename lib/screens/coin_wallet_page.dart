@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
+import '../theme/game_ui.dart';
+import '../widgets/world_life.dart';
 import 'avatar_shop_page.dart';
 
 class CoinWalletPage extends StatelessWidget {
@@ -16,13 +18,14 @@ class CoinWalletPage extends StatelessWidget {
     final primaryText = AppUI.textPrimaryOf(context);
     final secondaryText = AppUI.textSecondaryOf(context);
     final accentColor = const Color(0xFFF59E0B);
-    final todayProgress = AppState.coinDailyLimit <= 0
-        ? 0.0
-        : (appState.todayCoinEarned / AppState.coinDailyLimit).clamp(0.0, 1.0);
 
+    final ledger = [
+      for (final d in appState.dailySummaries.reversed)
+        if (d.coinsEarned > 0) (d.date, d.coinsEarned),
+    ];
     return Scaffold(
-      backgroundColor: AppUI.scaffoldBackgroundOf(context),
-      appBar: AppBar(title: const Text('自律幣錢包')),
+      backgroundColor: const Color(0xFF2A1A14),
+      appBar: AppBar(title: const Text('錢箱與帳本')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppUI.pagePadding,
@@ -31,20 +34,13 @@ class CoinWalletPage extends StatelessWidget {
           28,
         ),
         children: [
-          _WalletHeroCard(
+          CashBoxScene(
             coins: appState.disciplineCoins,
             todayEarned: appState.todayCoinEarned,
-            todayRemaining: appState.todayCoinRemaining,
             dailyLimit: AppState.coinDailyLimit,
-            weekEarned: appState.currentWeekCoinEarned,
-            weekRemaining: appState.currentWeekCoinRemaining,
-            weeklyLimit: AppState.coinWeeklyLimit,
-            monthEarned: appState.currentMonthCoinEarned,
-            monthRemaining: appState.currentMonthCoinRemaining,
-            monthlyLimit: AppState.coinMonthlyLimit,
-            progress: todayProgress,
-            accentColor: accentColor,
           ),
+          const SizedBox(height: AppUI.sectionGap),
+          LedgerBook(entries: ledger),
           const SizedBox(height: AppUI.sectionGap),
           Row(
             children: [
@@ -110,145 +106,6 @@ class CoinWalletPage extends StatelessWidget {
             secondaryText: secondaryText,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _WalletHeroCard extends StatelessWidget {
-  final int coins;
-  final int todayEarned;
-  final int todayRemaining;
-  final int dailyLimit;
-  final int weekEarned;
-  final int weekRemaining;
-  final int weeklyLimit;
-  final int monthEarned;
-  final int monthRemaining;
-  final int monthlyLimit;
-  final double progress;
-  final Color accentColor;
-
-  const _WalletHeroCard({
-    required this.coins,
-    required this.todayEarned,
-    required this.todayRemaining,
-    required this.dailyLimit,
-    required this.weekEarned,
-    required this.weekRemaining,
-    required this.weeklyLimit,
-    required this.monthEarned,
-    required this.monthRemaining,
-    required this.monthlyLimit,
-    required this.progress,
-    required this.accentColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: AppUI.heroGradient(accentColor),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.20),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.monetization_on_outlined,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '目前餘額',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      '$coins 枚',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 10,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '今日已領 $todayEarned / $dailyLimit，還能領 $todayRemaining 枚',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _HeroChip(text: '本週 $weekEarned / $weeklyLimit'),
-              _HeroChip(text: '本月 $monthEarned / $monthlyLimit'),
-              if (weekRemaining <= 0) const _HeroChip(text: '本週上限已滿'),
-              if (monthRemaining <= 0) const _HeroChip(text: '本月上限已滿'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroChip extends StatelessWidget {
-  final String text;
-
-  const _HeroChip({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
       ),
     );
   }
@@ -595,6 +452,168 @@ class _SectionHeader extends StatelessWidget {
           style: TextStyle(color: secondaryText, fontSize: 13, height: 1.4),
         ),
       ],
+    );
+  }
+}
+
+/// The cash box: the coin pile rises with the balance (the number is the
+/// small label), and today's coins drop in one by one.
+class CashBoxScene extends StatelessWidget {
+  const CashBoxScene({
+    super.key,
+    required this.coins,
+    required this.todayEarned,
+    required this.dailyLimit,
+  });
+  final int coins, todayEarned, dailyLimit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '錢箱裡有 $coins 枚自律幣，今天存了 $todayEarned 枚',
+      child: AspectRatio(
+        aspectRatio: 3 / 2,
+        child: WorldClock(
+          builder: (_, f, still) => CustomPaint(
+            key: const Key('wallet-cashbox'),
+            painter: _CashBoxPainter(
+              frame: f,
+              fill: (coins / 600).clamp(0.0, 1.0),
+              drops: todayEarned.clamp(0, 15),
+            ),
+            child: Align(
+              alignment: const Alignment(0, 0.92),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                color: GamePalette.parchment,
+                child: Text(
+                  '$coins 枚 · 今天 +$todayEarned／$dailyLimit',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: GamePalette.inkDark,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CashBoxPainter extends CustomPainter {
+  _CashBoxPainter({
+    required this.frame,
+    required this.fill,
+    required this.drops,
+  });
+  final int frame, drops;
+  final double fill;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final px = Paint()..isAntiAlias = false;
+    final u = size.width / 96;
+    Rect r(double x, double y, double w, double h) =>
+        Rect.fromLTWH(x * u, y * u, w * u, h * u);
+    void box(Rect rect, Color c) => canvas.drawRect(rect, px..color = c);
+    box(Offset.zero & size, const Color(0xFF3A2216));
+    for (var i = 0; i < 6; i++) {
+      box(r(0, i * 11.0, 96, 1), const Color(0xFF2A1A14));
+    }
+    // chest body
+    box(r(18, 22, 60, 36), const Color(0xFF8A5A34));
+    box(r(18, 22, 60, 3), const Color(0xFFC9934F));
+    box(r(46, 22, 4, 36), const Color(0xFFFFC54D));
+    // coin pile height = balance
+    final pileH = 4 + 22 * fill;
+    for (var row = 0.0; row < pileH; row += 2) {
+      final inset = (row / pileH) * 10;
+      box(
+        r(22 + inset, 54 - row, 52 - inset * 2, 2),
+        row % 4 == 0 ? const Color(0xFFFFC54D) : const Color(0xFFC4710B),
+      );
+    }
+    // open lid
+    box(r(16, 10, 64, 8), const Color(0xFF6A4428));
+    box(r(16, 10, 64, 2), const Color(0xFFC9934F));
+    // falling coins (today's)
+    for (var i = 0; i < drops; i++) {
+      final t = ((frame + i * 7) % 24) / 24;
+      final x = 28 + (i * 37 % 40).toDouble();
+      final y = -4 + t * (54 - pileH);
+      box(r(x, y, 3, 3), const Color(0xFFFFE08A));
+      box(r(x + 1, y + 1, 1, 1), const Color(0xFFC4710B));
+    }
+    // wall shelf with the ledger
+    box(r(4, 60, 88, 3), const Color(0xFF5A3A26));
+  }
+
+  @override
+  bool shouldRepaint(_CashBoxPainter old) =>
+      old.frame != frame || old.fill != fill || old.drops != drops;
+}
+
+/// The ledger: each line is one day's Cloud-confirmed coins.
+class LedgerBook extends StatelessWidget {
+  const LedgerBook({super.key, required this.entries});
+  final List<(String, int)> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('wallet-ledger'),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+      decoration: BoxDecoration(
+        color: GamePalette.parchment,
+        border: Border.all(color: GamePalette.woodDeep, width: 3),
+        boxShadow: const [
+          BoxShadow(color: Color(0xFF2A1A14), offset: Offset(4, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            '帳本',
+            style: TextStyle(
+              fontFamily: 'Cubic11',
+              fontSize: 20,
+              color: GamePalette.inkDark,
+            ),
+          ),
+          const Divider(color: GamePalette.woodDeep, thickness: 2),
+          if (entries.isEmpty)
+            const Text('還沒有入帳。完成雲端確認的任務與專注，就會一筆一筆記在這裡。')
+          else
+            for (final (date, coins) in entries.take(14))
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Color(0x553A2216))),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      date,
+                      style: const TextStyle(color: GamePalette.inkDark),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '＋$coins 枚',
+                      style: const TextStyle(
+                        color: GamePalette.goldDeep,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          const SizedBox(height: 6),
+          const Text('兌換支出由雲端帳本扣款，不會在這裡重複記帳。', style: TextStyle(fontSize: 12)),
+        ],
+      ),
     );
   }
 }

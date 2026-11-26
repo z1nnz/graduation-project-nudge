@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'player_avatar.dart';
 import 'sprite_animation.dart';
 
 /// Living-scene pieces shared by the App rooms (J3/J4…), the same rules as
@@ -594,6 +595,85 @@ class PetSprite extends StatelessWidget {
       width: petFrame * scale,
       onEnd: onEnd,
       semanticLabel: semanticLabel,
+    );
+  }
+}
+
+// ---------------------------------------------------------------- walking
+
+/// The player walks below an object before its feature opens. Mix into a
+/// room page's State; put [walkingPlayer] in the room overlay.
+mixin PlayerWalkMixin<T extends StatefulWidget> on State<T> {
+  Offset playerAt = const Offset(0.5, 0.88);
+  PlayerAnimation playerAnim = PlayerAnimation.idle;
+  Duration _walkTime = Duration.zero;
+  PlayerLook playerLook = PlayerLook.standard;
+
+  bool get worldStill => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+  void loadPlayerLook() => PlayerLookStore.load().then((l) {
+    if (mounted) setState(() => playerLook = l);
+  });
+
+  bool isWideRoom(BuildContext c) {
+    final s = MediaQuery.sizeOf(c);
+    return s.width >= 840 && s.width / math.max(1, s.height) >= 1.05;
+  }
+
+  /// Walks to just below [rect] (art fractions); resolves on arrival.
+  Future<void> walkBelow(
+    Rect rect, {
+    double floorTop = 0.64,
+    double floorBottom = 0.94,
+  }) async {
+    final target = Offset(
+      rect.center.dx.clamp(0.06, 0.94),
+      (rect.bottom + 0.05).clamp(floorTop, floorBottom),
+    );
+    final d = (target - playerAt).distance;
+    final ms = worldStill ? 0 : math.min(1400, (d / 0.32 * 1000).round());
+    final dx = target.dx - playerAt.dx, dy = target.dy - playerAt.dy;
+    setState(() {
+      _walkTime = Duration(milliseconds: ms);
+      playerAnim = ms == 0
+          ? PlayerAnimation.idle
+          : PlayerAnimation.walk(
+              dx.abs() > dy.abs()
+                  ? (dx > 0 ? AxisDirection.right : AxisDirection.left)
+                  : (dy > 0 ? AxisDirection.down : AxisDirection.up),
+            );
+      playerAt = target;
+    });
+    if (ms > 0) await Future<void>.delayed(Duration(milliseconds: ms));
+    if (mounted) setState(() => playerAnim = PlayerAnimation.idle);
+  }
+
+  void act(PlayerAnimation a) => setState(() => playerAnim = a);
+
+  Widget walkingPlayer(
+    Rect art, {
+    Widget? fallback,
+    Key key = const Key('room-player'),
+  }) {
+    final ps = (art.width / 400).roundToDouble().clamp(2.0, 3.0);
+    final p = Offset(
+      art.left + playerAt.dx * art.width,
+      art.top + playerAt.dy * art.height,
+    );
+    return AnimatedPositioned(
+      key: key,
+      duration: _walkTime,
+      left: p.dx - playerFrameWidth * ps / 2,
+      top: p.dy - playerPivot.dy * ps,
+      child: IgnorePointer(
+        child: PlayerAvatar(
+          look: playerLook,
+          animation: playerAnim,
+          scale: ps,
+          onEnd: () => setState(() => playerAnim = PlayerAnimation.idle),
+          fallback: fallback,
+        ),
+      ),
     );
   }
 }
