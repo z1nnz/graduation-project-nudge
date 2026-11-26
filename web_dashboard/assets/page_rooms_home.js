@@ -34,12 +34,12 @@
     },
 
     focus: {
-      art: 'assets/home/room_base.png',
+      art: 'assets/scenes/cabin/room_base_mid.webp',
       aspect: 720 / 1279,
       title: '小屋書桌',
-      npc: 'companion',
-      npcAt: [0.3, 0.86],
-      greeting: () => ['我陪你一起讀書！選好時間就開始吧。'],
+      npc: 'inky',
+      npcAt: [0.16, 0.9],
+      greeting: () => ['我是圖書館員墨墨。選好時間，夥伴就會坐到書桌前，桌上的沙漏會開始流。'],
       tips: ['書架上放著你的各種紀錄。', '專注結束後，活動會送到雲端確認。', '累了就休息五分鐘，看看窗外吧。'],
       float: ['.focus-timer-section'],
       hide: ['main > .hero'],
@@ -49,7 +49,7 @@
       ],
       effects: [{ type: 'flicker', points: [[0.12, 0.2], [0.88, 0.2]], radius: 0.05 }, { type: 'stars', count: 8, height: 0.2 }, { type: 'dust', count: 14 }],
       wide: {
-        art: 'assets/scenes/workbench/cabin_wide.webp', aspect: 1.5, npcAt: [0.3, 0.9],
+        art: 'assets/scenes/workbench/cabin_wide_mid.webp', aspect: 1.5, npcAt: [0.14, 0.9],
         rects: { shelf: [0.23, 0.34, 0.14, 0.36], window: [0.39, 0.1, 0.23, 0.26] },
         effects: [{ type: 'flicker', points: [[0.22, 0.24], [0.79, 0.24]], radius: 0.03 }, { type: 'stars', count: 12, height: 0.3 }, { type: 'dust', count: 20 }],
       },

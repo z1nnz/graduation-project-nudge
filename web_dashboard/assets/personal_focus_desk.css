@@ -1,0 +1,9 @@
+/* Focus desk (personal_focus_desk.js). */
+.fd-glass { position: absolute; z-index: 60; image-rendering: pixelated; transition: transform 0.5s steps(5); }
+.fd-glass.is-flipped { transform: rotate(180deg); }
+.fd-reward { position: absolute; z-index: 170; font-style: normal; color: #ffc54d; text-shadow: 2px 2px 0 #2a1a14; pointer-events: none; animation: fd-fly 1.2s steps(8) both; }
+@keyframes fd-fly { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(var(--fd-dx), -120px) scale(1.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .fd-glass { transition: none; }
+  .fd-reward { display: none; }
+}
