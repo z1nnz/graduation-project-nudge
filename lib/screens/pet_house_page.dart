@@ -317,12 +317,12 @@ class _PetHousePageState extends State<PetHousePage> {
       AnimatedPositioned(
         key: const Key('pet-house-player'),
         duration: _walk,
-        left: player.dx - playerFrameHeight * ps * 1.1 / 2,
-        top: player.dy - playerFrameHeight * ps * 1.1,
+        left: player.dx - companionHeight * ps / 2,
+        top: player.dy - companionHeight * ps,
         child: IgnorePointer(
           child: CompanionActor(
             animation: _anim,
-            size: playerFrameHeight * ps * 1.1,
+            size: companionHeight * ps,
           ),
         ),
       ),
