@@ -9,7 +9,6 @@ import '../state/app_state.dart';
 import '../widgets/npc_dialog.dart';
 import '../widgets/player_avatar.dart';
 import '../widgets/scene_room.dart';
-import '../widgets/sprite_animation.dart';
 import '../widgets/world_life.dart';
 
 /// Pet house (J3), same scene as the Web's: walk to a pet to pick it, put a
@@ -65,7 +64,6 @@ const _spots = {
 
 class _PetHousePageState extends State<PetHousePage> {
   PetSpecies? _choice;
-  PlayerLook _look = PlayerLook.standard;
   Offset _at = const Offset(0.5, 0.9);
   PlayerAnimation _anim = PlayerAnimation.idle;
   Duration _walk = Duration.zero;
@@ -80,9 +78,6 @@ class _PetHousePageState extends State<PetHousePage> {
     super.initState();
     PetChoiceStore.load().then(
       (c) => mounted ? setState(() => _choice = c) : null,
-    );
-    PlayerLookStore.load().then(
-      (l) => mounted ? setState(() => _look = l) : null,
     );
   }
 
@@ -322,18 +317,12 @@ class _PetHousePageState extends State<PetHousePage> {
       AnimatedPositioned(
         key: const Key('pet-house-player'),
         duration: _walk,
-        left: player.dx - playerFrameWidth * ps / 2,
-        top: player.dy - playerPivot.dy * ps,
+        left: player.dx - playerFrameHeight * ps * 1.1 / 2,
+        top: player.dy - playerFrameHeight * ps * 1.1,
         child: IgnorePointer(
-          child: PlayerAvatar(
-            look: _look,
+          child: CompanionActor(
             animation: _anim,
-            scale: ps,
-            onEnd: () => setState(() => _anim = PlayerAnimation.idle),
-            fallback: CharacterSprite(
-              character: GameCharacters.companion,
-              size: playerFrameHeight * ps,
-            ),
+            size: playerFrameHeight * ps * 1.1,
           ),
         ),
       ),
