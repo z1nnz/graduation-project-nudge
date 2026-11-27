@@ -37,6 +37,23 @@
   transform: translate(-50%, calc(-53 / 56 * 100%));
   pointer-events: none;
 }
+/* The earlier companion sheet: feet near the bottom of a 128 px cell, and
+   small code-drawn motions for actions the sheet has no row for. */
+.wl-player[data-kind="companion"], .wl-companion { transform: translate(-50%, -97%); }
+[data-kind="companion"][data-act="sit"] { animation: wl-sit 1.6s steps(4) infinite; }
+[data-kind="companion"][data-act="look"] { animation: wl-look 2.4s steps(6) infinite; }
+[data-kind="companion"][data-act="stretch"] { animation: wl-stretch 0.9s steps(6) 1; }
+[data-kind="companion"][data-act="snack"], [data-kind="companion"][data-act="talk"] { animation: wl-bob 0.5s steps(2) infinite; }
+[data-kind="companion"][data-act="read"]::after,
+[data-kind="companion"][data-act="sleep"]::after,
+[data-kind="companion"][data-act="snack"]::after { position: absolute; left: 62%; top: 6%; font: 700 14px/1 var(--w-pixel, monospace); color: #ffe7a8; text-shadow: 1px 1px 0 #2a1a14; }
+[data-kind="companion"][data-act="read"]::after { content: "✦"; }
+[data-kind="companion"][data-act="sleep"]::after { content: "Z z"; color: #c9b8ff; }
+[data-kind="companion"][data-act="snack"]::after { content: "●"; color: #c4844a; top: 40%; left: 58%; }
+@keyframes wl-sit { 0%, 100% { scale: 1 0.92; translate: 0 4%; } 50% { scale: 1 0.9; translate: 0 5%; } }
+@keyframes wl-look { 0%, 100% { rotate: 0deg; } 30% { rotate: -3deg; } 70% { rotate: 3deg; } }
+@keyframes wl-stretch { 0%, 100% { scale: 1 1; } 50% { scale: 0.95 1.1; } }
+@keyframes wl-bob { 50% { translate: 0 -3%; } }
 
 .wl-piece {
   position: absolute;
@@ -96,6 +113,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wl-piece, .wl-emote, .room-npc .room-npc-body, .wl-stage .room-frame { animation: none !important; }
+  .wl-piece, .wl-emote, .room-npc .room-npc-body, .wl-stage .room-frame, [data-kind="companion"] { animation: none !important; }
   .wl-light { transition: none; }
 }
