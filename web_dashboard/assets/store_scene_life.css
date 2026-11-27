@@ -1,0 +1,29 @@
+/* Store 2.0 (store_scene_life.js). Pixel steps only. */
+.ss-held { position: absolute; left: 50%; bottom: 105%; width: 56px; height: 56px; margin-left: -28px; background: #fff6e4; border: 3px solid #2a1a14; display: grid; place-items: center; animation: ss-lift 0.5s steps(5) both; z-index: 210; }
+.ss-held-img { max-width: 44px; max-height: 44px; image-rendering: pixelated; }
+@keyframes ss-lift { from { transform: translateY(30px) scale(0.5); } to { transform: none; } }
+.ss-cabin { position: fixed; right: 12px; bottom: 12px; z-index: 1200; width: min(220px, 46vw); margin: 0; padding: 8px; display: grid; gap: 6px; animation: ss-lift 0.4s steps(5) both; }
+.ss-cabin-room { position: relative; aspect-ratio: 720 / 1279; overflow: hidden; }
+.ss-cabin-sky { position: absolute; inset: 0 0 70% 0; background: linear-gradient(#2a1d52 0 50%, #4a2f6e 50%); }
+.ss-cabin-base, .ss-cabin-piece { position: absolute; image-rendering: pixelated; }
+.ss-cabin-base { inset: 0; width: 100%; height: 100%; }
+.ss-cabin-piece { object-fit: fill; animation: ss-blink 1s steps(2) 3; }
+@keyframes ss-blink { 50% { filter: brightness(1.6) drop-shadow(0 0 3px #ffd56b); } }
+.ss-unbox { position: absolute; inset: 0; z-index: 400; display: grid; place-items: center; align-content: center; gap: 10px; background: rgb(20 10 34 / 0.55); }
+.ss-gift { position: relative; width: 96px; height: 88px; animation: ss-shake 0.8s steps(6) 1; }
+.ss-gift-body { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: #d8452e; border: 4px solid #2a1a14; box-shadow: inset -8px -8px 0 #a0301e; }
+.ss-gift-lid { position: absolute; left: -6px; right: -6px; top: 0; height: 26px; background: #f06b52; border: 4px solid #2a1a14; animation: ss-lid 0.6s steps(4) 0.8s both; }
+.ss-gift-ribbon { position: absolute; left: 42px; top: 0; bottom: 0; width: 12px; background: #ffc54d; border-inline: 3px solid #2a1a14; }
+.ss-prize { width: 72px; height: 72px; object-fit: contain; image-rendering: pixelated; opacity: 0; animation: ss-rise 1s steps(6) 1.2s both; filter: drop-shadow(0 0 6px #ffd56b); }
+.ss-unbox-text { margin: 0; color: #fff6e4; font-weight: 800; text-shadow: 2px 2px 0 #2a1a14; }
+@keyframes ss-shake { 0%, 100% { transform: none; } 20% { transform: rotate(-6deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(4deg); } }
+@keyframes ss-lid { to { transform: translate(18px, -48px) rotate(28deg); } }
+@keyframes ss-rise { from { opacity: 0; transform: translateY(40px) scale(0.5); } to { opacity: 1; transform: none; } }
+.ss-fitting { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 380; width: min(520px, 92%); display: grid; gap: 8px; justify-items: center; padding: 14px; }
+.ss-mirror { width: 168px; height: 200px; display: grid; place-items: end center; border: 8px solid #ffc54d; outline: 3px solid #2a1a14; background: repeating-linear-gradient(135deg, #9fb7d8 0 10px, #b6cbe6 10px 14px, #9fb7d8 14px 30px); overflow: hidden; }
+.ss-mirror-me { transform: scaleX(-1); }
+.ss-try { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+@media (prefers-reduced-motion: reduce) {
+  .ss-held, .ss-cabin, .ss-gift, .ss-gift-lid, .ss-prize, .ss-cabin-piece { animation: none; }
+  .ss-prize { opacity: 1; }
+}
