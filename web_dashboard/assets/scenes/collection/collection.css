@@ -1,0 +1,35 @@
+.cc-overlay { position: fixed; inset: 0; z-index: 900; display: grid; grid-template-rows: auto 1fr; background: #2a1a14; animation: cc-in 0.42s steps(6) both; overflow: auto; }
+.cc-overlay[hidden] { display: none; }
+@keyframes cc-in { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0); } }
+.cc-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #3a2216; color: #f6e7c8; }
+.cc-bar h2 { margin: 0; font-size: 1.05rem; }
+/* Web collection case (collection.js). */
+.cc-room { min-height: 100%; display: grid; align-content: start; justify-items: center; gap: 12px; padding: 16px; background: repeating-linear-gradient(#3a2216 0 16px, #2a1a14 16px 18px); position: relative; overflow: hidden; }
+.cc-room::after { content: ""; position: absolute; inset: 0 auto 0 -20%; width: 18px; background: rgb(255 255 255 / 0.08); animation: cc-glint 6s steps(30) infinite; pointer-events: none; }
+@keyframes cc-glint { to { transform: translateX(140vw); } }
+.cc-status { color: #ffe6a3; margin: 0; }
+.cc-case { display: grid; grid-template-columns: repeat(6, minmax(48px, 96px)); gap: 6px; padding: 10px; background: #8a5a34; border: 4px solid #3a2216; box-shadow: 6px 6px 0 #1a0f0a; }
+.cc-slot { position: relative; aspect-ratio: 1; padding: 0; border: 3px solid #5a3a26; background: #3a2440; cursor: pointer; }
+.cc-item, .cc-fly { position: absolute; inset: 12%; background: url("keepsakes.png") calc(var(--cc-x) * 20%) calc(var(--cc-y) * 33.333%) / 600% 400% no-repeat; image-rendering: pixelated; filter: brightness(0) opacity(0.55); }
+.cc-slot.is-found .cc-item { filter: none; }
+.cc-slot.is-rare.is-found::after { content: "★"; position: absolute; right: 2px; top: 0; color: #ffc54d; font-size: 12px; }
+.cc-slot.is-new .cc-item { animation: cc-glow 0.8s steps(4) 3; }
+@keyframes cc-glow { 50% { filter: brightness(1.6) drop-shadow(0 0 4px #ffd56b); } }
+.cc-glass { position: absolute; inset: 0; background: linear-gradient(135deg, transparent 0 30%, rgb(255 255 255 / 0.22) 30% 38%, transparent 38% 55%, rgb(255 255 255 / 0.12) 55% 60%, transparent 60%); pointer-events: none; }
+.cc-label { color: #2a1a14; max-width: 560px; }
+@media (max-width: 640px) { .cc-case { grid-template-columns: repeat(4, minmax(56px, 1fr)); } }
+.cc-arrive { position: fixed; inset: 0; z-index: 1500; display: grid; place-items: center; align-content: center; gap: 10px; background: rgb(20 10 34 / 0.6); }
+.cc-arrive p { color: #ffe6a3; font-weight: 800; margin: 0; }
+.cc-box { position: relative; width: 96px; height: 80px; background: #d8452e; border: 4px solid #2a1a14; animation: cc-shake 0.8s steps(6); }
+.cc-lid { position: absolute; left: -8px; right: -8px; top: -20px; height: 22px; background: #f06b52; border: 4px solid #2a1a14; animation: cc-lid 0.5s steps(4) 0.8s both; }
+@keyframes cc-shake { 20% { transform: rotate(-6deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(4deg); } }
+@keyframes cc-lid { to { transform: translate(20px, -40px) rotate(30deg); } }
+.cc-fly { position: fixed; left: 50%; top: 45%; width: 72px; height: 72px; inset: auto; transform: translate(-50%, -50%); filter: drop-shadow(0 0 6px #ffd56b); transition: left 0.6s steps(6), top 0.6s steps(6), width 0.6s steps(6), height 0.6s steps(6); }
+.cc-arrive.is-flying { background: transparent; }
+.cc-arrive.is-flying .cc-box, .cc-arrive.is-flying p { visibility: hidden; }
+.cc-arrive.is-flying .cc-fly { width: 40px; height: 40px; }
+@media (prefers-reduced-motion: reduce) {
+  .cc-overlay,
+  .cc-room::after, .cc-box, .cc-lid, .cc-slot.is-new .cc-item { animation: none; }
+  .cc-fly { transition: none; }
+}
