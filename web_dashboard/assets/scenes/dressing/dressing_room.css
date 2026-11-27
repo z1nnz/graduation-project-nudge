@@ -8,16 +8,17 @@
   display: grid;
   place-items: end center;
 }
-.dr-reflect { transform: scaleX(-1); filter: saturate(0.85) brightness(1.05); opacity: 0.92; }
+.dr-glass { justify-items: center; }
+.dr-reflect { justify-self: center; transform: scaleX(-1); filter: saturate(0.85) brightness(1.05); opacity: 0.92; }
 .dr-hung { z-index: 4; display: flex; justify-content: space-around; align-items: flex-start; }
 .dr-garment {
-  width: 22%;
+  width: 30%;
   aspect-ratio: 48 / 56;
   background-size: 1200% 2000%;
   background-position: 0 0;
   background-repeat: no-repeat;
   image-rendering: pixelated;
-  margin-top: -18%;
+  margin-top: -6%;
   animation: dr-swing 3.6s steps(6) infinite alternate;
   transform-origin: 50% 0;
 }
@@ -38,7 +39,8 @@
   animation: dr-rise 0.4s steps(5) both;
 }
 @keyframes dr-rise { from { transform: translate(-50%, 40%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-.dr-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.dr-tabs { display: flex; gap: 6px; flex-wrap: nowrap; }
+.dr-tabs .dr-tab { flex: 1 1 0; width: auto; min-width: 0; padding-inline: 4px; white-space: nowrap; }
 .dr-tab[aria-selected="true"] { background: var(--w-gold, #ffc54d); }
 .dr-rail {
   display: flex;
@@ -94,3 +96,6 @@
   .dr-garment, .dr-rack { animation: none; }
   .dr-card-inner, .dr-item { transition: none; }
 }
+
+/* The page title stays on one line on phones. */
+body[data-page="profile"] .w-hud h1 { white-space: nowrap; font-size: clamp(16px, 5vw, 22px); }
