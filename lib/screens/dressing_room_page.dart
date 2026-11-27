@@ -323,7 +323,7 @@ class _DressingRoomPageState extends State<DressingRoomPage> {
     final mirror = _abs(art, _places['mirror']!.of(wide));
     final rack = _abs(art, _places['rack']!.of(wide));
     final pillar = _abs(art, _places['pillar']!.of(wide));
-    final ps = (art.width / 600).roundToDouble().clamp(1.0, 2.0);
+    final ps = (art.width / 1000).roundToDouble().clamp(1.0, 2.0);
     final glass = Rect.fromLTWH(
       mirror.left + mirror.width * 0.18,
       mirror.top + mirror.height * 0.09,
@@ -352,7 +352,7 @@ class _DressingRoomPageState extends State<DressingRoomPage> {
           child: ClipRect(
             child: ColoredBox(
               color: const Color(0xFFA9C0DE),
-              child: Align(
+              child: FittedBox(
                 alignment: Alignment.bottomCenter,
                 child: Transform.flip(
                   flipX: true,
@@ -467,7 +467,7 @@ class _LightPillar extends StatelessWidget {
           child: PlayerAvatar(
             look: look,
             animation: PlayerAnimation.happy,
-            scale: 3,
+            scale: 2,
             fallback: const SizedBox.shrink(),
           ),
         ),
