@@ -20,7 +20,7 @@
 @keyframes ss-lid { to { transform: translate(18px, -48px) rotate(28deg); } }
 @keyframes ss-rise { from { opacity: 0; transform: translateY(40px) scale(0.5); } to { opacity: 1; transform: none; } }
 .ss-fitting { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 380; width: min(520px, 92%); display: grid; gap: 8px; justify-items: center; padding: 14px; }
-.ss-mirror { width: 168px; height: 200px; display: grid; place-items: end center; border: 8px solid #ffc54d; outline: 3px solid #2a1a14; background: repeating-linear-gradient(135deg, #9fb7d8 0 10px, #b6cbe6 10px 14px, #9fb7d8 14px 30px); overflow: hidden; }
+.ss-mirror { width: 168px; height: 210px; display: grid; place-items: end center; border: 8px solid #ffc54d; outline: 3px solid #2a1a14; background: repeating-linear-gradient(135deg, #9fb7d8 0 10px, #b6cbe6 10px 14px, #9fb7d8 14px 30px); overflow: hidden; }
 .ss-mirror-me { transform: scaleX(-1); }
 .ss-try { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 @media (prefers-reduced-motion: reduce) {
