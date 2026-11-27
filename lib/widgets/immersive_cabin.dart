@@ -13,7 +13,6 @@ import '../models/cabin_presentation.dart';
 import '../models/companion_pose.dart';
 import 'companion_cabin_view.dart';
 import 'companion_sprite.dart';
-import 'player_avatar.dart';
 import 'world_life.dart';
 import 'cabin_tour.dart';
 import '../models/companion_celebration.dart';
@@ -545,7 +544,6 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   bool _still = false;
   bool _lampOff = false;
   int _waterings = 0;
-  PlayerLook _look = PlayerLook.standard;
   PetSpecies? _pet;
   PetStage _petStage = PetStage.baby;
   late bool _touring = widget.showTour;
@@ -581,9 +579,6 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     super.initState();
     _brain.setActivity(_wantedActivity);
     CabinSkyController.instance.addListener(_onSky);
-    PlayerLookStore.load().then((l) {
-      if (mounted) setState(() => _look = l);
-    });
     PetChoiceStore.load().then((p) {
       if (mounted) setState(() => _pet = p);
     });
@@ -765,23 +760,17 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
 
   double get _hour => hourOf(widget.now ?? DateTime.now());
 
-  /// Cabin 3.0: the layered player acts out the day by the real clock.
-  PlayerAnimation _avatarAnimation() => switch (_brain.pose) {
-    CompanionPose.walk =>
-      _brain.facingLeft ? PlayerAnimation.walkLeft : PlayerAnimation.walkRight,
-    CompanionPose.read => PlayerAnimation.read,
-    CompanionPose.sleep => PlayerAnimation.sleep,
-    CompanionPose.cheer => PlayerAnimation.happy,
-    CompanionPose.exercise => PlayerAnimation.runDown,
-    CompanionPose.idle => switch (routineAt(_hour)) {
-      CompanionRoutine.stretch => PlayerAnimation.stretch,
-      CompanionRoutine.snack => PlayerAnimation.snack,
-      CompanionRoutine.look => PlayerAnimation.look,
-      CompanionRoutine.sit => PlayerAnimation.sit,
-      CompanionRoutine.read => PlayerAnimation.read,
-      CompanionRoutine.sleep => PlayerAnimation.idle,
-    },
-  };
+  /// Cabin 3.0: when idle, the companion follows the day by the real clock
+  /// (stretching in the morning, reading in the day).
+  CompanionPose _dayPose() {
+    final pose = _brain.pose;
+    if (pose != CompanionPose.idle) return pose;
+    return switch (routineAt(_hour)) {
+      CompanionRoutine.stretch => CompanionPose.exercise,
+      CompanionRoutine.read => CompanionPose.read,
+      _ => CompanionPose.idle,
+    };
+  }
 
   Rect _roomRect(Rect box, double l, double t, double w, double h) =>
       Rect.fromLTWH(
@@ -1112,24 +1101,12 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                   onLongPress: widget.onOpenCharacter,
                   child: KeyedSubtree(
                     key: _companionKey,
-                    child: FittedBox(
-                      alignment: Alignment.bottomCenter,
-                      child: PlayerAvatar(
-                        key: const Key('cabin-player-avatar'),
-                        look: _look,
-                        animation: _avatarAnimation(),
-                        scale: math.max(
-                          1,
-                          (charHeight / (56 * 0.72)).roundToDouble(),
-                        ),
-                        fallback: CompanionSprite(
-                          profile: widget.profile,
-                          pose: _brain.pose,
-                          size: charHeight,
-                          facingLeft: _brain.facingLeft,
-                          stepPhase: _brain.stepPhase,
-                        ),
-                      ),
+                    child: CompanionSprite(
+                      profile: widget.profile,
+                      pose: _dayPose(),
+                      size: charHeight,
+                      facingLeft: _brain.facingLeft,
+                      stepPhase: _brain.stepPhase,
                     ),
                   ),
                 ),
