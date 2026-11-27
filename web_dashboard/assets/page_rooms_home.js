@@ -55,24 +55,27 @@
       },
     },
 
+    // J2: the name card page is the dressing room (dressing_room.js adds
+    // the mirror, the rack and the flip card on top of this room).
     profile: {
-      art: 'assets/home/room_base.png',
+      art: 'assets/scenes/cabin/room_base_mid.webp',
       aspect: 720 / 1279,
-      title: '夥伴名片',
-      npc: 'companion',
-      npcAt: [0.25, 0.92],
-      greeting: () => ['這是你的名片，朋友來拜訪時會看到它。'],
-      tips: ['書架上記著你的成長軌跡。', '名片可以換稱號、簽名和顏色。'],
-      float: ['.profile-container'],
+      title: '更衣室',
+      npc: 'letty',
+      npcAt: [0.2, 0.93],
+      greeting: () => ['歡迎來到更衣室！站到鏡子前，衣架上的衣服都可以換上看看。', '名片在牆上的告示板，翻過來就能編輯。'],
+      tips: ['換上新衣服時，你會在鏡子前轉一圈。', '衣架可以左右拖曳，找想穿的那一件。', '書架上記著你的成長軌跡。'],
       objects: [
-        { id: 'shelf', label: '書架', hint: '成長軌跡', x: 0.12, y: 0.29, w: 0.25, h: 0.27, section: '#profileGrowthTracks', panelTitle: '書架：成長軌跡' },
+        { id: 'mirror', label: '立鏡', hint: '照照鏡子', x: 0.64, y: 0.46, w: 0.24, h: 0.22 },
+        { id: 'rack', label: '衣架', hint: '換衣服', x: 0.1, y: 0.56, w: 0.42, h: 0.1 },
+        { id: 'card', label: '名片', hint: '翻面編輯', x: 0.43, y: 0.37, w: 0.18, h: 0.1 },
+        { id: 'shelf', label: '書架', hint: '成長軌跡', x: 0.12, y: 0.29, w: 0.25, h: 0.2, section: '#profileGrowthTracks', panelTitle: '書架：成長軌跡' },
       ],
       effects: [{ type: 'flicker', points: [[0.12, 0.2], [0.88, 0.2]], radius: 0.05 }, { type: 'dust', count: 14 }],
       wide: {
-        art: 'assets/scenes/workbench/cabin_wide.webp', aspect: 1.5, npcAt: [0.12, 0.92],
-        rects: { shelf: [0.23, 0.34, 0.14, 0.36] },
-        effects: [{ type: 'flicker', points: [[0.22, 0.24], [0.79, 0.24]], radius: 0.03 }, { type: 'stars', count: 12, height: 0.3 }, { type: 'dust', count: 20 }],
-        walkers: [{ id: 'letty', path: [[0.05, 0.85], [0.2, 0.82]], speed: 0.02, pause: 4000 }],
+        art: 'assets/scenes/workbench/cabin_wide_mid.webp', aspect: 1.5, npcAt: [0.12, 0.92],
+        rects: { mirror: [0.66, 0.42, 0.08, 0.3], rack: [0.2, 0.55, 0.22, 0.15], card: [0.42, 0.39, 0.17, 0.13], shelf: [0.23, 0.34, 0.14, 0.2] },
+        effects: [{ type: 'flicker', points: [[0.22, 0.24], [0.79, 0.24]], radius: 0.03 }, { type: 'dust', count: 20 }],
       },
     },
 

@@ -1,3 +1,4 @@
+import 'dressing_room_page.dart';
 import 'pet_house_page.dart';
 import '../models/cabin_parcels.dart';
 import 'game_rooms.dart';
@@ -138,7 +139,7 @@ class HomePage extends StatelessWidget {
                   : const SocialPage(),
             ),
             onOpenRooms: () => push(const StudyRoomListPage()),
-            onOpenCharacter: () => push(const CharacterPage()),
+            onOpenCharacter: () => push(const DressingRoomPage()),
             onOpenDecor: () => showHomeDecorSheet(context),
             onOpenShop: () => push(const StoreScenePage()),
             socialUnread: appState.unreadUserNotificationCount,
@@ -154,7 +155,7 @@ class HomePage extends StatelessWidget {
             onOpenMenu: () => showCabinMenu(
               context,
               onOpen: (id) => push(switch (id) {
-                'character' => const CharacterPage(),
+                'character' => const DressingRoomPage(),
                 'shop' => const StoreScenePage(),
                 'commission' => const CommissionHallPage(),
                 'garden' => const GardenScenePage(),
