@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nudge/models/avatar_profile.dart';
 import 'package:nudge/models/cabin_layout.dart';
 import 'package:nudge/models/cabin_presentation.dart';
@@ -76,6 +77,9 @@ Future<Map<String, int>> _pump(
 }
 
 void main() {
+  // The cabin reads the player's look and pet from this device.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   setUp(rootBundle.clear);
 
   testWidgets('room objects open their features', (tester) async {
@@ -352,4 +356,17 @@ void main() {
     expect(find.byKey(const Key('hotbar-social-dot')), findsOneWidget);
     expect(find.bySemanticsLabel('社交，有新消息'), findsOneWidget);
   });
+
+  testWidgets(
+    'cabin 3.0: noon opens the drapes, folds the futon, ticks the clock',
+    (tester) async {
+      await tester.runAsync(() => _pump(tester, still: true));
+      expect(find.byKey(const Key('cabin-drapes-open')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-futon-folded')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-clock')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-near')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-player-avatar')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-blanket')), findsNothing);
+    },
+  );
 }

@@ -13,6 +13,8 @@ import '../models/cabin_presentation.dart';
 import '../models/companion_pose.dart';
 import 'companion_cabin_view.dart';
 import 'companion_sprite.dart';
+import 'player_avatar.dart';
+import 'world_life.dart';
 import 'cabin_tour.dart';
 import '../models/companion_celebration.dart';
 import 'celebration_overlay.dart';
@@ -543,6 +545,9 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
   bool _still = false;
   bool _lampOff = false;
   int _waterings = 0;
+  PlayerLook _look = PlayerLook.standard;
+  PetSpecies? _pet;
+  PetStage _petStage = PetStage.baby;
   late bool _touring = widget.showTour;
   CompanionCelebration? _celebration;
   final _questKey = GlobalKey();
@@ -576,6 +581,15 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     super.initState();
     _brain.setActivity(_wantedActivity);
     CabinSkyController.instance.addListener(_onSky);
+    PlayerLookStore.load().then((l) {
+      if (mounted) setState(() => _look = l);
+    });
+    PetChoiceStore.load().then((p) {
+      if (mounted) setState(() => _pet = p);
+    });
+    PetStageCache.load().then((st) {
+      if (mounted) setState(() => _petStage = st);
+    });
   }
 
   void _onSky() {
@@ -749,6 +763,192 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
     );
   }
 
+  double get _hour => hourOf(widget.now ?? DateTime.now());
+
+  /// Cabin 3.0: the layered player acts out the day by the real clock.
+  PlayerAnimation _avatarAnimation() => switch (_brain.pose) {
+    CompanionPose.walk =>
+      _brain.facingLeft ? PlayerAnimation.walkLeft : PlayerAnimation.walkRight,
+    CompanionPose.read => PlayerAnimation.read,
+    CompanionPose.sleep => PlayerAnimation.sleep,
+    CompanionPose.cheer => PlayerAnimation.happy,
+    CompanionPose.exercise => PlayerAnimation.runDown,
+    CompanionPose.idle => switch (routineAt(_hour)) {
+      CompanionRoutine.stretch => PlayerAnimation.stretch,
+      CompanionRoutine.snack => PlayerAnimation.snack,
+      CompanionRoutine.look => PlayerAnimation.look,
+      CompanionRoutine.sit => PlayerAnimation.sit,
+      CompanionRoutine.read => PlayerAnimation.read,
+      CompanionRoutine.sleep => PlayerAnimation.idle,
+    },
+  };
+
+  Rect _roomRect(Rect box, double l, double t, double w, double h) =>
+      Rect.fromLTWH(
+        box.left + l * box.width,
+        box.top + t * box.height,
+        w * box.width,
+        h * box.height,
+      );
+
+  /// Furniture behind the companion: drapes, wall clock, futon.
+  List<Widget> _cabinLife(Rect box, Offset feet, double charHeight) {
+    final hour = _hour;
+    final closed = worldDaylight(hour) <= 0.2;
+    final bedtime =
+        hour >= 21 || hour < 6.5 || _brain.pose == CompanionPose.sleep;
+    final curtain = widget.layout.layers['curtain']?.rect;
+    final move = Duration(milliseconds: _still ? 0 : 500);
+    Widget pixel(String asset, String key) => Image.asset(
+      asset,
+      key: Key(key),
+      fit: BoxFit.fill,
+      filterQuality: FilterQuality.none,
+      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+    );
+    return [
+      if (curtain != null)
+        Positioned.fromRect(
+          rect: _roomRect(
+            box,
+            curtain.left,
+            curtain.top,
+            curtain.width,
+            curtain.height,
+          ),
+          child: IgnorePointer(
+            child: LayoutBuilder(
+              builder: (_, c) => Stack(
+                key: Key(closed ? 'cabin-drapes-closed' : 'cabin-drapes-open'),
+                children: [
+                  for (final left in [true, false])
+                    AnimatedPositioned(
+                      duration: move,
+                      curve: const Threshold(0.5),
+                      top: c.maxHeight * 0.04,
+                      bottom: 0,
+                      left: left ? 0 : null,
+                      right: left ? null : 0,
+                      width: c.maxWidth * (closed ? 0.5 : 0.08),
+                      child: const ColoredBox(color: Color(0xFF6A4AA8)),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      Positioned.fromRect(
+        rect: _roomRect(box, 0.455, 0.262, 0.09, 0.05),
+        child: IgnorePointer(
+          child: WorldClock(
+            fps: 1,
+            builder: (_, _, _) => CustomPaint(
+              key: const Key('cabin-clock'),
+              painter: PixelClockPainter(widget.now ?? DateTime.now()),
+            ),
+          ),
+        ),
+      ),
+      if (bedtime)
+        Positioned.fromRect(
+          rect: _roomRect(box, 0.29, 0.69, 0.42, 0.06),
+          child: IgnorePointer(
+            child: pixel(
+              'assets/scenes/cabin/futon_open.png',
+              'cabin-futon-open',
+            ),
+          ),
+        )
+      else
+        Positioned.fromRect(
+          rect: _roomRect(box, 0.72, 0.6, 0.15, 0.07),
+          child: IgnorePointer(
+            child: pixel(
+              'assets/scenes/cabin/futon_folded.png',
+              'cabin-futon-folded',
+            ),
+          ),
+        ),
+      if (_pet case final pet?)
+        Positioned(
+          left: feet.dx + charHeight * 0.18,
+          top: feet.dy - charHeight * 0.32,
+          child: IgnorePointer(
+            child: PetSprite(
+              key: const Key('cabin-pet'),
+              species: pet,
+              stage: _petStage,
+              scale: math.max(1, (charHeight / 70).roundToDouble()),
+              animation: switch (_brain.pose) {
+                CompanionPose.walk =>
+                  _brain.facingLeft
+                      ? PetAnimation.walkLeft
+                      : PetAnimation.walkRight,
+                CompanionPose.sleep => PetAnimation.sleep,
+                CompanionPose.cheer => PetAnimation.happy,
+                _ => PetAnimation.idle,
+              },
+            ),
+          ),
+        ),
+    ];
+  }
+
+  /// In front of the companion: the blanket, night light and the near layer.
+  List<Widget> _cabinFront(Rect box, Offset feet, double charHeight) {
+    final hour = _hour;
+    final dark = (1 - worldDaylight(hour)) * (_lampOff ? 0.0 : 0.16);
+    return [
+      if (_brain.pose == CompanionPose.sleep)
+        Positioned(
+          left: feet.dx - charHeight * 0.45,
+          top: feet.dy - charHeight * 0.22,
+          width: charHeight * 0.75,
+          height: charHeight * 0.26,
+          child: IgnorePointer(
+            child: Image.asset(
+              'assets/scenes/cabin/blanket.png',
+              key: const Key('cabin-blanket'),
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.none,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      if (dark > 0)
+        Positioned.fromRect(
+          rect: box,
+          child: IgnorePointer(
+            child: ColoredBox(
+              key: const Key('cabin-night-light'),
+              color: const Color(0xFF241448).withValues(alpha: dark),
+            ),
+          ),
+        ),
+      Positioned.fromRect(
+        rect: box,
+        child: IgnorePointer(
+          child: WorldClock(
+            builder: (_, f, _) => CustomPaint(
+              key: const Key('cabin-near'),
+              painter: WorldNearPainter(
+                frame: f,
+                fall: worldPhaseAt(hour) == WorldPhase.night
+                    ? WorldFall.fireflies
+                    : WorldFall.dust,
+                count: 12,
+                plants: const [
+                  WorldPlant(0.02, y: 0, size: 0.12, hanging: true),
+                  WorldPlant(0.98, y: 0, size: 0.1, hanging: true),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final layout = widget.layout;
@@ -896,6 +1096,7 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                   ),
                 ),
               ),
+            ..._cabinLife(box, feet, charHeight),
             Positioned(
               left: feet.dx - charHeight / 2,
               top: feet.dy - charHeight,
@@ -911,17 +1112,30 @@ class _ImmersiveHomeState extends State<ImmersiveHome>
                   onLongPress: widget.onOpenCharacter,
                   child: KeyedSubtree(
                     key: _companionKey,
-                    child: CompanionSprite(
-                      profile: widget.profile,
-                      pose: _brain.pose,
-                      size: charHeight,
-                      facingLeft: _brain.facingLeft,
-                      stepPhase: _brain.stepPhase,
+                    child: FittedBox(
+                      alignment: Alignment.bottomCenter,
+                      child: PlayerAvatar(
+                        key: const Key('cabin-player-avatar'),
+                        look: _look,
+                        animation: _avatarAnimation(),
+                        scale: math.max(
+                          1,
+                          (charHeight / (56 * 0.72)).roundToDouble(),
+                        ),
+                        fallback: CompanionSprite(
+                          profile: widget.profile,
+                          pose: _brain.pose,
+                          size: charHeight,
+                          facingLeft: _brain.facingLeft,
+                          stepPhase: _brain.stepPhase,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
+            ..._cabinFront(box, feet, charHeight),
             Positioned(
               left: 0,
               right: 0,
