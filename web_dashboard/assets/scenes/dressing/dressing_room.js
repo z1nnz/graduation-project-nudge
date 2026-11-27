@@ -21,7 +21,7 @@
 
   const life = root.NudgeWorldLife?.attach(room, {
     player: 'layered', // the dressing room shows the layered character you dress
-    playerScale: 2,
+    playerScale: 1,
     playerScaleMin: 1,
     layouts: {
       tall: { rects: { mirror: PLACES.tall.mirror, rack: PLACES.tall.rack, card: [0.43, 0.37, 0.18, 0.1], shelf: [0.12, 0.29, 0.25, 0.2] }, spots: { mirror: PLACES.tall.mirrorSpot, rack: PLACES.tall.rackSpot }, start: PLACES.tall.start, skyRect: [0.3, 0.05, 0.4, 0.19], floor: [0.64, 0.9], near: { fall: 'dust', plants: [{ x: 0.02, y: 0, size: 0.12, kind: 'ivy' }] } },
@@ -49,7 +49,7 @@
   const hung = make('div', 'dr-hung');
   hung.setAttribute('aria-hidden', 'true');
   room.frame.append(rackImg, hung, glass, mirrorImg);
-  let reflect = A.create(reflectNode, { look: A.loadLook(), scale: 2, animation: 'idle' });
+  let reflect = A.create(reflectNode, { look: A.loadLook(), scale: 1, animation: 'idle' });
 
   function place(n, r) {
     Object.assign(n.style, { left: r[0] * 100 + '%', top: r[1] * 100 + '%', width: r[2] * 100 + '%', height: r[3] * 100 + '%' });
@@ -62,9 +62,14 @@
     place(hung, [p.rack[0] + p.rack[2] * 0.08, p.rack[1] + p.rack[3] * 0.2, p.rack[2] * 0.84, p.rack[3] * 0.75]);
     const g = glass.getBoundingClientRect();
     // Whole figure in the glass: limited by its height and its width.
-    const s = Math.max(1, Math.floor(Math.min((g.height || 120) / 80, ((g.width || 60) * 1.6) / 64)));
+    // The whole figure fits the glass: a 128 px cell scaled to its height.
+    const k = Math.min((g.height || 120) / 124, ((g.width || 60) * 1.9) / 128);
     reflect.destroy();
-    reflect = A.create(reflectNode, { look: life?.player()?.look || A.loadLook(), scale: s, animation: 'idle' });
+    reflect = A.create(reflectNode, { look: life?.player()?.look || A.loadLook(), scale: 1, animation: 'idle' });
+    // Centre the scaled figure, then mirror it.
+    Object.assign(reflectNode.style, { position: 'absolute', left: '50%', bottom: '0' });
+    reflectNode.style.transform = `translateX(-50%) scale(${k.toFixed(3)}) scaleX(-1)`;
+    reflectNode.style.transformOrigin = '50% 96%';
     paintHung();
   }
   // A few garments always hang on the rack art itself.
@@ -201,7 +206,7 @@
     sync();
     if (profile) profile.hidden = false;
     cardAvatar?.destroy();
-    cardAvatar = A.create(portrait, { look: A.loadLook(), scale: 2, animation: 'wave' });
+    cardAvatar = A.create(portrait, { look: A.loadLook(), scale: 1, animation: 'wave' });
     flip.classList.remove('is-flipped');
     room.openPanel({ title: '名片', content: flip, from: room.object('card'), onClose: () => { cardAvatar?.destroy(); cardAvatar = null; } });
   }
