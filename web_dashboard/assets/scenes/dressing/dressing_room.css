@@ -1,0 +1,96 @@
+/* Dressing room (dressing_room.js) on profile.html. */
+.dr-prop, .dr-glass, .dr-hung { position: absolute; pointer-events: none; image-rendering: pixelated; }
+.dr-prop { object-fit: fill; z-index: 4; }
+.dr-glass {
+  z-index: 3;
+  overflow: hidden;
+  background: repeating-linear-gradient(135deg, #9fb7d8 0 10px, #b6cbe6 10px 14px, #9fb7d8 14px 30px);
+  display: grid;
+  place-items: end center;
+}
+.dr-reflect { transform: scaleX(-1); filter: saturate(0.85) brightness(1.05); opacity: 0.92; }
+.dr-hung { z-index: 4; display: flex; justify-content: space-around; align-items: flex-start; }
+.dr-garment {
+  width: 22%;
+  aspect-ratio: 48 / 56;
+  background-size: 1200% 2000%;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  margin-top: -18%;
+  animation: dr-swing 3.6s steps(6) infinite alternate;
+  transform-origin: 50% 0;
+}
+.dr-garment:nth-child(2n) { animation-delay: -1.2s; }
+.dr-garment.is-worn { opacity: 0.35; }
+@keyframes dr-swing { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+
+.dr-rack {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(720px, 94%);
+  z-index: 300;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  animation: dr-rise 0.4s steps(5) both;
+}
+@keyframes dr-rise { from { transform: translate(-50%, 40%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+.dr-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.dr-tab[aria-selected="true"] { background: var(--w-gold, #ffc54d); }
+.dr-rail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 14px 4px 6px;
+  border-top: 6px solid #8a5a34;
+  cursor: grab;
+  touch-action: pan-x;
+}
+.dr-rail.is-sliding { cursor: grabbing; scroll-snap-type: none; }
+.dr-rail.is-sliding .dr-item { transform: rotate(4deg); }
+.dr-item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  scroll-snap-align: center;
+  background: #f6e7c8;
+  border: 3px solid #5a3a26;
+  cursor: pointer;
+  transform-origin: 50% -14px;
+  transition: transform 0.2s steps(3);
+}
+.dr-item[aria-selected="true"] { border-color: var(--w-gold, #ffc54d); box-shadow: 0 0 0 3px #c4710b; }
+.dr-hook { position: absolute; top: -14px; width: 8px; height: 12px; border: 3px solid #b8b0c0; border-bottom: 0; border-radius: 6px 6px 0 0; }
+.dr-item-pic {
+  width: 72px;
+  height: 84px;
+  background-size: 864px 1680px;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+.dr-item-name { font-size: 12px; }
+.dr-close { justify-self: end; }
+
+.dr-card { perspective: 900px; }
+.dr-card-inner { position: relative; display: grid; transform-style: preserve-3d; transition: transform 0.5s steps(6); }
+.dr-card.is-flipped .dr-card-inner { transform: rotateY(180deg); }
+.dr-card-face { grid-area: 1 / 1; backface-visibility: hidden; }
+.dr-card-front { display: grid; justify-items: center; gap: 6px; padding: 16px; border: 4px double #8a5a34; }
+.dr-card-back { transform: rotateY(180deg); }
+.dr-card-portrait { display: block; }
+.dr-card-name { margin: 0; }
+.dr-card-sign { margin: 0; font-style: italic; }
+.dr-card-turn { margin-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .dr-garment, .dr-rack { animation: none; }
+  .dr-card-inner, .dr-item { transition: none; }
+}

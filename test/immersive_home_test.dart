@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nudge/models/avatar_profile.dart';
 import 'package:nudge/models/cabin_layout.dart';
 import 'package:nudge/models/cabin_presentation.dart';
 import 'package:nudge/widgets/immersive_cabin.dart';
+import 'package:nudge/widgets/player_avatar.dart';
+
+/// The cabin character is acting [anim]: the layered player when its sheets
+/// load, otherwise the companion fallback showing [pose].
+Finder actingAs(PlayerAnimation anim, String pose) => find.byWidgetPredicate(
+  (w) =>
+      (w is PlayerAvatar && w.animation == anim) ||
+      w.key == Key('pose-effect-$pose') ||
+      w.key == ValueKey('sprite-$pose'),
+);
 
 CabinPresentation _presentation({bool device = false, bool focusing = false}) =>
     CabinPresentation(
@@ -76,6 +87,9 @@ Future<Map<String, int>> _pump(
 }
 
 void main() {
+  // The cabin reads the player's look and pet from this device.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   setUp(rootBundle.clear);
 
   testWidgets('room objects open their features', (tester) async {
@@ -161,7 +175,7 @@ void main() {
     await tester.runAsync(() async => opened = await _pump(tester));
     await tester.tap(find.byKey(const Key('cabin-companion')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byKey(const Key('pose-effect-cheer')), findsOneWidget);
+    expect(actingAs(PlayerAnimation.happy, 'cheer'), findsWidgets);
     expect(find.byKey(const Key('companion-hearts')), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
     expect(find.byKey(const Key('companion-hearts')), findsNothing);
@@ -275,7 +289,7 @@ void main() {
     for (var i = 0; i < 120; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    expect(find.byKey(const Key('sprite-read')), findsOneWidget);
+    expect(actingAs(PlayerAnimation.read, 'read'), findsWidgets);
     expect(find.text('桌上的我也在專注，一起加油！'), findsOneWidget);
   });
 
@@ -352,4 +366,17 @@ void main() {
     expect(find.byKey(const Key('hotbar-social-dot')), findsOneWidget);
     expect(find.bySemanticsLabel('社交，有新消息'), findsOneWidget);
   });
+
+  testWidgets(
+    'cabin 3.0: noon opens the drapes, folds the futon, ticks the clock',
+    (tester) async {
+      await tester.runAsync(() => _pump(tester, still: true));
+      expect(find.byKey(const Key('cabin-drapes-open')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-futon-folded')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-clock')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-near')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-player-avatar')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-blanket')), findsNothing);
+    },
+  );
 }

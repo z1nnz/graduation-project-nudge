@@ -1,3 +1,4 @@
+import 'firefly_game_page.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -10,13 +11,17 @@ import '../state/app_state.dart';
 import '../theme/game_ui.dart';
 import '../widgets/npc_dialog.dart';
 import '../widgets/scene_room.dart';
+import '../widgets/world_life.dart';
 
 Rect _r(double x, double y, double w, double h) => Rect.fromLTWH(x, y, w, h);
 
 /// 星光花園: each soil bed is one plant, one sprout per week (newest right),
 /// grown from the account's own daily records. Opens at level 10, like Web.
 class GardenScenePage extends StatelessWidget {
-  const GardenScenePage({super.key});
+  const GardenScenePage({super.key, this.now});
+
+  /// Overrides the clock (tests pick a season).
+  final DateTime? now;
 
   // Soil inside each bed, measured from the art.
   static const _tallBeds = [
@@ -37,7 +42,8 @@ class GardenScenePage extends StatelessWidget {
     final state = context.watch<AppState>();
     final level = state.avatarLevel;
     final open = level >= GardenGrowth.minLevel;
-    final now = DateTime.now();
+    final now = this.now ?? DateTime.now();
+    final season = GardenSeason.of(now);
     final weeks = {
       for (final p in GardenPlant.all)
         p: GardenGrowth.weeksFor(p, state.dailySummaries, now),
@@ -115,9 +121,41 @@ class GardenScenePage extends StatelessWidget {
           ]),
         ],
         overlay: (context, art, wide) {
-          if (!open) return const [];
+          final life = [
+            Positioned.fromRect(
+              rect: art,
+              child: IgnorePointer(
+                child: ColoredBox(
+                  key: Key('garden-season-${season.name}'),
+                  color: season.tint,
+                ),
+              ),
+            ),
+            Positioned.fromRect(
+              rect: art,
+              child: IgnorePointer(
+                child: WorldClock(
+                  builder: (_, f, _) => CustomPaint(
+                    key: const Key('garden-life'),
+                    painter: GardenLifePainter(frame: f, season: season),
+                    foregroundPainter: WorldNearPainter(
+                      frame: f,
+                      fall: season.fall,
+                      count: 18,
+                      plants: [
+                        WorldPlant(0.02, size: 0.14, bloom: season.bloom),
+                        WorldPlant(0.98, size: 0.12, bloom: season.bloom),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ];
+          if (!open) return life;
           final beds = wide ? _wideBeds : _tallBeds;
           return [
+            ...life,
             for (final (i, plant) in GardenPlant.all.indexed)
               Positioned(
                 left: art.left + beds[i].left * art.width,
@@ -179,7 +217,7 @@ class _Bed extends StatelessWidget {
                               ),
                             ),
                           )
-                        : _PlantSprite(row: plant.row, col: w.stage - 1),
+                        : _GrowingPlant(row: plant.row, stage: w.stage),
                   ),
                 ),
               ),
@@ -190,8 +228,138 @@ class _Bed extends StatelessWidget {
   );
 }
 
+/// Season of the garden (J7): spring blossom, summer fireflies, autumn
+/// maple, winter snow.
+enum GardenSeason {
+  spring(WorldFall.petals, Color(0x26F6A7C1), Color(0xFFF6A7C1), '春櫻'),
+  summer(WorldFall.fireflies, Color(0x1A96DC78), Color(0xFFFFE36B), '夏螢'),
+  autumn(WorldFall.leaves, Color(0x33D9793A), Color(0xFFD9793A), '秋楓'),
+  winter(WorldFall.snow, Color(0x40C8DCFF), Color(0xFFE4ECFF), '冬雪');
+
+  const GardenSeason(this.fall, this.tint, this.bloom, this.label);
+  final WorldFall fall;
+  final Color tint, bloom;
+  final String label;
+
+  static GardenSeason of(DateTime d) => switch (d.month) {
+    3 || 4 || 5 => spring,
+    6 || 7 || 8 => summer,
+    9 || 10 || 11 => autumn,
+    _ => winter,
+  };
+}
+
+/// Butterflies and bees (not in winter) and a frog hopping by the path.
+class GardenLifePainter extends CustomPainter {
+  GardenLifePainter({required this.frame, required this.season});
+  final int frame;
+  final GardenSeason season;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const px = 3.0;
+    final w = size.width / px, h = size.height / px;
+    canvas.save();
+    canvas.scale(px);
+    final p = Paint()..isAntiAlias = false;
+    void dot(double x, double y, double dw, double dh, Color c) =>
+        canvas.drawRect(
+          Rect.fromLTWH(x.floorToDouble(), y.floorToDouble(), dw, dh),
+          p..color = c,
+        );
+    final flap = frame % 4 < 2;
+    if (season != GardenSeason.winter) {
+      const wings = [Color(0xFFF6A7C1), Color(0xFFBFE3FF), Color(0xFFFFE36B)];
+      for (var i = 0; i < 3; i++) {
+        final t = frame / 60 + i * 2.1;
+        final x = (0.3 + 0.35 * math.sin(t * 0.7 + i)) * w,
+            y = (0.42 + 0.12 * math.sin(t * 1.3 + i * 2)) * h;
+        dot(x - (flap ? 2 : 1), y - 1, flap ? 2 : 1, 2, wings[i]);
+        dot(x + 1, y - 1, flap ? 2 : 1, 2, wings[i]);
+        dot(x, y - 1, 1, 3, const Color(0xFF2A1A14));
+      }
+      for (var i = 0; i < 2; i++) {
+        final t = frame / 20 + i * 3;
+        final x = (0.45 + 0.2 * math.sin(t * 0.5 + i)) * w,
+            y = (0.5 + 0.08 * math.cos(t * 0.9 + i)) * h;
+        dot(x, y, 2, 1, const Color(0xFFFFC54D));
+        dot(x + 1, y, 1, 1, const Color(0xFF2A1A14));
+      }
+    }
+    final hop = (frame ~/ 36) % 2, k = (frame % 36) / 36;
+    final fx =
+        (0.56 +
+            (hop == 1 ? 0.06 : 0) +
+            (k < 0.3 ? (hop == 1 ? -0.06 : 0.06) * (1 - k / 0.3) : 0)) *
+        w;
+    final fy = 0.84 * h - (k < 0.3 ? math.sin(k / 0.3 * math.pi) * 4 : 0);
+    dot(
+      fx - 2,
+      fy - 2,
+      5,
+      3,
+      season == GardenSeason.winter
+          ? const Color(0xFF7AA6B8)
+          : const Color(0xFF5AA04A),
+    );
+    dot(fx - 1, fy - 3, 1, 1, const Color(0xFF2A1A14));
+    dot(fx + 2, fy - 3, 1, 1, const Color(0xFF2A1A14));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(GardenLifePainter old) =>
+      old.frame != frame || old.season != season;
+}
+
+/// A plant that grows up frame by frame when it first appears, then sways;
+/// reduced motion shows the grown plant at once.
+class _GrowingPlant extends StatefulWidget {
+  const _GrowingPlant({required this.row, required this.stage});
+  final int row, stage;
+
+  @override
+  State<_GrowingPlant> createState() => _GrowingPlantState();
+}
+
+class _GrowingPlantState extends State<_GrowingPlant>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _grow = AnimationController(vsync: this);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (still) {
+      _grow.value = 1;
+    } else if (_grow.value == 0 && !_grow.isAnimating) {
+      _grow.duration = Duration(milliseconds: 180 * widget.stage);
+      _grow.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _grow.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _grow,
+    builder: (_, _) => _PlantSprite(
+      key: const Key('garden-growing'),
+      row: widget.row,
+      col: (_grow.value * (widget.stage - 1)).floor().clamp(
+        0,
+        widget.stage - 1,
+      ),
+    ),
+  );
+}
+
 class _PlantSprite extends StatelessWidget {
-  const _PlantSprite({required this.row, required this.col});
+  const _PlantSprite({super.key, required this.row, required this.col});
   final int row, col;
 
   @override
@@ -249,13 +417,22 @@ class ParkScenePage extends StatelessWidget {
         title: '遊樂園',
         npc: GameCharacters.bounce,
         npcAt: const Offset(0.24, 0.95),
-        greeting: () => ['我是跳跳！每天可以免費玩 3 次，四個遊樂設施隨你挑～'],
+        greeting: () => ['我是跳跳！每天可以免費玩 3 次，左下角的螢火蟲燈在 App 裡就能玩～'],
         tips: const ['專注 25 分鐘以上，還能多拿獎勵券喔。', '跳房子是免費的，跳幾下活動一下筋骨吧～'],
         objects: [
           ride('wheel', '摩天輪', '接星星', _r(0.05, 0.03, 0.4, 0.29)),
           ride('stall', '撈魚攤', '星光釣魚', _r(0.02, 0.4, 0.43, 0.2)),
           ride('stage', '舞台', '鐘塔節奏', _r(0.66, 0.4, 0.3, 0.16)),
           ride('carousel', '旋轉木馬', '記憶配對', _r(0.65, 0.1, 0.32, 0.25)),
+          SceneObject(
+            id: 'lantern',
+            label: '螢火蟲燈',
+            hint: '在 App 裡玩螢火蟲燈籠',
+            rect: _r(0.04, 0.62, 0.12, 0.12),
+            onTap: (c, _) => Navigator.of(c).push(
+              MaterialPageRoute<void>(builder: (_) => const FireflyGamePage()),
+            ),
+          ),
           SceneObject(
             id: 'hopscotch',
             label: '跳房子',
@@ -304,6 +481,7 @@ class ParkScenePage extends StatelessWidget {
             'stall': Rect.fromLTWH(0.17, 0.37, 0.24, 0.21),
             'stage': Rect.fromLTWH(0.7, 0.38, 0.18, 0.18),
             'hopscotch': Rect.fromLTWH(0.72, 0.57, 0.18, 0.15),
+            'lantern': Rect.fromLTWH(0.05, 0.6, 0.06, 0.2),
           },
           effects: [
             SceneEffect.clouds(top: 0.0, band: 0.07, count: 5),
@@ -325,7 +503,7 @@ class ParkScenePage extends StatelessWidget {
         ),
         footer: Center(
           child: Text(
-            '遊戲在網頁版遊樂園進行，App 會幫你打開。',
+            '螢火蟲燈籠直接在 App 裡玩；其他設施會打開網頁版遊樂園。',
             style: TextStyle(
               color: GamePalette.inkLight.withValues(alpha: 0.9),
               fontSize: 13,

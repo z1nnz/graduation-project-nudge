@@ -7,6 +7,12 @@
     <meta name="theme-color" content="#1b1530" />
     <link rel="stylesheet" href="assets/world_ui.css?v=3" />
     <link rel="stylesheet" href="assets/cabin.css?v=5" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/stage/world_life.css?v=1" />
+    <link rel="stylesheet" href="assets/cabin_life.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/pet_house/pet_house.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/collection/collection.css?v=1" />
   </head>
   <body class="w-page" data-page="cabin">
     <header class="w-hud">
@@ -41,6 +47,8 @@
             <div id="cabinViewTools" class="cabin-tools">
               <button id="cabinDecorate" type="button" class="w-btn is-gold">布置</button>
               <a class="w-btn" href="operations.html#decor">到雜貨店買家具</a>
+              <button id="petHouseOpen" type="button" class="w-btn is-violet">寵物小屋</button>
+              <button id="collectionOpen" type="button" class="w-btn">收藏盒</button>
             </div>
             <div id="cabinEditTools" class="cabin-tools" hidden>
               <button id="cabinUndo" type="button" class="w-btn" aria-keyshortcuts="Control+Z" disabled>↶ 復原</button>
@@ -85,5 +93,17 @@
     <script src="assets/cabin_companion_core.js?v=1"></script>
     <script src="assets/cabin.js?v=c3"></script>
     <script src="assets/app.js?v=31"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/avatar_layers.js?v=1"></script>
+    <script src="assets/scenes/stage/world_life_core.js?v=1"></script>
+    <script src="assets/scenes/stage/world_life.js?v=1"></script>
+    <script src="assets/scenes/pet_house/pets.js?v=1"></script>
+    <script src="assets/cabin_life.js?v=1"></script>
+    <script src="assets/scenes/pet_house/pet_house.js?v=1"></script>
+    <script src="assets/scenes/collection/collection_core.js?v=1"></script>
+    <script src="assets/scenes/collection/collection.js?v=1"></script>
   </body>
 </html>

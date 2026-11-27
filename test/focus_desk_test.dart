@@ -3,8 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nudge/screens/focus_page.dart';
 import 'package:nudge/state/app_state.dart';
+import 'package:nudge/widgets/player_avatar.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// The cabin character is acting [anim]: the layered player when its sheets
+/// load, otherwise the companion fallback showing [pose].
+Finder actingAs(PlayerAnimation anim, String pose) => find.byWidgetPredicate(
+  (w) =>
+      (w is PlayerAvatar && w.animation == anim) ||
+      w.key == Key('pose-effect-$pose') ||
+      w.key == ValueKey('sprite-$pose'),
+);
 
 void main() {
   setUp(rootBundle.clear);
@@ -37,7 +47,7 @@ void main() {
       expect(find.byKey(const Key('desk-clock')), findsOneWidget);
       expect(find.text('25:00'), findsOneWidget);
       expect(find.byType(Card), findsNothing);
-      expect(find.byKey(const Key('pose-effect-read')), findsNothing);
+      expect(actingAs(PlayerAnimation.read, 'read'), findsNothing);
       expect(
         find.descendant(
           of: find.byKey(const Key('desk-sound')),
@@ -65,7 +75,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byKey(const Key('pose-effect-read')), findsOneWidget);
+      expect(actingAs(PlayerAnimation.read, 'read'), findsWidgets);
       expect(find.text('暫停'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());

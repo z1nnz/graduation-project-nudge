@@ -1,0 +1,134 @@
+{
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "columns": 8,
+  "pivot": [
+    16,
+    29
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "walk_down",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "walk_left",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "walk_right",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "walk_up",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "happy",
+      "frames": 6,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "name": "sleep",
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "cuddle",
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    }
+  ],
+  "species": [
+    {
+      "id": "owl",
+      "name": "小貓頭鷹",
+      "stages": [
+        {
+          "id": "baby",
+          "name": "毛球雛鳥",
+          "file": "owl_baby.webp"
+        },
+        {
+          "id": "teen",
+          "name": "見習夜梟",
+          "file": "owl_teen.webp"
+        },
+        {
+          "id": "adult",
+          "name": "星夜貓頭鷹",
+          "file": "owl_adult.webp"
+        }
+      ]
+    },
+    {
+      "id": "fox",
+      "name": "小狐狸",
+      "stages": [
+        {
+          "id": "baby",
+          "name": "小奶狐",
+          "file": "fox_baby.webp"
+        },
+        {
+          "id": "teen",
+          "name": "蓬尾狐",
+          "file": "fox_teen.webp"
+        },
+        {
+          "id": "adult",
+          "name": "晚霞狐",
+          "file": "fox_adult.webp"
+        }
+      ]
+    },
+    {
+      "id": "slime",
+      "name": "小史萊姆",
+      "stages": [
+        {
+          "id": "baby",
+          "name": "小水滴",
+          "file": "slime_baby.webp"
+        },
+        {
+          "id": "teen",
+          "name": "發芽史萊姆",
+          "file": "slime_teen.webp"
+        },
+        {
+          "id": "adult",
+          "name": "王冠史萊姆",
+          "file": "slime_adult.webp"
+        }
+      ]
+    }
+  ],
+  "stageNames": [
+    "baby",
+    "teen",
+    "adult"
+  ],
+  "growth": {
+    "unit": "focusMinutes",
+    "teen": 300,
+    "adult": 1500
+  }
+}

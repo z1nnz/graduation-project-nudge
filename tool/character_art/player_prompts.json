@@ -1,0 +1,27 @@
+{
+ "note": "Prompts these code-drawn sprites stand in for (tool/character_art/draw_player.py); the reference sheet is attached to every later job.",
+ "prefix": "16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, no text, no logo, no watermark",
+ "key": "on a flat pure magenta #FF00FF background",
+ "jobs": [
+  {
+   "out": "reference/player.png",
+   "prompt": "character reference sheet of a cheerful chibi adventurer with spiky navy-blue hair and a gold star hair clip, white scarf, navy jacket with gold trim, cream shorts, brown boots, front, right, back and left views in a row, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, no text, no logo, no watermark, on a flat pure magenta #FF00FF background"
+  },
+  {
+   "out": "body_<hair>.webp",
+   "prompt": "layered sprite sheet, base body only: head, hair, face, skin arms and legs, plain undershirt, 20 rows of animation (idle breathing and blinking, looking around, turning, walk and run in four directions, sit, read and flip a page, sleep, happy jump, wave, think, stretch, eat a cookie, talk); hair variants navy, chestnut brown, berry pink, same chibi adventurer as the attached character sheet, 48x56 pixel cells, feet on one baseline, identical proportions in every frame, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, no text, no logo, no watermark, on a flat pure magenta #FF00FF background"
+  },
+  {
+   "out": "outfit_<id>.webp",
+   "prompt": "outfit layer only for the same sprite grid, nothing else drawn: adventurer jacket / gardener overalls / starry night robe / scholar vest / red track suit / yellow raincoat, sleeves and trousers follow every arm and leg pose, same chibi adventurer as the attached character sheet, 48x56 pixel cells, feet on one baseline, identical proportions in every frame, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, no text, no logo, no watermark, on a flat pure magenta #FF00FF background"
+  },
+  {
+   "out": "headwear_<id>.webp",
+   "prompt": "headwear layer only for the same sprite grid: gold star hair clip / straw sun hat / purple starlight wizard hat / white cat-ear headband / teal knit beanie with pompom / spring flower crown, follows the head in every frame, same chibi adventurer as the attached character sheet, 48x56 pixel cells, feet on one baseline, identical proportions in every frame, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, no text, no logo, no watermark, on a flat pure magenta #FF00FF background"
+  },
+  {
+   "out": "accessory_<id>.webp",
+   "prompt": "accessory layer only for the same sprite grid: long white scarf that flutters when running / round glasses / leather satchel / navy star backpack, same chibi adventurer as the attached character sheet, 48x56 pixel cells, feet on one baseline, identical proportions in every frame, 16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, no text, no logo, no watermark, on a flat pure magenta #FF00FF background"
+  }
+ ]
+}
