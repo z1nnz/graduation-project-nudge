@@ -52,7 +52,6 @@ class _FocusPageState extends State<FocusPage> {
   FocusActivityLedgerController? _ledgerController;
   AppState? _ledgerAppState;
   FocusSoundController? _sound;
-  PlayerLook _look = PlayerLook.standard;
 
   /// When the last focus round finished: the companion cheers and rewards
   /// fly out of the book for a moment (J8).
@@ -93,9 +92,6 @@ class _FocusPageState extends State<FocusPage> {
     super.initState();
     selectedFocusMinutes = widget.initialFocusMinutes;
     remainingSeconds = selectedFocusMinutes * 60;
-    PlayerLookStore.load().then((l) {
-      if (mounted) setState(() => _look = l);
-    });
     if (widget.immersive) unawaited(_restoreSavedSound());
     if (widget.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -717,11 +713,6 @@ class _FocusPageState extends State<FocusPage> {
 
   Widget _buildDesk(BuildContext context, AppState appState) {
     _cabinLayout ??= CabinLayout.load(DefaultAssetBundle.of(context));
-    final pose = !isRunning
-        ? CompanionPose.idle
-        : isFocusPhase
-        ? CompanionPose.read
-        : CompanionPose.sleep;
     return Scaffold(
       body: FutureBuilder<CabinLayout>(
         future: _cabinLayout,
@@ -771,22 +762,11 @@ class _FocusPageState extends State<FocusPage> {
                   top: box.top + seat.dy * box.height - charHeight,
                   width: charHeight,
                   height: charHeight,
-                  child: FittedBox(
-                    alignment: Alignment.bottomCenter,
-                    child: PlayerAvatar(
-                      key: const Key('desk-player'),
-                      look: _look,
-                      animation: _deskAnimation(),
-                      scale: (charHeight / (56 * 0.72)).roundToDouble().clamp(
-                        1,
-                        6,
-                      ),
-                      fallback: CompanionSprite(
-                        profile: appState.avatarProfile,
-                        pose: pose,
-                        size: charHeight,
-                      ),
-                    ),
+                  child: CompanionActor(
+                    key: const Key('desk-player'),
+                    animation: _deskAnimation(),
+                    size: charHeight,
+                    profile: appState.avatarProfile,
                   ),
                 ),
                 Positioned(
