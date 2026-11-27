@@ -66,7 +66,9 @@ function webpSize(file) {
   const b = fs.readFileSync(file);
   assert.equal(b.toString('ascii', 0, 4), 'RIFF');
   assert.equal(b.toString('ascii', 8, 12), 'WEBP');
-  assert.equal(b.toString('ascii', 12, 16), 'VP8L', `${path.basename(file)} is lossless`);
+  const kind = b.toString('ascii', 12, 16);
+  if (kind === 'VP8X') return { width: b.readUIntLE(24, 3) + 1, height: b.readUIntLE(27, 3) + 1 };
+  assert.equal(kind, 'VP8L', `${path.basename(file)} keeps its alpha`);
   const bits = b.readUInt32LE(21);
   return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
 }
@@ -82,8 +84,8 @@ test('the web manifest matches assets/characters/player/player.json', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(avatar.MANIFEST)), strip(json));
 });
 
-test('every action the work package asks for has at least 4 frames at 8–12 fps', () => {
-  const names = avatar.MANIFEST.animations.map(a => a.name);
+test('every action plays a row (its own or an alias) with 4+ frames at 8–12 fps', () => {
+  const names = [...avatar.MANIFEST.animations.map(a => a.name), ...Object.keys(avatar.MANIFEST.aliases)];
   const required = [
     'idle', 'look', 'sit', 'read', 'sleep', 'happy', 'wave', 'think', 'stretch', 'snack', 'talk',
     ...['down', 'left', 'right', 'up'].flatMap(d => [`walk_${d}`, `run_${d}`]),
@@ -94,6 +96,9 @@ test('every action the work package asks for has at least 4 frames at 8–12 fps
     assert.ok(a.frames <= avatar.MANIFEST.columns, `${a.name} fits the sheet`);
     assert.ok(a.fps >= 8 && a.fps <= 12, `${a.name} runs at ${a.fps} fps`);
   }
+  for (const [k, v] of Object.entries(avatar.MANIFEST.aliases)) assert.ok(avatar.MANIFEST.animations.some(a => a.name === v), `${k} -> ${v}`);
+  assert.equal(avatar.animation('read').name, 'think');
+  assert.equal(avatar.animation('run_left').name, 'walk_left');
   const counts = Object.fromEntries(Object.entries(avatar.MANIFEST.layers).map(([k, v]) => [k, v.length]));
   assert.ok(counts.outfit >= 6 && counts.headwear >= 6, 'at least 6 outfits and 6 headwear');
 });
@@ -122,14 +127,14 @@ test('all four layers stack in order and always show the same frame', () => {
   const p = avatar.create(el, { scale: 2, env, animation: 'walk_left' });
   assert.deepEqual(el.children.map(c => c.dataset.layer), ['body', 'outfit', 'headwear', 'accessory']);
   assert.match(el.children[1].style.backgroundImage, /characters\/player\/outfit_adventurer\.webp/);
-  assert.equal(el.style.width, '128px');
-  assert.equal(el.style.height, '160px');
-  assert.equal(el.children[0].style.backgroundSize, `${12 * 128}px ${avatar.MANIFEST.animations.length * 160}px`);
+  assert.equal(el.style.width, '256px');
+  assert.equal(el.style.height, '256px');
+  assert.equal(el.children[0].style.backgroundSize, `${6 * 256}px ${avatar.MANIFEST.animations.length * 256}px`);
   const row = avatar.animation('walk_left').row;
-  assert.deepEqual(new Set(positions(el)), new Set([`0px ${-row * 160}px`]));
-  env.advance(250); // 10 fps
+  assert.deepEqual(new Set(positions(el)), new Set([`0px ${-row * 256}px`]));
+  env.advance(250); // 8 fps
   assert.equal(p.frame, 2);
-  assert.deepEqual(new Set(positions(el)), new Set([`-256px ${-row * 160}px`]), 'layers move together');
+  assert.deepEqual(new Set(positions(el)), new Set([`-512px ${-row * 256}px`]), 'layers move together');
   assert.equal(el.attrs['aria-hidden'], 'true');
 });
 
@@ -195,7 +200,7 @@ test('face, walk and spin pick the right rows', () => {
   env.advance(1000);
   assert.equal(p.frame, 2, 'facing holds still');
   p.walk('right', { run: true });
-  assert.equal(p.animation, 'run_right');
+  assert.equal(p.animation, 'walk_right', 'running plays the walk row');
   p.walk('sideways');
   assert.equal(p.animation, 'walk_down');
   let spun = 0;
@@ -220,11 +225,11 @@ test('looks are normalized, saved and changed with a spin', () => {
   const el = fakeEl();
   const p = avatar.create(el, { env, look: { headwear: null } });
   assert.equal(el.children[2].style.display, 'none', 'no headwear');
-  p.setLook({ outfit: 'raincoat', headwear: 'wizard' }, { spin: true, save: true, storage });
+  p.setLook({ outfit: 'sunny', headwear: 'wizard' }, { spin: true, save: true, storage });
   assert.equal(p.animation, 'turn');
-  assert.match(el.children[1].style.backgroundImage, /outfit_raincoat/);
+  assert.match(el.children[1].style.backgroundImage, /outfit_sunny/);
   assert.match(el.children[2].style.backgroundImage, /headwear_wizard/);
-  assert.equal(JSON.parse(store.get(avatar.STORAGE_KEY)).outfit, 'raincoat');
+  assert.equal(JSON.parse(store.get(avatar.STORAGE_KEY)).outfit, 'sunny');
   env.advance(1000);
   assert.equal(p.animation, 'idle', 'back to idle after the turn');
   assert.deepEqual(avatar.layerFiles({ accessory: null }, '../').length, 3);

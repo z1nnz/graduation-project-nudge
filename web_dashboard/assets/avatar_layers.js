@@ -4,8 +4,9 @@
   else root.NudgeAvatarLayers = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   'use strict';
-  // The layered player character: body, outfit, headwear and accessory
-  // sheets stacked in that order and stepped by one requestAnimationFrame
+  // The layered player character, built from the earlier companion art
+  // (tool/character_art/recolor_player.py): body, outfit, headwear and
+  // accessory sheets stacked in that order and stepped by one requestAnimationFrame
   // clock, so every layer shows the same frame.
   //
   //   const p = NudgeAvatarLayers.create(el, { look, animation: 'idle', scale: 2 });
@@ -21,35 +22,26 @@
   // Mirrors assets/characters/player/player.json (test/avatar_layers_test.js
   // keeps them equal). Cells are frameWidth x frameHeight, feet on pivot.
   const MANIFEST = Object.freeze({
-    frameWidth: 64, frameHeight: 80, columns: 12, pivot: [32, 76],
+    frameWidth: 128, frameHeight: 128, columns: 6, pivot: [64, 123],
     order: ['body', 'outfit', 'headwear', 'accessory'],
     animations: [
-      { name: 'idle', frames: 12, fps: 8, loop: true },
-      { name: 'look', frames: 12, fps: 8, loop: true },
+      { name: 'idle', frames: 4, fps: 8, loop: true },
       { name: 'turn', frames: 4, fps: 8, loop: true },
-      { name: 'walk_down', frames: 6, fps: 10, loop: true },
-      { name: 'walk_left', frames: 6, fps: 10, loop: true },
-      { name: 'walk_right', frames: 6, fps: 10, loop: true },
-      { name: 'walk_up', frames: 6, fps: 10, loop: true },
-      { name: 'run_down', frames: 6, fps: 12, loop: true },
-      { name: 'run_left', frames: 6, fps: 12, loop: true },
-      { name: 'run_right', frames: 6, fps: 12, loop: true },
-      { name: 'run_up', frames: 6, fps: 12, loop: true },
-      { name: 'sit', frames: 8, fps: 8, loop: true },
-      { name: 'read', frames: 12, fps: 8, loop: true },
-      { name: 'sleep', frames: 12, fps: 8, loop: true },
+      { name: 'walk_down', frames: 4, fps: 8, loop: true },
+      { name: 'walk_left', frames: 4, fps: 8, loop: true },
+      { name: 'walk_right', frames: 4, fps: 8, loop: true },
+      { name: 'walk_up', frames: 4, fps: 8, loop: true },
       { name: 'happy', frames: 6, fps: 10, loop: false },
-      { name: 'wave', frames: 6, fps: 8, loop: false },
-      { name: 'think', frames: 8, fps: 8, loop: true },
-      { name: 'stretch', frames: 8, fps: 8, loop: false },
-      { name: 'snack', frames: 8, fps: 8, loop: true },
-      { name: 'talk', frames: 4, fps: 8, loop: true },
+      { name: 'wave', frames: 4, fps: 8, loop: false },
+      { name: 'think', frames: 4, fps: 8, loop: true },
+      { name: 'sleep', frames: 4, fps: 8, loop: true },
     ],
+    aliases: { look: 'idle', sit: 'idle', read: 'think', stretch: 'happy', snack: 'idle', talk: 'idle', run_down: 'walk_down', run_left: 'walk_left', run_right: 'walk_right', run_up: 'walk_up' },
     layers: {
       body: [{ id: 'navy', name: '夜空藍髮' }, { id: 'chestnut', name: '栗子棕髮' }, { id: 'rose', name: '莓果粉髮' }],
-      outfit: [{ id: 'adventurer', name: '冒險外套' }, { id: 'gardener', name: '園丁吊帶褲' }, { id: 'stargown', name: '星夜法袍' }, { id: 'scholar', name: '書院學者' }, { id: 'sporty', name: '晨跑運動服' }, { id: 'raincoat', name: '雨天黃雨衣' }],
+      outfit: [{ id: 'adventurer', name: '冒險藍外套' }, { id: 'forest', name: '森林綠外套' }, { id: 'sunset', name: '晚霞紅外套' }, { id: 'starnight', name: '星夜紫外套' }, { id: 'sunny', name: '晨光黃外套' }, { id: 'snow', name: '雪原白外套' }],
       headwear: [{ id: 'starclip', name: '星星髮夾' }, { id: 'strawhat', name: '向陽草帽' }, { id: 'wizard', name: '星光巫師帽' }, { id: 'catears', name: '貓耳髮箍' }, { id: 'beanie', name: '暖暖毛線帽' }, { id: 'flowers', name: '春日花冠' }],
-      accessory: [{ id: 'scarf', name: '白色長圍巾' }, { id: 'glasses', name: '圓框眼鏡' }, { id: 'satchel', name: '皮革斜背包' }, { id: 'backpack', name: '星星背包' }],
+      accessory: [{ id: 'scarf', name: '白色長圍巾' }, { id: 'glasses', name: '圓框眼鏡' }],
     },
     default: { body: 'navy', outfit: 'adventurer', headwear: 'starclip', accessory: 'scarf' },
   });
@@ -100,8 +92,9 @@
     return l;
   }
 
+  /** A clip by name; actions the art has no row for play their alias. */
   function animation(name) {
-    return ROWS[name] || ROWS.idle;
+    return ROWS[name] || ROWS[MANIFEST.aliases[name]] || ROWS.idle;
   }
 
   /**

@@ -1,10 +1,10 @@
 {
-  "frameWidth": 64,
-  "frameHeight": 80,
-  "columns": 12,
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "columns": 6,
   "pivot": [
-    32,
-    76
+    64,
+    123
   ],
   "order": [
     "body",
@@ -15,13 +15,7 @@
   "animations": [
     {
       "name": "idle",
-      "frames": 12,
-      "fps": 8,
-      "loop": true
-    },
-    {
-      "name": "look",
-      "frames": 12,
+      "frames": 4,
       "fps": 8,
       "loop": true
     },
@@ -33,67 +27,25 @@
     },
     {
       "name": "walk_down",
-      "frames": 6,
-      "fps": 10,
+      "frames": 4,
+      "fps": 8,
       "loop": true
     },
     {
       "name": "walk_left",
-      "frames": 6,
-      "fps": 10,
+      "frames": 4,
+      "fps": 8,
       "loop": true
     },
     {
       "name": "walk_right",
-      "frames": 6,
-      "fps": 10,
+      "frames": 4,
+      "fps": 8,
       "loop": true
     },
     {
       "name": "walk_up",
-      "frames": 6,
-      "fps": 10,
-      "loop": true
-    },
-    {
-      "name": "run_down",
-      "frames": 6,
-      "fps": 12,
-      "loop": true
-    },
-    {
-      "name": "run_left",
-      "frames": 6,
-      "fps": 12,
-      "loop": true
-    },
-    {
-      "name": "run_right",
-      "frames": 6,
-      "fps": 12,
-      "loop": true
-    },
-    {
-      "name": "run_up",
-      "frames": 6,
-      "fps": 12,
-      "loop": true
-    },
-    {
-      "name": "sit",
-      "frames": 8,
-      "fps": 8,
-      "loop": true
-    },
-    {
-      "name": "read",
-      "frames": 12,
-      "fps": 8,
-      "loop": true
-    },
-    {
-      "name": "sleep",
-      "frames": 12,
+      "frames": 4,
       "fps": 8,
       "loop": true
     },
@@ -105,35 +57,35 @@
     },
     {
       "name": "wave",
-      "frames": 6,
+      "frames": 4,
       "fps": 8,
       "loop": false
     },
     {
       "name": "think",
-      "frames": 8,
+      "frames": 4,
       "fps": 8,
       "loop": true
     },
     {
-      "name": "stretch",
-      "frames": 8,
-      "fps": 8,
-      "loop": false
-    },
-    {
-      "name": "snack",
-      "frames": 8,
-      "fps": 8,
-      "loop": true
-    },
-    {
-      "name": "talk",
+      "name": "sleep",
       "frames": 4,
       "fps": 8,
       "loop": true
     }
   ],
+  "aliases": {
+    "look": "idle",
+    "sit": "idle",
+    "read": "think",
+    "stretch": "happy",
+    "snack": "idle",
+    "talk": "idle",
+    "run_down": "walk_down",
+    "run_left": "walk_left",
+    "run_right": "walk_right",
+    "run_up": "walk_up"
+  },
   "layers": {
     "body": [
       {
@@ -155,33 +107,33 @@
     "outfit": [
       {
         "id": "adventurer",
-        "name": "冒險外套",
+        "name": "冒險藍外套",
         "file": "outfit_adventurer.webp"
       },
       {
-        "id": "gardener",
-        "name": "園丁吊帶褲",
-        "file": "outfit_gardener.webp"
+        "id": "forest",
+        "name": "森林綠外套",
+        "file": "outfit_forest.webp"
       },
       {
-        "id": "stargown",
-        "name": "星夜法袍",
-        "file": "outfit_stargown.webp"
+        "id": "sunset",
+        "name": "晚霞紅外套",
+        "file": "outfit_sunset.webp"
       },
       {
-        "id": "scholar",
-        "name": "書院學者",
-        "file": "outfit_scholar.webp"
+        "id": "starnight",
+        "name": "星夜紫外套",
+        "file": "outfit_starnight.webp"
       },
       {
-        "id": "sporty",
-        "name": "晨跑運動服",
-        "file": "outfit_sporty.webp"
+        "id": "sunny",
+        "name": "晨光黃外套",
+        "file": "outfit_sunny.webp"
       },
       {
-        "id": "raincoat",
-        "name": "雨天黃雨衣",
-        "file": "outfit_raincoat.webp"
+        "id": "snow",
+        "name": "雪原白外套",
+        "file": "outfit_snow.webp"
       }
     ],
     "headwear": [
@@ -226,16 +178,6 @@
         "id": "glasses",
         "name": "圓框眼鏡",
         "file": "accessory_glasses.webp"
-      },
-      {
-        "id": "satchel",
-        "name": "皮革斜背包",
-        "file": "accessory_satchel.webp"
-      },
-      {
-        "id": "backpack",
-        "name": "星星背包",
-        "file": "accessory_backpack.webp"
       }
     ]
   },
