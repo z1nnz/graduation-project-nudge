@@ -1,0 +1,97 @@
+/* Pet house overlay (pet_house.js) and pets following the player. */
+.ph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--w-night, #1b1530);
+  animation: ph-in 0.42s steps(6) both;
+}
+@keyframes ph-in { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0); } }
+body.ph-open { overflow: hidden; }
+.ph-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--w-wood-deep, #3a2216);
+  color: var(--w-parch, #f6e7c8);
+}
+.ph-bar h2 { margin: 0; font-size: 1.05rem; flex: 1; white-space: nowrap; }
+.ph-bar .w-chip, .ph-bar .w-btn { white-space: nowrap; }
+.ph-host { position: relative; min-height: 0; }
+.ph-host .room-stage { height: 100%; }
+.ph-prop, .ph-pet, .ph-board, .pet-follower {
+  position: absolute;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.ph-prop { object-fit: contain; object-position: 50% 100%; }
+.ph-pet { pointer-events: auto; cursor: pointer; display: grid; place-items: end center; }
+.ph-pet { overflow: visible; }
+.ph-pet > span { flex: none; }
+.pet-follower { transform: translate(-50%, calc(-29 / 32 * 100%)); }
+.ph-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-content: start;
+  gap: 2px;
+  box-sizing: border-box;
+  padding: 6px;
+  background: #8a5a34;
+  border: 3px solid #3a2216;
+  box-shadow: inset 0 0 0 2px #c9934f;
+}
+.ph-board::after {
+  content: "";
+  position: absolute;
+  left: 46%;
+  bottom: -30%;
+  width: 8%;
+  height: 30%;
+  background: #5a3a26;
+}
+.ph-star {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  justify-self: center;
+  background: #3a2216;
+  clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 36%);
+}
+.ph-star.is-on { background: #ffc54d; }
+.ph-sprout {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 12%;
+  height: calc(var(--ph-grow, 0.3) * 45%);
+  min-height: 6px;
+  background: linear-gradient(#6fbf5a, #3f7a34);
+  box-shadow: -6px -4px 0 -2px #6fbf5a, 6px -8px 0 -2px #6fbf5a;
+}
+.ph-board-panel .ph-stars { display: flex; gap: 6px; justify-content: center; }
+.ph-board-panel .ph-star { width: 28px; height: 28px; }
+.ph-stages { list-style: none; padding: 0; display: grid; gap: 8px; }
+.ph-stages li { display: flex; align-items: center; gap: 10px; opacity: 0.55; }
+.ph-stages li.is-done { opacity: 1; }
+.ph-stages small { margin-left: auto; color: var(--w-muted, #8a6a4a); }
+.ph-mini {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  background-size: 384px 384px;
+  background-position: 0 0;
+}
+.ph-mini[data-species="owl"][data-stage="baby"] { background-image: url("../../characters/pets/owl_baby.webp"); }
+.ph-mini[data-species="owl"][data-stage="teen"] { background-image: url("../../characters/pets/owl_teen.webp"); }
+.ph-mini[data-species="owl"][data-stage="adult"] { background-image: url("../../characters/pets/owl_adult.webp"); }
+.ph-mini[data-species="fox"][data-stage="baby"] { background-image: url("../../characters/pets/fox_baby.webp"); }
+.ph-mini[data-species="fox"][data-stage="teen"] { background-image: url("../../characters/pets/fox_teen.webp"); }
+.ph-mini[data-species="fox"][data-stage="adult"] { background-image: url("../../characters/pets/fox_adult.webp"); }
+.ph-mini[data-species="slime"][data-stage="baby"] { background-image: url("../../characters/pets/slime_baby.webp"); }
+.ph-mini[data-species="slime"][data-stage="teen"] { background-image: url("../../characters/pets/slime_teen.webp"); }
+.ph-mini[data-species="slime"][data-stage="adult"] { background-image: url("../../characters/pets/slime_adult.webp"); }
+@media (prefers-reduced-motion: reduce) {
+  .ph-overlay { animation: none; }
+}

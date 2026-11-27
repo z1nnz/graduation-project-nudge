@@ -1,0 +1,346 @@
+{
+ "_": "Sky and window regions keyed out of the scene art so the live sky layer shows through. rect and seeds are fractions of the art.",
+ "jobs": [
+  {
+   "src": "web_dashboard/assets/scenes/workbench/cabin_wide.webp",
+   "out": "scenes/workbench/cabin_wide_mid.webp",
+   "rect": [
+    0.38,
+    0.09,
+    0.64,
+    0.35
+   ],
+   "seeds": [
+    [
+     0.5,
+     0.17
+    ],
+    [
+     0.45,
+     0.25
+    ],
+    [
+     0.57,
+     0.27
+    ],
+    [
+     0.5,
+     0.3
+    ],
+    [
+     0.43,
+     0.3
+    ],
+    [
+     0.58,
+     0.2
+    ]
+   ],
+   "tol": 70
+  },
+  {
+   "src": "assets/home/room_base.png",
+   "out": "scenes/cabin/room_base_mid.webp",
+   "rect": [
+    0.3,
+    0.05,
+    0.7,
+    0.24
+   ],
+   "seeds": [
+    [
+     0.42,
+     0.1
+    ],
+    [
+     0.58,
+     0.1
+    ],
+    [
+     0.4,
+     0.17
+    ],
+    [
+     0.6,
+     0.17
+    ],
+    [
+     0.42,
+     0.195
+    ],
+    [
+     0.58,
+     0.195
+    ]
+   ],
+   "tol": 75
+  },
+  {
+   "src": "web_dashboard/assets/scenes/store/store_wide.webp",
+   "out": "scenes/store/store_wide_mid.webp",
+   "rect": [
+    0.08,
+    0.04,
+    0.3,
+    0.15
+   ],
+   "seeds": [
+    [
+     0.185,
+     0.075
+    ],
+    [
+     0.125,
+     0.075
+    ],
+    [
+     0.26,
+     0.07
+    ]
+   ],
+   "tol": 48
+  },
+  {
+   "src": "web_dashboard/assets/scenes/store/store.webp",
+   "out": "scenes/store/store_mid.webp",
+   "rect": [
+    0.12,
+    0.03,
+    0.27,
+    0.13
+   ],
+   "seeds": [
+    [
+     0.1625,
+     0.066
+    ],
+    [
+     0.22,
+     0.066
+    ]
+   ],
+   "tol": 48
+  },
+  {
+   "src": "web_dashboard/assets/scenes/garden/garden_wide.webp",
+   "out": "scenes/garden/garden_wide_mid.webp",
+   "rect": [
+    0.0,
+    0.0,
+    1.0,
+    0.11
+   ],
+   "seeds": [
+    [
+     0.08,
+     0.01
+    ],
+    [
+     0.3,
+     0.01
+    ],
+    [
+     0.5,
+     0.005
+    ],
+    [
+     0.7,
+     0.01
+    ],
+    [
+     0.92,
+     0.01
+    ],
+    [
+     0.6,
+     0.02
+    ]
+   ],
+   "tol": 60
+  },
+  {
+   "src": "web_dashboard/assets/scenes/garden/garden.webp",
+   "out": "scenes/garden/garden_mid.webp",
+   "rect": [
+    0.0,
+    0.0,
+    1.0,
+    0.08
+   ],
+   "seeds": [
+    [
+     0.2,
+     0.005
+    ],
+    [
+     0.5,
+     0.005
+    ],
+    [
+     0.8,
+     0.005
+    ]
+   ],
+   "tol": 60
+  },
+  {
+   "src": "web_dashboard/assets/scenes/park/park_wide.webp",
+   "out": "scenes/park/park_wide_mid.webp",
+   "quality": 70,
+   "rect": [
+    0.0,
+    0.0,
+    1.0,
+    0.1
+   ],
+   "seeds": [
+    [
+     0.1,
+     0.01
+    ],
+    [
+     0.3,
+     0.01
+    ],
+    [
+     0.5,
+     0.01
+    ],
+    [
+     0.75,
+     0.01
+    ],
+    [
+     0.95,
+     0.01
+    ]
+   ],
+   "tol": 60
+  },
+  {
+   "src": "web_dashboard/assets/scenes/park/park.webp",
+   "out": "scenes/park/park_mid.webp",
+   "rect": [
+    0.0,
+    0.0,
+    1.0,
+    0.07
+   ],
+   "seeds": [
+    [
+     0.2,
+     0.005
+    ],
+    [
+     0.5,
+     0.005
+    ],
+    [
+     0.8,
+     0.005
+    ]
+   ],
+   "tol": 60
+  },
+  {
+   "src": "web_dashboard/assets/scenes/board/board_wide.webp",
+   "out": "scenes/board/board_wide_mid.webp",
+   "rect": [
+    0.25,
+    0.03,
+    0.39,
+    0.12
+   ],
+   "seeds": [
+    [
+     0.285,
+     0.09
+    ],
+    [
+     0.345,
+     0.096
+    ]
+   ],
+   "tol": 48
+  },
+  {
+   "src": "web_dashboard/assets/scenes/board/board.webp",
+   "out": "scenes/board/board_mid.webp",
+   "rect": [
+    0.27,
+    0.035,
+    0.44,
+    0.1
+   ],
+   "seeds": [
+    [
+     0.32,
+     0.08
+    ],
+    [
+     0.388,
+     0.085
+    ]
+   ],
+   "tol": 48
+  },
+  {
+   "src": "web_dashboard/assets/scenes/board/study_nook_wide.webp",
+   "out": "scenes/board/study_nook_wide_mid.webp",
+   "rect": [
+    0.1,
+    0.08,
+    0.26,
+    0.52
+   ],
+   "seeds": [
+    [
+     0.17,
+     0.2
+    ],
+    [
+     0.15,
+     0.35
+    ],
+    [
+     0.2,
+     0.3
+    ],
+    [
+     0.18,
+     0.42
+    ]
+   ],
+   "tol": 34
+  },
+  {
+   "src": "web_dashboard/assets/scenes/board/study_nook.webp",
+   "out": "scenes/board/study_nook_mid.webp",
+   "rect": [
+    0.08,
+    0.05,
+    0.42,
+    0.34
+   ],
+   "seeds": [
+    [
+     0.2,
+     0.15
+    ],
+    [
+     0.3,
+     0.2
+    ],
+    [
+     0.15,
+     0.25
+    ],
+    [
+     0.25,
+     0.28
+    ]
+   ],
+   "tol": 34
+  }
+ ]
+}
