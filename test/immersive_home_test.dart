@@ -365,7 +365,7 @@ void main() {
       expect(find.byKey(const Key('cabin-futon-folded')), findsOneWidget);
       expect(find.byKey(const Key('cabin-clock')), findsOneWidget);
       expect(find.byKey(const Key('cabin-near')), findsOneWidget);
-      expect(find.byKey(const Key('cabin-player-avatar')), findsOneWidget);
+      expect(find.byKey(const Key('cabin-companion')), findsOneWidget);
       expect(find.byKey(const Key('cabin-blanket')), findsNothing);
     },
   );

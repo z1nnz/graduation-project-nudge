@@ -1,8 +1,7 @@
 (function (root) {
   'use strict';
   // Cabin 3.0 (J4) on top of cabin.js, without touching its data flow:
-  // a live sky behind the window (art keyed in tool/world_art), the player's
-  // layered character instead of the flat companion picture, the companion's
+  // a live sky behind the window (art keyed in tool/world_art), the companion's
   // day by the real clock (stretch at dawn, desk, snack at noon, the window
   // at dusk, futon at night), curtains that draw at night, a lamp that lights
   // the room, a ticking wall clock, books that slide out, a pet that tags
@@ -52,43 +51,17 @@
   new root.MutationObserver(swapBase).observe(base, { attributes: true, attributeFilter: ['src'] });
   swapBase();
 
-  // Layered player as the companion.
+  // The companion stays cabin.js's own character (its pose art). When it is
+  // idle, the day's routine adds a small motion: stretch at dawn, snack at
+  // noon, a look out of the window at dusk, sitting at night.
   const button = doc.getElementById('cabinCompanion');
-  const holder = make('span', 'cl-avatar');
-  button.append(holder);
-  let avatar = null, scale = 0;
-  function buildAvatar() {
-    if (!root.NudgeAvatarLayers) return;
-    const h = button.getBoundingClientRect().height || 150;
-    const s = Math.max(1, Math.round(h / (56 * 0.72)));
-    if (s === scale && avatar) return;
-    scale = s;
-    avatar?.destroy();
-    avatar = root.NudgeAvatarLayers.create(holder, { look: root.NudgeAvatarLayers.loadLook(), scale: s });
-    stage.classList.add('cl-avatar-on');
-    anim = '';
-  }
-
-  let anim = '', last = null, lastT = 0, curtainOpen = null, lampOn = true;
+  let curtainOpen = null, lampOn = true;
   function pos() { return [parseFloat(button.style.left) / 100 || 0.5, parseFloat(button.style.top) / 100 || 0.72]; }
-  function wanted(p) {
-    const pose = button.dataset.pose;
-    if (pose === 'walk' && last) {
-      const dx = p[0] - last[0], dy = p[1] - last[1];
-      if (Math.hypot(dx, dy) > 0.0004) return `walk_${core.direction(last, p, wide() ? 1.5 : 0.56)}`;
-      return anim.startsWith('walk_') ? anim : 'idle';
-    }
-    if (pose === 'read') return 'read';
-    if (pose === 'sleep') return 'sleep';
-    if (pose === 'cheer') return 'happy';
-    const r = core.routineAt(hour());
-    return ['stretch', 'snack', 'look', 'sit', 'read'].includes(r.act) ? r.act : 'idle';
-  }
-  function setAnim(a) {
-    if (!avatar || a === anim) return;
-    anim = a;
-    avatar.play(a, { onEnd: () => { anim = ''; } });
-    button.dataset.avatarAnimation = a;
+  function routine() {
+    if (button.dataset.pose && button.dataset.pose !== 'idle') { delete button.dataset.routine; return; }
+    const r = core.routineAt(hour()).act;
+    if (['stretch', 'snack', 'look', 'sit'].includes(r)) button.dataset.routine = r;
+    else delete button.dataset.routine;
   }
 
   const pet = root.NudgePets?.follow(actors, () => pos(), { reduced, scale: 3 });
@@ -188,19 +161,16 @@
     raf = 0;
     if (doc.hidden || reduced()) return;
     const p = pos();
-    setAnim(wanted(p));
+    routine();
     pet?.update(p, now);
-    last = p;
     if (now - lastPaint > 1000 / 12) { lastPaint = now; frameNo++; paint(); }
-    lastT = now;
     raf = root.requestAnimationFrame(loop);
   }
   function sync() {
-    buildAvatar();
     if (reduced()) {
       if (raf) root.cancelAnimationFrame(raf);
       raf = 0;
-      setAnim(wanted(pos()));
+      routine();
       pet?.update(pos(), 0);
       paint();
     } else if (!raf && !doc.hidden) raf = root.requestAnimationFrame(loop);
@@ -226,9 +196,8 @@
 
   doc.addEventListener('visibilitychange', sync);
   media?.addEventListener?.('change', sync);
-  root.addEventListener('resize', () => root.setTimeout(() => { scale = 0; buildAvatar(); paint(); }, 150));
+  root.addEventListener('resize', () => root.setTimeout(paint, 150));
   root.addEventListener('nudge-cabin-layout', () => root.setTimeout(paint, 0));
-  new root.MutationObserver(() => { if (!avatar) sync(); }).observe(button, { attributes: true, attributeFilter: ['style'] });
-  root.NudgeCabinLife = Object.freeze({ paint, routine: () => core.routineAt(hour()), get avatar() { return avatar; } });
+  root.NudgeCabinLife = Object.freeze({ paint, routine: () => core.routineAt(hour()) });
   sync();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
