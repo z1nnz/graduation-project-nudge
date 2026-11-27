@@ -6,7 +6,9 @@
   //   mid  – the room art, plus object pieces that move (doors swing,
   //          drawers slide, lamps light) when used;
   //   near – swaying foreground plants and falling petals/leaves/snow.
-  // The player's own character (avatar_layers.js) walks to whatever you tap,
+  // The player's companion (the earlier companion sheet, or the layered
+  // character with { player: 'layered' } in the dressing room) walks to
+  // whatever you tap,
   // acts, and only then the room opens the feature. NPCs get emotes and hop
   // when they talk. Parallax follows the pointer. One rAF loop at 12 fps,
   // paused for hidden tabs; prefers-reduced-motion draws one full still frame
@@ -179,6 +181,66 @@
     return url;
   }
 
+  // ---------------------------------------------------------------- actor
+  // The earlier companion sheet with the layered player's API. Actions the
+  // sheet has no row for play its nearest row plus a small code-drawn motion
+  // (sit, read, stretch, snack, look, talk), like the App's CompanionSprite.
+  const ACT_ROW = {
+    idle: 'idle', look: 'idle', turn: 'idle', sit: 'idle', read: 'think', sleep: 'sleep', happy: 'happy', wave: 'wave',
+    think: 'think', stretch: 'happy', snack: 'idle', talk: 'idle',
+  };
+  const ONE_SHOT = { stretch: 900, happy: 0, wave: 0 };
+  function companionActor(el, opts = {}) {
+    const P = root.NudgeSpritePlayer;
+    if (!P) return null;
+    el.dataset.kind = 'companion';
+    let name = opts.animation || 'idle', timer = 0;
+    const sp = P.characterPlayer(el, 'companion', { animation: 'idle', size: opts.size || 112 });
+    function play(next, more = {}) {
+      root.clearTimeout(timer);
+      name = next;
+      const walk = /^(walk|run)_(down|left|right|up)$/.exec(next);
+      const row = walk ? `walk_${walk[2]}` : ACT_ROW[next] || 'idle';
+      el.dataset.act = walk ? 'walk' : next;
+      const ms = ONE_SHOT[next];
+      if (ms === 0) sp.play(row, { onEnd: more.onEnd });
+      else {
+        sp.play(row);
+        if (ms) timer = root.setTimeout(() => more.onEnd?.(), ms);
+      }
+      return api;
+    }
+    const api = {
+      el,
+      get animation() { return name; },
+      get look() { return {}; },
+      play,
+      walk(dir = 'down', o = {}) { return play(`${o.run ? 'run' : 'walk'}_${['down', 'left', 'right', 'up'].includes(dir) ? dir : 'down'}`); },
+      face(dir = 'down') {
+        name = 'turn';
+        el.dataset.act = 'idle';
+        if (dir === 'down') sp.play('idle');
+        else { sp.play(`walk_${dir}`); sp.stop(); }
+        return api;
+      },
+      spin(then = 'idle', onEnd) {
+        const dirs = ['right', 'up', 'left', 'down'];
+        let i = 0;
+        const step = () => {
+          if (i < dirs.length) { api.face(dirs[i++]); timer = root.setTimeout(step, 140); }
+          else { play(then); onEnd?.(); }
+        };
+        step();
+        return api;
+      },
+      setLook() { return api; },
+      stop() { sp.stop(); },
+      destroy() { root.clearTimeout(timer); sp.destroy(); },
+    };
+    play(name);
+    return api;
+  }
+
   // ---------------------------------------------------------------- attach
   function attach(room, config = {}) {
     const frame = room.frame;
@@ -209,9 +271,15 @@
     actors.append(pNode);
     function buildPlayer() {
       player?.destroy?.();
-      if (config.player === false || !root.NudgeAvatarLayers) return;
-      const scale = Math.max(1, Math.round(parseFloat(getComputedStyle(frame).getPropertyValue('--room-scale') || '1') * 2));
-      player = root.NudgeAvatarLayers.create(pNode, { look: root.NudgeAvatarLayers.loadLook(), scale, animation: config.idle || 'idle' });
+      if (config.player === false) return;
+      const roomScale = parseFloat(getComputedStyle(frame).getPropertyValue('--room-scale') || '1');
+      if (config.player === 'layered' && root.NudgeAvatarLayers) {
+        const scale = Math.max(1, Math.round(roomScale * 2));
+        delete pNode.dataset.kind;
+        player = root.NudgeAvatarLayers.create(pNode, { look: root.NudgeAvatarLayers.loadLook(), scale, animation: config.idle || 'idle' });
+      } else {
+        player = companionActor(pNode, { size: Math.round(112 * Math.max(0.7, roomScale)), animation: config.idle || 'idle' });
+      }
     }
     function place(node, p) {
       node.style.left = p[0] * 100 + '%';
@@ -471,5 +539,5 @@
     return api;
   }
 
-  root.NudgeWorldLife = Object.freeze({ attach, drawSky, drawNear, emoteUrl });
+  root.NudgeWorldLife = Object.freeze({ attach, drawSky, drawNear, emoteUrl, companionActor });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

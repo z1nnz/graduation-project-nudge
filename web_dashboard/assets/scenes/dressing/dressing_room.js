@@ -20,6 +20,7 @@
   const P = () => PLACES[key()] || PLACES.tall;
 
   const life = root.NudgeWorldLife?.attach(room, {
+    player: 'layered', // the dressing room shows the layered character you dress
     layouts: {
       tall: { rects: { mirror: PLACES.tall.mirror, rack: PLACES.tall.rack, card: [0.43, 0.37, 0.18, 0.1], shelf: [0.12, 0.29, 0.25, 0.2] }, spots: { mirror: PLACES.tall.mirrorSpot, rack: PLACES.tall.rackSpot }, start: PLACES.tall.start, skyRect: [0.3, 0.05, 0.4, 0.19], floor: [0.64, 0.9], near: { fall: 'dust', plants: [{ x: 0.02, y: 0, size: 0.12, kind: 'ivy' }] } },
       wide: { rects: { mirror: PLACES.wide.mirror, rack: PLACES.wide.rack, card: [0.42, 0.39, 0.17, 0.13], shelf: [0.23, 0.34, 0.14, 0.2] }, spots: { mirror: PLACES.wide.mirrorSpot, rack: PLACES.wide.rackSpot }, start: PLACES.wide.start, skyRect: [0.38, 0.09, 0.26, 0.26], floor: [0.72, 0.94], near: { fall: 'dust', plants: [{ x: 0.01, y: 0, size: 0.14, kind: 'ivy' }] } },
