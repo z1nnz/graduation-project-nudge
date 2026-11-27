@@ -668,7 +668,7 @@ mixin PlayerWalkMixin<T extends StatefulWidget> on State<T> {
     );
     // Rooms show the user's own companion; the layered character is for
     // the dressing room and try-on mirrors.
-    final size = playerFrameHeight * ps * 1.1;
+    final size = companionHeight * ps;
     return AnimatedPositioned(
       key: key,
       duration: _walkTime,
