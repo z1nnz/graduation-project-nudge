@@ -77,12 +77,20 @@
       ctx.fillRect(Math.round(x - r), Math.round(y - r), r * 2, r * 2),
     );
   }
+  let routineHour = null, routineCheckedAt = -1;
   function actors(now, reducedMotion) {
+    // #200 H1: NPCs keep a daily routine (shop, plaza, home) when the
+    // living-town module is loaded. The Taipei hour is re-read once a minute.
+    const world = root.NudgeTownWorldCore;
+    if (world && (routineHour === null || now - routineCheckedAt > 60000 || now < routineCheckedAt)) {
+      routineHour = core.taipeiParts(new Date()).hour;
+      routineCheckedAt = now;
+    }
     return [
-      ...core.NPCS.map((npc) => ({
-        ...npc,
-        ...core.npcPosition(npc, reducedMotion ? 0 : Math.floor(now / 125) / 8),
-      })),
+      ...core.NPCS.map((npc) => {
+        const position = core.npcPosition(npc, reducedMotion ? 0 : Math.floor(now / 125) / 8);
+        return { ...npc, ...(world ? world.scheduledPosition(npc, position, routineHour) : position) };
+      }),
       owl,
     ];
   }

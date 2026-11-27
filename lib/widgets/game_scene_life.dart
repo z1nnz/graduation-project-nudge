@@ -375,6 +375,10 @@ class _GameSceneObjectsState extends State<GameSceneObjects>
                       onPressed: prop.onTap,
                       style: TextButton.styleFrom(
                         minimumSize: const Size(44, 64),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 8,
+                        ),
                         backgroundColor: GamePalette.woodDeep,
                         foregroundColor: GamePalette.inkLight,
                         side: BorderSide(
@@ -391,6 +395,7 @@ class _GameSceneObjectsState extends State<GameSceneObjects>
                           Icon(prop.icon, color: GamePalette.gold, size: 28),
                           Text(
                             prop.label,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontFamily: 'Cubic11',
                               fontSize: 14,

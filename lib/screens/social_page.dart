@@ -9,7 +9,8 @@ import '../theme/app_ui.dart';
 import '../widgets/avatar_icon_preview.dart';
 import '../widgets/avatar_preview.dart';
 import '../theme/game_ui.dart';
-import '../widgets/social_plaza_stage.dart';
+import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
 import 'add_friend_page.dart';
 import 'encouragement_page.dart';
 import 'friend_public_profile_page.dart';
@@ -163,8 +164,36 @@ class SocialPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
-          SocialPlazaStage(
+          LivingSceneBanner(
+            art: 'assets/scenes/town_plaza/plaza.webp',
+            aspect: 1.5,
             title: '小鎮廣場',
+            npc: GameCharacters.letty,
+            npcAt: const Offset(0.72, 0.5),
+            npcLine: '想找好友、看公告或寄鼓勵，都可以從廣場出發。',
+            spots: [
+              LivingSpot(
+                id: 'bench',
+                label: '好友長椅',
+                rect: const Rect.fromLTWH(0.04, 0.7, 0.17, 0.16),
+                change: LivingChange.rise,
+                onArrive: () => _openFriendsPage(context),
+              ),
+              LivingSpot(
+                id: 'board',
+                label: '公告欄',
+                rect: const Rect.fromLTWH(0.09, 0.22, 0.15, 0.2),
+                change: LivingChange.shake,
+                onArrive: () => _openLeaderboard(context),
+              ),
+              LivingSpot(
+                id: 'mailbox',
+                label: '鼓勵郵筒',
+                rect: const Rect.fromLTWH(0.81, 0.26, 0.12, 0.18),
+                change: LivingChange.open,
+                onArrive: () => _openEncouragement(context),
+              ),
+            ],
             objects: [
               Semantics(
                 label: '長椅，查看好友',

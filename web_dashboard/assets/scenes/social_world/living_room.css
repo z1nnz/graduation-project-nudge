@@ -1,0 +1,59 @@
+/* Living social scenes (#200). Pixel-crisp layers on top of the shared scene room. */
+.living-room .living-companion {
+  position: absolute; width: 88px; height: 88px; transform: translate(-50%, -92%);
+  image-rendering: pixelated; pointer-events: none;
+}
+.living-room .living-far { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: pixelated; z-index: 1; }
+.living-room .living-near { position: absolute; left: -4%; right: -4%; bottom: 0; height: 22%; pointer-events: none; z-index: 120; }
+
+/* Near layer: chunky pixel plants swaying in steps (no soft tweening). */
+.living-plant {
+  position: absolute; bottom: -6px; width: 56px; height: 44px; transform-origin: 50% 100%;
+  background:
+    linear-gradient(#5f8f45 0 0) 16px 4px / 24px 12px no-repeat,
+    linear-gradient(#3f6b35 0 0) 6px 14px / 44px 30px no-repeat,
+    linear-gradient(#f2a7c3 0 0) 12px 10px / 6px 6px no-repeat,
+    linear-gradient(#ffd77a 0 0) 38px 16px / 6px 6px no-repeat;
+  animation: living-sway 2.4s steps(4) infinite alternate;
+  image-rendering: pixelated;
+}
+.living-plant--1 { transform: scaleX(-1); }
+.living-plant--2 { width: 64px; height: 52px; }
+@keyframes living-sway { from { rotate: -3deg; } to { rotate: 3deg; } }
+
+.living-petal { position: absolute; top: -480%; width: 6px; height: 4px; background: #f6c1d6; animation: living-fall 8s linear infinite; }
+.living-petal--leaf { background: #c9783a; }
+.living-petal--snow { background: #f4f1ff; width: 5px; height: 5px; }
+@keyframes living-fall {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(12px, 120%); }
+  50% { transform: translate(-6px, 240%); }
+  75% { transform: translate(10px, 360%); }
+  100% { transform: translate(0, 480%); opacity: 0.2; }
+}
+
+/* Objects change before their feature opens. */
+.room-object.living-changed .room-glow { opacity: 1; }
+.living-change--open { animation: living-open 300ms steps(3) forwards; }
+.living-change--lit .room-glow { box-shadow: 0 0 0 4px rgba(255, 215, 122, .65), 0 0 28px 8px rgba(255, 197, 77, .55); }
+.living-change--flutter { animation: living-flutter 360ms steps(4) 2; }
+.living-change--shake { animation: living-shake 300ms steps(4) 2; }
+.living-change--pulse { animation: living-pulse 360ms steps(3) 1; }
+.living-change--rise { animation: living-rise 420ms steps(4) forwards; }
+@keyframes living-open { to { transform: perspective(300px) rotateY(-24deg); } }
+@keyframes living-flutter { 50% { transform: skewX(4deg) translateY(-2px); } }
+@keyframes living-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes living-pulse { 50% { transform: scale(1.04); } }
+@keyframes living-rise { to { transform: translateY(-6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .living-plant, .living-petal, .living-room [class*="living-change--"] { animation: none !important; }
+  .living-petal { display: none; }
+}
+.living-still .living-plant, .living-still .living-petal { animation: none !important; }
+
+/* Door / push-in transition between rooms of a facility (0.42s, pixel steps). */
+body.living-leaving .room-stage { animation: living-push 420ms steps(6) forwards; }
+@keyframes living-push { to { transform: scale(1.12); filter: brightness(0.2); } }
+@media (prefers-reduced-motion: reduce) { body.living-leaving .room-stage { animation: none; } }
+.living-float { z-index: 130; }

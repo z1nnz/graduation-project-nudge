@@ -1,9 +1,15 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><title>季節小鎮｜Nudge</title><link rel="stylesheet" href="assets/story_world.css?v=1" /><link rel="stylesheet" href="assets/seasonal_event.css?v=1" /></head>
-<body data-page="seasonal-event">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><title>季節小鎮｜Nudge</title><link rel="stylesheet" href="assets/story_world.css?v=1" /><link rel="stylesheet" href="assets/seasonal_event.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=3" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/living_room.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/festival_scene.css?v=1" /></head>
+<body class="w-page world-page" data-page="seasonal-event" data-living-room="seasonal-event">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>季節小鎮｜Nudge</h1></header>
   <a class="story-skip" href="#eventContent">跳到季節事件</a>
-  <main class="story-world" id="eventContent">
+  <main class="story-world main w-main" id="eventContent">
     <header class="story-topbar"><a href="town.html">← 返回小鎮</a><span class="story-kicker">Nudge · 季節小鎮</span><a href="weekly-planner.html">週計畫桌</a></header>
     <section class="story-hero event-hero"><div class="story-guide"><img src="assets/town/guide.png" alt="" width="112" height="112" /><p>歐莉說：每個季節的小鎮，都有不同的路可以走。</p></div><div><span class="story-eyebrow">Seasonal adventure</span><h1 id="eventTitle">季節小鎮</h1><p id="eventSubtitle">沿著這季的星光路線，探索小鎮的角落。</p><div class="story-status" id="eventStatus" role="status" aria-live="polite">正在確認登入狀態…</div></div></section>
     <section class="story-panel" aria-labelledby="eventMapTitle"><div class="story-section-heading"><div><span class="story-eyebrow">Explore the town</span><h2 id="eventMapTitle">季節探索地圖</h2></div><button id="eventRefresh" class="story-button story-button-secondary" type="button">重新讀取</button></div><p class="story-note">探索進度來自本人最近 28 個自律日的 Cloud 確認行動，05:00 台北時間切日。事件不發放 XP、自律幣或其他獎勵。</p><div class="event-map" id="eventMap"><p class="story-empty">登入後載入季節探索。</p></div><div class="event-dialogue" id="eventDialogue" role="status" aria-live="polite"><img src="assets/town/guide.png" alt="" width="72" height="72" /><p>點一個地點開始探索。</p></div></section>
@@ -12,7 +18,16 @@
   <script src="assets/story_chapters_core.js?v=1"></script>
   <script src="assets/seasonal_event_core.js?v=1"></script>
   <script src="assets/seasonal_event.js?v=1"></script>
-  <script src="assets/app.js?v=31"></script>
+  <script src="assets/app.js?v=32"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/scenes/social_world/living_room.js?v=1"></script>
+    <script src="assets/scenes/social_world/social_rooms.js?v=1"></script>
+    <script src="assets/scenes/social_world/living_page.js?v=1"></script>
+    <script src="assets/scenes/social_world/festival_core.js?v=1"></script>
+    <script src="assets/scenes/social_world/festival_scene.js?v=1"></script>
     <script src="assets/town_routes.js?v=7"></script>
     <script src="assets/town_return.js?v=2"></script>
 </body></html>

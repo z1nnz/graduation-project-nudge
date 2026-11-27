@@ -1,0 +1,14 @@
+/* H7 study hall: wall clock hands and the procrastination monster. */
+.living-clock-hands { position: absolute; inset: 12% 22%; width: 56%; height: 76%; pointer-events: none; image-rendering: pixelated; }
+.room-object[data-round-running="true"] .room-glow { opacity: 1; box-shadow: 0 0 0 3px rgba(201, 79, 79, .5); }
+.living-monster { position: absolute; left: 80%; top: 70%; width: 96px; transform: translate(-50%, -100%); z-index: 90; pointer-events: none; }
+.living-monster img { width: 96px; height: 96px; image-rendering: pixelated; display: block; }
+.living-monster-hp { display: block; height: 8px; margin: 0 10px 4px; background: #3b261d; border: 2px solid #3b261d; }
+.living-monster-hp::before { content: ""; display: block; height: 100%; width: var(--hp, 100%); background: #c94f4f; }
+.living-monster.is-hit img { animation: living-monster-hit 420ms steps(4); }
+.living-monster.is-down img { animation: living-monster-down 600ms steps(4) forwards; }
+.living-monster.is-down::after { content: "✦ ✧ ✦"; position: absolute; left: 50%; top: 8px; transform: translateX(-50%); color: #ffd77a; font-weight: 900; animation: living-stars 900ms steps(3) infinite; }
+@keyframes living-monster-hit { 25% { transform: translateX(-6px) rotate(-6deg); } 50% { transform: translateX(6px) rotate(6deg); filter: brightness(1.8); } 75% { transform: translateX(-3px); } }
+@keyframes living-monster-down { to { transform: translateY(12px) rotate(80deg); } }
+@keyframes living-stars { 50% { transform: translateX(-50%) translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .living-monster img, .living-monster::after { animation: none !important; } }

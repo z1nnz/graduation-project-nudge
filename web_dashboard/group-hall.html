@@ -11,15 +11,16 @@
     <link rel="stylesheet" href="assets/guild_calendar.css?v=1" />
     <link rel="stylesheet" href="assets/safety.css?v=1" />
     <link rel="stylesheet" href="assets/community_ground.css?v=fb3" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/living_room.css?v=1" />
   </head>
-  <body class="w-page" data-page="group-hall" data-social-facility="guild">
-    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
+  <body class="w-page world-page" data-page="group-hall" data-social-facility="guild" data-living-room="group-hall">
     <header class="w-hud">
       <a data-town-return href="town.html">← 回小鎮</a>
       <h1>團體會館</h1>
     </header>
-    <nav class="scene-nav" data-scene-nav></nav>
-    <main class="w-main" id="sceneMain" tabindex="-1">
+    <main class="w-main main" id="sceneMain" tabindex="-1">
         <section class="community-ground community-ground--guild" data-community-ground aria-label="團體會館">
           <span class="community-spark" aria-hidden="true">✦</span><span class="community-light" aria-hidden="true"></span>
           <button class="w-btn community-stop" type="button" data-community-open="calendar" style="--w-x:23%;--w-y:67%" aria-label="活動日曆">活動日曆</button>
@@ -112,7 +113,12 @@
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
     <script src="assets/safety_ui.js?v=1"></script>
-    <script src="assets/app.js?v=31"></script>
+    <script src="assets/app.js?v=32"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/scenes/social_world/living_room.js?v=1"></script>
+    <script src="assets/scenes/social_world/social_rooms.js?v=1"></script>
+    <script src="assets/scenes/social_world/living_page.js?v=1"></script>
     <script src="assets/sprite_player.js?v=1"></script>
     <script src="assets/npc_dialog.js?v=1"></script>
     <script src="assets/community_ground.js?v=2"></script>

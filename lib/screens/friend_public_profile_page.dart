@@ -1,7 +1,8 @@
 import '../services/device_hug_gateway.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/social_plaza_stage.dart';
+import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
 import '../widgets/friend_plaza_actions.dart';
 import '../theme/game_ui.dart';
 import 'package:provider/provider.dart';
@@ -188,9 +189,43 @@ class FriendPublicProfilePage extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(AppUI.pagePadding),
             children: [
-              const SocialPlazaStage(title: '廣場名片'),
+              LivingSceneBanner(
+                art: 'assets/scenes/friend_cabin.webp',
+                aspect: 1.5,
+                title: isCurrentUser ? '我的小屋' : '$currentName的小屋',
+                npc: GameCharacters.letty,
+                npcAt: const Offset(0.88, 0.9),
+                npcLine: '這裡是好友的小屋。只會看到對方願意分享的內容。',
+                spots: [
+                  LivingSpot(
+                    id: 'window',
+                    label: '名片窗',
+                    rect: const Rect.fromLTWH(0.38, 0.1, 0.21, 0.24),
+                    change: LivingChange.lit,
+                    onArrive: () => _reveal(_CabinKey('card', this)),
+                  ),
+                  LivingSpot(
+                    id: 'shelf',
+                    label: '衣櫃',
+                    rect: const Rect.fromLTWH(0.2, 0.22, 0.18, 0.3),
+                    change: LivingChange.shake,
+                    onArrive: canViewDetails
+                        ? () => _reveal(_CabinKey('wardrobe', this))
+                        : null,
+                    line: canViewDetails ? null : '成為好友之後，才能看衣櫃裡的造型。',
+                  ),
+                  LivingSpot(
+                    id: 'guestbook',
+                    label: '留言簿',
+                    rect: const Rect.fromLTWH(0.8, 0.36, 0.18, 0.22),
+                    change: LivingChange.open,
+                    line: '留言簿會放好友間的小禮物，開放前先用廣場的鼓勵郵筒吧。',
+                  ),
+                ],
+              ),
               const SizedBox(height: AppUI.sectionGap),
               _FriendShowcaseHero(
+                key: _CabinKey('card', this),
                 name: isCurrentUser ? '$currentName（你）' : currentName,
                 signature: currentSignature,
                 avatarColor: avatarColor,
@@ -210,6 +245,7 @@ class FriendPublicProfilePage extends StatelessWidget {
 
               if (canViewDetails) ...[
                 Card(
+                  key: _CabinKey('wardrobe', this),
                   shape: AppUI.cardShape(),
                   child: Padding(
                     padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -766,6 +802,7 @@ class _FriendShowcaseHero extends StatelessWidget {
   final String? roomName;
 
   const _FriendShowcaseHero({
+    super.key,
     required this.name,
     required this.signature,
     required this.avatarColor,
@@ -1010,4 +1047,30 @@ class _ShowcasePill extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Scroll target inside one cabin page (#200 H5); tied to the page instance
+/// so two open cabins never share a key.
+class _CabinKey extends GlobalObjectKey {
+  const _CabinKey(this.slot, super.value);
+  final String slot;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _CabinKey && other.slot == slot && identical(other.value, value);
+
+  @override
+  int get hashCode => Object.hash(slot, identityHashCode(value));
+}
+
+void _reveal(GlobalKey key) {
+  final target = key.currentContext;
+  if (target == null) return;
+  Scrollable.ensureVisible(
+    target,
+    alignment: 0.05,
+    duration: MediaQuery.disableAnimationsOf(target)
+        ? Duration.zero
+        : const Duration(milliseconds: 350),
+  );
 }

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../widgets/community_scene_header.dart';
+import '../widgets/living_world/living_community_header.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
@@ -31,7 +32,7 @@ class GroupManagementPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(capabilities.groupSurfaceTitle)),
-      body: CommunitySceneSections(
+      body: LivingCommunitySections(
         family: false,
         greeting: '翻開日曆查看共讀，或到壁畫看團體挑戰進度。',
         leading: const RelationshipContextSwitcher(

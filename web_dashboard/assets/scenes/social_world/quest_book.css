@@ -1,0 +1,13 @@
+/* #200 H4 journey book: a page you turn. */
+.quest-page { padding: 18px 20px; background: linear-gradient(180deg, #fbefdc, #ecd5a8); color: #3a1d0c; border: 3px solid #6b452c; border-radius: 6px 14px 14px 6px; box-shadow: inset 10px 0 0 #c9a46b, 0 5px 0 #21141e; }
+.quest-page h3 { margin: 4px 0 8px; font-family: var(--w-pixel, inherit); }
+.quest-npc { margin: 0; color: #8b5d35; font-weight: 800; letter-spacing: .1em; }
+.quest-steps { padding-left: 1.2em; line-height: 1.8; }
+.quest-steps .is-done { color: #2f6b3a; font-weight: 800; }
+.quest-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.quest-nav .w-btn { min-height: 44px; }
+.quest-page.is-turning-next { animation: quest-turn-next 360ms steps(4); transform-origin: 0 50%; }
+.quest-page.is-turning-prev { animation: quest-turn-prev 360ms steps(4); transform-origin: 100% 50%; }
+@keyframes quest-turn-next { from { transform: perspective(600px) rotateY(-70deg); } }
+@keyframes quest-turn-prev { from { transform: perspective(600px) rotateY(70deg); } }
+@media (prefers-reduced-motion: reduce) { .quest-page { animation: none !important; } }

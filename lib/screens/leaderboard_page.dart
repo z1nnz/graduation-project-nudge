@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/social_plaza_stage.dart';
+import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
+import '../widgets/living_world/plaza_podium.dart';
 import 'package:provider/provider.dart';
 import '../models/avatar_profile.dart';
 import '../models/social_friend_profile.dart';
@@ -263,7 +265,50 @@ class LeaderboardPage extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.all(AppUI.pagePadding),
               children: [
-                const SocialPlazaStage(title: '本週努力榜'),
+                LivingSceneBanner(
+                  art: 'assets/scenes/town_plaza/plaza.webp',
+                  aspect: 1.5,
+                  title: '本週努力榜',
+                  npc: GameCharacters.scroll,
+                  npcAt: const Offset(0.3, 0.42),
+                  npcLine: '公告欄只貼出值得喝采的努力，不會公布最後一名。',
+                  spots: const [
+                    LivingSpot(
+                      id: 'board',
+                      label: '公告欄',
+                      rect: Rect.fromLTWH(0.09, 0.22, 0.15, 0.2),
+                      change: LivingChange.shake,
+                      line: '這週的名字都貼好了！點頒獎台上的人可以去他的小屋。',
+                    ),
+                    LivingSpot(
+                      id: 'fountain',
+                      label: '星光噴泉',
+                      rect: Rect.fromLTWH(0.38, 0.3, 0.24, 0.34),
+                      change: LivingChange.lit,
+                      line: '噴泉記得每個人的努力，名次只是今天的風景。',
+                    ),
+                  ],
+                ),
+                if (topThree.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  PlazaPodium(
+                    places: [
+                      for (final item in topThree)
+                        PodiumPlace(
+                          name: item.name,
+                          value: _valueText(type, item),
+                          color: item.avatarColor,
+                          isMe: item.isCurrentUser,
+                          onTap: () => _openPublicProfile(
+                            context,
+                            entry: item,
+                            isCurrentUser: item.isCurrentUser,
+                            avatarProfile: item.avatarProfile,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: AppUI.sectionGap),
                 Container(
                   padding: const EdgeInsets.all(18),

@@ -1,15 +1,14 @@
 <!doctype html>
 <html lang="zh-Hant">
   <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nudge 讀書時段管理</title><link rel="stylesheet" href="assets/styles.css?v=17" />
-    <link rel="stylesheet" href="assets/social_scene.css?v=1" /></head>
-  <body data-page="groups" data-social-facility="guild">
-    <a class="scene-skip-link" href="#sceneMain">跳至內容</a>
-    <header class="scene-topbar">
-      <a data-town-return href="town.html">← 回小鎮</a>
-      <span class="scene-place" data-scene-place>團體會館</span>
-    </header>
-    <nav class="scene-nav" data-scene-nav></nav>
-    <main class="main scene-main" id="sceneMain" tabindex="-1">
+    <link rel="stylesheet" href="assets/social_scene.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=3" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/living_room.css?v=1" /></head>
+  <body class="w-page world-page" data-page="groups" data-social-facility="guild" data-living-room="groups-study-schedule">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>讀書時段管理</h1></header>
+    <main class="main w-main" id="sceneMain" tabindex="-1">
         <header class="hero scene-hero"><div><span class="eyebrow">Study Schedule</span><h1>發布共同時段，成員自行開始活動。</h1><p>管理者提供共同目標與建議時間；每位成員仍可依自己的節奏開始、暫停與完成。</p></div><div class="hero-card"><span>已發布時段</span><strong data-count="0">0</strong><p>由團體成員自行參與。</p></div></header>
         <section class="workspace-layout" data-tool="study-schedule">
           <article class="tool-panel"><div class="tool-copy"><span class="eyebrow">Schedule</span><h2>新增共同自律時段</h2><p>發布後會同步到成員 App；這不是由管理者統一開關的強制場次。</p></div><div class="tool-grid"><label class="field"><span>時段名稱</span><input data-study-title value="資料庫期末共讀" /></label><label class="field"><span>建議時間</span><input data-study-time type="datetime-local" /></label><label class="field"><span>建議長度</span><select data-study-duration><option value="50 分鐘">50 分鐘</option><option value="90 分鐘">90 分鐘</option><option value="120 分鐘">120 分鐘</option></select></label><label class="field"><span>活動類型</span><select data-study-room><option value="讀書房">讀書房</option><option value="考前衝刺房">考前衝刺房</option><option value="靜音房">靜音房</option></select></label></div><div class="generated-card blue" data-output="study-preview"><strong>資料庫期末共讀</strong><p>成員可依建議時段參與，也可以在自己的時間完成目標。</p></div><div class="button-row"><button class="button primary" data-action="save-study-schedule" type="button">發布並同步到成員 App</button></div></article>
@@ -18,6 +17,13 @@
       </main>    <script src="assets/town_routes.js?v=7"></script>
     <script src="assets/town_return.js?v=2"></script>
     <script src="assets/social_scene.js?v=1"></script>
-<script src="assets/app.js?v=31"></script>
+<script src="assets/app.js?v=32"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/scenes/social_world/living_room.js?v=1"></script>
+    <script src="assets/scenes/social_world/social_rooms.js?v=1"></script>
+    <script src="assets/scenes/social_world/living_page.js?v=1"></script>
   </body>
 </html>

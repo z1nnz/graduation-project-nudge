@@ -31,7 +31,7 @@ test('updates are sent when moving, changing emote or as a slow heartbeat', () =
 test('phrases are a fixed list and the town loads the crowd before its loop', () => {
   assert.deepEqual(Object.keys(crowd.PHRASES), ['hi', 'study', 'great', 'rest', 'bye', 'go']);
   const html = fs.readFileSync('web_dashboard/town.html', 'utf8');
-  assert.ok(html.indexOf('assets/town_crowd.js') > 0 && html.indexOf('assets/town_crowd.js') < html.indexOf('assets/town.js?v=11'));
+  assert.ok(html.indexOf('assets/town_crowd.js') > 0 && html.indexOf('assets/town_crowd.js') < html.indexOf('assets/town.js?v=12'));
   const js = fs.readFileSync('web_dashboard/assets/town_crowd.js', 'utf8');
   assert.doesNotMatch(js, /\.doc\([^)]*\)\s*\.(set|update|delete)\(|collection\([^)]*\)\.add\(/, 'the page never writes presence itself');
 });

@@ -1,14 +1,15 @@
+import '../widgets/game_pixel_switch.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/character_catalog.dart';
+import '../widgets/living_world/living_scene_banner.dart';
 import '../models/user_notification.dart';
 import '../state/app_state.dart';
 import '../theme/app_ui.dart';
 import '../theme/game_ui.dart';
 import '../widgets/cabin_mail_art.dart';
-import '../widgets/npc_dialog.dart';
-import '../widgets/sprite_animation.dart';
 
 enum _PostOfficeObject { mailbox, alarms }
 
@@ -104,7 +105,7 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
                           ),
                         ),
                       ),
-                      Switch(
+                      GamePixelSwitch(
                         value: setting.enabled,
                         activeThumbColor: color,
                         onChanged: appState.isSyncingNotificationPreferences
@@ -241,9 +242,8 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
         : appState.isCurrentDevicePushConfigured
         ? '已啟用本機排程與帳號遠端推播'
         : '已啟用此裝置的本機提醒排程';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildPreviewCard(BuildContext context, ReminderPreview preview) {
@@ -377,60 +377,46 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
       body: ListView(
         padding: const EdgeInsets.all(AppUI.pagePadding),
         children: [
-          Stack(
-            children: [
-              AspectRatio(
-                aspectRatio: 3 / 2,
-                child: Image.asset(
-                  'assets/scenes/post_office/post_office.webp',
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.none,
-                  excludeFromSemantics: true,
+          LivingSceneBanner(
+            art: 'assets/scenes/post_office/post_office.webp',
+            aspect: 1.5,
+            title: '提醒郵局',
+            npc: GameCharacters.letty,
+            npcAt: const Offset(0.5, 0.92),
+            npcLine: '來信請打開信箱，要設定提醒就看看鬧鐘架。',
+            spots: [
+              LivingSpot(
+                id: 'mailbox',
+                label: '信箱',
+                rect: const Rect.fromLTWH(0.1, 0.18, 0.25, 0.3),
+                change: LivingChange.open,
+                onArrive: () => _show(_PostOfficeObject.mailbox),
+              ),
+              LivingSpot(
+                id: 'alarms',
+                label: '鬧鐘牆',
+                rect: const Rect.fromLTWH(0.79, 0.28, 0.16, 0.36),
+                change: LivingChange.shake,
+                onArrive: () => _show(_PostOfficeObject.alarms),
+              ),
+            ],
+            objects: [
+              Semantics(
+                label: '打開郵局裡的信箱',
+                selected: _open == _PostOfficeObject.mailbox,
+                child: GameButton(
+                  label: '打開信箱',
+                  icon: Icons.mail_outline,
+                  onPressed: () => _show(_PostOfficeObject.mailbox),
                 ),
               ),
-              Positioned.fill(
-                child: Center(
-                  child: Semantics(
-                    label: '與郵差小信對話',
-                    button: true,
-                    child: InkWell(
-                      onTap: () => NpcDialog.show(
-                        context,
-                        speaker: GameCharacters.letty,
-                        lines: const ['來信請打開信箱，要設定提醒就看看鬧鐘架。'],
-                      ),
-                      child: const CharacterSprite(
-                        character: GameCharacters.letty,
-                        size: 64,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 12,
-                bottom: 14,
-                child: Semantics(
-                  label: '打開郵局裡的信箱',
-                  selected: _open == _PostOfficeObject.mailbox,
-                  child: GameButton(
-                    label: '打開信箱',
-                    icon: Icons.mail_outline,
-                    onPressed: () => _show(_PostOfficeObject.mailbox),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 12,
-                top: 16,
-                child: Semantics(
-                  label: '查看郵局裡的鬧鐘架',
-                  selected: _open == _PostOfficeObject.alarms,
-                  child: GameButton(
-                    label: '查看鬧鐘架',
-                    icon: Icons.alarm_outlined,
-                    onPressed: () => _show(_PostOfficeObject.alarms),
-                  ),
+              Semantics(
+                label: '查看郵局裡的鬧鐘架',
+                selected: _open == _PostOfficeObject.alarms,
+                child: GameButton(
+                  label: '查看鬧鐘架',
+                  icon: Icons.alarm_outlined,
+                  onPressed: () => _show(_PostOfficeObject.alarms),
                 ),
               ),
             ],
@@ -681,12 +667,14 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
         children: [
           Icon(icon, size: 16, color: Colors.white),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
