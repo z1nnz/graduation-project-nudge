@@ -11,7 +11,7 @@
   const ticketText = () => doc.getElementById('arcadeTicket')?.textContent?.trim() || '';
   let hops = 0;
 
-  const room = root.NudgeSceneRoom.mount({
+  const room = root.NudgeParkRoom = root.NudgeSceneRoom.mount({
     host: hall,
     title: '遊樂園',
     npc: 'bounce',
@@ -23,6 +23,8 @@
       '撈魚攤的魚分五種稀有度，傳說的魚只閃一下下。',
       '舞台上有三首 8-bit 曲子，打到 Perfect 很過癮！',
       '旋轉木馬轉著轉著，就把夥伴的臉記住了。',
+      '晚上的螢火蟲燈旁邊，可以幫螢火蟲找回家的燈籠。',
+      '望遠鏡看得到星座，記住它們亮起的順序吧！',
       '跳房子是免費的，跳幾下活動一下筋骨吧～',
     ],
     objects: [
@@ -30,6 +32,8 @@
       { id: 'stall', label: '撈魚攤', hint: '星光釣魚', onSelect: play('fishing') },
       { id: 'stage', label: '舞台', hint: '鐘塔節奏', onSelect: play('rhythm') },
       { id: 'carousel', label: '旋轉木馬', hint: '夥伴記憶配對', onSelect: play('memory') },
+      { id: 'lantern', label: '螢火蟲燈', hint: '螢火蟲燈籠', onSelect: play('fireflies') },
+      { id: 'telescope', label: '望遠鏡', hint: '星座連線', onSelect: play('constellation') },
       { id: 'booth', label: '售票亭', hint: '今天還能玩幾次',
         onSelect: (e, r) => r.say([ticketText() || '雲端還在確認…', '每天早上 5 點補滿 3 次免費遊玩，專注 25 分鐘以上還能多拿獎勵券。']) },
       { id: 'hopscotch', label: '跳房子', hint: '跳一跳',
@@ -41,10 +45,11 @@
     ],
     layouts: {
       wide: {
-        art: 'assets/scenes/park/park_wide.webp', aspect: 1.5, npcAt: [0.42, 0.9],
+        art: 'assets/scenes/park/park_wide_mid.webp', aspect: 1.5, npcAt: [0.42, 0.9],
         rects: {
           wheel: [0.18, 0.05, 0.19, 0.3], carousel: [0.7, 0.12, 0.2, 0.26], stall: [0.17, 0.37, 0.24, 0.21],
           stage: [0.7, 0.38, 0.18, 0.18], hopscotch: [0.72, 0.57, 0.18, 0.15], booth: [0.47, 0.68, 0.13, 0.2],
+          lantern: [0.05, 0.6, 0.06, 0.2], telescope: [0.53, 0.1, 0.07, 0.13],
         },
         effects: [
           { type: 'clouds', top: 0.0, band: 0.07, count: 5, alpha: 0.3 },
@@ -55,16 +60,16 @@
           { type: 'fireflies', count: 10, top: 0.55, band: 0.4 },
         ],
         walkers: [
-          { id: 'companion', path: [[0.535, 0.97], [0.535, 0.62], [0.44, 0.48], [0.4, 0.3], [0.44, 0.22], [0.5, 0.4], [0.535, 0.62]], speed: 0.05, pause: 1500 },
           { id: 'sprout', path: [[0.6, 0.45], [0.66, 0.37], [0.6, 0.3], [0.52, 0.42]], speed: 0.03, pause: 2500 },
           { id: 'inky', path: [[0.3, 0.62], [0.44, 0.66], [0.36, 0.7], [0.25, 0.66]], speed: 0.03, pause: 3000 },
         ],
       },
       tall: {
-        art: 'assets/scenes/park/park.webp', aspect: 2 / 3, npcAt: [0.24, 0.95],
+        art: 'assets/scenes/park/park_mid.webp', aspect: 2 / 3, npcAt: [0.24, 0.95],
         rects: {
           wheel: [0.05, 0.03, 0.4, 0.29], stall: [0.02, 0.4, 0.43, 0.2], stage: [0.66, 0.4, 0.3, 0.16],
           carousel: [0.65, 0.1, 0.32, 0.25], booth: [0.38, 0.75, 0.22, 0.18], hopscotch: [0.66, 0.57, 0.26, 0.15],
+          lantern: [0.04, 0.62, 0.12, 0.12], telescope: [0.44, 0.08, 0.14, 0.09],
         },
         effects: [
           { type: 'clouds', top: 0.0, band: 0.05, count: 3, alpha: 0.3 },
@@ -74,7 +79,6 @@
           { type: 'balloons', points: [[0.42, 0.04], [0.45, 0.06], [0.17, 0.79], [0.2, 0.78], [0.8, 0.78], [0.83, 0.79]] },
         ],
         walkers: [
-          { id: 'companion', path: [[0.5, 0.97], [0.5, 0.62], [0.47, 0.42], [0.5, 0.3], [0.55, 0.42]], speed: 0.06, pause: 1500 },
           { id: 'sprout', path: [[0.3, 0.66], [0.45, 0.68], [0.35, 0.72]], speed: 0.03, pause: 2500 },
         ],
       },
