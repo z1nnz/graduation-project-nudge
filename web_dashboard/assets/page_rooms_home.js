@@ -8,7 +8,7 @@
   // Home and commission pages (today step, focus desk, profile, quest book).
   root.NudgePageRooms = Object.assign(root.NudgePageRooms || {}, {
     home: {
-      art: 'assets/scenes/board/study_nook.webp',
+      art: 'assets/scenes/board/study_nook_mid.webp',
       title: '今日的一步',
       npc: 'scroll',
       npcAt: [0.2, 0.95],
@@ -22,7 +22,7 @@
       ],
       effects: [{ type: 'steam', points: [[0.45, 0.42], [0.6, 0.44]] }, { type: 'flicker', points: [[0.82, 0.68], [0.88, 0.1]], radius: 0.03 }, { type: 'dust', count: 14 }],
       wide: {
-        art: 'assets/scenes/board/study_nook_wide.webp', aspect: 1.5, npcAt: [0.2, 0.92],
+        art: 'assets/scenes/board/study_nook_wide_mid.webp', aspect: 1.5, npcAt: [0.2, 0.92],
         rects: { chalkboard: [0.4, 0.1, 0.28, 0.24], book: [0.32, 0.5, 0.26, 0.16] },
         effects: [
           { type: 'steam', points: [[0.455, 0.46], [0.39, 0.5], [0.52, 0.5]] },
@@ -81,7 +81,7 @@
 
     quests: {
       wide: {
-        art: 'assets/scenes/board/board_wide.webp', aspect: 1.5, npcAt: [0.36, 0.92],
+        art: 'assets/scenes/board/board_wide_mid.webp', aspect: 1.5, npcAt: [0.36, 0.92],
         rects: { board: [0.21, 0.18, 0.47, 0.4], map: [0.73, 0.25, 0.18, 0.3], desk: [0.63, 0.6, 0.3, 0.24], clock: [0.08, 0.02, 0.1, 0.16], request: [0.01, 0.25, 0.17, 0.46] },
         effects: [
           { type: 'flicker', points: [[0.43, 0.06], [0.5, 0.07], [0.57, 0.06], [0.94, 0.22], [0.72, 0.63]], radius: 0.018 },
@@ -90,7 +90,7 @@
         ],
         walkers: [{ id: 'chestnut', path: [[0.25, 0.8], [0.55, 0.75], [0.45, 0.88]], speed: 0.03, pause: 3000 }],
       },
-      art: 'assets/scenes/board/board.webp',
+      art: 'assets/scenes/board/board_mid.webp',
       title: '委託所',
       npc: 'scroll',
       npcAt: [0.18, 0.96],
