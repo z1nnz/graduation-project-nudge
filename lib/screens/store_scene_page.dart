@@ -108,7 +108,7 @@ class _StoreScenePageState extends State<StoreScenePage>
                       key: ValueKey(look),
                       look: look,
                       animation: PlayerAnimation.turn,
-                      scale: 2,
+                      scale: 1,
                       fallback: const Icon(Icons.checkroom, size: 96),
                     ),
                   ),
