@@ -49,8 +49,14 @@ test("scene pages drop the dashboard shell and return to the town", () => {
     assert.match(html, /<a data-town-return href="town\.html">← 回小鎮<\/a>/, `${name} town return`);
     assert.match(html, /assets\/town_routes\.js/, `${name} loads town routes`);
     assert.match(html, /assets\/town_return\.js/, `${name} loads town return`);
-    assert.match(html, /assets\/social_scene\.css/, `${name} loads scene css`);
-    assert.match(html, /data-scene-nav/, `${name} has scene nav`);
+    if (/data-living-room="/.test(html)) {
+      // #200 living rooms: in-world objects lead between rooms instead of a nav bar.
+      assert.match(html, /assets\/scenes\/social_world\/living_page\.js/, `${name} mounts its living room`);
+      assert.match(html, /<header class="w-hud">[\s\S]{0,400}data-town-return/, `${name} keeps the town return in the HUD`);
+    } else {
+      assert.match(html, /assets\/social_scene\.css/, `${name} loads scene css`);
+      assert.match(html, /data-scene-nav/, `${name} has scene nav`);
+    }
     assert.doesNotMatch(html, /class="[^"]*\b(sidebar|shell|app-shell|page-section)\b/, `${name} legacy shell`);
     assert.doesNotMatch(html, /class="hero split"/, `${name} legacy hero`);
     assert.doesNotMatch(html, /class="(?:[^"]*\s)?panel(?:\s[^"]*)?"/, `${name} legacy panel`);
