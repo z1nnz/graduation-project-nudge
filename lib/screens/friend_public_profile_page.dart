@@ -192,6 +192,10 @@ class FriendPublicProfilePage extends StatelessWidget {
               LivingSceneBanner(
                 art: 'assets/scenes/friend_cabin.webp',
                 aspect: 1.5,
+                tallArt: 'assets/scenes/cabin/room_base_mid.webp',
+                tallAspect: 720 / 1279,
+                tallNpcAt: const Offset(0.82, 0.82),
+                tallHome: const Offset(0.45, 0.8),
                 title: isCurrentUser ? '我的小屋' : '$currentName的小屋',
                 npc: GameCharacters.letty,
                 npcAt: const Offset(0.88, 0.9),
@@ -201,6 +205,7 @@ class FriendPublicProfilePage extends StatelessWidget {
                     id: 'window',
                     label: '名片窗',
                     rect: const Rect.fromLTWH(0.38, 0.1, 0.21, 0.24),
+                    tallRect: const Rect.fromLTWH(0.3, 0.12, 0.4, 0.16),
                     change: LivingChange.lit,
                     onArrive: () => _reveal(_CabinKey('card', this)),
                   ),
@@ -208,6 +213,7 @@ class FriendPublicProfilePage extends StatelessWidget {
                     id: 'shelf',
                     label: '衣櫃',
                     rect: const Rect.fromLTWH(0.2, 0.22, 0.18, 0.3),
+                    tallRect: const Rect.fromLTWH(0.04, 0.2, 0.26, 0.24),
                     change: LivingChange.shake,
                     onArrive: canViewDetails
                         ? () => _reveal(_CabinKey('wardrobe', this))
@@ -218,6 +224,7 @@ class FriendPublicProfilePage extends StatelessWidget {
                     id: 'guestbook',
                     label: '留言簿',
                     rect: const Rect.fromLTWH(0.8, 0.36, 0.18, 0.22),
+                    tallRect: const Rect.fromLTWH(0.55, 0.55, 0.3, 0.12),
                     change: LivingChange.open,
                     line: '留言簿會放好友間的小禮物，開放前先用廣場的鼓勵郵筒吧。',
                   ),
