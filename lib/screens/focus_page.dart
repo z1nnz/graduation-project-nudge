@@ -7,6 +7,8 @@ import '../theme/app_ui.dart';
 import '../models/companion_pose.dart';
 import '../widgets/focus_result_sheet.dart';
 import '../widgets/companion_sprite.dart';
+import '../widgets/player_avatar.dart';
+import '../widgets/world_life.dart';
 import '../models/cabin_companion_brain.dart';
 import '../models/cabin_layout.dart';
 import '../models/cabin_presentation.dart';
@@ -50,6 +52,11 @@ class _FocusPageState extends State<FocusPage> {
   FocusActivityLedgerController? _ledgerController;
   AppState? _ledgerAppState;
   FocusSoundController? _sound;
+  PlayerLook _look = PlayerLook.standard;
+
+  /// When the last focus round finished: the companion cheers and rewards
+  /// fly out of the book for a moment (J8).
+  DateTime? _cheerAt;
 
   /// Created only when needed, so pages without sound never touch audio.
   FocusSoundController _ensureSound() =>
@@ -86,6 +93,9 @@ class _FocusPageState extends State<FocusPage> {
     super.initState();
     selectedFocusMinutes = widget.initialFocusMinutes;
     remainingSeconds = selectedFocusMinutes * 60;
+    PlayerLookStore.load().then((l) {
+      if (mounted) setState(() => _look = l);
+    });
     if (widget.immersive) unawaited(_restoreSavedSound());
     if (widget.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -263,6 +273,7 @@ class _FocusPageState extends State<FocusPage> {
     setState(() {
       if (finishedPhase == _PomodoroPhase.focus) {
         completedPomodoros++;
+        _cheerAt = DateTime.now();
       }
       currentPhase = nextPhase;
       remainingSeconds = phaseTotalSeconds;
@@ -688,6 +699,22 @@ class _FocusPageState extends State<FocusPage> {
 
   Future<CabinLayout>? _cabinLayout;
 
+  bool get _cheering =>
+      _cheerAt != null &&
+      DateTime.now().difference(_cheerAt!) < const Duration(seconds: 3);
+
+  /// Reads while focusing; during the break stretches, has tea, looks out.
+  PlayerAnimation _deskAnimation() {
+    if (_cheering) return PlayerAnimation.happy;
+    if (!isRunning) return PlayerAnimation.sit;
+    if (isFocusPhase) return PlayerAnimation.read;
+    return switch ((remainingSeconds ~/ 20) % 3) {
+      0 => PlayerAnimation.stretch,
+      1 => PlayerAnimation.snack,
+      _ => PlayerAnimation.look,
+    };
+  }
+
   Widget _buildDesk(BuildContext context, AppState appState) {
     _cabinLayout ??= CabinLayout.load(DefaultAssetBundle.of(context));
     final pose = !isRunning
@@ -744,12 +771,59 @@ class _FocusPageState extends State<FocusPage> {
                   top: box.top + seat.dy * box.height - charHeight,
                   width: charHeight,
                   height: charHeight,
-                  child: CompanionSprite(
-                    profile: appState.avatarProfile,
-                    pose: pose,
-                    size: charHeight,
+                  child: FittedBox(
+                    alignment: Alignment.bottomCenter,
+                    child: PlayerAvatar(
+                      key: const Key('desk-player'),
+                      look: _look,
+                      animation: _deskAnimation(),
+                      scale: (charHeight / (56 * 0.72)).roundToDouble().clamp(
+                        1,
+                        6,
+                      ),
+                      fallback: CompanionSprite(
+                        profile: appState.avatarProfile,
+                        pose: pose,
+                        size: charHeight,
+                      ),
+                    ),
                   ),
                 ),
+                Positioned(
+                  left: box.left + 0.66 * box.width,
+                  top: box.top + 0.385 * box.height,
+                  width: box.width * 0.07,
+                  height: box.height * 0.065,
+                  child: Semantics(
+                    label:
+                        '沙漏：${isFocusPhase ? '專注' : '休息'}還剩 ${(100 * remainingSeconds / phaseTotalSeconds).round()}%',
+                    child: CustomPaint(
+                      key: const Key('desk-hourglass'),
+                      painter: HourglassPainter(
+                        left: (remainingSeconds / phaseTotalSeconds).clamp(
+                          0.0,
+                          1.0,
+                        ),
+                        flipped: !isFocusPhase,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_cheering)
+                  Positioned(
+                    left: box.left + 0.42 * box.width,
+                    top: box.top + 0.3 * box.height,
+                    width: box.width * 0.3,
+                    height: box.height * 0.16,
+                    child: IgnorePointer(
+                      child: WorldClock(
+                        builder: (_, f, still) => CustomPaint(
+                          key: const Key('desk-rewards'),
+                          painter: _RewardPainter(still ? 12 : f % 24),
+                        ),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -1189,4 +1263,71 @@ class _FocusSectionTitle extends StatelessWidget {
       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
     );
   }
+}
+
+/// The focus timer as a pixel hourglass: the top bulb empties as time runs
+/// out; it is turned over for the break.
+class HourglassPainter extends CustomPainter {
+  HourglassPainter({required this.left, required this.flipped});
+  final double left;
+  final bool flipped;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 14, size.height / 22);
+    final p = Paint()..isAntiAlias = false;
+    void row(int y, int w, Color c) => canvas.drawRect(
+      Rect.fromLTWH(7.0 - w, y.toDouble(), w * 2.0, 1),
+      p..color = c,
+    );
+    int width(int y) => (5 * (y - 11).abs() / 9).round().clamp(1, 5);
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, 14, 2),
+      p..color = const Color(0xFF8A5A34),
+    );
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 20, 14, 2),
+      p..color = const Color(0xFF8A5A34),
+    );
+    for (var y = 2; y < 20; y++) {
+      row(y, width(y), const Color(0x8CBEDCFF));
+    }
+    final top = flipped ? 1 - left : left;
+    final up = (8 * top).round(), down = (8 * (1 - top)).round();
+    for (var k = 0; k < up; k++) {
+      row(10 - k, width(10 - k), const Color(0xFFFFC54D));
+    }
+    for (var k = 0; k < down; k++) {
+      row(19 - k, width(19 - k), const Color(0xFFFFC54D));
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(HourglassPainter old) =>
+      old.left != left || old.flipped != flipped;
+}
+
+class _RewardPainter extends CustomPainter {
+  _RewardPainter(this.frame);
+  final int frame;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = false;
+    for (var i = 0; i < 10; i++) {
+      final t = frame / 24;
+      final x = size.width * (0.5 + (i - 5) * 0.08 * t);
+      final y = size.height * (1 - t) - (i % 3) * 6;
+      p.color = i.isEven ? const Color(0xFFFFC54D) : const Color(0xFFFFF3CF);
+      canvas.drawRect(
+        Rect.fromCenter(center: Offset(x, y), width: 6, height: 6),
+        p,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RewardPainter old) => old.frame != frame;
 }
