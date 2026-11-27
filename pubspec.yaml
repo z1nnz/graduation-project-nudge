@@ -114,6 +114,12 @@ flutter:
     - assets/scenes/vault/
     - assets/scenes/workshop/
     - assets/scenes/workbench/
+    - assets/characters/pets/
+    - assets/characters/player/
+    - assets/scenes/cabin/
+    - assets/scenes/collection/
+    - assets/scenes/dressing/
+    - assets/scenes/pet_house/
     - assets/scenes/
     - assets/branding/
     - assets/avatar/
