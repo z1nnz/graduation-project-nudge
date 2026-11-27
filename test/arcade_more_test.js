@@ -65,3 +65,15 @@ test('new games register through the arcade and ride-ins honour reduced motion',
     assert.ok(fs.readFileSync(path.join(__dirname, '../web_dashboard/assets/scenes/park', f)).equals(fs.readFileSync(path.join(__dirname, '../assets/scenes/park', f))));
   }
 });
+
+test('every game, old and new, gets its own three-layer level scene', () => {
+  const js = read('web_dashboard/assets/arcade_levels.js');
+  for (const id of ['stars', 'fishing', 'rhythm', 'memory', 'fireflies', 'constellation']) {
+    assert.match(js, new RegExp(`${id}: \\{ near:`), id);
+    assert.match(js, new RegExp(`\\b${id}\\(g, w, h`), `${id} mid layer`);
+  }
+  assert.ok(js.includes('requestAnimationFrame') && js.includes('visibilitychange') && js.includes('prefers-reduced-motion'));
+  assert.ok(!/setInterval\(/.test(js));
+  const html = read('web_dashboard/arcade.html');
+  assert.ok(html.indexOf('scenes/stage/world_life.js') < html.indexOf('arcade_levels.js'));
+});
