@@ -48,6 +48,8 @@ void main() {
     expect(m['pivot'], [playerPivot.dx, playerPivot.dy]);
     final rows = (m['animations'] as List).cast<Map<String, dynamic>>();
     expect(rows.map((r) => r['name']), playerClips.map((c) => c.name));
+    expect(m['aliases'], playerAliases);
+    expect(PlayerAnimation.read.clip.name, 'think');
     for (var i = 0; i < rows.length; i++) {
       expect(rows[i]['frames'], playerClips[i].frames, reason: rows[i]['name']);
       expect(rows[i]['fps'], playerClips[i].fps, reason: rows[i]['name']);
@@ -72,6 +74,7 @@ void main() {
     for (final a in PlayerAnimation.values) {
       expect(a.row, isNonNegative, reason: a.name);
       expect(a.clip.frames, inInclusiveRange(4, playerColumns));
+      expect(a.row, isNonNegative);
       expect(a.clip.fps, inInclusiveRange(8, 12));
     }
     expect(PlayerAnimation.walkDown.rowName, 'walk_down');
@@ -118,7 +121,7 @@ void main() {
   test('the look is saved on this device', () async {
     SharedPreferences.setMockInitialValues({});
     expect(await PlayerLookStore.load(), PlayerLook.standard);
-    const look = PlayerLook(outfit: 'raincoat', headwear: null);
+    const look = PlayerLook(outfit: 'forest', headwear: null);
     await PlayerLookStore.save(look);
     expect(await PlayerLookStore.load(), look);
     SharedPreferences.setMockInitialValues({PlayerLookStore.key: '{bad'});
@@ -134,7 +137,7 @@ void main() {
         animation: PlayerAnimation.walkLeft,
         screen: screen,
       );
-      expect(tester.getSize(find.byType(PlayerAvatar)), const Size(192, 240));
+      expect(tester.getSize(find.byType(PlayerAvatar)), const Size(384, 384));
       expect(s.frame, 0);
       await tester.pump(const Duration(milliseconds: 250));
       expect(s.frame, 2);
