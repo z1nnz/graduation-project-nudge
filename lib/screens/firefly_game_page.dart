@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/game_ui.dart';
 import '../widgets/player_avatar.dart';
+import '../widgets/world_life.dart';
 
 /// Firefly lanterns (J6), played inside the App: tap fireflies while they
 /// glow to fill the lantern; quick catches chain a combo; 45 seconds. Same
@@ -253,16 +254,10 @@ class _FireflyGamePageState extends State<FireflyGamePage>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                PlayerAvatar(
+                CompanionActor(
                   key: const Key('firefly-buddy'),
                   animation: _anim,
-                  scale: 2,
-                  onEnd: () => setState(() => _anim = PlayerAnimation.idle),
-                  fallback: const Icon(
-                    Icons.face,
-                    color: Colors.white,
-                    size: 64,
-                  ),
+                  size: 112,
                 ),
                 const SizedBox(width: 12),
                 Flexible(

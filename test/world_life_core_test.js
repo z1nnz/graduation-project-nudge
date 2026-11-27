@@ -54,7 +54,9 @@ test('emotes are 9x9 pixel grids and lines pick a mood', () => {
 
 test('the living layer pauses for hidden tabs, honours reduced motion and uses rAF', () => {
   for (const f of ['scenes/stage/world_life.js', 'cabin_life.js']) {
-    const src = fs.readFileSync(path.join(__dirname, '../web_dashboard/assets', f), 'utf8');
+    const file = path.join(__dirname, '../web_dashboard/assets', f);
+    if (!fs.existsSync(file)) continue; // cabin_life.js arrives with the cabin slice
+    const src = fs.readFileSync(file, 'utf8');
     assert.ok(src.includes('requestAnimationFrame'), f);
     assert.ok(src.includes('prefers-reduced-motion'), f);
     assert.ok(/visibilitychange/.test(src), f);

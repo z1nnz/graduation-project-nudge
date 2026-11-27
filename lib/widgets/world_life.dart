@@ -4,6 +4,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:provider/provider.dart';
+
+import '../models/avatar_profile.dart';
+import '../models/companion_pose.dart';
+import '../state/app_state.dart';
+import 'companion_sprite.dart';
 import 'player_avatar.dart';
 import 'sprite_animation.dart';
 
@@ -660,19 +666,79 @@ mixin PlayerWalkMixin<T extends StatefulWidget> on State<T> {
       art.left + playerAt.dx * art.width,
       art.top + playerAt.dy * art.height,
     );
+    // Rooms show the user's own companion; the layered character is for
+    // the dressing room and try-on mirrors.
+    final size = playerFrameHeight * ps * 1.1;
     return AnimatedPositioned(
       key: key,
       duration: _walkTime,
-      left: p.dx - playerFrameWidth * ps / 2,
-      top: p.dy - playerPivot.dy * ps,
+      left: p.dx - size / 2,
+      top: p.dy - size,
       child: IgnorePointer(
-        child: PlayerAvatar(
-          look: playerLook,
-          animation: playerAnim,
-          scale: ps,
-          onEnd: () => setState(() => playerAnim = PlayerAnimation.idle),
-          fallback: fallback,
-        ),
+        child: CompanionActor(animation: playerAnim, size: size),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------- companion
+
+/// The user's own companion (their chosen character, CompanionSprite) acting
+/// out a scene action. Rooms use this; the layered [PlayerAvatar] is for the
+/// dressing room and try-on mirrors. Walking steps through the walk frames.
+class CompanionActor extends StatelessWidget {
+  const CompanionActor({
+    super.key,
+    this.animation = PlayerAnimation.idle,
+    this.size = 112,
+    this.profile,
+  });
+
+  final PlayerAnimation animation;
+  final double size;
+
+  /// Overrides the profile read from [AppState] (tests, previews).
+  final AvatarProfile? profile;
+
+  static CompanionPose poseFor(PlayerAnimation a) => switch (a) {
+    PlayerAnimation.walkDown ||
+    PlayerAnimation.walkLeft ||
+    PlayerAnimation.walkRight ||
+    PlayerAnimation.walkUp ||
+    PlayerAnimation.runDown ||
+    PlayerAnimation.runLeft ||
+    PlayerAnimation.runRight ||
+    PlayerAnimation.runUp => CompanionPose.walk,
+    PlayerAnimation.read || PlayerAnimation.think => CompanionPose.read,
+    PlayerAnimation.sleep => CompanionPose.sleep,
+    PlayerAnimation.happy || PlayerAnimation.wave => CompanionPose.cheer,
+    PlayerAnimation.stretch => CompanionPose.exercise,
+    _ => CompanionPose.idle,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    AvatarProfile p;
+    try {
+      p = profile ?? context.read<AppState>().avatarProfile;
+    } catch (_) {
+      p = AvatarProfile.initial();
+    }
+    final pose = poseFor(animation);
+    final left =
+        animation == PlayerAnimation.walkLeft ||
+        animation == PlayerAnimation.runLeft;
+    if (pose != CompanionPose.walk) {
+      return CompanionSprite(profile: p, pose: pose, size: size);
+    }
+    return WorldClock(
+      fps: 8,
+      builder: (_, f, still) => CompanionSprite(
+        profile: p,
+        pose: pose,
+        size: size,
+        facingLeft: left,
+        stepPhase: still ? 0 : (f % 4) / 4,
       ),
     );
   }

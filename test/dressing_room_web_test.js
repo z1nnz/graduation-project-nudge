@@ -35,6 +35,7 @@ test('profile.html loads the layers after the room, nothing removed', () => {
 test('the dressing room changes looks on the device only and honours reduced motion', () => {
   const js = read('web_dashboard/assets/scenes/dressing/dressing_room.js');
   assert.ok(js.includes('save: true'), 'saves the look locally');
+  assert.ok(js.includes("player: 'layered'"), 'the dressing room walks the layered character');
   assert.ok(!/firestore|httpsCallable/.test(js), 'no Cloud writes');
   const css = read('web_dashboard/assets/scenes/dressing/dressing_room.css');
   assert.ok(css.includes('prefers-reduced-motion'));
