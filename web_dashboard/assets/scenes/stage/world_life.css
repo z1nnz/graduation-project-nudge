@@ -34,7 +34,7 @@
 
 .wl-player {
   position: absolute;
-  transform: translate(-50%, calc(-76 / 80 * 100%));
+  transform: translate(-50%, calc(-123 / 128 * 100%));
   pointer-events: none;
 }
 /* The earlier companion sheet: feet near the bottom of a 128 px cell, and
