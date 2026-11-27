@@ -151,13 +151,11 @@ class _CommissionHallPageState extends State<CommissionHallPage>
                 -0.85 + 1.7 * (math.min(done, steps - 1) / (steps - 1)),
                 0.2,
               ),
-              child: PlayerAvatar(
-                look: playerLook,
-                scale: 1,
+              child: CompanionActor(
+                size: 48,
                 animation: done > 0
                     ? PlayerAnimation.happy
                     : PlayerAnimation.idle,
-                fallback: const SizedBox.shrink(),
               ),
             ),
           ),

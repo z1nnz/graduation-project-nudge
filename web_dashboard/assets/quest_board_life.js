@@ -90,7 +90,7 @@
       Object.assign(holder.style, { left: `${6 + (88 * at) / (n - 1)}%`, top: `${50 + Math.sin(at * 1.3) * 28}%` });
       path.append(holder);
       walker?.destroy?.();
-      walker = root.NudgeAvatarLayers?.create(holder, { look: root.NudgeAvatarLayers.loadLook(), scale: 1, animation: run && run.stamps ? 'happy' : 'idle' });
+      walker = root.NudgeWorldLife?.companionActor(holder, { size: 56, animation: run && run.stamps ? 'happy' : 'idle' }) || null;
       place(envelope, [L().desk[0] + L().desk[2] * 0.62, L().desk[1] + L().desk[3] * 0.05, L().desk[2] * 0.18, L().desk[3] * 0.3]);
     }
     // Tearing a note off before the board opens.

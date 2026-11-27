@@ -44,7 +44,8 @@
         h.className = 'wpt-hiker';
         stop.append(h);
         hiker?.destroy?.();
-        hiker = root.NudgeAvatarLayers?.create(h, { look: root.NudgeAvatarLayers.loadLook(), scale: 1, animation: reduced() ? 'idle' : 'walk_right' }) || null;
+        // The earlier companion walks the trail.
+        try { hiker = root.NudgeSpritePlayer?.characterPlayer(h, 'companion', { animation: reduced() ? 'idle' : 'walk_right', size: 56 }) || null; } catch { hiker = null; }
       }
     });
     trail.setAttribute('aria-label', `本週冒險小路：${labels.join('、')}`);
