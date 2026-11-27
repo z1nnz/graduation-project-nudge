@@ -31,7 +31,7 @@
     onLayout: () => render(),
     layouts: {
       wide: {
-        art: 'assets/scenes/garden/garden_wide.webp', aspect: 1.5, npcAt: [0.22, 0.8],
+        art: 'assets/scenes/garden/garden_wide_mid.webp', aspect: 1.5, npcAt: [0.22, 0.8],
         rects: { greenhouse: [0.1, 0.1, 0.18, 0.26], well: [0.79, 0.15, 0.11, 0.23], shed: [0.77, 0.5, 0.22, 0.3] },
         effects: [
           { type: 'stars', count: 26, height: 0.1 },
@@ -42,12 +42,11 @@
           { type: 'flutter', count: 6, color: '#f0b8e6', top: 0.0, fall: 0.3, x: 0.88 },
         ],
         walkers: [
-          { id: 'companion', path: [[0.52, 0.96], [0.52, 0.64], [0.45, 0.62], [0.6, 0.62], [0.52, 0.64]], speed: 0.04, pause: 2500 },
           { id: 'letty', path: [[0.22, 0.6], [0.12, 0.66], [0.2, 0.72]], speed: 0.025, pause: 3000 },
         ],
       },
       tall: {
-        art: 'assets/scenes/garden/garden.webp', aspect: 2 / 3, npcAt: [0.4, 0.86],
+        art: 'assets/scenes/garden/garden_mid.webp', aspect: 2 / 3, npcAt: [0.4, 0.86],
         rects: { greenhouse: [0.03, 0.1, 0.3, 0.22], well: [0.76, 0.15, 0.2, 0.17], shed: [0.62, 0.6, 0.36, 0.22] },
         effects: [
           { type: 'stars', count: 18, height: 0.08 },
@@ -55,7 +54,7 @@
           { type: 'flicker', points: [[0.03, 0.1], [0.36, 0.09], [0.74, 0.09], [0.97, 0.12], [0.35, 0.88], [0.63, 0.88], [0.63, 0.7]], radius: 0.02 },
           { type: 'flutter', count: 5, color: '#e9c4ff', top: 0.05, fall: 0.3, x: 0.6 },
         ],
-        walkers: [{ id: 'companion', path: [[0.5, 0.97], [0.5, 0.62], [0.43, 0.6], [0.55, 0.6]], speed: 0.05, pause: 2500 }],
+        walkers: [],
       },
     },
     greeting: () => [locked()
@@ -117,6 +116,7 @@
       layer.append(bed);
     }
   }
+  root.NudgeGardenRoom = room;
   new MutationObserver(render).observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-stage', 'disabled'] });
   render();
 })(typeof globalThis !== 'undefined' ? globalThis : this);
