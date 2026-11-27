@@ -126,7 +126,7 @@
     const me = make('span', 'ss-mirror-me');
     mirror.append(me);
     const base = A.loadLook();
-    const p = A.create(me, { look: base, scale: 3, animation: 'idle', label: '鏡子裡的你' });
+    const p = A.create(me, { look: base, scale: 2, animation: 'idle', label: '鏡子裡的你' });
     const rail = make('div', 'ss-try');
     for (const o of A.MANIFEST.layers.outfit) {
       const b = make('button', 'w-btn', o.name);

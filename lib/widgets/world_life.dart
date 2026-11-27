@@ -668,7 +668,7 @@ mixin PlayerWalkMixin<T extends StatefulWidget> on State<T> {
     );
     // Rooms show the user's own companion; the layered character is for
     // the dressing room and try-on mirrors.
-    final size = playerFrameHeight * ps * 1.1;
+    final size = companionHeight * ps;
     return AnimatedPositioned(
       key: key,
       duration: _walkTime,
@@ -682,6 +682,9 @@ mixin PlayerWalkMixin<T extends StatefulWidget> on State<T> {
 }
 
 // ---------------------------------------------------------------- companion
+
+/// Height of a room companion per scale step (rooms size it by art width).
+const double companionHeight = 62;
 
 /// The user's own companion (their chosen character, CompanionSprite) acting
 /// out a scene action. Rooms use this; the layered [PlayerAvatar] is for the
