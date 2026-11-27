@@ -520,7 +520,10 @@
     state.lastActorId = actor.id;
     state.keys.clear(); state.target = null;
     els('townNpcName').textContent = actor.name;
-    const line=atmosphere.line(actor),target=els('townNpcLine');
+    // #200 H4: quest NPCs speak about their quest step and the camera pushes in.
+    const questLine=root.NudgeTownQuests?.lineFor(actor)||null;
+    if(questLine&&state.questZoom==null){state.questZoom=state.zoom;setZoom(state.zoom+0.35);}
+    const line=questLine||atmosphere.line(actor),target=els('townNpcLine');
     if(actorTyping)root.cancelAnimationFrame(actorTyping);
     target.setAttribute('aria-label',line);target.setAttribute('aria-live','off');
     const start=performance.now();
@@ -534,6 +537,7 @@
     state.actorDialog = false;
     if(actorTyping)root.cancelAnimationFrame(actorTyping);actorTyping=null;
     els('townNpcDialog').hidden = true;
+    if (state.questZoom != null) { setZoom(state.questZoom); state.questZoom = null; }
     const returnButton=actorButtons.get(state.lastActorId);
     if(returnButton){returnButton.hidden=false;returnButton.focus({preventScroll:true});}
   }
@@ -952,6 +956,7 @@
           state.receipts = receipts.slice(0, 10)
             .filter(d => root.NudgeConfirmedActivityFeedback?.parse(d.receiptId, d, user.uid));
           root.NudgeTownHud?.updateReceipts(receipts, true, snap.size === 90);
+          root.NudgeTownQuests?.update(receipts); // #200 H4 villager quests (read-only)
           refreshTicket();
         }, () => {});
     });

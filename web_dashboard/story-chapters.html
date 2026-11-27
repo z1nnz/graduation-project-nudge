@@ -5,10 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>旅程手冊｜Nudge 小鎮</title>
     <link rel="stylesheet" href="assets/story_world.css?v=1" />
+    <link rel="stylesheet" href="assets/world_ui.css?v=3" />
+    <link rel="stylesheet" href="assets/scene_room.css?v=3" />
+    <link rel="stylesheet" href="assets/game_panel_content.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/living_room.css?v=1" />
+    <link rel="stylesheet" href="assets/scenes/social_world/quest_book.css?v=1" />
   </head>
-  <body data-page="story-chapters">
+  <body class="w-page world-page" data-page="story-chapters" data-living-room="story-chapters">
+    <header class="w-hud"><a data-town-return href="town.html">← 回小鎮</a><h1>旅程手冊｜Nudge 小鎮</h1></header>
     <a class="story-skip" href="#storyContent">跳到旅程內容</a>
-    <main class="story-world" id="storyContent">
+    <main class="story-world main w-main" id="storyContent">
       <header class="story-topbar">
         <a class="story-back" href="town.html">← 返回小鎮</a>
         <span class="story-kicker">Nudge · 旅程手冊</span>
@@ -28,6 +34,7 @@
         </div>
       </section>
 
+      <section class="story-panel quest-book" data-quest-book aria-label="鎮民任務冊"><h2>鎮民任務冊</h2><p>依雲端確認的活動紀錄翻頁；任務不會發放任何獎勵。</p></section>
       <section class="story-panel" aria-labelledby="chapterHeading">
         <div class="story-section-heading">
           <div><span class="story-eyebrow">Adventure chapters</span><h2 id="chapterHeading">你的冒險章節</h2></div>
@@ -52,6 +59,15 @@
     <script src="assets/story_chapters_core.js?v=1"></script>
     <script src="assets/story_chapters.js?v=1"></script>
     <script src="assets/app.js?v=31"></script>
+    <script src="assets/sprite_player.js?v=1"></script>
+    <script src="assets/npc_dialog.js?v=1"></script>
+    <script src="assets/game_sfx.js?v=1"></script>
+    <script src="assets/scene_room.js?v=5"></script>
+    <script src="assets/scenes/social_world/living_room.js?v=1"></script>
+    <script src="assets/scenes/social_world/social_rooms.js?v=1"></script>
+    <script src="assets/scenes/social_world/living_page.js?v=1"></script>
+    <script src="assets/scenes/social_world/quest_core.js?v=1"></script>
+    <script src="assets/scenes/social_world/quest_book.js?v=1"></script>
       <script src="assets/town_routes.js?v=7"></script>
     <script src="assets/town_return.js?v=2"></script>
 </body>
