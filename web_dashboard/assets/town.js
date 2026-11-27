@@ -36,7 +36,13 @@
   };
   const BUILDINGS = Object.keys(GEOMETRY).map(id => ({ id, ...routes.BUILDINGS[id], ...GEOMETRY[id] }));
   const byId = id => BUILDINGS.find(b => b.id === id) || null;
-  const BOUNDS = { x: 10, y: 0.22 * MAP_H, w: MAP_W - 20, h: 0.76 * MAP_H };
+  // #200 H1: the market map sits inside a world twice as wide and tall
+  // (town_world_core.js). Without that module the town keeps the old map.
+  const worldCore = root.NudgeTownWorldCore || null;
+  const worldView = root.NudgeTownWorld || null;
+  const EXTENT = worldCore ? worldCore.WORLD : { x: 0, y: 0, w: MAP_W, h: MAP_H };
+  const BOUNDS = worldCore ? worldCore.BOUNDS : { x: 10, y: 0.22 * MAP_H, w: MAP_W - 20, h: 0.76 * MAP_H };
+  const WORLD_BLOCKERS = worldCore ? worldCore.BLOCKERS : [];
   const START = n(0.475, 0.66);
   const SPEED = 150;
   const RADIUS = 10;
@@ -259,9 +265,11 @@
     const s = scale();
     const halfW = canvas.clientWidth / s / 2;
     const halfH = canvas.clientHeight / s / 2;
+    const minX = EXTENT.x + halfW, maxX = EXTENT.x + EXTENT.w - halfW;
+    const minY = EXTENT.y + halfH, maxY = EXTENT.y + EXTENT.h - halfH;
     return {
-      x: Math.min(Math.max(p.x, halfW), Math.max(halfW, MAP_W - halfW)),
-      y: Math.min(Math.max(p.y, halfH), Math.max(halfH, MAP_H - halfH)),
+      x: Math.min(Math.max(p.x, minX), Math.max(minX, maxX)),
+      y: Math.min(Math.max(p.y, minY), Math.max(minY, maxY)),
     };
   }
 
@@ -274,6 +282,9 @@
     canvas.height = Math.round(canvas.clientHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // Phones start zoomed out so nearby buildings are on screen.
+    // #200 H1: desktop (wide) and phone (tall) compositions.
+    const layout = worldCore?.layoutFor(canvas.clientWidth, canvas.clientHeight);
+    if (layout) doc.body.dataset.townLayout = layout.name;
     if (!zoomTouched) state.zoom = canvas.clientWidth < 560 ? minZoom() : 1;
     else setZoom(state.zoom);
     // On phones the tool bar spans the screen; keep building labels below it.
@@ -723,7 +734,7 @@
 
     // The plaza fountain sits on the central crossroads: it is a tap target,
     // not a wall, or walking to the tower would stall against it.
-    const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect);
+    const blockers = BUILDINGS.filter(b => b.id !== 'plaza').map(b => b.rect).concat(WORLD_BLOCKERS);
     const dir = state.tour < 0 && !state.panel && !state.sceneOpen && !state.actorDialog &&
       els('townSettings').hidden && els('townEmoteWheel').hidden ? moveDirection() : null;
     if (dir) {
@@ -782,6 +793,8 @@
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = '#1b1530';
     ctx.fillRect(0, 0, w, h);
+    const view = worldView ? worldFrame(w, h, s, now) : null;
+    if (view) worldView.drawBehind(ctx, view, now);
     if (mapImage.complete) {
       const origin = toScreen({ x: 0, y: 0 });
       ctx.save();
@@ -795,6 +808,7 @@
       const door=toScreen(b.door);ctx.save();ctx.fillStyle=getComputedStyle(doc.documentElement).getPropertyValue('--w-gold');ctx.globalAlpha=.5;
       ctx.fillRect(Math.round(door.x-5*s),Math.round(door.y-20*s),10*s,18*s);ctx.restore();
     }
+    const mid = view ? worldView.drawMid(ctx, view, now) : null;
     atmosphere?.draw(ctx, { buildings: BUILDINGS, speakingActorId: state.actorDialog?state.lastActorId:null, width: w, height: h, mapW: MAP_W, mapH: MAP_H,
       toScreen, scale: s, reducedMotion, hidden: doc.hidden }, now);
     // Friends who share their walk appear here (town_crowd.js, optional).
@@ -830,6 +844,7 @@
         ctx.fillText(icon, p.x, p.y - ph - 7 * s);
       } else if (now >= state.emoteUntil) state.emoteType = null;
     }
+    if (view) worldView.drawFront(ctx, view, mid, now);
     root.NudgeTownHud?.setPlayer(state.player, now);
     for (const b of BUILDINGS) {
       const p = toScreen(b.label);
@@ -849,6 +864,31 @@
     }
     if (state.toastUntil && now > state.toastUntil) { els('townToast').hidden = true; state.toastUntil = 0; }
     root.requestAnimationFrame(frame);
+  }
+
+  // ---------- living world (#200 H1) ----------
+  // Clock-derived light is recomputed at most once a minute; the rest of the
+  // view is per frame.
+  let worldClock = null;
+  function worldFrame(w, h, s, now) {
+    if (!worldClock || now - worldClock.at > 60000 || now < worldClock.at) {
+      const date = new Date();
+      const phase = atmosphereCore?.phaseAt(date) || { name: 'day', from: 'day', blend: 1 };
+      const parts = atmosphereCore?.taipeiParts(date) || { hour: date.getHours(), minute: date.getMinutes() };
+      const startMinute = { dawn: 300, day: 420, dusk: 1020, night: 1140 }[phase.name] ?? 0;
+      const minuteOfDay = parts.hour * 60 + parts.minute;
+      worldClock = {
+        at: now,
+        light: worldCore.lighting(phase.name, phase.from, phase.blend),
+        phase: phase.name === 'dawn' ? 'morning' : phase.name,
+        minutesIntoPhase: (minuteOfDay - startMinute + 1440) % 1440,
+        hour: parts.hour,
+        dayKey: `${parts.year}-${parts.month}-${parts.day}`,
+        weather: atmosphere?.weather?.().kind || 'clear',
+      };
+    }
+    return { ...worldClock, toScreen, scale: s, width: w, height: h, camera: state.camera,
+      reducedMotion, buildings: BUILDINGS, player: state.player };
   }
 
   // ---------- clock ----------
