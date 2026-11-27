@@ -1,10 +1,10 @@
 {
-  "frameWidth": 48,
-  "frameHeight": 56,
+  "frameWidth": 64,
+  "frameHeight": 80,
   "columns": 12,
   "pivot": [
-    24,
-    53
+    32,
+    76
   ],
   "order": [
     "body",

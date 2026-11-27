@@ -122,14 +122,14 @@ test('all four layers stack in order and always show the same frame', () => {
   const p = avatar.create(el, { scale: 2, env, animation: 'walk_left' });
   assert.deepEqual(el.children.map(c => c.dataset.layer), ['body', 'outfit', 'headwear', 'accessory']);
   assert.match(el.children[1].style.backgroundImage, /characters\/player\/outfit_adventurer\.webp/);
-  assert.equal(el.style.width, '96px');
-  assert.equal(el.style.height, '112px');
-  assert.equal(el.children[0].style.backgroundSize, `${12 * 96}px ${avatar.MANIFEST.animations.length * 112}px`);
+  assert.equal(el.style.width, '128px');
+  assert.equal(el.style.height, '160px');
+  assert.equal(el.children[0].style.backgroundSize, `${12 * 128}px ${avatar.MANIFEST.animations.length * 160}px`);
   const row = avatar.animation('walk_left').row;
-  assert.deepEqual(new Set(positions(el)), new Set([`0px ${-row * 112}px`]));
+  assert.deepEqual(new Set(positions(el)), new Set([`0px ${-row * 160}px`]));
   env.advance(250); // 10 fps
   assert.equal(p.frame, 2);
-  assert.deepEqual(new Set(positions(el)), new Set([`-192px ${-row * 112}px`]), 'layers move together');
+  assert.deepEqual(new Set(positions(el)), new Set([`-256px ${-row * 160}px`]), 'layers move together');
   assert.equal(el.attrs['aria-hidden'], 'true');
 });
 
