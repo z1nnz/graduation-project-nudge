@@ -6,6 +6,16 @@ import 'package:nudge/models/avatar_profile.dart';
 import 'package:nudge/models/cabin_layout.dart';
 import 'package:nudge/models/cabin_presentation.dart';
 import 'package:nudge/widgets/immersive_cabin.dart';
+import 'package:nudge/widgets/player_avatar.dart';
+
+/// The cabin character is acting [anim]: the layered player when its sheets
+/// load, otherwise the companion fallback showing [pose].
+Finder actingAs(PlayerAnimation anim, String pose) => find.byWidgetPredicate(
+  (w) =>
+      (w is PlayerAvatar && w.animation == anim) ||
+      w.key == Key('pose-effect-$pose') ||
+      w.key == ValueKey('sprite-$pose'),
+);
 
 CabinPresentation _presentation({bool device = false, bool focusing = false}) =>
     CabinPresentation(
@@ -165,7 +175,7 @@ void main() {
     await tester.runAsync(() async => opened = await _pump(tester));
     await tester.tap(find.byKey(const Key('cabin-companion')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byKey(const Key('pose-effect-cheer')), findsOneWidget);
+    expect(actingAs(PlayerAnimation.happy, 'cheer'), findsWidgets);
     expect(find.byKey(const Key('companion-hearts')), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
     expect(find.byKey(const Key('companion-hearts')), findsNothing);
@@ -279,7 +289,7 @@ void main() {
     for (var i = 0; i < 120; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    expect(find.byKey(const Key('sprite-read')), findsOneWidget);
+    expect(actingAs(PlayerAnimation.read, 'read'), findsWidgets);
     expect(find.text('桌上的我也在專注，一起加油！'), findsOneWidget);
   });
 
