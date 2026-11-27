@@ -1,3 +1,4 @@
+import 'constellation_game_page.dart';
 import 'firefly_game_page.dart';
 import 'dart:math' as math;
 
@@ -267,6 +268,17 @@ class ParkScenePage extends StatelessWidget {
             ),
           ),
           SceneObject(
+            id: 'telescope',
+            label: '望遠鏡',
+            hint: '在 App 裡玩星座連線',
+            rect: _r(0.44, 0.08, 0.14, 0.09),
+            onTap: (c, _) => Navigator.of(c).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ConstellationGamePage(),
+              ),
+            ),
+          ),
+          SceneObject(
             id: 'hopscotch',
             label: '跳房子',
             hint: '跳一跳',
@@ -315,6 +327,7 @@ class ParkScenePage extends StatelessWidget {
             'stage': Rect.fromLTWH(0.7, 0.38, 0.18, 0.18),
             'hopscotch': Rect.fromLTWH(0.72, 0.57, 0.18, 0.15),
             'lantern': Rect.fromLTWH(0.05, 0.6, 0.06, 0.2),
+            'telescope': Rect.fromLTWH(0.53, 0.1, 0.07, 0.13),
           },
           effects: [
             SceneEffect.clouds(top: 0.0, band: 0.07, count: 5),
@@ -336,7 +349,7 @@ class ParkScenePage extends StatelessWidget {
         ),
         footer: Center(
           child: Text(
-            '螢火蟲燈籠直接在 App 裡玩；其他設施會打開網頁版遊樂園。',
+            '螢火蟲燈和望遠鏡直接在 App 裡玩；其他設施會打開網頁版遊樂園。',
             style: TextStyle(
               color: GamePalette.inkLight.withValues(alpha: 0.9),
               fontSize: 13,
