@@ -66,7 +66,10 @@
     const k = Math.min((g.height || 120) / 124, ((g.width || 60) * 1.9) / 128);
     reflect.destroy();
     reflect = A.create(reflectNode, { look: life?.player()?.look || A.loadLook(), scale: 1, animation: 'idle' });
-    reflectNode.style.transform = `scaleX(-1) scale(${k.toFixed(3)})`;
+    // Centre the scaled figure, then mirror it.
+    Object.assign(reflectNode.style, { position: 'absolute', left: '50%', bottom: '0' });
+    reflectNode.style.transform = `translateX(-50%) scale(${k.toFixed(3)}) scaleX(-1)`;
+    reflectNode.style.transformOrigin = '50% 96%';
     paintHung();
   }
   // A few garments always hang on the rack art itself.

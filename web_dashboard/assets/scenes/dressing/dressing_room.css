@@ -9,7 +9,8 @@
   place-items: end center;
 }
 .dr-glass { justify-items: center; }
-.dr-reflect { justify-self: center; transform-origin: 50% 96%; filter: saturate(0.85) brightness(1.05); opacity: 0.92; }
+.dr-glass > .dr-reflect { position: absolute; left: 50%; bottom: 0; }
+.dr-reflect { transform-origin: 50% 96%; filter: saturate(0.85) brightness(1.05); opacity: 0.92; }
 .dr-hung { z-index: 4; display: flex; justify-content: space-around; align-items: flex-start; }
 .dr-garment {
   width: 30%;
