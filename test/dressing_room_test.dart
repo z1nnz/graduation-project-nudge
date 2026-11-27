@@ -65,9 +65,9 @@ void main() {
     await tester.tap(find.bySemanticsLabel(RegExp('衣架')).first);
     await _step(tester);
     expect(find.byKey(const Key('dressing-rack-panel')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('wear-outfit-gardener')));
+    await tester.tap(find.byKey(const Key('wear-outfit-forest')));
     await _step(tester);
-    expect((await PlayerLookStore.load()).outfit, 'gardener');
+    expect((await PlayerLookStore.load()).outfit, 'forest');
     await tester.tap(find.text('頭飾'));
     await _step(tester);
     await tester.tap(find.byKey(const Key('wear-headwear-none')));

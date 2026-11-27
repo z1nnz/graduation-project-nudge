@@ -1,5 +1,5 @@
 {
- "note": "Prompts these code-drawn sprites stand in for (tool/character_art/draw_player.py); the reference sheet is attached to every later job.",
+ "note": "The player is built from the earlier companion sheet (recolor_player.py): hair and jacket colourways are recolours of that art, hats and glasses are drawn per frame. Prompts kept for a future generated version; attach the companion sheet as the reference.",
  "prefix": "16-bit pixel art, cozy fantasy town, warm wood and parchment palette with soft purple night tones, crisp pixel edges, no anti-aliasing blur, no text, no logo, no watermark",
  "key": "on a flat pure magenta #FF00FF background",
  "jobs": [

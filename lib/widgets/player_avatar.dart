@@ -11,10 +11,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Mirrors `assets/characters/player/player.json`
 /// (test/player_avatar_test.dart keeps them equal). Cells are
 /// [playerFrameWidth] x [playerFrameHeight] px, feet on [playerPivot].
-const double playerFrameWidth = 64;
-const double playerFrameHeight = 80;
-const int playerColumns = 12;
-const Offset playerPivot = Offset(32, 76);
+const double playerFrameWidth = 128;
+const double playerFrameHeight = 128;
+const int playerColumns = 6;
+const Offset playerPivot = Offset(64, 123);
 const String playerAssetBase = 'assets/characters/player/';
 
 class PlayerClip {
@@ -29,27 +29,31 @@ class PlayerClip {
 }
 
 const List<PlayerClip> playerClips = [
-  PlayerClip('idle', 12, 8),
-  PlayerClip('look', 12, 8),
+  PlayerClip('idle', 4, 8),
   PlayerClip('turn', 4, 8),
-  PlayerClip('walk_down', 6, 10),
-  PlayerClip('walk_left', 6, 10),
-  PlayerClip('walk_right', 6, 10),
-  PlayerClip('walk_up', 6, 10),
-  PlayerClip('run_down', 6, 12),
-  PlayerClip('run_left', 6, 12),
-  PlayerClip('run_right', 6, 12),
-  PlayerClip('run_up', 6, 12),
-  PlayerClip('sit', 8, 8),
-  PlayerClip('read', 12, 8),
-  PlayerClip('sleep', 12, 8),
+  PlayerClip('walk_down', 4, 8),
+  PlayerClip('walk_left', 4, 8),
+  PlayerClip('walk_right', 4, 8),
+  PlayerClip('walk_up', 4, 8),
   PlayerClip('happy', 6, 10, loop: false),
-  PlayerClip('wave', 6, 8, loop: false),
-  PlayerClip('think', 8, 8),
-  PlayerClip('stretch', 8, 8, loop: false),
-  PlayerClip('snack', 8, 8),
-  PlayerClip('talk', 4, 8),
+  PlayerClip('wave', 4, 8, loop: false),
+  PlayerClip('think', 4, 8),
+  PlayerClip('sleep', 4, 8),
 ];
+
+/// Actions the companion art has no row for play their nearest row.
+const Map<String, String> playerAliases = {
+  'look': 'idle',
+  'sit': 'idle',
+  'read': 'think',
+  'stretch': 'happy',
+  'snack': 'idle',
+  'talk': 'idle',
+  'run_down': 'walk_down',
+  'run_left': 'walk_left',
+  'run_right': 'walk_right',
+  'run_up': 'walk_up',
+};
 
 /// Every animation the player sheets carry.
 enum PlayerAnimation {
@@ -77,7 +81,13 @@ enum PlayerAnimation {
   String get rowName =>
       name.replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m[0]!.toLowerCase()}');
 
-  int get row => playerClips.indexWhere((c) => c.name == rowName);
+  int get row {
+    final i = playerClips.indexWhere((c) => c.name == rowName);
+    if (i >= 0) return i;
+    final alias = playerAliases[rowName];
+    return alias == null ? 0 : playerClips.indexWhere((c) => c.name == alias);
+  }
+
   PlayerClip get clip => playerClips[row];
 
   static PlayerAnimation walk(AxisDirection dir, {bool run = false}) =>
@@ -104,12 +114,12 @@ const Map<PlayerLayer, List<PlayerPart>> playerParts = {
     PlayerPart('rose', '莓果粉髮'),
   ],
   PlayerLayer.outfit: [
-    PlayerPart('adventurer', '冒險外套'),
-    PlayerPart('gardener', '園丁吊帶褲'),
-    PlayerPart('stargown', '星夜法袍'),
-    PlayerPart('scholar', '書院學者'),
-    PlayerPart('sporty', '晨跑運動服'),
-    PlayerPart('raincoat', '雨天黃雨衣'),
+    PlayerPart('adventurer', '冒險藍外套'),
+    PlayerPart('forest', '森林綠外套'),
+    PlayerPart('sunset', '晚霞紅外套'),
+    PlayerPart('starnight', '星夜紫外套'),
+    PlayerPart('sunny', '晨光黃外套'),
+    PlayerPart('snow', '雪原白外套'),
   ],
   PlayerLayer.headwear: [
     PlayerPart('starclip', '星星髮夾'),
@@ -122,8 +132,6 @@ const Map<PlayerLayer, List<PlayerPart>> playerParts = {
   PlayerLayer.accessory: [
     PlayerPart('scarf', '白色長圍巾'),
     PlayerPart('glasses', '圓框眼鏡'),
-    PlayerPart('satchel', '皮革斜背包'),
-    PlayerPart('backpack', '星星背包'),
   ],
 };
 
