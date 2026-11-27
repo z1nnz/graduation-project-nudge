@@ -683,6 +683,9 @@ mixin PlayerWalkMixin<T extends StatefulWidget> on State<T> {
 
 // ---------------------------------------------------------------- companion
 
+/// Height of a room companion per scale step (rooms size it by art width).
+const double companionHeight = 62;
+
 /// The user's own companion (their chosen character, CompanionSprite) acting
 /// out a scene action. Rooms use this; the layered [PlayerAvatar] is for the
 /// dressing room and try-on mirrors. Walking steps through the walk frames.
