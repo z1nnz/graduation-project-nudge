@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/community_scene_header.dart';
+import '../widgets/living_world/living_community_header.dart';
 import 'package:provider/provider.dart';
 import '../models/relationship_membership.dart';
 import '../state/app_state.dart';
@@ -221,7 +222,7 @@ class _GroupManagerPageState extends State<GroupManagerPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('團體與教育管理端')),
-      body: CommunitySceneSections(
+      body: LivingCommunitySections(
         family: false,
         greeting: '到辦公桌發布團體挑戰、安排活動，或確認成員權限。',
         sections: [

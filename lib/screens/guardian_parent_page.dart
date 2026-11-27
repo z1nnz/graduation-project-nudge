@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/community_scene_header.dart';
+import '../widgets/living_world/living_community_header.dart';
 import 'package:provider/provider.dart';
 
 import '../models/relationship_membership.dart';
@@ -93,7 +94,7 @@ class _GuardianParentPageState extends State<GuardianParentPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('家長陪伴')),
-      body: CommunitySceneSections(
+      body: LivingCommunitySections(
         family: true,
         greeting: '到信箱寫鼓勵卡，或在木牌上提出一個共同目標。',
         sections: [
