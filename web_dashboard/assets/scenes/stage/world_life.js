@@ -274,7 +274,7 @@
       if (config.player === false) return;
       const roomScale = parseFloat(getComputedStyle(frame).getPropertyValue('--room-scale') || '1');
       if (config.player === 'layered' && root.NudgeAvatarLayers) {
-        const scale = Math.max(1, Math.round(roomScale * 2));
+        const scale = Math.max(config.playerScaleMin || 2, Math.round(roomScale * (config.playerScale || 2)));
         delete pNode.dataset.kind;
         player = root.NudgeAvatarLayers.create(pNode, { look: root.NudgeAvatarLayers.loadLook(), scale, animation: config.idle || 'idle' });
       } else {

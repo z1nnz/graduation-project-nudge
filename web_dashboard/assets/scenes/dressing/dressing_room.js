@@ -21,6 +21,8 @@
 
   const life = root.NudgeWorldLife?.attach(room, {
     player: 'layered', // the dressing room shows the layered character you dress
+    playerScale: 3,
+    playerScaleMin: 2,
     layouts: {
       tall: { rects: { mirror: PLACES.tall.mirror, rack: PLACES.tall.rack, card: [0.43, 0.37, 0.18, 0.1], shelf: [0.12, 0.29, 0.25, 0.2] }, spots: { mirror: PLACES.tall.mirrorSpot, rack: PLACES.tall.rackSpot }, start: PLACES.tall.start, skyRect: [0.3, 0.05, 0.4, 0.19], floor: [0.64, 0.9], near: { fall: 'dust', plants: [{ x: 0.02, y: 0, size: 0.12, kind: 'ivy' }] } },
       wide: { rects: { mirror: PLACES.wide.mirror, rack: PLACES.wide.rack, card: [0.42, 0.39, 0.17, 0.13], shelf: [0.23, 0.34, 0.14, 0.2] }, spots: { mirror: PLACES.wide.mirrorSpot, rack: PLACES.wide.rackSpot }, start: PLACES.wide.start, skyRect: [0.38, 0.09, 0.26, 0.26], floor: [0.72, 0.94], near: { fall: 'dust', plants: [{ x: 0.01, y: 0, size: 0.14, kind: 'ivy' }] } },
@@ -58,8 +60,9 @@
     place(glass, [p.mirror[0] + p.mirror[2] * 0.18, p.mirror[1] + p.mirror[3] * 0.09, p.mirror[2] * 0.64, p.mirror[3] * 0.72]);
     place(rackImg, p.rack);
     place(hung, [p.rack[0] + p.rack[2] * 0.08, p.rack[1] + p.rack[3] * 0.2, p.rack[2] * 0.84, p.rack[3] * 0.75]);
-    const h = glass.getBoundingClientRect().height || 120;
-    const s = Math.max(1, Math.round(h / 56));
+    const g = glass.getBoundingClientRect();
+    // Whole figure in the glass: limited by its height and its width.
+    const s = Math.max(1, Math.floor(Math.min((g.height || 120) / 56, ((g.width || 60) * 1.6) / 48)));
     reflect.destroy();
     reflect = A.create(reflectNode, { look: life?.player()?.look || A.loadLook(), scale: s, animation: 'idle' });
     paintHung();
@@ -104,8 +107,9 @@
         b.setAttribute('aria-selected', String(look[tab] === it.id));
         b.dataset.part = `${tab}:${it.id ?? 'none'}`;
         const pic = make('span', 'dr-item-pic');
-        if (it.id) {
-          const stack = tab === 'body' ? [`body_${it.id}`] : tab === 'outfit' ? [`outfit_${it.id}`] : [`body_${look.body}`, `${tab}_${it.id}`];
+        {
+          const worn = { ...look, [tab]: it.id };
+          const stack = A.MANIFEST.order.filter(k => worn[k]).map(k => `${k}_${worn[k]}`);
           pic.style.backgroundImage = stack.reverse().map(f => `url("${A.BASE}${f}.webp")`).join(',');
         }
         b.append(make('i', 'dr-hook'), pic, Object.assign(make('span', 'dr-item-name'), { textContent: it.name }));
