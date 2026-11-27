@@ -33,3 +33,19 @@ test('board and study nook rooms keep both layouts with a live window', () => {
     assert.ok(cfg.art.endsWith('_mid.webp') && cfg.wide.art.endsWith('_mid.webp'), k);
   }
 });
+
+test('the weekly planner gets a trail and planet missions become notes', () => {
+  const trail = read('web_dashboard/assets/weekly_planner_trail.js');
+  assert.ok(trail.includes('.planner-day') && trail.includes('.planner-task'));
+  assert.ok(!/firestore|httpsCallable|setItem/.test(trail));
+  const html = read('web_dashboard/weekly-planner.html');
+  assert.ok(html.indexOf('weekly_planner.js') < html.indexOf('weekly_planner_trail.js'));
+  for (const id of ['plannerDays', 'plannerTasks', 'plannerSave']) assert.ok(html.includes(`id="${id}"`), id);
+  const notes = read('web_dashboard/assets/scenes/commission/planet_notes.js');
+  assert.ok(notes.includes('.mission-check') && !/firestore|httpsCallable/.test(notes));
+  const planet = read('web_dashboard/planet.html');
+  assert.ok(planet.includes('id="dynamicMissionList"') && planet.indexOf('app.js') < planet.indexOf('planet_notes.js'));
+  for (const f of ['web_dashboard/assets/weekly_planner_trail.css', 'web_dashboard/assets/scenes/commission/planet_notes.css']) {
+    assert.ok(read(f).includes('prefers-reduced-motion'), f);
+  }
+});

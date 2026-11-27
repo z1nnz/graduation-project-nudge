@@ -1,0 +1,10 @@
+/* Planet mission notes (planet_notes.js). */
+.pn-board { background: #8a5a34 !important; border: 4px solid #3a2216 !important; box-shadow: inset 0 0 0 3px #c9934f !important; }
+.pn-board .mission-item { position: relative; background: #f6e7c8; color: #2a1a14; border: 2px solid #8a5a34; box-shadow: 2px 3px 0 #3a2216; margin: 10px 4px; padding-top: 10px; transform: rotate(var(--pn-tilt, 0deg)); list-style: none; }
+.pn-board .mission-item::before { content: ""; position: absolute; left: calc(50% - 4px); top: -4px; width: 8px; height: 8px; background: #d8452e; box-shadow: inset -2px -2px 0 #8a2a1a; }
+.pn-board .mission-item.is-stamped::after { content: "完成"; position: absolute; right: 8px; top: 30%; color: #d8452e; border: 2px solid #d8452e; padding: 0 4px; font-weight: 900; transform: rotate(-14deg); animation: pn-stamp 0.45s steps(4) both; }
+.pn-envelope { position: absolute; right: 10px; bottom: 10px; width: 40px; height: 28px; background: #f6e7c8; border: 2px solid #3a2216; clip-path: polygon(0 20%, 50% 60%, 100% 20%, 100% 100%, 0 100%); }
+.pn-fly { z-index: 3000; pointer-events: none; background: #f6e7c8; border: 2px solid #8a5a34; animation: pn-fly 0.8s steps(8) forwards; }
+@keyframes pn-stamp { from { transform: rotate(-14deg) scale(2.5); opacity: 0; } to { transform: rotate(-14deg); opacity: 1; } }
+@keyframes pn-fly { to { transform: translate(var(--pn-dx), var(--pn-dy)) scale(0.15) rotate(20deg); opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .pn-board .mission-item.is-stamped::after, .pn-fly { animation: none; } }
