@@ -50,6 +50,8 @@ void main() {
       MaterialApp(home: NudgeDevicePage(runtimeBuilder: () => runtime)),
     );
 
+    await tester.tap(find.text('操作裝置工作台'));
+    await tester.pump();
     expect(find.text('Nudge 專注裝置'), findsOneWidget);
     expect(find.text('尚未連線'), findsOneWidget);
     await tester.scrollUntilVisible(find.textContaining('只有指派給目前帳號'), 300);

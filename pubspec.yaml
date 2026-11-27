@@ -112,6 +112,7 @@ flutter:
     - assets/scenes/park/
     - assets/scenes/gate/
     - assets/scenes/vault/
+    - assets/scenes/studio/
     - assets/scenes/workshop/
     - assets/scenes/workbench/
     - assets/characters/pets/

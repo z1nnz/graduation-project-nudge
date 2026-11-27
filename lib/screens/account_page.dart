@@ -1,3 +1,7 @@
+import '../theme/game_ui.dart';
+import '../widgets/game_facility_scene.dart';
+import '../widgets/game_studio_scene.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -40,7 +44,9 @@ class _AccountPageState extends State<AccountPage>
   void initState() {
     super.initState();
     _fadeCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 300));
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     _fade = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeInOut);
     _fadeCtrl.forward();
   }
@@ -98,8 +104,7 @@ class _AccountPageState extends State<AccountPage>
       if (_mode == _AuthMode.signIn) {
         await appState.signInWithEmailAndPassword(email, password);
       } else {
-        await appState.signUpWithEmailAndPassword(
-            email, password, "自律使用者");
+        await appState.signUpWithEmailAndPassword(email, password, "自律使用者");
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -113,8 +118,7 @@ class _AccountPageState extends State<AccountPage>
       setState(() {
         _error = switch (e.code) {
           'user-not-found' => '找不到該帳號，請先註冊。',
-          'wrong-password' || 'invalid-credential' =>
-            '密碼錯誤，請重試。',
+          'wrong-password' || 'invalid-credential' => '密碼錯誤，請重試。',
           'invalid-email' => '電子郵件格式不正確。',
           'email-already-in-use' => '此信箱已被使用，請直接登入。',
           'weak-password' => '密碼強度不足，請設定更複雜的密碼。',
@@ -149,15 +153,18 @@ class _AccountPageState extends State<AccountPage>
     final appState = context.watch<AppState>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('帳號'),
-        centerTitle: false,
-      ),
-      body: AppBackground(
-        child: SafeArea(
-          child: appState.isSignedIn
-              ? _buildSignedInView(appState)
-              : _buildAuthView(appState),
+      appBar: AppBar(title: const Text('帳號'), centerTitle: false),
+      body: GameStudioScene(
+        title: '工作室・帳號鑰匙',
+        label: '查看帳號鑰匙',
+        gate: false,
+        icon: Icons.key,
+        child: GameBackground(
+          child: SafeArea(
+            child: appState.isSignedIn
+                ? _buildSignedInView(appState)
+                : _buildAuthView(appState),
+          ),
         ),
       ),
     );
@@ -182,10 +189,7 @@ class _AccountPageState extends State<AccountPage>
               width: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    accent,
-                    accent.withValues(alpha: 0.6),
-                  ],
+                  colors: [accent, accent.withValues(alpha: 0.6)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -200,7 +204,7 @@ class _AccountPageState extends State<AccountPage>
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: GamePalette.inkLight.withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -212,7 +216,7 @@ class _AccountPageState extends State<AccountPage>
                       width: 140,
                       height: 140,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: GamePalette.inkLight.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -227,7 +231,9 @@ class _AccountPageState extends State<AccountPage>
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF11141A) : const Color(0xFFF3F4F6), // Background padding border
+                  color: isDark
+                      ? const Color(0xFF11141A)
+                      : const Color(0xFFF3F4F6), // Background padding border
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -258,7 +264,7 @@ class _AccountPageState extends State<AccountPage>
               Text(
                 appState.profileNickname,
                 style: TextStyle(
-                  color: AppUI.textPrimaryOf(context),
+                  color: GamePalette.of(context).ink,
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.5,
@@ -268,7 +274,10 @@ class _AccountPageState extends State<AccountPage>
               // Title Badge Tag
               if (appState.profileTitle.isNotEmpty) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppUI.radiusPill),
@@ -286,7 +295,7 @@ class _AccountPageState extends State<AccountPage>
                         appState.profileTitle,
                         style: TextStyle(
                           color: accent,
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -301,7 +310,7 @@ class _AccountPageState extends State<AccountPage>
                     ? '今天也在穩定前進'
                     : '"${appState.profileSignature}"',
                 style: TextStyle(
-                  color: AppUI.textSecondaryOf(context),
+                  color: GamePalette.of(context).inkMuted,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   fontStyle: FontStyle.italic,
@@ -318,12 +327,14 @@ class _AccountPageState extends State<AccountPage>
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const MyProfilePage()),
+                          MaterialPageRoute(
+                            builder: (_) => const MyProfilePage(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: GamePalette.inkLight,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -333,7 +344,10 @@ class _AccountPageState extends State<AccountPage>
                       icon: const Icon(Icons.edit_rounded, size: 18),
                       label: const Text(
                         '編輯個人檔案',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -352,8 +366,11 @@ class _AccountPageState extends State<AccountPage>
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppUI.textPrimaryOf(context),
-                        side: BorderSide(color: AppUI.textSecondaryOf(context).withValues(alpha: 0.3)),
+                        foregroundColor: GamePalette.of(context).ink,
+                        side: BorderSide(
+                          color: GamePalette.of(context).inkMuted
+                              .withValues(alpha: 0.3),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -362,7 +379,10 @@ class _AccountPageState extends State<AccountPage>
                       icon: const Icon(Icons.sync_rounded, size: 18),
                       label: const Text(
                         '同步資料',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -390,20 +410,32 @@ class _AccountPageState extends State<AccountPage>
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: accent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: accent.withValues(alpha: 0.4)),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.4),
+                        ),
                       ),
                       child: Text(
                         _getRoleLabel(appState.userRole),
-                        style: TextStyle(color: accent, fontWeight: FontWeight.w700, fontSize: 14),
+                        style: TextStyle(
+                          color: accent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     const Spacer(),
                     TextButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SettingsPage()),
+                      ),
                       icon: const Icon(Icons.settings_outlined, size: 16),
                       label: const Text('前往設定'),
                       style: TextButton.styleFrom(foregroundColor: accent),
@@ -425,7 +457,7 @@ class _AccountPageState extends State<AccountPage>
                       child: SelectableText(
                         appState.myNudgeId,
                         style: TextStyle(
-                          color: AppUI.textPrimaryOf(context),
+                          color: GamePalette.of(context).ink,
                           fontSize: 24,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
@@ -434,7 +466,9 @@ class _AccountPageState extends State<AccountPage>
                     ),
                     IconButton.filledTonal(
                       onPressed: () {
-                        Clipboard.setData(ClipboardData(text: appState.myNudgeId));
+                        Clipboard.setData(
+                          ClipboardData(text: appState.myNudgeId),
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('已複製 ${appState.myNudgeId}')),
                         );
@@ -454,7 +488,10 @@ class _AccountPageState extends State<AccountPage>
                 accentColor: accent,
                 child: Column(
                   children: [
-                    _InfoRow(label: '登入方式', value: appState.accountProviderLabel),
+                    _InfoRow(
+                      label: '登入方式',
+                      value: appState.accountProviderLabel,
+                    ),
                     const SizedBox(height: 6),
                     _InfoRow(label: 'UID', value: user?.id ?? '—'),
                   ],
@@ -474,8 +511,8 @@ class _AccountPageState extends State<AccountPage>
                   children: [
                     _SyncChip(label: '個人名片', color: accent),
                     _SyncChip(label: '自律房', color: const Color(0xFF14B8A6)),
-                    _SyncChip(label: '角色穿搭', color: AppUI.purple),
-                    _SyncChip(label: '好友邀請', color: AppUI.orange),
+                    _SyncChip(label: '角色穿搭', color: GamePalette.violet),
+                    _SyncChip(label: '好友邀請', color: GamePalette.goldDeep),
                     _SyncChip(label: '每日紀錄', color: const Color(0xFFF59E0B)),
                   ],
                 ),
@@ -500,7 +537,8 @@ class _AccountPageState extends State<AccountPage>
                     side: const BorderSide(color: Colors.red, width: 1.2),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),
@@ -515,8 +553,8 @@ class _AccountPageState extends State<AccountPage>
   // ─── Auth form ─────────────────────────────────────────────────────────────
   Widget _buildAuthView(AppState appState) {
     final accent = AppUI.primary;
-    final primaryText = AppUI.textPrimaryOf(context);
-    final secondaryText = AppUI.textSecondaryOf(context);
+    final primaryText = GamePalette.of(context).ink;
+    final secondaryText = GamePalette.of(context).inkMuted;
 
     return Center(
       child: SingleChildScrollView(
@@ -537,8 +575,11 @@ class _AccountPageState extends State<AccountPage>
                   color: accent.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.auto_awesome_rounded,
-                    size: 38, color: accent),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 38,
+                  color: accent,
+                ),
               ),
 
               // Title
@@ -546,9 +587,10 @@ class _AccountPageState extends State<AccountPage>
                 _mode == _AuthMode.signIn ? '歡迎回到 Nudge' : '建立你的自律身分',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: primaryText,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900),
+                  color: primaryText,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -569,12 +611,14 @@ class _AccountPageState extends State<AccountPage>
                     color: Colors.red.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.28)),
+                      color: Colors.red.withValues(alpha: 0.28),
+                    ),
                   ),
-                  child: Text(_error!,
-                      style:
-                          const TextStyle(color: Colors.red, fontSize: 13),
-                      textAlign: TextAlign.center),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
 
@@ -651,20 +695,26 @@ class _AccountPageState extends State<AccountPage>
                   backgroundColor: accent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: _busy
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white)))
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            GamePalette.inkLight,
+                          ),
+                        ),
+                      )
                     : Text(
                         _mode == _AuthMode.signIn ? '登入' : '建立帳號並登入',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
               const SizedBox(height: 20),
@@ -675,9 +725,10 @@ class _AccountPageState extends State<AccountPage>
                   const Expanded(child: Divider()),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('或使用第三方登入',
-                        style: TextStyle(
-                            color: secondaryText, fontSize: 12)),
+                    child: Text(
+                      '或使用第三方登入',
+                      style: TextStyle(color: secondaryText, fontSize: 14),
+                    ),
                   ),
                   const Expanded(child: Divider()),
                 ],
@@ -695,7 +746,8 @@ class _AccountPageState extends State<AccountPage>
                       onPressed: _busy
                           ? null
                           : () => _socialSignIn(
-                              context.read<AppState>().signInWithGoogle),
+                              context.read<AppState>().signInWithGoogle,
+                            ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -708,7 +760,8 @@ class _AccountPageState extends State<AccountPage>
                       onPressed: _busy
                           ? null
                           : () => _socialSignIn(
-                              context.read<AppState>().signInWithFacebook),
+                              context.read<AppState>().signInWithFacebook,
+                            ),
                     ),
                   ),
                 ],
@@ -724,7 +777,8 @@ class _AccountPageState extends State<AccountPage>
                   onPressed: _busy
                       ? null
                       : () => _socialSignIn(
-                          context.read<AppState>().signInWithApple),
+                          context.read<AppState>().signInWithApple,
+                        ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -745,9 +799,10 @@ class _AccountPageState extends State<AccountPage>
                   child: Text(
                     '稍後再說，先體驗功能',
                     style: TextStyle(
-                        color: secondaryText,
-                        fontSize: 13,
-                        decoration: TextDecoration.underline),
+                      color: secondaryText,
+                      fontSize: 14,
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ),
               ),
@@ -786,16 +841,17 @@ class _ModeTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? (AppUI.isDark(context)
-                    ? const Color(0xFF2A2F3A)
-                    : Colors.white)
+                      ? const Color(0xFF2A2F3A)
+                      : GamePalette.inkLight)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2))
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ]
                 : [],
           ),
@@ -803,11 +859,8 @@ class _ModeTab extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: selected
-                  ? accentColor
-                  : AppUI.textSecondaryOf(context),
-              fontWeight:
-                  selected ? FontWeight.w800 : FontWeight.w600,
+              color: selected ? accentColor : GamePalette.of(context).inkMuted,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
               fontSize: 15,
             ),
           ),
@@ -838,10 +891,7 @@ class _Field extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       textInputAction: action,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-      ),
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
     );
   }
 }
@@ -875,7 +925,8 @@ class _PasswordField extends StatelessWidget {
         prefixIcon: const Icon(Icons.lock_outline_rounded),
         suffixIcon: IconButton(
           icon: Icon(
-              obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+            obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          ),
           onPressed: onToggle,
         ),
       ),
@@ -905,11 +956,18 @@ class _SocialButton extends StatelessWidget {
       key: ValueKey(id),
       onPressed: onPressed,
       icon: Icon(icon, size: 22, color: btnColor),
-      label: Text(label, style: btnColor != null ? TextStyle(color: btnColor, fontWeight: FontWeight.w700) : null),
+      label: Text(
+        label,
+        style: btnColor != null
+            ? TextStyle(color: btnColor, fontWeight: FontWeight.w700)
+            : null,
+      ),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 13),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        side: btnColor != null ? BorderSide(color: btnColor.withValues(alpha: 0.5)) : null,
+        side: btnColor != null
+            ? BorderSide(color: btnColor.withValues(alpha: 0.5))
+            : null,
       ),
     );
   }
@@ -932,7 +990,7 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return GameArtifact(
       shape: AppUI.cardShape(),
       child: Padding(
         padding: const EdgeInsets.all(AppUI.innerPadding),
@@ -944,7 +1002,7 @@ class _InfoCard extends StatelessWidget {
                 Container(
                   width: 42,
                   height: 42,
-                  decoration: AppUI.softCardOf(context, accentColor),
+                  decoration: GameRecordStyle.inset(context, accentColor),
                   child: Icon(icon, color: accentColor),
                 ),
                 const SizedBox(width: 12),
@@ -952,18 +1010,24 @@ class _InfoCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title,
-                          style: TextStyle(
-                              color: AppUI.textPrimaryOf(context),
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900)),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: GamePalette.of(context).ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(subtitle,
-                          style: TextStyle(
-                              color: AppUI.textSecondaryOf(context),
-                              fontSize: 12,
-                              height: 1.35,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: GamePalette.of(context).inkMuted,
+                          fontSize: 14,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -989,18 +1053,24 @@ class _InfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: TextStyle(
-                color: AppUI.textSecondaryOf(context),
-                fontSize: 13,
-                fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: TextStyle(
+            color: GamePalette.of(context).inkMuted,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         Flexible(
-          child: Text(value,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: AppUI.textPrimaryOf(context),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700)),
+          child: Text(
+            value,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: GamePalette.of(context).ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ],
     );
@@ -1017,23 +1087,34 @@ class _SyncChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: AppUI.softCardOf(context, color),
-      child: Text(label,
-          style: TextStyle(
-              color: color, fontSize: 12, fontWeight: FontWeight.w800)),
+      decoration: GameRecordStyle.inset(context, color),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
 
 String _getRoleLabel(String role) {
   switch (role) {
-    case 'guardian': return '家長端';
-    case 'child': return '孩子端';
-    case 'group': return '團體/企業';
-    case 'tutor': return '補習班';
-    case 'school': return '學校';
-    case 'enterprise': return '企業';
-    default: return '個人模式';
+    case 'guardian':
+      return '家長端';
+    case 'child':
+      return '孩子端';
+    case 'group':
+      return '團體/企業';
+    case 'tutor':
+      return '補習班';
+    case 'school':
+      return '學校';
+    case 'enterprise':
+      return '企業';
+    default:
+      return '個人模式';
   }
 }
-

@@ -1,3 +1,5 @@
+import '../widgets/game_pixel_switch.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -103,7 +105,7 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
                           ),
                         ),
                       ),
-                      Switch(
+                      GamePixelSwitch(
                         value: setting.enabled,
                         activeThumbColor: color,
                         onChanged: appState.isSyncingNotificationPreferences
@@ -240,9 +242,8 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
         : appState.isCurrentDevicePushConfigured
         ? '已啟用本機排程與帳號遠端推播'
         : '已啟用此裝置的本機提醒排程';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildPreviewCard(BuildContext context, ReminderPreview preview) {
@@ -666,12 +667,14 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
         children: [
           Icon(icon, size: 16, color: Colors.white),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

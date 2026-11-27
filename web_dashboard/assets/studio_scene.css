@@ -1,0 +1,65 @@
+.studio-companion {
+  position: absolute;
+  left: 55%;
+  top: 58%;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+.studio-seal-dialog {
+  background: var(--w-parchment);
+  color: var(--w-ink-dark);
+  border: 4px solid var(--w-wood);
+  padding: 16px;
+  max-width: 520px;
+  width: calc(100% - 24px);
+  font: 16px/1.6 var(--w-text);
+}
+.studio-seal-dialog h2 {
+  font: 20px var(--w-pixel);
+  color: var(--w-ink-dark);
+}
+.studio-seal-dialog::backdrop {
+  background: var(--w-night);
+  opacity: 0.85;
+}
+.studio-seal-dialog canvas {
+  display: block;
+  margin: auto;
+  image-rendering: pixelated;
+}
+.studio-seal-dialog button {
+  min-height: 44px;
+  margin: 4px;
+  font-size: 16px;
+}
+@media (max-width: 480px) {
+  .studio-seal-dialog button {
+    width: 100%;
+  }
+}
+body[data-page="privacy"] :is(main, .room-panel) small {
+  font-size: 14px;
+}
+@media (max-width: 480px) {
+  body[data-town-gate="login"] .gate-top {
+    flex-wrap: wrap;
+  }
+  body[data-town-gate="login"] .gate-top h1 {
+    white-space: nowrap;
+  }
+  body[data-town-gate="login"] .gate-brand {
+    width: 100%;
+    text-align: center;
+  }
+}
+body.w-page .studio-seal-dialog p {
+  font: 16px/1.6 var(--w-text) !important;
+  color: var(--w-ink-dark);
+}
+body.w-page .studio-seal-dialog canvas {
+  width: 144px;
+  height: 88px;
+}
+body[data-page="privacy"] :is(main, .room-panel) :is(p, small, .eyebrow) {
+  font-size: 14px !important;
+}
