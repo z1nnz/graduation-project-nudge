@@ -11,10 +11,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Mirrors `assets/characters/player/player.json`
 /// (test/player_avatar_test.dart keeps them equal). Cells are
 /// [playerFrameWidth] x [playerFrameHeight] px, feet on [playerPivot].
-const double playerFrameWidth = 48;
-const double playerFrameHeight = 56;
+const double playerFrameWidth = 64;
+const double playerFrameHeight = 80;
 const int playerColumns = 12;
-const Offset playerPivot = Offset(24, 53);
+const Offset playerPivot = Offset(32, 76);
 const String playerAssetBase = 'assets/characters/player/';
 
 class PlayerClip {

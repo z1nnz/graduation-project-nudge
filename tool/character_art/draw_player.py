@@ -2,19 +2,25 @@
 
   python -I tool/character_art/draw_player.py [--preview <dir>]
 
+Designed after the earlier companion: spiky navy hair with a crown tuft,
+big brown eyes, gold star clip and earring, a thick cream scarf, a navy
+jacket with gold trim and cream cuffs, fingerless gloves, a belt pouch,
+cream shorts and fur-topped boots.
+
 Every frame is built from one pose rig (head, torso, arms, legs, props), and
 each wardrobe layer is drawn from that same rig, so a body, an outfit, a
 headwear and an accessory sheet always line up when stacked in this order:
 
   body -> outfit -> headwear -> accessory
 
-Cells are 48x56 px (feet stand on row 53, centre column 24), one row per
+Cells are 64x80 px (feet stand on row 76, centre column 32), one row per
 animation. Sheets go to web_dashboard/assets/characters/player/ and
 assets/characters/player/ together with player.json. Shown at whole-number
-scale with nearest-neighbour (2x = 96x112, 3x = 144x168).
+scale with nearest-neighbour (2x = 128x160).
 
 The prompts these sprites stand in for (shared prefix as in the work
 package, reference sheet attached on every call) are in player_prompts.json.
+Other drawing scripts import the mask and Layer helpers from here.
 """
 from __future__ import annotations
 
@@ -27,9 +33,9 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-W, H = 48, 56
-CX = 24
-FOOT = 53
+W, H = 64, 80
+CX = 32
+FOOT = 76
 COLS = 12
 
 # ---------------------------------------------------------------- palette
@@ -52,7 +58,7 @@ COOKIE_SH = (140, 86, 44)
 CHOC = (82, 48, 34)
 
 HAIR = {
-    'navy': ((54, 64, 140), (34, 38, 96), (96, 112, 196)),
+    'navy': ((66, 84, 160), (40, 50, 112), (118, 140, 212)),
     'chestnut': ((132, 78, 44), (90, 50, 30), (180, 118, 70)),
     'rose': ((214, 118, 150), (160, 74, 112), (244, 170, 192)),
 }
@@ -187,20 +193,34 @@ class Layer:
 
 
 # ---------------------------------------------------------------- the rig
+# Poses in rows() are written in the small units of the first version; the
+# rig scales limb offsets by K so the same poses fit the bigger cell.
+
+K = 1.5
+K_ARM = 1.8  # chibi arms hang to the belt like the earlier companion
+
+
+def sc(v):
+    return int(round(v * K))
+
+
+def sca(v):
+    return int(round(v * K_ARM))
+
 
 def rig(p):
     d = p.get('dir', 'down')
     side = d in ('left', 'right')
-    jy = p.get('y', 0)
-    drop = p.get('sit', 0)
+    jy = sc(p.get('y', 0))
+    drop = sc(p.get('sit', 0))
     bob = p.get('bob', 0)
     lean = p.get('lean', 0)
-    hip = 45 + jy + drop
-    tt = 36 + jy + drop + bob
+    hip = 59 + jy + drop
+    tt = 42 + jy + drop + bob
     hdx, hdy = p.get('head', (0, 0))
     g = {'dir': d, 'side': side, 'hip': hip, 'tt': tt, 'pose': p}
-    g['head'] = (16 + hdx + lean, 21 + jy + drop + bob + hdy)
-    g['torso'] = (20 + lean, tt, 27, hip) if side else (19, tt, 28, hip)
+    g['head'] = (21 + hdx + lean, 22 + jy + drop + bob + hdy)  # 22 x 20 head box
+    g['torso'] = (26 + lean, tt, 37, hip) if side else (25, tt, 38, hip)
     foot = FOOT + jy
     legs = []
     if side:
@@ -208,178 +228,223 @@ def rig(p):
         for k in ('far', 'near'):
             fdx, lift = feet.get(k, (0, 0))
             knee = p.get('knees', {}).get(k)
-            pts = [(23, hip + 1)] + ([knee] if knee else []) + [(23 + fdx, foot - lift)]
+            pts = [(32, hip + 1)] + ([(sc(knee[0] - 23) + 32, knee[1] + 24)] if knee else []) + [(32 + sc(fdx), foot - sc(lift))]
             legs.append({'pts': pts, 'near': k == 'near', 'key': k})
     else:
         lL, lR = p.get('lift', (0, 0))
-        sp = p.get('spread', 0)
-        legs.append({'pts': [(21 - sp, hip + 1), (21 - sp, foot - lL)], 'near': True, 'key': 'L'})
-        legs.append({'pts': [(26 + sp, hip + 1), (26 + sp, foot - lR)], 'near': True, 'key': 'R'})
+        sp = sc(p.get('spread', 0))
+        legs.append({'pts': [(28 - sp, hip + 1), (28 - sp, foot - sc(lL))], 'near': True, 'key': 'L'})
+        legs.append({'pts': [(35 + sp, hip + 1), (35 + sp, foot - sc(lR))], 'near': True, 'key': 'R'})
     g['legs'] = legs
     arms = []
     spec = p.get('arms', {})
     if side:
-        sh = (23 + lean, tt + 1)
+        sh = (32 + lean, tt + 2)
         for k, z in (('far', 'back'), ('near', 'front')):
             a = spec.get(k, {})
             pts = a.get('pts', [(0, 6)])
-            arms.append({'key': k, 'z': a.get('z', z), 'pts': [sh] + [(sh[0] + x, sh[1] + y) for x, y in pts], 'ax': 0})
+            arms.append({'key': k, 'z': a.get('z', z), 'pts': [sh] + [(sh[0] + sca(x), sh[1] + sca(y)) for x, y in pts], 'ax': 1})
     else:
-        for k, sx, ax in (('L', 17, 0), ('R', 30, 1)):
+        for k, sx, ax in (('L', 22, 0), ('R', 41, 2)):
             a = spec.get(k, {})
             pts = a.get('pts', [(-1 if k == 'L' else 1, 6)])
-            sh = (sx, tt + 1)
-            arms.append({'key': k, 'z': a.get('z', 'side'), 'pts': [sh] + [(sh[0] + x, sh[1] + y) for x, y in pts], 'ax': ax})
+            sh = (sx, tt + 2)
+            arms.append({'key': k, 'z': a.get('z', 'side'), 'pts': [sh] + [(sh[0] + sca(x), sh[1] + sca(y)) for x, y in pts], 'ax': ax})
     g['arms'] = arms
     return g
 
 
-def arm_mask(a, upto=1.0, w=2):
+def arm_mask(a, upto=1.0, w=3):
     pts = poly_pts(a['pts'])
     n = max(1, math.ceil(len(pts) * upto))
-    return stamp(pts[:n], w, 2 if w == 2 else w, ax=a['ax'] if w == 2 else 1, ay=0)
+    ax = a['ax'] if w == 3 else (1 if w == 4 else 0)
+    return stamp(pts[:n], w, 2, ax=min(ax, w - 1), ay=0)
 
 
 def hand_mask(a):
     x, y = a['pts'][-1]
-    return stamp([(x, y)], 2, 2, ax=a['ax'])
+    return stamp([(x, y)], 3, 3, ax=a['ax'], ay=1)
 
 
-def leg_mask(leg, upto=1.0, w=3):
+def leg_mask(leg, upto=1.0, w=4):
     pts = poly_pts(leg['pts'])
     n = max(1, math.ceil(len(pts) * upto))
-    return stamp(pts[:n], w, 1, ax=w // 2)
+    return stamp(pts[:n], w, 1, ax=w // 2 - (0 if w % 2 else 1) + (0 if w == 4 else 0))
 
 
 # ---------------------------------------------------------------- head art
+# Origin (hx - 4, hy - 8). H hair, h shade, d deep shade, l highlight,
+# S skin, s skin shade. One outline goes around the whole head.
 
-HEAD_DOWN = [
-    "......h..h.h......",
-    ".....hHl.hlH......",
-    "...hHHlHHHHHHh....",
-    "..HHlHHHHHHHHHh...",
-    ".HHlHHHHHHHHHHHh..",
-    ".HlHHHHHHHHHHHHhh.",
-    "HHHHHHHHHHHHHHHHh.",
-    "HHHHHHHHHHHHHHHHhh",
-    "HHHHHHHHHHHHHHHHhh",
-    "HHHhHHHHHhHHHHHHhh",
-    "HHhSShHHhSSHhSSHhh",
-    "HhSSSSHhSSSSSSSShh",
-    "HhSSSSSSSSSSSSSShh",
-    "HSSSSSSSSSSSSSSSSh",
-    "HSSSSSSSSSSSSSSSSh",
-    ".SSSSSSSSSSSSSSSs.",
-    ".SSSSSSSSSSSSSSSs.",
-    "..SSSSSSSSSSSSSss.",
-    "..sSSSSSSSSSSSss..",
-    "...sSSSSSSSSSss...",
-]
-HEAD_UP = [
-    "......h..h.h......",
-    ".....hHl.hlH......",
-    "...hHHlHHHHHHh....",
-    "..HHlHHHHHHHHHh...",
-    ".HHlHHHHHHHHHHHh..",
-    ".HlHHHHHHHHHHHHhh.",
-    "HHHHHHHHHHHHHHHHh.",
-    "HHHHHHHHHHHHHHHHhh",
-    "HHHHHHHHHHHHHHHHhh",
-    "HHHHHHHHHHHHHHHHhh",
-    "HHHHHHHHHHHHHHHhhh",
-    "HHHHHHHHHHHHHHHhhh",
-    "hHHHHHHHHHHHHHHhhh",
-    "hHHHHHHHHHHHHHhhhh",
-    "hhHHHHHHHHHHHHhhhh",
-    ".hhHHHHHHHHHHhhhh.",
-    ".hhhHHHHHHHHhhhhh.",
-    "..hhhhHHHHhhhhhh..",
-    "...hhhhhhhhhhhh...",
-    ".....sSSSSSSs.....",
-]
-HEAD_SIDE = [
-    ".......h..h.h.....",
-    "......hHl.hlH.....",
-    "....hHHlHHHHHHh...",
-    "...HHlHHHHHHHHHh..",
-    "..HHlHHHHHHHHHHHh.",
-    "..HlHHHHHHHHHHHHhh",
-    ".HHHHHHHHHHHHHHHhh",
-    ".HHHHHHHHHHHHHHHhh",
-    "HHHHHHHHHHHHHHHHhh",
-    "HHHhHHHHHHHHHHHHhh",
-    "HhSShHHHHHHHHHHHhh",
-    "SSSSSShHHHHHHHHhhh",
-    "SSSSSSSShHHHHHHhhh",
-    "SSSSSSSSShHHHHHhh.",
-    "SSSSSSSSSShHHHhhh.",
-    "SSSSSSSSSSsHHhhh..",
-    ".SSSSSSSSSSshhh...",
-    ".SSSSSSSSSSsh.....",
-    "..sSSSSSSSss......",
-    "...sSSSSSss.......",
-]
+def _pad(rows, w=30):
+    return [r.ljust(w, '.')[:w] for r in rows]
+
+
+HEAD_DOWN = _pad([
+    "................hh",
+    "...............hlhh",
+    "..............hlHh.h",
+    "........hh....hHHh......hh",
+    ".......hHh..hhHHHhh...hhHh",
+    ".....h.hHHhhHlHHHHHhhhHHHh..h",
+    "....hHhHlHHHlHHHHHHHHHHHHHhhHh",
+    "...hHHHlHHHlHHHHHHHlHHHHHHHHHHh",
+    "..hHHlHHHHHHHHHlHHHHHHHHlHHHHHHh",
+    ".hHHHHHHHlHHHHHHHHHHHHHHHHHHHHHHh",
+    "hHHHlHHHHHHHHHHHHHHHHHHHHHHlHHHHHh",
+    ".hHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHhd",
+    "hHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHhd",
+    ".hHHHHHHHHHHhHHHHHHHHhHHHHHHHHHhd",
+    "hHHHHHHHHHhSHHHHHHHHhSHHHHHhHHHhd",
+    ".hHHHHHHHhSShHHHHHHhSSShHHHhSHHhhd",
+    "..hHHHHHhSSShHHHHHHhSSSShHHHhSHhd",
+    "...hHHHhSSSSShHHHHhSSSSSShHhSSHhd",
+    "....hHhSSSSSSShHHhSSSSSSSShSSSShd",
+    "....hHSSSSSSSSShhSSSSSSSSSSSSSShd",
+    "....hHSSSSSSSSSSSSSSSSSSSSSSSShd",
+    "....dHSSSSSSSSSSSSSSSSSSSSSSSShd",
+    "....dhSSSSSSSSSSSSSSSSSSSSSSSShd",
+    "....dhSSSSSSSSSSSSSSSSSSSSSSSShd",
+    ".....dSSSSSSSSSSSSSSSSSSSSSSSSd",
+    ".....dSSSSSSSSSSSSSSSSSSSSSSSsd",
+    "......SSSSSSSSSSSSSSSSSSSSSSss",
+    "......sSSSSSSSSSSSSSSSSSSSSSs",
+    ".......sSSSSSSSSSSSSSSSSSSSs",
+    "........ssSSSSSSSSSSSSSSss",
+    "..........ssssssssssssss",
+], 34)
+HEAD_UP = _pad([
+    "................hh",
+    "...............hlhh",
+    "..............hlHh.h",
+    "........hh....hHHh......hh",
+    ".......hHh..hhHHHhh...hhHh",
+    ".....h.hHHhhHlHHHHHhhhHHHh..h",
+    "....hHhHlHHHlHHHHHHHHHHHHHhhHh",
+    "...hHHHlHHHlHHHHHHHlHHHHHHHHHHh",
+    "..hHHlHHHHHHHHHlHHHHHHHHlHHHHHHh",
+    ".hHHHHHHHlHHHHHHHHHHHHHHHHHHHHHHh",
+    "hHHHlHHHHHHHHHHHHHHHHHHHHHHlHHHHHh",
+    ".hHHHHHHHHHHlHHHHHHHHHHHlHHHHHHHhd",
+    "hHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHhd",
+    ".hHHHHHHlHHHHHHHHHHHHHHHHHlHHHHhd",
+    "hHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHhd",
+    ".hHHHHHHHHHHHHHHHHHHHHHHHHHHHHhhd",
+    "..hHHHHHHHHhHHHHHHHHhHHHHHHHHhhd",
+    "...hHHHHHHhHHHHHHHHHHhHHHHHHhhd",
+    "....hHHHHhHHHHHHHHHHHHhHHHHhhd",
+    "....hhHHHhHHHHHHHHHHHHHhHHhhhd",
+    "....dhhHhHHHHHHhHHhHHHHHhhhhd",
+    "....dhhhHHHHHHhHHHHhHHHHhhhd",
+    ".....dhhhHHHHhHHHHHHhHHhhhd",
+    ".....ddhhhhhhhhhhhhhhhhhhdd",
+    ".......ddhhhhhhhhhhhhhhdd",
+    ".........ddhhhhhhhhhhdd",
+    "............sSSSSSSSs",
+    "............sSSSSSSSs",
+], 34)
+HEAD_SIDE = _pad([
+    "..................hh",
+    ".................hlhh",
+    "..................hh",
+    ".................hHh..h",
+    "............h...hHHh.hh....h",
+    "...........hHh.hHlHhhHh..hHh",
+    "..........hHHhhHlHHHHHHhhHHh..h",
+    "........hHHlHHHlHHHHHHHHHHHhhHh",
+    ".......hHlHHHlHHHHHHHHHHHHHHHHh",
+    "......hHlHHHlHHHHHHHHHHHHHHHHHHh",
+    ".....hHlHHHHHHHHHHHHHHHHHHHHHHHh",
+    "....hHHHHHHHHHHHHHHHHHHHHHHHHHh",
+    "...hHHHHHHHHHHHHHHHHHHHHHHHHHHHh",
+    "...hHHHHhHHHHHHHHHHHHHHHHHHHHHhd",
+    "..hHHHhShHHHhHHHHHHHHHHHHHHHHhd",
+    "..hHHhSSShHhSShHHHHHHHHHHHHHHhd",
+    "...hhSSSSShSSSShHHHHHHHHHHHHhd",
+    "....SSSSSSSSSSSShHHHHHHHHHHHhd",
+    "...SSSSSSSSSSSSSShHHHHHHHHHhd",
+    "...SSSSSSSSSSSSSSShHHHHHHHhd",
+    "..SSSSSSSSSSSSSSSSsHHHHHHhd",
+    "..SSSSSSSSSSSSSSSSsshHHHhd",
+    "..SSSSSSSSSSSSSSSSSshHHhd",
+    "...SSSSSSSSSSSSSSSSshHhd",
+    "..SSSSSSSSSSSSSSSSSsshhd",
+    "...SSSSSSSSSSSSSSSSsd",
+    "...SSSSSSSSSSSSSSSss",
+    "....SSSSSSSSSSSSSss",
+    ".....sSSSSSSSSSSss",
+    "......sssSSSSSss",
+    "........ssssss",
+], 34)
+
+EYE_BROWN, EYE_DARK, EYE_LIGHT = (126, 76, 48), (58, 32, 26), (196, 136, 84)
 
 
 def head_origin(g):
     hx, hy = g['head']
-    return hx - 1, hy - 4
+    return hx - 6, hy - 10
 
 
 def draw_head(L, g, hair):
     base, shade, light = HAIR[hair]
+    deep = darken(shade, 0.72)
     ox, oy = head_origin(g)
     rows = {'down': HEAD_DOWN, 'up': HEAD_UP}.get(g['dir'], HEAD_SIDE)
-    parts = template(rows, ox, oy, {'H': base, 'h': shade, 'l': light, 'S': SKIN, 's': SKIN_SH})
-    painted = L.art(parts, darken(shade, 0.55))
+    parts = template(rows, ox, oy, {'H': base, 'h': shade, 'd': deep, 'l': light, 'S': SKIN, 's': SKIN_SH})
+    painted = L.art(parts, darken(shade, 0.5))
     if g['dir'] != 'up':
-        draw_face(L, g, ox, oy)
+        draw_face(L, g, ox, oy, shade)
     return painted
 
 
-def draw_face(L, g, ox, oy):
+EYE_OPEN = ["####", "#Wbb", "bWbb", "bbpb", "bppb", ".LL."]
+
+
+def draw_face(L, g, ox, oy, brow):
     p = g['pose']
     side = g['side']
     lx, ly = p.get('look', (0, 0))
     eyes = p.get('eyes', 'open')
-    cols = [3] if side else [4, 12]
-    er = 12 + ly
-    pts_dark, pts_white = [], []
+    cols = [8] if side else [10, 20]
+    er = 19 + ly
     for c in cols:
         x = ox + c + lx
         y = oy + er
-        if eyes == 'open':
-            pts_dark += [(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1), (x, y + 2), (x + 1, y + 2)]
-            pts_white.append((x + 1 if side else x, y))
-        elif eyes == 'wide':
-            pts_dark += [(x, y - 1), (x + 1, y - 1), (x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1), (x, y + 2), (x + 1, y + 2)]
-            pts_white += [(x, y - 1), (x + 1, y)]
+        if eyes in ('open', 'wide'):
+            pal = {'#': INK, 'W': WHITE, 'b': EYE_BROWN, 'p': EYE_DARK, 'L': EYE_LIGHT}
+            for r, row in enumerate(EYE_OPEN):
+                for k, ch in enumerate(row):
+                    if ch != '.':
+                        L.fill(pix([(x + k, y + r - (1 if eyes == 'wide' and r == 0 else 0))]), pal[ch])
         elif eyes == 'half':
-            pts_dark += [(x - 1, y + 1), (x, y + 1), (x + 1, y + 1), (x, y + 2), (x + 1, y + 2)]
+            L.fill(pix([(x + k, y + 2) for k in range(4)]), INK)
+            L.fill(pix([(x + k, y + 3) for k in range(4)] + [(x + 1, y + 4), (x + 2, y + 4)]), EYE_BROWN)
+            L.fill(pix([(x + 1, y + 3)]), EYE_DARK)
         elif eyes == 'happy':
-            pts_dark += [(x - 1, y + 2), (x, y + 1), (x + 1, y + 1), (x + 2, y + 2)]
+            L.fill(pix([(x - 1, y + 4), (x, y + 3), (x + 1, y + 2), (x + 2, y + 2), (x + 3, y + 3), (x + 4, y + 4)]), INK)
         else:  # closed
-            pts_dark += [(x - 1, y + 1), (x, y + 2), (x + 1, y + 2), (x + 2, y + 1)]
-    L.fill(pix(pts_dark), INK)
-    L.fill(pix(pts_white), WHITE)
+            L.fill(pix([(x - 1, y + 2), (x, y + 3), (x + 1, y + 4), (x + 2, y + 4), (x + 3, y + 3), (x + 4, y + 2)]), INK)
+        # brows
+        if eyes not in ('closed', 'happy'):
+            L.fill(pix([(x, y - 2), (x + 1, y - 2), (x + 2, y - 2)] if not side else [(x, y - 2), (x + 1, y - 2), (x + 2, y - 2)]), darken(brow, 0.8))
     if p.get('blush', False) or eyes == 'happy':
-        bc = [5] if side else [3, 13]
-        L.fill(pix([(ox + c + k, oy + 16) for c in bc for k in (0, 1)]), BLUSH)
-    mx = ox + (1 if side else 8)
-    my = oy + 17
+        bc = [11] if side else [7, 24]
+        L.fill(pix([(ox + c + k, oy + 25) for c in bc for k in (0, 1, 2)]), BLUSH)
+    mx = ox + (5 if side else 16)
+    my = oy + 27
     m = p.get('mouth', 'smile')
     if m == 'smile':
         L.fill(pix([(mx, my), (mx + 1, my)] + ([] if side else [(mx - 1, my - 1), (mx + 2, my - 1)])), MOUTH)
     elif m == 'flat':
         L.fill(pix([(mx, my), (mx + 1, my)]), MOUTH)
     elif m in ('open', 'o'):
-        L.fill(pix([(mx, my), (mx + 1, my)]), MOUTH)
+        L.fill(pix([(mx - 1, my), (mx, my), (mx + 1, my), (mx + 2, my)] if not side else [(mx, my), (mx + 1, my)]), MOUTH)
         L.fill(pix([(mx, my + 1), (mx + 1, my + 1)]), MOUTH if m == 'o' else TONGUE)
     elif m == 'grin':
-        L.fill(pix([(mx - 1, my), (mx, my), (mx + 1, my), (mx + 2, my)] if not side else [(mx, my), (mx + 1, my), (mx + 2, my)]), MOUTH)
+        L.fill(pix([(mx - 2, my - 1), (mx - 1, my), (mx, my), (mx + 1, my), (mx + 2, my), (mx + 3, my - 1)] if not side else [(mx, my), (mx + 1, my), (mx + 2, my)]), MOUTH)
         L.fill(pix([(mx, my + 1), (mx + 1, my + 1)]), TONGUE)
     elif m == 'yawn':
-        L.fill(pix([(mx, my - 1), (mx + 1, my - 1), (mx, my), (mx + 1, my)]), MOUTH)
+        L.fill(pix([(mx, my - 1), (mx + 1, my - 1), (mx - 1, my), (mx, my), (mx + 1, my), (mx + 2, my)]), MOUTH)
         L.fill(pix([(mx, my + 1), (mx + 1, my + 1)]), TONGUE)
     elif m == 'munch':
         L.fill(pix([(mx - 1, my), (mx, my + 1), (mx + 1, my + 1), (mx + 2, my)]), MOUTH)
@@ -394,35 +459,30 @@ def draw_prop(L, g):
     kind, k = prop
     tt = g['tt']
     if kind == 'book':
-        x0, y0 = 17, tt + 3
-        painted = L.part(rect(x0, y0 + 1, x0 + 13, y0 + 6), (150, 70, 60), ring_color=darken((150, 70, 60), 0.45))
-        L.fill(rect(x0 + 1, y0, x0 + 6, y0 + 5), PARCH)
-        L.fill(rect(x0 + 7, y0, x0 + 12, y0 + 5), PARCH)
-        L.fill(rect(x0 + 6, y0, x0 + 7, y0 + 5), PARCH_SH)
-        for r in (1, 3):
-            L.fill(rect(x0 + 2, y0 + r, x0 + 4, y0 + r), PARCH_SH)
-            L.fill(rect(x0 + 9, y0 + r, x0 + 11, y0 + r), PARCH_SH)
-        if k:  # a page rises from the right, stands up, falls left
-            shapes = {
-                1: [(x0 + 7, y0 - 1, x0 + 11, y0 + 4)],
-                2: [(x0 + 6, y0 - 3, x0 + 8, y0 + 4)],
-                3: [(x0 + 2, y0 - 1, x0 + 6, y0 + 4)],
-            }[k]
-            for s in shapes:
-                m = rect(*s)
-                L.part(m, WHITE, shade=PARCH, ring_color=PARCH_SH)
-                painted |= dilate(m)
+        x0, y0 = 22, tt + 4
+        painted = L.part(rect(x0, y0 + 1, x0 + 19, y0 + 9), (150, 70, 60), ring_color=darken((150, 70, 60), 0.45))
+        L.fill(rect(x0 + 1, y0, x0 + 9, y0 + 8), PARCH)
+        L.fill(rect(x0 + 10, y0, x0 + 18, y0 + 8), PARCH)
+        L.fill(rect(x0 + 9, y0, x0 + 10, y0 + 8), PARCH_SH)
+        for r in (2, 4, 6):
+            L.fill(rect(x0 + 2, y0 + r, x0 + 7, y0 + r), PARCH_SH)
+            L.fill(rect(x0 + 12, y0 + r, x0 + 17, y0 + r), PARCH_SH)
+        if k:
+            shapes = {1: (x0 + 10, y0 - 2, x0 + 16, y0 + 7), 2: (x0 + 9, y0 - 5, x0 + 11, y0 + 7), 3: (x0 + 3, y0 - 2, x0 + 9, y0 + 7)}[k]
+            m = rect(*shapes)
+            L.part(m, WHITE, shade=PARCH, ring_color=PARCH_SH)
+            painted |= dilate(m)
         return painted
     if kind == 'cookie':
         a = next(a for a in g['arms'] if a['key'] in ('L', 'near'))
         x, y = a['pts'][-1]
-        size = {3: 4, 2: 3, 1: 2}[k]
-        m = rect(x - 1, y - size + 1, x - 2 + size, y)
+        size = {3: 6, 2: 5, 1: 3}[k]
+        m = rect(x - 1, y - size + 1, x - 2 + size, y) & ~pix([(x - 1, y - size + 1), (x - 2 + size, y - size + 1), (x - 1, y), (x - 2 + size, y)])
         painted = L.part(m, COOKIE, shade=COOKIE_SH, ring_color=darken(COOKIE_SH, 0.6))
-        if size >= 3:
-            L.fill(pix([(x, y - 1)]), CHOC)
-        if size == 4:
-            L.fill(pix([(x + 1, y - 2), (x - 1, y)]), CHOC)
+        if size >= 5:
+            L.fill(pix([(x, y - 2), (x + 2, y - 3)]), CHOC)
+        if size == 6:
+            L.fill(pix([(x + 3, y - 1), (x + 1, y - 4)]), CHOC)
         return painted
     return empty()
 
@@ -432,11 +492,11 @@ def draw_prop(L, g):
 def draw_body(g, hair):
     L = Layer()
     masks = {'head': empty(), 'front_arms': empty(), 'hands': empty(), 'prop': empty()}
+    ring = darken(SKIN_SH, 0.55)
 
     def arm(a):
-        m = arm_mask(a)
-        painted = L.part(m, SKIN, ring_color=darken(SKIN_SH, 0.55))
-        hp = L.part(hand_mask(a), SKIN, ring_color=darken(SKIN_SH, 0.55))
+        painted = L.part(arm_mask(a), SKIN, shade=SKIN_SH, ring_color=ring)
+        hp = L.part(hand_mask(a), SKIN, shade=SKIN_SH, ring_color=ring)
         masks['hands'] |= hp
         if a['z'] == 'front':
             masks['front_arms'] |= painted | hp
@@ -445,7 +505,7 @@ def draw_body(g, hair):
         if a['z'] == 'back':
             arm(a)
     for leg in sorted(g['legs'], key=lambda l: l['near']):
-        L.part(leg_mask(leg), SKIN, shade=SKIN_SH, ring_color=darken(SKIN_SH, 0.55))
+        L.part(leg_mask(leg), SKIN, shade=SKIN_SH, ring_color=ring)
     x0, y0, x1, y1 = g['torso']
     L.part(rect(x0, y0, x1, y1), UNDER, shade=UNDER_SH, ring_color=darken(UNDER_SH, 0.5))
     for a in g['arms']:
@@ -454,11 +514,10 @@ def draw_body(g, hair):
     masks['head'] = draw_head(L, g, hair)
     fronts = [a for a in g['arms'] if a['z'] == 'front']
     for a in fronts:
-        m = arm_mask(a)
-        masks['front_arms'] |= L.part(m, SKIN, ring_color=darken(SKIN_SH, 0.55))
+        masks['front_arms'] |= L.part(arm_mask(a), SKIN, shade=SKIN_SH, ring_color=ring)
     masks['prop'] = draw_prop(L, g)
     for a in fronts:
-        hp = L.part(hand_mask(a), SKIN, ring_color=darken(SKIN_SH, 0.55))
+        hp = L.part(hand_mask(a), SKIN, shade=SKIN_SH, ring_color=ring)
         masks['hands'] |= hp
         masks['front_arms'] |= hp
     return L, masks
@@ -466,44 +525,45 @@ def draw_body(g, hair):
 
 # ---------------------------------------------------------------- outfits
 
+CREAM, CREAM_SH = (240, 228, 200), (204, 188, 158)
 OUTFITS = [
     {'id': 'adventurer', 'name': '冒險外套', 'top': (52, 66, 140), 'top_sh': (32, 40, 96), 'trim': GOLD,
-     'sleeve': 1.0, 'sleeve_c': (52, 66, 140), 'inner': WHITE, 'bottom': 'shorts', 'bot': (226, 208, 166),
-     'bot_sh': (184, 160, 116), 'shoe': (124, 76, 44), 'shoe_top': (240, 226, 196), 'boot': 3, 'belt': (110, 70, 40)},
+     'sleeve': 0.8, 'sleeve_c': (52, 66, 140), 'cuff': CREAM, 'inner': WHITE, 'bottom': 'shorts', 'bot': (238, 226, 198),
+     'bot_sh': (198, 180, 142), 'shoe': (132, 82, 46), 'shoe_top': CREAM, 'boot': 6, 'belt': (110, 70, 40),
+     'gloves': (120, 76, 44), 'pouch': True},
     {'id': 'gardener', 'name': '園丁吊帶褲', 'top': (244, 204, 92), 'top_sh': (200, 156, 52), 'sleeve': 0.45,
      'sleeve_c': (244, 204, 92), 'bottom': 'pants', 'bot': (88, 144, 74), 'bot_sh': (58, 100, 50),
-     'over': (88, 144, 74), 'shoe': (100, 64, 40), 'boot': 2},
+     'over': (88, 144, 74), 'shoe': (100, 64, 40), 'boot': 4},
     {'id': 'stargown', 'name': '星夜法袍', 'top': (104, 76, 180), 'top_sh': (70, 50, 134), 'sleeve': 1.0,
      'sleeve_c': (104, 76, 180), 'wide': True, 'bottom': 'robe', 'bot': (104, 76, 180), 'bot_sh': (70, 50, 134),
-     'stars': GOLD, 'shoe': (60, 40, 90), 'boot': 1, 'belt': GOLD},
+     'stars': GOLD, 'shoe': (60, 40, 90), 'boot': 2, 'belt': GOLD, 'trim': GOLD},
     {'id': 'scholar', 'name': '書院學者', 'top': (138, 92, 56), 'top_sh': (98, 62, 38), 'sleeve': 1.0,
      'sleeve_c': (236, 230, 218), 'inner': (236, 230, 218), 'tie': (204, 64, 64), 'bottom': 'pants',
-     'bot': (70, 58, 86), 'bot_sh': (48, 38, 62), 'shoe': (86, 52, 34), 'boot': 1, 'buttons': GOLD},
+     'bot': (70, 58, 86), 'bot_sh': (48, 38, 62), 'shoe': (86, 52, 34), 'boot': 2, 'buttons': GOLD},
     {'id': 'sporty', 'name': '晨跑運動服', 'top': (214, 72, 62), 'top_sh': (160, 46, 40), 'sleeve': 1.0,
      'sleeve_c': (214, 72, 62), 'stripe': WHITE, 'bottom': 'pants', 'bot': (214, 72, 62), 'bot_sh': (160, 46, 40),
-     'shoe': (246, 242, 232), 'shoe_trim': (214, 72, 62), 'boot': 1},
+     'shoe': (246, 242, 232), 'shoe_trim': (214, 72, 62), 'boot': 3},
     {'id': 'raincoat', 'name': '雨天黃雨衣', 'top': (246, 196, 58), 'top_sh': (204, 150, 30), 'sleeve': 1.0,
      'sleeve_c': (246, 196, 58), 'bottom': 'coat', 'bot': (246, 196, 58), 'bot_sh': (204, 150, 30),
-     'shoe': (74, 124, 204), 'boot': 4, 'buttons': (120, 80, 30)},
+     'shoe': (74, 124, 204), 'boot': 7, 'buttons': (120, 80, 30)},
 ]
 
 
 def sleeve(L, a, o):
     if o['sleeve'] <= 0:
         return empty()
-    w = 3 if o.get('wide') else 2
-    if w == 3:
-        pts = poly_pts(a['pts'])
-        n = max(1, math.ceil(len(pts) * o['sleeve']))
-        m = stamp(pts[:n], 3, 2, ax=1 if a['ax'] == 0 else 1)
-    else:
-        m = arm_mask(a, o['sleeve'])
-    painted = L.part(m, o['sleeve_c'], shade=o.get('top_sh') if o['sleeve_c'] == o['top'] else None)
-    end = poly_pts(a['pts'])[max(0, math.ceil(len(poly_pts(a['pts'])) * o['sleeve']) - 1)]
+    w = 4 if o.get('wide') else 3
+    pts = poly_pts(a['pts'])
+    n = max(1, math.ceil(len(pts) * o['sleeve']))
+    m = stamp(pts[:n], w, 3, ax=min(a['ax'], w - 1) if w == 3 else (0 if a['ax'] == 0 else 3 if a['ax'] == 2 else 1), ay=1)
+    painted = L.part(m, o['sleeve_c'], shade=o['top_sh'] if o['sleeve_c'] == o['top'] else darken(o['sleeve_c'], 0.82))
+    end = pts[n - 1]
     if o.get('stripe'):
-        L.fill(arm_mask(a, o['sleeve'], 2) & stamp(poly_pts(a['pts']), 1, 1), o['stripe'])
-    if o.get('trim') and o['sleeve'] >= 1:
-        L.fill(stamp([end], 2, 1, ax=a['ax']) & m, o['trim'])
+        L.fill(m & stamp(pts[:n], 1, 1), o['stripe'])
+    cuff = o.get('cuff') or (o.get('trim') if o['sleeve'] >= 1 else None)
+    if cuff:
+        cm = stamp([end, pts[max(0, n - 2)]], w + 1, 2, ax=1, ay=1) & dilate(m)
+        L.part(cm & ~shift(cm, 0, 0) | cm, cuff, shade=darken(cuff, 0.85), ring_color=darken(cuff, 0.5))
     return painted
 
 
@@ -515,94 +575,106 @@ def draw_outfit(g, o, masks):
     for a in g['arms']:
         if a['z'] == 'back':
             sleeve(L, a, o)
-    # legs: pants / shorts and shoes
     for leg in sorted(g['legs'], key=lambda l: l['near']):
         if o['bottom'] in ('pants', 'shorts', 'coat'):
-            frac = {'pants': 0.8, 'shorts': 0.4, 'coat': 0.35}[o['bottom']]
-            L.part(leg_mask(leg, frac, 4 if o['bottom'] == 'shorts' else 3), o['bot'], shade=o['bot_sh'])
-            if o.get('stripe') and side:
+            frac = {'pants': 0.78, 'shorts': 0.3, 'coat': 0.3}[o['bottom']]
+            L.part(leg_mask(leg, frac, 7 if o['bottom'] == 'shorts' else 4), o['bot'], shade=o['bot_sh'])
+            if o.get('stripe'):
                 L.fill(leg_mask(leg, frac, 1), o['stripe'])
         fx, fy = leg['pts'][-1]
-        boot = o.get('boot', 1)
+        boot = o.get('boot', 2)
         if side:
-            sm = rect(fx - 2, fy - boot, fx + 1, fy)
+            sm = rect(fx - 3, fy - boot, fx + 1, fy) | rect(fx - 4, fy - 1, fx + 1, fy)
         else:
-            sm = rect(fx - 2 if leg['key'] == 'L' else fx - 1, fy - boot, fx + 1 if leg['key'] == 'L' else fx + 2, fy)
+            sm = rect(fx - 3, fy - boot, fx + 2, fy) | (rect(fx - 4, fy - 2, fx + 2, fy) if leg['key'] == 'L' else rect(fx - 3, fy - 2, fx + 3, fy))
         L.part(sm, o['shoe'], shade=darken(o['shoe'], 0.75))
-        if o.get('shoe_top') and boot >= 3:
-            L.fill(sm & ~shift(sm, 0, -1), o['shoe_top'])
+        top = sm & ~shift(sm, 0, -1)
+        if o.get('shoe_top') and boot >= 4:
+            L.part(dilate(top) & rect(0, fy - boot - 1, W - 1, fy - boot + 1), o['shoe_top'], shade=darken(o['shoe_top'], 0.85), ring_color=darken(o['shoe_top'], 0.55))
         if o.get('shoe_trim'):
             L.fill(sm & ~shift(sm, 0, 1), o['shoe_trim'])
-    # robe / coat skirt
+        if not o.get('shoe_top'):
+            L.fill(pix([(fx - 1, fy - 1)]), darken(o['shoe'], 1.25) if sum(o['shoe']) < 500 else (255, 255, 255))
     if o['bottom'] in ('robe', 'coat'):
         feet_y = max(l['pts'][-1][1] for l in g['legs'])
-        hem = feet_y - (1 if o['bottom'] == 'robe' else 4)
-        hem = max(hem, hip + 3)
-        pts = []
+        hem = max(feet_y - (2 if o['bottom'] == 'robe' else 7), hip + 4)
+        m = empty()
         for y in range(hip - 1, hem + 1):
             t = (y - hip + 1) / max(1, hem - hip + 1)
-            grow = int(round(t * (2 if o['bottom'] == 'robe' else 1)))
+            grow = int(round(t * (3 if o['bottom'] == 'robe' else 2)))
             if side:
                 walk = g['pose'].get('feet', {}).get('near', (0, 0))[0]
-                sx = int(round(t * min(2, abs(walk) / 2))) * (-1 if walk < 0 else 1)
-                pts.append((x0 - grow + min(0, sx), y, x1 + grow + max(0, sx)))
+                sx = int(round(t * min(3, abs(walk) / 2))) * (-1 if walk < 0 else 1)
+                m |= rect(x0 - grow + min(0, sx), y, x1 + grow + max(0, sx), y)
             else:
-                pts.append((x0 - grow, y, x1 + grow))
-        m = empty()
-        for xa, y, xb in pts:
-            m |= rect(xa, y, xb, y)
+                m |= rect(x0 - grow, y, x1 + grow, y)
         L.part(m, o['bot'], shade=o['bot_sh'])
+        if o.get('trim') and o['bottom'] == 'robe':
+            L.fill(m & ~shift(m, 0, 1), o['trim'])
         if o.get('stars'):
-            for sx, sy in ((x0 + 2, hip + 3), (x1 - 2, hip + 6), (x0 + 5, hem - 1)):
-                if m[min(H - 1, sy), min(W - 1, sx)]:
-                    L.fill(pix([(sx, sy)]), o['stars'])
-    # torso
+            for sx, sy in ((x0 + 3, hip + 4), (x1 - 3, hip + 8), (x0 + 6, hem - 2), (x1 - 1, hem - 4)):
+                if 0 <= sy < H and 0 <= sx < W and m[sy, sx]:
+                    L.fill(pix([(sx, sy), (sx - 1, sy), (sx + 1, sy), (sx, sy - 1), (sx, sy + 1)]), o['stars'])
     tm = rect(x0, tt, x1, hip - (0 if o['bottom'] in ('robe', 'coat') else 1))
     L.part(tm, o['top'], shade=o['top_sh'])
     cx = (x0 + x1) // 2
     if d == 'down':
         if o.get('inner'):
-            L.fill(rect(cx, tt + 1, cx + 1, hip - 2), o['inner'])
+            L.fill(rect(cx - 1, tt + 1, cx + 2, hip - 3), o['inner'])
+            L.fill(rect(cx - 1, tt + 1, cx + 2, tt + 1), darken(o['inner'], 0.9))
         if o.get('trim'):
-            L.fill(rect(cx - 1, tt + 1, cx - 1, hip - 2) | rect(cx + 2, tt + 1, cx + 2, hip - 2), o['trim'])
+            L.fill(rect(cx - 2, tt + 1, cx - 2, hip - 2) | rect(cx + 3, tt + 1, cx + 3, hip - 2), o['trim'])
+            L.fill(rect(x0, hip - 2, x1, hip - 2) & ~rect(cx - 1, 0, cx + 2, H - 1), o['trim'])
         if o.get('tie'):
-            L.fill(pix([(cx, tt + 1), (cx + 1, tt + 1), (cx, tt + 2), (cx + 1, tt + 3)]), o['tie'])
+            L.fill(pix([(cx, tt + 1), (cx + 1, tt + 1), (cx, tt + 2), (cx + 1, tt + 2), (cx, tt + 3), (cx + 1, tt + 4)]), o['tie'])
         if o.get('buttons'):
-            L.fill(pix([(cx - 1 if o['id'] == 'scholar' else cx, tt + 4), (cx - 1 if o['id'] == 'scholar' else cx, tt + 7)]), o['buttons'])
+            bx = cx - 2 if o['id'] == 'scholar' else cx
+            L.fill(pix([(bx, tt + 5), (bx, tt + 9), (bx, tt + 13)]), o['buttons'])
         if o.get('stars'):
-            L.fill(pix([(x0 + 2, tt + 3), (x1 - 2, tt + 5)]), o['stars'])
+            L.fill(pix([(x0 + 3, tt + 4), (x1 - 3, tt + 7), (x0 + 4, tt + 11)]), o['stars'])
         if o.get('stripe'):
-            L.fill(rect(cx, tt + 1, cx + 1, tt + 1), o['stripe'])
-            L.fill(rect(cx, tt + 2, cx, hip - 2), o['stripe'])
+            L.fill(rect(cx, tt + 1, cx + 1, hip - 2), o['stripe'])
     elif side:
         if o.get('trim'):
             L.fill(rect(x0 + 1, tt + 1, x0 + 1, hip - 2), o['trim'])
         if o.get('inner'):
-            L.fill(rect(x0, tt + 1, x0, tt + 3), o['inner'])
+            L.fill(rect(x0, tt + 1, x0, tt + 5), o['inner'])
         if o.get('stars'):
-            L.fill(pix([(x0 + 3, tt + 4)]), o['stars'])
-    else:  # up
+            L.fill(pix([(x0 + 4, tt + 6)]), o['stars'])
+    else:
         if o.get('stars'):
-            L.fill(pix([(cx, tt + 4), (x0 + 2, tt + 7)]), o['stars'])
+            L.fill(pix([(cx, tt + 6), (x0 + 3, tt + 10), (x1 - 3, tt + 4)]), o['stars'])
         if o['id'] == 'adventurer':
-            L.fill(pix([(cx, tt + 4), (cx + 1, tt + 4), (cx, tt + 5), (cx + 1, tt + 5)]), GOLD)
+            L.fill(rect(x0, hip - 2, x1, hip - 2), o['trim'])
     if o['bottom'] == 'pants' and o.get('over'):
-        ov = rect(x0 + 1, tt + 4, x1 - 1, hip)
+        ov = rect(x0 + 1, tt + 6, x1 - 1, hip)
         L.part(ov, o['over'], shade=darken(o['over'], 0.75))
         if d != 'up':
-            L.fill(rect(x0 + 3, tt + 6, x1 - 3, tt + 7), darken(o['over'], 0.8))
+            L.part(rect(cx - 3, tt + 8, cx + 4, tt + 11), darken(o['over'], 0.85))
         if not side:
-            L.fill(rect(x0 + 1, tt, x0 + 2, tt + 3) | rect(x1 - 2, tt, x1 - 1, tt + 3), o['over'])
+            L.fill(rect(x0 + 1, tt, x0 + 2, tt + 5) | rect(x1 - 2, tt, x1 - 1, tt + 5), o['over'])
+            L.fill(pix([(x0 + 2, tt + 6), (x1 - 2, tt + 6)]), GOLD)
     if o.get('belt') and o['bottom'] != 'pants':
-        by = hip - 1 if o['bottom'] == 'shorts' else hip - 2
-        L.fill(rect(x0, by, x1, by), o['belt'])
+        by = hip - 2 if o['bottom'] == 'shorts' else hip - 3
+        L.fill(rect(x0, by, x1, by + 1), o['belt'])
         if d == 'down':
-            L.fill(pix([(cx, by), (cx + 1, by)]), GOLD if o['belt'] != GOLD else WHITE)
+            L.part(rect(cx, by, cx + 1, by + 1), GOLD if o['belt'] != GOLD else WHITE, ring=False)
+        if o.get('pouch') and d != 'up':
+            px = x0 - 1 if d == 'down' else x0 + 2
+            pm = rect(px, by + 1, px + 4, by + 5)
+            L.part(pm, (150, 96, 54), shade=(110, 66, 36))
+            L.fill(pix([(px + 2, by + 3)]), GOLD)
     L.erase(masks['head'] | masks['front_arms'])
     for a in g['arms']:
         if a['z'] in ('side', 'front'):
             sleeve(L, a, o)
     L.erase(masks['hands'] | masks['prop'])
+    if o.get('gloves'):
+        for a in g['arms']:
+            hm = hand_mask(a)
+            if a['z'] == 'back':
+                hm &= ~masks['front_arms']
+            L.part(hm & ~masks['prop'], o['gloves'], shade=darken(o['gloves'], 0.75), ring_color=darken(o['gloves'], 0.5))
     return L
 
 
@@ -618,7 +690,7 @@ HEADWEAR = [
 ]
 
 STAR5 = [".G.", "GGG", ".G."]
-STAR_BIG = ["..G..", ".GGG.", "GGGGG", ".GgG.", ".G.g."]
+STAR_BIG = ["...G...", "..GGG..", "GGGlGGG", ".GGGGG.", "..GgG..", ".GG.GG.", "Gg...gG"]
 
 
 def draw_headwear(g, hw, masks):
@@ -627,98 +699,73 @@ def draw_headwear(g, hw, masks):
     d = g['dir']
     side = g['side']
     hid = hw['id']
+    star = lambda x, y: L.art(template(STAR_BIG, x, y, {'G': GOLD, 'g': GOLD_SH, 'l': (255, 240, 180)}), darken(GOLD_SH, 0.5))
     if hid == 'starclip':
         if d == 'down':
-            x, y = hx + 11, hy - 1
+            star(hx + 15, hy - 3)
+            L.art(template(STAR5, hx + 22, hy + 16, {'G': GOLD}), darken(GOLD_SH, 0.5))  # earring
+            L.fill(pix([(hx + 23, hy + 14), (hx + 23, hy + 15)]), GOLD_SH)
         elif d == 'up':
-            x, y = hx + 11, hy
+            star(hx + 16, hy - 1)
         else:
-            x, y = hx + 9, hy - 1
-        L.art(template(STAR_BIG, x, y, {'G': GOLD, 'g': GOLD_SH}), darken(GOLD_SH, 0.5))
+            star(hx + 9, hy - 3)
+            L.art(template(STAR5, hx + 9, hy + 16, {'G': GOLD}), darken(GOLD_SH, 0.5))
     elif hid == 'strawhat':
         straw, straw_sh, band = (238, 200, 118), (196, 150, 76), (206, 70, 70)
-        if side:
-            brim = rect(hx - 4, hy + 2, hx + 17, hy + 3)
-            crown = rect(hx + 2, hy - 4, hx + 13, hy + 1)
-        else:
-            brim = rect(hx - 4, hy + 2, hx + 19, hy + 3)
-            crown = rect(hx + 2, hy - 4, hx + 15, hy + 1)
-        crown &= ~pix([(hx + 2, hy - 4), (hx + (13 if side else 15), hy - 4)])
-        painted = L.part(crown | brim, straw, shade=straw_sh, ring_color=darken(straw_sh, 0.5))
-        bx1 = hx + (13 if side else 15)
-        L.fill(rect(hx + 2, hy, bx1, hy + 1), band)
-        L.fill(pix([(hx + 4 + k * 3, hy + 3) for k in range(5)]), straw_sh)
-        if d == 'down':
-            L.fill(pix([(hx + 4, hy - 2), (hx + 5, hy - 3)]), (252, 230, 170))
+        brim = rect(hx - 6, hy + 1, hx + 27, hy + 4) & ~pix([(hx - 6, hy + 1), (hx + 27, hy + 1), (hx - 6, hy + 4), (hx + 27, hy + 4)])
+        crown = rect(hx + 2, hy - 9, hx + 19, hy + 1) & ~pix([(hx + 2, hy - 9), (hx + 19, hy - 9), (hx + 3, hy - 9), (hx + 18, hy - 9), (hx + 2, hy - 8), (hx + 19, hy - 8)])
+        L.part(crown | brim, straw, shade=straw_sh, ring_color=darken(straw_sh, 0.5))
+        L.fill(rect(hx + 2, hy - 2, hx + 19, hy), band)
+        L.fill(pix([(hx - 2 + k * 4, hy + 3) for k in range(8)]), straw_sh)
+        L.fill(pix([(hx + 5 + k * 4, hy - 6 + (k % 2)) for k in range(4)]), straw_sh)
     elif hid == 'wizard':
         cloth, cloth_sh = (86, 60, 160), (58, 38, 116)
-        brim = rect(hx - 3, hy + 2, hx + (17 if side else 18), hy + 3)
+        brim = rect(hx - 5, hy + 1, hx + 26, hy + 4) & ~pix([(hx - 5, hy + 1), (hx + 26, hy + 1)])
         cone = empty()
-        tip = 3 if side else 2
-        for k, y in enumerate(range(hy + 1, hy - 14, -1)):
-            half = max(1, 7 - k // 2)
-            bend = (k * k) // 40
-            c = hx + 8 + bend * (1 if d != 'left' else 1)
+        for k, y in enumerate(range(hy + 1, hy - 20, -1)):
+            half = max(1, 10 - k // 2)
+            bend = (k * k) // 60
+            c = hx + 11 + bend
             cone |= rect(c - half, y, c + half - 1, y)
-        painted = L.part(cone | brim, cloth, shade=cloth_sh, ring_color=darken(cloth_sh, 0.5))
-        L.fill(rect(hx + 1, hy, hx + 14, hy + 1), GOLD)
-        L.art(template(STAR5, hx + 8, hy - 7, {'G': GOLD}), darken(GOLD_SH, 0.5), ring=False)
+        L.part(cone | brim, cloth, shade=cloth_sh, ring_color=darken(cloth_sh, 0.5))
+        L.fill(rect(hx + 1, hy - 2, hx + 20, hy), GOLD)
+        L.art(template(STAR_BIG, hx + 8, hy - 11, {'G': GOLD, 'g': GOLD_SH, 'l': (255, 240, 180)}), darken(GOLD_SH, 0.5), ring=False)
     elif hid == 'catears':
-        fur, inner = HAIR_FOR_EARS
-        ears = []
-        if d == 'down' or d == 'up':
-            ears = [(hx + 1, 1), (hx + 11, -1)]
-        else:
-            ears = [(hx + 5, 1), (hx + 11, -1)]
-        for ex, flip in ears:
+        fur, inner = (236, 230, 220), (246, 170, 186)
+        for ex, flip in ([(hx + 1, 1), (hx + 14, -1)] if not side else [(hx + 6, 1), (hx + 14, -1)]):
             m = empty()
-            for k in range(5):
-                if flip == 1:
-                    m |= rect(ex + k, hy - 5 + k, ex + 4, hy - 5 + k)
-                    m |= rect(ex, hy - 5 + k, ex + min(4, k), hy - 5 + k)
-                else:
-                    m |= rect(ex, hy - 5 + k, ex + 4 - k, hy - 5 + k)
-                    m |= rect(ex + 4 - min(4, k), hy - 5 + k, ex + 4, hy - 5 + k)
-            m = empty()
-            for k in range(5):
-                w = k + 1
-                left = ex + (0 if flip == 1 else 4 - w + 1)
-                m |= rect(left, hy - 5 + k, left + w - 1 + (1 if k > 2 else 0), hy - 5 + k)
-            L.part(m, fur, ring_color=darken(fur, 0.45))
+            for k in range(8):
+                w = k // 2 + 1
+                left = ex + (0 if flip == 1 else 7 - w * 2 + 1)
+                m |= rect(left + (k // 4 if flip == 1 else 0), hy - 8 + k, left + w * 2 - 1 + (k // 4 if flip == -1 else 0), hy - 8 + k)
+            L.part(m, fur, shade=(200, 194, 190), ring_color=darken(fur, 0.45))
             if d != 'up':
-                inn = m & shift(m, 1, 0) & shift(m, -1, 0) & shift(m, 0, 1)
-                L.fill(inn, inner)
-        L.fill(rect(hx + 1, hy, hx + 14, hy), (70, 60, 70))
+                L.fill(m & shift(m, 1, 0) & shift(m, -1, 0) & shift(m, 0, 1) & shift(m, 0, 2), inner)
+        L.fill(rect(hx + 2, hy, hx + 19, hy), (70, 60, 70))
     elif hid == 'beanie':
         knit, knit_sh, cuff = (96, 168, 150), (62, 120, 108), (168, 214, 196)
         dome = empty()
-        rows = [(5, 10), (2, 13), (1, 14), (0, 15), (-1, 16), (-1, 16), (-1, 16)]
-        if side:
-            rows = [(4, 10), (2, 13), (1, 14), (0, 15), (-1, 16), (-1, 16), (-1, 16)]
+        rows = [(7, 14), (4, 17), (2, 19), (1, 20), (0, 21), (-1, 22), (-1, 22), (-2, 23), (-2, 23)]
         for k, (a, b) in enumerate(rows):
-            dome |= rect(hx + a, hy - 4 + k, hx + b, hy - 4 + k)
-        cuffm = rect(hx - 1, hy + 3, hx + 16, hy + 4)
+            dome |= rect(hx + a, hy - 7 + k, hx + b, hy - 7 + k)
+        cuffm = rect(hx - 2, hy + 2, hx + 23, hy + 5)
         L.part(dome, knit, shade=knit_sh, ring_color=darken(knit_sh, 0.5))
+        L.fill(pix([(hx + k, hy - 4 + (k % 3)) for k in range(1, 21, 3)]), knit_sh)
         L.part(cuffm, cuff, shade=knit_sh, ring_color=darken(knit_sh, 0.5))
-        L.fill(pix([(hx + k, hy + 3) for k in range(0, 16, 2)]), knit)
-        L.part(rect(hx + 6, hy - 7, hx + 9, hy - 5), WHITE, shade=(220, 214, 220), ring_color=(140, 130, 150))
+        L.fill(pix([(hx - 1 + k, y) for k in range(0, 25, 2) for y in (hy + 3, hy + 4)]), knit)
+        L.part(rect(hx + 8, hy - 12, hx + 13, hy - 8) & ~pix([(hx + 8, hy - 12), (hx + 13, hy - 12), (hx + 8, hy - 8), (hx + 13, hy - 8)]), WHITE, shade=(220, 214, 220), ring_color=(140, 130, 150))
     elif hid == 'flowers':
         leaf, leaf_sh = (98, 160, 80), (62, 112, 52)
-        band = rect(hx, hy + 1, hx + 15, hy + 1) if not side else rect(hx + 2, hy + 1, hx + 15, hy + 1)
-        L.part(band, leaf, ring_color=darken(leaf_sh, 0.6))
-        cols = [(240, 140, 170), WHITE, GOLD, (240, 140, 170), (190, 150, 240)]
-        xs = [0, 4, 8, 12, 15] if not side else [3, 7, 11, 15]
+        band = rect(hx - 1, hy, hx + 22, hy + 1) if not side else rect(hx + 3, hy, hx + 22, hy + 1)
+        L.part(band, leaf, shade=leaf_sh, ring_color=darken(leaf_sh, 0.6))
+        cols = [(240, 140, 170), WHITE, GOLD, (240, 140, 170), (190, 150, 240), WHITE]
+        xs = [0, 5, 10, 15, 20] if not side else [5, 10, 15, 20]
         for k, x in enumerate(xs):
             c = cols[k % len(cols)]
-            fl = template(["..p..", ".ppp.", "ppcpp", ".ppp.", "..p.."], hx + x - 2, hy - 2, {'p': c, 'c': GOLD if c != GOLD else WHITE})
+            fl = template(["..p..", ".ppp.", "ppcpp", ".ppp.", "..p.."], hx + x - 2, hy - 3, {'p': c, 'c': GOLD if c != GOLD else WHITE})
             L.art(fl, darken(c, 0.5))
-        if d == 'up':
-            L.fill(rect(hx + 3, hy + 2, hx + 12, hy + 2), leaf_sh)
     L.erase(masks['hands'] | masks['prop'])
     return L
-
-
-HAIR_FOR_EARS = ((236, 230, 220), (246, 170, 186))
 
 
 # ---------------------------------------------------------------- accessories
@@ -736,73 +783,69 @@ def draw_accessory(g, acc, masks):
     x0, tt, x1, hip = g['torso']
     d = g['dir']
     side = g['side']
-    p = g['pose']
-    moving = p.get('moving', 0)
+    moving = g['pose'].get('moving', 0)
     aid = acc['id']
     if aid == 'scarf':
-        c, sh = (246, 242, 232), (200, 192, 186)
-        band = rect(x0 - 1, tt, x1 + 1, tt + 1)
+        c, sh = CREAM, CREAM_SH
+        band = rect(x0 - 2, tt - 1, x1 + 2, tt + 3) & ~pix([(x0 - 2, tt - 1), (x1 + 2, tt - 1), (x0 - 2, tt + 3), (x1 + 2, tt + 3)])
         if d == 'down':
-            tail = rect(x1 - 3, tt + 2, x1 - 2, tt + 6)
+            tail = rect(x1 - 5, tt + 4, x1 - 2, tt + 9) & ~pix([(x1 - 5, tt + 9)])
         elif d == 'up':
-            tail = rect(x0 + 3, tt + 2, x0 + 4, tt + 5) | rect(x0 + 5, tt + 2, x0 + 6, tt + 4)
+            tail = rect(x0 + 3, tt + 4, x0 + 6, tt + 8) | rect(x0 + 7, tt + 4, x0 + 9, tt + 6)
         else:
             if moving:
                 lift = moving
-                tail = rect(x1 + 1, tt - lift, x1 + 4, tt + 1 - lift) | rect(x1 + 3, tt - lift - 1, x1 + 6, tt - lift)
+                tail = rect(x1 + 2, tt - lift, x1 + 6, tt + 2 - lift) | rect(x1 + 5, tt - lift - 2, x1 + 9, tt - lift)
             else:
-                tail = rect(x1, tt + 1, x1 + 2, tt + 5)
+                tail = rect(x1, tt + 3, x1 + 3, tt + 8)
         painted = L.part(band | tail, c, shade=sh, ring_color=darken(sh, 0.55))
-        L.fill(rect(x0, tt + 1, x1, tt + 1) & band, sh)
-        # The outline above the band would cover the mouth: give the chin back.
-        L.erase(painted & ~(band | tail) & masks['head'] & rect(0, 0, W - 1, tt - 1))
+        L.fill(pix([(x, tt + 1) for x in range(x0, x1 + 1, 3)]), sh)  # knit folds
+        L.erase(painted & ~(band | tail) & masks['head'] & rect(0, 0, W - 1, tt - 2))
     elif aid == 'glasses':
         if d != 'up':
             ox, oy = head_origin(g)
-            frame = (70, 50, 40)
-            lens = (200, 230, 246)
-            rings = [3] if side else [3, 11]
-            for c in rings:
-                x, y = ox + c, oy + 11
-                ring = rect(x, y, x + 3, y + 4) & ~rect(x + 1, y + 1, x + 2, y + 3)
-                L.fill(ring, frame)
-                L.fill(pix([(x + 2, y + 1)]), lens)
-            if side:
-                L.fill(rect(ox + 7, oy + 12, ox + 10, oy + 12), frame)
-            else:
-                L.fill(rect(ox + 7, oy + 12, ox + 10, oy + 12), frame)
+            frame, lens = (70, 50, 40), (200, 230, 246)
+            for c in ([7] if side else [9, 19]):
+                x, y = ox + c, oy + 18
+                ring = rect(x, y, x + 5, y + 6) & ~rect(x + 1, y + 1, x + 4, y + 5)
+                L.fill(ring & ~pix([(x, y), (x + 5, y), (x, y + 6), (x + 5, y + 6)]), frame)
+                L.fill(pix([(x + 4, y + 1), (x + 3, y + 2)]), lens)
+            L.fill(rect(ox + 15, oy + 20, ox + 18, oy + 20) if not side else rect(ox + 13, oy + 20, ox + 18, oy + 20), frame)
     elif aid == 'satchel':
         leather, leather_sh, strap = (156, 98, 54), (112, 66, 36), (96, 58, 34)
         if d == 'down':
-            L.fill(pix(line_pts((x1, tt), (x0 + 1, hip - 3))), strap)
-            bag = rect(x0 - 5, hip - 4, x0, hip + 1)
+            L.fill(stamp(line_pts((x1, tt), (x0 + 1, hip - 4)), 2, 1), strap)
+            bag = rect(x0 - 7, hip - 6, x0, hip + 1)
         elif d == 'up':
-            L.fill(pix(line_pts((x0, tt), (x1 - 1, hip - 3))), strap)
-            bag = rect(x1, hip - 4, x1 + 5, hip + 1)
+            L.fill(stamp(line_pts((x0, tt), (x1 - 1, hip - 4)), 2, 1), strap)
+            bag = rect(x1, hip - 6, x1 + 7, hip + 1)
         else:
-            L.fill(pix(line_pts((x1 - 2, tt), (x0 + 2, hip - 3))), strap)
-            bag = rect(x0 + 1, hip - 3, x0 + 6, hip + 2)
+            L.fill(stamp(line_pts((x1 - 2, tt), (x0 + 2, hip - 4)), 2, 1), strap)
+            bag = rect(x0 + 1, hip - 5, x0 + 8, hip + 2)
         L.part(bag, leather, shade=leather_sh, ring_color=darken(leather_sh, 0.5))
         bx0 = int(np.argwhere(bag.any(axis=0))[0][0])
         by0 = int(np.argwhere(bag.any(axis=1))[0][0])
-        L.fill(rect(bx0, by0, bx0 + 5, by0 + 1), leather_sh)
-        L.fill(pix([(bx0 + 2, by0 + 2), (bx0 + 3, by0 + 2)]), GOLD)
+        L.fill(rect(bx0, by0, bx0 + 7, by0 + 2), leather_sh)
+        L.fill(pix([(bx0 + 3, by0 + 3), (bx0 + 4, by0 + 3)]), GOLD)
     elif aid == 'backpack':
-        pack, pack_sh, strap = (60, 74, 150), (38, 46, 104), (44, 52, 112)
+        pack, pack_sh, strap = (60, 74, 150), (38, 46, 104), (150, 96, 54)
+        star = template(STAR5, 0, 0, {'G': GOLD})
         if d == 'down':
-            L.fill(rect(x0 + 1, tt, x0 + 2, tt + 5) | rect(x1 - 2, tt, x1 - 1, tt + 5), strap)
-            L.part(rect(x0 - 2, tt - 1, x0 - 1, tt + 1) | rect(x1 + 1, tt - 1, x1 + 2, tt + 1), pack, ring_color=darken(pack_sh, 0.5))
+            L.fill(rect(x0 + 2, tt + 1, x0 + 3, tt + 9) | rect(x1 - 3, tt + 1, x1 - 2, tt + 9), strap)
+            L.part(rect(x0 - 3, tt - 1, x0 - 1, tt + 2) | rect(x1 + 1, tt - 1, x1 + 3, tt + 2), pack, ring_color=darken(pack_sh, 0.5))
         elif d == 'up':
-            body = rect(x0, tt + 1, x1, hip - 1)
+            body = rect(x0 - 1, tt + 1, x1 + 1, hip - 1) & ~pix([(x0 - 1, tt + 1), (x1 + 1, tt + 1)])
             L.part(body, pack, shade=pack_sh, ring_color=darken(pack_sh, 0.5))
-            L.fill(rect(x0, tt + 1, x1, tt + 3), pack_sh)
+            L.part(rect(x0, tt + 1, x1, tt + 5), pack_sh, ring_color=darken(pack_sh, 0.5))
             cx = (x0 + x1) // 2
-            L.art(template(STAR5, cx - 1, tt + 5, {'G': GOLD}), darken(GOLD_SH, 0.5), ring=False)
+            L.art(template(STAR_BIG, cx - 3, tt + 7, {'G': GOLD, 'g': GOLD_SH, 'l': (255, 240, 180)}), darken(GOLD_SH, 0.5), ring=False)
+            L.fill(rect(cx - 1, tt + 4, cx + 1, tt + 6), strap)
         else:
-            body = rect(x1 + 1, tt + 1, x1 + 4, hip - 2)
+            body = rect(x1 + 1, tt + 1, x1 + 7, hip - 2) & ~pix([(x1 + 7, tt + 1), (x1 + 7, hip - 2)])
             L.part(body, pack, shade=pack_sh, ring_color=darken(pack_sh, 0.5))
-            L.fill(pix([(x1 + 2, tt + 4)]), GOLD)
-            L.fill(rect(x1 - 1, tt, x1, tt + 4), strap)
+            L.art(template(STAR5, x1 + 3, tt + 7, {'G': GOLD}), darken(GOLD_SH, 0.5), ring=False)
+            L.fill(rect(x1 - 1, tt, x1, tt + 7), strap)
+        del star
     L.erase(masks['hands'] | masks['prop'])
     return L
 
@@ -949,17 +992,18 @@ def render(pose, hair, outfit, headwear, accessory):
 
 
 def lay_down(a):
-    sq = np.zeros((56, 56, 4), np.uint8)
-    sq[:, 4:52] = a
+    """Rotate a standing frame onto its back: head on the left, feet right."""
+    n = 80
+    sq = np.zeros((n, n, 4), np.uint8)
+    sq[:, 8:72] = a
     r = np.rot90(sq, k=1)
     out = np.zeros((H, W, 4), np.uint8)
-    dx, dy = -8, 14
+    dx, dy = -15, 22
     for y in range(H):
         sy = y - dy
-        if 0 <= sy < 56:
-            row = r[sy]
-            xs = slice(max(0, dx), min(W, 56 + dx))
-            out[y, xs] = row[xs.start - dx:xs.stop - dx]
+        if 0 <= sy < n:
+            for_x = slice(max(0, dx), min(W, n + dx))
+            out[y, for_x] = r[sy][for_x.start - dx:for_x.stop - dx]
     return out
 
 
