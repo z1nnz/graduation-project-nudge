@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
-  // Arcade stage dressing (J6) for every game, old and new: your layered
-  // character stands beside the game and cheers on hits (the new games send
+  // Arcade stage dressing (J6) for every game, old and new: your companion
+  // stands beside the game and cheers on hits (the new games send
   // nudge-arcade-hit / -miss; older ones are read from the score line),
   // hits throw pixel sparks, and the result card plays out line by line with
   // a grade stamp and stars. Park rides open with a short ride-in scene.
@@ -16,7 +16,9 @@
   const buddy = make('span', 'as-buddy');
   buddy.setAttribute('aria-hidden', 'true');
   game.querySelector('.arcade-game-bar')?.append(buddy);
-  const player = A ? A.create(buddy, { look: A.loadLook(), scale: 2, animation: 'idle' }) : null;
+  // The earlier companion (world_life.js's actor); the layered character is
+  // only for the dressing room.
+  const player = root.NudgeWorldLife?.companionActor(buddy, { size: 96 }) || (A ? A.create(buddy, { look: A.loadLook(), scale: 2, animation: 'idle' }) : null);
   let cheerT = 0;
   function cheer(kind) {
     if (!player) return;

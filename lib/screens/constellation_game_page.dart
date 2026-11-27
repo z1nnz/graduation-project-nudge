@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../theme/game_ui.dart';
 import '../widgets/player_avatar.dart';
+import '../widgets/world_life.dart';
 import 'firefly_game_page.dart';
 
 /// Constellation (J6), played inside the App: watch the stars light up in
@@ -251,16 +252,7 @@ class _ConstellationGamePageState extends State<ConstellationGamePage>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                PlayerAvatar(
-                  animation: _anim,
-                  scale: 2,
-                  onEnd: () => setState(() => _anim = PlayerAnimation.idle),
-                  fallback: const Icon(
-                    Icons.face,
-                    color: Colors.white,
-                    size: 64,
-                  ),
-                ),
+                CompanionActor(animation: _anim, size: 112),
                 const SizedBox(width: 12),
                 Flexible(
                   child: Text(
