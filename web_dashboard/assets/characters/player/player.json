@@ -1,0 +1,248 @@
+{
+  "frameWidth": 48,
+  "frameHeight": 56,
+  "columns": 12,
+  "pivot": [
+    24,
+    53
+  ],
+  "order": [
+    "body",
+    "outfit",
+    "headwear",
+    "accessory"
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "frames": 12,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "look",
+      "frames": 12,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "turn",
+      "frames": 4,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "walk_down",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "walk_left",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "walk_right",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "walk_up",
+      "frames": 6,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "run_down",
+      "frames": 6,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "run_left",
+      "frames": 6,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "run_right",
+      "frames": 6,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "run_up",
+      "frames": 6,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "sit",
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "read",
+      "frames": 12,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "sleep",
+      "frames": 12,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "happy",
+      "frames": 6,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "name": "wave",
+      "frames": 6,
+      "fps": 8,
+      "loop": false
+    },
+    {
+      "name": "think",
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "stretch",
+      "frames": 8,
+      "fps": 8,
+      "loop": false
+    },
+    {
+      "name": "snack",
+      "frames": 8,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "talk",
+      "frames": 4,
+      "fps": 8,
+      "loop": true
+    }
+  ],
+  "layers": {
+    "body": [
+      {
+        "id": "navy",
+        "name": "夜空藍髮",
+        "file": "body_navy.webp"
+      },
+      {
+        "id": "chestnut",
+        "name": "栗子棕髮",
+        "file": "body_chestnut.webp"
+      },
+      {
+        "id": "rose",
+        "name": "莓果粉髮",
+        "file": "body_rose.webp"
+      }
+    ],
+    "outfit": [
+      {
+        "id": "adventurer",
+        "name": "冒險外套",
+        "file": "outfit_adventurer.webp"
+      },
+      {
+        "id": "gardener",
+        "name": "園丁吊帶褲",
+        "file": "outfit_gardener.webp"
+      },
+      {
+        "id": "stargown",
+        "name": "星夜法袍",
+        "file": "outfit_stargown.webp"
+      },
+      {
+        "id": "scholar",
+        "name": "書院學者",
+        "file": "outfit_scholar.webp"
+      },
+      {
+        "id": "sporty",
+        "name": "晨跑運動服",
+        "file": "outfit_sporty.webp"
+      },
+      {
+        "id": "raincoat",
+        "name": "雨天黃雨衣",
+        "file": "outfit_raincoat.webp"
+      }
+    ],
+    "headwear": [
+      {
+        "id": "starclip",
+        "name": "星星髮夾",
+        "file": "headwear_starclip.webp"
+      },
+      {
+        "id": "strawhat",
+        "name": "向陽草帽",
+        "file": "headwear_strawhat.webp"
+      },
+      {
+        "id": "wizard",
+        "name": "星光巫師帽",
+        "file": "headwear_wizard.webp"
+      },
+      {
+        "id": "catears",
+        "name": "貓耳髮箍",
+        "file": "headwear_catears.webp"
+      },
+      {
+        "id": "beanie",
+        "name": "暖暖毛線帽",
+        "file": "headwear_beanie.webp"
+      },
+      {
+        "id": "flowers",
+        "name": "春日花冠",
+        "file": "headwear_flowers.webp"
+      }
+    ],
+    "accessory": [
+      {
+        "id": "scarf",
+        "name": "白色長圍巾",
+        "file": "accessory_scarf.webp"
+      },
+      {
+        "id": "glasses",
+        "name": "圓框眼鏡",
+        "file": "accessory_glasses.webp"
+      },
+      {
+        "id": "satchel",
+        "name": "皮革斜背包",
+        "file": "accessory_satchel.webp"
+      },
+      {
+        "id": "backpack",
+        "name": "星星背包",
+        "file": "accessory_backpack.webp"
+      }
+    ]
+  },
+  "default": {
+    "body": "navy",
+    "outfit": "adventurer",
+    "headwear": "starclip",
+    "accessory": "scarf"
+  }
+}
