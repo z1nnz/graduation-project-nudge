@@ -134,7 +134,7 @@ void main() {
         animation: PlayerAnimation.walkLeft,
         screen: screen,
       );
-      expect(tester.getSize(find.byType(PlayerAvatar)), const Size(144, 168));
+      expect(tester.getSize(find.byType(PlayerAvatar)), const Size(192, 240));
       expect(s.frame, 0);
       await tester.pump(const Duration(milliseconds: 250));
       expect(s.frame, 2);

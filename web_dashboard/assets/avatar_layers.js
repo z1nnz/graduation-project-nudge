@@ -21,7 +21,7 @@
   // Mirrors assets/characters/player/player.json (test/avatar_layers_test.js
   // keeps them equal). Cells are frameWidth x frameHeight, feet on pivot.
   const MANIFEST = Object.freeze({
-    frameWidth: 48, frameHeight: 56, columns: 12, pivot: [24, 53],
+    frameWidth: 64, frameHeight: 80, columns: 12, pivot: [32, 76],
     order: ['body', 'outfit', 'headwear', 'accessory'],
     animations: [
       { name: 'idle', frames: 12, fps: 8, loop: true },
