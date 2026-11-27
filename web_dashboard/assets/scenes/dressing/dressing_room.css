@@ -13,7 +13,7 @@
 .dr-hung { z-index: 4; display: flex; justify-content: space-around; align-items: flex-start; }
 .dr-garment {
   width: 30%;
-  aspect-ratio: 48 / 56;
+  aspect-ratio: 64 / 80;
   background-size: 1200% 2000%;
   background-position: 0 0;
   background-repeat: no-repeat;
@@ -73,8 +73,8 @@
 .dr-hook { position: absolute; top: -14px; width: 8px; height: 12px; border: 3px solid #b8b0c0; border-bottom: 0; border-radius: 6px 6px 0 0; }
 .dr-item-pic {
   width: 72px;
-  height: 84px;
-  background-size: 864px 1680px;
+  height: 90px;
+  background-size: 864px 1800px;
   background-position: 0 0;
   background-repeat: no-repeat;
   image-rendering: pixelated;

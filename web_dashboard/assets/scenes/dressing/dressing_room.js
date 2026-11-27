@@ -21,8 +21,8 @@
 
   const life = root.NudgeWorldLife?.attach(room, {
     player: 'layered', // the dressing room shows the layered character you dress
-    playerScale: 3,
-    playerScaleMin: 2,
+    playerScale: 2,
+    playerScaleMin: 1,
     layouts: {
       tall: { rects: { mirror: PLACES.tall.mirror, rack: PLACES.tall.rack, card: [0.43, 0.37, 0.18, 0.1], shelf: [0.12, 0.29, 0.25, 0.2] }, spots: { mirror: PLACES.tall.mirrorSpot, rack: PLACES.tall.rackSpot }, start: PLACES.tall.start, skyRect: [0.3, 0.05, 0.4, 0.19], floor: [0.64, 0.9], near: { fall: 'dust', plants: [{ x: 0.02, y: 0, size: 0.12, kind: 'ivy' }] } },
       wide: { rects: { mirror: PLACES.wide.mirror, rack: PLACES.wide.rack, card: [0.42, 0.39, 0.17, 0.13], shelf: [0.23, 0.34, 0.14, 0.2] }, spots: { mirror: PLACES.wide.mirrorSpot, rack: PLACES.wide.rackSpot }, start: PLACES.wide.start, skyRect: [0.38, 0.09, 0.26, 0.26], floor: [0.72, 0.94], near: { fall: 'dust', plants: [{ x: 0.01, y: 0, size: 0.14, kind: 'ivy' }] } },
@@ -62,7 +62,7 @@
     place(hung, [p.rack[0] + p.rack[2] * 0.08, p.rack[1] + p.rack[3] * 0.2, p.rack[2] * 0.84, p.rack[3] * 0.75]);
     const g = glass.getBoundingClientRect();
     // Whole figure in the glass: limited by its height and its width.
-    const s = Math.max(1, Math.floor(Math.min((g.height || 120) / 56, ((g.width || 60) * 1.6) / 48)));
+    const s = Math.max(1, Math.floor(Math.min((g.height || 120) / 80, ((g.width || 60) * 1.6) / 64)));
     reflect.destroy();
     reflect = A.create(reflectNode, { look: life?.player()?.look || A.loadLook(), scale: s, animation: 'idle' });
     paintHung();
