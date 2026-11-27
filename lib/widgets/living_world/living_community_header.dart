@@ -23,6 +23,24 @@ const hallSlots = [
   Rect.fromLTWH(0.88, 0.3, 0.1, 0.32), // door
   Rect.fromLTWH(0.38, 0.13, 0.15, 0.2), // window
 ];
+
+/// The same places in the portrait art (Web room rects).
+const courtyardTallSlots = [
+  Rect.fromLTWH(0.26, 0.3, 0.48, 0.13), // flower bed
+  Rect.fromLTWH(0.0, 0.17, 0.24, 0.11), // desk
+  Rect.fromLTWH(0.85, 0.19, 0.14, 0.13), // mailbox
+  Rect.fromLTWH(0.38, 0.15, 0.24, 0.07), // notice board
+  Rect.fromLTWH(0.24, 0.13, 0.1, 0.12), // hut
+  Rect.fromLTWH(0.74, 0.13, 0.1, 0.12), // gate
+];
+const hallTallSlots = [
+  Rect.fromLTWH(0.55, 0.08, 0.3, 0.22), // puzzle mural
+  Rect.fromLTWH(0.18, 0.16, 0.17, 0.11), // record book
+  Rect.fromLTWH(0.37, 0.15, 0.19, 0.06), // notice board
+  Rect.fromLTWH(0.05, 0.15, 0.13, 0.13), // shelf
+  Rect.fromLTWH(0.87, 0.15, 0.12, 0.15), // door
+  Rect.fromLTWH(0.36, 0.2, 0.2, 0.07), // bench
+];
 const _changes = [
   LivingChange.flutter,
   LivingChange.open,
@@ -39,12 +57,14 @@ List<LivingSpot> livingCommunitySpots({
   required void Function(int index) open,
 }) {
   final slots = family ? courtyardSlots : hallSlots;
+  final tall = family ? courtyardTallSlots : hallTallSlots;
   return [
     for (var i = 0; i < labels.length && i < slots.length; i++)
       LivingSpot(
         id: 'section-$i',
         label: labels[i],
         rect: slots[i],
+        tallRect: tall[i],
         change: _changes[i],
         onArrive: () => open(i),
       ),
@@ -114,6 +134,15 @@ class _LivingCommunitySectionsState extends State<LivingCommunitySections> {
                   ? 'assets/scenes/family_courtyard/courtyard.webp'
                   : 'assets/scenes/guild_hall/hall.webp',
               aspect: 1.5,
+              tallArt: widget.family
+                  ? 'assets/scenes/family_courtyard/courtyard_tall.webp'
+                  : 'assets/scenes/guild_hall/guild_hall_tall.webp',
+              tallNpcAt: widget.family
+                  ? const Offset(0.82, 0.62)
+                  : const Offset(0.16, 0.7),
+              tallHome: widget.family
+                  ? const Offset(0.5, 0.62)
+                  : const Offset(0.5, 0.66),
               title: title,
               npc: actor,
               npcAt: widget.family

@@ -242,8 +242,9 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
         : appState.isCurrentDevicePushConfigured
         ? '已啟用本機排程與帳號遠端推播'
         : '已啟用此裝置的本機提醒排程';
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildPreviewCard(BuildContext context, ReminderPreview preview) {
@@ -380,6 +381,10 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
           LivingSceneBanner(
             art: 'assets/scenes/post_office/post_office.webp',
             aspect: 1.5,
+            tallArt: 'assets/scenes/post_office/post_office_tall.webp',
+            tallAspect: 2 / 3,
+            tallNpcAt: const Offset(0.8, 0.8),
+            tallHome: const Offset(0.45, 0.8),
             title: '提醒郵局',
             npc: GameCharacters.letty,
             npcAt: const Offset(0.5, 0.92),
@@ -389,6 +394,8 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
                 id: 'mailbox',
                 label: '信箱',
                 rect: const Rect.fromLTWH(0.1, 0.18, 0.25, 0.3),
+                tallRect: const Rect.fromLTWH(0.06, 0.1, 0.34, 0.28),
+                revealsBelow: true,
                 change: LivingChange.open,
                 onArrive: () => _show(_PostOfficeObject.mailbox),
               ),
@@ -396,6 +403,8 @@ class _ReminderCenterPageState extends State<ReminderCenterPage> {
                 id: 'alarms',
                 label: '鬧鐘牆',
                 rect: const Rect.fromLTWH(0.79, 0.28, 0.16, 0.36),
+                tallRect: const Rect.fromLTWH(0.66, 0.24, 0.2, 0.12),
+                revealsBelow: true,
                 change: LivingChange.shake,
                 onArrive: () => _show(_PostOfficeObject.alarms),
               ),

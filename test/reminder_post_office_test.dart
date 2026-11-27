@@ -43,9 +43,14 @@ void main() {
     expect(find.byType(NpcDialog), findsOneWidget);
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
+    // On a phone the post office fills the screen; the opened object's
+    // panel sits below it.
+    expect(find.byKey(const ValueKey('living-scene-tall')), findsOneWidget);
     await tester.tap(find.text('打開信箱'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('站內通知'), 200);
     expect(find.text('站內通知'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('查看鬧鐘架'), -200);
     await tester.tap(find.text('查看鬧鐘架'));
     await tester.pumpAndSettle();
     expect(find.text('站內通知'), findsNothing);
